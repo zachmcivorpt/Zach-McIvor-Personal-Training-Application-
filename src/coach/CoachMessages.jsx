@@ -29,7 +29,7 @@ export function ThreadView({ client, onClose }) {
           <Avatar name={client.name} url={client.avatarUrl} size={36} />
           <div>
             <p className="text-white font-semibold text-sm leading-none">{client.name}</p>
-            <p className="text-white/30 text-xs mt-1">@{client.username}</p>
+            <p className="text-white/30 text-xs mt-1">{client.username}</p>
           </div>
         </div>
 

@@ -32,20 +32,24 @@ import {
 
 const HABIT_PRESETS = ["12,000 steps", "Do your Mobility", "Log your Nutrition", "Sleep 7+ Hours"];
 
-function inviteMailto({ email, name, username, code }) {
+function inviteMailto({ email, name, username, code, coachName }) {
   const activateUrl = `${window.location.origin}/activate`;
-  const subject = "Your login for M Personal Training";
+  const subject = "Your Login Details For Zach McIvor Personal Training App";
   const body = [
     `Hey ${name.split(" ")[0]},`,
     "",
-    "Here are your login details to activate your account:",
+    "Welcome aboard — congrats on taking the first step! I'm genuinely excited to start working with you and help you smash your goals. 💪",
     "",
-    `Username: ${username}`,
+    "Here are your login details:",
+    "",
+    `Login email: ${username}`,
     `Invite code: ${code}`,
     "",
     `Activate your account here: ${activateUrl}`,
     "",
-    "You'll set your own password when you activate — see you in there!",
+    "You'll choose your own password when you activate. Let's get to work!",
+    "",
+    coachName || "Zach",
   ].join("\n");
   return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
@@ -97,7 +101,7 @@ function AddClientSheet({ open, onClose, onCreated }) {
 // own profile, only visible to the coach, triggered whenever the coach is
 // actually ready to bring the client in.
 function SendLoginSheet({ open, onClose, client, showToast }) {
-  const { resendInvite } = useApp();
+  const { resendInvite, currentUser } = useApp();
   const [code, setCode] = useState(client?.password || "");
 
   if (!client) return null;
@@ -116,7 +120,7 @@ function SendLoginSheet({ open, onClose, client, showToast }) {
       </p>
       <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
         <div>
-          <p className="text-white/40 text-[11px] tracking-wide">USERNAME</p>
+          <p className="text-white/40 text-[11px] tracking-wide">LOGIN EMAIL</p>
           <p className="text-white text-lg font-bold">{client.username}</p>
         </div>
         <div>
@@ -125,7 +129,7 @@ function SendLoginSheet({ open, onClose, client, showToast }) {
         </div>
       </div>
       <a
-        href={inviteMailto({ email: client.email, name: client.name, username: client.username, code })}
+        href={inviteMailto({ email: client.email, name: client.name, username: client.username, code, coachName: currentUser?.name })}
         className="w-full mt-3 bg-white text-black text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2"
       >
         <Mail size={15} /> EMAIL THESE DETAILS
@@ -133,7 +137,7 @@ function SendLoginSheet({ open, onClose, client, showToast }) {
       <button
         onClick={() => {
           const activateUrl = `${window.location.origin}/activate`;
-          navigator.clipboard?.writeText(`Username: ${client.username}\nInvite code: ${code}\nActivate at: ${activateUrl}`);
+          navigator.clipboard?.writeText(`Login email: ${client.username}\nInvite code: ${code}\nActivate at: ${activateUrl}`);
           showToast("Copied login details");
         }}
         className="w-full mt-2.5 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"

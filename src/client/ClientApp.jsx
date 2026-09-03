@@ -1432,7 +1432,7 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
             <div>
               <p className="text-white text-lg font-bold">{user.name}</p>
               <p className="text-white/40 text-sm">
-                {user.fitnessLevel || "Beginner"} · @{user.username}
+                {user.fitnessLevel || "Beginner"} · {user.username}
               </p>
             </div>
           </div>

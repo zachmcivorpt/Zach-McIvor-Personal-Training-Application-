@@ -125,11 +125,13 @@ export function AppProvider({ children }) {
 
       createInvite({ name, email }) {
         const id = newId("u");
-        const base = name.trim().toLowerCase().split(/\s+/)[0] || "client";
+        // Username = the client's own email address, so it's something they
+        // already know rather than a coach-generated slug they have to remember.
+        const base = email.trim().toLowerCase();
         let username = base;
         let n = 1;
-        while (db.users.some((u) => u.username === username)) {
-          username = `${base}${n}`;
+        while (db.users.some((u) => u.username.toLowerCase() === username)) {
+          username = `${base}+${n}`;
           n++;
         }
         const code = inviteCode();

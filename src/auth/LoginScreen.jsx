@@ -148,11 +148,12 @@ export default function LoginScreen() {
         ) : (
           <>
             <form onSubmit={submit} className="space-y-4">
-              <Field label="USERNAME">
+              <Field label={role === "client" ? "EMAIL" : "USERNAME"}>
                 <TextInput
+                  type={role === "client" ? "email" : "text"}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={role === "coach" ? "your username" : "your username"}
+                  placeholder={role === "client" ? "you@example.com" : "your username"}
                   autoCapitalize="none"
                   autoComplete="username"
                 />

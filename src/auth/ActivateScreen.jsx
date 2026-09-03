@@ -47,13 +47,20 @@ export default function ActivateScreen() {
           <Logo variant="mark" tone="white" className="h-14 w-auto mb-4" />
           <h1 className="text-white text-xl font-bold">Activate your account</h1>
           <p className="text-white/40 text-sm text-center mt-1.5">
-            Enter the username and invite code your coach gave you, then choose your own password.
+            Enter your email and the invite code your coach gave you, then choose your own password.
           </p>
         </div>
 
         <form onSubmit={submit} className="space-y-4">
-          <Field label="USERNAME">
-            <TextInput value={username} onChange={(e) => setUsername(e.target.value)} placeholder="from your coach" autoCapitalize="none" />
+          <Field label="EMAIL">
+            <TextInput
+              type="email"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              autoComplete="username"
+            />
           </Field>
           <Field label="INVITE CODE">
             <TextInput
