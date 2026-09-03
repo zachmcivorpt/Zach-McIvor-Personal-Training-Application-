@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, ScanLine, X, Check, Plus, Minus, Trash2, UtensilsCrossed } from "lucide-react";
 import { Card, Pill, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFood } from "../lib/foodDatabase";
@@ -90,10 +90,21 @@ export function FoodQuantitySheet({ food, onClose, onConfirm }) {
    BARCODE SCANNER — real camera + a live decode against Open Food Facts
 ============================================================================ */
 
+// Product barcode formats only (skips QR/DataMatrix/etc. detection work,
+// which speeds up recognition) and opts into the browser's native
+// BarcodeDetector API where available — much faster and more reliable
+// than the JS-only decoder html5-qrcode falls back to otherwise.
+const BARCODE_FORMATS = [
+  Html5QrcodeSupportedFormats.EAN_13,
+  Html5QrcodeSupportedFormats.EAN_8,
+  Html5QrcodeSupportedFormats.UPC_A,
+  Html5QrcodeSupportedFormats.UPC_E,
+  Html5QrcodeSupportedFormats.CODE_128,
+];
+
 export function BarcodeScanSheet({ open, onClose, onAdd }) {
-  const [status, setStatus] = useState("scanning"); // scanning | looking-up | result | error
+  const [status, setStatus] = useState("scanning"); // scanning | looking-up | error
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
   const scannerRef = useRef(null);
   const elId = "barcode-scanner-region";
 
@@ -101,15 +112,18 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
     if (!open) return;
     setStatus("scanning");
     setError("");
-    setResult(null);
-    const scanner = new Html5Qrcode(elId, { verbose: false });
+    const scanner = new Html5Qrcode(elId, {
+      verbose: false,
+      formatsToSupport: BARCODE_FORMATS,
+      useBarCodeDetectorIfSupported: true,
+    });
     scannerRef.current = scanner;
     let stopped = false;
 
     scanner
       .start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 260, height: 160 } },
+        { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+        { fps: 20, qrbox: { width: 280, height: 130 }, disableFlip: true },
         async (decodedText) => {
           if (stopped) return;
           stopped = true;
@@ -121,8 +135,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
           setStatus("looking-up");
           try {
             const food = await lookupBarcode(decodedText);
-            setResult(food);
-            setStatus("result");
+            onAdd(food);
           } catch (err) {
             setError(err.message);
             setStatus("error");
@@ -178,33 +191,6 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
             <p className="text-black/40 text-sm mb-6">{error}</p>
             <SecondaryButton onClick={onClose} className="px-8">
               Close
-            </SecondaryButton>
-          </div>
-        )}
-
-        {status === "result" && result && (
-          <div className="flex-1 px-5 flex flex-col justify-center">
-            <Card>
-              <p className="text-black font-semibold">{result.name}</p>
-              <div className="grid grid-cols-4 gap-2 mt-4">
-                {[
-                  ["Cals", result.cals],
-                  ["Protein", `${result.protein}g`],
-                  ["Carbs", `${result.carbs}g`],
-                  ["Fat", `${result.fat}g`],
-                ].map(([l, v]) => (
-                  <div key={l} className="text-center bg-black/5 rounded-xl py-2.5">
-                    <p className="text-black font-bold text-sm">{v}</p>
-                    <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-            <PrimaryButton className="w-full mt-4" onClick={() => onAdd(result)}>
-              <Check size={16} /> ADD THIS ITEM
-            </PrimaryButton>
-            <SecondaryButton className="w-full mt-2.5" onClick={onClose}>
-              Cancel
             </SecondaryButton>
           </div>
         )}

@@ -1,5 +1,24 @@
 // Looks up a scanned barcode against Open Food Facts — a free, public,
 // no-API-key food database. This is a real network lookup, not mocked.
+//
+// Returns a food shaped exactly like a FOOD_DATABASE entry (per-100g
+// macros + a `per: 100` unit + a `defaultQty` in grams) rather than
+// pre-scaled totals, so it can go straight into the same FoodQuantitySheet
+// every other food uses — the client sees a real serving size by default
+// (parsed from Open Food Facts' serving info, not always available or
+// accurate) and can still adjust it before adding, exactly like manual
+// search results.
+function parseServingGrams(product) {
+  // `serving_quantity` is Open Food Facts' own parsed numeric grams for
+  // `serving_size` (e.g. "30 g" -> 30) — prefer it when present.
+  if (product.serving_quantity != null) {
+    const n = Number(product.serving_quantity);
+    if (n > 0) return n;
+  }
+  const match = String(product.serving_size || "").match(/(\d+(?:\.\d+)?)\s*g\b/i);
+  return match ? parseFloat(match[1]) : null;
+}
+
 export async function lookupBarcode(code) {
   const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`, {
     headers: { Accept: "application/json" },
@@ -13,20 +32,21 @@ export async function lookupBarcode(code) {
   const n = p.nutriments || {};
   const name = p.product_name || p.generic_name || `Scanned item (${code})`;
 
-  // Prefer per-serving values when Open Food Facts has them, else per-100g.
-  const hasServing = n["energy-kcal_serving"] != null;
-  const cals = Math.round(hasServing ? n["energy-kcal_serving"] : n["energy-kcal_100g"] || 0);
-  const protein = Math.round(hasServing ? n["proteins_serving"] : n["proteins_100g"] || 0);
-  const carbs = Math.round(hasServing ? n["carbohydrates_serving"] : n["carbohydrates_100g"] || 0);
-  const fat = Math.round(hasServing ? n["fat_serving"] : n["fat_100g"] || 0);
-  const portion = hasServing ? p.serving_size || "1 serving" : "100g";
+  const cals = Math.round(n["energy-kcal_100g"] || 0);
+  const protein = Math.round((n["proteins_100g"] || 0) * 10) / 10;
+  const carbs = Math.round((n["carbohydrates_100g"] || 0) * 10) / 10;
+  const fat = Math.round((n["fat_100g"] || 0) * 10) / 10;
+
+  const servingGrams = parseServingGrams(p);
 
   return {
     id: `off_${code}`,
-    name: `${name} (${portion})`,
+    name,
     cals,
     protein,
     carbs,
     fat,
+    per: 100,
+    defaultQty: servingGrams || 100,
   };
 }

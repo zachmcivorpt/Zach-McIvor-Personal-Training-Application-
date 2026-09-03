@@ -1483,7 +1483,14 @@ function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals
         </div>
       </BottomSheet>
 
-      <BarcodeScanSheet open={barcodeOpen} onClose={() => setBarcodeOpen(false)} onAdd={addAndClose} />
+      <BarcodeScanSheet
+        open={barcodeOpen}
+        onClose={() => setBarcodeOpen(false)}
+        onAdd={(food) => {
+          setBarcodeOpen(false);
+          setPendingFood(food);
+        }}
+      />
       <PhotoEstimateSheet
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
