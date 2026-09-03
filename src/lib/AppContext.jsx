@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { newId, inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
+import { COACH_SETUP_CODE } from "./config";
 
 const DB_KEY = "mpt_db_v4";
 const SESSION_KEY = "mpt_session_v2";
@@ -20,6 +21,7 @@ function loadDb() {
     nutrition: {}, // clientId -> nutrition state
     messages: {}, // clientId -> [{ id, from: 'coach'|'client', text, date }]
     progressPhotos: {}, // clientId -> [{ id, url, date, caption }]
+    savedMeals: {}, // clientId -> [{ id, name, ingredients:[{name,cals,protein,carbs,fat}], cals, protein, carbs, fat, createdAt }]
   };
 }
 
@@ -80,7 +82,10 @@ export function AppProvider({ children }) {
         setSession(null);
       },
 
-      createCoachAccount({ name, email, username, password }) {
+      createCoachAccount({ name, email, username, password, setupCode }) {
+        if (setupCode !== COACH_SETUP_CODE) {
+          throw new Error("That setup code isn't right.");
+        }
         if (db.users.some((u) => u.role === "coach")) {
           throw new Error("A coach account already exists in this browser.");
         }
@@ -260,6 +265,28 @@ export function AppProvider({ children }) {
 
       updateUser(id, data) {
         setDb((d) => ({ ...d, users: d.users.map((u) => (u.id === id ? { ...u, ...data } : u)) }));
+      },
+
+      createSavedMeal(clientId, meal) {
+        const savedMeal = { id: newId("meal"), createdAt: Date.now(), ...meal };
+        setDb((d) => ({
+          ...d,
+          savedMeals: {
+            ...(d.savedMeals || {}),
+            [clientId]: [savedMeal, ...((d.savedMeals || {})[clientId] || [])],
+          },
+        }));
+        return savedMeal;
+      },
+
+      deleteSavedMeal(clientId, mealId) {
+        setDb((d) => ({
+          ...d,
+          savedMeals: {
+            ...(d.savedMeals || {}),
+            [clientId]: ((d.savedMeals || {})[clientId] || []).filter((m) => m.id !== mealId),
+          },
+        }));
       },
     }),
     [db]

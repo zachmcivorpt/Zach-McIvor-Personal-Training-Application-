@@ -1,0 +1,16 @@
+export const FOOD_DATABASE = [
+  { id: "d1", name: "Chicken Breast (150g)", cals: 248, protein: 46, carbs: 0, fat: 5 },
+  { id: "d2", name: "White Rice (1 cup)", cals: 205, protein: 4, carbs: 45, fat: 0 },
+  { id: "d3", name: "Eggs (2 large)", cals: 156, protein: 12, carbs: 1, fat: 11 },
+  { id: "d4", name: "Oatmeal (1 cup)", cals: 158, protein: 6, carbs: 27, fat: 3 },
+  { id: "d5", name: "Salmon Fillet (150g)", cals: 280, protein: 39, carbs: 0, fat: 13 },
+  { id: "d6", name: "Protein Shake", cals: 220, protein: 36, carbs: 8, fat: 3 },
+  { id: "d7", name: "Avocado (half)", cals: 120, protein: 1, carbs: 6, fat: 11 },
+  { id: "d8", name: "Sweet Potato (medium)", cals: 112, protein: 2, carbs: 26, fat: 0 },
+  { id: "d9", name: "Greek Yogurt (1 cup)", cals: 150, protein: 20, carbs: 8, fat: 4 },
+  { id: "d10", name: "Almonds (1oz)", cals: 164, protein: 6, carbs: 6, fat: 14 },
+  { id: "d11", name: "Banana", cals: 105, protein: 1, carbs: 27, fat: 0 },
+  { id: "d12", name: "Broccoli (1 cup)", cals: 31, protein: 3, carbs: 6, fat: 0 },
+  { id: "d13", name: "Peanut Butter (2 tbsp)", cals: 190, protein: 8, carbs: 7, fat: 16 },
+  { id: "d14", name: "Whole Wheat Bread (1 slice)", cals: 80, protein: 4, carbs: 14, fat: 1 },
+];

@@ -3,7 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo } from "../components/ui";
 import { PrimaryButton, TextInput, Field } from "../components/ui";
-import { ChevronRight, UserPlus } from "lucide-react";
+import { ChevronRight, Lock } from "lucide-react";
+import { COACH_SETUP_CODE } from "../lib/config";
 
 function CoachSignupForm() {
   const { createCoachAccount } = useApp();
@@ -13,12 +14,17 @@ function CoachSignupForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [setupCode, setSetupCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   function submit(e) {
     e.preventDefault();
     setError("");
+    if (setupCode.trim() !== COACH_SETUP_CODE) {
+      setError("That setup code isn't right.");
+      return;
+    }
     if (password.length < 6) {
       setError("Choose a password with at least 6 characters.");
       return;
@@ -29,7 +35,7 @@ function CoachSignupForm() {
     }
     setBusy(true);
     try {
-      createCoachAccount({ name, email, username, password });
+      createCoachAccount({ name, email, username, password, setupCode });
       navigate("/coach", { replace: true });
     } catch (err) {
       setError(err.message);
@@ -44,6 +50,15 @@ function CoachSignupForm() {
         First time here — set up your coach account. Your password is stored only in this browser, never in the app's code.
       </p>
       <form onSubmit={submit} className="space-y-4">
+        <Field label="SETUP CODE" hint="Given to you separately — not shared with clients">
+          <TextInput
+            value={setupCode}
+            onChange={(e) => setSetupCode(e.target.value)}
+            placeholder="Enter your setup code"
+            autoCapitalize="characters"
+            required
+          />
+        </Field>
         <Field label="FULL NAME">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Zach McIvor" required />
         </Field>
@@ -62,8 +77,12 @@ function CoachSignupForm() {
 
         {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
 
-        <PrimaryButton type="submit" disabled={busy || !name || !email || !username || !password || !confirm} className="w-full">
-          <UserPlus size={18} /> CREATE ACCOUNT & SIGN IN
+        <PrimaryButton
+          type="submit"
+          disabled={busy || !name || !email || !username || !password || !confirm || !setupCode}
+          className="w-full"
+        >
+          <Lock size={16} /> CREATE ACCOUNT & SIGN IN
         </PrimaryButton>
       </form>
     </div>

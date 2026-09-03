@@ -23,7 +23,26 @@ import {
   ClipboardList,
   MessageCircle,
   Image as ImageIcon,
+  Mail,
 } from "lucide-react";
+
+function inviteMailto({ email, name, username, code }) {
+  const activateUrl = `${window.location.origin}/activate`;
+  const subject = "Your login for M Personal Training";
+  const body = [
+    `Hey ${name.split(" ")[0]},`,
+    "",
+    "Here are your login details to activate your account:",
+    "",
+    `Username: ${username}`,
+    `Invite code: ${code}`,
+    "",
+    `Activate your account here: ${activateUrl}`,
+    "",
+    "You'll set your own password when you activate — see you in there!",
+  ].join("\n");
+  return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 function InviteSheet({ open, onClose, showToast }) {
   const { createInvite } = useApp();
@@ -74,16 +93,25 @@ function InviteSheet({ open, onClose, showToast }) {
               <p className="text-white text-lg font-bold tracking-[0.3em]">{result.code}</p>
             </div>
           </div>
+          <a
+            href={inviteMailto({ email, name, username: result.username, code: result.code })}
+            className="w-full mt-3 bg-white text-black text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+          >
+            <Mail size={15} /> EMAIL THESE DETAILS
+          </a>
           <button
             onClick={() => {
-              navigator.clipboard?.writeText(`Username: ${result.username}\nInvite code: ${result.code}\nActivate at your app's /activate page.`);
+              const activateUrl = `${window.location.origin}/activate`;
+              navigator.clipboard?.writeText(
+                `Username: ${result.username}\nInvite code: ${result.code}\nActivate at: ${activateUrl}`
+              );
               showToast("Copied login details");
             }}
-            className="w-full mt-3 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
+            className="w-full mt-2.5 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
           >
             <Copy size={14} /> COPY DETAILS
           </button>
-          <PrimaryButton onClick={close} className="w-full mt-3">
+          <PrimaryButton onClick={close} className="w-full mt-3 !bg-white/8 !text-white">
             DONE
           </PrimaryButton>
         </div>

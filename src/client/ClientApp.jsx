@@ -27,7 +27,6 @@ import {
   BarChart3,
   Camera,
   ScanLine,
-  Star,
   LogOut,
   Image as ImageIcon,
   X,
@@ -64,6 +63,8 @@ import {
 import { MEASURE_BLUE } from "../theme";
 import { WEIGHT_HISTORY, BENCH_HISTORY, VOLUME_HISTORY, METRIC_TILES } from "../lib/mockMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
+import { FOOD_DATABASE } from "../lib/foodDatabase";
+import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection } from "./NutritionFeatures";
 
 /* ============================================================================
    ILLUSTRATIVE METRICS
@@ -94,16 +95,6 @@ const DEFAULT_NUTRITION = {
     "Post-workout": [{ id: "f4", name: "Banana", cals: 105, protein: 1, carbs: 27, fat: 0 }],
   },
 };
-const FOOD_DATABASE = [
-  { id: "d1", name: "Chicken Breast (150g)", cals: 248, protein: 46, carbs: 0, fat: 5 },
-  { id: "d2", name: "White Rice (1 cup)", cals: 205, protein: 4, carbs: 45, fat: 0 },
-  { id: "d3", name: "Eggs (2 large)", cals: 156, protein: 12, carbs: 1, fat: 11 },
-  { id: "d4", name: "Oatmeal (1 cup)", cals: 158, protein: 6, carbs: 27, fat: 3 },
-  { id: "d5", name: "Salmon Fillet (150g)", cals: 280, protein: 39, carbs: 0, fat: 13 },
-  { id: "d6", name: "Protein Shake", cals: 220, protein: 36, carbs: 8, fat: 3 },
-  { id: "d7", name: "Avocado (half)", cals: 120, protein: 1, carbs: 6, fat: 11 },
-  { id: "d8", name: "Sweet Potato (medium)", cals: 112, protein: 2, carbs: 26, fat: 0 },
-];
 const ACHIEVEMENTS = [
   { id: "a1", label: "12-day streak", icon: "🔥" },
   { id: "a2", label: "50 workouts completed", icon: "🏆" },
@@ -833,14 +824,36 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
    NUTRITION TAB
 ============================================================================ */
 
-function NutritionScreen({ nutrition, onAddFood, onAddWater }) {
+function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
   const [waterSheetOpen, setWaterSheetOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [createMealOpen, setCreateMealOpen] = useState(false);
+  const [mealPrefill, setMealPrefill] = useState(null);
 
   const mealCategories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
   const filteredFoods = FOOD_DATABASE.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+
+  function addAndClose(food) {
+    onAddFood(activeMeal, food);
+    setBarcodeOpen(false);
+    setPhotoOpen(false);
+    setSheetOpen(false);
+  }
+
+  function saveMealFromEstimate(estimate) {
+    onCreateSavedMeal({ name: estimate.name, ingredients: estimate.ingredients, cals: estimate.cals, protein: estimate.protein, carbs: estimate.carbs, fat: estimate.fat });
+    showToast(`Saved "${estimate.name}" to My Meals`);
+    setPhotoOpen(false);
+    setSheetOpen(false);
+  }
+
+  function logSavedMeal(meal, category) {
+    onAddFood(category, { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat });
+  }
 
   return (
     <div className="pb-6">
@@ -903,6 +916,18 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater }) {
         </Card>
       </div>
 
+      <div className="px-5 mt-4">
+        <SavedMealsSection
+          meals={savedMeals}
+          onCreateNew={() => {
+            setMealPrefill(null);
+            setCreateMealOpen(true);
+          }}
+          onLog={logSavedMeal}
+          onDelete={onDeleteSavedMeal}
+        />
+      </div>
+
       <div className="px-5 mt-5 space-y-3">
         {mealCategories.map((meal) => {
           const items = nutrition.meals[meal] || [];
@@ -950,17 +975,19 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater }) {
           />
         </div>
         <div className="flex gap-2 mb-4">
-          <button className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/40 text-xs">
+          <button
+            onClick={() => setBarcodeOpen(true)}
+            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
+          >
             <ScanLine size={18} />
             Scan barcode
           </button>
-          <button className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/40 text-xs">
+          <button
+            onClick={() => setPhotoOpen(true)}
+            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
+          >
             <Camera size={18} />
             Photo
-          </button>
-          <button className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/40 text-xs">
-            <Star size={18} />
-            Favorites
           </button>
         </div>
         <p className="text-white/30 text-xs mb-2 tracking-wide">SEARCH RESULTS</p>
@@ -1002,6 +1029,24 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater }) {
           ))}
         </div>
       </BottomSheet>
+
+      <BarcodeScanSheet open={barcodeOpen} onClose={() => setBarcodeOpen(false)} onAdd={addAndClose} />
+      <PhotoEstimateSheet
+        open={photoOpen}
+        onClose={() => setPhotoOpen(false)}
+        onAdd={(estimate) => addAndClose({ id: `photo_${Date.now()}`, name: estimate.name, cals: estimate.cals, protein: estimate.protein, carbs: estimate.carbs, fat: estimate.fat })}
+        onSaveAsMeal={saveMealFromEstimate}
+      />
+      <CreateMealSheet
+        open={createMealOpen}
+        onClose={() => setCreateMealOpen(false)}
+        prefill={mealPrefill}
+        onSave={(meal) => {
+          onCreateSavedMeal(meal);
+          showToast(`Saved "${meal.name}" to My Meals`);
+          setCreateMealOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -1420,7 +1465,18 @@ const TABS = [
 ];
 
 export default function ClientApp() {
-  const { currentUser, db, logWorkout, setNutrition, logout, sendMessage, addProgressPhoto, deleteProgressPhoto } = useApp();
+  const {
+    currentUser,
+    db,
+    logWorkout,
+    setNutrition,
+    logout,
+    sendMessage,
+    addProgressPhoto,
+    deleteProgressPhoto,
+    createSavedMeal,
+    deleteSavedMeal,
+  } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
   const [activeLog, setActiveLog] = useState(null); // {exerciseId: [sets]} while a session is open
@@ -1443,6 +1499,7 @@ export default function ClientApp() {
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
   const logsForClient = db.workoutLogs[currentUser.id] || [];
   const nutrition = db.nutrition[currentUser.id] || DEFAULT_NUTRITION;
+  const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
 
   useEffect(() => {
     if (!db.nutrition[currentUser.id]) {
@@ -1545,7 +1602,17 @@ export default function ClientApp() {
             exercisesById={exercisesById}
           />
         )}
-        {tab === "nutrition" && <NutritionScreen nutrition={nutrition} onAddFood={addFood} onAddWater={addWater} />}
+        {tab === "nutrition" && (
+          <NutritionScreen
+            nutrition={nutrition}
+            onAddFood={addFood}
+            onAddWater={addWater}
+            savedMeals={savedMeals}
+            onCreateSavedMeal={(meal) => createSavedMeal(currentUser.id, meal)}
+            onDeleteSavedMeal={(mealId) => deleteSavedMeal(currentUser.id, mealId)}
+            showToast={showToast}
+          />
+        )}
         {tab === "progress" && (
           <ProgressScreen userId={currentUser.id} photos={photos} onAddPhoto={addProgressPhoto} onDeletePhoto={deleteProgressPhoto} />
         )}
