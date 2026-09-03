@@ -28,16 +28,6 @@ export default function LoginScreen() {
     }
   }
 
-  function fillDemo() {
-    if (role === "coach") {
-      setUsername("coach");
-      setPassword("coach123");
-    } else {
-      setUsername("alex");
-      setPassword("client123");
-    }
-  }
-
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0A0A0B] px-6">
       <div className="w-full max-w-sm">
@@ -92,10 +82,6 @@ export default function LoginScreen() {
             SIGN IN <ChevronRight size={18} />
           </PrimaryButton>
         </form>
-
-        <button onClick={fillDemo} type="button" className="w-full text-center text-white/30 text-xs mt-4 underline underline-offset-2">
-          Use demo {role} credentials
-        </button>
 
         {role === "client" && (
           <p className="text-center text-white/40 text-sm mt-8">

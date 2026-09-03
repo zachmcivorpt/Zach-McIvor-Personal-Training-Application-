@@ -1,7 +1,7 @@
 import React from "react";
 import { useApp } from "../lib/AppContext";
 import { Card, Logo, DangerButton } from "../components/ui";
-import { Video, User, LogOut, Info, ChevronRight } from "lucide-react";
+import { Video, LogOut, ChevronRight } from "lucide-react";
 
 export default function CoachMore({ onNavigate, onLogout }) {
   const { currentUser } = useApp();
@@ -43,17 +43,6 @@ export default function CoachMore({ onNavigate, onLogout }) {
         <p className="text-white/40 text-xs text-center">
           This mark appears across sign-in, the client app header, and workout completion screens.
         </p>
-      </Card>
-
-      <Card>
-        <div className="flex gap-3">
-          <Info size={16} className="text-white/40 shrink-0 mt-0.5" />
-          <p className="text-white/40 text-xs leading-relaxed">
-            This console runs on local, on-device storage — perfect for demoing the full coach → client workflow. To go live with
-            real client accounts, uploaded videos, and multi-device sync, connect it to a backend (auth, database, and object
-            storage for video).
-          </p>
-        </div>
       </Card>
 
       <DangerButton className="w-full" onClick={onLogout}>
