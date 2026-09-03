@@ -23,7 +23,7 @@ export function Logo({ variant = "wordmark", tone = "white", className = "", sty
   return (
     <img
       src={BRAND_SOURCES[`${variant}-${tone}`]}
-      alt="M Personal Training"
+      alt="Zach McIvor Personal Training"
       className={className}
       style={style}
       draggable={false}

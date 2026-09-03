@@ -37,6 +37,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
   const [overIndex, setOverIndex] = useState(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
+  const [mobilePanel, setMobilePanel] = useState("editor"); // "editor" | "picker" — mobile-only tab switch
 
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(
@@ -105,6 +106,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
   }
   function addExercise(exerciseId) {
     setRows((r) => [...r, newRow(exerciseId)]);
+    setMobilePanel("editor");
   }
   function addCustomExercise() {
     if (!customForm.name.trim()) return;
@@ -132,18 +134,18 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
   return (
     <div className="fixed inset-0 z-[95] bg-white flex flex-col">
       {/* top bar */}
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-black/8 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="text-black/40 text-sm font-medium shrink-0">Workout:</span>
+      <div className="flex items-center justify-between px-4 md:px-6 py-3.5 border-b border-black/8 shrink-0 gap-2">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+          <span className="hidden sm:inline text-black/40 text-sm font-medium shrink-0">Workout:</span>
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Workout name"
-            className="bg-transparent outline-none text-black font-bold text-lg min-w-0 border-b border-transparent focus:border-black/20"
+            className="bg-transparent outline-none text-black font-bold text-base md:text-lg min-w-0 flex-1 border-b border-transparent focus:border-black/20"
           />
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={save} className="bg-black text-white text-sm font-bold px-5 py-2.5 rounded-xl">
+          <button onClick={save} className="bg-black text-white text-sm font-bold px-4 md:px-5 py-2.5 rounded-xl">
             SAVE
           </button>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-black/8 text-black/60">
@@ -152,9 +154,29 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
         </div>
       </div>
 
+      {/* mobile panel switch */}
+      <div className="md:hidden flex gap-2 px-4 py-2.5 border-b border-black/8 shrink-0">
+        <button
+          onClick={() => setMobilePanel("editor")}
+          className={`flex-1 py-2 rounded-xl text-xs font-semibold ${mobilePanel === "editor" ? "bg-black text-white" : "bg-black/8 text-black/60"}`}
+        >
+          Editor {rows.length > 0 && `(${rows.length})`}
+        </button>
+        <button
+          onClick={() => setMobilePanel("picker")}
+          className={`flex-1 py-2 rounded-xl text-xs font-semibold ${mobilePanel === "picker" ? "bg-black text-white" : "bg-black/8 text-black/60"}`}
+        >
+          Add Exercises
+        </button>
+      </div>
+
       <div className="flex-1 flex min-h-0">
         {/* left: instructions + exercise table */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 border-r border-black/8">
+        <div
+          className={`${
+            mobilePanel === "picker" ? "hidden" : "flex-1"
+          } md:flex-1 overflow-y-auto px-4 md:px-6 py-5 md:border-r border-black/8`}
+        >
           <p className="text-black/40 text-[11px] font-semibold tracking-wide mb-2">INSTRUCTIONS</p>
           <TextArea
             rows={2}
@@ -334,7 +356,11 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
         </div>
 
         {/* right: exercise picker */}
-        <div className="w-[380px] shrink-0 overflow-y-auto px-5 py-5">
+        <div
+          className={`${
+            mobilePanel === "editor" ? "hidden" : "flex-1"
+          } md:flex md:flex-none md:w-[380px] shrink-0 overflow-y-auto px-4 md:px-5 py-5`}
+        >
           <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-3">
             <Search size={15} className="text-black/40" />
             <input

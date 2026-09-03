@@ -95,14 +95,14 @@ export default function CoachMessages() {
   const openClient = clients.find((c) => c.id === openClientId) || db.users.find((u) => u.id === openClientId) || null;
 
   return (
-    <div className="h-screen flex flex-col">
-      <div className="px-8 pt-8 pb-4 shrink-0">
+    <div className="h-screen md:h-screen flex flex-col">
+      <div className={`px-4 pt-5 pb-4 md:px-8 md:pt-8 shrink-0 ${openClientId ? "hidden md:block" : ""}`}>
         <h1 className="text-black text-2xl font-bold">Messages</h1>
         <p className="text-black/40 text-sm mt-0.5">Direct chat with your active clients</p>
       </div>
 
-      <div className="flex-1 min-h-0 flex border-t border-black/8">
-        <div className="w-80 shrink-0 border-r border-black/8 flex flex-col min-h-0">
+      <div className="flex-1 min-h-0 flex md:border-t border-black/8">
+        <div className={`w-full md:w-80 shrink-0 md:border-r border-black/8 flex-col min-h-0 ${openClientId ? "hidden md:flex" : "flex"}`}>
           <div className="p-4">
             <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5">
               <Search size={15} className="text-black/40" />
@@ -148,17 +148,24 @@ export default function CoachMessages() {
           </div>
         </div>
 
-        <div className="flex-1 min-w-0 flex flex-col">
+        <div className={`flex-1 min-w-0 flex-col ${openClientId ? "flex" : "hidden md:flex"}`}>
           {openClient ? (
             <>
-              <div className="flex items-center gap-3 px-5 py-3.5 border-b border-black/8">
+              <div className="flex items-center gap-2 px-3 md:px-5 py-3 md:py-3.5 border-b border-black/8">
+                <button
+                  onClick={() => setOpenClientId(null)}
+                  aria-label="Back to clients"
+                  className="md:hidden w-8 h-8 -ml-1 flex items-center justify-center text-black/60 shrink-0"
+                >
+                  <ChevronLeft size={19} />
+                </button>
                 <Avatar name={openClient.name} url={openClient.avatarUrl} size={34} />
                 <p className="text-black font-semibold text-sm">{openClient.name}</p>
               </div>
               <ThreadMessages client={openClient} />
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <div className="flex-1 flex-col items-center justify-center text-center hidden md:flex">
               <MessageCircle size={28} className="text-black/15 mb-3" />
               <p className="text-black/30 text-sm">Select a client to start messaging.</p>
             </div>

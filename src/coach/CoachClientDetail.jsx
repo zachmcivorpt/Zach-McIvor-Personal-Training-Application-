@@ -235,9 +235,9 @@ function TrainingProgramPanel({ client, showToast }) {
   }
 
   return (
-    <div className="flex h-full min-h-0">
-      {/* phase history */}
-      <div className="w-72 shrink-0 border-r border-black/8 flex flex-col min-h-0">
+    <div className="flex flex-col md:flex-row md:h-full min-h-0">
+      {/* phase history (desktop) */}
+      <div className="hidden md:flex w-72 shrink-0 border-r border-black/8 flex-col min-h-0">
         <div className="px-4 pt-5 pb-3 flex items-center justify-between">
           <p className="text-black font-semibold text-sm">Training Program</p>
           <button
@@ -272,8 +272,43 @@ function TrainingProgramPanel({ client, showToast }) {
         </div>
       </div>
 
+      {/* phase history (mobile) */}
+      <div className="md:hidden shrink-0 border-b border-black/8 px-4 py-3">
+        <div className="flex items-center justify-between mb-2.5">
+          <p className="text-black font-semibold text-sm">Training Program</p>
+          <button
+            onClick={() => setNewPhaseOpen(true)}
+            className="flex items-center gap-1 bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg"
+          >
+            <Plus size={13} /> ADD
+          </button>
+        </div>
+        {sorted.length === 0 ? (
+          <p className="text-black/30 text-xs py-1">No phases yet — add the first one.</p>
+        ) : (
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+            {sorted.map((p) => {
+              const active = p.id === selectedPhaseId;
+              const isCurrent = getCurrentPhase(phases, todayKey())?.id === p.id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => selectPhase(p.id)}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-colors ${
+                    active ? "bg-black text-white" : "bg-black/8 text-black/60"
+                  }`}
+                >
+                  {p.name}
+                  {isCurrent && <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-white" : "bg-black"}`} />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* selected phase detail */}
-      <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5">
+      <div className="flex-1 min-w-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
         {!phase ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
             <ClipboardList size={28} className="text-black/20 mb-3" />
@@ -284,11 +319,11 @@ function TrainingProgramPanel({ client, showToast }) {
           </div>
         ) : (
           <>
-            <div className="flex items-start justify-between gap-4 mb-1">
+            <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
               <input
                 value={phase.name}
                 onChange={(e) => updateClientPhase(client.id, phase.id, { name: e.target.value })}
-                className="bg-transparent outline-none text-black text-xl font-bold flex-1 min-w-0"
+                className="bg-transparent outline-none text-black text-xl font-bold flex-1 min-w-[140px]"
               />
               <div className="flex items-center gap-2 shrink-0">
                 <button
@@ -413,7 +448,7 @@ function HabitsPanel({ client }) {
   }
 
   return (
-    <div className="max-w-xl px-6 py-6">
+    <div className="max-w-xl px-4 py-5 md:px-6 md:py-6">
       <p className="text-black font-semibold mb-4">Daily Habits</p>
       {habits.length > 0 && (
         <div className="space-y-1.5 mb-4">
@@ -450,12 +485,12 @@ function NutritionPanel({ client, showToast }) {
   const nutrition = db.nutrition[client.id];
 
   return (
-    <div className="max-w-xl px-6 py-6">
+    <div className="max-w-xl px-4 py-5 md:px-6 md:py-6">
       <p className="text-black font-semibold mb-4">Nutrition Log</p>
       {!nutrition ? (
         <p className="text-black/30 text-sm">Nothing logged yet.</p>
       ) : (
-        <div className="bg-black/5 border border-black/8 rounded-2xl p-4 grid grid-cols-4 gap-3 mb-4">
+        <div className="bg-black/5 border border-black/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
           {[
             ["Cals", nutrition.calories],
             ["Protein", `${nutrition.protein}g`],
@@ -508,12 +543,12 @@ function ProgressPanel({ client }) {
   const { db } = useApp();
   const photos = db.progressPhotos[client.id] || [];
   return (
-    <div className="max-w-3xl px-6 py-6">
+    <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6">
       <p className="text-black font-semibold mb-4">Progress Photos</p>
       {photos.length === 0 ? (
         <p className="text-black/30 text-sm">No photos uploaded by this client yet.</p>
       ) : (
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
           {photos.map((p) => (
             <div key={p.id} className="aspect-square rounded-xl overflow-hidden bg-black/5">
               <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
@@ -543,9 +578,9 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
   if (!client) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-white flex">
-      {/* client mini-sidebar */}
-      <div className="w-64 shrink-0 h-screen flex flex-col border-r border-black/8 bg-[#F7F7F8]">
+    <div className="fixed inset-0 z-[80] bg-white flex flex-col md:flex-row">
+      {/* client mini-sidebar (desktop) */}
+      <div className="hidden md:flex w-64 shrink-0 h-screen flex-col border-r border-black/8 bg-[#F7F7F8]">
         <div className="p-5 border-b border-black/8">
           <div className="flex items-center gap-3">
             <Avatar name={client.name} url={client.avatarUrl} size={48} />
@@ -621,8 +656,75 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
         </div>
       </div>
 
+      {/* mobile header */}
+      <div className="md:hidden shrink-0 bg-[#F7F7F8] border-b border-black/8">
+        <div className="flex items-center gap-2.5 px-3 pt-4 pb-3">
+          <button onClick={onClose} aria-label="Return to overview" className="w-8 h-8 -ml-1 flex items-center justify-center text-black/60 shrink-0">
+            <ArrowLeft size={18} />
+          </button>
+          <Avatar name={client.name} url={client.avatarUrl} size={38} />
+          <div className="min-w-0 flex-1">
+            <p className="text-black font-bold text-sm truncate">{client.name}</p>
+            <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
+          </div>
+          {client.status === "active" ? (
+            <button
+              onClick={() => setMessaging(true)}
+              className="w-9 h-9 rounded-full bg-black/8 flex items-center justify-center shrink-0"
+            >
+              <MessageCircle size={15} className="text-black/70" />
+            </button>
+          ) : (
+            <button
+              onClick={() => setSendOpen(true)}
+              className="flex items-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0"
+            >
+              <Send size={13} /> Send
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1.5 px-3 pb-2.5 overflow-x-auto no-scrollbar">
+          {CLIENT_NAV.map((item) => {
+            const Icon = item.icon;
+            const active = clientTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setClientTab(item.id)}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                  active ? "bg-black text-white" : "bg-black/8 text-black/60"
+                }`}
+              >
+                <Icon size={13} strokeWidth={active ? 2.4 : 2} /> {item.label}
+              </button>
+            );
+          })}
+        </div>
+        {!confirmRemove ? (
+          <button onClick={() => setConfirmRemove(true)} className="block px-3 pb-2.5 text-black/30 text-[11px] font-medium">
+            Remove client
+          </button>
+        ) : (
+          <div className="flex gap-1.5 px-3 pb-2.5">
+            <button onClick={() => setConfirmRemove(false)} className="flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg">
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                removeClient(client.id);
+                showToast("Client removed");
+                onClose();
+              }}
+              className="flex-1 bg-red-500/20 text-red-500 text-xs font-semibold py-1.5 rounded-lg"
+            >
+              Confirm remove
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* main panel */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto md:overflow-visible">
         {clientTab === "program" && <TrainingProgramPanel client={client} showToast={showToast} />}
         {clientTab === "nutrition" && <NutritionPanel client={client} showToast={showToast} />}
         {clientTab === "progress" && <ProgressPanel client={client} />}

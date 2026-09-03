@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['brand/mark-black.png'],
       manifest: {
-        name: 'M Personal Training',
-        short_name: 'M Training',
-        description: 'Forge Your Path — coaching and client app for M Personal Training.',
+        name: 'Zach McIvor Personal Training',
+        short_name: 'ZM Training',
+        description: 'Forge Your Path — coaching and client app for Zach McIvor Personal Training.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

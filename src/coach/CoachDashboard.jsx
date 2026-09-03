@@ -21,21 +21,21 @@ export default function CoachDashboard({ onNavigate }) {
   const todayKey = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="max-w-6xl mx-auto px-8 py-8">
+    <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
       <div className="mb-6">
         <h1 className="text-black text-2xl font-bold">Overview</h1>
         <p className="text-black/40 text-sm mt-0.5">Your roster, programs, and content at a glance.</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <StatCard icon={Users} label="ACTIVE CLIENTS" value={active.length} onClick={() => onNavigate("clients")} />
         <StatCard icon={Mail} label="NOT SENT YET" value={invited.length} onClick={() => onNavigate("clients")} />
         <StatCard icon={ClipboardList} label="PROGRAM TEMPLATES" value={db.programs.length} onClick={() => onNavigate("programs")} />
         <StatCard icon={Dumbbell} label="EXERCISES" value={db.exercises.length} onClick={() => onNavigate("exercises")} />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="col-span-1 h-fit">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="md:col-span-1 h-fit">
           <p className="text-black font-semibold mb-3">Quick actions</p>
           <div className="space-y-2">
             <button onClick={() => onNavigate("clients")} className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 rounded-xl px-4 py-3 transition-colors">
@@ -53,7 +53,7 @@ export default function CoachDashboard({ onNavigate }) {
           </div>
         </Card>
 
-        <Card className="col-span-2 h-fit">
+        <Card className="md:col-span-2 h-fit">
           <p className="text-black font-semibold mb-3">Clients</p>
           <div className="space-y-2.5">
             {clients.length === 0 && <p className="text-black/30 text-sm">No clients yet.</p>}

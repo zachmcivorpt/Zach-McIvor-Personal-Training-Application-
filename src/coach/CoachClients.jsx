@@ -157,21 +157,22 @@ export default function CoachClients({ showToast, search, setSearch }) {
   const clients = db.users.filter((u) => u.role === "client" && u.name.toLowerCase().includes(q));
 
   return (
-    <div className="max-w-6xl mx-auto px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+    <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="min-w-0">
           <h1 className="text-black text-2xl font-bold">Clients</h1>
-          <p className="text-black/40 text-sm mt-0.5">{clients.length} total · access every client's full profile</p>
+          <p className="text-black/40 text-sm mt-0.5 truncate">{clients.length} total · access every client's full profile</p>
         </div>
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl"
+          aria-label="Add client"
+          className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
         >
-          <UserPlus size={16} /> ADD CLIENT
+          <UserPlus size={16} /> <span className="hidden sm:inline">ADD CLIENT</span>
         </button>
       </div>
 
-      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3.5 py-2.5 mb-5 max-w-sm">
+      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3.5 py-2.5 mb-5 md:max-w-sm">
         <Search size={15} className="text-black/40" />
         <input
           value={search || ""}
@@ -181,7 +182,8 @@ export default function CoachClients({ showToast, search, setSearch }) {
         />
       </div>
 
-      <div className="border border-black/8 rounded-2xl overflow-hidden">
+      {/* desktop table */}
+      <div className="hidden md:block border border-black/8 rounded-2xl overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-black/[0.03] border-b border-black/8">
@@ -239,6 +241,39 @@ export default function CoachClients({ showToast, search, setSearch }) {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* mobile card list */}
+      <div className="md:hidden space-y-2.5">
+        {clients.length === 0 && (
+          <div className="border border-black/8 rounded-2xl px-5 py-10 text-center text-black/40 text-sm">
+            No clients yet — add your first one to get started.
+          </div>
+        )}
+        {clients.map((c) => {
+          const phases = (db.clientPhases || {})[c.id] || [];
+          const currentPhase = getCurrentPhase(phases, new Date().toISOString().slice(0, 10));
+          return (
+            <div
+              key={c.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedId(c.id)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelectedId(c.id)}
+              className="w-full text-left border border-black/8 rounded-2xl p-4 active:bg-black/[0.03] transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <Avatar name={c.name} url={c.avatarUrl} size={42} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-black font-semibold text-sm truncate">{c.name}</p>
+                  <p className="text-black/35 text-xs truncate">{c.email}</p>
+                </div>
+                <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
+              </div>
+              <PhaseCell phase={currentPhase} />
+            </div>
+          );
+        })}
       </div>
 
       <AddClientSheet open={addOpen} onClose={() => setAddOpen(false)} onCreated={setSelectedId} />

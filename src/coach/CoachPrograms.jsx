@@ -314,20 +314,20 @@ export default function CoachPrograms({ showToast }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+    <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="min-w-0">
           <h1 className="text-black text-2xl font-bold">Program Templates</h1>
-          <p className="text-black/40 text-sm mt-0.5">{db.programs.length} total · reusable starting points for a client's phases</p>
+          <p className="text-black/40 text-sm mt-0.5 truncate">{db.programs.length} total · reusable starting points for a client's phases</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl">
-          <Plus size={16} /> NEW TEMPLATE
+        <button onClick={openNew} aria-label="New template" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
+          <Plus size={16} /> <span className="hidden sm:inline">NEW TEMPLATE</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {db.programs.length === 0 && (
-          <Card className="col-span-3">
+          <Card className="col-span-1 sm:col-span-2 md:col-span-3">
             <p className="text-black/40 text-sm text-center py-6">No programs yet — build your first one.</p>
           </Card>
         )}

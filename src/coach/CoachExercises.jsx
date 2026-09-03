@@ -190,18 +190,18 @@ export default function CoachExercises({ showToast }) {
   const filtered = db.exercises.filter((e) => e.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="max-w-6xl mx-auto px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
+    <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <div className="min-w-0">
           <h1 className="text-black text-2xl font-bold">Exercise Library</h1>
           <p className="text-black/40 text-sm mt-0.5">{db.exercises.length} total</p>
         </div>
-        <button onClick={() => setEditing({ isNew: true })} className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl">
-          <Plus size={16} /> NEW EXERCISE
+        <button onClick={() => setEditing({ isNew: true })} aria-label="New exercise" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
+          <Plus size={16} /> <span className="hidden sm:inline">NEW EXERCISE</span>
         </button>
       </div>
 
-      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 max-w-sm">
+      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
         <Search size={16} className="text-black/40" />
         <input
           value={search}
@@ -211,7 +211,7 @@ export default function CoachExercises({ showToast }) {
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
         {filtered.map((ex) => (
           <Card key={ex.id} onClick={() => setEditing(ex)}>
             <div className="flex items-center gap-3">

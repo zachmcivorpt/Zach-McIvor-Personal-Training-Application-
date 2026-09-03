@@ -1,4 +1,4 @@
-# M Personal Training
+# Zach McIvor Personal Training
 
 A mobile-first, black & white premium fitness platform built with React, Vite, and Tailwind CSS. Two apps in one codebase, gated by role-based auth:
 

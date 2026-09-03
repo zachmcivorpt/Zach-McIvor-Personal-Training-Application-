@@ -7,7 +7,7 @@ export default function CoachMore({ onNavigate, onLogout }) {
   const { currentUser, updateUser } = useApp();
 
   return (
-    <div className="max-w-xl px-8 py-8 space-y-4">
+    <div className="max-w-xl px-4 py-5 md:px-8 md:py-8 space-y-4">
       <div>
         <h1 className="text-black text-2xl font-bold">Settings</h1>
       </div>
