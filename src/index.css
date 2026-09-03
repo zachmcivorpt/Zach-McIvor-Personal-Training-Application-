@@ -56,13 +56,12 @@
 }
 
 /* Dark chrome (sidebar / mobile top+bottom bars) — the initial-letter Avatar
-   fallback is styled for a light background by default, so relight it here. */
-.dark-chrome .bg-black\/10 {
+   fallback is styled for a light background by default, so relight it here.
+   Scoped to the exact avatar-fallback class combo only — NOT a bare
+   .text-black override, which would also blank out the active nav item's
+   black-on-white label (bg-white + text-black). */
+.dark-chrome .bg-black\/10.text-black {
   background-color: rgba(255, 255, 255, 0.12) !important;
-}
-.dark-chrome .border-black\/15 {
   border-color: rgba(255, 255, 255, 0.2) !important;
-}
-.dark-chrome .text-black {
   color: #fff !important;
 }
