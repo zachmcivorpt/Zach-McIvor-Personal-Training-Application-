@@ -140,7 +140,7 @@ function estimateCalories(volume, durationMin) {
 function BrandBar() {
   return (
     <div className="flex items-center justify-center pt-3 pb-1">
-      <Logo variant="wordmark" tone="white" className="h-9 w-auto opacity-95" />
+      <Logo variant="wordmark" tone="black" className="h-9 w-auto opacity-95" />
     </div>
   );
 }
@@ -152,15 +152,16 @@ function Header({ user, onAvatarClick }) {
   return (
     <div className="flex items-center justify-between px-5 pt-6 pb-2">
       <div>
-        <p className="text-white text-xl font-semibold">
-          {greeting}, {user.name.split(" ")[0]} 💪
+        <p className="text-black text-xl font-semibold flex items-center gap-1.5">
+          {greeting}, {user.name.split(" ")[0]}
+          <Dumbbell size={18} className="text-black" />
         </p>
-        <p className="text-white/40 text-sm mt-0.5">{dateStr}</p>
+        <p className="text-black/40 text-sm mt-0.5">{dateStr}</p>
       </div>
       <div className="flex items-center gap-3">
-        <button className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center relative">
-          <Bell size={18} className="text-white/80" />
-          <span className="absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full bg-white" />
+        <button className="w-10 h-10 rounded-full bg-black/8 flex items-center justify-center relative">
+          <Bell size={18} className="text-black/80" />
+          <span className="absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full bg-black" />
         </button>
         <Avatar name={user.name} url={user.avatarUrl} size={40} onClick={onAvatarClick} />
       </div>
@@ -174,9 +175,9 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
   if (!program || !todaySession) {
     return (
       <Card className="mx-5 text-center py-10">
-        <Dumbbell size={26} className="text-white/25 mx-auto mb-3" />
-        <p className="text-white font-semibold">No program assigned yet</p>
-        <p className="text-white/40 text-sm mt-1">Your coach will assign your training program soon.</p>
+        <Dumbbell size={26} className="text-black/25 mx-auto mb-3" />
+        <p className="text-black font-semibold">No program assigned yet</p>
+        <p className="text-black/40 text-sm mt-1">Your coach will assign your training program soon.</p>
       </Card>
     );
   }
@@ -189,10 +190,10 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
     <Card className="mx-5">
       <div className="flex items-center justify-between mb-3">
         <Pill tone="solid">{pillLabel}</Pill>
-        <span className="text-white/30 text-xs">{todaySession.weekLabel}</span>
+        <span className="text-black/30 text-xs">{todaySession.weekLabel}</span>
       </div>
-      <h2 className="text-white text-2xl font-bold">{todaySession.label}</h2>
-      <p className="text-white/50 text-sm mt-1">
+      <h2 className="text-black text-2xl font-bold">{todaySession.label}</h2>
+      <p className="text-black/50 text-sm mt-1">
         {todaySession.exercises.length} exercises · {program.name}
       </p>
       <div className="flex flex-wrap gap-1.5 mt-3">
@@ -203,7 +204,7 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
 
       {started && (
         <div className="mt-4">
-          <div className="flex justify-between text-xs text-white/40 mb-1.5">
+          <div className="flex justify-between text-xs text-black/40 mb-1.5">
             <span>Progress</span>
             <span>
               {completedSets}/{totalSets} sets
@@ -217,25 +218,25 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
         <>
           <button
             onClick={onStart}
-            className="w-full mt-5 bg-white text-black font-bold py-4 rounded-2xl text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="w-full mt-5 bg-black text-white font-bold py-4 rounded-2xl text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <Play size={18} fill="black" />
+            <Play size={18} fill="white" />
             {started ? "RESUME WORKOUT" : "START WORKOUT"}
           </button>
-          <button onClick={onView} className="w-full mt-2.5 text-white/60 text-sm font-medium py-2.5 rounded-xl bg-white/5">
+          <button onClick={onView} className="w-full mt-2.5 text-black/60 text-sm font-medium py-2.5 rounded-xl bg-black/5">
             View workout
           </button>
         </>
       ) : (
         <>
           {completedOnDate && (
-            <div className="flex items-center gap-2 mt-4 text-white/60 text-sm">
+            <div className="flex items-center gap-2 mt-4 text-black/60 text-sm">
               <Check size={14} /> Workout completed
             </div>
           )}
           <button
             onClick={() => setPreviewOpen((o) => !o)}
-            className="w-full mt-4 text-white/60 text-sm font-medium py-2.5 rounded-xl bg-white/5"
+            className="w-full mt-4 text-black/60 text-sm font-medium py-2.5 rounded-xl bg-black/5"
           >
             {previewOpen ? "Hide exercises" : "Preview exercises"}
           </button>
@@ -245,9 +246,9 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
                 const ex = exercisesById[e.exerciseId];
                 if (!ex) return null;
                 return (
-                  <div key={i} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-3.5 py-2.5">
-                    <span className="text-white/80 text-sm">{ex.name}</span>
-                    <span className="text-white/35 text-xs">
+                  <div key={i} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-3.5 py-2.5">
+                    <span className="text-black/80 text-sm">{ex.name}</span>
+                    <span className="text-black/35 text-xs">
                       {e.targetSets} × {e.targetReps}
                     </span>
                   </div>
@@ -271,34 +272,34 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
   return (
     <Card className="mx-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-semibold">Nutrition Today</h3>
-        <Utensils size={16} className="text-white/30" />
+        <h3 className="text-black font-semibold">Nutrition Today</h3>
+        <Utensils size={16} className="text-black/30" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         {items.map((it, i) => (
           <div key={it.label}>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-white/40 tracking-wide">{it.label}</span>
+              <span className="text-black/40 tracking-wide">{it.label}</span>
             </div>
-            <p className="text-white text-sm font-semibold mb-1.5">
+            <p className="text-black text-sm font-semibold mb-1.5">
               {it.value}
-              {it.unit} <span className="text-white/30 font-normal">/ {it.target}{it.unit}</span>
+              {it.unit} <span className="text-black/30 font-normal">/ {it.target}{it.unit}</span>
             </p>
             <ProgressBar value={it.value} max={it.target} height={6} dim={i > 0} />
           </div>
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-3">
-        <Droplet size={16} className="text-white/50" />
-        <span className="text-white/70 text-sm flex-1">
-          Water: <span className="font-semibold text-white">{nutrition.water}L</span> / {targets.water}L
+      <div className="mt-4 pt-4 border-t border-black/5 flex items-center gap-3">
+        <Droplet size={16} className="text-black/50" />
+        <span className="text-black/70 text-sm flex-1">
+          Water: <span className="font-semibold text-black">{nutrition.water}L</span> / {targets.water}L
         </span>
       </div>
       <div className="flex gap-2 mt-4">
-        <button onClick={onLogFood} className="flex-1 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl">
+        <button onClick={onLogFood} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl">
           + LOG FOOD
         </button>
-        <button onClick={onLogWater} className="flex-1 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl">
+        <button onClick={onLogWater} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl">
           + LOG WATER
         </button>
       </div>
@@ -310,10 +311,10 @@ function RecoveryCardCompact({ recovery }) {
   return (
     <Card>
       <Ring value={recovery.score} max={100} size={48} stroke={5}>
-        <span className="text-white font-bold text-sm">{recovery.score}%</span>
+        <span className="text-black font-bold text-sm">{recovery.score}%</span>
       </Ring>
-      <p className="text-white/40 text-[11px] tracking-wide mt-3">RECOVERY</p>
-      <p className="text-white text-sm font-semibold">{recovery.status}</p>
+      <p className="text-black/40 text-[11px] tracking-wide mt-3">RECOVERY</p>
+      <p className="text-black text-sm font-semibold">{recovery.status}</p>
     </Card>
   );
 }
@@ -321,10 +322,10 @@ function RecoveryCardCompact({ recovery }) {
 function ActivityCardCompact({ activity }) {
   return (
     <Card>
-      <Footprints size={22} className="text-white/60" />
-      <p className="text-white/40 text-[11px] tracking-wide mt-3">STEPS</p>
-      <p className="text-white text-lg font-bold">{activity.steps.toLocaleString()}</p>
-      <p className="text-white/30 text-[11px]">{activity.activeCalories} kcal</p>
+      <Footprints size={22} className="text-black/60" />
+      <p className="text-black/40 text-[11px] tracking-wide mt-3">STEPS</p>
+      <p className="text-black text-lg font-bold">{activity.steps.toLocaleString()}</p>
+      <p className="text-black/30 text-[11px]">{activity.activeCalories} kcal</p>
     </Card>
   );
 }
@@ -333,15 +334,15 @@ function GoalsCard({ goals }) {
   return (
     <Card className="mx-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-semibold">Goals</h3>
-        <Target size={16} className="text-white/30" />
+        <h3 className="text-black font-semibold">Goals</h3>
+        <Target size={16} className="text-black/30" />
       </div>
       <div className="space-y-4">
         {goals.map((g) => (
           <div key={g.id}>
             <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-white/70">{g.label}</span>
-              <span className="text-white/40">
+              <span className="text-black/70">{g.label}</span>
+              <span className="text-black/40">
                 {g.current}/{g.target}
                 {g.unit === "kg" || g.unit === "g" ? g.unit : ""}
               </span>
@@ -360,7 +361,7 @@ function SessionStrip({ sessions, currentIndex, onSelect }) {
   const visible = sessions.slice(start, start + 7);
   return (
     <Card className="mx-5">
-      <h3 className="text-white font-semibold mb-4">Your Rotation</h3>
+      <h3 className="text-black font-semibold mb-4">Your Rotation</h3>
       <div className="flex justify-between">
         {visible.map((s, vi) => {
           const idx = start + vi;
@@ -368,12 +369,12 @@ function SessionStrip({ sessions, currentIndex, onSelect }) {
           const icon = { done: "✓", today: "●", upcoming: "○" }[status];
           return (
             <button key={idx} onClick={() => onSelect(s)} className="flex flex-col items-center gap-2">
-              <span className="text-white/30 text-[10px] font-medium">{idx + 1}</span>
+              <span className="text-black/30 text-[10px] font-medium">{idx + 1}</span>
               <span
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
                 style={{
-                  backgroundColor: status === "today" ? "#fff" : "rgba(255,255,255,0.06)",
-                  color: status === "today" ? "#000" : status === "done" ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.3)",
+                  backgroundColor: status === "today" ? "#0A0A0B" : "rgba(10,10,11,0.06)",
+                  color: status === "today" ? "#fff" : status === "done" ? "rgba(10,10,11,0.6)" : "rgba(10,10,11,0.3)",
                 }}
               >
                 {icon}
@@ -397,9 +398,9 @@ function DayHeader({ selectedOffset, onJumpToday }) {
   const isToday = selectedOffset === 0;
   return (
     <div className="flex items-center justify-between px-5 pt-1 pb-1">
-      <p className="text-white text-lg font-bold">{label}</p>
+      <p className="text-black text-lg font-bold">{label}</p>
       {!isToday && (
-        <button onClick={onJumpToday} className="text-white/50 text-sm font-semibold underline underline-offset-2">
+        <button onClick={onJumpToday} className="text-black/50 text-sm font-semibold underline underline-offset-2">
           Jump to today
         </button>
       )}
@@ -434,14 +435,14 @@ function DateStrip({ selectedOffset, onSelect }) {
               data-offset={offset}
               onClick={() => onSelect(offset)}
               className={`shrink-0 w-14 rounded-2xl py-2.5 flex flex-col items-center gap-0.5 border transition-colors ${
-                isSelected ? "bg-white border-white" : "bg-white/5 border-white/10"
+                isSelected ? "bg-black border-black" : "bg-black/5 border-black/10"
               }`}
             >
-              <span className={`text-lg font-bold leading-none ${isSelected ? "text-black" : "text-white"}`}>{d.getDate()}</span>
-              <span className={`text-[10px] font-medium ${isSelected ? "text-black/60" : "text-white/40"}`}>
+              <span className={`text-lg font-bold leading-none ${isSelected ? "text-white" : "text-black"}`}>{d.getDate()}</span>
+              <span className={`text-[10px] font-medium ${isSelected ? "text-white/60" : "text-black/40"}`}>
                 {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
-              {isToday && <span className={`w-1 h-1 rounded-full mt-0.5 ${isSelected ? "bg-black/60" : "bg-white/50"}`} />}
+              {isToday && <span className={`w-1 h-1 rounded-full mt-0.5 ${isSelected ? "bg-white/60" : "bg-black/50"}`} />}
             </button>
           );
         })}
@@ -456,8 +457,8 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
   return (
     <Card className="mx-5">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-white font-semibold">Daily Habits</h3>
-        <span className="text-white/40 text-xs">
+        <h3 className="text-black font-semibold">Daily Habits</h3>
+        <span className="text-black/40 text-xs">
           {doneCount}/{habits.length}
         </span>
       </div>
@@ -472,18 +473,18 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
             <Tag
               key={h.id}
               onClick={interactive ? () => onToggle(h.id) : undefined}
-              className={`w-full flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-3 text-left ${
+              className={`w-full flex items-center gap-3 bg-black/5 rounded-xl px-3.5 py-3 text-left ${
                 interactive ? "" : "opacity-70"
               }`}
             >
               <span
                 className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                  done ? "bg-white border-white" : "border-white/25"
+                  done ? "bg-black border-black" : "border-black/25"
                 }`}
               >
-                {done && <Check size={12} className="text-black" strokeWidth={3.5} />}
+                {done && <Check size={12} className="text-white" strokeWidth={3.5} />}
               </span>
-              <span className={`text-sm flex-1 ${done ? "text-white/40 line-through" : "text-white/85"}`}>{h.label}</span>
+              <span className={`text-sm flex-1 ${done ? "text-black/40 line-through" : "text-black/85"}`}>{h.label}</span>
             </Tag>
           );
         })}
@@ -628,23 +629,23 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
   if (resting) {
     return (
       <FullScreenOverlay>
-        <div className="fixed inset-0 z-[90] bg-[#0A0A0B] flex flex-col">
+        <div className="fixed inset-0 z-[90] bg-white flex flex-col">
           <div className="flex items-center justify-between px-5 pt-6">
-            <button onClick={() => setResting(false)} className="text-white/50 text-sm font-medium">
+            <button onClick={() => setResting(false)} className="text-black/50 text-sm font-medium">
               End rest
             </button>
-            <span className="text-white/40 text-sm font-medium">Rest</span>
-            <button onClick={onExit} className="text-white/50">
+            <span className="text-black/40 text-sm font-medium">Rest</span>
+            <button onClick={onExit} className="text-black/50">
               <ChevronDown size={20} className="rotate-180" />
             </button>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center">
             <Ring value={restTotal - restTime} max={restTotal} size={220} stroke={10}>
               <div className="text-center">
-                <p className="text-white text-5xl font-bold tabular-nums">
+                <p className="text-black text-5xl font-bold tabular-nums">
                   {Math.floor(restTime / 60)}:{String(restTime % 60).padStart(2, "0")}
                 </p>
-                <p className="text-white/40 text-sm mt-1">Next: Set {currentSetNum} of {exMeta.targetSets}</p>
+                <p className="text-black/40 text-sm mt-1">Next: Set {currentSetNum} of {exMeta.targetSets}</p>
               </div>
             </Ring>
           </div>
@@ -654,11 +655,11 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
                 setRestTime((t) => t + 15);
                 setRestTotal((t) => t + 15);
               }}
-              className="flex-1 bg-white/8 text-white font-semibold py-4 rounded-2xl"
+              className="flex-1 bg-black/8 text-black font-semibold py-4 rounded-2xl"
             >
               +15s
             </button>
-            <button onClick={() => setResting(false)} className="flex-1 bg-white text-black font-bold py-4 rounded-2xl">
+            <button onClick={() => setResting(false)} className="flex-1 bg-black text-white font-bold py-4 rounded-2xl">
               SKIP REST
             </button>
           </div>
@@ -669,101 +670,108 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-[#0A0A0B] flex flex-col overflow-y-auto">
-        <div className="flex items-center justify-between px-5 pt-6 pb-2 sticky top-0 bg-[#0A0A0B] z-10">
-          <button onClick={onExit} className="text-white/50">
+      <div className="fixed inset-0 z-[90] bg-white flex flex-col overflow-y-auto">
+        <div className="flex items-center justify-between px-5 pt-6 pb-2 sticky top-0 bg-white z-10">
+          <button onClick={onExit} className="text-black/50">
             <ChevronDown size={22} />
           </button>
           <div className="flex-1 mx-4">
             <ProgressBar value={exIndex + 1} max={daySession.exercises.length} height={5} />
           </div>
-          <span className="text-white/40 text-xs font-medium">
+          <span className="text-black/40 text-xs font-medium">
             {exIndex + 1}/{daySession.exercises.length}
           </span>
         </div>
 
         <div className="px-5 pt-4">
-          <div className="w-full h-44 rounded-3xl bg-gradient-to-br from-white/10 to-white/[0.03] flex items-center justify-center border border-white/5 overflow-hidden">
+          <div className="w-full h-44 rounded-3xl bg-gradient-to-br from-black/10 to-black/[0.03] flex items-center justify-center border border-black/5 overflow-hidden">
             {exercise.videoUrl ? (
               <video src={exercise.videoUrl} controls className="w-full h-full object-cover" />
             ) : (
-              <Play size={36} className="text-white/30" />
+              <Play size={36} className="text-black/30" />
             )}
           </div>
 
           <div className="flex items-center justify-between mt-4">
-            <h2 className="text-white text-2xl font-bold">{exercise.name}</h2>
+            <div className="flex items-center gap-2 min-w-0">
+              <h2 className="text-black text-2xl font-bold truncate">{exercise.name}</h2>
+              {exMeta.groupType && (
+                <span className="bg-black/8 text-black/50 text-[10px] font-bold tracking-wide px-2 py-1 rounded shrink-0">
+                  {exMeta.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
+                </span>
+              )}
+            </div>
             <Pill>{exercise.equipment}</Pill>
           </div>
-          <p className="text-white/40 text-sm mt-1">{exercise.primaryMuscles.join(" · ")}</p>
+          <p className="text-black/40 text-sm mt-1">{exercise.primaryMuscles.join(" · ")}</p>
 
           <div className="flex gap-3 mt-4">
-            <div className="flex-1 bg-white/5 rounded-2xl p-3">
-              <p className="text-white/40 text-[11px] tracking-wide">SET</p>
-              <p className="text-white font-bold text-lg">
+            <div className="flex-1 bg-black/5 rounded-2xl p-3">
+              <p className="text-black/40 text-[11px] tracking-wide">SET</p>
+              <p className="text-black font-bold text-lg">
                 {Math.min(currentSetNum, exMeta.targetSets)} / {exMeta.targetSets}
               </p>
             </div>
-            <div className="flex-1 bg-white/5 rounded-2xl p-3">
-              <p className="text-white/40 text-[11px] tracking-wide">TARGET</p>
-              <p className="text-white font-bold text-lg">{exMeta.targetReps} reps</p>
-              <p className="text-white/50 text-[11px] font-semibold mt-0.5">RIR {exMeta.targetRIR ?? 2}</p>
+            <div className="flex-1 bg-black/5 rounded-2xl p-3">
+              <p className="text-black/40 text-[11px] tracking-wide">TARGET</p>
+              <p className="text-black font-bold text-lg">{exMeta.targetReps} reps</p>
+              <p className="text-black/50 text-[11px] font-semibold mt-0.5">RIR {exMeta.targetRIR ?? 2}</p>
             </div>
-            <div className="flex-1 bg-white/5 rounded-2xl p-3">
-              <p className="text-white/40 text-[11px] tracking-wide">PREVIOUS</p>
-              <p className="text-white font-bold text-lg">{previous ? `${previous.reps} × ${previous.weight}kg` : "—"}</p>
+            <div className="flex-1 bg-black/5 rounded-2xl p-3">
+              <p className="text-black/40 text-[11px] tracking-wide">PREVIOUS</p>
+              <p className="text-black font-bold text-lg">{previous ? `${previous.reps} × ${previous.weight}kg` : "—"}</p>
             </div>
           </div>
 
           {exMeta.notes && (
-            <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-start gap-2.5">
-              <StickyNote size={14} className="text-white/40 mt-0.5 shrink-0" />
-              <p className="text-white/70 text-sm">{exMeta.notes}</p>
+            <div className="mt-4 bg-black/5 border border-black/10 rounded-2xl px-4 py-3 flex items-start gap-2.5">
+              <StickyNote size={14} className="text-black/40 mt-0.5 shrink-0" />
+              <p className="text-black/70 text-sm">{exMeta.notes}</p>
             </div>
           )}
 
           <div className="mt-4">
-            <p className="text-white/40 text-xs tracking-wide mb-2">YOUR NOTES ON THIS EXERCISE</p>
+            <p className="text-black/40 text-xs tracking-wide mb-2">YOUR NOTES ON THIS EXERCISE</p>
             <textarea
               value={myNote}
               onChange={(e) => setExerciseNotes((prev) => ({ ...prev, [exMeta.exerciseId]: e.target.value }))}
               placeholder="e.g. Left shoulder felt tight, went easy on the last set"
               rows={2}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm outline-none placeholder:text-white/25 resize-none"
+              className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-black text-sm outline-none placeholder:text-black/25 resize-none"
             />
           </div>
 
           {!isLastSetOfExercise ? (
-            <div className="mt-6 bg-[#141416] rounded-3xl p-5 border border-white/5">
-              <p className="text-white/40 text-xs tracking-wide mb-4">LOG SET {currentSetNum}</p>
+            <div className="mt-6 bg-[#F7F7F8] rounded-3xl p-5 border border-black/5">
+              <p className="text-black/40 text-xs tracking-wide mb-4">LOG SET {currentSetNum}</p>
               <div className="grid grid-cols-2 gap-3">
                 <NumberStepper label="WEIGHT (KG)" value={weight} setValue={setWeight} step={2.5} />
                 <NumberStepper label="REPS" value={reps} setValue={setReps} step={1} />
               </div>
               <button
                 onClick={completeSet}
-                className="w-full mt-5 bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                className="w-full mt-5 bg-black text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
               >
                 <Check size={18} strokeWidth={3} />
                 COMPLETE SET
               </button>
             </div>
           ) : (
-            <div className="mt-6 bg-[#141416] rounded-3xl p-6 border border-white/5 text-center">
-              <Check size={28} className="mx-auto text-white mb-2" />
-              <p className="text-white font-semibold">Exercise complete</p>
-              <p className="text-white/40 text-sm mt-1">All {exMeta.targetSets} sets logged</p>
+            <div className="mt-6 bg-[#F7F7F8] rounded-3xl p-6 border border-black/5 text-center">
+              <Check size={28} className="mx-auto text-black mb-2" />
+              <p className="text-black font-semibold">Exercise complete</p>
+              <p className="text-black/40 text-sm mt-1">All {exMeta.targetSets} sets logged</p>
             </div>
           )}
 
           <div className="mt-4 space-y-1.5">
             {log.map((s) => (
-              <div key={s.setNumber} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-4 py-2.5">
-                <span className="text-white/40 text-sm">Set {s.setNumber}</span>
-                <span className="text-white text-sm font-medium">
+              <div key={s.setNumber} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-4 py-2.5">
+                <span className="text-black/40 text-sm">Set {s.setNumber}</span>
+                <span className="text-black text-sm font-medium">
                   {s.reps} reps × {s.weight}kg
                 </span>
-                {s.isPR ? <Trophy size={14} className="text-white" /> : <Check size={14} className="text-white/40" />}
+                {s.isPR ? <Trophy size={14} className="text-black" /> : <Check size={14} className="text-black/40" />}
               </div>
             ))}
           </div>
@@ -772,13 +780,13 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
             <button
               onClick={prevExercise}
               disabled={exIndex === 0}
-              className="flex-1 bg-white/8 text-white font-semibold py-3.5 rounded-2xl disabled:opacity-30 flex items-center justify-center gap-1"
+              className="flex-1 bg-black/8 text-black font-semibold py-3.5 rounded-2xl disabled:opacity-30 flex items-center justify-center gap-1"
             >
               <ChevronLeft size={16} /> Previous
             </button>
             <button
               onClick={nextExercise}
-              className="flex-1 bg-white/8 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-1"
+              className="flex-1 bg-black/8 text-black font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-1"
             >
               {exIndex === daySession.exercises.length - 1 ? "Finish workout" : "Next exercise"} <ChevronRight size={16} />
             </button>
@@ -787,10 +795,10 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
 
         {prToast && (
           <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100] w-[88%] max-w-sm animate-[fadeIn_0.3s_ease-out]">
-            <div className="bg-white rounded-2xl p-4 shadow-2xl text-center">
-              <p className="text-black font-bold text-sm tracking-wide">🔥 NEW PERSONAL RECORD</p>
-              <p className="text-black text-lg font-bold mt-1">{exercise.name}</p>
-              <p className="text-black/70 text-sm mt-0.5">
+            <div className="bg-black rounded-2xl p-4 shadow-2xl text-center">
+              <p className="text-white font-bold text-sm tracking-wide">🔥 NEW PERSONAL RECORD</p>
+              <p className="text-white text-lg font-bold mt-1">{exercise.name}</p>
+              <p className="text-white/70 text-sm mt-0.5">
                 {prToast.weight}kg × {prToast.reps} · Best previous: {prToast.prevWeight}kg × {prToast.prevReps}
               </p>
             </div>
@@ -812,36 +820,36 @@ function WorkoutSummary({ daySession, activeLog, onDone }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-[#0A0A0B] flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10">
-        <Logo variant="wordmark" tone="white" className="h-8 w-auto opacity-70 mb-1.5" />
+      <div className="fixed inset-0 z-[90] bg-white flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10">
+        <Logo variant="wordmark" tone="black" className="h-8 w-auto opacity-70 mb-1.5" />
         <Tagline className="h-6 w-auto opacity-90 mb-6" />
-        <div className="w-20 h-20 rounded-full bg-white/10 border border-white/15 flex items-center justify-center mb-5">
-          <Check size={36} className="text-white" strokeWidth={3} />
+        <div className="w-20 h-20 rounded-full bg-black/10 border border-black/15 flex items-center justify-center mb-5">
+          <Check size={36} className="text-black" strokeWidth={3} />
         </div>
-        <p className="text-white/40 text-xs tracking-widest font-semibold">WORKOUT COMPLETE</p>
-        <h2 className="text-white text-3xl font-bold mt-1">{daySession.label}</h2>
-        <p className="text-white text-4xl font-bold tabular-nums mt-6">{durationMin}:18</p>
+        <p className="text-black/40 text-xs tracking-widest font-semibold">WORKOUT COMPLETE</p>
+        <h2 className="text-black text-3xl font-bold mt-1">{daySession.label}</h2>
+        <p className="text-black text-4xl font-bold tabular-nums mt-6">{durationMin}:18</p>
 
         <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-6">
-          <div className="bg-[#141416] rounded-2xl p-4 border border-white/5">
-            <p className="text-white text-xl font-bold">{totalSets}</p>
-            <p className="text-white/40 text-xs mt-0.5">Sets completed</p>
+          <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
+            <p className="text-black text-xl font-bold">{totalSets}</p>
+            <p className="text-black/40 text-xs mt-0.5">Sets completed</p>
           </div>
-          <div className="bg-[#141416] rounded-2xl p-4 border border-white/5">
-            <p className="text-white text-xl font-bold">{totalVolume.toLocaleString()} kg</p>
-            <p className="text-white/40 text-xs mt-0.5">Total volume</p>
+          <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
+            <p className="text-black text-xl font-bold">{totalVolume.toLocaleString()} kg</p>
+            <p className="text-black/40 text-xs mt-0.5">Total volume</p>
           </div>
-          <div className="bg-[#141416] rounded-2xl p-4 border border-white/5">
-            <p className="text-white text-xl font-bold">{calories}</p>
-            <p className="text-white/40 text-xs mt-0.5">Calories burned</p>
+          <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
+            <p className="text-black text-xl font-bold">{calories}</p>
+            <p className="text-black/40 text-xs mt-0.5">Calories burned</p>
           </div>
-          <div className="bg-[#141416] rounded-2xl p-4 border border-white/5">
-            <p className="text-xl font-bold text-white">{prCount} new</p>
-            <p className="text-white/40 text-xs mt-0.5">Personal records</p>
+          <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
+            <p className="text-xl font-bold text-black">{prCount} new</p>
+            <p className="text-black/40 text-xs mt-0.5">Personal records</p>
           </div>
         </div>
 
-        <button onClick={onDone} className="w-full max-w-sm mt-8 bg-white text-black font-bold py-4 rounded-2xl">
+        <button onClick={onDone} className="w-full max-w-sm mt-8 bg-black text-white font-bold py-4 rounded-2xl">
           DONE
         </button>
       </div>
@@ -858,7 +866,7 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
   return (
     <div className="pb-6">
       <div className="px-5 pt-6 pb-4">
-        <h1 className="text-white text-2xl font-bold">Workouts</h1>
+        <h1 className="text-black text-2xl font-bold">Workouts</h1>
       </div>
       <div className="flex gap-2 px-5 mb-4 overflow-x-auto no-scrollbar">
         {["today", "history", "program"].map((t) => (
@@ -866,7 +874,7 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-full text-sm font-medium capitalize whitespace-nowrap ${
-              tab === t ? "bg-white text-black" : "bg-white/8 text-white/60"
+              tab === t ? "bg-black text-white" : "bg-black/8 text-black/60"
             }`}
           >
             {t}
@@ -879,24 +887,31 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
           <TodayWorkoutCard program={program} todaySession={todaySession} activeLog={activeLog} onStart={onStart} onView={() => {}} />
           {todaySession && (
             <Card>
-              <h3 className="text-white font-semibold mb-3">Exercises</h3>
+              <h3 className="text-black font-semibold mb-3">Exercises</h3>
               <div className="space-y-2">
                 {todaySession.exercises.map((e, i) => {
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
                   return (
-                    <div key={i} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
-                      <span className="w-7 h-7 rounded-full bg-white/8 text-white/50 text-xs font-bold flex items-center justify-center">
+                    <div key={i} className="flex items-center gap-3 py-2 border-b border-black/5 last:border-0">
+                      <span className="w-7 h-7 rounded-full bg-black/8 text-black/50 text-xs font-bold flex items-center justify-center">
                         {i + 1}
                       </span>
                       <div className="flex-1">
-                        <p className="text-white text-sm font-medium">{ex.name}</p>
-                        <p className="text-white/40 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-black text-sm font-medium">{ex.name}</p>
+                          {e.groupType && (
+                            <span className="bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded">
+                              {e.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-black/40 text-xs">
                           {e.targetSets} sets × {e.targetReps} reps · RIR {e.targetRIR ?? 2}
                         </p>
-                        {e.notes && <p className="text-white/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
+                        {e.notes && <p className="text-black/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
                       </div>
-                      <span className="text-white/30 text-xs">{ex.equipment}</span>
+                      <span className="text-black/30 text-xs">{ex.equipment}</span>
                     </div>
                   );
                 })}
@@ -910,7 +925,7 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
         <div className="px-5 space-y-3">
           {logsForClient.length === 0 && (
             <Card>
-              <p className="text-white/40 text-sm text-center py-6">No completed workouts yet — finish today's session to see it here.</p>
+              <p className="text-black/40 text-sm text-center py-6">No completed workouts yet — finish today's session to see it here.</p>
             </Card>
           )}
           {logsForClient.map((h) => {
@@ -919,8 +934,8 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
               <Card key={h.id}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-white font-semibold">{h.dayLabel}</p>
-                    <p className="text-white/40 text-xs mt-0.5">{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                    <p className="text-black font-semibold">{h.dayLabel}</p>
+                    <p className="text-black/40 text-xs mt-0.5">{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
                   </div>
                   <Pill tone="outline">{volume.toLocaleString()} kg</Pill>
                 </div>
@@ -934,29 +949,29 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
         <div className="px-5 space-y-3">
           {!program && (
             <Card>
-              <p className="text-white/40 text-sm text-center py-6">No program assigned yet.</p>
+              <p className="text-black/40 text-sm text-center py-6">No program assigned yet.</p>
             </Card>
           )}
           {program && (
             <Card>
-              <p className="text-white font-semibold">{program.name}</p>
-              <p className="text-white/40 text-xs mt-1">{program.description}</p>
+              <p className="text-black font-semibold">{program.name}</p>
+              <p className="text-black/40 text-xs mt-1">{program.description}</p>
               <div className="mt-4 space-y-2">
                 {sessions.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                  <div key={i} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
                     <div className="flex items-center gap-2.5">
                       <span
                         className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
                         style={{
-                          backgroundColor: i === currentIndex ? "#fff" : "rgba(255,255,255,0.06)",
-                          color: i === currentIndex ? "#000" : "rgba(255,255,255,0.4)",
+                          backgroundColor: i === currentIndex ? "#0A0A0B" : "rgba(10,10,11,0.06)",
+                          color: i === currentIndex ? "#fff" : "rgba(10,10,11,0.4)",
                         }}
                       >
                         {i + 1}
                       </span>
-                      <span className="text-white/80 text-sm">{s.label}</span>
+                      <span className="text-black/80 text-sm">{s.label}</span>
                     </div>
-                    <span className="text-white/30 text-xs">{s.exercises.length} ex</span>
+                    <span className="text-black/30 text-xs">{s.exercises.length} ex</span>
                   </div>
                 ))}
               </div>
@@ -1014,16 +1029,16 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
   return (
     <div className="pb-6">
       <div className="px-5 pt-6 pb-2 flex items-center justify-between">
-        <h1 className="text-white text-2xl font-bold">Nutrition</h1>
-        <Search size={20} className="text-white/40" />
+        <h1 className="text-black text-2xl font-bold">Nutrition</h1>
+        <Search size={20} className="text-black/40" />
       </div>
 
       <div className="px-5 mt-3">
         <Card>
-          <p className="text-white/40 text-xs tracking-wide mb-1">CALORIE TARGET</p>
+          <p className="text-black/40 text-xs tracking-wide mb-1">CALORIE TARGET</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-white text-3xl font-bold">{Math.max(0, NUTRITION_TARGETS.calories - nutrition.calories)}</span>
-            <span className="text-white/40 text-sm">remaining of {NUTRITION_TARGETS.calories}</span>
+            <span className="text-black text-3xl font-bold">{Math.max(0, NUTRITION_TARGETS.calories - nutrition.calories)}</span>
+            <span className="text-black/40 text-sm">remaining of {NUTRITION_TARGETS.calories}</span>
           </div>
           <div className="mt-3">
             <ProgressBar value={nutrition.calories} max={NUTRITION_TARGETS.calories} />
@@ -1036,11 +1051,11 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
             ].map((m) => (
               <div key={m.l} className="text-center">
                 <Ring value={m.v} max={m.t} size={56} stroke={5}>
-                  <span className="text-white text-xs font-bold">
+                  <span className="text-black text-xs font-bold">
                     {m.v}/{m.t}
                   </span>
                 </Ring>
-                <p className="text-white/40 text-xs mt-1.5">{m.l}</p>
+                <p className="text-black/40 text-xs mt-1.5">{m.l}</p>
               </div>
             ))}
           </div>
@@ -1050,22 +1065,22 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
       <div className="px-5 mt-4">
         <Card>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-white font-semibold flex items-center gap-2">
-              <Droplet size={16} className="text-white/60" /> Water
+            <p className="text-black font-semibold flex items-center gap-2">
+              <Droplet size={16} className="text-black/60" /> Water
             </p>
-            <span className="text-white/50 text-sm">
+            <span className="text-black/50 text-sm">
               {nutrition.water}L / {NUTRITION_TARGETS.water}L
             </span>
           </div>
           <ProgressBar value={nutrition.water} max={NUTRITION_TARGETS.water} height={6} />
           <div className="flex gap-2 mt-3">
-            <button onClick={() => onAddWater(0.25)} className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl">
+            <button onClick={() => onAddWater(0.25)} className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl">
               +250ml
             </button>
-            <button onClick={() => onAddWater(0.5)} className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl">
+            <button onClick={() => onAddWater(0.5)} className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl">
               +500ml
             </button>
-            <button onClick={() => setWaterSheetOpen(true)} className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl">
+            <button onClick={() => setWaterSheetOpen(true)} className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl">
               Custom
             </button>
           </div>
@@ -1091,22 +1106,22 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
           return (
             <Card key={meal}>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-white font-semibold">{meal}</p>
-                <span className="text-white/40 text-xs">{totalCals} kcal</span>
+                <p className="text-black font-semibold">{meal}</p>
+                <span className="text-black/40 text-xs">{totalCals} kcal</span>
               </div>
               {items.length === 0 ? (
-                <p className="text-white/30 text-sm py-1">No items logged</p>
+                <p className="text-black/30 text-sm py-1">No items logged</p>
               ) : (
                 <div className="space-y-1.5 mb-2">
                   {items.map((f) => (
                     <div key={f.id} className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2 text-white/70 min-w-0">
+                      <span className="flex items-center gap-2 text-black/70 min-w-0">
                         {f.photoUrl && (
                           <img src={f.photoUrl} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
                         )}
                         <span className="truncate">{f.name}</span>
                       </span>
-                      <span className="text-white/40 shrink-0 ml-2">{f.cals} kcal</span>
+                      <span className="text-black/40 shrink-0 ml-2">{f.cals} kcal</span>
                     </div>
                   ))}
                 </div>
@@ -1116,7 +1131,7 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
                   setActiveMeal(meal);
                   setSheetOpen(true);
                 }}
-                className="w-full mt-1 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+                className="w-full mt-1 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"
               >
                 <Plus size={14} /> Add food
               </button>
@@ -1126,13 +1141,13 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
       </div>
 
       <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title={`Add to ${activeMeal}`}>
-        <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3">
-          <Search size={16} className="text-white/40" />
+        <div className="flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3">
+          <Search size={16} className="text-black/40" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search foods"
-            className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+            className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
           />
         </div>
         <div className="flex gap-2 mb-4">
@@ -1141,7 +1156,7 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
               setSheetOpen(false);
               setBarcodeOpen(true);
             }}
-            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
+            className="flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"
           >
             <ScanLine size={18} />
             Scan barcode
@@ -1151,13 +1166,13 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
               setSheetOpen(false);
               setPhotoOpen(true);
             }}
-            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
+            className="flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"
           >
             <Camera size={18} />
             Photo
           </button>
         </div>
-        <p className="text-white/30 text-xs mb-2 tracking-wide">SEARCH RESULTS</p>
+        <p className="text-black/30 text-xs mb-2 tracking-wide">SEARCH RESULTS</p>
         <div className="space-y-1">
           {filteredFoods.map((f) => (
             <button
@@ -1166,15 +1181,15 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
                 onAddFood(activeMeal, f);
                 setSheetOpen(false);
               }}
-              className="w-full flex items-center justify-between py-3 border-b border-white/5 last:border-0"
+              className="w-full flex items-center justify-between py-3 border-b border-black/5 last:border-0"
             >
               <div className="text-left">
-                <p className="text-white text-sm font-medium">{f.name}</p>
-                <p className="text-white/40 text-xs">
+                <p className="text-black text-sm font-medium">{f.name}</p>
+                <p className="text-black/40 text-xs">
                   P{f.protein} · C{f.carbs} · F{f.fat}
                 </p>
               </div>
-              <span className="text-white/50 text-sm">{f.cals} kcal</span>
+              <span className="text-black/50 text-sm">{f.cals} kcal</span>
             </button>
           ))}
         </div>
@@ -1189,7 +1204,7 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
                 onAddWater(v);
                 setWaterSheetOpen(false);
               }}
-              className="bg-white/8 rounded-xl py-4 text-white font-semibold"
+              className="bg-black/8 rounded-xl py-4 text-black font-semibold"
             >
               {v * 1000}ml
             </button>
@@ -1235,14 +1250,14 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
 function ChartCard({ title, subtitle, children }) {
   return (
     <Card>
-      <p className="text-white font-semibold">{title}</p>
-      {subtitle && <p className="text-white/40 text-xs mt-0.5">{subtitle}</p>}
+      <p className="text-black font-semibold">{title}</p>
+      {subtitle && <p className="text-black/40 text-xs mt-0.5">{subtitle}</p>}
       <div className="h-40 mt-3 -ml-4">{children}</div>
     </Card>
   );
 }
 
-const axisStyle = { fontSize: 11, fill: "rgba(255,255,255,0.35)" };
+const axisStyle = { fontSize: 11, fill: "rgba(10,10,11,0.35)" };
 
 function PhotosSection({ photos, onAdd, onDelete, busy }) {
   const fileRef = useRef(null);
@@ -1251,8 +1266,8 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-white font-semibold">Progress Photos</p>
-        <ImageIcon size={16} className="text-white/30" />
+        <p className="text-black font-semibold">Progress Photos</p>
+        <ImageIcon size={16} className="text-black/30" />
       </div>
       <input
         ref={fileRef}
@@ -1269,18 +1284,18 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
         <button
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="aspect-square rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-1 text-white/40 disabled:opacity-40"
+          className="aspect-square rounded-xl border border-dashed border-black/15 bg-black/[0.03] flex flex-col items-center justify-center gap-1 text-black/40 disabled:opacity-40"
         >
           <Plus size={18} />
           <span className="text-[10px] font-medium">{busy ? "Uploading…" : "Add photo"}</span>
         </button>
         {photos.map((p) => (
-          <button key={p.id} onClick={() => setViewing(p)} className="aspect-square rounded-xl overflow-hidden bg-white/5">
+          <button key={p.id} onClick={() => setViewing(p)} className="aspect-square rounded-xl overflow-hidden bg-black/5">
             <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
-      {photos.length === 0 && <p className="text-white/25 text-xs mt-3">No photos yet — add one to start a visual timeline.</p>}
+      {photos.length === 0 && <p className="text-black/25 text-xs mt-3">No photos yet — add one to start a visual timeline.</p>}
 
       <BottomSheet open={!!viewing} onClose={() => setViewing(null)} title={viewing ? new Date(viewing.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : ""}>
         {viewing && (
@@ -1322,8 +1337,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
   return (
     <div className="pb-6">
       <div className="px-5 pt-6 pb-2 flex items-center justify-between">
-        <h1 className="text-white text-2xl font-bold">Progress</h1>
-        <BarChart3 size={20} className="text-white/40" />
+        <h1 className="text-black text-2xl font-bold">Progress</h1>
+        <BarChart3 size={20} className="text-black/40" />
       </div>
       <div className="flex gap-2 px-5 mb-4">
         {["7D", "30D", "90D", "1Y"].map((r) => (
@@ -1331,7 +1346,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
             key={r}
             onClick={() => setRange(r)}
             className={`px-3.5 py-1.5 rounded-full text-xs font-semibold ${
-              range === r ? "bg-white text-black" : "bg-white/8 text-white/50"
+              range === r ? "bg-black text-white" : "bg-black/8 text-black/50"
             }`}
           >
             {r}
@@ -1341,7 +1356,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
 
       <div className="px-5 space-y-4">
         <div>
-          <p className="text-white font-semibold mb-3">My Progress</p>
+          <p className="text-black font-semibold mb-3">My Progress</p>
           <div className="grid grid-cols-2 gap-3">
             {tiles.map((t) => (
               <MetricTile
@@ -1368,7 +1383,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
               </defs>
               <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
               <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-              <Tooltip contentStyle={{ background: "#1C1C1F", border: "none", borderRadius: 12, fontSize: 12, color: "#fff" }} />
+              <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
               <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#wGrad)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -1379,7 +1394,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
             <LineChart data={BENCH_HISTORY}>
               <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
               <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-              <Tooltip contentStyle={{ background: "#1C1C1F", border: "none", borderRadius: 12, fontSize: 12, color: "#fff" }} />
+              <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
               <Line type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: MEASURE_BLUE }} />
             </LineChart>
           </ResponsiveContainer>
@@ -1390,14 +1405,14 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
             <BarChart data={VOLUME_HISTORY}>
               <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
               <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
-              <Tooltip contentStyle={{ background: "#1C1C1F", border: "none", borderRadius: 12, fontSize: 12, color: "#fff" }} />
+              <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
               <Bar dataKey="volume" fill={MEASURE_BLUE} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
         <Card>
-          <p className="text-white font-semibold mb-3">Strength Personal Bests</p>
+          <p className="text-black font-semibold mb-3">Strength Personal Bests</p>
           <div className="space-y-2.5">
             {[
               { name: "Bench Press", value: "82.5 kg × 8" },
@@ -1406,22 +1421,22 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
               { name: "Pull-ups", value: "18 reps" },
             ].map((s) => (
               <div key={s.name} className="flex items-center justify-between">
-                <span className="text-white/70 text-sm flex items-center gap-2">
-                  <Trophy size={14} className="text-white" /> {s.name}
+                <span className="text-black/70 text-sm flex items-center gap-2">
+                  <Trophy size={14} className="text-black" /> {s.name}
                 </span>
-                <span className="text-white text-sm font-semibold">{s.value}</span>
+                <span className="text-black text-sm font-semibold">{s.value}</span>
               </div>
             ))}
           </div>
         </Card>
 
         <Card>
-          <p className="text-white font-semibold mb-3">Achievements</p>
+          <p className="text-black font-semibold mb-3">Achievements</p>
           <div className="grid grid-cols-2 gap-3">
             {ACHIEVEMENTS.map((a) => (
-              <div key={a.id} className="bg-white/5 rounded-xl p-3 flex items-center gap-2.5">
+              <div key={a.id} className="bg-black/5 rounded-xl p-3 flex items-center gap-2.5">
                 <span className="text-xl grayscale">{a.icon}</span>
-                <span className="text-white/70 text-xs font-medium">{a.label}</span>
+                <span className="text-black/70 text-xs font-medium">{a.label}</span>
               </div>
             ))}
           </div>
@@ -1447,31 +1462,31 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
   return (
     <div className="pb-6">
       <div className="px-5 pt-6 pb-4">
-        <h1 className="text-white text-2xl font-bold">Profile</h1>
+        <h1 className="text-black text-2xl font-bold">Profile</h1>
       </div>
       <div className="px-5">
         <Card>
           <div className="flex items-center gap-4">
             <AvatarPicker name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
             <div>
-              <p className="text-white text-lg font-bold">{user.name}</p>
-              <p className="text-white/40 text-sm">
+              <p className="text-black text-lg font-bold">{user.name}</p>
+              <p className="text-black/40 text-sm">
                 {user.fitnessLevel || "Beginner"} · {user.username}
               </p>
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
-              <p className="text-white font-bold">{user.streak || 0}🔥</p>
-              <p className="text-white/40 text-[11px]">day streak</p>
+            <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
+              <p className="text-black font-bold">{user.streak || 0}🔥</p>
+              <p className="text-black/40 text-[11px]">day streak</p>
             </div>
-            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
-              <p className="text-white font-bold">{user.currentSessionIndex || 0}</p>
-              <p className="text-white/40 text-[11px]">total workouts</p>
+            <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
+              <p className="text-black font-bold">{user.currentSessionIndex || 0}</p>
+              <p className="text-black/40 text-[11px]">total workouts</p>
             </div>
-            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
-              <p className="text-white font-bold">3</p>
-              <p className="text-white/40 text-[11px]">PRs this month</p>
+            <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
+              <p className="text-black font-bold">3</p>
+              <p className="text-black/40 text-[11px]">PRs this month</p>
             </div>
           </div>
         </Card>
@@ -1480,32 +1495,32 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
       <div className="px-5 mt-4 space-y-3">
         <Card onClick={() => setMessagesOpen(true)}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative">
-              <MessageCircle size={18} className="text-white" />
+            <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative">
+              <MessageCircle size={18} className="text-black" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
             </div>
             <div className="flex-1">
-              <p className="text-white font-semibold">Messages</p>
-              <p className="text-white/40 text-xs">Chat directly with your coach</p>
+              <p className="text-black font-semibold">Messages</p>
+              <p className="text-black/40 text-xs">Chat directly with your coach</p>
             </div>
-            <ChevronRight size={18} className="text-white/30" />
+            <ChevronRight size={18} className="text-black/30" />
           </div>
         </Card>
 
         <Card onClick={() => setCoachOpen(true)}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-              <Activity size={18} className="text-white" />
+            <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center">
+              <Activity size={18} className="text-black" />
             </div>
             <div className="flex-1">
-              <p className="text-white font-semibold">AI Coach</p>
-              <p className="text-white/40 text-xs">Ask about training, nutrition, and recovery</p>
+              <p className="text-black font-semibold">AI Coach</p>
+              <p className="text-black/40 text-xs">Ask about training, nutrition, and recovery</p>
             </div>
-            <ChevronRight size={18} className="text-white/30" />
+            <ChevronRight size={18} className="text-black/30" />
           </div>
         </Card>
       </div>
@@ -1513,17 +1528,17 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
       <div className="px-5 mt-4">
         <Card>
           {rows.map((r, i) => (
-            <div key={r.label} className={`flex items-center gap-3 py-3 ${i !== rows.length - 1 ? "border-b border-white/5" : ""}`}>
-              <r.icon size={17} className="text-white/40" />
-              <span className="text-white/80 text-sm flex-1">{r.label}</span>
-              <ChevronRight size={16} className="text-white/20" />
+            <div key={r.label} className={`flex items-center gap-3 py-3 ${i !== rows.length - 1 ? "border-b border-black/5" : ""}`}>
+              <r.icon size={17} className="text-black/40" />
+              <span className="text-black/80 text-sm flex-1">{r.label}</span>
+              <ChevronRight size={16} className="text-black/20" />
             </div>
           ))}
         </Card>
       </div>
 
       <div className="px-5 mt-4">
-        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 font-semibold py-3.5 rounded-2xl">
+        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-black/5 border border-black/10 text-black/70 font-semibold py-3.5 rounded-2xl">
           <LogOut size={15} /> Sign out
         </button>
       </div>
@@ -1554,7 +1569,7 @@ function CoachSheet({ open, onClose, ctx }) {
       <div className="space-y-3 mb-4 max-h-[45vh] overflow-y-auto">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "bg-white text-black" : "bg-white/8 text-white/85"}`}>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
               {m.text}
             </div>
           </div>
@@ -1562,7 +1577,7 @@ function CoachSheet({ open, onClose, ctx }) {
       </div>
       <div className="flex flex-wrap gap-2 mb-3">
         {COACH_SUGGESTIONS.map((s) => (
-          <button key={s} onClick={() => send(s)} className="text-xs bg-white/8 text-white/60 px-3 py-1.5 rounded-full">
+          <button key={s} onClick={() => send(s)} className="text-xs bg-black/8 text-black/60 px-3 py-1.5 rounded-full">
             {s}
           </button>
         ))}
@@ -1573,10 +1588,10 @@ function CoachSheet({ open, onClose, ctx }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send(input)}
           placeholder="Ask your coach..."
-          className="flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
+          className="flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
         />
-        <button onClick={() => send(input)} className="w-11 h-11 rounded-full bg-white flex items-center justify-center">
-          <ChevronRight size={18} className="text-black" />
+        <button onClick={() => send(input)} className="w-11 h-11 rounded-full bg-black flex items-center justify-center">
+          <ChevronRight size={18} className="text-white" />
         </button>
       </div>
     </BottomSheet>
@@ -1601,13 +1616,13 @@ function MessagesSheet({ open, onClose, user, thread, onSend }) {
     <BottomSheet open={open} onClose={onClose} title="Messages">
       <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
         {thread.length === 0 && (
-          <p className="text-white/30 text-sm text-center py-8">No messages yet — say hello to your coach.</p>
+          <p className="text-black/30 text-sm text-center py-8">No messages yet — say hello to your coach.</p>
         )}
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "client" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-white text-black" : "bg-white/8 text-white/85"}`}>
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
               <p>{m.text}</p>
-              <p className={`text-[10px] mt-1 ${m.from === "client" ? "text-black/40" : "text-white/30"}`}>
+              <p className={`text-[10px] mt-1 ${m.from === "client" ? "text-white/40" : "text-black/30"}`}>
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>
             </div>
@@ -1621,10 +1636,10 @@ function MessagesSheet({ open, onClose, user, thread, onSend }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Message your coach..."
-          className="flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
+          className="flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
         />
-        <button onClick={send} className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0">
-          <Send size={16} className="text-black" />
+        <button onClick={send} className="w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0">
+          <Send size={16} className="text-white" />
         </button>
       </div>
     </BottomSheet>
@@ -1773,7 +1788,7 @@ export default function ClientApp() {
   const daySessionWithExIndex = todaySession && { ...todaySession, _exIndex: exIndex, _setExIndex: setExIndex };
 
   return (
-    <div className="w-full h-full min-h-screen bg-[#0A0A0B] font-sans flex justify-center">
+    <div className="w-full h-full min-h-screen bg-white font-sans flex justify-center">
       <div className="w-full max-w-md relative">
         <BrandBar />
         {tab === "home" && (
@@ -1843,14 +1858,14 @@ export default function ClientApp() {
         )}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
-          <div className="w-full max-w-md bg-[#0F1012]/95 backdrop-blur border-t border-white/5 flex px-2 pb-safe">
+          <div className="w-full max-w-md bg-[#FAFAFA]/95 backdrop-blur border-t border-black/5 flex px-2 pb-safe">
             {TABS.map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
               return (
                 <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3">
-                  <Icon size={21} className={active ? "text-white" : "text-white/35"} strokeWidth={active ? 2.4 : 2} />
-                  <span className={`text-[10px] font-medium ${active ? "text-white" : "text-white/35"}`}>{t.label}</span>
+                  <Icon size={21} className={active ? "text-black" : "text-black/35"} strokeWidth={active ? 2.4 : 2} />
+                  <span className={`text-[10px] font-medium ${active ? "text-black" : "text-black/35"}`}>{t.label}</span>
                 </button>
               );
             })}

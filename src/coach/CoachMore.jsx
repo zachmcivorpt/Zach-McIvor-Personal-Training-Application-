@@ -9,19 +9,19 @@ export default function CoachMore({ onNavigate, onLogout }) {
   return (
     <div className="max-w-xl px-8 py-8 space-y-4">
       <div>
-        <h1 className="text-white text-2xl font-bold">Settings</h1>
+        <h1 className="text-black text-2xl font-bold">Settings</h1>
       </div>
 
       <Card onClick={() => onNavigate("exercises")}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-            <Video size={18} className="text-white" />
+          <div className="w-10 h-10 rounded-xl bg-black/10 flex items-center justify-center shrink-0">
+            <Video size={18} className="text-black" />
           </div>
           <div className="flex-1">
-            <p className="text-white font-semibold text-sm">Manage Exercise Library</p>
-            <p className="text-white/40 text-xs mt-0.5">Upload custom exercise videos</p>
+            <p className="text-black font-semibold text-sm">Manage Exercise Library</p>
+            <p className="text-black/40 text-xs mt-0.5">Upload custom exercise videos</p>
           </div>
-          <ChevronRight size={18} className="text-white/30" />
+          <ChevronRight size={18} className="text-black/30" />
         </div>
       </Card>
 
@@ -34,9 +34,9 @@ export default function CoachMore({ onNavigate, onLogout }) {
             onChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
           />
           <div>
-            <p className="text-white font-bold">{currentUser?.name}</p>
-            <p className="text-white/40 text-sm">{currentUser?.email}</p>
-            <p className="text-white/30 text-xs mt-0.5">@{currentUser?.username}</p>
+            <p className="text-black font-bold">{currentUser?.name}</p>
+            <p className="text-black/40 text-sm">{currentUser?.email}</p>
+            <p className="text-black/30 text-xs mt-0.5">@{currentUser?.username}</p>
           </div>
         </div>
       </Card>

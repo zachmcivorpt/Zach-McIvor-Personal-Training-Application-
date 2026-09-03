@@ -68,10 +68,10 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[95] bg-[#0A0A0B] flex flex-col">
+      <div className="fixed inset-0 z-[95] bg-white flex flex-col">
         <div className="flex items-center justify-between px-5 pt-6 pb-3">
-          <span className="text-white font-semibold">Scan Barcode</span>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-white/60">
+          <span className="text-black font-semibold">Scan Barcode</span>
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-black/60">
             <X size={20} />
           </button>
         </div>
@@ -79,23 +79,23 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
         {status === "scanning" && (
           <>
             <div className="px-5">
-              <div id={elId} className="w-full rounded-2xl overflow-hidden bg-black" />
+              <div id={elId} className="w-full rounded-2xl overflow-hidden bg-white" />
             </div>
-            <p className="text-white/40 text-sm text-center mt-4 px-8">Point your camera at a product barcode</p>
+            <p className="text-black/40 text-sm text-center mt-4 px-8">Point your camera at a product barcode</p>
           </>
         )}
 
         {status === "looking-up" && (
           <div className="flex-1 flex flex-col items-center justify-center">
-            <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4" />
-            <p className="text-white/50 text-sm">Looking up product...</p>
+            <div className="w-10 h-10 border-2 border-black/20 border-t-black rounded-full animate-spin mb-4" />
+            <p className="text-black/50 text-sm">Looking up product...</p>
           </div>
         )}
 
         {status === "error" && (
           <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-            <p className="text-white font-semibold mb-2">Couldn't complete that scan</p>
-            <p className="text-white/40 text-sm mb-6">{error}</p>
+            <p className="text-black font-semibold mb-2">Couldn't complete that scan</p>
+            <p className="text-black/40 text-sm mb-6">{error}</p>
             <SecondaryButton onClick={onClose} className="px-8">
               Close
             </SecondaryButton>
@@ -105,7 +105,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
         {status === "result" && result && (
           <div className="flex-1 px-5 flex flex-col justify-center">
             <Card>
-              <p className="text-white font-semibold">{result.name}</p>
+              <p className="text-black font-semibold">{result.name}</p>
               <div className="grid grid-cols-4 gap-2 mt-4">
                 {[
                   ["Cals", result.cals],
@@ -113,9 +113,9 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
                   ["Carbs", `${result.carbs}g`],
                   ["Fat", `${result.fat}g`],
                 ].map(([l, v]) => (
-                  <div key={l} className="text-center bg-white/5 rounded-xl py-2.5">
-                    <p className="text-white font-bold text-sm">{v}</p>
-                    <p className="text-white/40 text-[10px] mt-0.5">{l}</p>
+                  <div key={l} className="text-center bg-black/5 rounded-xl py-2.5">
+                    <p className="text-black font-bold text-sm">{v}</p>
+                    <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
                   </div>
                 ))}
               </div>
@@ -209,14 +209,14 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
           <button
             onClick={() => fileRef.current?.click()}
-            className="w-full flex flex-col items-center gap-3 bg-white/5 border border-dashed border-white/15 rounded-2xl py-10"
+            className="w-full flex flex-col items-center gap-3 bg-black/5 border border-dashed border-black/15 rounded-2xl py-10"
           >
-            <Camera size={28} className="text-white/40" />
-            <span className="text-white/60 text-sm font-medium">Take or choose a photo of your meal</span>
+            <Camera size={28} className="text-black/40" />
+            <span className="text-black/60 text-sm font-medium">Take or choose a photo of your meal</span>
           </button>
-          <div className="flex items-start gap-2 mt-4 bg-white/[0.03] rounded-xl p-3">
-            <UtensilsCrossed size={14} className="text-white/30 shrink-0 mt-0.5" />
-            <p className="text-white/30 text-[11px] leading-relaxed">
+          <div className="flex items-start gap-2 mt-4 bg-black/[0.03] rounded-xl p-3">
+            <UtensilsCrossed size={14} className="text-black/30 shrink-0 mt-0.5" />
+            <p className="text-black/30 text-[11px] leading-relaxed">
               We'll keep the photo as a reference — add the ingredients yourself below and we'll total up the macros.
             </p>
           </div>
@@ -234,14 +234,14 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
           {ingredients.length > 0 && (
             <div className="mt-4 space-y-1.5">
               {ingredients.map((ing) => (
-                <div key={ing.id} className="flex items-center justify-between bg-white/5 rounded-xl px-3.5 py-2.5">
+                <div key={ing.id} className="flex items-center justify-between bg-black/5 rounded-xl px-3.5 py-2.5">
                   <div>
-                    <p className="text-white text-sm font-medium">{ing.name}</p>
-                    <p className="text-white/40 text-xs">
+                    <p className="text-black text-sm font-medium">{ing.name}</p>
+                    <p className="text-black/40 text-xs">
                       {ing.cals} kcal · P{ing.protein} C{ing.carbs} F{ing.fat}
                     </p>
                   </div>
-                  <button onClick={() => removeIngredient(ing.id)} className="w-7 h-7 flex items-center justify-center text-white/30">
+                  <button onClick={() => removeIngredient(ing.id)} className="w-7 h-7 flex items-center justify-center text-black/30">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -249,7 +249,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
             </div>
           )}
 
-          <div className="bg-white/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mt-4">
+          <div className="bg-black/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mt-4">
             {[
               ["Cals", totals.cals],
               ["Protein", `${totals.protein}g`],
@@ -257,20 +257,20 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
               ["Fat", `${totals.fat}g`],
             ].map(([l, v]) => (
               <div key={l} className="text-center">
-                <p className="text-white font-bold text-sm">{v}</p>
-                <p className="text-white/40 text-[10px] mt-0.5">{l}</p>
+                <p className="text-black font-bold text-sm">{v}</p>
+                <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
               </div>
             ))}
           </div>
 
           <div className="mt-5">
-            <p className="text-white/40 text-xs tracking-wide mb-2">ADD INGREDIENT</p>
-            <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-2">
+            <p className="text-black/40 text-xs tracking-wide mb-2">ADD INGREDIENT</p>
+            <div className="flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-2">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search foods"
-                className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+                className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
               />
             </div>
             {search && (
@@ -279,10 +279,10 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
                   <button
                     key={f.id}
                     onClick={() => addIngredient(f)}
-                    className="w-full flex items-center justify-between py-2.5 border-b border-white/5 last:border-0"
+                    className="w-full flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"
                   >
-                    <span className="text-white text-sm">{f.name}</span>
-                    <span className="text-white/40 text-xs">{f.cals} kcal</span>
+                    <span className="text-black text-sm">{f.name}</span>
+                    <span className="text-black/40 text-xs">{f.cals} kcal</span>
                   </button>
                 ))}
               </div>
@@ -291,12 +291,12 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
             {!manualOpen ? (
               <button
                 onClick={() => setManualOpen(true)}
-                className="w-full flex items-center justify-center gap-1.5 text-white/50 text-xs font-medium py-2.5 rounded-xl bg-white/[0.03]"
+                className="w-full flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03]"
               >
                 <Plus size={13} /> Add a custom ingredient
               </button>
             ) : (
-              <div className="bg-white/[0.03] rounded-xl p-3 space-y-2">
+              <div className="bg-black/[0.03] rounded-xl p-3 space-y-2">
                 <TextInput
                   value={manual.name}
                   onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
@@ -311,7 +311,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
                       value={manual[k]}
                       onChange={(e) => setManual((m) => ({ ...m, [k]: +e.target.value }))}
                       placeholder={k}
-                      className="bg-white/5 rounded-lg text-center text-white text-xs py-2 outline-none placeholder:text-white/25 placeholder:capitalize"
+                      className="bg-black/5 rounded-lg text-center text-black text-xs py-2 outline-none placeholder:text-black/25 placeholder:capitalize"
                     />
                   ))}
                 </div>
@@ -402,14 +402,14 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
       {ingredients.length > 0 && (
         <div className="mt-4 space-y-1.5">
           {ingredients.map((ing) => (
-            <div key={ing.id} className="flex items-center justify-between bg-white/5 rounded-xl px-3.5 py-2.5">
+            <div key={ing.id} className="flex items-center justify-between bg-black/5 rounded-xl px-3.5 py-2.5">
               <div>
-                <p className="text-white text-sm font-medium">{ing.name}</p>
-                <p className="text-white/40 text-xs">
+                <p className="text-black text-sm font-medium">{ing.name}</p>
+                <p className="text-black/40 text-xs">
                   {ing.cals} kcal · P{ing.protein} C{ing.carbs} F{ing.fat}
                 </p>
               </div>
-              <button onClick={() => removeIngredient(ing.id)} className="w-7 h-7 flex items-center justify-center text-white/30">
+              <button onClick={() => removeIngredient(ing.id)} className="w-7 h-7 flex items-center justify-center text-black/30">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -417,7 +417,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
         </div>
       )}
 
-      <div className="bg-white/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mt-4">
+      <div className="bg-black/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mt-4">
         {[
           ["Cals", totals.cals],
           ["Protein", `${totals.protein}g`],
@@ -425,20 +425,20 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
           ["Fat", `${totals.fat}g`],
         ].map(([l, v]) => (
           <div key={l} className="text-center">
-            <p className="text-white font-bold text-sm">{v}</p>
-            <p className="text-white/40 text-[10px] mt-0.5">{l}</p>
+            <p className="text-black font-bold text-sm">{v}</p>
+            <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
           </div>
         ))}
       </div>
 
       <div className="mt-5">
-        <p className="text-white/40 text-xs tracking-wide mb-2">ADD INGREDIENT</p>
-        <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-2">
+        <p className="text-black/40 text-xs tracking-wide mb-2">ADD INGREDIENT</p>
+        <div className="flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-2">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search foods"
-            className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+            className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
           />
         </div>
         {search && (
@@ -447,10 +447,10 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
               <button
                 key={f.id}
                 onClick={() => addIngredient(f)}
-                className="w-full flex items-center justify-between py-2.5 border-b border-white/5 last:border-0"
+                className="w-full flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"
               >
-                <span className="text-white text-sm">{f.name}</span>
-                <span className="text-white/40 text-xs">{f.cals} kcal</span>
+                <span className="text-black text-sm">{f.name}</span>
+                <span className="text-black/40 text-xs">{f.cals} kcal</span>
               </button>
             ))}
           </div>
@@ -459,12 +459,12 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
         {!manualOpen ? (
           <button
             onClick={() => setManualOpen(true)}
-            className="w-full flex items-center justify-center gap-1.5 text-white/50 text-xs font-medium py-2.5 rounded-xl bg-white/[0.03]"
+            className="w-full flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03]"
           >
             <Plus size={13} /> Add a custom ingredient
           </button>
         ) : (
-          <div className="bg-white/[0.03] rounded-xl p-3 space-y-2">
+          <div className="bg-black/[0.03] rounded-xl p-3 space-y-2">
             <TextInput
               value={manual.name}
               onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
@@ -479,7 +479,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
                   value={manual[k]}
                   onChange={(e) => setManual((m) => ({ ...m, [k]: +e.target.value }))}
                   placeholder={k}
-                  className="bg-white/5 rounded-lg text-center text-white text-xs py-2 outline-none placeholder:text-white/25 placeholder:capitalize"
+                  className="bg-black/5 rounded-lg text-center text-black text-xs py-2 outline-none placeholder:text-black/25 placeholder:capitalize"
                 />
               ))}
             </div>
@@ -514,30 +514,30 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete }) {
   return (
     <Card>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-white font-semibold">My Meals</p>
-        <button onClick={onCreateNew} className="text-white/60 text-xs font-semibold flex items-center gap-1">
+        <p className="text-black font-semibold">My Meals</p>
+        <button onClick={onCreateNew} className="text-black/60 text-xs font-semibold flex items-center gap-1">
           <Plus size={13} /> New
         </button>
       </div>
 
       {meals.length === 0 ? (
-        <p className="text-white/30 text-sm">Save meals you eat often for one-tap logging.</p>
+        <p className="text-black/30 text-sm">Save meals you eat often for one-tap logging.</p>
       ) : (
         <div className="space-y-2">
           {meals.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-2.5">
+            <div key={m.id} className="flex items-center gap-3 bg-black/5 rounded-xl px-3.5 py-2.5">
               {m.photoUrl && (
                 <img src={m.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
               )}
               <div className="flex-1 min-w-0" onClick={() => setConfirmDelete(m)}>
-                <p className="text-white text-sm font-medium truncate">{m.name}</p>
-                <p className="text-white/40 text-xs">
+                <p className="text-black text-sm font-medium truncate">{m.name}</p>
+                <p className="text-black/40 text-xs">
                   {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                 </p>
               </div>
               <button
                 onClick={() => setLogging(m)}
-                className="w-8 h-8 shrink-0 rounded-full bg-white text-black flex items-center justify-center"
+                className="w-8 h-8 shrink-0 rounded-full bg-black text-white flex items-center justify-center"
               >
                 <Plus size={16} />
               </button>
@@ -547,7 +547,7 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete }) {
       )}
 
       <BottomSheet open={!!logging} onClose={() => setLogging(null)} title={`Log "${logging?.name}"`}>
-        <p className="text-white/40 text-sm mb-4">Add to which meal today?</p>
+        <p className="text-black/40 text-sm mb-4">Add to which meal today?</p>
         <div className="grid grid-cols-2 gap-2">
           {categories.map((c) => (
             <button
@@ -556,7 +556,7 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete }) {
                 onLog(logging, c);
                 setLogging(null);
               }}
-              className="bg-white/8 text-white text-sm font-semibold py-3.5 rounded-xl"
+              className="bg-black/8 text-black text-sm font-semibold py-3.5 rounded-xl"
             >
               {c}
             </button>
@@ -570,8 +570,8 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete }) {
             <div className="space-y-1.5 mb-4">
               {confirmDelete.ingredients.map((ing, i) => (
                 <div key={i} className="flex justify-between text-sm">
-                  <span className="text-white/70">{ing.name}</span>
-                  <span className="text-white/40">{ing.cals} kcal</span>
+                  <span className="text-black/70">{ing.name}</span>
+                  <span className="text-black/40">{ing.cals} kcal</span>
                 </div>
               ))}
             </div>

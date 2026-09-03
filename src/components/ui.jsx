@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { X, Check, Camera } from "lucide-react";
 import { SURFACE, SURFACE_RAISED, BORDER, TEXT_MUTED, ACCENT, ACCENT_INK, MEASURE_BLUE } from "../theme";
-import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE, TAGLINE_LOGO } from "../lib/brand";
+import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE, TAGLINE_LOGO, TAGLINE_LOGO_BLACK } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
 
 /* ============================================================================
@@ -32,9 +32,10 @@ export function Logo({ variant = "wordmark", tone = "white", className = "", sty
 }
 
 // The brand slogan — the coach's own hand-lettered "Forge Your Path" mark.
-// Designed for dark surfaces (the app's default background).
-export function Tagline({ className = "h-5 w-auto opacity-80" }) {
-  return <img src={TAGLINE_LOGO} alt="Forge Your Path" className={className} draggable={false} />;
+// tone: "white" (for dark surfaces, e.g. the login screen) | "black" (for
+// the app's now-light everyday screens).
+export function Tagline({ tone = "black", className = "h-5 w-auto opacity-80" }) {
+  return <img src={tone === "white" ? TAGLINE_LOGO : TAGLINE_LOGO_BLACK} alt="Forge Your Path" className={className} draggable={false} />;
 }
 
 // Shows the uploaded photo when set, otherwise the initial-letter circle
@@ -63,7 +64,7 @@ export function Avatar({ name, url, size = 40, className = "", onClick }) {
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`${commonClass} bg-white/10 border border-white/15 text-white font-bold`}
+      className={`${commonClass} bg-black/10 border border-black/15 text-black font-bold`}
       style={{ width: px, height: px, fontSize: size * 0.4 }}
     >
       {name?.[0]?.toUpperCase() || "?"}
@@ -97,14 +98,14 @@ export function AvatarPicker({ name, url, size = 72, onChange }) {
       <Avatar name={name} url={url} size={size} onClick={() => fileRef.current?.click()} />
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       <div
-        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center border-2 pointer-events-none"
+        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-black flex items-center justify-center border-2 pointer-events-none"
         style={{ borderColor: SURFACE }}
       >
-        <Camera size={12} className="text-black" />
+        <Camera size={12} className="text-white" />
       </div>
       {busy && (
-        <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center pointer-events-none">
-          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        <div className="absolute inset-0 rounded-full bg-white/60 flex items-center justify-center pointer-events-none">
+          <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
         </div>
       )}
     </div>
@@ -132,9 +133,9 @@ export function BottomSheet({ open, onClose, title, children }) {
   return (
     <FullScreenOverlay>
       <div className="fixed inset-0 z-[110] flex items-end justify-center">
-        <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
         <div
-          className="relative w-full max-w-md rounded-t-3xl max-h-[88vh] overflow-y-auto animate-[slideUp_0.25s_ease-out] border-t border-white/10"
+          className="relative w-full max-w-md rounded-t-3xl max-h-[88vh] overflow-y-auto animate-[slideUp_0.25s_ease-out] border-t border-black/10"
           style={{ backgroundColor: SURFACE_RAISED }}
         >
           <div
@@ -142,9 +143,9 @@ export function BottomSheet({ open, onClose, title, children }) {
             style={{ backgroundColor: SURFACE_RAISED, borderColor: BORDER }}
           >
             <div className="w-8" />
-            <div className="w-10 h-1 rounded-full bg-white/20 absolute left-1/2 -translate-x-1/2 top-2" />
-            <span className="font-semibold text-white tracking-tight">{title}</span>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10">
+            <div className="w-10 h-1 rounded-full bg-black/20 absolute left-1/2 -translate-x-1/2 top-2" />
+            <span className="font-semibold text-black tracking-tight">{title}</span>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-black/10">
               <X size={16} />
             </button>
           </div>
@@ -164,7 +165,7 @@ export function Toast({ message, show }) {
         show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
       }`}
     >
-      <div className="bg-white text-black text-sm font-medium px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2">
+      <div className="bg-black text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2">
         <Check size={16} strokeWidth={3} />
         {message}
       </div>
@@ -180,10 +181,10 @@ export function Toast({ message, show }) {
 export function ProgressBar({ value, max, height = 8, dim = false }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
-    <div className="w-full rounded-full bg-white/10" style={{ height }}>
+    <div className="w-full rounded-full bg-black/10" style={{ height }}>
       <div
         className="rounded-full transition-all duration-700 ease-out"
-        style={{ width: `${pct}%`, height, backgroundColor: dim ? "rgba(255,255,255,0.5)" : ACCENT }}
+        style={{ width: `${pct}%`, height, backgroundColor: dim ? "rgba(10,10,11,0.5)" : ACCENT }}
       />
     </div>
   );
@@ -196,7 +197,7 @@ export function Ring({ value, max, size = 64, stroke = 7, children }) {
   return (
     <div style={{ width: size, height: size }} className="relative flex items-center justify-center shrink-0">
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.1)" strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(10,10,11,0.1)" strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -229,10 +230,10 @@ export function Card({ children, className = "", onClick, style }) {
 
 export function Pill({ children, tone = "default" }) {
   const tones = {
-    default: "bg-white/8 text-white/70",
-    outline: "border border-white/20 text-white/80",
-    solid: "bg-white text-black",
-    muted: "bg-white/[0.04] text-white/40",
+    default: "bg-black/8 text-black/70",
+    outline: "border border-black/20 text-black/80",
+    solid: "bg-black text-white",
+    muted: "bg-black/[0.04] text-black/40",
   };
   return <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${tones[tone]}`}>{children}</span>;
 }
@@ -242,12 +243,12 @@ export function Pill({ children, tone = "default" }) {
 export function NumberStepper({ label, value, setValue, step, min = 0 }) {
   return (
     <div>
-      <p className="text-white/40 text-xs tracking-wide mb-2">{label}</p>
-      <div className="flex items-center bg-white/5 rounded-xl">
+      <p className="text-black/40 text-xs tracking-wide mb-2">{label}</p>
+      <div className="flex items-center bg-black/5 rounded-xl">
         <button
           type="button"
           onClick={() => setValue(Math.max(min, +((+value || 0) - step).toFixed(2)))}
-          className="w-11 h-11 shrink-0 flex items-center justify-center text-white/60"
+          className="w-11 h-11 shrink-0 flex items-center justify-center text-black/60"
         >
           −
         </button>
@@ -260,12 +261,12 @@ export function NumberStepper({ label, value, setValue, step, min = 0 }) {
           onBlur={(e) => {
             if (e.target.value === "" || Number.isNaN(+e.target.value)) setValue(min);
           }}
-          className="flex-1 min-w-0 text-center bg-transparent text-white font-bold text-lg tabular-nums outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className="flex-1 min-w-0 text-center bg-transparent text-black font-bold text-lg tabular-nums outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         />
         <button
           type="button"
           onClick={() => setValue(+((+value || 0) + step).toFixed(2))}
-          className="w-11 h-11 shrink-0 flex items-center justify-center text-white/60"
+          className="w-11 h-11 shrink-0 flex items-center justify-center text-black/60"
         >
           +
         </button>
@@ -281,9 +282,9 @@ export function NumberStepper({ label, value, setValue, step, min = 0 }) {
 export function Field({ label, children, hint }) {
   return (
     <label className="block">
-      <span className="block text-white/40 text-xs tracking-wide mb-1.5">{label}</span>
+      <span className="block text-black/40 text-xs tracking-wide mb-1.5">{label}</span>
       {children}
-      {hint && <span className="block text-white/30 text-xs mt-1">{hint}</span>}
+      {hint && <span className="block text-black/30 text-xs mt-1">{hint}</span>}
     </label>
   );
 }
@@ -292,7 +293,7 @@ export function TextInput(props) {
   return (
     <input
       {...props}
-      className={`w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30 transition-colors ${props.className || ""}`}
+      className={`w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none placeholder:text-black/25 focus:border-black/30 transition-colors ${props.className || ""}`}
     />
   );
 }
@@ -301,7 +302,7 @@ export function TextArea(props) {
   return (
     <textarea
       {...props}
-      className={`w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30 transition-colors resize-none ${props.className || ""}`}
+      className={`w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none placeholder:text-black/25 focus:border-black/30 transition-colors resize-none ${props.className || ""}`}
     />
   );
 }
@@ -310,7 +311,7 @@ export function Select({ className, ...props }) {
   return (
     <select
       {...props}
-      className={`w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-white/30 transition-colors ${className || ""}`}
+      className={`w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none focus:border-black/30 transition-colors ${className || ""}`}
     />
   );
 }
@@ -319,7 +320,7 @@ export function PrimaryButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`bg-white text-black font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-30 disabled:active:scale-100 ${className}`}
+      className={`bg-black text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-30 disabled:active:scale-100 ${className}`}
     >
       {children}
     </button>
@@ -330,7 +331,7 @@ export function SecondaryButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`bg-white/8 text-white font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-30 ${className}`}
+      className={`bg-black/8 text-black font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-30 ${className}`}
     >
       {children}
     </button>
@@ -341,7 +342,7 @@ export function DangerButton({ children, className = "", ...props }) {
   return (
     <button
       {...props}
-      className={`bg-white/5 border border-white/15 text-white/70 font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${className}`}
+      className={`bg-black/5 border border-black/15 text-black/70 font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${className}`}
     >
       {children}
     </button>
@@ -355,7 +356,7 @@ export function DangerButton({ children, className = "", ...props }) {
 // Minimal trend line, no axes — for a metric tile's baseline graph.
 export function Sparkline({ data, dataKey = "value", height = 36 }) {
   if (!data || data.length < 2) {
-    return <div style={{ height }} className="flex items-end"><div className="w-full h-px bg-white/10" /></div>;
+    return <div style={{ height }} className="flex items-end"><div className="w-full h-px bg-black/10" /></div>;
   }
   const gradId = `spark-${dataKey}-${Math.random().toString(36).slice(2, 8)}`;
   return (
@@ -379,11 +380,11 @@ export function MetricTile({ label, value, date, series, onClick }) {
   return (
     <Card onClick={onClick} className="!p-4 flex flex-col justify-between min-h-[128px]">
       <div>
-        <p className="text-white/50 text-[13px] font-medium">{label}</p>
-        {date && <p className="text-white/25 text-[11px] mt-0.5">{date}</p>}
+        <p className="text-black/50 text-[13px] font-medium">{label}</p>
+        {date && <p className="text-black/25 text-[11px] mt-0.5">{date}</p>}
       </div>
       <div>
-        <p className="text-white text-2xl font-bold tabular-nums leading-none mb-2">{value ?? "···"}</p>
+        <p className="text-black text-2xl font-bold tabular-nums leading-none mb-2">{value ?? "···"}</p>
         {series ? <Sparkline data={series} /> : <div className="h-9" />}
       </div>
     </Card>

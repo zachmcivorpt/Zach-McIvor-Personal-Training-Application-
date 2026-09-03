@@ -70,31 +70,31 @@ function NewPhaseSheet({ open, onClose, programs, onCreate }) {
     >
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <p className="text-white/40 text-xs tracking-wide mb-1.5">PHASE NAME</p>
+          <p className="text-black/40 text-xs tracking-wide mb-1.5">PHASE NAME</p>
           <TextInput value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Week 1-4 Stabilisation" />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="text-white/40 text-xs tracking-wide mb-1.5">START DATE</p>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">START DATE</p>
             <input
               type="date"
               value={form.startDate}
               onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-              className="w-full bg-white/8 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none"
+              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
             />
           </div>
           <div>
-            <p className="text-white/40 text-xs tracking-wide mb-1.5">END DATE</p>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">END DATE</p>
             <input
               type="date"
               value={form.endDate}
               onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-              className="w-full bg-white/8 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none"
+              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
             />
           </div>
         </div>
         <div>
-          <p className="text-white/40 text-xs tracking-wide mb-1.5">START FROM A TEMPLATE (OPTIONAL)</p>
+          <p className="text-black/40 text-xs tracking-wide mb-1.5">START FROM A TEMPLATE (OPTIONAL)</p>
           <Select value={form.templateId} onChange={(e) => setForm((f) => ({ ...f, templateId: e.target.value }))}>
             <option value="">— Start blank —</option>
             {programs.map((p) => (
@@ -135,7 +135,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Duplicate & Schedule Phase">
-      <p className="text-white/50 text-sm mb-4">
+      <p className="text-black/50 text-sm mb-4">
         Makes a full copy of "{phase.name}" with its own workouts, ready to tweak — set when it should run.
       </p>
       <form
@@ -146,26 +146,26 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
         className="space-y-4"
       >
         <div>
-          <p className="text-white/40 text-xs tracking-wide mb-1.5">NEW PHASE NAME</p>
+          <p className="text-black/40 text-xs tracking-wide mb-1.5">NEW PHASE NAME</p>
           <TextInput value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <p className="text-white/40 text-xs tracking-wide mb-1.5">START DATE</p>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">START DATE</p>
             <input
               type="date"
               value={form.startDate}
               onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-              className="w-full bg-white/8 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none"
+              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
             />
           </div>
           <div>
-            <p className="text-white/40 text-xs tracking-wide mb-1.5">END DATE</p>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">END DATE</p>
             <input
               type="date"
               value={form.endDate}
               onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-              className="w-full bg-white/8 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none"
+              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
             />
           </div>
         </div>
@@ -237,18 +237,18 @@ function TrainingProgramPanel({ client, showToast }) {
   return (
     <div className="flex h-full min-h-0">
       {/* phase history */}
-      <div className="w-72 shrink-0 border-r border-white/8 flex flex-col min-h-0">
+      <div className="w-72 shrink-0 border-r border-black/8 flex flex-col min-h-0">
         <div className="px-4 pt-5 pb-3 flex items-center justify-between">
-          <p className="text-white font-semibold text-sm">Training Program</p>
+          <p className="text-black font-semibold text-sm">Training Program</p>
           <button
             onClick={() => setNewPhaseOpen(true)}
-            className="flex items-center gap-1 bg-white text-black text-xs font-bold px-2.5 py-1.5 rounded-lg"
+            className="flex items-center gap-1 bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg"
           >
             <Plus size={13} /> ADD
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5">
-          {sorted.length === 0 && <p className="text-white/30 text-xs px-2 py-4">No phases yet — add the first one.</p>}
+          {sorted.length === 0 && <p className="text-black/30 text-xs px-2 py-4">No phases yet — add the first one.</p>}
           {sorted.map((p) => {
             const active = p.id === selectedPhaseId;
             const isCurrent = getCurrentPhase(phases, todayKey())?.id === p.id;
@@ -256,13 +256,13 @@ function TrainingProgramPanel({ client, showToast }) {
               <button
                 key={p.id}
                 onClick={() => selectPhase(p.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${active ? "bg-white/10" : "hover:bg-white/5"}`}
+                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${active ? "bg-black/10" : "hover:bg-black/5"}`}
               >
                 <div className="flex items-center gap-1.5">
-                  <p className="text-white text-sm font-medium truncate flex-1">{p.name}</p>
-                  {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-white shrink-0" />}
+                  <p className="text-black text-sm font-medium truncate flex-1">{p.name}</p>
+                  {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-black shrink-0" />}
                 </div>
-                <p className="text-white/35 text-[11px] mt-0.5">
+                <p className="text-black/35 text-[11px] mt-0.5">
                   {new Date(p.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                   {p.endDate ? ` - ${new Date(p.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : ""}
                 </p>
@@ -276,9 +276,9 @@ function TrainingProgramPanel({ client, showToast }) {
       <div className="flex-1 min-w-0 overflow-y-auto px-6 py-5">
         {!phase ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
-            <ClipboardList size={28} className="text-white/20 mb-3" />
-            <p className="text-white/50 text-sm">No phase selected yet.</p>
-            <button onClick={() => setNewPhaseOpen(true)} className="mt-4 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl">
+            <ClipboardList size={28} className="text-black/20 mb-3" />
+            <p className="text-black/50 text-sm">No phase selected yet.</p>
+            <button onClick={() => setNewPhaseOpen(true)} className="mt-4 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl">
               + Add a phase
             </button>
           </div>
@@ -288,19 +288,19 @@ function TrainingProgramPanel({ client, showToast }) {
               <input
                 value={phase.name}
                 onChange={(e) => updateClientPhase(client.id, phase.id, { name: e.target.value })}
-                className="bg-transparent outline-none text-white text-xl font-bold flex-1 min-w-0"
+                className="bg-transparent outline-none text-black text-xl font-bold flex-1 min-w-0"
               />
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setDuplicating(phase)}
-                  className="flex items-center gap-1.5 bg-white/8 hover:bg-white/15 text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
                 >
                   <Copy size={13} /> Duplicate
                 </button>
                 {!confirmDeletePhase || confirmDeletePhase !== phase.id ? (
                   <button
                     onClick={() => setConfirmDeletePhase(phase.id)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/8 hover:bg-white/15 text-white/50"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/50"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -320,20 +320,20 @@ function TrainingProgramPanel({ client, showToast }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-white/40 text-xs mb-5">
+            <div className="flex items-center gap-2 text-black/40 text-xs mb-5">
               <Calendar size={13} />
               <input
                 type="date"
                 value={phase.startDate}
                 onChange={(e) => updateClientPhase(client.id, phase.id, { startDate: e.target.value })}
-                className="bg-transparent outline-none text-white/60"
+                className="bg-transparent outline-none text-black/60"
               />
               <span>-</span>
               <input
                 type="date"
                 value={phase.endDate || ""}
                 onChange={(e) => updateClientPhase(client.id, phase.id, { endDate: e.target.value })}
-                className="bg-transparent outline-none text-white/60"
+                className="bg-transparent outline-none text-black/60"
               />
             </div>
 
@@ -346,34 +346,34 @@ function TrainingProgramPanel({ client, showToast }) {
             />
 
             <div className="flex items-center justify-between mb-3">
-              <p className="text-white font-semibold text-sm">Workouts</p>
-              <button onClick={addWorkout} className="flex items-center gap-1.5 text-white/60 text-xs font-semibold">
+              <p className="text-black font-semibold text-sm">Workouts</p>
+              <button onClick={addWorkout} className="flex items-center gap-1.5 text-black/60 text-xs font-semibold">
                 <Plus size={13} /> New workout
               </button>
             </div>
 
             {days.length === 0 ? (
-              <div className="border border-dashed border-white/12 rounded-2xl py-10 text-center">
-                <p className="text-white/30 text-sm">No workouts in this phase yet.</p>
+              <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
+                <p className="text-black/30 text-sm">No workouts in this phase yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
                 {days.map((d, i) => (
-                  <div key={d.id || i} className="flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-4 py-3">
+                  <div key={d.id || i} className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium text-sm truncate">{d.label}</p>
-                      <p className="text-white/35 text-xs truncate">
+                      <p className="text-black font-medium text-sm truncate">{d.label}</p>
+                      <p className="text-black/35 text-xs truncate">
                         {d.exercises.length} exercise{d.exercises.length === 1 ? "" : "s"}
                         {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
                       </p>
                     </div>
                     <button
                       onClick={() => setEditingWorkout({ dayIndex: i, day: d })}
-                      className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-white/8 transition-colors"
+                      className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors"
                     >
                       <Edit3 size={13} /> Edit
                     </button>
-                    <button onClick={() => deleteWorkout(i)} className="w-7 h-7 flex items-center justify-center text-white/30 hover:text-white/60">
+                    <button onClick={() => deleteWorkout(i)} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60">
                       <X size={14} />
                     </button>
                   </div>
@@ -414,13 +414,13 @@ function HabitsPanel({ client }) {
 
   return (
     <div className="max-w-xl px-6 py-6">
-      <p className="text-white font-semibold mb-4">Daily Habits</p>
+      <p className="text-black font-semibold mb-4">Daily Habits</p>
       {habits.length > 0 && (
         <div className="space-y-1.5 mb-4">
           {habits.map((h) => (
-            <div key={h.id} className="flex items-center justify-between bg-white/5 rounded-xl px-3.5 py-2.5">
-              <span className="text-white text-sm">{h.label}</span>
-              <button onClick={() => removeHabit(client.id, h.id)} className="w-7 h-7 flex items-center justify-center text-white/30">
+            <div key={h.id} className="flex items-center justify-between bg-black/5 rounded-xl px-3.5 py-2.5">
+              <span className="text-black text-sm">{h.label}</span>
+              <button onClick={() => removeHabit(client.id, h.id)} className="w-7 h-7 flex items-center justify-center text-black/30">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -429,13 +429,13 @@ function HabitsPanel({ client }) {
       )}
       <form onSubmit={submit} className="flex gap-2 mb-3">
         <TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Stretch for 10 minutes" className="flex-1" />
-        <button type="submit" className="w-11 h-11 shrink-0 rounded-xl bg-white text-black flex items-center justify-center">
+        <button type="submit" className="w-11 h-11 shrink-0 rounded-xl bg-black text-white flex items-center justify-center">
           <Plus size={18} />
         </button>
       </form>
       <div className="flex flex-wrap gap-1.5">
         {HABIT_PRESETS.filter((p) => !existingLabels.has(p.toLowerCase())).map((preset) => (
-          <button key={preset} onClick={() => addHabit(client.id, preset)} className="text-xs bg-white/8 text-white/60 px-3 py-1.5 rounded-full">
+          <button key={preset} onClick={() => addHabit(client.id, preset)} className="text-xs bg-black/8 text-black/60 px-3 py-1.5 rounded-full">
             + {preset}
           </button>
         ))}
@@ -451,11 +451,11 @@ function NutritionPanel({ client, showToast }) {
 
   return (
     <div className="max-w-xl px-6 py-6">
-      <p className="text-white font-semibold mb-4">Nutrition Log</p>
+      <p className="text-black font-semibold mb-4">Nutrition Log</p>
       {!nutrition ? (
-        <p className="text-white/30 text-sm">Nothing logged yet.</p>
+        <p className="text-black/30 text-sm">Nothing logged yet.</p>
       ) : (
-        <div className="bg-white/5 border border-white/8 rounded-2xl p-4 grid grid-cols-4 gap-3 mb-4">
+        <div className="bg-black/5 border border-black/8 rounded-2xl p-4 grid grid-cols-4 gap-3 mb-4">
           {[
             ["Cals", nutrition.calories],
             ["Protein", `${nutrition.protein}g`],
@@ -463,8 +463,8 @@ function NutritionPanel({ client, showToast }) {
             ["Fat", `${nutrition.fat}g`],
           ].map(([l, v]) => (
             <div key={l} className="text-center">
-              <p className="text-white font-bold">{v}</p>
-              <p className="text-white/40 text-[11px] mt-0.5">{l}</p>
+              <p className="text-black font-bold">{v}</p>
+              <p className="text-black/40 text-[11px] mt-0.5">{l}</p>
             </div>
           ))}
         </div>
@@ -472,7 +472,7 @@ function NutritionPanel({ client, showToast }) {
       {!confirmReset ? (
         <button
           onClick={() => setConfirmReset(true)}
-          className="flex items-center gap-2 bg-white/5 border border-white/10 text-white/60 text-sm font-medium px-4 py-2.5 rounded-xl"
+          className="flex items-center gap-2 bg-black/5 border border-black/10 text-black/60 text-sm font-medium px-4 py-2.5 rounded-xl"
         >
           <Trash2 size={13} /> Clear logged nutrition
         </button>
@@ -509,13 +509,13 @@ function ProgressPanel({ client }) {
   const photos = db.progressPhotos[client.id] || [];
   return (
     <div className="max-w-3xl px-6 py-6">
-      <p className="text-white font-semibold mb-4">Progress Photos</p>
+      <p className="text-black font-semibold mb-4">Progress Photos</p>
       {photos.length === 0 ? (
-        <p className="text-white/30 text-sm">No photos uploaded by this client yet.</p>
+        <p className="text-black/30 text-sm">No photos uploaded by this client yet.</p>
       ) : (
         <div className="grid grid-cols-5 gap-3">
           {photos.map((p) => (
-            <div key={p.id} className="aspect-square rounded-xl overflow-hidden bg-white/5">
+            <div key={p.id} className="aspect-square rounded-xl overflow-hidden bg-black/5">
               <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
             </div>
           ))}
@@ -543,28 +543,28 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
   if (!client) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-[#0A0A0B] flex">
+    <div className="fixed inset-0 z-[80] bg-white flex">
       {/* client mini-sidebar */}
-      <div className="w-64 shrink-0 h-screen flex flex-col border-r border-white/8 bg-[#0C0C0E]">
-        <div className="p-5 border-b border-white/8">
+      <div className="w-64 shrink-0 h-screen flex flex-col border-r border-black/8 bg-[#F7F7F8]">
+        <div className="p-5 border-b border-black/8">
           <div className="flex items-center gap-3">
             <Avatar name={client.name} url={client.avatarUrl} size={48} />
             <div className="min-w-0">
-              <p className="text-white font-bold text-sm truncate">{client.name}</p>
+              <p className="text-black font-bold text-sm truncate">{client.name}</p>
               <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
             </div>
           </div>
           {client.status === "active" ? (
             <button
               onClick={() => setMessaging(true)}
-              className="w-full mt-3 flex items-center justify-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="w-full mt-3 flex items-center justify-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-semibold py-2.5 rounded-xl transition-colors"
             >
               <MessageCircle size={15} /> Message
             </button>
           ) : (
             <button
               onClick={() => setSendOpen(true)}
-              className="w-full mt-3 flex items-center justify-center gap-2 bg-white text-black text-sm font-bold py-2.5 rounded-xl"
+              className="w-full mt-3 flex items-center justify-center gap-2 bg-black text-white text-sm font-bold py-2.5 rounded-xl"
             >
               <Send size={15} /> Send Login Details
             </button>
@@ -580,7 +580,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
                 key={item.id}
                 onClick={() => setClientTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  active ? "bg-white text-black" : "text-white/60 hover:bg-white/5 hover:text-white/90"
+                  active ? "bg-black text-white" : "text-black/60 hover:bg-black/5 hover:text-black/90"
                 }`}
               >
                 <Icon size={16} strokeWidth={active ? 2.4 : 2} />
@@ -590,17 +590,17 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
           })}
         </div>
 
-        <div className="p-3 border-t border-white/8 space-y-1">
+        <div className="p-3 border-t border-black/8 space-y-1">
           {!confirmRemove ? (
             <button
               onClick={() => setConfirmRemove(true)}
-              className="w-full text-left px-3.5 py-2 text-white/30 hover:text-white/60 text-xs font-medium"
+              className="w-full text-left px-3.5 py-2 text-black/30 hover:text-black/60 text-xs font-medium"
             >
               Remove client
             </button>
           ) : (
             <div className="flex gap-1.5 px-1">
-              <button onClick={() => setConfirmRemove(false)} className="flex-1 bg-white/8 text-white text-xs font-semibold py-2 rounded-lg">
+              <button onClick={() => setConfirmRemove(false)} className="flex-1 bg-black/8 text-black text-xs font-semibold py-2 rounded-lg">
                 Cancel
               </button>
               <button
@@ -615,7 +615,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
               </button>
             </div>
           )}
-          <button onClick={onClose} className="w-full flex items-center gap-2 px-3.5 py-2.5 text-white/50 hover:text-white text-sm font-medium">
+          <button onClick={onClose} className="w-full flex items-center gap-2 px-3.5 py-2.5 text-black/50 hover:text-black text-sm font-medium">
             <ArrowLeft size={15} /> Return to overview
           </button>
         </div>

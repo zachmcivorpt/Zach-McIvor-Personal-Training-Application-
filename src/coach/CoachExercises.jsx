@@ -125,22 +125,22 @@ function ExerciseSheet({ exercise, open, onClose, showToast }) {
               placeholder="Paste a hosted video URL (YouTube, Vimeo, MP4...)"
             />
             <div className="flex items-center gap-2">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-white/30 text-[10px]">OR</span>
-              <div className="h-px flex-1 bg-white/10" />
+              <div className="h-px flex-1 bg-black/10" />
+              <span className="text-black/30 text-[10px]">OR</span>
+              <div className="h-px flex-1 bg-black/10" />
             </div>
             <input ref={fileRef} type="file" accept="video/*" onChange={handleFile} className="hidden" />
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="w-full flex items-center justify-center gap-2 bg-white/5 border border-dashed border-white/15 text-white/60 text-sm font-medium py-3 rounded-xl"
+              className="w-full flex items-center justify-center gap-2 bg-black/5 border border-dashed border-black/15 text-black/60 text-sm font-medium py-3 rounded-xl"
             >
               <Upload size={15} /> {uploadedName || "Upload a video file"}
             </button>
             {form.videoUrl && (
-              <video src={form.videoUrl} controls className="w-full rounded-xl bg-black max-h-48" />
+              <video src={form.videoUrl} controls className="w-full rounded-xl bg-white max-h-48" />
             )}
-            <p className="text-white/25 text-[11px] leading-relaxed">
+            <p className="text-black/25 text-[11px] leading-relaxed">
               Uploaded files preview instantly but only persist for this browser session — connect real video storage (S3, Mux,
               Cloudinary...) to keep them long-term. A pasted URL persists normally.
             </p>
@@ -193,21 +193,21 @@ export default function CoachExercises({ showToast }) {
     <div className="max-w-6xl mx-auto px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-white text-2xl font-bold">Exercise Library</h1>
-          <p className="text-white/40 text-sm mt-0.5">{db.exercises.length} total</p>
+          <h1 className="text-black text-2xl font-bold">Exercise Library</h1>
+          <p className="text-black/40 text-sm mt-0.5">{db.exercises.length} total</p>
         </div>
-        <button onClick={() => setEditing({ isNew: true })} className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl">
+        <button onClick={() => setEditing({ isNew: true })} className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl">
           <Plus size={16} /> NEW EXERCISE
         </button>
       </div>
 
-      <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 mb-5 max-w-sm">
-        <Search size={16} className="text-white/40" />
+      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 max-w-sm">
+        <Search size={16} className="text-black/40" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search exercises"
-          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+          className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
         />
       </div>
 
@@ -215,12 +215,12 @@ export default function CoachExercises({ showToast }) {
         {filtered.map((ex) => (
           <Card key={ex.id} onClick={() => setEditing(ex)}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/8 flex items-center justify-center shrink-0">
-                {ex.videoUrl ? <Video size={16} className="text-white/60" /> : <Dumbbell size={16} className="text-white/40" />}
+              <div className="w-10 h-10 rounded-xl bg-black/8 flex items-center justify-center shrink-0">
+                {ex.videoUrl ? <Video size={16} className="text-black/60" /> : <Dumbbell size={16} className="text-black/40" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold text-sm truncate">{ex.name}</p>
-                <p className="text-white/40 text-xs truncate mt-0.5">
+                <p className="text-black font-semibold text-sm truncate">{ex.name}</p>
+                <p className="text-black/40 text-xs truncate mt-0.5">
                   {ex.category} · {ex.equipment}
                 </p>
               </div>

@@ -25,12 +25,12 @@ function ThreadMessages({ client }) {
   return (
     <>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-        {thread.length === 0 && <p className="text-white/30 text-sm text-center py-10">No messages yet with {client.name.split(" ")[0]}.</p>}
+        {thread.length === 0 && <p className="text-black/30 text-sm text-center py-10">No messages yet with {client.name.split(" ")[0]}.</p>}
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "coach" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "coach" ? "bg-white text-black" : "bg-white/8 text-white/85"}`}>
+            <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "coach" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
               <p>{m.text}</p>
-              <p className={`text-[10px] mt-1 ${m.from === "coach" ? "text-black/40" : "text-white/30"}`}>
+              <p className={`text-[10px] mt-1 ${m.from === "coach" ? "text-white/40" : "text-black/30"}`}>
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>
             </div>
@@ -39,16 +39,16 @@ function ThreadMessages({ client }) {
         <div ref={endRef} />
       </div>
 
-      <div className="flex gap-2 px-5 pb-5 pt-2 border-t border-white/5">
+      <div className="flex gap-2 px-5 pb-5 pt-2 border-t border-black/5">
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder={`Message ${client.name.split(" ")[0]}...`}
-          className="flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
+          className="flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
         />
-        <button onClick={send} className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0">
-          <Send size={16} className="text-black" />
+        <button onClick={send} className="w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0">
+          <Send size={16} className="text-white" />
         </button>
       </div>
     </>
@@ -60,15 +60,15 @@ function ThreadMessages({ client }) {
 export function ThreadView({ client, onClose }) {
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-[#0A0A0B] flex flex-col">
-        <div className="flex items-center gap-3 px-5 pt-6 pb-3 border-b border-white/5">
-          <button onClick={onClose} className="w-9 h-9 -ml-2 flex items-center justify-center text-white/60">
+      <div className="fixed inset-0 z-[90] bg-white flex flex-col">
+        <div className="flex items-center gap-3 px-5 pt-6 pb-3 border-b border-black/5">
+          <button onClick={onClose} className="w-9 h-9 -ml-2 flex items-center justify-center text-black/60">
             <ChevronLeft size={20} />
           </button>
           <Avatar name={client.name} url={client.avatarUrl} size={36} />
           <div>
-            <p className="text-white font-semibold text-sm leading-none">{client.name}</p>
-            <p className="text-white/30 text-xs mt-1">{client.username}</p>
+            <p className="text-black font-semibold text-sm leading-none">{client.name}</p>
+            <p className="text-black/30 text-xs mt-1">{client.username}</p>
           </div>
         </div>
         <ThreadMessages client={client} />
@@ -97,27 +97,27 @@ export default function CoachMessages() {
   return (
     <div className="h-screen flex flex-col">
       <div className="px-8 pt-8 pb-4 shrink-0">
-        <h1 className="text-white text-2xl font-bold">Messages</h1>
-        <p className="text-white/40 text-sm mt-0.5">Direct chat with your active clients</p>
+        <h1 className="text-black text-2xl font-bold">Messages</h1>
+        <p className="text-black/40 text-sm mt-0.5">Direct chat with your active clients</p>
       </div>
 
-      <div className="flex-1 min-h-0 flex border-t border-white/8">
-        <div className="w-80 shrink-0 border-r border-white/8 flex flex-col min-h-0">
+      <div className="flex-1 min-h-0 flex border-t border-black/8">
+        <div className="w-80 shrink-0 border-r border-black/8 flex flex-col min-h-0">
           <div className="p-4">
-            <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5">
-              <Search size={15} className="text-white/40" />
+            <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5">
+              <Search size={15} className="text-black/40" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search clients"
-                className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+                className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
               />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto px-2 pb-4">
             {clients.length === 0 && (
-              <p className="text-white/30 text-sm text-center py-10 px-4">
-                <MessageCircle size={20} className="mx-auto mb-2 text-white/20" />
+              <p className="text-black/30 text-sm text-center py-10 px-4">
+                <MessageCircle size={20} className="mx-auto mb-2 text-black/20" />
                 No active clients to message yet.
               </p>
             )}
@@ -126,20 +126,20 @@ export default function CoachMessages() {
                 key={c.id}
                 onClick={() => setOpenClientId(c.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
-                  openClientId === c.id ? "bg-white/10" : "hover:bg-white/5"
+                  openClientId === c.id ? "bg-black/10" : "hover:bg-black/5"
                 }`}
               >
                 <Avatar name={c.name} url={c.avatarUrl} size={40} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-white font-semibold text-sm truncate">{c.name}</p>
+                    <p className="text-black font-semibold text-sm truncate">{c.name}</p>
                     {c.lastMsg && (
-                      <span className="text-white/30 text-[11px] shrink-0 ml-2">
+                      <span className="text-black/30 text-[11px] shrink-0 ml-2">
                         {new Date(c.lastMsg.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                       </span>
                     )}
                   </div>
-                  <p className="text-white/40 text-xs truncate mt-0.5">
+                  <p className="text-black/40 text-xs truncate mt-0.5">
                     {c.lastMsg ? `${c.lastMsg.from === "coach" ? "You: " : ""}${c.lastMsg.text}` : "No messages yet"}
                   </p>
                 </div>
@@ -151,16 +151,16 @@ export default function CoachMessages() {
         <div className="flex-1 min-w-0 flex flex-col">
           {openClient ? (
             <>
-              <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/8">
+              <div className="flex items-center gap-3 px-5 py-3.5 border-b border-black/8">
                 <Avatar name={openClient.name} url={openClient.avatarUrl} size={34} />
-                <p className="text-white font-semibold text-sm">{openClient.name}</p>
+                <p className="text-black font-semibold text-sm">{openClient.name}</p>
               </div>
               <ThreadMessages client={openClient} />
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <MessageCircle size={28} className="text-white/15 mb-3" />
-              <p className="text-white/30 text-sm">Select a client to start messaging.</p>
+              <MessageCircle size={28} className="text-black/15 mb-3" />
+              <p className="text-black/30 text-sm">Select a client to start messaging.</p>
             </div>
           )}
         </div>

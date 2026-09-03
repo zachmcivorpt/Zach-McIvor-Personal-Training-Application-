@@ -56,47 +56,47 @@ export default function CoachShell() {
       <button
         onClick={() => setTab(item.id)}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-          active ? "bg-white text-black" : "text-white/60 hover:bg-white/5 hover:text-white/90"
+          active ? "bg-black text-white" : "text-black/60 hover:bg-black/5 hover:text-black/90"
         }`}
       >
         <Icon size={17} strokeWidth={active ? 2.4 : 2} />
         <span className="flex-1 text-left">{item.label}</span>
         {item.id === "messages" && unreadMessages && (
-          <span className={`w-2 h-2 rounded-full ${active ? "bg-black" : "bg-white"}`} />
+          <span className={`w-2 h-2 rounded-full ${active ? "bg-white" : "bg-black"}`} />
         )}
       </button>
     );
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#0A0A0B] font-sans flex">
+    <div className="w-full min-h-screen bg-white font-sans flex">
       {/* sidebar */}
-      <div className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-white/8 bg-[#0C0C0E]">
+      <div className="w-64 shrink-0 h-screen sticky top-0 flex flex-col border-r border-black/8 bg-[#F7F7F8]">
         <div className="px-5 pt-6 pb-5">
-          <Logo variant="wordmark" tone="white" className="h-9 w-auto" />
+          <Logo variant="wordmark" tone="black" className="h-9 w-auto" />
         </div>
 
         <div className="px-4 mb-5">
-          <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5">
-            <Search size={15} className="text-white/40" />
+          <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5">
+            <Search size={15} className="text-black/40" />
             <input
               value={clientSearch}
               onChange={(e) => goToClients(e.target.value)}
               placeholder="Find a client"
-              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+              className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4">
-          <p className="text-white/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mb-2">MAIN MENU</p>
+          <p className="text-black/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mb-2">MAIN MENU</p>
           <div className="space-y-1">
             {MAIN_MENU.map((item) => (
               <NavButton key={item.id} item={item} />
             ))}
           </div>
 
-          <p className="text-white/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mt-6 mb-2">OTHER</p>
+          <p className="text-black/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mt-6 mb-2">OTHER</p>
           <div className="space-y-1">
             {OTHER_MENU.map((item) => (
               <NavButton key={item.id} item={item} />
@@ -104,14 +104,14 @@ export default function CoachShell() {
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/8 flex items-center gap-2.5">
+        <div className="p-4 border-t border-black/8 flex items-center gap-2.5">
           <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={38} onClick={() => setTab("more")} />
           <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-semibold truncate">{currentUser?.name}</p>
-            <p className="text-white/35 text-[11px] truncate">Coach</p>
+            <p className="text-black text-sm font-semibold truncate">{currentUser?.name}</p>
+            <p className="text-black/35 text-[11px] truncate">Coach</p>
           </div>
-          <button onClick={doLogout} className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center shrink-0" title="Sign out">
-            <LogOut size={14} className="text-white/60" />
+          <button onClick={doLogout} className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center shrink-0" title="Sign out">
+            <LogOut size={14} className="text-black/60" />
           </button>
         </div>
       </div>

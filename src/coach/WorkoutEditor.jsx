@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { TextInput, TextArea, Select } from "../components/ui";
-import { X, Plus, Trash2, ChevronUp, ChevronDown, Search, Video, Dumbbell } from "lucide-react";
+import { X, Plus, Trash2, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup } from "lucide-react";
 
 const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
 const REST_PRESETS = [30, 45, 60, 90, 120, 180, 240];
+const GROUP_LABELS = { superset: "SUPERSET", circuit: "CIRCUIT" };
+const GROUP_ICONS = { superset: Link2, circuit: RefreshCw };
 
 function formatRest(seconds) {
   if (seconds >= 60) {
@@ -15,7 +17,7 @@ function formatRest(seconds) {
 }
 
 function newRow(exerciseId) {
-  return { exerciseId, targetSets: 3, targetReps: 10, targetRIR: 2, restSeconds: 90, notes: "" };
+  return { exerciseId, targetSets: 3, targetReps: 10, targetRIR: 2, restSeconds: 90, notes: "", groupId: null, groupType: null };
 }
 
 // Full-screen desktop editor for one workout (a "day"): instructions +
@@ -31,6 +33,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
   const [search, setSearch] = useState("");
   const [addCustomOpen, setAddCustomOpen] = useState(false);
   const [customForm, setCustomForm] = useState({ name: "", category: "", equipment: "Barbell" });
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
 
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(
@@ -49,14 +55,53 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
   function removeRow(i) {
     setRows((r) => r.filter((_, idx) => idx !== i));
   }
-  function moveRow(i, dir) {
+  function handleDragStart(i) {
+    setDragIndex(i);
+  }
+  function handleDragOver(e, i) {
+    e.preventDefault();
+    if (overIndex !== i) setOverIndex(i);
+  }
+  function handleDrop(i) {
     setRows((r) => {
+      if (dragIndex === null || dragIndex === i) return r;
       const next = [...r];
-      const j = i + dir;
-      if (j < 0 || j >= next.length) return r;
-      [next[i], next[j]] = [next[j], next[i]];
+      const [moved] = next.splice(dragIndex, 1);
+      next.splice(i, 0, moved);
       return next;
     });
+    setDragIndex(null);
+    setOverIndex(null);
+  }
+  function handleDragEnd() {
+    setDragIndex(null);
+    setOverIndex(null);
+  }
+  function toggleSelected(i) {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  }
+  function groupSelected(type) {
+    if (selected.size < 2) return;
+    const groupId = `grp_${Date.now()}`;
+    const indices = [...selected].sort((a, b) => a - b);
+    setRows((r) => {
+      // move every selected row to be contiguous, right after the first one
+      const chosen = indices.map((i) => r[i]);
+      const rest = r.filter((_, i) => !selected.has(i));
+      const insertAt = indices[0];
+      const next = [...rest.slice(0, insertAt), ...chosen.map((row) => ({ ...row, groupId, groupType: type })), ...rest.slice(insertAt)];
+      return next;
+    });
+    setSelected(new Set());
+    setSelectMode(false);
+  }
+  function ungroup(groupId) {
+    setRows((r) => r.map((row) => (row.groupId === groupId ? { ...row, groupId: null, groupType: null } : row)));
   }
   function addExercise(exerciseId) {
     setRows((r) => [...r, newRow(exerciseId)]);
@@ -85,23 +130,23 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
   }
 
   return (
-    <div className="fixed inset-0 z-[95] bg-[#0A0A0B] flex flex-col">
+    <div className="fixed inset-0 z-[95] bg-white flex flex-col">
       {/* top bar */}
-      <div className="flex items-center justify-between px-6 py-3.5 border-b border-white/8 shrink-0">
+      <div className="flex items-center justify-between px-6 py-3.5 border-b border-black/8 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="text-white/40 text-sm font-medium shrink-0">Workout:</span>
+          <span className="text-black/40 text-sm font-medium shrink-0">Workout:</span>
           <input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Workout name"
-            className="bg-transparent outline-none text-white font-bold text-lg min-w-0 border-b border-transparent focus:border-white/20"
+            className="bg-transparent outline-none text-black font-bold text-lg min-w-0 border-b border-transparent focus:border-black/20"
           />
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={save} className="bg-white text-black text-sm font-bold px-5 py-2.5 rounded-xl">
+          <button onClick={save} className="bg-black text-white text-sm font-bold px-5 py-2.5 rounded-xl">
             SAVE
           </button>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/8 text-white/60">
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-black/8 text-black/60">
             <X size={18} />
           </button>
         </div>
@@ -109,8 +154,8 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
 
       <div className="flex-1 flex min-h-0">
         {/* left: instructions + exercise table */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 border-r border-white/8">
-          <p className="text-white/40 text-[11px] font-semibold tracking-wide mb-2">INSTRUCTIONS</p>
+        <div className="flex-1 overflow-y-auto px-6 py-5 border-r border-black/8">
+          <p className="text-black/40 text-[11px] font-semibold tracking-wide mb-2">INSTRUCTIONS</p>
           <TextArea
             rows={2}
             value={instructions}
@@ -125,73 +170,130 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
             className="text-sm mb-6"
           />
 
-          <p className="text-white/40 text-[11px] font-semibold tracking-wide mb-3">
-            EXERCISES {rows.length > 0 && `(${rows.length})`}
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-black/40 text-[11px] font-semibold tracking-wide">
+              EXERCISES {rows.length > 0 && `(${rows.length})`}
+            </p>
+            {rows.length >= 2 && (
+              <button
+                onClick={() => {
+                  setSelectMode((m) => !m);
+                  setSelected(new Set());
+                }}
+                className="text-black/50 hover:text-black text-xs font-semibold"
+              >
+                {selectMode ? "Cancel" : "Select"}
+              </button>
+            )}
+          </div>
+
+          {selectMode && (
+            <div className="flex items-center justify-between bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-2.5 mb-3">
+              <span className="text-black/50 text-xs">{selected.size} selected</span>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => groupSelected("superset")}
+                  disabled={selected.size < 2}
+                  className="flex items-center gap-1 bg-black text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg disabled:opacity-30"
+                >
+                  <Link2 size={11} /> Superset
+                </button>
+                <button
+                  onClick={() => groupSelected("circuit")}
+                  disabled={selected.size < 2}
+                  className="flex items-center gap-1 bg-black text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg disabled:opacity-30"
+                >
+                  <RefreshCw size={11} /> Circuit
+                </button>
+              </div>
+            </div>
+          )}
 
           {rows.length === 0 && (
-            <div className="border border-dashed border-white/12 rounded-2xl py-10 text-center">
-              <p className="text-white/30 text-sm">No exercises yet — add some from the library on the right.</p>
+            <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
+              <p className="text-black/30 text-sm">No exercises yet — add some from the library on the right.</p>
             </div>
           )}
 
           <div className="space-y-2.5">
             {rows.map((row, i) => {
               const ex = exercisesById[row.exerciseId];
+              const GroupIcon = row.groupType ? GROUP_ICONS[row.groupType] : null;
               return (
-                <div key={i} className="bg-white/[0.03] border border-white/8 rounded-2xl p-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col shrink-0">
-                      <button onClick={() => moveRow(i, -1)} disabled={i === 0} className="text-white/30 disabled:opacity-20 hover:text-white/60">
-                        <ChevronUp size={14} />
-                      </button>
-                      <button
-                        onClick={() => moveRow(i, 1)}
-                        disabled={i === rows.length - 1}
-                        className="text-white/30 disabled:opacity-20 hover:text-white/60"
-                      >
-                        <ChevronDown size={14} />
+                <div
+                  key={i}
+                  onDragOver={(e) => handleDragOver(e, i)}
+                  onDrop={() => handleDrop(i)}
+                  className={`bg-black/[0.03] border rounded-2xl p-3.5 transition-colors ${
+                    overIndex === i && dragIndex !== null && dragIndex !== i ? "border-black/40" : "border-black/8"
+                  } ${dragIndex === i ? "opacity-40" : ""}`}
+                >
+                  {row.groupType && (
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <GroupIcon size={11} className="text-black/50" />
+                      <span className="text-black/50 text-[10px] font-bold tracking-wide">{GROUP_LABELS[row.groupType]}</span>
+                      <button onClick={() => ungroup(row.groupId)} className="text-black/30 hover:text-black/60 flex items-center gap-0.5 text-[10px]">
+                        <Ungroup size={11} /> Ungroup
                       </button>
                     </div>
-                    <div className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center shrink-0">
-                      {ex?.videoUrl ? <Video size={15} className="text-white/60" /> : <Dumbbell size={15} className="text-white/40" />}
+                  )}
+                  <div className="flex items-center gap-3">
+                    {selectMode ? (
+                      <input
+                        type="checkbox"
+                        checked={selected.has(i)}
+                        onChange={() => toggleSelected(i)}
+                        className="w-4 h-4 shrink-0 accent-black"
+                      />
+                    ) : (
+                      <div
+                        draggable
+                        onDragStart={() => handleDragStart(i)}
+                        onDragEnd={handleDragEnd}
+                        className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing"
+                      >
+                        <GripVertical size={16} />
+                      </div>
+                    )}
+                    <div className="w-9 h-9 rounded-lg bg-black/8 flex items-center justify-center shrink-0">
+                      {ex?.videoUrl ? <Video size={15} className="text-black/60" /> : <Dumbbell size={15} className="text-black/40" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
-                      {ex && <p className="text-white/35 text-[11px] truncate">{ex.equipment} · {ex.category}</p>}
+                      <p className="text-black font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
+                      {ex && <p className="text-black/35 text-[11px] truncate">{ex.equipment} · {ex.category}</p>}
                     </div>
-                    <button onClick={() => removeRow(i)} className="w-7 h-7 shrink-0 flex items-center justify-center text-white/30 hover:text-white/60">
+                    <button onClick={() => removeRow(i)} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60">
                       <X size={15} />
                     </button>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 mt-3">
                     <div>
-                      <p className="text-white/30 text-[10px] mb-1">SETS</p>
+                      <p className="text-black/30 text-[10px] mb-1">SETS</p>
                       <input
                         type="number"
                         min={1}
                         value={row.targetSets}
                         onChange={(e) => updateRow(i, { targetSets: +e.target.value })}
-                        className="w-full bg-white/5 rounded-lg text-center text-white text-sm py-1.5 outline-none"
+                        className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
                       />
                     </div>
                     <div>
-                      <p className="text-white/30 text-[10px] mb-1">REPS</p>
+                      <p className="text-black/30 text-[10px] mb-1">REPS</p>
                       <input
                         type="number"
                         min={1}
                         value={row.targetReps}
                         onChange={(e) => updateRow(i, { targetReps: +e.target.value })}
-                        className="w-full bg-white/5 rounded-lg text-center text-white text-sm py-1.5 outline-none"
+                        className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
                       />
                     </div>
                     <div>
-                      <p className="text-white/30 text-[10px] mb-1">REST</p>
+                      <p className="text-black/30 text-[10px] mb-1">REST</p>
                       <select
                         value={row.restSeconds ?? 90}
                         onChange={(e) => updateRow(i, { restSeconds: +e.target.value })}
-                        className="w-full bg-white/5 rounded-lg text-center text-white text-sm py-1.5 outline-none appearance-none"
+                        className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none appearance-none"
                       >
                         {REST_PRESETS.map((s) => (
                           <option key={s} value={s}>
@@ -203,14 +305,14 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
                   </div>
 
                   <div className="mt-2.5">
-                    <p className="text-white/30 text-[10px] mb-1">TARGET RIR (REPS IN RESERVE)</p>
+                    <p className="text-black/30 text-[10px] mb-1">TARGET RIR (REPS IN RESERVE)</p>
                     <div className="flex gap-1.5">
                       {RIR_OPTIONS.map((v) => (
                         <button
                           key={v}
                           onClick={() => updateRow(i, { targetRIR: v })}
                           className={`flex-1 py-1.5 rounded-lg text-xs font-semibold ${
-                            (row.targetRIR ?? 2) === v ? "bg-white text-black" : "bg-white/8 text-white/50"
+                            (row.targetRIR ?? 2) === v ? "bg-black text-white" : "bg-black/8 text-black/50"
                           }`}
                         >
                           {v}
@@ -223,7 +325,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
                     value={row.notes || ""}
                     onChange={(e) => updateRow(i, { notes: e.target.value })}
                     placeholder="Cue or note for this exercise (tempo, form reminder...)"
-                    className="w-full bg-white/5 rounded-lg px-3 py-2 mt-2.5 text-white text-xs outline-none placeholder:text-white/25"
+                    className="w-full bg-black/5 rounded-lg px-3 py-2 mt-2.5 text-black text-xs outline-none placeholder:text-black/25"
                   />
                 </div>
               );
@@ -233,22 +335,22 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
 
         {/* right: exercise picker */}
         <div className="w-[380px] shrink-0 overflow-y-auto px-5 py-5">
-          <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 mb-3">
-            <Search size={15} className="text-white/40" />
+          <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-3">
+            <Search size={15} className="text-black/40" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search for an exercise"
-              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+              className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
             />
           </div>
 
           {!addCustomOpen ? (
-            <button onClick={() => setAddCustomOpen(true)} className="text-white/60 text-xs font-semibold flex items-center gap-1.5 mb-4">
+            <button onClick={() => setAddCustomOpen(true)} className="text-black/60 text-xs font-semibold flex items-center gap-1.5 mb-4">
               <Plus size={13} /> Add custom exercise
             </button>
           ) : (
-            <div className="bg-white/[0.03] border border-white/8 rounded-xl p-3 space-y-2 mb-4">
+            <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3 space-y-2 mb-4">
               <TextInput
                 value={customForm.name}
                 onChange={(e) => setCustomForm((f) => ({ ...f, name: e.target.value }))}
@@ -269,10 +371,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
                 </Select>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setAddCustomOpen(false)} className="flex-1 bg-white/8 text-white text-xs font-semibold py-2 rounded-lg">
+                <button onClick={() => setAddCustomOpen(false)} className="flex-1 bg-black/8 text-black text-xs font-semibold py-2 rounded-lg">
                   Cancel
                 </button>
-                <button onClick={addCustomExercise} className="flex-1 bg-white text-black text-xs font-bold py-2 rounded-lg">
+                <button onClick={addCustomExercise} className="flex-1 bg-black text-white text-xs font-bold py-2 rounded-lg">
                   Add
                 </button>
               </div>
@@ -284,16 +386,16 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
               <button
                 key={ex.id}
                 onClick={() => addExercise(ex.id)}
-                className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/8 rounded-xl p-3 text-left transition-colors"
+                className="bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl p-3 text-left transition-colors"
               >
-                <div className="w-full aspect-square rounded-lg bg-white/8 flex items-center justify-center mb-2">
-                  {ex.videoUrl ? <Video size={20} className="text-white/50" /> : <Dumbbell size={20} className="text-white/35" />}
+                <div className="w-full aspect-square rounded-lg bg-black/8 flex items-center justify-center mb-2">
+                  {ex.videoUrl ? <Video size={20} className="text-black/50" /> : <Dumbbell size={20} className="text-black/35" />}
                 </div>
-                <p className="text-white text-xs font-semibold leading-tight line-clamp-2">{ex.name}</p>
-                <p className="text-white/35 text-[10px] mt-0.5">{ex.equipment}</p>
+                <p className="text-black text-xs font-semibold leading-tight line-clamp-2">{ex.name}</p>
+                <p className="text-black/35 text-[10px] mt-0.5">{ex.equipment}</p>
               </button>
             ))}
-            {filtered.length === 0 && <p className="text-white/30 text-xs col-span-2 text-center py-6">No exercises match.</p>}
+            {filtered.length === 0 && <p className="text-black/30 text-xs col-span-2 text-center py-6">No exercises match.</p>}
           </div>
         </div>
       </div>

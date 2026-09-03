@@ -61,7 +61,7 @@ function AddClientSheet({ open, onClose, onCreated }) {
         <PrimaryButton type="submit" className="w-full">
           <UserPlus size={18} /> CREATE CLIENT
         </PrimaryButton>
-        <p className="text-white/30 text-xs text-center">
+        <p className="text-black/30 text-xs text-center">
           You'll land on their profile next to set up their program and habits. Nothing is sent to them until you choose to.
         </p>
       </form>
@@ -86,23 +86,23 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Send Login Details">
-      <p className="text-white/50 text-sm mb-4">
+      <p className="text-black/50 text-sm mb-4">
         Only you can see this. Send it to {client.name.split(" ")[0]} however you like — they'll set their own password when
         they activate.
       </p>
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+      <div className="bg-black/5 border border-black/10 rounded-2xl p-4 space-y-3">
         <div>
-          <p className="text-white/40 text-[11px] tracking-wide">LOGIN EMAIL</p>
-          <p className="text-white text-lg font-bold">{client.username}</p>
+          <p className="text-black/40 text-[11px] tracking-wide">LOGIN EMAIL</p>
+          <p className="text-black text-lg font-bold">{client.username}</p>
         </div>
         <div>
-          <p className="text-white/40 text-[11px] tracking-wide">INVITE CODE</p>
-          <p className="text-white text-lg font-bold tracking-[0.3em]">{code}</p>
+          <p className="text-black/40 text-[11px] tracking-wide">INVITE CODE</p>
+          <p className="text-black text-lg font-bold tracking-[0.3em]">{code}</p>
         </div>
       </div>
       <a
         href={inviteMailto({ email: client.email, name: client.name, username: client.username, code, coachName: currentUser?.name })}
-        className="w-full mt-3 bg-white text-black text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2"
+        className="w-full mt-3 bg-black text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2"
       >
         <Mail size={15} /> EMAIL THESE DETAILS
       </a>
@@ -112,7 +112,7 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
           navigator.clipboard?.writeText(`Login email: ${client.username}\nInvite code: ${code}\nActivate at: ${activateUrl}`);
           showToast("Copied login details");
         }}
-        className="w-full mt-2.5 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
+        className="w-full mt-2.5 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
       >
         <Copy size={14} /> COPY DETAILS
       </button>
@@ -124,7 +124,7 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
 }
 
 function PhaseCell({ phase }) {
-  if (!phase) return <span className="text-white/30 text-sm">No phase scheduled</span>;
+  if (!phase) return <span className="text-black/30 text-sm">No phase scheduled</span>;
   const today = new Date().toISOString().slice(0, 10);
   const pct = (() => {
     if (!phase.endDate) return null;
@@ -136,8 +136,8 @@ function PhaseCell({ phase }) {
   })();
   return (
     <div className="min-w-[160px]">
-      <p className="text-white text-sm font-medium truncate">{phase.name}</p>
-      <p className="text-white/35 text-xs mt-0.5">
+      <p className="text-black text-sm font-medium truncate">{phase.name}</p>
+      <p className="text-black/35 text-xs mt-0.5">
         {phase.endDate ? `Ends ${new Date(phase.endDate).toLocaleDateString()}` : "No end date"}
       </p>
       {pct !== null && (
@@ -160,41 +160,41 @@ export default function CoachClients({ showToast, search, setSearch }) {
     <div className="max-w-6xl mx-auto px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-white text-2xl font-bold">Clients</h1>
-          <p className="text-white/40 text-sm mt-0.5">{clients.length} total · access every client's full profile</p>
+          <h1 className="text-black text-2xl font-bold">Clients</h1>
+          <p className="text-black/40 text-sm mt-0.5">{clients.length} total · access every client's full profile</p>
         </div>
         <button
           onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl"
+          className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl"
         >
           <UserPlus size={16} /> ADD CLIENT
         </button>
       </div>
 
-      <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3.5 py-2.5 mb-5 max-w-sm">
-        <Search size={15} className="text-white/40" />
+      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3.5 py-2.5 mb-5 max-w-sm">
+        <Search size={15} className="text-black/40" />
         <input
           value={search || ""}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search clients"
-          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+          className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
         />
       </div>
 
-      <div className="border border-white/8 rounded-2xl overflow-hidden">
+      <div className="border border-black/8 rounded-2xl overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-white/[0.03] border-b border-white/8">
-              <th className="px-5 py-3 text-white/40 text-[11px] font-semibold tracking-wide">NAME</th>
-              <th className="px-5 py-3 text-white/40 text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
-              <th className="px-5 py-3 text-white/40 text-[11px] font-semibold tracking-wide">STATUS</th>
-              <th className="px-5 py-3 text-white/40 text-[11px] font-semibold tracking-wide text-right">ACTION</th>
+            <tr className="bg-black/[0.03] border-b border-black/8">
+              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NAME</th>
+              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
+              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">STATUS</th>
+              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide text-right">ACTION</th>
             </tr>
           </thead>
           <tbody>
             {clients.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-5 py-10 text-center text-white/40 text-sm">
+                <td colSpan={4} className="px-5 py-10 text-center text-black/40 text-sm">
                   No clients yet — add your first one to get started.
                 </td>
               </tr>
@@ -206,14 +206,14 @@ export default function CoachClients({ showToast, search, setSearch }) {
                 <tr
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
-                  className="border-b border-white/5 last:border-0 hover:bg-white/[0.03] cursor-pointer transition-colors"
+                  className="border-b border-black/5 last:border-0 hover:bg-black/[0.03] cursor-pointer transition-colors"
                 >
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
                       <Avatar name={c.name} url={c.avatarUrl} size={38} />
                       <div className="min-w-0">
-                        <p className="text-white font-semibold text-sm truncate">{c.name}</p>
-                        <p className="text-white/35 text-xs truncate">{c.email}</p>
+                        <p className="text-black font-semibold text-sm truncate">{c.name}</p>
+                        <p className="text-black/35 text-xs truncate">{c.email}</p>
                       </div>
                     </div>
                   </td>
@@ -229,7 +229,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                         e.stopPropagation();
                         setSelectedId(c.id);
                       }}
-                      className="bg-white/8 hover:bg-white/15 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
+                      className="bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
                     >
                       OPEN
                     </button>

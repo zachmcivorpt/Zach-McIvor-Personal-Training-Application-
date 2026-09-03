@@ -11,7 +11,8 @@
 
   body {
     margin: 0;
-    background-color: #0a0a0b;
+    background-color: #ffffff;
+    color: #0a0a0b;
     font-family: Arial, Helvetica, sans-serif;
     font-weight: 500;
     -webkit-font-smoothing: antialiased;

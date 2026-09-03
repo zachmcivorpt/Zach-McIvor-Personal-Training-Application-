@@ -119,7 +119,7 @@ export default function LoginScreen() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-10">
           <Logo variant="wordmark" tone="white" className="h-16 w-auto mb-2" />
-          <Tagline className="h-7 w-auto opacity-90 mt-2" />
+          <Tagline tone="white" className="h-7 w-auto opacity-90 mt-2" />
         </div>
 
         <div className="flex bg-white/5 rounded-2xl p-1 mb-6">
