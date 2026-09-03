@@ -40,20 +40,31 @@ function AddClientSheet({ open, onClose, onCreated }) {
   const { createInvite } = useApp();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
 
   function close() {
     setName("");
     setEmail("");
+    setError("");
     onClose();
   }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
-    const created = createInvite({ name, email });
-    setName("");
-    setEmail("");
-    onClose();
-    onCreated(created.id);
+    setError("");
+    setBusy(true);
+    try {
+      const created = await createInvite({ name, email });
+      setName("");
+      setEmail("");
+      onClose();
+      onCreated(created.id);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -65,8 +76,9 @@ function AddClientSheet({ open, onClose, onCreated }) {
         <Field label="EMAIL">
           <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jordan@example.com" required />
         </Field>
-        <PrimaryButton type="submit" className="w-full">
-          <UserPlus size={18} /> CREATE CLIENT
+        {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">{error}</p>}
+        <PrimaryButton type="submit" className="w-full" disabled={busy}>
+          <UserPlus size={18} /> {busy ? "CREATING…" : "CREATE CLIENT"}
         </PrimaryButton>
         <p className="text-black/30 text-xs text-center">
           You'll land on their profile next to set up their program and habits. Nothing is sent to them until you choose to.

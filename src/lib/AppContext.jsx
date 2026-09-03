@@ -307,7 +307,7 @@ export function AppProvider({ children }) {
         return { id: uid, ...coach };
       },
 
-      createInvite({ name, email }) {
+      async createInvite({ name, email }) {
         const base = email.trim().toLowerCase();
         let username = base;
         let n = 1;
@@ -317,7 +317,11 @@ export function AppProvider({ children }) {
         }
         const code = inviteCode();
         const invite = { name: name.trim(), email: username, code, createdAt: Date.now() };
-        setDoc(doc(firestore, "invites", username), invite).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "invites", username), invite);
+        } catch (err) {
+          throw new Error("Couldn't create that client — " + (err.message || "please try again."));
+        }
         return { id: username, username, code };
       },
 
@@ -662,9 +666,13 @@ export function AppProvider({ children }) {
 
       // The coach's automated welcome message template (text + optional PDF),
       // auto-sent when a client activates their account.
-      updateWelcomeMessage(patch) {
+      async updateWelcomeMessage(patch) {
         const next = { ...(db.welcomeMessage || DEFAULT_WELCOME_MESSAGE), ...patch };
-        setDoc(doc(firestore, "settings", "welcomeMessage"), next).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "settings", "welcomeMessage"), next);
+        } catch (err) {
+          throw new Error("Couldn't save — " + (err.message || "please try again."));
+        }
       },
 
       // Client-submitted check-in responses.
