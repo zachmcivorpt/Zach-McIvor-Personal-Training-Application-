@@ -45,6 +45,20 @@ function WelcomeMessageCard() {
     e.target.value = "";
     if (!file) return;
     if (file.type !== "application/pdf") return;
+    setError("");
+    // The PDF is stored inline in the Firestore doc as base64 (~33% larger
+    // than the raw file), and the whole document must stay under 1MB —
+    // reject oversized files here with a clear message instead of letting
+    // the save silently fail later.
+    const MAX_PDF_BYTES = 650_000;
+    if (file.size > MAX_PDF_BYTES) {
+      setError(
+        `That PDF is ${(file.size / 1024 / 1024).toFixed(1)}MB — this only supports PDFs up to about ${(
+          MAX_PDF_BYTES / 1024
+        ).toFixed(0)}KB right now. Try compressing it (e.g. at smallpdf.com/compress-pdf) or trimming it down.`
+      );
+      return;
+    }
     setUploading(true);
     try {
       const dataUrl = await fileToDataUrl(file);
