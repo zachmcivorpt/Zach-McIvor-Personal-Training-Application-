@@ -168,6 +168,11 @@ service cloud.firestore {
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
+    match /weighIns/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
     match /messages/{id} {
       allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);

@@ -175,6 +175,7 @@ export function AppProvider({ children }) {
       watch("formResponses", "formResponses");
       watch("clientNotes", "clientNotes");
       watch("habitLog", "habitLog");
+      watch("weighIns", "weighIns");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -185,6 +186,7 @@ export function AppProvider({ children }) {
       watch("clientPhases", "clientPhases", [where("clientId", "==", uid)]);
       watch("formSchedules", "formSchedules", [where("clientId", "==", uid)]);
       watch("formResponses", "formResponses", [where("clientId", "==", uid)]);
+      watch("weighIns", "weighIns", [where("clientId", "==", uid)]);
       // clientNotes intentionally NOT synced here — they're the coach's
       // private notes about the client, never shown in the client app.
       unsubs.push(
@@ -251,6 +253,7 @@ export function AppProvider({ children }) {
       welcomeMessage: raw.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
       clientTags: Object.fromEntries(users.filter((u) => u.role === "client").map((u) => [u.id, u.clientTags || []])),
       clientNotes: bucket(raw.clientNotes, (a, b) => b.date - a.date),
+      weighIns: bucket(raw.weighIns, (a, b) => a.date - b.date),
     };
   }, [raw, role, profile]);
 
@@ -390,6 +393,7 @@ export function AppProvider({ children }) {
           "formSchedules",
           "formResponses",
           "clientNotes",
+          "weighIns",
         ].forEach((name) => deleteWhereClientId(name, clientId));
       },
 
@@ -495,6 +499,15 @@ export function AppProvider({ children }) {
 
       deleteProgressPhoto(clientId, photoId) {
         deleteDoc(doc(firestore, "progressPhotos", photoId)).catch(console.error);
+      },
+
+      logWeight(clientId, weight) {
+        const id = newDocId("weighIns");
+        setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date: Date.now() }).catch(console.error);
+      },
+
+      deleteWeighIn(clientId, weighInId) {
+        deleteDoc(doc(firestore, "weighIns", weighInId)).catch(console.error);
       },
 
       updateUser(id, data) {

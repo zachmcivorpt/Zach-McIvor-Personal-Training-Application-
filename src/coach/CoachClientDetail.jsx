@@ -27,6 +27,8 @@ import {
   Scale,
   MailCheck,
   LayoutGrid,
+  Repeat,
+  ChevronDown,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -760,23 +762,94 @@ function NutritionPanel({ client, showToast }) {
   );
 }
 
+function WorkoutLogCard({ log, exercisesById }) {
+  const [open, setOpen] = useState(false);
+  const hasFlags = log.entries.some((e) => e.note || e.swapReason);
+  return (
+    <div className="bg-black/[0.03] border border-black/8 rounded-xl overflow-hidden">
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-3.5 py-3 text-left">
+        <div>
+          <p className="text-black text-sm font-semibold">{log.dayLabel}</p>
+          <p className="text-black/40 text-xs mt-0.5">
+            {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {hasFlags && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+          <ChevronDown size={16} className={`text-black/30 transition-transform ${open ? "rotate-180" : ""}`} />
+        </div>
+      </button>
+      {open && (
+        <div className="px-3.5 pb-3.5 space-y-2.5">
+          {log.entries.map((e, i) => {
+            const exercise = exercisesById[e.exerciseId];
+            return (
+              <div key={i} className="bg-white border border-black/5 rounded-lg px-3 py-2.5">
+                <p className="text-black text-sm font-semibold">{exercise?.name || "Exercise"}</p>
+                <p className="text-black/40 text-xs mt-0.5">
+                  {e.sets.map((s) => `${s.reps}×${s.weight}kg`).join(", ")}
+                </p>
+                {e.swapReason && (
+                  <div className="mt-2 flex items-start gap-1.5 bg-blue-50 rounded-lg px-2.5 py-2">
+                    <Repeat size={12} className="text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-blue-700 text-xs leading-snug">
+                      <span className="font-semibold">Swapped from {e.swappedFromName || "planned exercise"}.</span> {e.swapReason}
+                    </p>
+                  </div>
+                )}
+                {e.note && (
+                  <div className="mt-2 flex items-start gap-1.5 bg-black/[0.04] rounded-lg px-2.5 py-2">
+                    <NotebookPen size={12} className="text-black/40 shrink-0 mt-0.5" />
+                    <p className="text-black/60 text-xs leading-snug">{e.note}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProgressPanel({ client }) {
   const { db } = useApp();
   const photos = db.progressPhotos[client.id] || [];
+  const logs = db.workoutLogs[client.id] || [];
+  const exercisesById = Object.fromEntries(db.exercises.map((e) => [e.id, e]));
+
   return (
-    <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6">
-      <p className="text-black font-semibold mb-4">Progress Photos</p>
-      {photos.length === 0 ? (
-        <p className="text-black/30 text-sm">No photos uploaded by this client yet.</p>
-      ) : (
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-          {photos.map((p) => (
-            <div key={p.id} className="aspect-square rounded-xl overflow-hidden bg-black/5">
-              <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6 space-y-6">
+      <div>
+        <p className="text-black font-semibold mb-4">Progress Photos</p>
+        {photos.length === 0 ? (
+          <p className="text-black/30 text-sm">No photos uploaded by this client yet.</p>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            {photos.map((p) => (
+              <div key={p.id} className="aspect-square rounded-xl overflow-hidden bg-black/5">
+                <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="text-black font-semibold mb-2">Training Log</p>
+        <p className="text-black/40 text-xs mb-4">
+          Recent completed sessions — includes any exercise the client swapped mid-session and their note explaining why.
+        </p>
+        {logs.length === 0 ? (
+          <p className="text-black/30 text-sm">No completed workouts yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {logs.slice(0, 12).map((log) => (
+              <WorkoutLogCard key={log.id} log={log} exercisesById={exercisesById} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

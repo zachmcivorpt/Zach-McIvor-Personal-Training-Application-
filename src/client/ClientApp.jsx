@@ -40,6 +40,9 @@ import {
   CalendarCheck,
   Star,
   FileText,
+  Info,
+  Repeat,
+  Scale,
 } from "lucide-react";
 import {
   LineChart,
@@ -67,15 +70,19 @@ import {
   Sparkline,
   MetricTile,
   DangerButton,
+  PrimaryButton,
+  SecondaryButton,
+  Field,
+  TextInput,
   Avatar,
   AvatarPicker,
   Tagline,
 } from "../components/ui";
 import { MEASURE_BLUE } from "../theme";
-import { WEIGHT_HISTORY, BENCH_HISTORY, VOLUME_HISTORY, METRIC_TILES } from "../lib/mockMetrics";
+import { BENCH_HISTORY, VOLUME_HISTORY, METRIC_TILES } from "../lib/mockMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
-import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection } from "./NutritionFeatures";
+import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
 
 /* ============================================================================
    ILLUSTRATIVE METRICS
@@ -200,24 +207,26 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
   const pillLabel = isToday ? "TODAY'S WORKOUT" : completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : "SCHEDULED";
 
   return (
-    <Card className="mx-5">
-      <div className="flex items-center justify-between mb-3">
+    <Card className="mx-5 !p-4">
+      <div className="flex items-center justify-between mb-2">
         <Pill tone="solid">{pillLabel}</Pill>
         <span className="text-black/30 text-xs">{todaySession.weekLabel}</span>
       </div>
-      <h2 className="text-black text-2xl font-bold">{todaySession.label}</h2>
-      <p className="text-black/50 text-sm mt-1">
+      <h2 className="text-black text-lg font-bold">{todaySession.label}</h2>
+      <p className="text-black/50 text-xs mt-0.5">
         {todaySession.exercises.length} exercises · {program.name}
       </p>
-      <div className="flex flex-wrap gap-1.5 mt-3">
-        {(todaySession.muscleGroups || []).map((m) => (
-          <Pill key={m}>{m}</Pill>
-        ))}
-      </div>
+      {(todaySession.muscleGroups || []).length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {todaySession.muscleGroups.map((m) => (
+            <Pill key={m}>{m}</Pill>
+          ))}
+        </div>
+      )}
 
       {started && (
-        <div className="mt-4">
-          <div className="flex justify-between text-xs text-black/40 mb-1.5">
+        <div className="mt-3">
+          <div className="flex justify-between text-xs text-black/40 mb-1">
             <span>Progress</span>
             <span>
               {completedSets}/{totalSets} sets
@@ -228,26 +237,26 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
       )}
 
       {isToday ? (
-        <>
+        <div className="flex gap-2 mt-3.5">
           <button
             onClick={onStart}
-            className="w-full mt-5 bg-black text-white font-bold py-4 rounded-2xl text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="flex-1 bg-black text-white font-bold py-3 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <Play size={18} fill="white" />
-            {started ? "RESUME WORKOUT" : "START WORKOUT"}
+            <Play size={16} fill="white" />
+            {started ? "RESUME" : "START WORKOUT"}
           </button>
-          <button onClick={onView} className="w-full mt-2.5 text-black/60 text-sm font-medium py-2.5 rounded-xl bg-black/5">
-            View workout
+          <button onClick={onView} className="text-black/60 text-sm font-medium px-4 rounded-xl bg-black/5">
+            View
           </button>
-        </>
+        </div>
       ) : (
         <>
           {completedOnDate && (
-            <div className="flex items-center gap-2 mt-4 text-black/60 text-sm">
+            <div className="flex items-center gap-2 mt-3 text-black/60 text-sm">
               <Check size={14} /> Workout completed
             </div>
           )}
-          <button onClick={onView} className="w-full mt-4 text-black/60 text-sm font-medium py-2.5 rounded-xl bg-black/5">
+          <button onClick={onView} className="w-full mt-3 text-black/60 text-sm font-medium py-2 rounded-xl bg-black/5">
             Preview exercises
           </button>
         </>
@@ -418,7 +427,7 @@ function DateStrip({ selectedOffset, onSelect }) {
 
   return (
     <div className="px-5">
-      <div ref={stripRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div ref={stripRef} className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
         {offsets.map((offset) => {
           const d = dateForOffset(offset);
           const isToday = offset === 0;
@@ -428,15 +437,15 @@ function DateStrip({ selectedOffset, onSelect }) {
               key={offset}
               data-offset={offset}
               onClick={() => onSelect(offset)}
-              className={`shrink-0 w-14 rounded-2xl py-2.5 flex flex-col items-center gap-0.5 border transition-colors ${
+              className={`shrink-0 w-10 rounded-xl py-1.5 flex flex-col items-center gap-0.5 border transition-colors ${
                 isSelected ? "bg-black border-black" : "bg-black/5 border-black/10"
               }`}
             >
-              <span className={`text-lg font-bold leading-none ${isSelected ? "text-white" : "text-black"}`}>{d.getDate()}</span>
-              <span className={`text-[10px] font-medium ${isSelected ? "text-white/60" : "text-black/40"}`}>
-                {d.toLocaleDateString(undefined, { weekday: "short" })}
+              <span className={`text-sm font-bold leading-none ${isSelected ? "text-white" : "text-black"}`}>{d.getDate()}</span>
+              <span className={`text-[9px] font-medium ${isSelected ? "text-white/60" : "text-black/40"}`}>
+                {d.toLocaleDateString(undefined, { weekday: "narrow" })}
               </span>
-              {isToday && <span className={`w-1 h-1 rounded-full mt-0.5 ${isSelected ? "bg-white/60" : "bg-black/50"}`} />}
+              {isToday && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white/60" : "bg-black/50"}`} />}
             </button>
           );
         })}
@@ -538,14 +547,7 @@ function HomeScreen({
       {isToday && (
         <NutritionSummaryCard nutrition={nutrition} targets={NUTRITION_TARGETS} onLogFood={onLogFood} onLogWater={onLogWater} />
       )}
-      <div className="grid grid-cols-2 gap-4 px-5">
-        <RecoveryCardCompact recovery={RECOVERY} />
-        <ActivityCardCompact activity={ACTIVITY} />
-      </div>
       <GoalsCard goals={GOALS} />
-      {sessions.length > 0 && (
-        <SessionStrip sessions={sessions} currentIndex={currentIndex} onSelect={(s) => showToast(s.label)} />
-      )}
     </div>
   );
 }
@@ -693,7 +695,7 @@ function RestBar({ restTime, restTotal, label, onSkip, onAdd15 }) {
   );
 }
 
-function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange }) {
+function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, swapInfo, onSwap }) {
   const [notesExpanded, setNotesExpanded] = useState(false);
   const coachNote = exMeta.notes || "";
   const isLongNote = coachNote.length > 90;
@@ -716,6 +718,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
           </p>
         </div>
         <button
+          onClick={onSwap}
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+            swapInfo ? "bg-black text-white" : "bg-black/8 text-black/50"
+          }`}
+        >
+          <Repeat size={14} />
+        </button>
+        <button
           onClick={onToggleNote}
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
             noteOpen || note ? "bg-black text-white" : "bg-black/8 text-black/50"
@@ -724,6 +734,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
           <MessageSquarePlus size={15} />
         </button>
       </div>
+
+      {swapInfo && (
+        <div className="mt-3 bg-black/[0.04] border border-black/10 rounded-2xl px-3.5 py-2.5">
+          <p className="text-black/70 text-[13px] leading-snug">
+            <span className="font-semibold">Swapped from {swapInfo.fromName}.</span> {swapInfo.reason}
+          </p>
+        </div>
+      )}
 
       {coachNote && (
         <div className="mt-3 bg-white border border-black/10 rounded-2xl px-3.5 py-2.5">
@@ -797,9 +815,98 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   );
 }
 
-function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForClient, exercisesById, exerciseNotes, setExerciseNotes, onFinish, onExit }) {
+function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm }) {
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    if (exMeta) {
+      setSearch("");
+      setSelected(null);
+      setReason("");
+    }
+  }, [exMeta]);
+
+  if (!exMeta) return null;
+  const filtered = allExercises
+    .filter((e) => e.id !== exMeta.exerciseId && e.name.toLowerCase().includes(search.toLowerCase()))
+    .slice(0, 40);
+
+  return (
+    <BottomSheet open={!!exMeta} onClose={onClose} title={selected ? "Why the swap?" : `Swap ${exercise?.name || "exercise"}`}>
+      {!selected ? (
+        <div>
+          <div className="flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3">
+            <Search size={16} className="text-black/40" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search exercises"
+              autoFocus
+              className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+            />
+          </div>
+          <div className="space-y-1 max-h-72 overflow-y-auto">
+            {filtered.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => setSelected(e)}
+                className="w-full flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"
+              >
+                <span className="text-black text-sm">{e.name}</span>
+                <span className="text-black/30 text-xs">{e.equipment}</span>
+              </button>
+            ))}
+            {search && filtered.length === 0 && <p className="text-black/30 text-sm text-center py-6">No matching exercises.</p>}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p className="text-black/50 text-sm mb-3">
+            Swapping <span className="font-semibold text-black">{exercise?.name}</span> for{" "}
+            <span className="font-semibold text-black">{selected.name}</span>. Let your coach know why — this note is required and
+            visible to them.
+          </p>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            autoFocus
+            placeholder="e.g. Shoulder felt tight, swapped for a machine variation"
+            className="w-full bg-black/5 border border-black/10 rounded-2xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30 resize-none"
+          />
+          <div className="flex gap-2 mt-4">
+            <SecondaryButton className="flex-1" onClick={() => setSelected(null)}>
+              Back
+            </SecondaryButton>
+            <PrimaryButton className="flex-1" disabled={!reason.trim()} onClick={() => onConfirm(selected, reason.trim())}>
+              Confirm Swap
+            </PrimaryButton>
+          </div>
+        </div>
+      )}
+    </BottomSheet>
+  );
+}
+
+function WorkoutSession({
+  session: daySession,
+  activeLog,
+  setActiveLog,
+  logsForClient,
+  exercisesById,
+  exerciseNotes,
+  setExerciseNotes,
+  allExercises,
+  exerciseSwaps,
+  setExerciseSwaps,
+  onFinish,
+  onExit,
+}) {
   const [autoFill, setAutoFill] = useState(false);
   const [noteOpenFor, setNoteOpenFor] = useState(null);
+  const [swapFor, setSwapFor] = useState(null); // the original exMeta currently being swapped
   const [prToast, setPrToast] = useState(null);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
@@ -815,6 +922,32 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
     }
     return () => clearTimeout(timerRef.current);
   }, [resting, restTime]);
+
+  // The exercises actually being performed this session — the original
+  // plan, with any swapped exercises substituted in.
+  const exercisesForSession = useMemo(
+    () =>
+      daySession.exercises.map((exMeta) => {
+        const swap = exerciseSwaps[exMeta.exerciseId];
+        if (!swap) return exMeta;
+        return { ...exMeta, exerciseId: swap.toExerciseId, originalExerciseId: exMeta.exerciseId };
+      }),
+    [daySession, exerciseSwaps]
+  );
+
+  function confirmSwap(newExercise, reason) {
+    const original = swapFor;
+    setExerciseSwaps((prev) => ({
+      ...prev,
+      [original.exerciseId]: {
+        toExerciseId: newExercise.id,
+        toName: newExercise.name,
+        fromName: exercisesById[original.exerciseId]?.name || "the planned exercise",
+        reason,
+      },
+    }));
+    setSwapFor(null);
+  }
 
   function rowsFor(exMeta) {
     const existing = activeLog[exMeta.exerciseId] || [];
@@ -884,7 +1017,7 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
       if (next) {
         setActiveLog((log) => {
           const updated = { ...log };
-          daySession.exercises.forEach((exMeta) => {
+          exercisesForSession.forEach((exMeta) => {
             const prevSets = getPreviousSets(logsForClient, exMeta.exerciseId);
             const arr = [...(updated[exMeta.exerciseId] || [])];
             for (let i = 0; i < exMeta.targetSets; i++) {
@@ -924,12 +1057,13 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
             </button>
           </div>
 
-          {daySession.exercises.map((exMeta, i) => {
+          {exercisesForSession.map((exMeta, i) => {
             const exercise = exercisesById[exMeta.exerciseId];
             if (!exercise) return null;
+            const swap = exMeta.originalExerciseId ? exerciseSwaps[exMeta.originalExerciseId] : null;
             return (
               <ExerciseBlock
-                key={exMeta.exerciseId + i}
+                key={(exMeta.originalExerciseId || exMeta.exerciseId) + i}
                 exMeta={exMeta}
                 exercise={exercise}
                 rows={rowsFor(exMeta)}
@@ -941,10 +1075,20 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
                 noteOpen={noteOpenFor === exMeta.exerciseId}
                 onToggleNote={() => setNoteOpenFor((cur) => (cur === exMeta.exerciseId ? null : exMeta.exerciseId))}
                 onNoteChange={(value) => setExerciseNotes((prev) => ({ ...prev, [exMeta.exerciseId]: value }))}
+                swapInfo={swap}
+                onSwap={() => setSwapFor({ exerciseId: exMeta.originalExerciseId || exMeta.exerciseId })}
               />
             );
           })}
         </div>
+
+        <SwapExerciseSheet
+          exMeta={swapFor}
+          exercise={swapFor ? exercisesById[swapFor.exerciseId] : null}
+          allExercises={allExercises}
+          onClose={() => setSwapFor(null)}
+          onConfirm={confirmSwap}
+        />
 
         {resting && (
           <RestBar
@@ -1032,7 +1176,7 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
   return (
     <div className="pb-6">
       <div className="px-5 pt-6 pb-4">
-        <h1 className="text-black text-2xl font-bold">Workouts</h1>
+        <h1 className="text-black text-2xl font-bold">Training</h1>
       </div>
       <div className="flex gap-2 px-5 mb-4 overflow-x-auto no-scrollbar">
         {["today", "history", "program"].map((t) => (
@@ -1162,6 +1306,7 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
   const [photoOpen, setPhotoOpen] = useState(false);
   const [createMealOpen, setCreateMealOpen] = useState(false);
   const [mealPrefill, setMealPrefill] = useState(null);
+  const [pendingFood, setPendingFood] = useState(null);
 
   const mealCategories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
   const filteredFoods = FOOD_DATABASE.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
@@ -1338,15 +1483,12 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
             Photo
           </button>
         </div>
-        <p className="text-black/30 text-xs mb-2 tracking-wide">SEARCH RESULTS</p>
+        <p className="text-black/30 text-xs mb-2 tracking-wide">SEARCH RESULTS · PER 100G</p>
         <div className="space-y-1">
           {filteredFoods.map((f) => (
             <button
               key={f.id}
-              onClick={() => {
-                onAddFood(activeMeal, f);
-                setSheetOpen(false);
-              }}
+              onClick={() => setPendingFood(f)}
               className="w-full flex items-center justify-between py-3 border-b border-black/5 last:border-0"
             >
               <div className="text-left">
@@ -1360,6 +1502,16 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
           ))}
         </div>
       </BottomSheet>
+
+      <FoodQuantitySheet
+        food={pendingFood}
+        onClose={() => setPendingFood(null)}
+        onConfirm={(scaled) => {
+          onAddFood(activeMeal, scaled);
+          setPendingFood(null);
+          setSheetOpen(false);
+        }}
+      />
 
       <BottomSheet open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
         <div className="grid grid-cols-3 gap-2">
@@ -1425,6 +1577,204 @@ function ChartCard({ title, subtitle, children }) {
 
 const axisStyle = { fontSize: 11, fill: "rgba(10,10,11,0.35)" };
 
+function MetricDetailSheet({ metric, onClose }) {
+  const [range, setRange] = useState("7D");
+  if (!metric) return null;
+  const n = range === "7D" ? 7 : 30;
+  const data = (metric.series || []).slice(-n);
+  const valueLabel = typeof metric.latest === "number" ? `${metric.latest.toFixed(metric.decimals)}${metric.unit}` : `${metric.latest}`;
+
+  return (
+    <FullScreenOverlay>
+      <div className="fixed inset-0 z-[95] bg-white flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5">
+          <button onClick={onClose} className="text-black/60">
+            <X size={20} />
+          </button>
+          <span className="text-black font-semibold">{metric.label}</span>
+          <div className="w-5" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          <p className="text-black text-3xl font-bold tabular-nums">{valueLabel}</p>
+          <p className="text-black/40 text-xs mt-1">Latest · {metric.date}</p>
+
+          <div className="flex gap-2 mt-5">
+            {["7D", "30D"].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-semibold ${
+                  range === r ? "bg-black text-white" : "bg-black/8 text-black/50"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-5">
+            {!metric.series ? (
+              <p className="text-black/30 text-sm text-center py-16">No detailed history available for this metric.</p>
+            ) : data.length < 2 ? (
+              <p className="text-black/30 text-sm text-center py-16">Not enough history yet for this range.</p>
+            ) : (
+              <>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data}>
+                      <defs>
+                        <linearGradient id="mdGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+                      <Tooltip
+                        contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                      />
+                      <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#mdGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <p className="text-black/30 text-[11px] text-center mt-4">Showing the last {data.length} recorded entries.</p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </FullScreenOverlay>
+  );
+}
+
+function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
+  const [weight, setWeight] = useState("");
+
+  useEffect(() => {
+    if (open) setWeight(lastWeight ? String(lastWeight) : "");
+  }, [open, lastWeight]);
+
+  const parsed = Number(weight);
+  const valid = weight !== "" && !isNaN(parsed) && parsed > 0;
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Log Weight">
+      <Field label="WEIGHT (KG)">
+        <TextInput
+          type="number"
+          inputMode="decimal"
+          value={weight}
+          onChange={(e) => setWeight(e.target.value)}
+          placeholder="e.g. 82.4"
+          autoFocus
+        />
+      </Field>
+      <PrimaryButton
+        className="w-full mt-4"
+        disabled={!valid}
+        onClick={() => {
+          onSave(parsed);
+          setWeight("");
+        }}
+      >
+        <Check size={16} /> SAVE
+      </PrimaryButton>
+    </BottomSheet>
+  );
+}
+
+function WeightHistoryScreen({ weighIns, onClose, onLog }) {
+  const [logOpen, setLogOpen] = useState(false);
+  const chartData = weighIns.map((w) => ({
+    date: new Date(w.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    value: w.weight,
+  }));
+  const latest = weighIns[weighIns.length - 1];
+  const first = weighIns[0];
+  const change = latest && first ? Math.round((latest.weight - first.weight) * 10) / 10 : null;
+
+  return (
+    <FullScreenOverlay>
+      <div className="fixed inset-0 z-[95] bg-white flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5">
+          <button onClick={onClose} className="text-black/60">
+            <X size={20} />
+          </button>
+          <span className="text-black font-semibold">Body Weight</span>
+          <button onClick={() => setLogOpen(true)} className="text-black font-bold text-sm">
+            + Log
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-5">
+          {weighIns.length === 0 ? (
+            <div className="py-16 text-center">
+              <Scale size={28} className="mx-auto text-black/15 mb-3" />
+              <p className="text-black/40 text-sm mb-4">No weigh-ins logged yet.</p>
+              <PrimaryButton onClick={() => setLogOpen(true)} className="mx-auto">
+                <Plus size={16} /> LOG YOUR FIRST WEIGHT
+              </PrimaryButton>
+            </div>
+          ) : (
+            <>
+              <p className="text-black text-3xl font-bold tabular-nums">{latest.weight} kg</p>
+              <p className="text-black/40 text-xs mt-1">
+                {weighIns.length > 1 && change != null
+                  ? `${change > 0 ? "up" : change < 0 ? "down" : "steady"} ${Math.abs(change)}kg since your first log`
+                  : "Your first logged weigh-in"}
+              </p>
+
+              {weighIns.length >= 2 && (
+                <div className="h-64 mt-5">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id="whGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+                      <Tooltip
+                        contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                      />
+                      <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#whGrad)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              <p className="text-black/30 text-xs tracking-wide mt-6 mb-2">ALL ENTRIES · {weighIns.length}</p>
+              <div className="space-y-1">
+                {[...weighIns].reverse().map((w) => (
+                  <div key={w.id} className="flex items-center justify-between py-2.5 border-b border-black/5 last:border-0">
+                    <span className="text-black/50 text-sm">
+                      {new Date(w.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                    </span>
+                    <span className="text-black font-semibold text-sm">{w.weight} kg</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <LogWeightSheet
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        lastWeight={latest?.weight}
+        onSave={(w) => {
+          onLog(w);
+          setLogOpen(false);
+        }}
+      />
+    </FullScreenOverlay>
+  );
+}
+
 function PhotosSection({ photos, onAdd, onDelete, busy }) {
   const fileRef = useRef(null);
   const [viewing, setViewing] = useState(null);
@@ -1434,6 +1784,13 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
       <div className="flex items-center justify-between mb-3">
         <p className="text-black font-semibold">Progress Photos</p>
         <ImageIcon size={16} className="text-black/30" />
+      </div>
+      <div className="flex items-start gap-2 mb-3 bg-black/[0.03] rounded-xl p-3">
+        <Info size={14} className="text-black/30 shrink-0 mt-0.5" />
+        <p className="text-black/40 text-[11px] leading-relaxed">
+          For photos you can actually compare over time: take them first thing in the morning, in clear/consistent lighting, wearing the
+          same clothes (or similar) as your very first set, from the same angles each time.
+        </p>
       </div>
       <input
         ref={fileRef}
@@ -1483,10 +1840,20 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
   );
 }
 
-function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
+function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight }) {
   const [range, setRange] = useState("30D");
   const [uploading, setUploading] = useState(false);
+  const [openMetric, setOpenMetric] = useState(null);
+  const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
+  const [quickLogOpen, setQuickLogOpen] = useState(false);
   const tiles = useMemo(() => METRIC_TILES(), []);
+  const latestWeighIn = weighIns[weighIns.length - 1];
+  const firstWeighIn = weighIns[0];
+  const weightChange = latestWeighIn && firstWeighIn ? Math.round((latestWeighIn.weight - firstWeighIn.weight) * 10) / 10 : null;
+  const weightChartData = weighIns.map((w) => ({
+    date: new Date(w.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    value: w.weight,
+  }));
 
   async function handleAddPhoto(file) {
     setUploading(true);
@@ -1531,6 +1898,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
                 date={t.date}
                 value={typeof t.latest === "number" ? `${t.latest.toFixed(t.decimals)}${t.unit}` : `${t.latest}`}
                 series={t.series}
+                onClick={() => setOpenMetric(t)}
               />
             ))}
           </div>
@@ -1538,22 +1906,53 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
 
         <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} />
 
-        <ChartCard title="Body Weight" subtitle="81.8 kg · down 2.4kg over 8 weeks">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={WEIGHT_HISTORY}>
-              <defs>
-                <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-              <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-              <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
-              <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#wGrad)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-black font-semibold">Body Weight</p>
+              <p className="text-black/40 text-xs mt-0.5">
+                {weighIns.length === 0
+                  ? "No weigh-ins logged yet"
+                  : weighIns.length === 1
+                  ? `${latestWeighIn.weight} kg · first log`
+                  : `${latestWeighIn.weight} kg · ${weightChange > 0 ? "up" : weightChange < 0 ? "down" : "steady"} ${Math.abs(
+                      weightChange
+                    )}kg since your first log`}
+              </p>
+            </div>
+            <button
+              onClick={() => setQuickLogOpen(true)}
+              className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+            >
+              <Plus size={15} />
+            </button>
+          </div>
+          {weighIns.length >= 2 ? (
+            <button onClick={() => setWeightHistoryOpen(true)} className="w-full h-40 mt-3 -ml-4 block">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={weightChartData}>
+                  <defs>
+                    <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.3} />
+                      <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+                  <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
+                  <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+                  <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#wGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </button>
+          ) : (
+            <button
+              onClick={() => setWeightHistoryOpen(true)}
+              className="w-full mt-3 text-center text-black/30 text-xs py-6 border border-dashed border-black/10 rounded-xl"
+            >
+              {weighIns.length === 0 ? "Log a weight to start your history" : "Log another weigh-in to see a trend"}
+            </button>
+          )}
+        </Card>
 
         <ChartCard title="Bench Press e1RM" subtitle="103 kg estimated · +11kg in 3 months">
           <ResponsiveContainer width="100%" height="100%">
@@ -1608,6 +2007,20 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
           </div>
         </Card>
       </div>
+
+      <MetricDetailSheet metric={openMetric} onClose={() => setOpenMetric(null)} />
+      {weightHistoryOpen && (
+        <WeightHistoryScreen weighIns={weighIns} onClose={() => setWeightHistoryOpen(false)} onLog={onLogWeight} />
+      )}
+      <LogWeightSheet
+        open={quickLogOpen}
+        onClose={() => setQuickLogOpen(false)}
+        lastWeight={latestWeighIn?.weight}
+        onSave={(w) => {
+          onLogWeight(w);
+          setQuickLogOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -2043,7 +2456,7 @@ function CheckInsScreen({ userId, showToast }) {
 
 const TABS = [
   { id: "home", label: "Home", icon: HomeIcon },
-  { id: "workouts", label: "Workouts", icon: Dumbbell },
+  { id: "workouts", label: "Training", icon: Dumbbell },
   { id: "nutrition", label: "Nutrition", icon: Utensils },
   { id: "checkins", label: "Check-ins", icon: CalendarCheck },
   { id: "progress", label: "Progress", icon: TrendingUp },
@@ -2066,11 +2479,13 @@ export default function ClientApp() {
     deleteSavedMeal,
     toggleHabitToday,
     updateUser,
+    logWeight,
   } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
   const [activeLog, setActiveLog] = useState(null); // {exerciseId: [sets]} while a session is open
   const [exerciseNotes, setExerciseNotes] = useState({}); // {exerciseId: note} — the client's own notes, separate from the coach's
+  const [exerciseSwaps, setExerciseSwaps] = useState({}); // {originalExerciseId: {toExerciseId, toName, fromName, reason}}
   const [sessionOpen, setSessionOpen] = useState(false);
   const [previewSession, setPreviewSession] = useState(null);
   const [previewCanStart, setPreviewCanStart] = useState(false);
@@ -2087,6 +2502,7 @@ export default function ClientApp() {
   const program = currentPhase || db.programs.find((p) => p.id === currentUser.assignedProgramId) || null;
   const thread = db.messages[currentUser.id] || [];
   const photos = db.progressPhotos[currentUser.id] || [];
+  const weighIns = (db.weighIns || {})[currentUser.id] || [];
   const unreadCount = Math.max(0, thread.filter((m) => m.from === "coach").length - seenMessageCount);
   const checkInResponses = (db.formResponses || {})[currentUser.id] || [];
   const dueCheckInsCount = ((db.formSchedules || {})[currentUser.id] || []).filter(
@@ -2143,16 +2559,25 @@ export default function ClientApp() {
         .map((s, i) => ({ setNumber: i + 1, weight: Number(s.weight), reps: Number(s.reps), completed: true, isPR: !!s.isPR }));
       if (cleaned.length) cleanedLog[exerciseId] = cleaned;
     });
+    const swapByToId = Object.fromEntries(
+      Object.entries(exerciseSwaps).map(([fromId, s]) => [s.toExerciseId, { swappedFrom: fromId, swappedFromName: s.fromName, swapReason: s.reason }])
+    );
     logWorkout(currentUser.id, {
       programId: program.id,
       programName: program.name,
       weekLabel: todaySession.weekLabel,
       dayLabel: todaySession.label,
-      entries: Object.entries(cleanedLog).map(([exerciseId, sets]) => ({ exerciseId, sets, note: exerciseNotes[exerciseId] || "" })),
+      entries: Object.entries(cleanedLog).map(([exerciseId, sets]) => ({
+        exerciseId,
+        sets,
+        note: exerciseNotes[exerciseId] || "",
+        ...(swapByToId[exerciseId] || {}),
+      })),
     });
     setSummaryData({ daySession: todaySession, activeLog: cleanedLog });
     setActiveLog(null);
     setExerciseNotes({});
+    setExerciseSwaps({});
     setSessionOpen(false);
     setSummaryOpen(true);
   }
@@ -2253,7 +2678,14 @@ export default function ClientApp() {
         )}
         {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} />}
         {tab === "progress" && (
-          <ProgressScreen userId={currentUser.id} photos={photos} onAddPhoto={addProgressPhoto} onDeletePhoto={deleteProgressPhoto} />
+          <ProgressScreen
+            userId={currentUser.id}
+            photos={photos}
+            onAddPhoto={addProgressPhoto}
+            onDeletePhoto={deleteProgressPhoto}
+            weighIns={weighIns}
+            onLogWeight={(w) => logWeight(currentUser.id, w)}
+          />
         )}
         {tab === "profile" && (
           <ProfileScreen
@@ -2295,6 +2727,9 @@ export default function ClientApp() {
             exercisesById={exercisesById}
             exerciseNotes={exerciseNotes}
             setExerciseNotes={setExerciseNotes}
+            allExercises={db.exercises}
+            exerciseSwaps={exerciseSwaps}
+            setExerciseSwaps={setExerciseSwaps}
             onFinish={finishWorkout}
             onExit={() => setSessionOpen(false)}
           />

@@ -2,9 +2,89 @@ import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Camera, ScanLine, X, Check, Plus, Minus, Trash2, UtensilsCrossed } from "lucide-react";
 import { Card, Pill, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
-import { FOOD_DATABASE } from "../lib/foodDatabase";
+import { FOOD_DATABASE, scaleFood } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
+
+/* ============================================================================
+   FOOD QUANTITY PICKER — pick how many grams of a food-database item was
+   eaten, scaling its per-100g macros live. Shared by every place a food gets
+   picked from the database (main food log, photo-meal builder, saved meals).
+============================================================================ */
+
+export function FoodQuantitySheet({ food, onClose, onConfirm }) {
+  const [grams, setGrams] = useState(100);
+
+  useEffect(() => {
+    if (food) setGrams(food.defaultQty || 100);
+  }, [food]);
+
+  if (!food) return null;
+  const scaled = scaleFood(food, grams);
+
+  return (
+    <BottomSheet open={!!food} onClose={onClose} title={food.name}>
+      <p className="text-black/40 text-xs text-center mb-4">How much did you have?</p>
+      <div className="flex items-center justify-center gap-4 mb-5">
+        <button
+          onClick={() => setGrams((g) => Math.max(0, g - 10))}
+          className="w-10 h-10 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+        >
+          <Minus size={16} />
+        </button>
+        <div className="text-center">
+          <input
+            type="number"
+            value={grams}
+            onChange={(e) => setGrams(Math.max(0, +e.target.value))}
+            className="w-24 text-center text-3xl font-bold text-black outline-none bg-transparent"
+          />
+          <p className="text-black/40 text-xs mt-0.5 tracking-wide">GRAMS</p>
+        </div>
+        <button
+          onClick={() => setGrams((g) => g + 10)}
+          className="w-10 h-10 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+
+      <div className="flex flex-wrap justify-center gap-2 mb-5">
+        {[food.defaultQty, food.defaultQty * 2, Math.round(food.defaultQty / 2)]
+          .filter((v, i, arr) => v > 0 && arr.indexOf(v) === i)
+          .map((v) => (
+            <button
+              key={v}
+              onClick={() => setGrams(v)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold ${
+                grams === v ? "bg-black text-white" : "bg-black/8 text-black/60"
+              }`}
+            >
+              {v}g
+            </button>
+          ))}
+      </div>
+
+      <div className="bg-black/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mb-5">
+        {[
+          ["Cals", scaled.cals],
+          ["Protein", `${scaled.protein}g`],
+          ["Carbs", `${scaled.carbs}g`],
+          ["Fat", `${scaled.fat}g`],
+        ].map(([l, v]) => (
+          <div key={l} className="text-center">
+            <p className="text-black font-bold text-sm">{v}</p>
+            <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
+          </div>
+        ))}
+      </div>
+
+      <PrimaryButton className="w-full" disabled={grams <= 0} onClick={() => onConfirm(scaled)}>
+        <Check size={16} /> ADD
+      </PrimaryButton>
+    </BottomSheet>
+  );
+}
 
 /* ============================================================================
    BARCODE SCANNER — real camera + a live decode against Open Food Facts
@@ -149,6 +229,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
   const [search, setSearch] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
+  const [pendingFood, setPendingFood] = useState(null);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -278,11 +359,14 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
                 {filtered.map((f) => (
                   <button
                     key={f.id}
-                    onClick={() => addIngredient(f)}
+                    onClick={() => {
+                      setPendingFood(f);
+                      setSearch("");
+                    }}
                     className="w-full flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"
                   >
                     <span className="text-black text-sm">{f.name}</span>
-                    <span className="text-black/40 text-xs">{f.cals} kcal</span>
+                    <span className="text-black/40 text-xs">{f.cals} kcal / 100g</span>
                   </button>
                 ))}
               </div>
@@ -341,6 +425,15 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
           )}
         </div>
       )}
+
+      <FoodQuantitySheet
+        food={pendingFood}
+        onClose={() => setPendingFood(null)}
+        onConfirm={(scaled) => {
+          addIngredient(scaled);
+          setPendingFood(null);
+        }}
+      />
     </BottomSheet>
   );
 }
@@ -355,6 +448,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
   const [search, setSearch] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
+  const [pendingFood, setPendingFood] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -446,11 +540,14 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
             {filtered.map((f) => (
               <button
                 key={f.id}
-                onClick={() => addIngredient(f)}
+                onClick={() => {
+                  setPendingFood(f);
+                  setSearch("");
+                }}
                 className="w-full flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"
               >
                 <span className="text-black text-sm">{f.name}</span>
-                <span className="text-black/40 text-xs">{f.cals} kcal</span>
+                <span className="text-black/40 text-xs">{f.cals} kcal / 100g</span>
               </button>
             ))}
           </div>
@@ -498,6 +595,15 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
       <PrimaryButton className="w-full mt-5" disabled={!name.trim() || ingredients.length === 0} onClick={save}>
         <Check size={16} /> SAVE MEAL
       </PrimaryButton>
+
+      <FoodQuantitySheet
+        food={pendingFood}
+        onClose={() => setPendingFood(null)}
+        onConfirm={(scaled) => {
+          addIngredient(scaled);
+          setPendingFood(null);
+        }}
+      />
     </BottomSheet>
   );
 }
