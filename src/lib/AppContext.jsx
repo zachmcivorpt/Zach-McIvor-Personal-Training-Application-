@@ -177,6 +177,7 @@ export function AppProvider({ children }) {
       watch("weighIns", "weighIns");
       watch("scheduledWorkouts", "scheduledWorkouts");
       watch("bodyStatsSchedules", "bodyStatsSchedules");
+      watch("notifications", "notifications");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -259,6 +260,7 @@ export function AppProvider({ children }) {
       weighIns: bucket(raw.weighIns, (a, b) => a.date - b.date),
       scheduledWorkouts: bucket(raw.scheduledWorkouts, (a, b) => a.date.localeCompare(b.date)),
       bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
+      notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
     };
   }, [raw, role, profile]);
 
@@ -405,6 +407,7 @@ export function AppProvider({ children }) {
           "weighIns",
           "scheduledWorkouts",
           "bodyStatsSchedules",
+          "notifications",
         ].forEach((name) => deleteWhereClientId(name, clientId));
       },
 
@@ -597,6 +600,25 @@ export function AppProvider({ children }) {
         }
       },
 
+      // Coach-facing notifications — events that can't be derived live from
+      // existing state (unlike unread messages / due check-ins / today's
+      // workout, which the client app already computes on the fly).
+      async notifyCoach(clientId, clientName, type, message) {
+        const id = newDocId("notifications");
+        const notification = { id, clientId, clientName, type, message, createdAt: Date.now(), read: false };
+        try {
+          await setDoc(doc(firestore, "notifications", id), notification);
+        } catch (err) {
+          console.error("Couldn't send notification to coach:", err);
+        }
+      },
+      markNotificationRead(id) {
+        updateDoc(doc(firestore, "notifications", id), { read: true }).catch(console.error);
+      },
+      markAllNotificationsRead() {
+        (db.notifications || []).filter((n) => !n.read).forEach((n) => updateDoc(doc(firestore, "notifications", n.id), { read: true }).catch(console.error));
+      },
+
       createSavedMeal(clientId, meal) {
         const id = newDocId("savedMeals");
         const savedMeal = { id, clientId, createdAt: Date.now(), ...meal };
@@ -684,14 +706,22 @@ export function AppProvider({ children }) {
 
       // Check-in form templates — a custom question builder (text/number/
       // rating/photo questions), scheduled recurring onto a client's week.
-      createForm(data) {
+      async createForm(data) {
         const id = newDocId("forms");
         const form = { id, name: "New Check-in", description: "", questions: [], createdAt: Date.now(), ...data };
-        setDoc(doc(firestore, "forms", id), form).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "forms", id), form);
+        } catch (err) {
+          throw new Error("Couldn't create that form — " + (err.message || "please try again."));
+        }
         return form;
       },
-      updateForm(id, data) {
-        updateDoc(doc(firestore, "forms", id), data).catch(console.error);
+      async updateForm(id, data) {
+        try {
+          await updateDoc(doc(firestore, "forms", id), data);
+        } catch (err) {
+          throw new Error("Couldn't save that form — " + (err.message || "please try again."));
+        }
       },
       deleteForm(id) {
         deleteDoc(doc(firestore, "forms", id)).catch(console.error);

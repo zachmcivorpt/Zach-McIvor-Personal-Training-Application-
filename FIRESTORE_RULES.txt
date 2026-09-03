@@ -225,5 +225,14 @@ service cloud.firestore {
     match /habitLog/{clientId} {
       allow read, write: if isCoach() || ownsClientId(clientId);
     }
+
+    // --- notifications/{id}: coach-facing alerts (e.g. a client updated
+    //     their preferences). A client can create one about themselves,
+    //     but never read the list back or edit/delete one. ---
+    match /notifications/{id} {
+      allow read: if isCoach();
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach();
+    }
   }
 }

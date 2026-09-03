@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { newId } from "../lib/id";
 import { Card, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton, FullScreenOverlay } from "../components/ui";
-import { NotebookPen, Plus, ChevronLeft, ChevronUp, ChevronDown, Trash2, Type, Hash, Star, Camera } from "lucide-react";
+import { NotebookPen, Plus, ChevronLeft, ChevronUp, ChevronDown, Trash2, Type, Hash, Star, Camera, ListChecks, X, Download } from "lucide-react";
+import { CHECKIN_TEMPLATES } from "../lib/checkinTemplates";
 
 const QUESTION_TYPES = [
   { type: "text", label: "Short text", icon: Type },
   { type: "number", label: "Number", icon: Hash },
   { type: "rating", label: "Rating (1-5)", icon: Star },
+  { type: "choice", label: "Multiple choice", icon: ListChecks },
   { type: "photo", label: "Photo", icon: Camera },
 ];
 
@@ -18,6 +20,18 @@ function emptyDraft() {
 function QuestionRow({ q, index, total, onChange, onRemove, onMove }) {
   const meta = QUESTION_TYPES.find((t) => t.type === q.type) || QUESTION_TYPES[0];
   const Icon = meta.icon;
+  const options = q.options || [];
+
+  function updateOption(i, value) {
+    onChange({ ...q, options: options.map((o, idx) => (idx === i ? value : o)) });
+  }
+  function removeOption(i) {
+    onChange({ ...q, options: options.filter((_, idx) => idx !== i) });
+  }
+  function addOption() {
+    onChange({ ...q, options: [...options, ""] });
+  }
+
   return (
     <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3 flex items-start gap-3">
       <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
@@ -39,6 +53,26 @@ function QuestionRow({ q, index, total, onChange, onRemove, onMove }) {
             Required
           </label>
         </div>
+        {q.type === "choice" && (
+          <div className="mt-2.5 space-y-1.5">
+            {options.map((opt, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <TextInput
+                  value={opt}
+                  onChange={(e) => updateOption(i, e.target.value)}
+                  placeholder={`Option ${i + 1}`}
+                  className="!py-1.5 text-sm flex-1"
+                />
+                <button onClick={() => removeOption(i)} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60">
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+            <button onClick={addOption} className="text-blue-600 text-[11px] font-semibold flex items-center gap-1 mt-0.5">
+              <Plus size={12} /> Add option
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-1 shrink-0">
         <button onClick={() => onMove(-1)} disabled={index === 0} className="w-6 h-6 flex items-center justify-center text-black/30 hover:text-black/60 disabled:opacity-20">
@@ -76,7 +110,9 @@ function FormEditor({ form, onClose, onSave, onDelete }) {
     });
   }
   function addQuestion(type) {
-    setDraft((d) => ({ ...d, questions: [...d.questions, { id: newId("q"), type, label: "", required: false }] }));
+    const base = { id: newId("q"), type, label: "", required: false };
+    if (type === "choice") base.options = ["Yes", "No"];
+    setDraft((d) => ({ ...d, questions: [...d.questions, base] }));
   }
 
   const canSave = draft.name.trim().length > 0;
@@ -127,7 +163,7 @@ function FormEditor({ form, onClose, onSave, onDelete }) {
                 />
               ))}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
               {QUESTION_TYPES.map((t) => {
                 const Icon = t.icon;
                 return (
@@ -171,17 +207,50 @@ function FormEditor({ form, onClose, onSave, onDelete }) {
 export default function CoachForms({ showToast }) {
   const { db, createForm, updateForm, deleteForm } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | form | null
+  const [importing, setImporting] = useState(false);
   const forms = db.forms || [];
 
-  function handleSave(draft) {
-    if (draft.id && forms.some((f) => f.id === draft.id)) {
-      updateForm(draft.id, draft);
-      showToast("Form updated");
-    } else {
-      createForm(draft);
-      showToast("Form created");
+  async function importTemplates() {
+    setImporting(true);
+    const existingNames = new Set(forms.map((f) => f.name));
+    const toImport = CHECKIN_TEMPLATES.filter((t) => !existingNames.has(t.name));
+    let created = 0;
+    try {
+      for (const template of toImport) {
+        await createForm(template);
+        created++;
+      }
+      if (created === 0) {
+        showToast("All check-in templates are already in your library");
+      } else {
+        showToast(`Imported ${created} check-in template${created === 1 ? "" : "s"}`);
+      }
+    } catch (err) {
+      showToast(err.message || "Import stopped — something went wrong");
+    } finally {
+      setImporting(false);
     }
-    setEditing(null);
+  }
+
+  async function handleSave(draft) {
+    const cleaned = {
+      ...draft,
+      questions: draft.questions.map((q) =>
+        q.type === "choice" ? { ...q, options: (q.options || []).map((o) => o.trim()).filter(Boolean) } : q
+      ),
+    };
+    try {
+      if (cleaned.id && forms.some((f) => f.id === cleaned.id)) {
+        await updateForm(cleaned.id, cleaned);
+        showToast("Form updated");
+      } else {
+        await createForm(cleaned);
+        showToast("Form created");
+      }
+      setEditing(null);
+    } catch (err) {
+      showToast(err.message || "Couldn't save that form");
+    }
   }
 
   function handleDelete(id) {
@@ -192,15 +261,25 @@ export default function CoachForms({ showToast }) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <p className="text-black/40 text-sm">{forms.length} total · schedule any form to recur weekly on a client's calendar</p>
-        <button
-          onClick={() => setEditing({ isNew: true })}
-          aria-label="New form"
-          className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
-        >
-          <Plus size={16} /> <span className="hidden sm:inline">NEW FORM</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={importTemplates}
+            disabled={importing}
+            aria-label="Import check-in templates"
+            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+          >
+            <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "IMPORT WEEKLY CHECK-IN"}</span>
+          </button>
+          <button
+            onClick={() => setEditing({ isNew: true })}
+            aria-label="New form"
+            className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
+          >
+            <Plus size={16} /> <span className="hidden sm:inline">NEW FORM</span>
+          </button>
+        </div>
       </div>
 
       {forms.length === 0 ? (

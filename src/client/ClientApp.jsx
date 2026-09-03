@@ -74,6 +74,7 @@ import {
   SecondaryButton,
   Field,
   TextInput,
+  TextArea,
   Avatar,
   AvatarPicker,
   Tagline,
@@ -165,7 +166,7 @@ function BrandBar() {
   );
 }
 
-function Header({ user, onAvatarClick }) {
+function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
@@ -179,9 +180,13 @@ function Header({ user, onAvatarClick }) {
         <p className="text-black/40 text-sm mt-0.5">{dateStr}</p>
       </div>
       <div className="flex items-center gap-3">
-        <button className="w-10 h-10 rounded-full bg-black/8 flex items-center justify-center relative">
+        <button onClick={onOpenNotifications} className="w-10 h-10 rounded-full bg-black/8 flex items-center justify-center relative">
           <Bell size={18} className="text-black/80" />
-          <span className="absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full bg-black" />
+          {notifCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
+              {notifCount}
+            </span>
+          )}
         </button>
         <Avatar name={user.name} url={user.avatarUrl} size={40} onClick={onAvatarClick} />
       </div>
@@ -462,10 +467,12 @@ function HomeScreen({
   exercisesById,
   bodyStatsDueToday,
   onLogWeight,
+  notifCount,
+  onOpenNotifications,
 }) {
   return (
     <div className="pb-6 space-y-4">
-      <Header user={user} onAvatarClick={onAvatarClick} />
+      <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
       <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       {isToday && bodyStatsDueToday && (
@@ -1994,19 +2001,238 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 }
 
 /* ============================================================================
+   NOTIFICATIONS + PREFERENCES
+============================================================================ */
+
+const EQUIPMENT_OPTIONS = [
+  "Barbell",
+  "Dumbbells",
+  "Kettlebells",
+  "Resistance Bands",
+  "Pull-up Bar",
+  "Bench",
+  "Cardio Machine",
+  "Full Gym Access",
+  "Bodyweight Only",
+];
+const DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const SESSION_LENGTH_OPTIONS = ["30 min", "45 min", "60 min", "75 min", "90+ min"];
+const DIET_OPTIONS = ["No restrictions", "Vegetarian", "Vegan", "Halal", "Kosher", "Dairy-free", "Gluten-free", "Low-carb / Keto"];
+
+function Chip({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-2 rounded-full text-xs font-semibold border ${
+        active ? "bg-black text-white border-black" : "bg-black/5 text-black/60 border-transparent"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+const PREF_TITLES = {
+  goals: "Goals",
+  equipment: "Equipment",
+  training: "Training preferences",
+  nutrition: "Nutrition preferences",
+};
+
+function PreferencesSheet({ section, open, onClose, user }) {
+  const { updateUser, notifyCoach } = useApp();
+  const prefs = user.preferences || {};
+  const [goals, setGoals] = useState(prefs.goals || "");
+  const [equipment, setEquipment] = useState(prefs.equipment || []);
+  const [trainingDays, setTrainingDays] = useState(prefs.trainingDays || []);
+  const [sessionLength, setSessionLength] = useState(prefs.sessionLength || "");
+  const [trainingNotes, setTrainingNotes] = useState(prefs.trainingNotes || "");
+  const [dietType, setDietType] = useState(prefs.dietType || "");
+  const [nutritionNotes, setNutritionNotes] = useState(prefs.nutritionNotes || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    setGoals(prefs.goals || "");
+    setEquipment(prefs.equipment || []);
+    setTrainingDays(prefs.trainingDays || []);
+    setSessionLength(prefs.sessionLength || "");
+    setTrainingNotes(prefs.trainingNotes || "");
+    setDietType(prefs.dietType || "");
+    setNutritionNotes(prefs.nutritionNotes || "");
+    setError("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, section]);
+
+  function toggle(list, setList, val) {
+    setList(list.includes(val) ? list.filter((v) => v !== val) : [...list, val]);
+  }
+
+  async function save() {
+    setSaving(true);
+    setError("");
+    const nextPrefs = { ...prefs, goals, equipment, trainingDays, sessionLength, trainingNotes, dietType, nutritionNotes };
+    try {
+      await updateUser(user.id, { preferences: nextPrefs });
+      notifyCoach(user.id, user.name, "preference_update", `${user.name.split(" ")[0]} updated their ${(PREF_TITLES[section] || "").toLowerCase()}.`);
+      onClose();
+    } catch (err) {
+      setError(err.message || "Couldn't save — please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!section) return null;
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title={PREF_TITLES[section] || ""}>
+      <div className="space-y-4">
+        {section === "goals" && (
+          <Field label="YOUR GOALS" hint="Shared with your coach">
+            <TextArea rows={4} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on my main lifts..." />
+          </Field>
+        )}
+        {section === "equipment" && (
+          <div>
+            <p className="text-black/40 text-xs tracking-wide mb-2">WHAT DO YOU HAVE ACCESS TO?</p>
+            <div className="flex flex-wrap gap-2">
+              {EQUIPMENT_OPTIONS.map((opt) => (
+                <Chip key={opt} active={equipment.includes(opt)} onClick={() => toggle(equipment, setEquipment, opt)}>
+                  {opt}
+                </Chip>
+              ))}
+            </div>
+          </div>
+        )}
+        {section === "training" && (
+          <>
+            <div>
+              <p className="text-black/40 text-xs tracking-wide mb-2">PREFERRED TRAINING DAYS</p>
+              <div className="flex flex-wrap gap-2">
+                {DAY_OPTIONS.map((d) => (
+                  <Chip key={d} active={trainingDays.includes(d)} onClick={() => toggle(trainingDays, setTrainingDays, d)}>
+                    {d}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-black/40 text-xs tracking-wide mb-2">PREFERRED SESSION LENGTH</p>
+              <div className="flex flex-wrap gap-2">
+                {SESSION_LENGTH_OPTIONS.map((s) => (
+                  <Chip key={s} active={sessionLength === s} onClick={() => setSessionLength(sessionLength === s ? "" : s)}>
+                    {s}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            <Field label="ANYTHING ELSE?" hint="Injuries, limitations, preferred exercises...">
+              <TextArea rows={3} value={trainingNotes} onChange={(e) => setTrainingNotes(e.target.value)} placeholder="e.g. Bad left knee, avoid deep squats..." />
+            </Field>
+          </>
+        )}
+        {section === "nutrition" && (
+          <>
+            <div>
+              <p className="text-black/40 text-xs tracking-wide mb-2">DIET TYPE</p>
+              <div className="flex flex-wrap gap-2">
+                {DIET_OPTIONS.map((d) => (
+                  <Chip key={d} active={dietType === d} onClick={() => setDietType(dietType === d ? "" : d)}>
+                    {d}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+            <Field label="ALLERGIES / DISLIKES" hint="Anything you can't or won't eat">
+              <TextArea rows={2} value={nutritionNotes} onChange={(e) => setNutritionNotes(e.target.value)} placeholder="e.g. Allergic to peanuts, don't like fish..." />
+            </Field>
+          </>
+        )}
+        {error && <p className="text-red-500 text-xs">{error}</p>}
+      </div>
+      <button onClick={save} disabled={saving} className="w-full mt-6 bg-black text-white font-bold py-4 rounded-2xl disabled:opacity-40">
+        {saving ? "SAVING…" : "SAVE"}
+      </button>
+    </BottomSheet>
+  );
+}
+
+function ConnectedDevicesSheet({ open, onClose }) {
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Connected devices">
+      <div className="text-center py-6">
+        <Heart size={28} className="text-black/20 mx-auto mb-3" />
+        <p className="text-black font-semibold">Not available yet</p>
+        <p className="text-black/40 text-sm mt-1.5 max-w-xs mx-auto">
+          Syncing with wearables like Apple Health, Garmin or Whoop isn't built yet — it's on the roadmap for a future update.
+        </p>
+      </div>
+    </BottomSheet>
+  );
+}
+
+function NotificationRow({ icon: Icon, title, subtitle, onClick }) {
+  return (
+    <button onClick={onClick} className="w-full text-left flex items-center gap-3 bg-black/5 rounded-xl px-3.5 py-3">
+      <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0">
+        <Icon size={16} className="text-black/70" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-black text-sm font-semibold">{title}</p>
+        <p className="text-black/40 text-xs mt-0.5 truncate">{subtitle}</p>
+      </div>
+      <ChevronRight size={16} className="text-black/25 shrink-0" />
+    </button>
+  );
+}
+
+function NotificationsCenterSheet({ open, onClose, items }) {
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Notifications">
+      {items.length === 0 ? (
+        <p className="text-black/40 text-sm text-center py-8">You're all caught up.</p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((it, i) => (
+            <NotificationRow key={i} icon={it.icon} title={it.title} subtitle={it.subtitle} onClick={it.onClick} />
+          ))}
+        </div>
+      )}
+    </BottomSheet>
+  );
+}
+
+/* ============================================================================
    PROFILE TAB
 ============================================================================ */
 
-function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, setMessagesOpen, unreadCount, onAvatarChange, logsForClient }) {
+function ProfileScreen({
+  user,
+  onLogout,
+  coachOpen,
+  setCoachOpen,
+  messagesOpen,
+  setMessagesOpen,
+  unreadCount,
+  onAvatarChange,
+  logsForClient,
+  onOpenNotifications,
+  notifCount,
+}) {
   const weekStreak = computeWeeklyStreak(logsForClient);
   const prsThisMonth = computePRsInLastNDays(logsForClient, 30);
+  const [prefSection, setPrefSection] = useState(null);
+  const [devicesOpen, setDevicesOpen] = useState(false);
   const rows = [
-    { label: "Goals", icon: Target },
-    { label: "Equipment", icon: Dumbbell },
-    { label: "Training preferences", icon: Settings },
-    { label: "Nutrition preferences", icon: Utensils },
-    { label: "Notifications", icon: Bell },
-    { label: "Connected devices", icon: Heart },
+    { label: "Goals", icon: Target, onClick: () => setPrefSection("goals") },
+    { label: "Equipment", icon: Dumbbell, onClick: () => setPrefSection("equipment") },
+    { label: "Training preferences", icon: Settings, onClick: () => setPrefSection("training") },
+    { label: "Nutrition preferences", icon: Utensils, onClick: () => setPrefSection("nutrition") },
+    { label: "Notifications", icon: Bell, onClick: onOpenNotifications },
+    { label: "Connected devices", icon: Heart, onClick: () => setDevicesOpen(true) },
   ];
   return (
     <div className="pb-6">
@@ -2077,11 +2303,20 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
       <div className="px-5 mt-4">
         <Card>
           {rows.map((r, i) => (
-            <div key={r.label} className={`flex items-center gap-3 py-3 ${i !== rows.length - 1 ? "border-b border-black/5" : ""}`}>
+            <button
+              key={r.label}
+              onClick={r.onClick}
+              className={`w-full flex items-center gap-3 py-3 text-left ${i !== rows.length - 1 ? "border-b border-black/5" : ""}`}
+            >
               <r.icon size={17} className="text-black/40" />
               <span className="text-black/80 text-sm flex-1">{r.label}</span>
+              {r.label === "Notifications" && notifCount > 0 && (
+                <span className="w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
+                  {notifCount}
+                </span>
+              )}
               <ChevronRight size={16} className="text-black/20" />
-            </div>
+            </button>
           ))}
         </Card>
       </div>
@@ -2095,6 +2330,9 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
       <div className="flex justify-center mt-8">
         <Tagline />
       </div>
+
+      <PreferencesSheet section={prefSection} open={!!prefSection} onClose={() => setPrefSection(null)} user={user} />
+      <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} />
     </div>
   );
 }
@@ -2295,6 +2533,22 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                 ))}
               </div>
             )}
+            {q.type === "choice" && (
+              <div className="flex flex-col gap-1.5">
+                {(q.options || []).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => set(q.id, opt)}
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium border ${
+                      answers[q.id] === opt ? "bg-black text-white border-black" : "bg-black/5 text-black/70 border-transparent"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
             {q.type === "photo" && (
               <div>
                 {answers[q.id] ? (
@@ -2466,6 +2720,7 @@ export default function ClientApp() {
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [seenMessageCount, setSeenMessageCount] = useState(0);
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const thread = db.messages[currentUser.id] || [];
   const photos = db.progressPhotos[currentUser.id] || [];
@@ -2505,6 +2760,56 @@ export default function ClientApp() {
   const daySession = scheduledToSession(scheduledWorkoutsByDate[selectedDateKey]);
   const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
   const completedOnDate = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
+
+  const notificationItems = useMemo(() => {
+    const items = [];
+    if (unreadCount > 0) {
+      items.push({
+        icon: MessageCircle,
+        title: `${unreadCount} new message${unreadCount === 1 ? "" : "s"}`,
+        subtitle: "From your coach",
+        onClick: () => {
+          setNotifOpen(false);
+          setSeenMessageCount(thread.filter((m) => m.from === "coach").length);
+          setMessagesOpen(true);
+        },
+      });
+    }
+    if (todaySession && !completedOnDate) {
+      items.push({
+        icon: Dumbbell,
+        title: "Workout scheduled today",
+        subtitle: todaySession.label,
+        onClick: () => {
+          setNotifOpen(false);
+          setTab("workouts");
+        },
+      });
+    }
+    if (dueCheckInsCount > 0) {
+      items.push({
+        icon: CalendarCheck,
+        title: `${dueCheckInsCount} check-in${dueCheckInsCount === 1 ? "" : "s"} due`,
+        subtitle: "Fill them out for your coach",
+        onClick: () => {
+          setNotifOpen(false);
+          setTab("checkins");
+        },
+      });
+    }
+    if (bodyStatsDueToday) {
+      items.push({
+        icon: Scale,
+        title: "Body stats check-in due today",
+        subtitle: "Log your weight to keep your graph current",
+        onClick: () => {
+          setNotifOpen(false);
+          setTab("progress");
+        },
+      });
+    }
+    return items;
+  }, [unreadCount, thread, todaySession, completedOnDate, dueCheckInsCount, bodyStatsDueToday]);
 
   useEffect(() => {
     if (!db.nutrition[currentUser.id]) {
@@ -2621,6 +2926,8 @@ export default function ClientApp() {
             exercisesById={exercisesById}
             bodyStatsDueToday={bodyStatsDueToday}
             onLogWeight={() => setTab("progress")}
+            notifCount={notificationItems.length}
+            onOpenNotifications={() => setNotifOpen(true)}
           />
         )}
         {tab === "workouts" && (
@@ -2670,6 +2977,8 @@ export default function ClientApp() {
             unreadCount={unreadCount}
             onAvatarChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
             logsForClient={logsForClient}
+            onOpenNotifications={() => setNotifOpen(true)}
+            notifCount={notificationItems.length}
           />
         )}
 
@@ -2731,6 +3040,7 @@ export default function ClientApp() {
           thread={thread}
           onSend={(text) => sendMessage(currentUser.id, "client", text)}
         />
+        <NotificationsCenterSheet open={notifOpen} onClose={() => setNotifOpen(false)} items={notificationItems} />
         <Toast message={toast.message} show={toast.show} />
       </div>
     </div>

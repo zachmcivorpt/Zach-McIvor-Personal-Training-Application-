@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
-import { Logo, Toast, Avatar } from "../components/ui";
-import { LayoutDashboard, Users, ClipboardList, MessageCircle, Library, Settings, LogOut, Search, X } from "lucide-react";
+import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
+import { LayoutDashboard, Users, ClipboardList, MessageCircle, Library, Settings, LogOut, Search, X, Bell, SlidersHorizontal } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
 import CoachPrograms from "./CoachPrograms";
@@ -20,13 +20,71 @@ const MAIN_MENU = [
 
 const OTHER_MENU = [{ id: "more", label: "Settings", icon: Settings }];
 
+function timeAgo(ts) {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function NotificationIcon({ type }) {
+  if (type === "preference_update") return <SlidersHorizontal size={15} className="text-blue-500" />;
+  return <Bell size={15} className="text-blue-500" />;
+}
+
+function NotificationsPanel({ open, onClose, notifications, onMarkRead, onMarkAllRead }) {
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Notifications">
+      {notifications.length > 0 && unreadCount > 0 && (
+        <button onClick={onMarkAllRead} className="text-blue-600 text-xs font-semibold mb-3">
+          Mark all as read
+        </button>
+      )}
+      {notifications.length === 0 ? (
+        <p className="text-black/40 text-sm text-center py-8">No notifications yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {notifications.map((n) => (
+            <button
+              key={n.id}
+              onClick={() => !n.read && onMarkRead(n.id)}
+              className={`w-full text-left flex items-start gap-3 rounded-xl px-3.5 py-3 border ${
+                n.read ? "border-black/5 bg-white" : "border-blue-100 bg-blue-50/50"
+              }`}
+            >
+              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                <NotificationIcon type={n.type} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-black text-sm font-semibold">{n.clientName || "A client"}</p>
+                <p className="text-black/60 text-xs mt-0.5">{n.message}</p>
+                <p className="text-black/30 text-[11px] mt-1">{timeAgo(n.createdAt)}</p>
+              </div>
+              {!n.read && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-1.5" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </BottomSheet>
+  );
+}
+
 export default function CoachShell() {
-  const { currentUser, logout, db } = useApp();
+  const { currentUser, logout, db, markNotificationRead, markAllNotificationsRead } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("dashboard");
   const [clientSearch, setClientSearch] = useState("");
   const [toast, setToast] = useState({ show: false, message: "" });
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  const notifications = db.notifications || [];
+  const unreadNotifCount = notifications.filter((n) => !n.read).length;
 
   function showToast(message) {
     setToast({ show: true, message });
@@ -68,15 +126,15 @@ export default function CoachShell() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-white font-sans flex">
+    <div className="coach-shell w-full min-h-screen bg-white font-sans flex">
       {/* desktop sidebar */}
-      <div className="hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col border-r border-black/8 bg-[#F7F7F8]">
-        <div className="px-5 pt-6 pb-5">
+      <div className="hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col border-r-2 border-black bg-[#F7F7F8]">
+        <div className="px-5 pt-6 pb-5 border-b-2 border-black">
           <Logo variant="wordmark" tone="black" className="h-9 w-auto" />
         </div>
 
-        <div className="px-4 mb-5">
-          <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5">
+        <div className="px-4 mt-5 mb-5">
+          <div className="flex items-center gap-2 bg-white border border-black/25 rounded-lg px-3 py-2.5">
             <Search size={15} className="text-black/40" />
             <input
               value={clientSearch}
@@ -103,12 +161,20 @@ export default function CoachShell() {
           </div>
         </div>
 
-        <div className="p-4 border-t border-black/8 flex items-center gap-2.5">
+        <div className="p-4 border-t-2 border-black flex items-center gap-2.5">
           <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={38} onClick={() => setTab("more")} />
           <div className="flex-1 min-w-0">
             <p className="text-black text-sm font-semibold truncate">{currentUser?.name}</p>
             <p className="text-black/35 text-[11px] truncate">Coach</p>
           </div>
+          <button onClick={() => setNotifOpen(true)} className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center shrink-0 relative" title="Notifications">
+            <Bell size={14} className="text-black/60" />
+            {unreadNotifCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center">
+                {unreadNotifCount}
+              </span>
+            )}
+          </button>
           <button onClick={doLogout} className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center shrink-0" title="Sign out">
             <LogOut size={14} className="text-black/60" />
           </button>
@@ -116,7 +182,7 @@ export default function CoachShell() {
       </div>
 
       {/* mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-black/8">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b-2 border-black">
         <div className="flex items-center justify-between px-4 py-3">
           <Logo variant="wordmark" tone="black" className="h-7 w-auto" />
           <div className="flex items-center gap-2">
@@ -126,12 +192,18 @@ export default function CoachShell() {
             >
               {mobileSearchOpen ? <X size={16} /> : <Search size={16} />}
             </button>
+            <button onClick={() => setNotifOpen(true)} className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-black/60 relative">
+              <Bell size={16} />
+              {unreadNotifCount > 0 && (
+                <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-blue-500" />
+              )}
+            </button>
             <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={34} onClick={() => setTab("more")} />
           </div>
         </div>
         {mobileSearchOpen && (
           <div className="px-4 pb-3">
-            <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5">
+            <div className="flex items-center gap-2 bg-white border border-black/25 rounded-lg px-3 py-2.5">
               <Search size={15} className="text-black/40 shrink-0" />
               <input
                 autoFocus
@@ -157,7 +229,7 @@ export default function CoachShell() {
 
       {/* mobile bottom tab bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center">
-        <div className="w-full bg-white/95 backdrop-blur border-t border-black/8 flex px-1 pb-safe">
+        <div className="w-full bg-white/95 backdrop-blur border-t-2 border-black flex px-1 pb-safe">
           {MAIN_MENU.map((item) => {
             const Icon = item.icon;
             const active = tab === item.id;
@@ -177,6 +249,13 @@ export default function CoachShell() {
       </div>
 
       <Toast message={toast.message} show={toast.show} />
+      <NotificationsPanel
+        open={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        notifications={notifications}
+        onMarkRead={markNotificationRead}
+        onMarkAllRead={markAllNotificationsRead}
+      />
     </div>
   );
 }
