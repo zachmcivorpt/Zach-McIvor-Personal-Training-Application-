@@ -92,6 +92,7 @@ import {
   computeAchievements,
 } from "../lib/trainingStats";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
+import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
@@ -449,6 +450,43 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
   );
 }
 
+function ActiveChallengesCard({ challenges, userId }) {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const active = challenges.filter((c) => challengeStatus(c, todayKey) === "active");
+  if (active.length === 0) return null;
+
+  return (
+    <div className="px-5 space-y-2.5">
+      {active.map((c) => {
+        const snapshot = c.leaderboardSnapshot || [];
+        const mine = snapshot.find((r) => r.clientId === userId);
+        return (
+          <Card key={c.id} className="!p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center shrink-0">
+                <Trophy size={17} className="text-black" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-black font-semibold text-sm truncate">{c.name}</p>
+                {mine ? (
+                  <p className="text-black/50 text-xs mt-0.5">
+                    You're rank #{mine.rank} of {snapshot.length} · {mine.value}
+                  </p>
+                ) : (
+                  <p className="text-black/30 text-xs mt-0.5">Leaderboard updates when your coach checks in</p>
+                )}
+              </div>
+              {mine && mine.rank <= 3 && (
+                <span className="text-lg shrink-0">{mine.rank === 1 ? "🥇" : mine.rank === 2 ? "🥈" : "🥉"}</span>
+              )}
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 function HomeScreen({
   user,
   todaySession,
@@ -475,6 +513,8 @@ function HomeScreen({
   onLogWeight,
   notifCount,
   onOpenNotifications,
+  challenges,
+  userId,
 }) {
   return (
     <div className="pb-6 space-y-4">
@@ -490,6 +530,7 @@ function HomeScreen({
           </button>
         </div>
       )}
+      <ActiveChallengesCard challenges={challenges} userId={userId} />
       <TodayWorkoutCard
         todaySession={daySession}
         activeLog={activeLog}
@@ -2954,6 +2995,8 @@ export default function ClientApp() {
             onLogWeight={() => setTab("progress")}
             notifCount={notificationItems.length}
             onOpenNotifications={() => setNotifOpen(true)}
+            challenges={db.challenges || []}
+            userId={currentUser.id}
           />
         )}
         {tab === "workouts" && (

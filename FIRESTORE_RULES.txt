@@ -234,5 +234,12 @@ service cloud.firestore {
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach();
     }
+
+    // --- challenges/{id}: coach creates/manages; a client can read one
+    //     only while they're listed as a participant. ---
+    match /challenges/{id} {
+      allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.participantIds);
+      allow write: if isCoach();
+    }
   }
 }

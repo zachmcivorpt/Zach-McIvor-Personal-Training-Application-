@@ -178,6 +178,7 @@ export function AppProvider({ children }) {
       watch("scheduledWorkouts", "scheduledWorkouts");
       watch("bodyStatsSchedules", "bodyStatsSchedules");
       watch("notifications", "notifications");
+      watch("challenges", "challenges");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -191,6 +192,7 @@ export function AppProvider({ children }) {
       watch("weighIns", "weighIns", [where("clientId", "==", uid)]);
       watch("scheduledWorkouts", "scheduledWorkouts", [where("clientId", "==", uid)]);
       watch("bodyStatsSchedules", "bodyStatsSchedules", [where("clientId", "==", uid)]);
+      watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
       // clientNotes intentionally NOT synced here — they're the coach's
       // private notes about the client, never shown in the client app.
       unsubs.push(
@@ -261,6 +263,7 @@ export function AppProvider({ children }) {
       scheduledWorkouts: bucket(raw.scheduledWorkouts, (a, b) => a.date.localeCompare(b.date)),
       bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
       notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
+      challenges: (raw.challenges || []).slice().sort((a, b) => b.createdAt - a.createdAt),
     };
   }, [raw, role, profile]);
 
@@ -617,6 +620,29 @@ export function AppProvider({ children }) {
       },
       markAllNotificationsRead() {
         (db.notifications || []).filter((n) => !n.read).forEach((n) => updateDoc(doc(firestore, "notifications", n.id), { read: true }).catch(console.error));
+      },
+
+      // Challenges — leaderboard/threshold competitions computed live from
+      // existing workout/weigh-in/check-in data, not tracked separately.
+      async createChallenge(data) {
+        const id = newDocId("challenges");
+        const challenge = { id, name: "", description: "", type: "leaderboard", metric: "workouts", participantIds: [], createdAt: Date.now(), ...data };
+        try {
+          await setDoc(doc(firestore, "challenges", id), challenge);
+        } catch (err) {
+          throw new Error("Couldn't create that challenge — " + (err.message || "please try again."));
+        }
+        return challenge;
+      },
+      async updateChallenge(id, data) {
+        try {
+          await updateDoc(doc(firestore, "challenges", id), data);
+        } catch (err) {
+          throw new Error("Couldn't save that challenge — " + (err.message || "please try again."));
+        }
+      },
+      deleteChallenge(id) {
+        deleteDoc(doc(firestore, "challenges", id)).catch(console.error);
       },
 
       createSavedMeal(clientId, meal) {
