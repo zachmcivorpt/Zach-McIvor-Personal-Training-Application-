@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Tagline } from "../components/ui";
-import { PrimaryButton, TextInput, Field } from "../components/ui";
+import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "./authUi";
 import { ChevronRight, Lock } from "lucide-react";
 import { COACH_SETUP_CODE } from "../lib/config";
 

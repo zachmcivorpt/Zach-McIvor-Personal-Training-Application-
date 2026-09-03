@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
-import { Logo, PrimaryButton, TextInput, Field } from "../components/ui";
+import { Logo } from "../components/ui";
+import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "./authUi";
 import { ChevronLeft, ShieldCheck } from "lucide-react";
 
 export default function ActivateScreen() {
