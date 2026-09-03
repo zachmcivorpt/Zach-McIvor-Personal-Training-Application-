@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { X, Check, Camera } from "lucide-react";
 import { SURFACE, SURFACE_RAISED, BORDER, TEXT_MUTED, ACCENT, ACCENT_INK, MEASURE_BLUE } from "../theme";
-import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
+import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE, TAGLINE_LOGO } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
 
 /* ============================================================================
@@ -31,19 +31,10 @@ export function Logo({ variant = "wordmark", tone = "white", className = "", sty
   );
 }
 
-// The brand slogan, set as sleek tracked-out small caps rather than the
-// hand-lettered brush-script asset, so it stays consistent with the app's
-// clean monochrome design language wherever it's placed.
-export function Tagline({ tone = "white", className = "" }) {
-  return (
-    <p
-      className={`text-[10px] font-bold tracking-[0.3em] uppercase ${
-        tone === "white" ? "text-white/35" : "text-black/35"
-      } ${className}`}
-    >
-      Forge Your Path
-    </p>
-  );
+// The brand slogan — the coach's own hand-lettered "Forge Your Path" mark.
+// Designed for dark surfaces (the app's default background).
+export function Tagline({ className = "h-5 w-auto opacity-80" }) {
+  return <img src={TAGLINE_LOGO} alt="Forge Your Path" className={className} draggable={false} />;
 }
 
 // Shows the uploaded photo when set, otherwise the initial-letter circle

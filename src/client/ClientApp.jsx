@@ -819,7 +819,7 @@ function WorkoutSummary({ daySession, activeLog, onDone }) {
     <FullScreenOverlay>
       <div className="fixed inset-0 z-[90] bg-[#0A0A0B] flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10">
         <Logo variant="wordmark" tone="white" className="h-8 w-auto opacity-70 mb-1.5" />
-        <Tagline className="mb-6" />
+        <Tagline className="h-6 w-auto opacity-90 mb-6" />
         <div className="w-20 h-20 rounded-full bg-white/10 border border-white/15 flex items-center justify-center mb-5">
           <Check size={36} className="text-white" strokeWidth={3} />
         </div>
