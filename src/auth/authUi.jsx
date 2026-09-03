@@ -17,7 +17,7 @@ export function AuthInput(props) {
   return (
     <input
       {...props}
-      className={`w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-white/25 focus:border-white/30 transition-colors ${props.className || ""}`}
+      className={`w-full bg-white border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none placeholder:text-black/30 focus:border-white/40 transition-colors ${props.className || ""}`}
     />
   );
 }
