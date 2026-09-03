@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
-import { Camera, ScanLine, X, Check, Plus, Minus, Trash2, Sparkles, UtensilsCrossed } from "lucide-react";
+import { Camera, ScanLine, X, Check, Plus, Minus, Trash2, UtensilsCrossed } from "lucide-react";
 import { Card, Pill, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
-import { estimateMealFromPhoto } from "../lib/nutritionVision";
+import { fileToCompressedDataUrl } from "../lib/image";
 
 /* ============================================================================
    BARCODE SCANNER — real camera + a live decode against Open Food Facts
@@ -134,54 +134,76 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
 }
 
 /* ============================================================================
-   PHOTO ESTIMATE — simulated ingredient/macro estimate from a meal photo
+   PHOTO MEAL — attach a reference photo, then build the meal by hand.
+   There's no safe way to run real food-photo recognition from a public
+   static site (it would mean shipping an API key in the client bundle), so
+   this keeps the photo purely as a personal reference image and lets the
+   client enter ingredients/macros themselves — same builder as Create Meal.
 ============================================================================ */
 
 export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
-  const [status, setStatus] = useState("pick"); // pick | analyzing | result
-  const [estimate, setEstimate] = useState(null);
+  const [status, setStatus] = useState("pick"); // pick | build
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const [name, setName] = useState("");
+  const [ingredients, setIngredients] = useState([]);
+  const [search, setSearch] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
   const fileRef = useRef(null);
 
   useEffect(() => {
     if (open) {
       setStatus("pick");
-      setEstimate(null);
+      setPhotoUrl(null);
+      setName("");
+      setIngredients([]);
+      setSearch("");
+      setManualOpen(false);
     }
   }, [open]);
 
   async function handleFile(e) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    setStatus("analyzing");
-    const result = await estimateMealFromPhoto(file);
-    setEstimate(result);
-    setStatus("result");
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file, 900, 0.78);
+      setPhotoUrl(dataUrl);
+    } catch {
+      // bad file — still let them log the meal, just without a photo
+    }
+    setStatus("build");
   }
 
-  function updateIngredient(i, patch) {
-    setEstimate((est) => {
-      const ingredients = est.ingredients.map((ing, idx) => (idx === i ? { ...ing, ...patch } : ing));
-      const totals = ingredients.reduce(
-        (a, ing) => ({ cals: a.cals + ing.cals, protein: a.protein + ing.protein, carbs: a.carbs + ing.carbs, fat: a.fat + ing.fat }),
-        { cals: 0, protein: 0, carbs: 0, fat: 0 }
-      );
-      return { ...est, ingredients, ...totals };
-    });
+  const totals = ingredients.reduce(
+    (a, i) => ({ cals: a.cals + i.cals, protein: a.protein + i.protein, carbs: a.carbs + i.carbs, fat: a.fat + i.fat }),
+    { cals: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+
+  const filtered = FOOD_DATABASE.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+
+  function addIngredient(food) {
+    setIngredients((list) => [...list, { ...food, id: `ing_${Math.random().toString(36).slice(2, 8)}` }]);
+    setSearch("");
   }
 
-  function removeIngredient(i) {
-    setEstimate((est) => {
-      const ingredients = est.ingredients.filter((_, idx) => idx !== i);
-      const totals = ingredients.reduce(
-        (a, ing) => ({ cals: a.cals + ing.cals, protein: a.protein + ing.protein, carbs: a.carbs + ing.carbs, fat: a.fat + ing.fat }),
-        { cals: 0, protein: 0, carbs: 0, fat: 0 }
-      );
-      return { ...est, ingredients, ...totals };
-    });
+  function addManual() {
+    if (!manual.name.trim()) return;
+    addIngredient({ ...manual });
+    setManual({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
+    setManualOpen(false);
+  }
+
+  function removeIngredient(id) {
+    setIngredients((list) => list.filter((i) => i.id !== id));
+  }
+
+  function buildResult() {
+    return { name: name.trim() || "Meal photo", ingredients, photoUrl, ...totals };
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Photo Estimate">
+    <BottomSheet open={open} onClose={onClose} title="Log a Meal Photo">
       {status === "pick" && (
         <div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
@@ -193,61 +215,46 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
             <span className="text-white/60 text-sm font-medium">Take or choose a photo of your meal</span>
           </button>
           <div className="flex items-start gap-2 mt-4 bg-white/[0.03] rounded-xl p-3">
-            <Sparkles size={14} className="text-white/30 shrink-0 mt-0.5" />
+            <UtensilsCrossed size={14} className="text-white/30 shrink-0 mt-0.5" />
             <p className="text-white/30 text-[11px] leading-relaxed">
-              This gives a smart estimate you can edit before saving — full photo-accurate recognition needs a connected vision
-              model, which isn't wired up yet.
+              We'll keep the photo as a reference — add the ingredients yourself below and we'll total up the macros.
             </p>
           </div>
         </div>
       )}
 
-      {status === "analyzing" && (
-        <div className="flex flex-col items-center py-12">
-          <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4" />
-          <p className="text-white/50 text-sm">Analyzing photo...</p>
-        </div>
-      )}
-
-      {status === "result" && estimate && (
+      {status === "build" && (
         <div>
-          <p className="text-white font-semibold text-lg mb-1">{estimate.name}</p>
-          <p className="text-white/30 text-xs mb-4">Estimated — tap any value to adjust</p>
+          {photoUrl && <img src={photoUrl} alt="Your meal" className="w-full h-40 object-cover rounded-2xl mb-4" />}
 
-          <div className="space-y-2 mb-4">
-            {estimate.ingredients.map((ing, i) => (
-              <div key={ing.id} className="bg-white/5 rounded-xl p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <TextInput
-                    value={ing.name}
-                    onChange={(e) => updateIngredient(i, { name: e.target.value })}
-                    className="!py-1.5 !bg-transparent !border-0 !px-0 font-medium flex-1"
-                  />
-                  <button onClick={() => removeIngredient(i)} className="w-7 h-7 shrink-0 flex items-center justify-center text-white/30">
-                    <X size={14} />
+          <Field label="MEAL NAME">
+            <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Lunch" />
+          </Field>
+
+          {ingredients.length > 0 && (
+            <div className="mt-4 space-y-1.5">
+              {ingredients.map((ing) => (
+                <div key={ing.id} className="flex items-center justify-between bg-white/5 rounded-xl px-3.5 py-2.5">
+                  <div>
+                    <p className="text-white text-sm font-medium">{ing.name}</p>
+                    <p className="text-white/40 text-xs">
+                      {ing.cals} kcal · P{ing.protein} C{ing.carbs} F{ing.fat}
+                    </p>
+                  </div>
+                  <button onClick={() => removeIngredient(ing.id)} className="w-7 h-7 flex items-center justify-center text-white/30">
+                    <Trash2 size={14} />
                   </button>
                 </div>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {["cals", "protein", "carbs", "fat"].map((k) => (
-                    <input
-                      key={k}
-                      type="number"
-                      value={ing[k]}
-                      onChange={(e) => updateIngredient(i, { [k]: +e.target.value })}
-                      className="bg-white/5 rounded-lg text-center text-white text-xs py-1.5 outline-none"
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          <div className="bg-white/8 rounded-2xl p-4 grid grid-cols-4 gap-2 mb-4">
+          <div className="bg-white/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mt-4">
             {[
-              ["Cals", estimate.cals],
-              ["Protein", `${estimate.protein}g`],
-              ["Carbs", `${estimate.carbs}g`],
-              ["Fat", `${estimate.fat}g`],
+              ["Cals", totals.cals],
+              ["Protein", `${totals.protein}g`],
+              ["Carbs", `${totals.carbs}g`],
+              ["Fat", `${totals.fat}g`],
             ].map(([l, v]) => (
               <div key={l} className="text-center">
                 <p className="text-white font-bold text-sm">{v}</p>
@@ -256,11 +263,79 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
             ))}
           </div>
 
-          <PrimaryButton className="w-full" onClick={() => onAdd(estimate)}>
+          <div className="mt-5">
+            <p className="text-white/40 text-xs tracking-wide mb-2">ADD INGREDIENT</p>
+            <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-2">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search foods"
+                className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+              />
+            </div>
+            {search && (
+              <div className="space-y-1 mb-2 max-h-40 overflow-y-auto">
+                {filtered.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => addIngredient(f)}
+                    className="w-full flex items-center justify-between py-2.5 border-b border-white/5 last:border-0"
+                  >
+                    <span className="text-white text-sm">{f.name}</span>
+                    <span className="text-white/40 text-xs">{f.cals} kcal</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {!manualOpen ? (
+              <button
+                onClick={() => setManualOpen(true)}
+                className="w-full flex items-center justify-center gap-1.5 text-white/50 text-xs font-medium py-2.5 rounded-xl bg-white/[0.03]"
+              >
+                <Plus size={13} /> Add a custom ingredient
+              </button>
+            ) : (
+              <div className="bg-white/[0.03] rounded-xl p-3 space-y-2">
+                <TextInput
+                  value={manual.name}
+                  onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
+                  placeholder="Ingredient name"
+                  className="text-sm"
+                />
+                <div className="grid grid-cols-4 gap-1.5">
+                  {["cals", "protein", "carbs", "fat"].map((k) => (
+                    <input
+                      key={k}
+                      type="number"
+                      value={manual[k]}
+                      onChange={(e) => setManual((m) => ({ ...m, [k]: +e.target.value }))}
+                      placeholder={k}
+                      className="bg-white/5 rounded-lg text-center text-white text-xs py-2 outline-none placeholder:text-white/25 placeholder:capitalize"
+                    />
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <SecondaryButton className="flex-1 !py-2" onClick={() => setManualOpen(false)}>
+                    Cancel
+                  </SecondaryButton>
+                  <PrimaryButton className="flex-1 !py-2" onClick={addManual}>
+                    Add
+                  </PrimaryButton>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <PrimaryButton className="w-full mt-5" disabled={ingredients.length === 0} onClick={() => onAdd(buildResult())}>
             <Check size={16} /> ADD TO TODAY
           </PrimaryButton>
           {onSaveAsMeal && (
-            <SecondaryButton className="w-full mt-2.5" onClick={() => onSaveAsMeal(estimate)}>
+            <SecondaryButton
+              className="w-full mt-2.5"
+              disabled={!name.trim() || ingredients.length === 0}
+              onClick={() => onSaveAsMeal(buildResult())}
+            >
               <UtensilsCrossed size={15} /> ALSO SAVE AS A MEAL
             </SecondaryButton>
           )}
@@ -451,6 +526,9 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete }) {
         <div className="space-y-2">
           {meals.map((m) => (
             <div key={m.id} className="flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-2.5">
+              {m.photoUrl && (
+                <img src={m.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+              )}
               <div className="flex-1 min-w-0" onClick={() => setConfirmDelete(m)}>
                 <p className="text-white text-sm font-medium truncate">{m.name}</p>
                 <p className="text-white/40 text-xs">

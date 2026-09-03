@@ -85,18 +85,18 @@ const GOALS = [
 ];
 const NUTRITION_TARGETS = { calories: 2200, protein: 160, carbs: 240, fat: 70, water: 3.0 };
 const DEFAULT_NUTRITION = {
-  calories: 1420,
-  protein: 112,
-  carbs: 145,
-  fat: 48,
-  water: 1.8,
+  calories: 0,
+  protein: 0,
+  carbs: 0,
+  fat: 0,
+  water: 0,
   meals: {
-    Breakfast: [{ id: "f1", name: "Greek Yogurt Bowl", cals: 320, protein: 28, carbs: 32, fat: 8 }],
-    Lunch: [{ id: "f2", name: "Chicken & Rice", cals: 560, protein: 48, carbs: 62, fat: 12 }],
+    Breakfast: [],
+    Lunch: [],
     Dinner: [],
-    Snacks: [{ id: "f3", name: "Protein Shake", cals: 220, protein: 36, carbs: 8, fat: 3 }],
+    Snacks: [],
     "Pre-workout": [],
-    "Post-workout": [{ id: "f4", name: "Banana", cals: 105, protein: 1, carbs: 27, fat: 0 }],
+    "Post-workout": [],
   },
 };
 const ACHIEVEMENTS = [
@@ -559,7 +559,7 @@ function HomeScreen({
    WORKOUT SESSION FLOW
 ============================================================================ */
 
-function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForClient, exercisesById, onFinish, onExit }) {
+function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForClient, exercisesById, exerciseNotes, setExerciseNotes, onFinish, onExit }) {
   const exIndex = daySession._exIndex;
   const exMeta = daySession.exercises[exIndex];
   const exercise = exercisesById[exMeta.exerciseId];
@@ -567,10 +567,10 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
   const currentSetNum = log.filter((s) => s.completed).length + 1;
   const isLastSetOfExercise = currentSetNum > exMeta.targetSets;
   const previous = getPreviousPerformance(logsForClient, exMeta.exerciseId);
+  const myNote = exerciseNotes[exMeta.exerciseId] || "";
 
   const [weight, setWeight] = useState(previous?.weight ?? 0);
   const [reps, setReps] = useState(exMeta.targetReps);
-  const [rir, setRir] = useState(exMeta.targetRIR ?? 2);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
@@ -580,7 +580,6 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
   useEffect(() => {
     setWeight(previous?.weight ?? 0);
     setReps(exMeta.targetReps);
-    setRir(exMeta.targetRIR ?? 2);
   }, [exIndex]);
 
   useEffect(() => {
@@ -598,7 +597,7 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
       ? weight > previous.weight || e1rm > estimate1RM(previous.weight, previous.reps)
       : false;
 
-    const newSet = { setNumber: currentSetNum, weight, reps, rir, completed: true, isPR };
+    const newSet = { setNumber: currentSetNum, weight, reps, completed: true, isPR };
     setActiveLog((prev) => ({ ...prev, [exMeta.exerciseId]: [...(prev[exMeta.exerciseId] || []), newSet] }));
 
     if (isPR) {
@@ -722,28 +721,23 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
             </div>
           )}
 
+          <div className="mt-4">
+            <p className="text-white/40 text-xs tracking-wide mb-2">YOUR NOTES ON THIS EXERCISE</p>
+            <textarea
+              value={myNote}
+              onChange={(e) => setExerciseNotes((prev) => ({ ...prev, [exMeta.exerciseId]: e.target.value }))}
+              placeholder="e.g. Left shoulder felt tight, went easy on the last set"
+              rows={2}
+              className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-white text-sm outline-none placeholder:text-white/25 resize-none"
+            />
+          </div>
+
           {!isLastSetOfExercise ? (
             <div className="mt-6 bg-[#141416] rounded-3xl p-5 border border-white/5">
               <p className="text-white/40 text-xs tracking-wide mb-4">LOG SET {currentSetNum}</p>
               <div className="grid grid-cols-2 gap-3">
                 <NumberStepper label="WEIGHT (KG)" value={weight} setValue={setWeight} step={2.5} />
                 <NumberStepper label="REPS" value={reps} setValue={setReps} step={1} />
-              </div>
-              <div className="mt-4">
-                <p className="text-white/40 text-xs tracking-wide mb-2">RIR (REPS IN RESERVE) · TARGET {exMeta.targetRIR ?? 2}</p>
-                <div className="flex gap-2">
-                  {[0, 1, 2, 3, 4, 5].map((v) => (
-                    <button
-                      key={v}
-                      onClick={() => setRir(v)}
-                      className={`flex-1 py-2.5 rounded-xl text-sm font-semibold ${
-                        rir === v ? "bg-white text-black" : "bg-white/8 text-white/50"
-                      }`}
-                    >
-                      {v}
-                    </button>
-                  ))}
-                </div>
               </div>
               <button
                 onClick={completeSet}
@@ -766,7 +760,7 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
               <div key={s.setNumber} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-4 py-2.5">
                 <span className="text-white/40 text-sm">Set {s.setNumber}</span>
                 <span className="text-white text-sm font-medium">
-                  {s.reps} reps × {s.weight}kg · RIR {s.rir}
+                  {s.reps} reps × {s.weight}kg
                 </span>
                 {s.isPR ? <Trophy size={14} className="text-white" /> : <Check size={14} className="text-white/40" />}
               </div>
@@ -998,7 +992,15 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
   }
 
   function saveMealFromEstimate(estimate) {
-    onCreateSavedMeal({ name: estimate.name, ingredients: estimate.ingredients, cals: estimate.cals, protein: estimate.protein, carbs: estimate.carbs, fat: estimate.fat });
+    onCreateSavedMeal({
+      name: estimate.name,
+      ingredients: estimate.ingredients,
+      cals: estimate.cals,
+      protein: estimate.protein,
+      carbs: estimate.carbs,
+      fat: estimate.fat,
+      photoUrl: estimate.photoUrl,
+    });
     showToast(`Saved "${estimate.name}" to My Meals`);
     setPhotoOpen(false);
     setSheetOpen(false);
@@ -1096,9 +1098,14 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
               ) : (
                 <div className="space-y-1.5 mb-2">
                   {items.map((f) => (
-                    <div key={f.id} className="flex justify-between text-sm">
-                      <span className="text-white/70">{f.name}</span>
-                      <span className="text-white/40">{f.cals} kcal</span>
+                    <div key={f.id} className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2 text-white/70 min-w-0">
+                        {f.photoUrl && (
+                          <img src={f.photoUrl} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
+                        )}
+                        <span className="truncate">{f.name}</span>
+                      </span>
+                      <span className="text-white/40 shrink-0 ml-2">{f.cals} kcal</span>
                     </div>
                   ))}
                 </div>
@@ -1129,14 +1136,20 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
         </div>
         <div className="flex gap-2 mb-4">
           <button
-            onClick={() => setBarcodeOpen(true)}
+            onClick={() => {
+              setSheetOpen(false);
+              setBarcodeOpen(true);
+            }}
             className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
           >
             <ScanLine size={18} />
             Scan barcode
           </button>
           <button
-            onClick={() => setPhotoOpen(true)}
+            onClick={() => {
+              setSheetOpen(false);
+              setPhotoOpen(true);
+            }}
             className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
           >
             <Camera size={18} />
@@ -1187,7 +1200,17 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
       <PhotoEstimateSheet
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
-        onAdd={(estimate) => addAndClose({ id: `photo_${Date.now()}`, name: estimate.name, cals: estimate.cals, protein: estimate.protein, carbs: estimate.carbs, fat: estimate.fat })}
+        onAdd={(estimate) =>
+          addAndClose({
+            id: `photo_${Date.now()}`,
+            name: estimate.name,
+            cals: estimate.cals,
+            protein: estimate.protein,
+            carbs: estimate.carbs,
+            fat: estimate.fat,
+            photoUrl: estimate.photoUrl,
+          })
+        }
         onSaveAsMeal={saveMealFromEstimate}
       />
       <CreateMealSheet
@@ -1637,6 +1660,7 @@ export default function ClientApp() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
   const [activeLog, setActiveLog] = useState(null); // {exerciseId: [sets]} while a session is open
+  const [exerciseNotes, setExerciseNotes] = useState({}); // {exerciseId: note} — the client's own notes, separate from the coach's
   const [exIndex, setExIndex] = useState(0);
   const [sessionOpen, setSessionOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -1701,10 +1725,11 @@ export default function ClientApp() {
       programName: program.name,
       weekLabel: todaySession.weekLabel,
       dayLabel: todaySession.label,
-      entries: Object.entries(finalLog).map(([exerciseId, sets]) => ({ exerciseId, sets })),
+      entries: Object.entries(finalLog).map(([exerciseId, sets]) => ({ exerciseId, sets, note: exerciseNotes[exerciseId] || "" })),
     });
     setSummaryData({ daySession: todaySession, activeLog: finalLog });
     setActiveLog(null);
+    setExerciseNotes({});
     setSessionOpen(false);
     setSummaryOpen(true);
   }
@@ -1836,6 +1861,8 @@ export default function ClientApp() {
             setActiveLog={setActiveLog}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
+            exerciseNotes={exerciseNotes}
+            setExerciseNotes={setExerciseNotes}
             onFinish={finishWorkout}
             onExit={() => setSessionOpen(false)}
           />

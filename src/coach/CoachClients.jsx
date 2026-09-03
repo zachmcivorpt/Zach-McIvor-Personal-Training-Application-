@@ -28,6 +28,7 @@ import {
   Send,
   Plus,
   ListChecks,
+  Utensils,
 } from "lucide-react";
 
 const HABIT_PRESETS = ["12,000 steps", "Do your Mobility", "Log your Nutrition", "Sleep 7+ Hours"];
@@ -207,8 +208,9 @@ function HabitsSection({ clientId }) {
 }
 
 function ClientProfile({ clientId, onClose, showToast }) {
-  const { db, assignProgram, removeClient } = useApp();
+  const { db, assignProgram, removeClient, setNutrition } = useApp();
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [confirmResetNutrition, setConfirmResetNutrition] = useState(false);
   const [messaging, setMessaging] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
 
@@ -288,6 +290,44 @@ function ClientProfile({ clientId, onClose, showToast }) {
                     <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-white/40 text-xs tracking-wide">NUTRITION LOG</p>
+              <Utensils size={14} className="text-white/25" />
+            </div>
+            {!confirmResetNutrition ? (
+              <button
+                onClick={() => setConfirmResetNutrition(true)}
+                className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/60 text-sm font-medium py-2.5 rounded-xl"
+              >
+                <Trash2 size={13} /> Clear logged nutrition
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <SecondaryButton className="flex-1" onClick={() => setConfirmResetNutrition(false)}>
+                  Cancel
+                </SecondaryButton>
+                <DangerButton
+                  className="flex-1"
+                  onClick={() => {
+                    setNutrition(client.id, () => ({
+                      calories: 0,
+                      protein: 0,
+                      carbs: 0,
+                      fat: 0,
+                      water: 0,
+                      meals: { Breakfast: [], Lunch: [], Dinner: [], Snacks: [], "Pre-workout": [], "Post-workout": [] },
+                    }));
+                    setConfirmResetNutrition(false);
+                    showToast("Nutrition log cleared");
+                  }}
+                >
+                  Confirm clear
+                </DangerButton>
               </div>
             )}
           </div>

@@ -237,6 +237,8 @@ export function Pill({ children, tone = "default" }) {
   return <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${tones[tone]}`}>{children}</span>;
 }
 
+// Center is a real number input — free typing (any weight/reps value, not
+// locked to `step`), with the +/- buttons kept for quick nudges.
 export function NumberStepper({ label, value, setValue, step, min = 0 }) {
   return (
     <div>
@@ -244,16 +246,26 @@ export function NumberStepper({ label, value, setValue, step, min = 0 }) {
       <div className="flex items-center bg-white/5 rounded-xl">
         <button
           type="button"
-          onClick={() => setValue(Math.max(min, +(value - step).toFixed(2)))}
-          className="w-11 h-11 flex items-center justify-center text-white/60"
+          onClick={() => setValue(Math.max(min, +((+value || 0) - step).toFixed(2)))}
+          className="w-11 h-11 shrink-0 flex items-center justify-center text-white/60"
         >
           −
         </button>
-        <span className="flex-1 text-center text-white font-bold text-lg tabular-nums">{value}</span>
+        <input
+          type="number"
+          inputMode="decimal"
+          step="any"
+          value={value}
+          onChange={(e) => setValue(e.target.value === "" ? "" : +e.target.value)}
+          onBlur={(e) => {
+            if (e.target.value === "" || Number.isNaN(+e.target.value)) setValue(min);
+          }}
+          className="flex-1 min-w-0 text-center bg-transparent text-white font-bold text-lg tabular-nums outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+        />
         <button
           type="button"
-          onClick={() => setValue(+(value + step).toFixed(2))}
-          className="w-11 h-11 flex items-center justify-center text-white/60"
+          onClick={() => setValue(+((+value || 0) + step).toFixed(2))}
+          className="w-11 h-11 shrink-0 flex items-center justify-center text-white/60"
         >
           +
         </button>
