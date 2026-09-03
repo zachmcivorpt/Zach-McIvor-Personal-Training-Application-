@@ -507,17 +507,32 @@ function DayDetailSheet({ date, client, items, onClose, onSchedule, onRemoveWork
             <div key={i} className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
               <div
                 className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  it.type === "workout" ? "bg-blue-50 border border-blue-100" : it.type === "bodystats" ? "bg-amber-50 border border-amber-100" : "bg-emerald-50 border border-emerald-100"
+                  it.type === "workout"
+                    ? "bg-blue-50 border border-blue-100"
+                    : it.type === "bodystats"
+                    ? "bg-amber-50 border border-amber-100"
+                    : it.type === "habits"
+                    ? "bg-purple-50 border border-purple-100"
+                    : "bg-emerald-50 border border-emerald-100"
                 }`}
               >
                 {it.type === "workout" && <Dumbbell size={15} className="text-blue-500" />}
                 {it.type === "bodystats" && <Scale size={15} className="text-amber-600" />}
                 {it.type === "form" && <NotebookPen size={15} className="text-emerald-600" />}
+                {it.type === "habits" && <ListChecks size={15} className="text-purple-600" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-black text-sm font-medium truncate">{it.label}</p>
                 <p className="text-black/35 text-xs">
-                  {it.type === "workout" ? "Workout" : it.type === "bodystats" ? (it.done ? "Body stats · logged" : "Body stats · pending") : "Check-in form"}
+                  {it.type === "workout"
+                    ? "Workout"
+                    : it.type === "bodystats"
+                    ? it.done
+                      ? "Body stats · logged"
+                      : "Body stats · pending"
+                    : it.type === "habits"
+                    ? `Daily habits · ${it.doneCount}/${it.total} done`
+                    : "Check-in form"}
                 </p>
               </div>
               {it.type === "workout" && (
@@ -571,6 +586,8 @@ function CalendarPanel({ client, showToast }) {
   const formSchedules = (db.formSchedules || {})[client.id] || [];
   const forms = db.forms || [];
   const weighIns = (db.weighIns || {})[client.id] || [];
+  const habits = (db.habits || {})[client.id] || [];
+  const habitLogForClient = (db.habitLog || {})[client.id] || {};
 
   const workoutsByDate = useMemo(() => Object.fromEntries(scheduledWorkouts.map((w) => [w.date, w])), [scheduledWorkouts]);
   const bodyStatsByDate = useMemo(() => Object.fromEntries(bodyStatsSchedules.map((b) => [b.date, b])), [bodyStatsSchedules]);
@@ -591,6 +608,14 @@ function CalendarPanel({ client, showToast }) {
     activeFormSchedules
       .filter((s) => s.dayOfWeek === date.getUTCDay())
       .forEach((s) => items.push({ type: "form", label: formsById[s.formId]?.name || "Check-in" }));
+    // Habits aren't scheduled per day (they're a fixed daily list) — show
+    // real completion for today/past days only, never a fake "due" state
+    // for future dates.
+    if (habits.length > 0 && dateStr <= todayStr) {
+      const completedIds = habitLogForClient[dateStr] || [];
+      const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
+      items.push({ type: "habits", label: "Daily Habits", done: doneCount === habits.length, doneCount, total: habits.length });
+    }
     return items;
   }
 
@@ -674,6 +699,8 @@ function CalendarPanel({ client, showToast }) {
                             ? "bg-blue-50 text-blue-700"
                             : it.type === "bodystats"
                             ? "bg-amber-50 text-amber-700"
+                            : it.type === "habits"
+                            ? "bg-purple-50 text-purple-700"
                             : "bg-emerald-50 text-emerald-700"
                         }`}
                       >
@@ -694,6 +721,7 @@ function CalendarPanel({ client, showToast }) {
           ["bg-blue-50 text-blue-700", "Workout"],
           ["bg-amber-50 text-amber-700", "Body Stats"],
           ["bg-emerald-50 text-emerald-700", "Check-in Form"],
+          ["bg-purple-50 text-purple-700", "Daily Habits"],
         ].map(([cls, label]) => (
           <div key={label} className="flex items-center gap-1.5">
             <span className={`w-3 h-3 rounded ${cls.split(" ")[0]}`} />

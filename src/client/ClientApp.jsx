@@ -125,21 +125,27 @@ const COACH_SUGGESTIONS = [
   "Should I increase my bench weight?",
 ];
 
+// Quick Tips — canned, rule-based answers to common questions, built only
+// from real data already loaded in this session (nutrition, today's
+// session). This is NOT a live AI model — there's no backend to run one
+// against, so it never invents specific numbers (lift history, recovery
+// scores) it doesn't actually have. Anything it can't answer honestly
+// points the client to messaging their coach instead.
 function coachReply(prompt, ctx) {
   const p = prompt.toLowerCase();
   if (p.includes("30 minutes") || p.includes("short"))
-    return "With 30 minutes, let's hit a condensed version of today's session — pick the 3 heaviest compound lifts and cut rest to 60 seconds. Want me to trim it for you?";
+    return "With 30 minutes, try a condensed version of today's session — pick the 3 heaviest compound lifts and cut rest to 60 seconds. Message your coach if you'd like them to trim it for you.";
   if (p.includes("protein"))
     return `You've had ${ctx.nutrition.protein}g of your ${ctx.targets.protein}g target — that leaves ${Math.max(0, ctx.targets.protein - ctx.nutrition.protein)}g. A chicken breast and a scoop of whey would close most of that gap.`;
-  if (p.includes("bench"))
-    return "Your bench e1RM has climbed from 92kg to 103kg over the last 3 months. You're recovering well — nudge the working weight up 2.5kg and see how bar speed feels before pushing further.";
+  if (p.includes("bench") || p.includes("weight") || p.includes("increase"))
+    return "Check the Progress tab for your real lift history and e1RM trend — I don't have that pulled up here. If you're unsure whether to increase the weight, message your coach and they'll make the call.";
   if (p.includes("today") || p.includes("train"))
     return ctx.todaySession
-      ? `Today's plan is ${ctx.todaySession.label} — ${ctx.todaySession.exercises.length} exercises. Your recovery score is ${RECOVERY.score}%, so you're clear to push intensity.`
-      : "You don't have a program assigned yet — ping your coach and they'll get one set up for you.";
+      ? `Today's plan is ${ctx.todaySession.label} — ${ctx.todaySession.exercises.length} exercises. Head to the Training tab when you're ready to start.`
+      : "You don't have a workout scheduled today — check the Training tab, or message your coach if that doesn't look right.";
   if (p.includes("progress"))
-    return "Your weekly volume has trended up for 4 of the last 6 weeks and body weight is down 2.4kg over 8 weeks — that's steady progress.";
-  return "Here's a mocked coach response — once connected to a live model, I'll tailor this to your actual training history, recovery, and goals.";
+    return "Your real trends (volume, bodyweight, PRs) are on the Progress tab — I don't have them loaded in this chat.";
+  return "I can only answer a few common questions right now (today's workout, macros left, general training advice) — for anything specific to you, message your coach directly.";
 }
 
 function estimateCalories(volume, durationMin) {
@@ -1075,12 +1081,11 @@ function WorkoutSession({
   );
 }
 
-function WorkoutSummary({ daySession, activeLog, onDone }) {
+function WorkoutSummary({ daySession, activeLog, durationMin = 0, durationSec = 0, onDone }) {
   const allSets = Object.values(activeLog).flat();
   const totalVolume = allSets.reduce((a, s) => a + s.weight * s.reps, 0);
   const totalSets = allSets.length;
   const prCount = allSets.filter((s) => s.isPR).length;
-  const durationMin = 52;
   const calories = estimateCalories(totalVolume, durationMin);
 
   return (
@@ -1093,7 +1098,9 @@ function WorkoutSummary({ daySession, activeLog, onDone }) {
         </div>
         <p className="text-black/40 text-xs tracking-widest font-semibold">WORKOUT COMPLETE</p>
         <h2 className="text-black text-3xl font-bold mt-1">{daySession.label}</h2>
-        <p className="text-black text-4xl font-bold tabular-nums mt-6">{durationMin}:18</p>
+        <p className="text-black text-4xl font-bold tabular-nums mt-6">
+          {durationMin}:{String(durationSec).padStart(2, "0")}
+        </p>
 
         <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-6">
           <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
@@ -2292,8 +2299,8 @@ function ProfileScreen({
               <Activity size={18} className="text-black" />
             </div>
             <div className="flex-1">
-              <p className="text-black font-semibold">AI Coach</p>
-              <p className="text-black/40 text-xs">Ask about training, nutrition, and recovery</p>
+              <p className="text-black font-semibold">Quick Tips</p>
+              <p className="text-black/40 text-xs">Canned answers to common questions</p>
             </div>
             <ChevronRight size={18} className="text-black/30" />
           </div>
@@ -2339,7 +2346,10 @@ function ProfileScreen({
 
 function CoachSheet({ open, onClose, ctx }) {
   const [messages, setMessages] = useState([
-    { role: "coach", text: `Hey ${ctx.user.name.split(" ")[0]} — I'm your AI coach. Ask me anything about training, nutrition, or recovery.` },
+    {
+      role: "coach",
+      text: `Hey ${ctx.user.name.split(" ")[0]} — this is a quick-answer helper, not a live AI. It can handle a handful of common questions using your real numbers where it has them; for anything specific, message your coach directly.`,
+    },
   ]);
   const [input, setInput] = useState("");
 
@@ -2352,7 +2362,7 @@ function CoachSheet({ open, onClose, ctx }) {
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="AI Coach">
+    <BottomSheet open={open} onClose={onClose} title="Quick Tips">
       <div className="space-y-3 mb-4 max-h-[45vh] overflow-y-auto">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -2721,6 +2731,7 @@ export default function ClientApp() {
   const [seenMessageCount, setSeenMessageCount] = useState(0);
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
+  const sessionStartedAtRef = useRef(null); // wall-clock time the current session started, for a real WORKOUT COMPLETE duration
 
   const thread = db.messages[currentUser.id] || [];
   const photos = db.progressPhotos[currentUser.id] || [];
@@ -2825,11 +2836,18 @@ export default function ClientApp() {
 
   function startWorkout() {
     if (!todaySession) return;
-    setActiveLog((prev) => prev || {});
+    setActiveLog((prev) => {
+      if (!prev) sessionStartedAtRef.current = Date.now();
+      return prev || {};
+    });
     setSessionOpen(true);
   }
 
   function finishWorkout() {
+    const elapsedMs = Date.now() - (sessionStartedAtRef.current || Date.now());
+    const durationMin = Math.floor(elapsedMs / 60000);
+    const durationSec = Math.floor((elapsedMs % 60000) / 1000);
+    sessionStartedAtRef.current = null;
     const raw = activeLog || {};
     const cleanedLog = {};
     Object.entries(raw).forEach(([exerciseId, sets]) => {
@@ -2850,7 +2868,7 @@ export default function ClientApp() {
         ...(swapByToId[exerciseId] || {}),
       })),
     });
-    setSummaryData({ daySession: todaySession, activeLog: cleanedLog });
+    setSummaryData({ daySession: todaySession, activeLog: cleanedLog, durationMin, durationSec });
     setActiveLog(null);
     setExerciseNotes({});
     setExerciseSwaps({});
@@ -3017,7 +3035,13 @@ export default function ClientApp() {
           />
         )}
         {summaryOpen && summaryData && (
-          <WorkoutSummary daySession={summaryData.daySession} activeLog={summaryData.activeLog} onDone={() => setSummaryOpen(false)} />
+          <WorkoutSummary
+            daySession={summaryData.daySession}
+            activeLog={summaryData.activeLog}
+            durationMin={summaryData.durationMin}
+            durationSec={summaryData.durationSec}
+            onDone={() => setSummaryOpen(false)}
+          />
         )}
         {previewSession && (
           <WorkoutPreviewSheet
