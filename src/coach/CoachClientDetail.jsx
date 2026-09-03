@@ -1180,7 +1180,7 @@ function ScheduleFormSheet({ open, onClose, client, showToast }) {
 }
 
 function CheckInsPanel({ client, showToast }) {
-  const { db, unscheduleForm, toggleFormSchedule } = useApp();
+  const { db, unscheduleForm, toggleFormSchedule, markFormResponseRead } = useApp();
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [viewingResponse, setViewingResponse] = useState(null);
   const forms = db.forms || [];
@@ -1244,9 +1244,13 @@ function CheckInsPanel({ client, showToast }) {
             return (
               <button
                 key={r.id}
-                onClick={() => setViewingResponse(r)}
+                onClick={() => {
+                  setViewingResponse(r);
+                  if (r.read === false) markFormResponseRead(r.id);
+                }}
                 className="w-full flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3 text-left hover:bg-black/[0.06] transition-colors"
               >
+                {r.read === false && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
                 <div className="flex-1 min-w-0">
                   <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
                   <p className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>

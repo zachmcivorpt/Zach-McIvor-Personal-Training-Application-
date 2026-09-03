@@ -4,16 +4,15 @@ import { Card, Pill, Avatar } from "../components/ui";
 import { MEASURE_BLUE } from "../theme";
 import {
   Users,
-  ClipboardList,
-  Library,
   UserPlus,
   FilePlus,
   Video,
-  Mail,
   CalendarPlus,
   CalendarClock,
   Trophy,
   MessageCircleOff,
+  NotebookPen,
+  MessageCircle,
 } from "lucide-react";
 
 function StatCard({ icon: Icon, label, value, onClick }) {
@@ -146,6 +145,14 @@ export default function CoachDashboard({ onNavigate }) {
     return !last || last.date < sevenDaysAgo;
   });
 
+  const awaitingReply = active.filter((c) => {
+    const thread = db.messages[c.id] || [];
+    const last = thread[thread.length - 1];
+    return last && last.from === "client";
+  }).length;
+
+  const pendingCheckins = active.reduce((a, c) => a + ((db.formResponses || {})[c.id] || []).filter((r) => r.read === false).length, 0);
+
   // ---- recent activity feed, merged across every active client ----
   const activity = [];
   active.forEach((c) => {
@@ -195,14 +202,14 @@ export default function CoachDashboard({ onNavigate }) {
     <div className="max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8">
       <div className="mb-6">
         <h1 className="text-black text-2xl font-bold">Overview</h1>
-        <p className="text-black/40 text-sm mt-0.5">Your roster, programs, and content at a glance.</p>
+        <p className="text-black/40 text-sm mt-0.5">Your roster and what needs your attention.</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <StatCard icon={Users} label="ACTIVE CLIENTS" value={active.length} onClick={() => onNavigate("clients")} />
-        <StatCard icon={Mail} label="NOT SENT YET" value={invited.length} onClick={() => onNavigate("clients")} />
-        <StatCard icon={ClipboardList} label="PROGRAM TEMPLATES" value={db.programs.length} onClick={() => onNavigate("programs")} />
-        <StatCard icon={Library} label="EXERCISES" value={db.exercises.length} onClick={() => onNavigate("library")} />
+        <StatCard icon={Trophy} label="CHALLENGES" value={(db.challenges || []).length} onClick={() => onNavigate("challenges")} />
+        <StatCard icon={NotebookPen} label="CHECK-INS TO REVIEW" value={pendingCheckins} onClick={() => onNavigate("clients")} />
+        <StatCard icon={MessageCircle} label="MESSAGES TO REPLY TO" value={awaitingReply} onClick={() => onNavigate("messages")} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4 items-stretch">

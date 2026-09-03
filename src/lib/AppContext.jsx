@@ -813,9 +813,12 @@ export function AppProvider({ children }) {
       // Client-submitted check-in responses.
       submitFormResponse(clientId, { formId, scheduleId, answers }) {
         const id = newDocId("formResponses");
-        const response = { id, clientId, formId, scheduleId, date: Date.now(), answers };
+        const response = { id, clientId, formId, scheduleId, date: Date.now(), answers, read: false };
         setDoc(doc(firestore, "formResponses", id), response).catch(console.error);
         return response;
+      },
+      markFormResponseRead(id) {
+        updateDoc(doc(firestore, "formResponses", id), { read: true }).catch(console.error);
       },
     }),
     [db, raw, hasCoach]

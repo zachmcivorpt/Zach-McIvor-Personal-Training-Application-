@@ -43,6 +43,10 @@ import {
   Info,
   Repeat,
   Scale,
+  Beef,
+  GlassWater,
+  Droplets,
+  Sparkles,
 } from "lucide-react";
 import {
   LineChart,
@@ -303,18 +307,28 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
           </div>
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t border-black/5 flex items-center gap-3">
-        <Droplet size={16} className="text-black/50" />
-        <span className="text-black/70 text-sm flex-1">
-          Water: <span className="font-semibold text-black">{nutrition.water}L</span> / {targets.water}L
-        </span>
+      <div className="mt-4 pt-4 border-t border-black/5">
+        <div className="flex items-center gap-3 mb-1.5">
+          {nutrition.water >= targets.water ? (
+            <Droplets size={16} className="text-black shrink-0" />
+          ) : (
+            <GlassWater size={16} className="text-black/50 shrink-0" />
+          )}
+          <span className="text-black/70 text-sm flex-1">
+            Water: <span className="font-semibold text-black">{nutrition.water}L</span> / {targets.water}L
+          </span>
+        </div>
+        <ProgressBar value={nutrition.water} max={targets.water} height={6} />
       </div>
       <div className="flex gap-2 mt-4">
-        <button onClick={onLogFood} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl">
+        <button onClick={onLogFood} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform">
           + LOG FOOD
         </button>
-        <button onClick={onLogWater} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl">
-          + LOG WATER
+        <button
+          onClick={onLogWater}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-90 transition-transform duration-150"
+        >
+          <GlassWater size={15} /> + LOG WATER
         </button>
       </div>
     </Card>
@@ -408,6 +422,19 @@ function DateStrip({ selectedOffset, onSelect }) {
   );
 }
 
+// Maps a coach-written habit label to a fitting icon by keyword — purely
+// cosmetic (no data model change), so any habit still works, it just
+// looks generic if nothing matches.
+function habitIcon(label) {
+  const l = label.toLowerCase();
+  if (/\bstep|walk|run|jog|cardio\b/.test(l)) return Footprints;
+  if (/\bprotein|steak|meat|chicken|meal\b/.test(l)) return Beef;
+  if (/\bwater|hydrat|drink\b/.test(l)) return GlassWater;
+  if (/\bsleep|bed|rest\b/.test(l)) return Moon;
+  if (/\bstretch|mobility|yoga|recover\b/.test(l)) return Activity;
+  return Sparkles;
+}
+
 function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true }) {
   if (habits.length === 0) return null;
   const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
@@ -425,23 +452,31 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
       <div className="space-y-1.5">
         {habits.map((h) => {
           const done = completedIds.includes(h.id);
+          const Icon = habitIcon(h.label);
           const Tag = interactive ? "button" : "div";
           return (
             <Tag
               key={h.id}
               onClick={interactive ? () => onToggle(h.id) : undefined}
-              className={`w-full flex items-center gap-3 bg-black/5 rounded-xl px-3.5 py-3 text-left ${
-                interactive ? "" : "opacity-70"
-              }`}
+              className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors ${
+                done ? "bg-black/[0.04]" : "bg-black/5"
+              } ${interactive ? "active:scale-[0.97]" : "opacity-70"} transition-transform duration-150`}
             >
               <span
-                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                  done ? "bg-black border-black" : "border-black/25"
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
+                  done ? "bg-black scale-100" : "bg-black/8 scale-95"
+                }`}
+              >
+                <Icon size={16} className={done ? "text-white" : "text-black/45"} strokeWidth={2.2} />
+              </span>
+              <span className={`text-sm flex-1 transition-colors ${done ? "text-black/40 line-through" : "text-black/85"}`}>{h.label}</span>
+              <span
+                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all duration-200 ${
+                  done ? "bg-black border-black scale-100" : "border-black/20 scale-90"
                 }`}
               >
                 {done && <Check size={12} className="text-white" strokeWidth={3.5} />}
               </span>
-              <span className={`text-sm flex-1 ${done ? "text-black/40 line-through" : "text-black/85"}`}>{h.label}</span>
             </Tag>
           );
         })}
@@ -1371,7 +1406,12 @@ function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals
         <Card>
           <div className="flex items-center justify-between mb-1">
             <p className="text-black font-semibold flex items-center gap-2">
-              <Droplet size={16} className="text-black/60" /> Water
+              {nutrition.water >= targets.water ? (
+                <Droplets size={16} className="text-black" />
+              ) : (
+                <GlassWater size={16} className="text-black/60" />
+              )}{" "}
+              Water
             </p>
             <span className="text-black/50 text-sm">
               {nutrition.water}L / {targets.water}L
@@ -1379,13 +1419,22 @@ function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals
           </div>
           <ProgressBar value={nutrition.water} max={targets.water} height={6} />
           <div className="flex gap-2 mt-3">
-            <button onClick={() => onAddWater(0.25)} className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl">
+            <button
+              onClick={() => onAddWater(0.25)}
+              className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"
+            >
               +250ml
             </button>
-            <button onClick={() => onAddWater(0.5)} className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl">
+            <button
+              onClick={() => onAddWater(0.5)}
+              className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"
+            >
               +500ml
             </button>
-            <button onClick={() => setWaterSheetOpen(true)} className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl">
+            <button
+              onClick={() => setWaterSheetOpen(true)}
+              className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-[0.97] transition-transform"
+            >
               Custom
             </button>
           </div>
