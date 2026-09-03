@@ -19,8 +19,11 @@ function emptyDraft() {
   return { name: "", level: "Beginner", description: "", weeks: [] };
 }
 
+const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
+
 function ExerciseRow({ row, exercises, onChange, onRemove }) {
   const ex = exercises.find((e) => e.id === row.exerciseId);
+  const rir = row.targetRIR ?? 2;
   return (
     <div className="bg-white/5 rounded-xl p-3">
       <div className="flex items-center gap-2">
@@ -35,7 +38,7 @@ function ExerciseRow({ row, exercises, onChange, onRemove }) {
           <X size={14} />
         </button>
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-2">
+      <div className="grid grid-cols-2 gap-2 mt-2">
         <div>
           <p className="text-white/30 text-[10px] mb-1">SETS</p>
           <TextInput
@@ -56,17 +59,33 @@ function ExerciseRow({ row, exercises, onChange, onRemove }) {
             className="!py-1.5 text-center text-xs"
           />
         </div>
-        <div>
-          <p className="text-white/30 text-[10px] mb-1">WEIGHT (KG)</p>
-          <TextInput
-            type="number"
-            min={0}
-            step={2.5}
-            value={row.targetWeight}
-            onChange={(e) => onChange({ ...row, targetWeight: +e.target.value })}
-            className="!py-1.5 text-center text-xs"
-          />
+      </div>
+      <div className="mt-2">
+        <p className="text-white/30 text-[10px] mb-1">TARGET RIR (REPS IN RESERVE)</p>
+        <div className="flex gap-1.5">
+          {RIR_OPTIONS.map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onChange({ ...row, targetRIR: v })}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold ${
+                rir === v ? "bg-white text-black" : "bg-white/8 text-white/50"
+              }`}
+            >
+              {v}
+            </button>
+          ))}
         </div>
+      </div>
+      <div className="mt-2">
+        <p className="text-white/30 text-[10px] mb-1">NOTES (CUES, TEMPO, ETC.)</p>
+        <TextArea
+          rows={2}
+          value={row.notes || ""}
+          onChange={(e) => onChange({ ...row, notes: e.target.value })}
+          placeholder="e.g. Controlled eccentric, pause at the bottom"
+          className="!py-1.5 text-xs"
+        />
       </div>
       {ex && <p className="text-white/25 text-[11px] mt-2">{ex.equipment} · {ex.primaryMuscles.join(", ")}</p>}
     </div>
@@ -87,7 +106,7 @@ function DayEditor({ day, exercises, onChange, onRemove }) {
     if (exercises.length === 0) return;
     onChange({
       ...day,
-      exercises: [...day.exercises, { exerciseId: exercises[0].id, targetSets: 3, targetReps: 10, targetWeight: 20 }],
+      exercises: [...day.exercises, { exerciseId: exercises[0].id, targetSets: 3, targetReps: 10, targetRIR: 2, notes: "" }],
     });
   }
 

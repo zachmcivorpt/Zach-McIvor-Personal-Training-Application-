@@ -32,6 +32,7 @@ import {
   X,
   Send,
   MessageCircle,
+  StickyNote,
 } from "lucide-react";
 import {
   LineChart,
@@ -481,9 +482,9 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
   const isLastSetOfExercise = currentSetNum > exMeta.targetSets;
   const previous = getPreviousPerformance(logsForClient, exMeta.exerciseId);
 
-  const [weight, setWeight] = useState(exMeta.targetWeight);
+  const [weight, setWeight] = useState(previous?.weight ?? 0);
   const [reps, setReps] = useState(exMeta.targetReps);
-  const [rpe, setRpe] = useState(8);
+  const [rir, setRir] = useState(exMeta.targetRIR ?? 2);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
@@ -491,8 +492,9 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
   const timerRef = useRef(null);
 
   useEffect(() => {
-    setWeight(exMeta.targetWeight);
+    setWeight(previous?.weight ?? 0);
     setReps(exMeta.targetReps);
+    setRir(exMeta.targetRIR ?? 2);
   }, [exIndex]);
 
   useEffect(() => {
@@ -510,7 +512,7 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
       ? weight > previous.weight || e1rm > estimate1RM(previous.weight, previous.reps)
       : false;
 
-    const newSet = { setNumber: currentSetNum, weight, reps, rpe, completed: true, isPR };
+    const newSet = { setNumber: currentSetNum, weight, reps, rir, completed: true, isPR };
     setActiveLog((prev) => ({ ...prev, [exMeta.exerciseId]: [...(prev[exMeta.exerciseId] || []), newSet] }));
 
     if (isPR) {
@@ -618,15 +620,21 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
             </div>
             <div className="flex-1 bg-white/5 rounded-2xl p-3">
               <p className="text-white/40 text-[11px] tracking-wide">TARGET</p>
-              <p className="text-white font-bold text-lg">
-                {exMeta.targetReps} × {exMeta.targetWeight}kg
-              </p>
+              <p className="text-white font-bold text-lg">{exMeta.targetReps} reps</p>
+              <p className="text-white/50 text-[11px] font-semibold mt-0.5">RIR {exMeta.targetRIR ?? 2}</p>
             </div>
             <div className="flex-1 bg-white/5 rounded-2xl p-3">
               <p className="text-white/40 text-[11px] tracking-wide">PREVIOUS</p>
               <p className="text-white font-bold text-lg">{previous ? `${previous.reps} × ${previous.weight}kg` : "—"}</p>
             </div>
           </div>
+
+          {exMeta.notes && (
+            <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-start gap-2.5">
+              <StickyNote size={14} className="text-white/40 mt-0.5 shrink-0" />
+              <p className="text-white/70 text-sm">{exMeta.notes}</p>
+            </div>
+          )}
 
           {!isLastSetOfExercise ? (
             <div className="mt-6 bg-[#141416] rounded-3xl p-5 border border-white/5">
@@ -636,14 +644,14 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
                 <NumberStepper label="REPS" value={reps} setValue={setReps} step={1} />
               </div>
               <div className="mt-4">
-                <p className="text-white/40 text-xs tracking-wide mb-2">RPE</p>
+                <p className="text-white/40 text-xs tracking-wide mb-2">RIR (REPS IN RESERVE) · TARGET {exMeta.targetRIR ?? 2}</p>
                 <div className="flex gap-2">
-                  {[6, 7, 8, 9, 10].map((v) => (
+                  {[0, 1, 2, 3, 4, 5].map((v) => (
                     <button
                       key={v}
-                      onClick={() => setRpe(v)}
+                      onClick={() => setRir(v)}
                       className={`flex-1 py-2.5 rounded-xl text-sm font-semibold ${
-                        rpe === v ? "bg-white text-black" : "bg-white/8 text-white/50"
+                        rir === v ? "bg-white text-black" : "bg-white/8 text-white/50"
                       }`}
                     >
                       {v}
@@ -672,7 +680,7 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
               <div key={s.setNumber} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-4 py-2.5">
                 <span className="text-white/40 text-sm">Set {s.setNumber}</span>
                 <span className="text-white text-sm font-medium">
-                  {s.reps} reps × {s.weight}kg · RPE {s.rpe}
+                  {s.reps} reps × {s.weight}kg · RIR {s.rir}
                 </span>
                 {s.isPR ? <Trophy size={14} className="text-white" /> : <Check size={14} className="text-white/40" />}
               </div>
@@ -802,8 +810,9 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
                       <div className="flex-1">
                         <p className="text-white text-sm font-medium">{ex.name}</p>
                         <p className="text-white/40 text-xs">
-                          {e.targetSets} sets × {e.targetReps} reps
+                          {e.targetSets} sets × {e.targetReps} reps · RIR {e.targetRIR ?? 2}
                         </p>
+                        {e.notes && <p className="text-white/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
                       </div>
                       <span className="text-white/30 text-xs">{ex.equipment}</span>
                     </div>
