@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
-import { LayoutDashboard, Users, ClipboardList, MessageCircle, Library, Settings, LogOut, Search, X, Bell, SlidersHorizontal } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
 import CoachPrograms from "./CoachPrograms";
@@ -80,7 +80,6 @@ export default function CoachShell() {
   const [tab, setTab] = useState("dashboard");
   const [clientSearch, setClientSearch] = useState("");
   const [toast, setToast] = useState({ show: false, message: "" });
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
   const notifications = db.notifications || [];
@@ -94,11 +93,6 @@ export default function CoachShell() {
   function doLogout() {
     logout();
     navigate("/login", { replace: true });
-  }
-
-  function goToClients(query) {
-    setClientSearch(query);
-    setTab("clients");
   }
 
   const activeClients = db.users.filter((u) => u.role === "client" && u.status === "active");
@@ -131,18 +125,6 @@ export default function CoachShell() {
       <div className="dark-chrome hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col bg-[#0A0A0C]">
         <div className="px-5 pt-7 pb-6">
           <Logo variant="wordmark" tone="white" className="h-9 w-auto" />
-        </div>
-
-        <div className="px-4 mb-6">
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 focus-within:border-white/25 transition-colors">
-            <Search size={15} className="text-white/35" />
-            <input
-              value={clientSearch}
-              onChange={(e) => goToClients(e.target.value)}
-              placeholder="Find a client"
-              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/25"
-            />
-          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4">
@@ -186,12 +168,6 @@ export default function CoachShell() {
         <div className="flex items-center justify-between px-4 py-3">
           <Logo variant="wordmark" tone="white" className="h-7 w-auto" />
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMobileSearchOpen((o) => !o)}
-              className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white/70"
-            >
-              {mobileSearchOpen ? <X size={16} /> : <Search size={16} />}
-            </button>
             <button onClick={() => setNotifOpen(true)} className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white/70 relative">
               <Bell size={16} />
               {unreadNotifCount > 0 && (
@@ -201,24 +177,10 @@ export default function CoachShell() {
             <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={34} onClick={() => setTab("more")} />
           </div>
         </div>
-        {mobileSearchOpen && (
-          <div className="px-4 pb-3">
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5">
-              <Search size={15} className="text-white/35 shrink-0" />
-              <input
-                autoFocus
-                value={clientSearch}
-                onChange={(e) => goToClients(e.target.value)}
-                placeholder="Find a client"
-                className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/25"
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* main content */}
-      <div className={`flex-1 min-w-0 ${mobileSearchOpen ? "pt-[104px]" : "pt-14"} pb-16 md:pt-0 md:pb-0`}>
+      <div className="flex-1 min-w-0 pt-14 pb-16 md:pt-0 md:pb-0">
         {tab === "dashboard" && <CoachDashboard onNavigate={setTab} />}
         {tab === "clients" && <CoachClients showToast={showToast} search={clientSearch} setSearch={setClientSearch} />}
         {tab === "programs" && <CoachPrograms showToast={showToast} />}
