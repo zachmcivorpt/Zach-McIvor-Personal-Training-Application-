@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar, BottomSheet } from "../components/ui";
+import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
 import { ThreadView } from "./CoachMessages";
 import { SendLoginSheet } from "./CoachClients";
 import WorkoutEditor from "./WorkoutEditor";
@@ -33,16 +34,23 @@ import {
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
+function addDaysISO(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+const PHASE_DURATION_OPTIONS = [1, 2, 3, 4, 5];
+
 function emptyPhase(programs) {
   const t = todayKey();
-  const end = new Date();
-  end.setDate(end.getDate() + 27);
   return {
     name: "New Phase",
     level: "Intermediate",
     description: "",
     startDate: t,
-    endDate: end.toISOString().slice(0, 10),
+    endDate: addDaysISO(t, 4 * 7 - 1),
+    duration: 4,
     templateId: "",
   };
 }
@@ -52,6 +60,18 @@ function NewPhaseSheet({ open, onClose, programs, onCreate }) {
 
   function reset() {
     setForm(emptyPhase(programs));
+  }
+
+  function setDuration(weeks) {
+    setForm((f) => ({ ...f, duration: weeks, endDate: addDaysISO(f.startDate, weeks * 7 - 1) }));
+  }
+
+  function setStartDate(value) {
+    setForm((f) => ({ ...f, startDate: value, endDate: f.duration ? addDaysISO(value, f.duration * 7 - 1) : f.endDate }));
+  }
+
+  function setEndDate(value) {
+    setForm((f) => ({ ...f, endDate: value, duration: null }));
   }
 
   function submit(e) {
@@ -83,13 +103,39 @@ function NewPhaseSheet({ open, onClose, programs, onCreate }) {
           <p className="text-black/40 text-xs tracking-wide mb-1.5">PHASE NAME</p>
           <TextInput value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Week 1-4 Stabilisation" />
         </div>
+        <div>
+          <p className="text-black/40 text-xs tracking-wide mb-1.5">DURATION</p>
+          <div className="flex gap-2 flex-wrap">
+            {PHASE_DURATION_OPTIONS.map((w) => (
+              <button
+                type="button"
+                key={w}
+                onClick={() => setDuration(w)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                  form.duration === w ? "bg-black text-white" : "bg-black/8 text-black/60"
+                }`}
+              >
+                {w} week{w > 1 ? "s" : ""}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, duration: null }))}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                !form.duration ? "bg-black text-white" : "bg-black/8 text-black/40"
+              }`}
+            >
+              Custom
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <p className="text-black/40 text-xs tracking-wide mb-1.5">START DATE</p>
             <input
               type="date"
               value={form.startDate}
-              onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
+              onChange={(e) => setStartDate(e.target.value)}
               className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
             />
           </div>
@@ -98,7 +144,7 @@ function NewPhaseSheet({ open, onClose, programs, onCreate }) {
             <input
               type="date"
               value={form.endDate}
-              onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
+              onChange={(e) => setEndDate(e.target.value)}
               className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
             />
           </div>
@@ -702,6 +748,109 @@ function CheckInsPanel({ client, showToast }) {
   );
 }
 
+function NutritionTargetsCard({ client, showToast }) {
+  const { updateUser } = useApp();
+  const saved = { ...DEFAULT_NUTRITION_TARGETS, ...(client.nutritionTargets || {}) };
+  const [calories, setCalories] = useState(saved.calories);
+  const [pcts, setPcts] = useState({ protein: saved.proteinPct, carbs: saved.carbsPct, fat: saved.fatPct });
+  const [saving, setSaving] = useState(false);
+  const loadedRef = useRef(client.id);
+
+  // Re-seed the draft if the coach switches to a different client.
+  if (loadedRef.current !== client.id) {
+    loadedRef.current = client.id;
+    setCalories(saved.calories);
+    setPcts({ protein: saved.proteinPct, carbs: saved.carbsPct, fat: saved.fatPct });
+  }
+
+  const dirty = calories !== saved.calories || pcts.protein !== saved.proteinPct || pcts.carbs !== saved.carbsPct || pcts.fat !== saved.fatPct;
+  const grams = {
+    protein: macroGrams(calories, pcts.protein, 4),
+    carbs: macroGrams(calories, pcts.carbs, 4),
+    fat: macroGrams(calories, pcts.fat, 9),
+  };
+
+  function setPct(key, value) {
+    setPcts((prev) => adjustMacroPct(prev, key, value));
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateUser(client.id, {
+        nutritionTargets: { calories, proteinPct: pcts.protein, carbsPct: pcts.carbs, fatPct: pcts.fat },
+      });
+      showToast("Nutrition targets saved");
+    } catch (err) {
+      showToast(err.message || "Couldn't save targets");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const MACROS = [
+    { key: "protein", label: "Protein", color: "#3B82F6" },
+    { key: "carbs", label: "Carbs", color: "#10B981" },
+    { key: "fat", label: "Fat", color: "#F59E0B" },
+  ];
+
+  return (
+    <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 mb-5">
+      <p className="text-black font-semibold mb-1">Nutrition Targets</p>
+      <p className="text-black/40 text-xs mb-4">What this client sees as their daily calorie and macro goals in the app.</p>
+
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-black/50 text-xs tracking-wide">CALORIES</span>
+        <span className="text-black font-bold text-sm">{calories} kcal</span>
+      </div>
+      <input
+        type="range"
+        min={1200}
+        max={4500}
+        step={25}
+        value={calories}
+        onChange={(e) => setCalories(Number(e.target.value))}
+        className="w-full accent-black"
+      />
+
+      <div className="mt-4 space-y-3.5">
+        {MACROS.map((m) => (
+          <div key={m.key}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-black/50 text-xs tracking-wide">{m.label.toUpperCase()}</span>
+              <span className="text-black text-sm font-semibold">
+                {pcts[m.key]}% · {grams[m.key]}g
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={pcts[m.key]}
+              onChange={(e) => setPct(m.key, Number(e.target.value))}
+              className="w-full"
+              style={{ accentColor: m.color }}
+            />
+          </div>
+        ))}
+      </div>
+
+      <p className="text-black/25 text-[11px] mt-3">Protein + Carbs + Fat always add up to 100% of calories — adjusting one rebalances the others.</p>
+
+      <button
+        onClick={save}
+        disabled={!dirty || saving}
+        className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+          !dirty && !saving ? "bg-black/8 text-black/30" : "bg-black text-white"
+        }`}
+      >
+        {saving ? "SAVING…" : dirty ? "SAVE TARGETS" : "SAVED"}
+      </button>
+    </div>
+  );
+}
+
 function NutritionPanel({ client, showToast }) {
   const { db, setNutrition } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -709,6 +858,7 @@ function NutritionPanel({ client, showToast }) {
 
   return (
     <div className="max-w-xl px-4 py-5 md:px-6 md:py-6">
+      <NutritionTargetsCard client={client} showToast={showToast} />
       <p className="text-black font-semibold mb-4">Nutrition Log</p>
       {!nutrition ? (
         <p className="text-black/30 text-sm">Nothing logged yet.</p>

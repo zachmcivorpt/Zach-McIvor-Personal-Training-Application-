@@ -514,8 +514,12 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "weighIns", weighInId)).catch(console.error);
       },
 
-      updateUser(id, data) {
-        updateDoc(doc(firestore, "users", id), data).catch(console.error);
+      async updateUser(id, data) {
+        try {
+          await updateDoc(doc(firestore, "users", id), data);
+        } catch (err) {
+          throw new Error("Couldn't save — " + (err.message || "please try again."));
+        }
       },
 
       createSavedMeal(clientId, meal) {

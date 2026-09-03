@@ -79,7 +79,18 @@ import {
   Tagline,
 } from "../components/ui";
 import { MEASURE_BLUE } from "../theme";
-import { BENCH_HISTORY, VOLUME_HISTORY, METRIC_TILES } from "../lib/mockMetrics";
+import {
+  computeWeeklyVolume,
+  computeWorkoutsSeries,
+  computeE1RMHistory,
+  findExerciseByKeyword,
+  computePersonalBests,
+  computePRsInLastNDays,
+  computeSessionsThisWeek,
+  computeWeeklyStreak,
+  computeAchievements,
+} from "../lib/trainingStats";
+import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
@@ -91,13 +102,6 @@ import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSectio
 ============================================================================ */
 const RECOVERY = { score: 82, status: "Ready to train", sleep: "8h 12m", restingHr: 58 };
 const ACTIVITY = { steps: 8421, stepGoal: 10000, activeCalories: 412, distanceKm: 5.8 };
-const GOALS = [
-  { id: "g1", label: "Bench 100kg", current: 82.5, target: 100, unit: "kg" },
-  { id: "g2", label: "Lose 5kg", current: 2.4, target: 5, unit: "kg" },
-  { id: "g3", label: "Train 4× this week", current: 2, target: 4, unit: "sessions" },
-  { id: "g4", label: "Hit 160g protein daily", current: 112, target: 160, unit: "g" },
-];
-const NUTRITION_TARGETS = { calories: 2200, protein: 160, carbs: 240, fat: 70, water: 3.0 };
 const DEFAULT_NUTRITION = {
   calories: 0,
   protein: 0,
@@ -113,12 +117,6 @@ const DEFAULT_NUTRITION = {
     "Post-workout": [],
   },
 };
-const ACHIEVEMENTS = [
-  { id: "a1", label: "12-day streak", icon: "🔥" },
-  { id: "a2", label: "50 workouts completed", icon: "🏆" },
-  { id: "a3", label: "New bench PR", icon: "💪" },
-  { id: "a4", label: "30-day nutrition log", icon: "🥗" },
-];
 const COACH_SUGGESTIONS = [
   "What should I train today?",
   "I only have 30 minutes.",
@@ -131,7 +129,7 @@ function coachReply(prompt, ctx) {
   if (p.includes("30 minutes") || p.includes("short"))
     return "With 30 minutes, let's hit a condensed version of today's session — pick the 3 heaviest compound lifts and cut rest to 60 seconds. Want me to trim it for you?";
   if (p.includes("protein"))
-    return `You've had ${ctx.nutrition.protein}g of your ${NUTRITION_TARGETS.protein}g target — that leaves ${Math.max(0, NUTRITION_TARGETS.protein - ctx.nutrition.protein)}g. A chicken breast and a scoop of whey would close most of that gap.`;
+    return `You've had ${ctx.nutrition.protein}g of your ${ctx.targets.protein}g target — that leaves ${Math.max(0, ctx.targets.protein - ctx.nutrition.protein)}g. A chicken breast and a scoop of whey would close most of that gap.`;
   if (p.includes("bench"))
     return "Your bench e1RM has climbed from 92kg to 103kg over the last 3 months. You're recovering well — nudge the working weight up 2.5kg and see how bar speed feels before pushing further.";
   if (p.includes("today") || p.includes("train"))
@@ -333,31 +331,6 @@ function ActivityCardCompact({ activity }) {
   );
 }
 
-function GoalsCard({ goals }) {
-  return (
-    <Card className="mx-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-black font-semibold">Goals</h3>
-        <Target size={16} className="text-black/30" />
-      </div>
-      <div className="space-y-4">
-        {goals.map((g) => (
-          <div key={g.id}>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-black/70">{g.label}</span>
-              <span className="text-black/40">
-                {g.current}/{g.target}
-                {g.unit === "kg" || g.unit === "g" ? g.unit : ""}
-              </span>
-            </div>
-            <ProgressBar value={g.current} max={g.target} height={6} />
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
 function SessionStrip({ sessions, currentIndex, onSelect }) {
   if (sessions.length === 0) return null;
   const start = Math.max(0, currentIndex - 3);
@@ -506,6 +479,7 @@ function HomeScreen({
   onStartWorkout,
   onViewWorkout,
   nutrition,
+  targets,
   onLogFood,
   onLogWater,
   showToast,
@@ -545,9 +519,8 @@ function HomeScreen({
         interactive={isToday}
       />
       {isToday && (
-        <NutritionSummaryCard nutrition={nutrition} targets={NUTRITION_TARGETS} onLogFood={onLogFood} onLogWater={onLogWater} />
+        <NutritionSummaryCard nutrition={nutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} />
       )}
-      <GoalsCard goals={GOALS} />
     </div>
   );
 }
@@ -1297,7 +1270,7 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
    NUTRITION TAB
 ============================================================================ */
 
-function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
+function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
   const [waterSheetOpen, setWaterSheetOpen] = useState(false);
@@ -1348,22 +1321,22 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
         <Card>
           <p className="text-black/40 text-xs tracking-wide mb-1">CALORIE TARGET</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-black text-3xl font-bold">{Math.max(0, NUTRITION_TARGETS.calories - nutrition.calories)}</span>
-            <span className="text-black/40 text-sm">remaining of {NUTRITION_TARGETS.calories}</span>
+            <span className="text-black text-3xl font-bold">{Math.max(0, targets.calories - nutrition.calories)}</span>
+            <span className="text-black/40 text-sm">remaining of {targets.calories}</span>
           </div>
           <div className="mt-3">
-            <ProgressBar value={nutrition.calories} max={NUTRITION_TARGETS.calories} />
+            <ProgressBar value={nutrition.calories} max={targets.calories} />
           </div>
           <div className="grid grid-cols-3 gap-3 mt-4">
             {[
-              { l: "Protein", v: nutrition.protein, t: NUTRITION_TARGETS.protein },
-              { l: "Carbs", v: nutrition.carbs, t: NUTRITION_TARGETS.carbs },
-              { l: "Fat", v: nutrition.fat, t: NUTRITION_TARGETS.fat },
+              { l: "Protein", v: nutrition.protein, t: targets.protein },
+              { l: "Carbs", v: nutrition.carbs, t: targets.carbs },
+              { l: "Fat", v: nutrition.fat, t: targets.fat },
             ].map((m) => (
               <div key={m.l} className="text-center">
                 <Ring value={m.v} max={m.t} size={56} stroke={5}>
-                  <span className="text-black text-xs font-bold">
-                    {m.v}/{m.t}
+                  <span className="text-black text-[11px] font-bold">
+                    {m.v}/{m.t}g
                   </span>
                 </Ring>
                 <p className="text-black/40 text-xs mt-1.5">{m.l}</p>
@@ -1380,10 +1353,10 @@ function NutritionScreen({ nutrition, onAddFood, onAddWater, savedMeals, onCreat
               <Droplet size={16} className="text-black/60" /> Water
             </p>
             <span className="text-black/50 text-sm">
-              {nutrition.water}L / {NUTRITION_TARGETS.water}L
+              {nutrition.water}L / {targets.water}L
             </span>
           </div>
-          <ProgressBar value={nutrition.water} max={NUTRITION_TARGETS.water} height={6} />
+          <ProgressBar value={nutrition.water} max={targets.water} height={6} />
           <div className="flex gap-2 mt-3">
             <button onClick={() => onAddWater(0.25)} className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl">
               +250ml
@@ -1840,13 +1813,31 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
   );
 }
 
-function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight }) {
-  const [range, setRange] = useState("30D");
+function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, logsForClient, exercisesById }) {
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
-  const tiles = useMemo(() => METRIC_TILES(), []);
+
+  const tiles = useMemo(() => {
+    const workoutsSeries = computeWorkoutsSeries(logsForClient);
+    return [
+      { key: "total", label: "Total Workouts", unit: "", decimals: 0, series: workoutsSeries, latest: logsForClient.length, date: "all-time" },
+      { key: "week", label: "This Week", unit: "", decimals: 0, series: null, latest: computeSessionsThisWeek(logsForClient), date: "sessions" },
+      { key: "prs", label: "PRs This Month", unit: "", decimals: 0, series: null, latest: computePRsInLastNDays(logsForClient, 30), date: "last 30 days" },
+      { key: "streak", label: "Weekly Streak", unit: "", decimals: 0, series: null, latest: computeWeeklyStreak(logsForClient), date: "weeks in a row" },
+    ];
+  }, [logsForClient]);
+
+  const weeklyVolume = useMemo(() => computeWeeklyVolume(logsForClient), [logsForClient]);
+  const benchExercise = useMemo(() => findExerciseByKeyword(Object.values(exercisesById), "Bench Press"), [exercisesById]);
+  const benchHistory = useMemo(
+    () => (benchExercise ? computeE1RMHistory(logsForClient, benchExercise.id) : []),
+    [logsForClient, benchExercise]
+  );
+  const personalBests = useMemo(() => computePersonalBests(logsForClient, exercisesById), [logsForClient, exercisesById]);
+  const achievements = useMemo(() => computeAchievements(logsForClient), [logsForClient]);
+
   const latestWeighIn = weighIns[weighIns.length - 1];
   const firstWeighIn = weighIns[0];
   const weightChange = latestWeighIn && firstWeighIn ? Math.round((latestWeighIn.weight - firstWeighIn.weight) * 10) / 10 : null;
@@ -1869,22 +1860,9 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
   return (
     <div className="pb-6">
-      <div className="px-5 pt-6 pb-2 flex items-center justify-between">
+      <div className="px-5 pt-6 pb-4 flex items-center justify-between">
         <h1 className="text-black text-2xl font-bold">Progress</h1>
         <BarChart3 size={20} className="text-black/40" />
-      </div>
-      <div className="flex gap-2 px-5 mb-4">
-        {["7D", "30D", "90D", "1Y"].map((r) => (
-          <button
-            key={r}
-            onClick={() => setRange(r)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold ${
-              range === r ? "bg-black text-white" : "bg-black/8 text-black/50"
-            }`}
-          >
-            {r}
-          </button>
-        ))}
       </div>
 
       <div className="px-5 space-y-4">
@@ -1954,57 +1932,82 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           )}
         </Card>
 
-        <ChartCard title="Bench Press e1RM" subtitle="103 kg estimated · +11kg in 3 months">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={BENCH_HISTORY}>
-              <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-              <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-              <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
-              <Line type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: MEASURE_BLUE }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        {benchExercise && benchHistory.length >= 2 ? (
+          <ChartCard
+            title="Bench Press e1RM"
+            subtitle={`${benchHistory[benchHistory.length - 1].value} kg estimated · from your logged sets`}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={benchHistory}>
+                <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+                <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
+                <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+                <Line type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: MEASURE_BLUE }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        ) : (
+          <Card>
+            <p className="text-black font-semibold">Bench Press e1RM</p>
+            <p className="text-black/30 text-sm mt-2">
+              Log a couple of Bench Press sessions and we'll estimate your one-rep max progress here.
+            </p>
+          </Card>
+        )}
 
-        <ChartCard title="Weekly Training Volume" subtitle="22,600 kg this week · trending up">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={VOLUME_HISTORY}>
-              <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
-              <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
-              <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
-              <Bar dataKey="volume" fill={MEASURE_BLUE} radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        {weeklyVolume.length >= 2 ? (
+          <ChartCard
+            title="Weekly Training Volume"
+            subtitle={`${weeklyVolume[weeklyVolume.length - 1].volume.toLocaleString()} kg this week`}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weeklyVolume}>
+                <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
+                <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+                <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+                <Bar dataKey="volume" fill={MEASURE_BLUE} radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        ) : (
+          <Card>
+            <p className="text-black font-semibold">Weekly Training Volume</p>
+            <p className="text-black/30 text-sm mt-2">Complete a few more weeks of logged workouts to see your volume trend.</p>
+          </Card>
+        )}
 
         <Card>
           <p className="text-black font-semibold mb-3">Strength Personal Bests</p>
-          <div className="space-y-2.5">
-            {[
-              { name: "Bench Press", value: "82.5 kg × 8" },
-              { name: "Back Squat", value: "120 kg × 5" },
-              { name: "Deadlift", value: "150 kg × 3" },
-              { name: "Pull-ups", value: "18 reps" },
-            ].map((s) => (
-              <div key={s.name} className="flex items-center justify-between">
-                <span className="text-black/70 text-sm flex items-center gap-2">
-                  <Trophy size={14} className="text-black" /> {s.name}
-                </span>
-                <span className="text-black text-sm font-semibold">{s.value}</span>
-              </div>
-            ))}
-          </div>
+          {personalBests.length === 0 ? (
+            <p className="text-black/30 text-sm">Log a set of Bench Press, Squat, Deadlift, Pull-ups or Overhead Press to see your bests here.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {personalBests.map((s) => (
+                <div key={s.name} className="flex items-center justify-between">
+                  <span className="text-black/70 text-sm flex items-center gap-2">
+                    <Trophy size={14} className="text-black" /> {s.name}
+                  </span>
+                  <span className="text-black text-sm font-semibold">{s.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card>
           <p className="text-black font-semibold mb-3">Achievements</p>
-          <div className="grid grid-cols-2 gap-3">
-            {ACHIEVEMENTS.map((a) => (
-              <div key={a.id} className="bg-black/5 rounded-xl p-3 flex items-center gap-2.5">
-                <span className="text-xl grayscale">{a.icon}</span>
-                <span className="text-black/70 text-xs font-medium">{a.label}</span>
-              </div>
-            ))}
-          </div>
+          {achievements.length === 0 ? (
+            <p className="text-black/30 text-sm">Complete workouts to start unlocking milestones here.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {achievements.map((a) => (
+                <div key={a.id} className="bg-black/5 rounded-xl p-3 flex items-center gap-2.5">
+                  <span className="text-xl grayscale">{a.icon}</span>
+                  <span className="text-black/70 text-xs font-medium">{a.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
@@ -2029,7 +2032,9 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
    PROFILE TAB
 ============================================================================ */
 
-function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, setMessagesOpen, unreadCount, onAvatarChange }) {
+function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, setMessagesOpen, unreadCount, onAvatarChange, logsForClient }) {
+  const weekStreak = computeWeeklyStreak(logsForClient);
+  const prsThisMonth = computePRsInLastNDays(logsForClient, 30);
   const rows = [
     { label: "Goals", icon: Target },
     { label: "Equipment", icon: Dumbbell },
@@ -2056,15 +2061,15 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
           </div>
           <div className="flex gap-2 mt-4">
             <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
-              <p className="text-black font-bold">{user.streak || 0}🔥</p>
-              <p className="text-black/40 text-[11px]">day streak</p>
+              <p className="text-black font-bold">{weekStreak}🔥</p>
+              <p className="text-black/40 text-[11px]">week streak</p>
             </div>
             <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
-              <p className="text-black font-bold">{user.currentSessionIndex || 0}</p>
+              <p className="text-black font-bold">{logsForClient.length}</p>
               <p className="text-black/40 text-[11px]">total workouts</p>
             </div>
             <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
-              <p className="text-black font-bold">3</p>
+              <p className="text-black font-bold">{prsThisMonth}</p>
               <p className="text-black/40 text-[11px]">PRs this month</p>
             </div>
           </div>
@@ -2514,6 +2519,7 @@ export default function ClientApp() {
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
   const logsForClient = db.workoutLogs[currentUser.id] || [];
   const nutrition = db.nutrition[currentUser.id] || DEFAULT_NUTRITION;
+  const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
   const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
   const habits = (db.habits || {})[currentUser.id] || [];
   const todayKey = new Date().toISOString().slice(0, 10);
@@ -2636,6 +2642,7 @@ export default function ClientApp() {
             onStartWorkout={startWorkout}
             onViewWorkout={() => openPreview(daySession, isToday)}
             nutrition={nutrition}
+            targets={targets}
             onLogFood={() => setTab("nutrition")}
             onLogWater={() => addWater(0.25)}
             showToast={showToast}
@@ -2668,6 +2675,7 @@ export default function ClientApp() {
         {tab === "nutrition" && (
           <NutritionScreen
             nutrition={nutrition}
+            targets={targets}
             onAddFood={addFood}
             onAddWater={addWater}
             savedMeals={savedMeals}
@@ -2685,6 +2693,8 @@ export default function ClientApp() {
             onDeletePhoto={deleteProgressPhoto}
             weighIns={weighIns}
             onLogWeight={(w) => logWeight(currentUser.id, w)}
+            logsForClient={logsForClient}
+            exercisesById={exercisesById}
           />
         )}
         {tab === "profile" && (
@@ -2697,6 +2707,7 @@ export default function ClientApp() {
             setMessagesOpen={openMessages}
             unreadCount={unreadCount}
             onAvatarChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
+            logsForClient={logsForClient}
           />
         )}
 
@@ -2750,7 +2761,7 @@ export default function ClientApp() {
           />
         )}
 
-        <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} ctx={{ user: currentUser, nutrition, todaySession }} />
+        <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} ctx={{ user: currentUser, nutrition, targets, todaySession }} />
         <MessagesSheet
           open={messagesOpen}
           onClose={() => setMessagesOpen(false)}
