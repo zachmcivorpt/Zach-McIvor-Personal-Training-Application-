@@ -38,12 +38,20 @@ export function AppProvider({ children }) {
   const [session, setSession] = useState(loadSession);
 
   useEffect(() => {
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
+    try {
+      localStorage.setItem(DB_KEY, JSON.stringify(db));
+    } catch {
+      // storage unavailable (private mode, sandboxed viewer) — state still works in-memory
+    }
   }, [db]);
 
   useEffect(() => {
-    if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    else localStorage.removeItem(SESSION_KEY);
+    try {
+      if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch {
+      // storage unavailable — session still works in-memory for this tab
+    }
   }, [session]);
 
   const currentUser = useMemo(() => {

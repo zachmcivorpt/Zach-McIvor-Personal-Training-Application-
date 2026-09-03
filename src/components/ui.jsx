@@ -2,18 +2,25 @@ import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Check } from "lucide-react";
 import { SURFACE, SURFACE_RAISED, BORDER, TEXT_MUTED, ACCENT, ACCENT_INK } from "../theme";
+import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
 
 /* ============================================================================
    BRAND
 ============================================================================ */
 
+const BRAND_SOURCES = {
+  "wordmark-white": LOGO_WHITE,
+  "wordmark-black": LOGO_BLACK,
+  "mark-white": MARK_WHITE,
+  "mark-black": MARK_BLACK,
+};
+
 // variant: "wordmark" (mark + "PERSONAL TRAINING") | "mark" (icon only)
 // tone: "white" (for dark surfaces) | "black" (for light surfaces)
 export function Logo({ variant = "wordmark", tone = "white", className = "", style }) {
-  const file = variant === "mark" ? `mark-${tone}` : `logo-${tone}`;
   return (
     <img
-      src={`/brand/${file}.png`}
+      src={BRAND_SOURCES[`${variant}-${tone}`]}
       alt="M Personal Training"
       className={className}
       style={style}
