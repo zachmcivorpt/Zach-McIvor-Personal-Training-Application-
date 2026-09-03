@@ -62,6 +62,7 @@ import {
   DangerButton,
   Avatar,
   AvatarPicker,
+  Tagline,
 } from "../components/ui";
 import { MEASURE_BLUE } from "../theme";
 import { WEIGHT_HISTORY, BENCH_HISTORY, VOLUME_HISTORY, METRIC_TILES } from "../lib/mockMetrics";
@@ -167,7 +168,9 @@ function Header({ user, onAvatarClick }) {
   );
 }
 
-function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onStart, onView }) {
+function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById }) {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
   if (!program || !todaySession) {
     return (
       <Card className="mx-5 text-center py-10">
@@ -177,14 +180,15 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
       </Card>
     );
   }
-  const completedSets = activeLog ? Object.values(activeLog).flat().filter((s) => s.completed).length : 0;
+  const completedSets = isToday && activeLog ? Object.values(activeLog).flat().filter((s) => s.completed).length : 0;
   const totalSets = todaySession.exercises.reduce((a, e) => a + e.targetSets, 0);
-  const started = !!activeLog;
+  const started = isToday && !!activeLog;
+  const pillLabel = isToday ? "TODAY'S WORKOUT" : completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : "SCHEDULED";
 
   return (
     <Card className="mx-5">
       <div className="flex items-center justify-between mb-3">
-        <Pill tone="solid">TODAY'S WORKOUT</Pill>
+        <Pill tone="solid">{pillLabel}</Pill>
         <span className="text-white/30 text-xs">{todaySession.weekLabel}</span>
       </div>
       <h2 className="text-white text-2xl font-bold">{todaySession.label}</h2>
@@ -209,16 +213,50 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
         </div>
       )}
 
-      <button
-        onClick={onStart}
-        className="w-full mt-5 bg-white text-black font-bold py-4 rounded-2xl text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-      >
-        <Play size={18} fill="black" />
-        {started ? "RESUME WORKOUT" : "START WORKOUT"}
-      </button>
-      <button onClick={onView} className="w-full mt-2.5 text-white/60 text-sm font-medium py-2.5 rounded-xl bg-white/5">
-        View workout
-      </button>
+      {isToday ? (
+        <>
+          <button
+            onClick={onStart}
+            className="w-full mt-5 bg-white text-black font-bold py-4 rounded-2xl text-[15px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          >
+            <Play size={18} fill="black" />
+            {started ? "RESUME WORKOUT" : "START WORKOUT"}
+          </button>
+          <button onClick={onView} className="w-full mt-2.5 text-white/60 text-sm font-medium py-2.5 rounded-xl bg-white/5">
+            View workout
+          </button>
+        </>
+      ) : (
+        <>
+          {completedOnDate && (
+            <div className="flex items-center gap-2 mt-4 text-white/60 text-sm">
+              <Check size={14} /> Workout completed
+            </div>
+          )}
+          <button
+            onClick={() => setPreviewOpen((o) => !o)}
+            className="w-full mt-4 text-white/60 text-sm font-medium py-2.5 rounded-xl bg-white/5"
+          >
+            {previewOpen ? "Hide exercises" : "Preview exercises"}
+          </button>
+          {previewOpen && exercisesById && (
+            <div className="mt-3 space-y-1.5">
+              {todaySession.exercises.map((e, i) => {
+                const ex = exercisesById[e.exerciseId];
+                if (!ex) return null;
+                return (
+                  <div key={i} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-3.5 py-2.5">
+                    <span className="text-white/80 text-sm">{ex.name}</span>
+                    <span className="text-white/35 text-xs">
+                      {e.targetSets} × {e.targetReps}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
     </Card>
   );
 }
@@ -348,36 +386,62 @@ function SessionStrip({ sessions, currentIndex, onSelect }) {
   );
 }
 
-function DateStrip({ showToast }) {
-  const days = useMemo(() => {
+function dateForOffset(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d;
+}
+
+function DayHeader({ selectedOffset, onJumpToday }) {
+  const label = dateForOffset(selectedOffset).toLocaleDateString(undefined, { month: "long", day: "numeric" });
+  const isToday = selectedOffset === 0;
+  return (
+    <div className="flex items-center justify-between px-5 pt-1 pb-1">
+      <p className="text-white text-lg font-bold">{label}</p>
+      {!isToday && (
+        <button onClick={onJumpToday} className="text-white/50 text-sm font-semibold underline underline-offset-2">
+          Jump to today
+        </button>
+      )}
+    </div>
+  );
+}
+
+function DateStrip({ selectedOffset, onSelect }) {
+  const offsets = useMemo(() => {
     const out = [];
-    const today = new Date();
-    for (let i = 0; i < 14; i++) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + i);
-      out.push(d);
-    }
+    for (let i = -7; i <= 13; i++) out.push(i);
     return out;
+  }, []);
+  const stripRef = useRef(null);
+
+  useEffect(() => {
+    const el = stripRef.current?.querySelector('[data-offset="0"]');
+    el?.scrollIntoView({ inline: "start", block: "nearest" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <div className="px-5">
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-        {days.map((d, i) => {
-          const isToday = i === 0;
+      <div ref={stripRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {offsets.map((offset) => {
+          const d = dateForOffset(offset);
+          const isToday = offset === 0;
+          const isSelected = offset === selectedOffset;
           return (
             <button
-              key={d.toISOString()}
-              onClick={() => !isToday && showToast("Day-by-day history is coming soon — today's data is live now")}
+              key={offset}
+              data-offset={offset}
+              onClick={() => onSelect(offset)}
               className={`shrink-0 w-14 rounded-2xl py-2.5 flex flex-col items-center gap-0.5 border transition-colors ${
-                isToday ? "bg-white border-white" : "bg-white/5 border-white/10"
+                isSelected ? "bg-white border-white" : "bg-white/5 border-white/10"
               }`}
             >
-              <span className={`text-lg font-bold leading-none ${isToday ? "text-black" : "text-white"}`}>{d.getDate()}</span>
-              <span className={`text-[10px] font-medium ${isToday ? "text-black/60" : "text-white/40"}`}>
+              <span className={`text-lg font-bold leading-none ${isSelected ? "text-black" : "text-white"}`}>{d.getDate()}</span>
+              <span className={`text-[10px] font-medium ${isSelected ? "text-black/60" : "text-white/40"}`}>
                 {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
-              {isToday && <span className="w-1 h-1 rounded-full bg-black/60 mt-0.5" />}
+              {isToday && <span className={`w-1 h-1 rounded-full mt-0.5 ${isSelected ? "bg-black/60" : "bg-white/50"}`} />}
             </button>
           );
         })}
@@ -386,7 +450,7 @@ function DateStrip({ showToast }) {
   );
 }
 
-function DailyHabitsCard({ habits, completedIds, onToggle }) {
+function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true }) {
   if (habits.length === 0) return null;
   const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
   return (
@@ -403,11 +467,14 @@ function DailyHabitsCard({ habits, completedIds, onToggle }) {
       <div className="space-y-1.5">
         {habits.map((h) => {
           const done = completedIds.includes(h.id);
+          const Tag = interactive ? "button" : "div";
           return (
-            <button
+            <Tag
               key={h.id}
-              onClick={() => onToggle(h.id)}
-              className="w-full flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-3 text-left"
+              onClick={interactive ? () => onToggle(h.id) : undefined}
+              className={`w-full flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-3 text-left ${
+                interactive ? "" : "opacity-70"
+              }`}
             >
               <span
                 className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
@@ -417,7 +484,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle }) {
                 {done && <Check size={12} className="text-black" strokeWidth={3.5} />}
               </span>
               <span className={`text-sm flex-1 ${done ? "text-white/40 line-through" : "text-white/85"}`}>{h.label}</span>
-            </button>
+            </Tag>
           );
         })}
       </div>
@@ -442,21 +509,40 @@ function HomeScreen({
   completedHabitIds,
   onToggleHabit,
   onAvatarClick,
+  dayOffset,
+  onSelectDay,
+  daySession,
+  isToday,
+  completedOnDate,
+  dayHabitCompletedIds,
+  exercisesById,
 }) {
   return (
     <div className="pb-6 space-y-4">
       <Header user={user} onAvatarClick={onAvatarClick} />
-      <DateStrip showToast={showToast} />
+      <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
+      <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       <TodayWorkoutCard
         program={program}
-        todaySession={todaySession}
+        todaySession={daySession}
         sessionsLen={sessions.length}
         activeLog={activeLog}
         onStart={onStartWorkout}
         onView={onViewWorkout}
+        isToday={isToday}
+        completedOnDate={completedOnDate}
+        isPastDate={dayOffset < 0}
+        exercisesById={exercisesById}
       />
-      <DailyHabitsCard habits={habits} completedIds={completedHabitIds} onToggle={onToggleHabit} />
-      <NutritionSummaryCard nutrition={nutrition} targets={NUTRITION_TARGETS} onLogFood={onLogFood} onLogWater={onLogWater} />
+      <DailyHabitsCard
+        habits={habits}
+        completedIds={isToday ? completedHabitIds : dayHabitCompletedIds}
+        onToggle={onToggleHabit}
+        interactive={isToday}
+      />
+      {isToday && (
+        <NutritionSummaryCard nutrition={nutrition} targets={NUTRITION_TARGETS} onLogFood={onLogFood} onLogWater={onLogWater} />
+      )}
       <div className="grid grid-cols-2 gap-4 px-5">
         <RecoveryCardCompact recovery={RECOVERY} />
         <ActivityCardCompact activity={ACTIVITY} />
@@ -732,7 +818,8 @@ function WorkoutSummary({ daySession, activeLog, onDone }) {
   return (
     <FullScreenOverlay>
       <div className="fixed inset-0 z-[90] bg-[#0A0A0B] flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10">
-        <Logo variant="wordmark" tone="white" className="h-8 w-auto opacity-70 mb-6" />
+        <Logo variant="wordmark" tone="white" className="h-8 w-auto opacity-70 mb-1.5" />
+        <Tagline className="mb-6" />
         <div className="w-20 h-20 rounded-full bg-white/10 border border-white/15 flex items-center justify-center mb-5">
           <Check size={36} className="text-white" strokeWidth={3} />
         </div>
@@ -1416,6 +1503,10 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
           <LogOut size={15} /> Sign out
         </button>
       </div>
+
+      <div className="flex justify-center mt-8">
+        <Tagline />
+      </div>
     </div>
   );
 }
@@ -1554,6 +1645,7 @@ export default function ClientApp() {
   const [coachOpen, setCoachOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [seenMessageCount, setSeenMessageCount] = useState(0);
+  const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
 
   const program = db.programs.find((p) => p.id === currentUser.assignedProgramId) || null;
   const thread = db.messages[currentUser.id] || [];
@@ -1569,6 +1661,19 @@ export default function ClientApp() {
   const habits = (db.habits || {})[currentUser.id] || [];
   const todayKey = new Date().toISOString().slice(0, 10);
   const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
+
+  const isToday = dayOffset === 0;
+  const selectedIndex = sessions.length
+    ? (((currentIndex + dayOffset) % sessions.length) + sessions.length) % sessions.length
+    : 0;
+  const daySession = sessions.length ? sessions[selectedIndex] : null;
+  const selectedDateKey = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + dayOffset);
+    return d.toISOString().slice(0, 10);
+  }, [dayOffset]);
+  const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
+  const completedOnDate = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
 
   useEffect(() => {
     if (!db.nutrition[currentUser.id]) {
@@ -1661,6 +1766,13 @@ export default function ClientApp() {
             completedHabitIds={completedHabitIds}
             onToggleHabit={(habitId) => toggleHabitToday(currentUser.id, habitId)}
             onAvatarClick={() => setTab("profile")}
+            dayOffset={dayOffset}
+            onSelectDay={setDayOffset}
+            daySession={daySession}
+            isToday={isToday}
+            completedOnDate={completedOnDate}
+            dayHabitCompletedIds={dayHabitCompletedIds}
+            exercisesById={exercisesById}
           />
         )}
         {tab === "workouts" && (

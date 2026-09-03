@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
-import { Logo } from "../components/ui";
+import { Logo, Tagline } from "../components/ui";
 import { PrimaryButton, TextInput, Field } from "../components/ui";
 import { ChevronRight, Lock } from "lucide-react";
 import { COACH_SETUP_CODE } from "../lib/config";
@@ -119,6 +119,7 @@ export default function LoginScreen() {
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-10">
           <Logo variant="wordmark" tone="white" className="h-16 w-auto mb-2" />
+          <Tagline className="mt-1" />
         </div>
 
         <div className="flex bg-white/5 rounded-2xl p-1 mb-6">

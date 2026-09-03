@@ -31,6 +31,21 @@ export function Logo({ variant = "wordmark", tone = "white", className = "", sty
   );
 }
 
+// The brand slogan, set as sleek tracked-out small caps rather than the
+// hand-lettered brush-script asset, so it stays consistent with the app's
+// clean monochrome design language wherever it's placed.
+export function Tagline({ tone = "white", className = "" }) {
+  return (
+    <p
+      className={`text-[10px] font-bold tracking-[0.3em] uppercase ${
+        tone === "white" ? "text-white/35" : "text-black/35"
+      } ${className}`}
+    >
+      Forge Your Path
+    </p>
+  );
+}
+
 // Shows the uploaded photo when set, otherwise the initial-letter circle
 // used everywhere in the app already — same component for coach and client,
 // own-profile and viewed-by-coach contexts.

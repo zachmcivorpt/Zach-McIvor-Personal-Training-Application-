@@ -1,6 +1,6 @@
 import React from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, DangerButton, AvatarPicker } from "../components/ui";
+import { Card, DangerButton, AvatarPicker, Tagline } from "../components/ui";
 import { Video, LogOut, ChevronRight } from "lucide-react";
 
 export default function CoachMore({ onNavigate, onLogout }) {
@@ -44,6 +44,10 @@ export default function CoachMore({ onNavigate, onLogout }) {
       <DangerButton className="w-full" onClick={onLogout}>
         <LogOut size={14} /> Sign out
       </DangerButton>
+
+      <div className="flex justify-center pt-4">
+        <Tagline />
+      </div>
     </div>
   );
 }
