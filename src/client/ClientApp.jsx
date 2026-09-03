@@ -1306,19 +1306,20 @@ function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals
           <div className="mt-3">
             <ProgressBar value={nutrition.calories} max={targets.calories} />
           </div>
-          <div className="grid grid-cols-3 gap-3 mt-4">
+          <div className="space-y-3 mt-4 pt-4 border-t border-black/5">
             {[
               { l: "Protein", v: nutrition.protein, t: targets.protein },
               { l: "Carbs", v: nutrition.carbs, t: targets.carbs },
               { l: "Fat", v: nutrition.fat, t: targets.fat },
             ].map((m) => (
-              <div key={m.l} className="text-center">
-                <Ring value={m.v} max={m.t} size={56} stroke={5}>
-                  <span className="text-black text-[11px] font-bold">
-                    {m.v}/{m.t}g
+              <div key={m.l}>
+                <div className="flex items-baseline justify-between mb-1">
+                  <span className="text-black/70 text-sm font-medium">{m.l}</span>
+                  <span className="text-black/40 text-xs">
+                    {m.v}g <span className="text-black/25">/ {m.t}g</span>
                   </span>
-                </Ring>
-                <p className="text-black/40 text-xs mt-1.5">{m.l}</p>
+                </div>
+                <ProgressBar value={m.v} max={m.t} height={6} />
               </div>
             ))}
           </div>
