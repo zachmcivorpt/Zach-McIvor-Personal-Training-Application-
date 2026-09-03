@@ -50,7 +50,7 @@ export function BottomSheet({ open, onClose, title, children }) {
   if (!open) return null;
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[70] flex items-end justify-center">
+      <div className="fixed inset-0 z-[110] flex items-end justify-center">
         <div className="absolute inset-0 bg-black/70" onClick={onClose} />
         <div
           className="relative w-full max-w-md rounded-t-3xl max-h-[88vh] overflow-y-auto animate-[slideUp_0.25s_ease-out] border-t border-white/10"
@@ -79,7 +79,7 @@ export function Toast({ message, show }) {
   if (typeof document === "undefined") return null;
   return createPortal(
     <div
-      className={`fixed left-1/2 -translate-x-1/2 bottom-24 z-[80] transition-all duration-300 ${
+      className={`fixed left-1/2 -translate-x-1/2 bottom-24 z-[120] transition-all duration-300 ${
         show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
       }`}
     >

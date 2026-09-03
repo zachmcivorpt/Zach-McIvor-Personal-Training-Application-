@@ -385,7 +385,62 @@ function DateStrip({ showToast }) {
   );
 }
 
-function HomeScreen({ user, program, sessions, currentIndex, todaySession, activeLog, onStartWorkout, onViewWorkout, nutrition, onLogFood, onLogWater, showToast }) {
+function DailyHabitsCard({ habits, completedIds, onToggle }) {
+  if (habits.length === 0) return null;
+  const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
+  return (
+    <Card className="mx-5">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-white font-semibold">Daily Habits</h3>
+        <span className="text-white/40 text-xs">
+          {doneCount}/{habits.length}
+        </span>
+      </div>
+      <div className="mb-3">
+        <ProgressBar value={doneCount} max={habits.length} height={6} />
+      </div>
+      <div className="space-y-1.5">
+        {habits.map((h) => {
+          const done = completedIds.includes(h.id);
+          return (
+            <button
+              key={h.id}
+              onClick={() => onToggle(h.id)}
+              className="w-full flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-3 text-left"
+            >
+              <span
+                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                  done ? "bg-white border-white" : "border-white/25"
+                }`}
+              >
+                {done && <Check size={12} className="text-black" strokeWidth={3.5} />}
+              </span>
+              <span className={`text-sm flex-1 ${done ? "text-white/40 line-through" : "text-white/85"}`}>{h.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function HomeScreen({
+  user,
+  program,
+  sessions,
+  currentIndex,
+  todaySession,
+  activeLog,
+  onStartWorkout,
+  onViewWorkout,
+  nutrition,
+  onLogFood,
+  onLogWater,
+  showToast,
+  habits,
+  completedHabitIds,
+  onToggleHabit,
+}) {
   return (
     <div className="pb-6 space-y-4">
       <Header user={user} />
@@ -398,6 +453,7 @@ function HomeScreen({ user, program, sessions, currentIndex, todaySession, activ
         onStart={onStartWorkout}
         onView={onViewWorkout}
       />
+      <DailyHabitsCard habits={habits} completedIds={completedHabitIds} onToggle={onToggleHabit} />
       <NutritionSummaryCard nutrition={nutrition} targets={NUTRITION_TARGETS} onLogFood={onLogFood} onLogWater={onLogWater} />
       <div className="grid grid-cols-2 gap-4 px-5">
         <RecoveryCardCompact recovery={RECOVERY} />
@@ -1476,6 +1532,7 @@ export default function ClientApp() {
     deleteProgressPhoto,
     createSavedMeal,
     deleteSavedMeal,
+    toggleHabitToday,
   } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
@@ -1500,6 +1557,9 @@ export default function ClientApp() {
   const logsForClient = db.workoutLogs[currentUser.id] || [];
   const nutrition = db.nutrition[currentUser.id] || DEFAULT_NUTRITION;
   const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
+  const habits = (db.habits || {})[currentUser.id] || [];
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
 
   useEffect(() => {
     if (!db.nutrition[currentUser.id]) {
@@ -1588,6 +1648,9 @@ export default function ClientApp() {
             onLogFood={() => setTab("nutrition")}
             onLogWater={() => addWater(0.25)}
             showToast={showToast}
+            habits={habits}
+            completedHabitIds={completedHabitIds}
+            onToggleHabit={(habitId) => toggleHabitToday(currentUser.id, habitId)}
           />
         )}
         {tab === "workouts" && (

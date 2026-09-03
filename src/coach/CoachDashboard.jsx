@@ -28,7 +28,7 @@ export default function CoachDashboard({ onNavigate }) {
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard icon={Users} label="ACTIVE CLIENTS" value={active.length} />
-        <StatCard icon={Mail} label="PENDING INVITES" value={invited.length} />
+        <StatCard icon={Mail} label="NOT SENT YET" value={invited.length} />
         <StatCard icon={ClipboardList} label="PROGRAMS" value={db.programs.length} />
         <StatCard icon={Dumbbell} label="EXERCISES" value={db.exercises.length} />
       </div>
@@ -38,7 +38,7 @@ export default function CoachDashboard({ onNavigate }) {
         <div className="space-y-2">
           <button onClick={() => onNavigate("clients")} className="w-full flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3">
             <UserPlus size={16} className="text-white/60" />
-            <span className="text-white/80 text-sm font-medium flex-1 text-left">Invite a new client</span>
+            <span className="text-white/80 text-sm font-medium flex-1 text-left">Add a new client</span>
           </button>
           <button onClick={() => onNavigate("programs")} className="w-full flex items-center gap-3 bg-white/5 rounded-xl px-4 py-3">
             <FilePlus size={16} className="text-white/60" />
@@ -68,7 +68,7 @@ export default function CoachDashboard({ onNavigate }) {
                     <p className="text-white/35 text-xs mt-1">{program ? program.name : "No program assigned"}</p>
                   </div>
                 </div>
-                <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Invited"}</Pill>
+                <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
               </div>
             );
           })}

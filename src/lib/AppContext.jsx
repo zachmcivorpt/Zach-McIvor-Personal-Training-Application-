@@ -22,6 +22,8 @@ function loadDb() {
     messages: {}, // clientId -> [{ id, from: 'coach'|'client', text, date }]
     progressPhotos: {}, // clientId -> [{ id, url, date, caption }]
     savedMeals: {}, // clientId -> [{ id, name, ingredients:[{name,cals,protein,carbs,fat}], cals, protein, carbs, fat, createdAt }]
+    habits: {}, // clientId -> [{ id, label, createdAt }]
+    habitLog: {}, // clientId -> { "YYYY-MM-DD": [habitId, ...] }
   };
 }
 
@@ -134,7 +136,7 @@ export function AppProvider({ children }) {
           streak: 0,
         };
         setDb((d) => ({ ...d, users: [...d.users, newUser] }));
-        return { username, code };
+        return { id, username, code };
       },
 
       activateAccount({ username, code, newPassword }) {
@@ -287,6 +289,38 @@ export function AppProvider({ children }) {
             [clientId]: ((d.savedMeals || {})[clientId] || []).filter((m) => m.id !== mealId),
           },
         }));
+      },
+
+      addHabit(clientId, label) {
+        const habit = { id: newId("habit"), label: label.trim(), createdAt: Date.now() };
+        setDb((d) => ({
+          ...d,
+          habits: { ...(d.habits || {}), [clientId]: [...((d.habits || {})[clientId] || []), habit] },
+        }));
+        return habit;
+      },
+
+      removeHabit(clientId, habitId) {
+        setDb((d) => ({
+          ...d,
+          habits: {
+            ...(d.habits || {}),
+            [clientId]: ((d.habits || {})[clientId] || []).filter((h) => h.id !== habitId),
+          },
+        }));
+      },
+
+      toggleHabitToday(clientId, habitId) {
+        const dateKey = new Date().toISOString().slice(0, 10);
+        setDb((d) => {
+          const clientLog = (d.habitLog || {})[clientId] || {};
+          const today = clientLog[dateKey] || [];
+          const nextToday = today.includes(habitId) ? today.filter((id) => id !== habitId) : [...today, habitId];
+          return {
+            ...d,
+            habitLog: { ...(d.habitLog || {}), [clientId]: { ...clientLog, [dateKey]: nextToday } },
+          };
+        });
       },
     }),
     [db]
