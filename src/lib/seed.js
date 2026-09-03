@@ -261,6 +261,18 @@ export function seedWorkoutLogs() {
   ];
 }
 
+export function seedMessages() {
+  const now = Date.now();
+  const hour = 3600000;
+  return {
+    u_client_demo: [
+      { id: "m1", from: "coach", text: "Hey Alex — great work on leg day yesterday, that squat top set looked strong. How are the knees feeling today?", date: now - 20 * hour },
+      { id: "m2", from: "client", text: "Feeling good actually, no soreness this time. Ready for push day tomorrow.", date: now - 19 * hour },
+      { id: "m3", from: "coach", text: "Perfect. Let's nudge bench up to 80kg for the top set and see how bar speed holds.", date: now - 18 * hour },
+    ],
+  };
+}
+
 export function seedUsers() {
   return [
     {

@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
+import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { X, Check } from "lucide-react";
-import { SURFACE, SURFACE_RAISED, BORDER, TEXT_MUTED, ACCENT, ACCENT_INK } from "../theme";
+import { SURFACE, SURFACE_RAISED, BORDER, TEXT_MUTED, ACCENT, ACCENT_INK, MEASURE_BLUE } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
 
 /* ============================================================================
@@ -251,5 +252,47 @@ export function DangerButton({ children, className = "", ...props }) {
     >
       {children}
     </button>
+  );
+}
+
+/* ============================================================================
+   MEASUREMENT DATA VIZ — every chart/sparkline in the app uses this blue
+============================================================================ */
+
+// Minimal trend line, no axes — for a metric tile's baseline graph.
+export function Sparkline({ data, dataKey = "value", height = 36 }) {
+  if (!data || data.length < 2) {
+    return <div style={{ height }} className="flex items-end"><div className="w-full h-px bg-white/10" /></div>;
+  }
+  const gradId = `spark-${dataKey}-${Math.random().toString(36).slice(2, 8)}`;
+  return (
+    <div style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Area type="monotone" dataKey={dataKey} stroke={MEASURE_BLUE} strokeWidth={2} fill={`url(#${gradId})`} isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function MetricTile({ label, value, date, series, onClick }) {
+  return (
+    <Card onClick={onClick} className="!p-4 flex flex-col justify-between min-h-[128px]">
+      <div>
+        <p className="text-white/50 text-[13px] font-medium">{label}</p>
+        {date && <p className="text-white/25 text-[11px] mt-0.5">{date}</p>}
+      </div>
+      <div>
+        <p className="text-white text-2xl font-bold tabular-nums leading-none mb-2">{value ?? "···"}</p>
+        {series ? <Sparkline data={series} /> : <div className="h-9" />}
+      </div>
+    </Card>
   );
 }

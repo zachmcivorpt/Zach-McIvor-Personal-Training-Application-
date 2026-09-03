@@ -29,6 +29,10 @@ import {
   ScanLine,
   Star,
   LogOut,
+  Image as ImageIcon,
+  X,
+  Send,
+  MessageCircle,
 } from "lucide-react";
 import {
   LineChart,
@@ -53,12 +57,13 @@ import {
   FullScreenOverlay,
   NumberStepper,
   Logo,
+  Sparkline,
+  MetricTile,
+  DangerButton,
 } from "../components/ui";
-
-/* ============================================================================
-   MONOCHROME DATA VIZ PALETTE — no hue, only opacity tiers of white
-============================================================================ */
-const MONO = ["#FFFFFF", "rgba(255,255,255,0.62)", "rgba(255,255,255,0.38)", "rgba(255,255,255,0.22)"];
+import { MEASURE_BLUE } from "../theme";
+import { WEIGHT_HISTORY, BENCH_HISTORY, VOLUME_HISTORY, METRIC_TILES } from "../lib/mockMetrics";
+import { fileToCompressedDataUrl } from "../lib/image";
 
 /* ============================================================================
    ILLUSTRATIVE METRICS
@@ -98,18 +103,6 @@ const FOOD_DATABASE = [
   { id: "d6", name: "Protein Shake", cals: 220, protein: 36, carbs: 8, fat: 3 },
   { id: "d7", name: "Avocado (half)", cals: 120, protein: 1, carbs: 6, fat: 11 },
   { id: "d8", name: "Sweet Potato (medium)", cals: 112, protein: 2, carbs: 26, fat: 0 },
-];
-const WEIGHT_HISTORY = [
-  { date: "Jul 5", weight: 84.2 }, { date: "Jul 12", weight: 83.9 }, { date: "Jul 19", weight: 83.5 },
-  { date: "Jul 26", weight: 83.1 }, { date: "Aug 2", weight: 82.8 }, { date: "Aug 9", weight: 82.6 },
-  { date: "Aug 16", weight: 82.0 }, { date: "Aug 23", weight: 81.9 }, { date: "Aug 30", weight: 81.8 },
-];
-const BENCH_HISTORY = [
-  { date: "Jun", e1rm: 92 }, { date: "Jul", e1rm: 96 }, { date: "Aug", e1rm: 101 }, { date: "Sep", e1rm: 103 },
-];
-const VOLUME_HISTORY = [
-  { week: "W1", volume: 18200 }, { week: "W2", volume: 19100 }, { week: "W3", volume: 17800 },
-  { week: "W4", volume: 20400 }, { week: "W5", volume: 21200 }, { week: "W6", volume: 22600 },
 ];
 const ACHIEVEMENTS = [
   { id: "a1", label: "12-day streak", icon: "🔥" },
@@ -363,10 +356,49 @@ function SessionStrip({ sessions, currentIndex, onSelect }) {
   );
 }
 
+function DateStrip({ showToast }) {
+  const days = useMemo(() => {
+    const out = [];
+    const today = new Date();
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      out.push(d);
+    }
+    return out;
+  }, []);
+
+  return (
+    <div className="px-5">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {days.map((d, i) => {
+          const isToday = i === 0;
+          return (
+            <button
+              key={d.toISOString()}
+              onClick={() => !isToday && showToast("Day-by-day history is coming soon — today's data is live now")}
+              className={`shrink-0 w-14 rounded-2xl py-2.5 flex flex-col items-center gap-0.5 border transition-colors ${
+                isToday ? "bg-white border-white" : "bg-white/5 border-white/10"
+              }`}
+            >
+              <span className={`text-lg font-bold leading-none ${isToday ? "text-black" : "text-white"}`}>{d.getDate()}</span>
+              <span className={`text-[10px] font-medium ${isToday ? "text-black/60" : "text-white/40"}`}>
+                {d.toLocaleDateString(undefined, { weekday: "short" })}
+              </span>
+              {isToday && <span className="w-1 h-1 rounded-full bg-black/60 mt-0.5" />}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function HomeScreen({ user, program, sessions, currentIndex, todaySession, activeLog, onStartWorkout, onViewWorkout, nutrition, onLogFood, onLogWater, showToast }) {
   return (
     <div className="pb-6 space-y-4">
       <Header user={user} />
+      <DateStrip showToast={showToast} />
       <TodayWorkoutCard
         program={program}
         todaySession={todaySession}
@@ -990,8 +1022,81 @@ function ChartCard({ title, subtitle, children }) {
 
 const axisStyle = { fontSize: 11, fill: "rgba(255,255,255,0.35)" };
 
-function ProgressScreen() {
+function PhotosSection({ photos, onAdd, onDelete, busy }) {
+  const fileRef = useRef(null);
+  const [viewing, setViewing] = useState(null);
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-white font-semibold">Progress Photos</p>
+        <ImageIcon size={16} className="text-white/30" />
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onAdd(file);
+          e.target.value = "";
+        }}
+      />
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          className="aspect-square rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-1 text-white/40 disabled:opacity-40"
+        >
+          <Plus size={18} />
+          <span className="text-[10px] font-medium">{busy ? "Uploading…" : "Add photo"}</span>
+        </button>
+        {photos.map((p) => (
+          <button key={p.id} onClick={() => setViewing(p)} className="aspect-square rounded-xl overflow-hidden bg-white/5">
+            <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
+          </button>
+        ))}
+      </div>
+      {photos.length === 0 && <p className="text-white/25 text-xs mt-3">No photos yet — add one to start a visual timeline.</p>}
+
+      <BottomSheet open={!!viewing} onClose={() => setViewing(null)} title={viewing ? new Date(viewing.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : ""}>
+        {viewing && (
+          <div>
+            <img src={viewing.url} alt="Progress" className="w-full rounded-2xl mb-4" />
+            <DangerButton
+              className="w-full"
+              onClick={() => {
+                onDelete(viewing.id);
+                setViewing(null);
+              }}
+            >
+              <X size={14} /> Delete photo
+            </DangerButton>
+          </div>
+        )}
+      </BottomSheet>
+    </Card>
+  );
+}
+
+function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
   const [range, setRange] = useState("30D");
+  const [uploading, setUploading] = useState(false);
+  const tiles = useMemo(() => METRIC_TILES(), []);
+
+  async function handleAddPhoto(file) {
+    setUploading(true);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file);
+      onAddPhoto(userId, dataUrl);
+    } catch {
+      // silently ignore a bad file — nothing to persist
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="pb-6">
       <div className="px-5 pt-6 pb-2 flex items-center justify-between">
@@ -1013,19 +1118,36 @@ function ProgressScreen() {
       </div>
 
       <div className="px-5 space-y-4">
+        <div>
+          <p className="text-white font-semibold mb-3">My Progress</p>
+          <div className="grid grid-cols-2 gap-3">
+            {tiles.map((t) => (
+              <MetricTile
+                key={t.key}
+                label={t.label}
+                date={t.date}
+                value={typeof t.latest === "number" ? `${t.latest.toFixed(t.decimals)}${t.unit}` : `${t.latest}`}
+                series={t.series}
+              />
+            ))}
+          </div>
+        </div>
+
+        <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} />
+
         <ChartCard title="Body Weight" subtitle="81.8 kg · down 2.4kg over 8 weeks">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={WEIGHT_HISTORY}>
               <defs>
                 <linearGradient id="wGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={MONO[0]} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={MONO[0]} stopOpacity={0} />
+                  <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
               <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
               <Tooltip contentStyle={{ background: "#1C1C1F", border: "none", borderRadius: 12, fontSize: 12, color: "#fff" }} />
-              <Area type="monotone" dataKey="weight" stroke={MONO[0]} strokeWidth={2} fill="url(#wGrad)" />
+              <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#wGrad)" />
             </AreaChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -1036,7 +1158,7 @@ function ProgressScreen() {
               <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
               <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
               <Tooltip contentStyle={{ background: "#1C1C1F", border: "none", borderRadius: 12, fontSize: 12, color: "#fff" }} />
-              <Line type="monotone" dataKey="e1rm" stroke={MONO[0]} strokeWidth={2.5} dot={{ r: 3, fill: MONO[0] }} />
+              <Line type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: MEASURE_BLUE }} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -1047,7 +1169,7 @@ function ProgressScreen() {
               <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
               <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
               <Tooltip contentStyle={{ background: "#1C1C1F", border: "none", borderRadius: 12, fontSize: 12, color: "#fff" }} />
-              <Bar dataKey="volume" fill={MONO[1]} radius={[6, 6, 0, 0]} />
+              <Bar dataKey="volume" fill={MEASURE_BLUE} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -1091,7 +1213,7 @@ function ProgressScreen() {
    PROFILE TAB
 ============================================================================ */
 
-function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen }) {
+function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, setMessagesOpen, unreadCount }) {
   const rows = [
     { label: "Goals", icon: Target },
     { label: "Equipment", icon: Dumbbell },
@@ -1135,7 +1257,25 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen }) {
         </Card>
       </div>
 
-      <div className="px-5 mt-4">
+      <div className="px-5 mt-4 space-y-3">
+        <Card onClick={() => setMessagesOpen(true)}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative">
+              <MessageCircle size={18} className="text-white" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-white font-semibold">Messages</p>
+              <p className="text-white/40 text-xs">Chat directly with your coach</p>
+            </div>
+            <ChevronRight size={18} className="text-white/30" />
+          </div>
+        </Card>
+
         <Card onClick={() => setCoachOpen(true)}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
@@ -1219,6 +1359,54 @@ function CoachSheet({ open, onClose, ctx }) {
   );
 }
 
+function MessagesSheet({ open, onClose, user, thread, onSend }) {
+  const [input, setInput] = useState("");
+  const endRef = useRef(null);
+
+  useEffect(() => {
+    if (open) setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 50);
+  }, [open, thread.length]);
+
+  function send() {
+    if (!input.trim()) return;
+    onSend(input);
+    setInput("");
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Messages">
+      <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
+        {thread.length === 0 && (
+          <p className="text-white/30 text-sm text-center py-8">No messages yet — say hello to your coach.</p>
+        )}
+        {thread.map((m) => (
+          <div key={m.id} className={`flex ${m.from === "client" ? "justify-end" : "justify-start"}`}>
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-white text-black" : "bg-white/8 text-white/85"}`}>
+              <p>{m.text}</p>
+              <p className={`text-[10px] mt-1 ${m.from === "client" ? "text-black/40" : "text-white/30"}`}>
+                {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+              </p>
+            </div>
+          </div>
+        ))}
+        <div ref={endRef} />
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && send()}
+          placeholder="Message your coach..."
+          className="flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
+        />
+        <button onClick={send} className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0">
+          <Send size={16} className="text-black" />
+        </button>
+      </div>
+    </BottomSheet>
+  );
+}
+
 /* ============================================================================
    APP SHELL
 ============================================================================ */
@@ -1232,7 +1420,7 @@ const TABS = [
 ];
 
 export default function ClientApp() {
-  const { currentUser, db, logWorkout, setNutrition, logout } = useApp();
+  const { currentUser, db, logWorkout, setNutrition, logout, sendMessage, addProgressPhoto, deleteProgressPhoto } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
   const [activeLog, setActiveLog] = useState(null); // {exerciseId: [sets]} while a session is open
@@ -1242,8 +1430,13 @@ export default function ClientApp() {
   const [summaryData, setSummaryData] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "" });
   const [coachOpen, setCoachOpen] = useState(false);
+  const [messagesOpen, setMessagesOpen] = useState(false);
+  const [seenMessageCount, setSeenMessageCount] = useState(0);
 
   const program = db.programs.find((p) => p.id === currentUser.assignedProgramId) || null;
+  const thread = db.messages[currentUser.id] || [];
+  const photos = db.progressPhotos[currentUser.id] || [];
+  const unreadCount = Math.max(0, thread.filter((m) => m.from === "coach").length - seenMessageCount);
   const sessions = useMemo(() => flattenSessions(program), [program]);
   const currentIndex = sessions.length ? (currentUser.currentSessionIndex || 0) % sessions.length : 0;
   const todaySession = sessions.length ? sessions[currentIndex] : null;
@@ -1313,6 +1506,11 @@ export default function ClientApp() {
     navigate("/login", { replace: true });
   }
 
+  function openMessages() {
+    setSeenMessageCount(thread.filter((m) => m.from === "coach").length);
+    setMessagesOpen(true);
+  }
+
   const daySessionWithExIndex = todaySession && { ...todaySession, _exIndex: exIndex, _setExIndex: setExIndex };
 
   return (
@@ -1348,8 +1546,20 @@ export default function ClientApp() {
           />
         )}
         {tab === "nutrition" && <NutritionScreen nutrition={nutrition} onAddFood={addFood} onAddWater={addWater} />}
-        {tab === "progress" && <ProgressScreen />}
-        {tab === "profile" && <ProfileScreen user={currentUser} onLogout={doLogout} coachOpen={coachOpen} setCoachOpen={setCoachOpen} />}
+        {tab === "progress" && (
+          <ProgressScreen userId={currentUser.id} photos={photos} onAddPhoto={addProgressPhoto} onDeletePhoto={deleteProgressPhoto} />
+        )}
+        {tab === "profile" && (
+          <ProfileScreen
+            user={currentUser}
+            onLogout={doLogout}
+            coachOpen={coachOpen}
+            setCoachOpen={setCoachOpen}
+            messagesOpen={messagesOpen}
+            setMessagesOpen={openMessages}
+            unreadCount={unreadCount}
+          />
+        )}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
           <div className="w-full max-w-md bg-[#0F1012]/95 backdrop-blur border-t border-white/5 flex px-2 pb-safe">
@@ -1382,6 +1592,13 @@ export default function ClientApp() {
         )}
 
         <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} ctx={{ user: currentUser, nutrition, todaySession }} />
+        <MessagesSheet
+          open={messagesOpen}
+          onClose={() => setMessagesOpen(false)}
+          user={currentUser}
+          thread={thread}
+          onSend={(text) => sendMessage(currentUser.id, "client", text)}
+        />
         <Toast message={toast.message} show={toast.show} />
       </div>
     </div>

@@ -2,23 +2,24 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast } from "../components/ui";
-import { LayoutDashboard, Users, ClipboardList, Dumbbell, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, MessageCircle, MoreHorizontal, LogOut } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
 import CoachPrograms from "./CoachPrograms";
 import CoachExercises from "./CoachExercises";
-import CoachSettings from "./CoachSettings";
+import CoachMessages from "./CoachMessages";
+import CoachMore from "./CoachMore";
 
 const TABS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "clients", label: "Clients", icon: Users },
   { id: "programs", label: "Programs", icon: ClipboardList },
-  { id: "exercises", label: "Exercises", icon: Dumbbell },
-  { id: "settings", label: "Settings", icon: Settings },
+  { id: "messages", label: "Messages", icon: MessageCircle },
+  { id: "more", label: "More", icon: MoreHorizontal },
 ];
 
 export default function CoachShell() {
-  const { currentUser, logout } = useApp();
+  const { currentUser, logout, db } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("dashboard");
   const [toast, setToast] = useState({ show: false, message: "" });
@@ -32,6 +33,13 @@ export default function CoachShell() {
     logout();
     navigate("/login", { replace: true });
   }
+
+  const activeClients = db.users.filter((u) => u.role === "client" && u.status === "active");
+  const unreadMessages = activeClients.some((c) => {
+    const thread = db.messages[c.id] || [];
+    const last = thread[thread.length - 1];
+    return last && last.from === "client";
+  });
 
   return (
     <div className="w-full h-full min-h-screen bg-[#0A0A0B] font-sans flex justify-center">
@@ -53,16 +61,22 @@ export default function CoachShell() {
         {tab === "clients" && <CoachClients showToast={showToast} />}
         {tab === "programs" && <CoachPrograms showToast={showToast} />}
         {tab === "exercises" && <CoachExercises showToast={showToast} />}
-        {tab === "settings" && <CoachSettings onLogout={doLogout} />}
+        {tab === "messages" && <CoachMessages />}
+        {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} />}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
           <div className="w-full max-w-md bg-[#0F1012]/95 backdrop-blur border-t border-white/5 flex px-2 pb-safe">
             {TABS.map((t) => {
               const Icon = t.icon;
-              const active = tab === t.id;
+              const active = tab === t.id || (t.id === "more" && tab === "exercises");
               return (
-                <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3">
-                  <Icon size={20} className={active ? "text-white" : "text-white/35"} strokeWidth={active ? 2.4 : 2} />
+                <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3 relative">
+                  <span className="relative">
+                    <Icon size={20} className={active ? "text-white" : "text-white/35"} strokeWidth={active ? 2.4 : 2} />
+                    {t.id === "messages" && unreadMessages && (
+                      <span className="absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-white" />
+                    )}
+                  </span>
                   <span className={`text-[10px] font-medium ${active ? "text-white" : "text-white/35"}`}>{t.label}</span>
                 </button>
               );

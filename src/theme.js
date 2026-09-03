@@ -1,8 +1,9 @@
 /* ============================================================================
-   M PERSONAL TRAINING — MONOCHROME DESIGN TOKENS
-   Pure black & white, premium/editorial. No brand hue anywhere — hierarchy
-   comes from weight, opacity and scale, not color. The only "accent" is
-   white-on-black (primary actions) or black-on-white (inverse contexts).
+   M PERSONAL TRAINING — MONOCHROME + MEASUREMENT-BLUE DESIGN TOKENS
+   The product chrome (nav, buttons, cards, active states) stays pure black
+   & white. One accent hue exists, reserved entirely for data: every chart,
+   sparkline and measurement trend reads in the same crisp blue, so "this is
+   a number changing over time" has one consistent visual signature app-wide.
 ============================================================================ */
 
 export const BG = "#0A0A0B"; // app background, near-black
@@ -27,3 +28,9 @@ export const ACCENT_INK = "#0A0A0B"; // text/icon color when sitting on ACCENT
 // not hue — keeps the whole product strictly black & white.
 export const STATE_SUCCESS = "#FFFFFF";
 export const STATE_MUTED = "rgba(255,255,255,0.3)";
+
+// The one accent: a crisp, cool blue used exclusively for measurement data —
+// weight, sleep, steps, heart rate, training charts. Never used on chrome.
+export const MEASURE_BLUE = "#2F8FFF";
+export const MEASURE_BLUE_SOFT = "rgba(47,143,255,0.16)";
+export const MEASURE_BLUE_FAINT = "rgba(47,143,255,0.35)";

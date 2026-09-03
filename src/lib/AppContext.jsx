@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { newId, inviteCode } from "./id";
-import { SEED_EXERCISES, SEED_PROGRAMS, seedUsers, seedWorkoutLogs } from "./seed";
+import { SEED_EXERCISES, SEED_PROGRAMS, seedUsers, seedWorkoutLogs, seedMessages } from "./seed";
 
-const DB_KEY = "mpt_db_v2";
+const DB_KEY = "mpt_db_v3";
 const SESSION_KEY = "mpt_session_v2";
 
 function loadDb() {
@@ -18,6 +18,8 @@ function loadDb() {
     programs: SEED_PROGRAMS,
     workoutLogs: { u_client_demo: seedWorkoutLogs() }, // clientId -> [{ id, date, dayLabel, entries:[{exerciseId, sets:[{weight,reps,rpe,isPR}]}] }]
     nutrition: {}, // clientId -> nutrition state
+    messages: seedMessages(), // clientId -> [{ id, from: 'coach'|'client', text, date }]
+    progressPhotos: {}, // clientId -> [{ id, url, date, caption }]
   };
 }
 
@@ -192,6 +194,41 @@ export function AppProvider({ children }) {
         setDb((d) => ({
           ...d,
           nutrition: { ...d.nutrition, [clientId]: updater(d.nutrition[clientId]) },
+        }));
+      },
+
+      sendMessage(clientId, from, text) {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+        setDb((d) => ({
+          ...d,
+          messages: {
+            ...d.messages,
+            [clientId]: [...(d.messages[clientId] || []), { id: newId("m"), from, text: trimmed, date: Date.now() }],
+          },
+        }));
+      },
+
+      addProgressPhoto(clientId, dataUrl, caption = "") {
+        setDb((d) => ({
+          ...d,
+          progressPhotos: {
+            ...d.progressPhotos,
+            [clientId]: [
+              { id: newId("photo"), url: dataUrl, date: Date.now(), caption },
+              ...(d.progressPhotos[clientId] || []),
+            ],
+          },
+        }));
+      },
+
+      deleteProgressPhoto(clientId, photoId) {
+        setDb((d) => ({
+          ...d,
+          progressPhotos: {
+            ...d.progressPhotos,
+            [clientId]: (d.progressPhotos[clientId] || []).filter((p) => p.id !== photoId),
+          },
         }));
       },
 
