@@ -114,13 +114,13 @@ export default function CoachShell() {
     return (
       <button
         onClick={() => setTab(item.id)}
-        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-          active ? "bg-black text-white" : "text-black/60 hover:bg-black/5 hover:text-black/90"
+        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+          active ? "bg-white text-black" : "text-white/55 hover:bg-white/8 hover:text-white/90"
         }`}
       >
         <Icon size={17} strokeWidth={active ? 2.4 : 2} />
         <span className="flex-1 text-left">{item.label}</span>
-        {item.id === "messages" && unreadMessages && <span className="w-2 h-2 rounded-full bg-blue-500" />}
+        {item.id === "messages" && unreadMessages && <span className="w-2 h-2 rounded-full bg-blue-400" />}
       </button>
     );
   }
@@ -128,32 +128,32 @@ export default function CoachShell() {
   return (
     <div className="coach-shell w-full min-h-screen bg-white font-sans flex">
       {/* desktop sidebar */}
-      <div className="hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col border-r-2 border-black bg-[#F7F7F8]">
-        <div className="px-5 pt-6 pb-5 border-b-2 border-black">
-          <Logo variant="wordmark" tone="black" className="h-9 w-auto" />
+      <div className="dark-chrome hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col bg-[#0A0A0C]">
+        <div className="px-5 pt-7 pb-6">
+          <Logo variant="wordmark" tone="white" className="h-9 w-auto" />
         </div>
 
-        <div className="px-4 mt-5 mb-5">
-          <div className="flex items-center gap-2 bg-white border border-black/25 rounded-lg px-3 py-2.5">
-            <Search size={15} className="text-black/40" />
+        <div className="px-4 mb-6">
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 focus-within:border-white/25 transition-colors">
+            <Search size={15} className="text-white/35" />
             <input
               value={clientSearch}
               onChange={(e) => goToClients(e.target.value)}
               placeholder="Find a client"
-              className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/25"
             />
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4">
-          <p className="text-black/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mb-2">MAIN MENU</p>
+          <p className="text-white/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mb-2">MAIN MENU</p>
           <div className="space-y-1">
             {MAIN_MENU.map((item) => (
               <NavButton key={item.id} item={item} />
             ))}
           </div>
 
-          <p className="text-black/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mt-6 mb-2">OTHER</p>
+          <p className="text-white/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mt-6 mb-2">OTHER</p>
           <div className="space-y-1">
             {OTHER_MENU.map((item) => (
               <NavButton key={item.id} item={item} />
@@ -161,41 +161,41 @@ export default function CoachShell() {
           </div>
         </div>
 
-        <div className="p-4 border-t-2 border-black flex items-center gap-2.5">
-          <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={38} onClick={() => setTab("more")} />
+        <div className="m-3 p-3 rounded-lg bg-white/[0.04] border border-white/8 flex items-center gap-2.5">
+          <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={36} onClick={() => setTab("more")} />
           <div className="flex-1 min-w-0">
-            <p className="text-black text-sm font-semibold truncate">{currentUser?.name}</p>
-            <p className="text-black/35 text-[11px] truncate">Coach</p>
+            <p className="text-white text-sm font-semibold truncate">{currentUser?.name}</p>
+            <p className="text-white/35 text-[11px] truncate">Coach</p>
           </div>
-          <button onClick={() => setNotifOpen(true)} className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center shrink-0 relative" title="Notifications">
-            <Bell size={14} className="text-black/60" />
+          <button onClick={() => setNotifOpen(true)} className="w-8 h-8 rounded-lg bg-white/8 hover:bg-white/15 flex items-center justify-center shrink-0 relative transition-colors" title="Notifications">
+            <Bell size={14} className="text-white/70" />
             {unreadNotifCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center">
                 {unreadNotifCount}
               </span>
             )}
           </button>
-          <button onClick={doLogout} className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center shrink-0" title="Sign out">
-            <LogOut size={14} className="text-black/60" />
+          <button onClick={doLogout} className="w-8 h-8 rounded-lg bg-white/8 hover:bg-white/15 flex items-center justify-center shrink-0 transition-colors" title="Sign out">
+            <LogOut size={14} className="text-white/70" />
           </button>
         </div>
       </div>
 
       {/* mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b-2 border-black">
+      <div className="dark-chrome md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0A0C]">
         <div className="flex items-center justify-between px-4 py-3">
-          <Logo variant="wordmark" tone="black" className="h-7 w-auto" />
+          <Logo variant="wordmark" tone="white" className="h-7 w-auto" />
           <div className="flex items-center gap-2">
             <button
               onClick={() => setMobileSearchOpen((o) => !o)}
-              className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-black/60"
+              className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white/70"
             >
               {mobileSearchOpen ? <X size={16} /> : <Search size={16} />}
             </button>
-            <button onClick={() => setNotifOpen(true)} className="w-9 h-9 rounded-full bg-black/5 flex items-center justify-center text-black/60 relative">
+            <button onClick={() => setNotifOpen(true)} className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white/70 relative">
               <Bell size={16} />
               {unreadNotifCount > 0 && (
-                <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-blue-500" />
+                <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-blue-400" />
               )}
             </button>
             <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={34} onClick={() => setTab("more")} />
@@ -203,14 +203,14 @@ export default function CoachShell() {
         </div>
         {mobileSearchOpen && (
           <div className="px-4 pb-3">
-            <div className="flex items-center gap-2 bg-white border border-black/25 rounded-lg px-3 py-2.5">
-              <Search size={15} className="text-black/40 shrink-0" />
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5">
+              <Search size={15} className="text-white/35 shrink-0" />
               <input
                 autoFocus
                 value={clientSearch}
                 onChange={(e) => goToClients(e.target.value)}
                 placeholder="Find a client"
-                className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+                className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/25"
               />
             </div>
           </div>
@@ -228,19 +228,19 @@ export default function CoachShell() {
       </div>
 
       {/* mobile bottom tab bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center">
-        <div className="w-full bg-white/95 backdrop-blur border-t-2 border-black flex px-1 pb-safe">
+      <div className="dark-chrome md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center">
+        <div className="w-full bg-[#0A0A0C]/97 backdrop-blur flex px-1 pb-safe">
           {MAIN_MENU.map((item) => {
             const Icon = item.icon;
             const active = tab === item.id;
             return (
               <button key={item.id} onClick={() => setTab(item.id)} className="flex-1 flex flex-col items-center gap-1 py-2.5 relative">
-                <Icon size={19} className={active ? "text-black" : "text-black/35"} strokeWidth={active ? 2.4 : 2} />
-                <span className={`text-[9px] font-medium leading-none ${active ? "text-black" : "text-black/35"}`}>
+                <Icon size={19} className={active ? "text-white" : "text-white/35"} strokeWidth={active ? 2.4 : 2} />
+                <span className={`text-[9px] font-medium leading-none ${active ? "text-white" : "text-white/35"}`}>
                   {item.label}
                 </span>
                 {item.id === "messages" && unreadMessages && (
-                  <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-blue-500" />
+                  <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-blue-400" />
                 )}
               </button>
             );

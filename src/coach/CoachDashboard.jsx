@@ -68,20 +68,21 @@ function AvatarStack({ clients, max = 4 }) {
 
 function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3 py-3 border-b border-black/5 last:border-0">
       <div
-        className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-        style={{ background: clients.length ? MEASURE_BLUE : "rgba(10,10,11,0.06)" }}
+        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+          clients.length ? "bg-blue-50 border border-blue-100" : "bg-black/[0.03] border border-black/8"
+        }`}
       >
-        <Icon size={16} className={clients.length ? "text-white" : "text-black/30"} />
+        <Icon size={16} className={clients.length ? "text-blue-500" : "text-black/25"} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-black/70 text-sm font-medium">{label}</p>
+        <p className="text-black/70 text-sm font-medium truncate">{label}</p>
       </div>
       {clients.length > 0 ? (
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <AvatarStack clients={clients} />
-          <button onClick={onViewAll} className="text-xs font-semibold shrink-0" style={{ color: MEASURE_BLUE }}>
+          <button onClick={onViewAll} className="text-xs font-semibold shrink-0 text-blue-600 hover:text-blue-700">
             View All
           </button>
         </div>
@@ -204,10 +205,12 @@ export default function CoachDashboard({ onNavigate }) {
         <StatCard icon={Library} label="EXERCISES" value={db.exercises.length} onClick={() => onNavigate("library")} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <Card className="lg:col-span-2">
-          <p className="text-black font-semibold mb-4">We've auto-tagged your clients based on their needs</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4 items-stretch">
+        <Card className="lg:col-span-2 !p-0 overflow-hidden flex flex-col">
+          <div className="px-5 pt-5 pb-1">
+            <p className="text-black font-semibold">We've auto-tagged your clients based on their needs</p>
+          </div>
+          <div className="px-5 pb-2">
             <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
             <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
             <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
@@ -219,7 +222,7 @@ export default function CoachDashboard({ onNavigate }) {
           <div className="px-5 pt-5 pb-3">
             <p className="text-black font-semibold">Recent Activity</p>
           </div>
-          <div className="px-5 pb-2 max-h-[420px] overflow-y-auto">
+          <div className="px-5 pb-2 flex-1 max-h-[340px] overflow-y-auto">
             {recentActivity.length === 0 ? (
               <p className="text-black/30 text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
             ) : (
