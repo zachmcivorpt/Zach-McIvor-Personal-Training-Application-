@@ -30,6 +30,8 @@ import {
   LayoutGrid,
   Repeat,
   ChevronDown,
+  User,
+  Target,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -1735,14 +1737,95 @@ function SummaryPanel({ client, showToast }) {
   );
 }
 
+function ProfilePanel({ client }) {
+  const prefs = client.preferences || {};
+  const hasAnyPrefs =
+    prefs.goals || (prefs.equipment || []).length || (prefs.trainingDays || []).length || prefs.sessionLength || prefs.trainingNotes || prefs.dietType || prefs.nutritionNotes;
+
+  return (
+    <div className="px-4 py-5 md:px-6 md:py-6 max-w-2xl">
+      <div className="flex items-center gap-3 mb-5">
+        <Avatar name={client.name} url={client.avatarUrl} size={56} />
+        <div className="min-w-0">
+          <p className="text-black font-bold text-lg truncate">{client.name}</p>
+          <p className="text-black/40 text-sm truncate">{client.email}</p>
+        </div>
+      </div>
+
+      {!hasAnyPrefs ? (
+        <p className="text-black/30 text-sm">This client hasn't set any preferences yet.</p>
+      ) : (
+        <div className="space-y-5">
+          {prefs.goals && (
+            <div>
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+                <Target size={12} /> GOALS
+              </p>
+              <p className="text-black text-sm bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3">{prefs.goals}</p>
+            </div>
+          )}
+
+          {(prefs.equipment || []).length > 0 && (
+            <div>
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+                <Dumbbell size={12} /> EQUIPMENT
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {prefs.equipment.map((e) => (
+                  <Pill key={e} tone="outline">
+                    {e}
+                  </Pill>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(prefs.trainingDays?.length || prefs.sessionLength || prefs.trainingNotes) && (
+            <div>
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINING PREFERENCES</p>
+              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 space-y-2.5">
+                {prefs.trainingDays?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {prefs.trainingDays.map((d) => (
+                      <Pill key={d}>{d}</Pill>
+                    ))}
+                  </div>
+                )}
+                {prefs.sessionLength && <p className="text-black/70 text-sm">Preferred session length: {prefs.sessionLength}</p>}
+                {prefs.trainingNotes && <p className="text-black text-sm">{prefs.trainingNotes}</p>}
+              </div>
+            </div>
+          )}
+
+          {(prefs.dietType || prefs.nutritionNotes) && (
+            <div>
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">NUTRITION PREFERENCES</p>
+              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 space-y-2.5">
+                {prefs.dietType && <Pill tone="outline">{prefs.dietType}</Pill>}
+                {prefs.nutritionNotes && <p className="text-black text-sm">{prefs.nutritionNotes}</p>}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Labels/order mirror the client app's own bottom tabs (Home, Training,
+// Nutrition, Check-ins, Progress, Profile) where a direct equivalent
+// exists, so it's easy to reason about "this is what they see on X" —
+// Summary, Calendar and Habits are coach-only admin views layered in
+// alongside them.
 const CLIENT_NAV = [
   { id: "summary", label: "Summary", icon: LayoutGrid },
-  { id: "calendar", label: "Calendar", icon: Calendar },
-  { id: "program", label: "Training Program", icon: ClipboardList },
+  { id: "program", label: "Training", icon: Dumbbell },
   { id: "nutrition", label: "Nutrition", icon: Utensils },
-  { id: "progress", label: "Progress", icon: ImageIcon },
-  { id: "habits", label: "Habits", icon: ListChecks },
   { id: "checkins", label: "Check-ins", icon: NotebookPen },
+  { id: "progress", label: "Progress", icon: ImageIcon },
+  { id: "calendar", label: "Calendar", icon: Calendar },
+  { id: "habits", label: "Habits", icon: ListChecks },
+  { id: "profile", label: "Profile", icon: User },
 ];
 
 export default function CoachClientDetail({ clientId, onClose, showToast }) {
@@ -1910,6 +1993,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
         {clientTab === "progress" && <ProgressPanel client={client} />}
         {clientTab === "habits" && <HabitsPanel client={client} />}
         {clientTab === "checkins" && <CheckInsPanel client={client} showToast={showToast} />}
+        {clientTab === "profile" && <ProfilePanel client={client} />}
       </div>
 
       {messaging && <ThreadView client={client} onClose={() => setMessaging(false)} />}

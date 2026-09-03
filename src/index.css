@@ -51,11 +51,8 @@
   border-radius: 2px !important;
 }
 .coach-shell [style*="border-color"] {
-  border-color: rgba(10, 10, 11, 0.55) !important;
-  border-width: 2px !important;
-}
-.coach-shell .border {
-  border-width: 1.5px !important;
+  border-color: rgba(10, 10, 11, 0.22) !important;
+  border-width: 1px !important;
 }
 
 /* Dark chrome (sidebar / mobile top+bottom bars) — the initial-letter Avatar
