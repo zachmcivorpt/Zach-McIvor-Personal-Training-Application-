@@ -1,9 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
-import { X, Check } from "lucide-react";
+import { X, Check, Camera } from "lucide-react";
 import { SURFACE, SURFACE_RAISED, BORDER, TEXT_MUTED, ACCENT, ACCENT_INK, MEASURE_BLUE } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
+import { fileToCompressedDataUrl } from "../lib/image";
 
 /* ============================================================================
    BRAND
@@ -27,6 +28,80 @@ export function Logo({ variant = "wordmark", tone = "white", className = "", sty
       style={style}
       draggable={false}
     />
+  );
+}
+
+// Shows the uploaded photo when set, otherwise the initial-letter circle
+// used everywhere in the app already — same component for coach and client,
+// own-profile and viewed-by-coach contexts.
+export function Avatar({ name, url, size = 40, className = "", onClick }) {
+  const px = `${size}px`;
+  const commonClass = `rounded-full shrink-0 flex items-center justify-center overflow-hidden ${
+    onClick ? "cursor-pointer" : ""
+  } ${className}`;
+  if (url) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={!onClick}
+        className={commonClass}
+        style={{ width: px, height: px, background: "transparent", border: 0, padding: 0 }}
+      >
+        <img src={url} alt={name} className="w-full h-full object-cover" />
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={`${commonClass} bg-white/10 border border-white/15 text-white font-bold`}
+      style={{ width: px, height: px, fontSize: size * 0.4 }}
+    >
+      {name?.[0]?.toUpperCase() || "?"}
+    </button>
+  );
+}
+
+// Avatar + hidden file input + upload/compress in one control. Tap the
+// photo (or the small camera badge) to replace it.
+export function AvatarPicker({ name, url, size = 72, onChange }) {
+  const fileRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file, 400, 0.85);
+      onChange(dataUrl);
+    } catch {
+      // bad file — nothing to persist
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <Avatar name={name} url={url} size={size} onClick={() => fileRef.current?.click()} />
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <div
+        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center border-2 pointer-events-none"
+        style={{ borderColor: SURFACE }}
+      >
+        <Camera size={12} className="text-black" />
+      </div>
+      {busy && (
+        <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center pointer-events-none">
+          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
+    </div>
   );
 }
 

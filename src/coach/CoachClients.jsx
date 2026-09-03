@@ -11,6 +11,7 @@ import {
   SecondaryButton,
   DangerButton,
   FullScreenOverlay,
+  Avatar,
 } from "../components/ui";
 import { ThreadView } from "./CoachMessages";
 import {
@@ -233,9 +234,7 @@ function ClientProfile({ clientId, onClose, showToast }) {
 
         <div className="px-5 py-5 space-y-5">
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-xl font-bold text-white shrink-0">
-              {client.name[0]}
-            </div>
+            <Avatar name={client.name} url={client.avatarUrl} size={56} />
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-lg truncate">{client.name}</p>
               <p className="text-white/40 text-xs truncate">{client.email}</p>
@@ -367,9 +366,7 @@ export default function CoachClients({ showToast }) {
           return (
             <Card key={c.id} onClick={() => setSelectedId(c.id)}>
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold text-white shrink-0">
-                  {c.name[0]}
-                </div>
+                <Avatar name={c.name} url={c.avatarUrl} size={44} />
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-semibold text-sm truncate">{c.name}</p>
                   <p className="text-white/40 text-xs truncate mt-0.5">

@@ -1,10 +1,10 @@
 import React from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, DangerButton } from "../components/ui";
+import { Card, DangerButton, AvatarPicker } from "../components/ui";
 import { Video, LogOut, ChevronRight } from "lucide-react";
 
 export default function CoachMore({ onNavigate, onLogout }) {
-  const { currentUser } = useApp();
+  const { currentUser, updateUser } = useApp();
 
   return (
     <div className="px-5 pb-6 space-y-4">
@@ -27,9 +27,12 @@ export default function CoachMore({ onNavigate, onLogout }) {
 
       <Card>
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-xl font-bold text-white">
-            {currentUser?.name?.[0]}
-          </div>
+          <AvatarPicker
+            name={currentUser?.name}
+            url={currentUser?.avatarUrl}
+            size={64}
+            onChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
+          />
           <div>
             <p className="text-white font-bold">{currentUser?.name}</p>
             <p className="text-white/40 text-sm">{currentUser?.email}</p>

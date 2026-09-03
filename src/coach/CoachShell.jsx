@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
-import { Logo, Toast } from "../components/ui";
+import { Logo, Toast, Avatar } from "../components/ui";
 import { LayoutDashboard, Users, ClipboardList, MessageCircle, MoreHorizontal, LogOut } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
@@ -52,9 +52,12 @@ export default function CoachShell() {
               <p className="text-white font-semibold text-sm leading-none">{currentUser?.name}</p>
             </div>
           </div>
-          <button onClick={doLogout} className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center">
-            <LogOut size={16} className="text-white/70" />
-          </button>
+          <div className="flex items-center gap-2">
+            <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={40} onClick={() => setTab("more")} />
+            <button onClick={doLogout} className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center">
+              <LogOut size={16} className="text-white/70" />
+            </button>
+          </div>
         </div>
 
         {tab === "dashboard" && <CoachDashboard onNavigate={setTab} />}

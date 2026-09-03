@@ -59,6 +59,8 @@ import {
   Sparkline,
   MetricTile,
   DangerButton,
+  Avatar,
+  AvatarPicker,
 } from "../components/ui";
 import { MEASURE_BLUE } from "../theme";
 import { WEIGHT_HISTORY, BENCH_HISTORY, VOLUME_HISTORY, METRIC_TILES } from "../lib/mockMetrics";
@@ -141,7 +143,7 @@ function BrandBar() {
   );
 }
 
-function Header({ user }) {
+function Header({ user, onAvatarClick }) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
@@ -158,9 +160,7 @@ function Header({ user }) {
           <Bell size={18} className="text-white/80" />
           <span className="absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full bg-white" />
         </button>
-        <div className="w-10 h-10 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-sm font-bold text-white">
-          {user.name[0]}
-        </div>
+        <Avatar name={user.name} url={user.avatarUrl} size={40} onClick={onAvatarClick} />
       </div>
     </div>
   );
@@ -440,10 +440,11 @@ function HomeScreen({
   habits,
   completedHabitIds,
   onToggleHabit,
+  onAvatarClick,
 }) {
   return (
     <div className="pb-6 space-y-4">
-      <Header user={user} />
+      <Header user={user} onAvatarClick={onAvatarClick} />
       <DateStrip showToast={showToast} />
       <TodayWorkoutCard
         program={program}
@@ -1314,7 +1315,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto }) {
    PROFILE TAB
 ============================================================================ */
 
-function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, setMessagesOpen, unreadCount }) {
+function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, setMessagesOpen, unreadCount, onAvatarChange }) {
   const rows = [
     { label: "Goals", icon: Target },
     { label: "Equipment", icon: Dumbbell },
@@ -1331,9 +1332,7 @@ function ProfileScreen({ user, onLogout, coachOpen, setCoachOpen, messagesOpen, 
       <div className="px-5">
         <Card>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-2xl font-bold text-white">
-              {user.name[0]}
-            </div>
+            <AvatarPicker name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
             <div>
               <p className="text-white text-lg font-bold">{user.name}</p>
               <p className="text-white/40 text-sm">
@@ -1533,6 +1532,7 @@ export default function ClientApp() {
     createSavedMeal,
     deleteSavedMeal,
     toggleHabitToday,
+    updateUser,
   } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
@@ -1651,6 +1651,7 @@ export default function ClientApp() {
             habits={habits}
             completedHabitIds={completedHabitIds}
             onToggleHabit={(habitId) => toggleHabitToday(currentUser.id, habitId)}
+            onAvatarClick={() => setTab("profile")}
           />
         )}
         {tab === "workouts" && (
@@ -1688,6 +1689,7 @@ export default function ClientApp() {
             messagesOpen={messagesOpen}
             setMessagesOpen={openMessages}
             unreadCount={unreadCount}
+            onAvatarChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
           />
         )}
 

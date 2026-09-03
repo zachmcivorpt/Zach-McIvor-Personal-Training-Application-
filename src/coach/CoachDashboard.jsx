@@ -1,6 +1,6 @@
 import React from "react";
 import { useApp, flattenSessions } from "../lib/AppContext";
-import { Card, Pill } from "../components/ui";
+import { Card, Pill, Avatar } from "../components/ui";
 import { Users, ClipboardList, Dumbbell, UserPlus, FilePlus, Video, Mail } from "lucide-react";
 
 function StatCard({ icon: Icon, label, value, onClick }) {
@@ -60,9 +60,7 @@ export default function CoachDashboard({ onNavigate }) {
             return (
               <div key={c.id} className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
-                    {c.name[0]}
-                  </div>
+                  <Avatar name={c.name} url={c.avatarUrl} size={32} />
                   <div>
                     <p className="text-white text-sm font-medium leading-none">{c.name}</p>
                     <p className="text-white/35 text-xs mt-1">{program ? program.name : "No program assigned"}</p>

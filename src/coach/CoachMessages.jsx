@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, FullScreenOverlay, ProgressBar } from "../components/ui";
+import { Card, FullScreenOverlay, ProgressBar, Avatar } from "../components/ui";
 import { Search, Send, ChevronLeft, MessageCircle } from "lucide-react";
 
 export function ThreadView({ client, onClose }) {
@@ -26,9 +26,7 @@ export function ThreadView({ client, onClose }) {
           <button onClick={onClose} className="w-9 h-9 -ml-2 flex items-center justify-center text-white/60">
             <ChevronLeft size={20} />
           </button>
-          <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold text-white">
-            {client.name[0]}
-          </div>
+          <Avatar name={client.name} url={client.avatarUrl} size={36} />
           <div>
             <p className="text-white font-semibold text-sm leading-none">{client.name}</p>
             <p className="text-white/30 text-xs mt-1">@{client.username}</p>
@@ -111,9 +109,7 @@ export default function CoachMessages() {
         {clients.map((c) => (
           <Card key={c.id} onClick={() => setOpenClient(c)}>
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center text-sm font-bold text-white shrink-0">
-                {c.name[0]}
-              </div>
+              <Avatar name={c.name} url={c.avatarUrl} size={44} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <p className="text-white font-semibold text-sm truncate">{c.name}</p>
