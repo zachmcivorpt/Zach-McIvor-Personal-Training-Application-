@@ -17,7 +17,6 @@ import {
   where,
   onSnapshot,
   writeBatch,
-  increment,
 } from "firebase/firestore";
 import { auth, db as firestore } from "./firebase";
 import { inviteCode } from "./id";
@@ -176,6 +175,8 @@ export function AppProvider({ children }) {
       watch("clientNotes", "clientNotes");
       watch("habitLog", "habitLog");
       watch("weighIns", "weighIns");
+      watch("scheduledWorkouts", "scheduledWorkouts");
+      watch("bodyStatsSchedules", "bodyStatsSchedules");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -187,6 +188,8 @@ export function AppProvider({ children }) {
       watch("formSchedules", "formSchedules", [where("clientId", "==", uid)]);
       watch("formResponses", "formResponses", [where("clientId", "==", uid)]);
       watch("weighIns", "weighIns", [where("clientId", "==", uid)]);
+      watch("scheduledWorkouts", "scheduledWorkouts", [where("clientId", "==", uid)]);
+      watch("bodyStatsSchedules", "bodyStatsSchedules", [where("clientId", "==", uid)]);
       // clientNotes intentionally NOT synced here — they're the coach's
       // private notes about the client, never shown in the client app.
       unsubs.push(
@@ -254,6 +257,8 @@ export function AppProvider({ children }) {
       clientTags: Object.fromEntries(users.filter((u) => u.role === "client").map((u) => [u.id, u.clientTags || []])),
       clientNotes: bucket(raw.clientNotes, (a, b) => b.date - a.date),
       weighIns: bucket(raw.weighIns, (a, b) => a.date - b.date),
+      scheduledWorkouts: bucket(raw.scheduledWorkouts, (a, b) => a.date.localeCompare(b.date)),
+      bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
     };
   }, [raw, role, profile]);
 
@@ -398,6 +403,8 @@ export function AppProvider({ children }) {
           "formResponses",
           "clientNotes",
           "weighIns",
+          "scheduledWorkouts",
+          "bodyStatsSchedules",
         ].forEach((name) => deleteWhereClientId(name, clientId));
       },
 
@@ -480,7 +487,6 @@ export function AppProvider({ children }) {
       logWorkout(clientId, entry) {
         const id = newDocId("workoutLogs");
         setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);
-        updateDoc(doc(firestore, "users", clientId), { currentSessionIndex: increment(1) }).catch(console.error);
       },
 
       setNutrition(clientId, updater) {
@@ -512,6 +518,71 @@ export function AppProvider({ children }) {
 
       deleteWeighIn(clientId, weighInId) {
         deleteDoc(doc(firestore, "weighIns", weighInId)).catch(console.error);
+      },
+
+      // Workouts scheduled onto specific calendar dates for a client — the
+      // doc id is deterministic (clientId__date) so re-scheduling a date
+      // cleanly replaces whatever was there before instead of duplicating.
+      async scheduleWorkout(clientId, { date, label, muscleGroups, exercises }) {
+        const id = `${clientId}__${date}`;
+        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises };
+        try {
+          await setDoc(doc(firestore, "scheduledWorkouts", id), entry);
+        } catch (err) {
+          throw new Error("Couldn't schedule that workout — " + (err.message || "please try again."));
+        }
+        return entry;
+      },
+
+      async scheduleWorkoutRecurring(clientId, { startDate, weeks, label, muscleGroups, exercises }) {
+        const dates = [];
+        const d = new Date(startDate);
+        for (let i = 0; i < weeks; i++) {
+          dates.push(d.toISOString().slice(0, 10));
+          d.setDate(d.getDate() + 7);
+        }
+        const batch = writeBatch(firestore);
+        dates.forEach((date) => {
+          const id = `${clientId}__${date}`;
+          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises });
+        });
+        try {
+          await batch.commit();
+        } catch (err) {
+          throw new Error("Couldn't schedule that workout — " + (err.message || "please try again."));
+        }
+        return dates;
+      },
+
+      unscheduleWorkout(clientId, date) {
+        deleteDoc(doc(firestore, "scheduledWorkouts", `${clientId}__${date}`)).catch(console.error);
+      },
+
+      // Reminders for the client to log a bodyweight/measurements check-in
+      // on a given date — completion is derived from whether a weighIn
+      // exists for that date, not tracked separately here.
+      async scheduleBodyStatsCheckin(clientId, { startDate, weeks = 1 }) {
+        const dates = [];
+        const d = new Date(startDate);
+        for (let i = 0; i < weeks; i++) {
+          dates.push(d.toISOString().slice(0, 10));
+          d.setDate(d.getDate() + 7);
+        }
+        const batch = writeBatch(firestore);
+        dates.forEach((date) => {
+          const id = `${clientId}__${date}`;
+          batch.set(doc(firestore, "bodyStatsSchedules", id), { id, clientId, date });
+        });
+        try {
+          await batch.commit();
+        } catch (err) {
+          throw new Error("Couldn't schedule that check-in — " + (err.message || "please try again."));
+        }
+        return dates;
+      },
+
+      unscheduleBodyStatsCheckin(clientId, date) {
+        deleteDoc(doc(firestore, "bodyStatsSchedules", `${clientId}__${date}`)).catch(console.error);
       },
 
       async updateUser(id, data) {

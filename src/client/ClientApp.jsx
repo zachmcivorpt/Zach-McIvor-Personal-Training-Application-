@@ -56,7 +56,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useApp, flattenSessions, estimate1RM, getPreviousPerformance, getPreviousSets, getCurrentPhase } from "../lib/AppContext";
+import { useApp, estimate1RM, getPreviousPerformance, getPreviousSets } from "../lib/AppContext";
 import {
   Card,
   Pill,
@@ -189,13 +189,15 @@ function Header({ user, onAvatarClick }) {
   );
 }
 
-function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById }) {
-  if (!program || !todaySession) {
+function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById }) {
+  if (!todaySession) {
     return (
       <Card className="mx-5 text-center py-10">
         <Dumbbell size={26} className="text-black/25 mx-auto mb-3" />
-        <p className="text-black font-semibold">No program assigned yet</p>
-        <p className="text-black/40 text-sm mt-1">Your coach will assign your training program soon.</p>
+        <p className="text-black font-semibold">No workout scheduled</p>
+        <p className="text-black/40 text-sm mt-1">
+          {isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}
+        </p>
       </Card>
     );
   }
@@ -208,11 +210,10 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
     <Card className="mx-5 !p-4">
       <div className="flex items-center justify-between mb-2">
         <Pill tone="solid">{pillLabel}</Pill>
-        <span className="text-black/30 text-xs">{todaySession.weekLabel}</span>
       </div>
       <h2 className="text-black text-lg font-bold">{todaySession.label}</h2>
       <p className="text-black/50 text-xs mt-0.5">
-        {todaySession.exercises.length} exercises · {program.name}
+        {todaySession.exercises.length} exercise{todaySession.exercises.length === 1 ? "" : "s"}
       </p>
       {(todaySession.muscleGroups || []).length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
@@ -331,38 +332,6 @@ function ActivityCardCompact({ activity }) {
   );
 }
 
-function SessionStrip({ sessions, currentIndex, onSelect }) {
-  if (sessions.length === 0) return null;
-  const start = Math.max(0, currentIndex - 3);
-  const visible = sessions.slice(start, start + 7);
-  return (
-    <Card className="mx-5">
-      <h3 className="text-black font-semibold mb-4">Your Rotation</h3>
-      <div className="flex justify-between">
-        {visible.map((s, vi) => {
-          const idx = start + vi;
-          const status = idx < currentIndex ? "done" : idx === currentIndex ? "today" : "upcoming";
-          const icon = { done: "✓", today: "●", upcoming: "○" }[status];
-          return (
-            <button key={idx} onClick={() => onSelect(s)} className="flex flex-col items-center gap-2">
-              <span className="text-black/30 text-[10px] font-medium">{idx + 1}</span>
-              <span
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                style={{
-                  backgroundColor: status === "today" ? "#0A0A0B" : "rgba(10,10,11,0.06)",
-                  color: status === "today" ? "#fff" : status === "done" ? "rgba(10,10,11,0.6)" : "rgba(10,10,11,0.3)",
-                }}
-              >
-                {icon}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
 function dateForOffset(offset) {
   const d = new Date();
   d.setDate(d.getDate() + offset);
@@ -471,9 +440,6 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
 
 function HomeScreen({
   user,
-  program,
-  sessions,
-  currentIndex,
   todaySession,
   activeLog,
   onStartWorkout,
@@ -494,16 +460,25 @@ function HomeScreen({
   completedOnDate,
   dayHabitCompletedIds,
   exercisesById,
+  bodyStatsDueToday,
+  onLogWeight,
 }) {
   return (
     <div className="pb-6 space-y-4">
       <Header user={user} onAvatarClick={onAvatarClick} />
       <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
+      {isToday && bodyStatsDueToday && (
+        <div className="mx-5 flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+          <Scale size={18} className="text-amber-600 shrink-0" />
+          <p className="flex-1 text-amber-800 text-sm font-medium">Body stats check-in due today</p>
+          <button onClick={onLogWeight} className="bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0">
+            LOG WEIGHT
+          </button>
+        </div>
+      )}
       <TodayWorkoutCard
-        program={program}
         todaySession={daySession}
-        sessionsLen={sessions.length}
         activeLog={activeLog}
         onStart={onStartWorkout}
         onView={onViewWorkout}
@@ -1144,15 +1119,17 @@ function WorkoutSummary({ daySession, activeLog, onDone }) {
    WORKOUTS TAB
 ============================================================================ */
 
-function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeLog, onStart, onViewWorkout, logsForClient, exercisesById }) {
+function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, onViewWorkout, logsForClient, exercisesById }) {
   const [tab, setTab] = useState("today");
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const upcoming = scheduledWorkouts.filter((w) => w.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
   return (
     <div className="pb-6">
       <div className="px-5 pt-6 pb-4">
         <h1 className="text-black text-2xl font-bold">Training</h1>
       </div>
       <div className="flex gap-2 px-5 mb-4 overflow-x-auto no-scrollbar">
-        {["today", "history", "program"].map((t) => (
+        {["today", "history", "upcoming"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1167,7 +1144,7 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
 
       {tab === "today" && (
         <div className="px-5 space-y-4">
-          <TodayWorkoutCard program={program} todaySession={todaySession} activeLog={activeLog} onStart={onStart} onView={onViewWorkout} isToday />
+          <TodayWorkoutCard todaySession={todaySession} activeLog={activeLog} onStart={onStart} onView={onViewWorkout} isToday />
           {todaySession && (
             <Card>
               <h3 className="text-black font-semibold mb-3">Exercises</h3>
@@ -1228,38 +1205,26 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
         </div>
       )}
 
-      {tab === "program" && (
-        <div className="px-5 space-y-3">
-          {!program && (
+      {tab === "upcoming" && (
+        <div className="px-5 space-y-2">
+          {upcoming.length === 0 && (
             <Card>
-              <p className="text-black/40 text-sm text-center py-6">No program assigned yet.</p>
+              <p className="text-black/40 text-sm text-center py-6">Nothing scheduled yet — your coach will set up your upcoming workouts.</p>
             </Card>
           )}
-          {program && (
-            <Card>
-              <p className="text-black font-semibold">{program.name}</p>
-              <p className="text-black/40 text-xs mt-1">{program.description}</p>
-              <div className="mt-4 space-y-2">
-                {sessions.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 border-b border-black/5 last:border-0">
-                    <div className="flex items-center gap-2.5">
-                      <span
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                        style={{
-                          backgroundColor: i === currentIndex ? "#0A0A0B" : "rgba(10,10,11,0.06)",
-                          color: i === currentIndex ? "#fff" : "rgba(10,10,11,0.4)",
-                        }}
-                      >
-                        {i + 1}
-                      </span>
-                      <span className="text-black/80 text-sm">{s.label}</span>
-                    </div>
-                    <span className="text-black/30 text-xs">{s.exercises.length} ex</span>
-                  </div>
-                ))}
+          {upcoming.map((w) => (
+            <Card key={w.id} className="!py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-black font-semibold text-sm">{w.label}</p>
+                  <p className="text-black/40 text-xs mt-0.5">
+                    {new Date(w.date + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
+                  </p>
+                </div>
+                <span className="text-black/30 text-xs">{w.exercises.length} ex</span>
               </div>
             </Card>
-          )}
+          ))}
         </div>
       )}
     </div>
@@ -2502,9 +2467,6 @@ export default function ClientApp() {
   const [seenMessageCount, setSeenMessageCount] = useState(0);
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
 
-  const clientPhases = (db.clientPhases || {})[currentUser.id] || [];
-  const currentPhase = getCurrentPhase(clientPhases, new Date().toISOString().slice(0, 10));
-  const program = currentPhase || db.programs.find((p) => p.id === currentUser.assignedProgramId) || null;
   const thread = db.messages[currentUser.id] || [];
   const photos = db.progressPhotos[currentUser.id] || [];
   const weighIns = (db.weighIns || {})[currentUser.id] || [];
@@ -2513,28 +2475,34 @@ export default function ClientApp() {
   const dueCheckInsCount = ((db.formSchedules || {})[currentUser.id] || []).filter(
     (s) => s.active && isCheckInDue(s, checkInResponses)
   ).length;
-  const sessions = useMemo(() => flattenSessions(program), [program]);
-  const currentIndex = sessions.length ? (currentUser.currentSessionIndex || 0) % sessions.length : 0;
-  const todaySession = sessions.length ? sessions[currentIndex] : null;
+  const scheduledWorkoutsForClient = (db.scheduledWorkouts || {})[currentUser.id] || [];
+  const scheduledWorkoutsByDate = useMemo(
+    () => Object.fromEntries(scheduledWorkoutsForClient.map((w) => [w.date, w])),
+    [scheduledWorkoutsForClient]
+  );
+  const bodyStatsSchedulesForClient = (db.bodyStatsSchedules || {})[currentUser.id] || [];
+  function scheduledToSession(entry) {
+    return entry ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises } : null;
+  }
+  const todayDateKey = new Date().toISOString().slice(0, 10);
+  const todaySession = scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
   const logsForClient = db.workoutLogs[currentUser.id] || [];
   const nutrition = db.nutrition[currentUser.id] || DEFAULT_NUTRITION;
   const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
   const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
   const habits = (db.habits || {})[currentUser.id] || [];
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = todayDateKey;
   const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
+  const bodyStatsDueToday = bodyStatsSchedulesForClient.some((s) => s.date === todayDateKey) && !weighIns.some((w) => new Date(w.date).toISOString().slice(0, 10) === todayDateKey);
 
   const isToday = dayOffset === 0;
-  const selectedIndex = sessions.length
-    ? (((currentIndex + dayOffset) % sessions.length) + sessions.length) % sessions.length
-    : 0;
-  const daySession = sessions.length ? sessions[selectedIndex] : null;
   const selectedDateKey = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + dayOffset);
     return d.toISOString().slice(0, 10);
   }, [dayOffset]);
+  const daySession = scheduledToSession(scheduledWorkoutsByDate[selectedDateKey]);
   const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
   const completedOnDate = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
 
@@ -2569,9 +2537,6 @@ export default function ClientApp() {
       Object.entries(exerciseSwaps).map(([fromId, s]) => [s.toExerciseId, { swappedFrom: fromId, swappedFromName: s.fromName, swapReason: s.reason }])
     );
     logWorkout(currentUser.id, {
-      programId: program.id,
-      programName: program.name,
-      weekLabel: todaySession.weekLabel,
       dayLabel: todaySession.label,
       entries: Object.entries(cleanedLog).map(([exerciseId, sets]) => ({
         exerciseId,
@@ -2634,9 +2599,6 @@ export default function ClientApp() {
         {tab === "home" && (
           <HomeScreen
             user={currentUser}
-            program={program}
-            sessions={sessions}
-            currentIndex={currentIndex}
             todaySession={todaySession}
             activeLog={activeLog}
             onStartWorkout={startWorkout}
@@ -2657,14 +2619,14 @@ export default function ClientApp() {
             completedOnDate={completedOnDate}
             dayHabitCompletedIds={dayHabitCompletedIds}
             exercisesById={exercisesById}
+            bodyStatsDueToday={bodyStatsDueToday}
+            onLogWeight={() => setTab("progress")}
           />
         )}
         {tab === "workouts" && (
           <WorkoutsScreen
-            program={program}
             todaySession={todaySession}
-            sessions={sessions}
-            currentIndex={currentIndex}
+            scheduledWorkouts={scheduledWorkoutsForClient}
             activeLog={activeLog}
             onStart={startWorkout}
             onViewWorkout={() => openPreview(todaySession, true)}

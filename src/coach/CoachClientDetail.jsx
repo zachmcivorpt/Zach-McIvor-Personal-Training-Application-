@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar, BottomSheet } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
@@ -230,6 +230,510 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
         </PrimaryButton>
       </form>
     </BottomSheet>
+  );
+}
+
+const CAL_WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const CAL_DAY_LABELS_SUN0 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function dKey(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+// A 6-week grid (Mon-first) covering the given UTC month, including the
+// padding days from the previous/next month needed to fill whole weeks.
+function buildMonthGrid(year, month) {
+  const first = new Date(Date.UTC(year, month, 1));
+  const startOffset = (first.getUTCDay() + 6) % 7;
+  const start = new Date(Date.UTC(year, month, 1 - startOffset));
+  const weeks = [];
+  let cursor = start;
+  for (let w = 0; w < 6; w++) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(cursor);
+      cursor = new Date(cursor.getTime() + 86400000);
+    }
+    weeks.push(week);
+  }
+  return weeks;
+}
+
+function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast }) {
+  const { db, scheduleWorkout, scheduleWorkoutRecurring } = useApp();
+  const [source, setSource] = useState("library"); // library | custom
+  const [masterWorkoutId, setMasterWorkoutId] = useState("");
+  const [customDay, setCustomDay] = useState(null); // built via WorkoutEditor
+  const [editingCustom, setEditingCustom] = useState(false);
+  const [date, setDate] = useState(initialDate || dKey(new Date()));
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [weeks, setWeeks] = useState(4);
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      setSource("library");
+      setMasterWorkoutId(db.masterWorkouts?.[0]?.id || "");
+      setCustomDay(null);
+      setDate(initialDate || dKey(new Date()));
+      setRepeatWeekly(false);
+      setWeeks(4);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialDate]);
+
+  const selectedMaster = (db.masterWorkouts || []).find((w) => w.id === masterWorkoutId);
+  const payload =
+    source === "library"
+      ? selectedMaster
+        ? { label: selectedMaster.label, muscleGroups: selectedMaster.muscleGroups || [], exercises: selectedMaster.exercises }
+        : null
+      : customDay
+      ? { label: customDay.label, muscleGroups: customDay.muscleGroups || [], exercises: customDay.exercises }
+      : null;
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!payload) return;
+    setSaving(true);
+    try {
+      if (repeatWeekly) {
+        await scheduleWorkoutRecurring(client.id, { startDate: date, weeks, ...payload });
+        showToast(`Scheduled weekly for ${weeks} week${weeks === 1 ? "" : "s"}`);
+      } else {
+        await scheduleWorkout(client.id, { date, ...payload });
+        showToast("Workout scheduled");
+      }
+      onClose();
+    } catch (err) {
+      showToast(err.message || "Couldn't schedule that workout");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Schedule a Workout">
+      <form onSubmit={submit} className="space-y-4">
+        <div className="flex bg-black/5 rounded-xl p-1">
+          {[
+            { id: "library", label: "From Library" },
+            { id: "custom", label: "Build Custom" },
+          ].map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setSource(s.id)}
+              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                source === s.id ? "bg-white shadow text-black" : "text-black/50"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {source === "library" ? (
+          (db.masterWorkouts || []).length === 0 ? (
+            <p className="text-black/30 text-sm text-center py-4">No workout templates yet — build one in Library → Workouts.</p>
+          ) : (
+            <Select value={masterWorkoutId} onChange={(e) => setMasterWorkoutId(e.target.value)}>
+              {db.masterWorkouts.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.label} · {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
+                </option>
+              ))}
+            </Select>
+          )
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditingCustom(true)}
+            className="w-full flex items-center justify-between bg-black/[0.03] border border-dashed border-black/15 rounded-xl px-4 py-3.5 text-left"
+          >
+            <span className="text-black/70 text-sm">
+              {customDay ? `${customDay.label} · ${customDay.exercises.length} exercises` : "Tap to build this workout"}
+            </span>
+            <Edit3 size={15} className="text-black/30" />
+          </button>
+        )}
+
+        <div>
+          <p className="text-black/40 text-xs tracking-wide mb-1.5">DATE</p>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
+          />
+        </div>
+
+        <div className="flex items-center justify-between bg-black/[0.03] rounded-xl px-3.5 py-2.5">
+          <span className="text-black/70 text-sm font-medium">Repeat weekly</span>
+          <button
+            type="button"
+            onClick={() => setRepeatWeekly((v) => !v)}
+            className={`w-11 h-6 rounded-full relative transition-colors ${repeatWeekly ? "bg-blue-500" : "bg-black/15"}`}
+          >
+            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${repeatWeekly ? "left-[22px]" : "left-0.5"}`} />
+          </button>
+        </div>
+
+        {repeatWeekly && (
+          <div>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">FOR HOW MANY WEEKS (UP TO 52)</p>
+            <input
+              type="number"
+              min={1}
+              max={52}
+              value={weeks}
+              onChange={(e) => setWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
+              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
+            />
+          </div>
+        )}
+
+        <PrimaryButton type="submit" className="w-full" disabled={!payload || saving}>
+          <Calendar size={16} /> {saving ? "SCHEDULING…" : "SCHEDULE WORKOUT"}
+        </PrimaryButton>
+      </form>
+
+      {editingCustom && (
+        <WorkoutEditor
+          open={editingCustom}
+          day={customDay || { id: "custom", label: "Custom Workout", muscleGroups: [], exercises: [] }}
+          exercises={db.exercises}
+          onClose={() => setEditingCustom(false)}
+          onSave={(day) => {
+            setCustomDay(day);
+            setEditingCustom(false);
+          }}
+        />
+      )}
+    </BottomSheet>
+  );
+}
+
+function ScheduleBodyStatsSheet({ open, onClose, client, initialDate, showToast }) {
+  const { scheduleBodyStatsCheckin } = useApp();
+  const [date, setDate] = useState(initialDate || dKey(new Date()));
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [weeks, setWeeks] = useState(4);
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      setDate(initialDate || dKey(new Date()));
+      setRepeatWeekly(false);
+      setWeeks(4);
+    }
+  }, [open, initialDate]);
+
+  async function submit(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await scheduleBodyStatsCheckin(client.id, { startDate: date, weeks: repeatWeekly ? weeks : 1 });
+      showToast("Body stats check-in scheduled");
+      onClose();
+    } catch (err) {
+      showToast(err.message || "Couldn't schedule that check-in");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Schedule a Body Stats Check-in">
+      <form onSubmit={submit} className="space-y-4">
+        <p className="text-black/50 text-sm">Reminds the client to log their weight that day — it shows up on their Progress graph automatically once they do.</p>
+        <div>
+          <p className="text-black/40 text-xs tracking-wide mb-1.5">DATE</p>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
+          />
+        </div>
+        <div className="flex items-center justify-between bg-black/[0.03] rounded-xl px-3.5 py-2.5">
+          <span className="text-black/70 text-sm font-medium">Repeat weekly</span>
+          <button
+            type="button"
+            onClick={() => setRepeatWeekly((v) => !v)}
+            className={`w-11 h-6 rounded-full relative transition-colors ${repeatWeekly ? "bg-blue-500" : "bg-black/15"}`}
+          >
+            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${repeatWeekly ? "left-[22px]" : "left-0.5"}`} />
+          </button>
+        </div>
+        {repeatWeekly && (
+          <div>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">FOR HOW MANY WEEKS (UP TO 52)</p>
+            <input
+              type="number"
+              min={1}
+              max={52}
+              value={weeks}
+              onChange={(e) => setWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
+              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
+            />
+          </div>
+        )}
+        <PrimaryButton type="submit" className="w-full" disabled={saving}>
+          <Scale size={16} /> {saving ? "SCHEDULING…" : "SCHEDULE CHECK-IN"}
+        </PrimaryButton>
+      </form>
+    </BottomSheet>
+  );
+}
+
+function DayDetailSheet({ date, client, items, onClose, onSchedule, onRemoveWorkout, onRemoveBodyStats }) {
+  if (!date) return null;
+  const label = new Date(date + "T00:00:00Z").toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
+  return (
+    <BottomSheet open={!!date} onClose={onClose} title={label}>
+      {items.length === 0 ? (
+        <p className="text-black/30 text-sm text-center py-4">Nothing scheduled for this day yet.</p>
+      ) : (
+        <div className="space-y-2 mb-4">
+          {items.map((it, i) => (
+            <div key={i} className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
+              <div
+                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                  it.type === "workout" ? "bg-blue-50 border border-blue-100" : it.type === "bodystats" ? "bg-amber-50 border border-amber-100" : "bg-emerald-50 border border-emerald-100"
+                }`}
+              >
+                {it.type === "workout" && <Dumbbell size={15} className="text-blue-500" />}
+                {it.type === "bodystats" && <Scale size={15} className="text-amber-600" />}
+                {it.type === "form" && <NotebookPen size={15} className="text-emerald-600" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-black text-sm font-medium truncate">{it.label}</p>
+                <p className="text-black/35 text-xs">
+                  {it.type === "workout" ? "Workout" : it.type === "bodystats" ? (it.done ? "Body stats · logged" : "Body stats · pending") : "Check-in form"}
+                </p>
+              </div>
+              {it.type === "workout" && (
+                <button onClick={onRemoveWorkout} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60">
+                  <X size={14} />
+                </button>
+              )}
+              {it.type === "bodystats" && (
+                <button onClick={onRemoveBodyStats} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60">
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-2">
+        <button
+          onClick={() => onSchedule("workout")}
+          className="flex items-center justify-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-semibold py-2.5 rounded-xl transition-colors"
+        >
+          <Dumbbell size={15} /> Schedule a Workout
+        </button>
+        <button
+          onClick={() => onSchedule("bodystats")}
+          className="flex items-center justify-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-semibold py-2.5 rounded-xl transition-colors"
+        >
+          <Scale size={15} /> Schedule Body Stats Check-in
+        </button>
+        <button
+          onClick={() => onSchedule("form")}
+          className="flex items-center justify-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-semibold py-2.5 rounded-xl transition-colors"
+        >
+          <NotebookPen size={15} /> Schedule a Check-in Form
+        </button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+function CalendarPanel({ client, showToast }) {
+  const { db, unscheduleWorkout, unscheduleBodyStatsCheckin } = useApp();
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getUTCFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getUTCMonth());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [scheduleKind, setScheduleKind] = useState(null); // "workout" | "bodystats" | "form" | null
+
+  const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
+  const bodyStatsSchedules = (db.bodyStatsSchedules || {})[client.id] || [];
+  const formSchedules = (db.formSchedules || {})[client.id] || [];
+  const forms = db.forms || [];
+  const weighIns = (db.weighIns || {})[client.id] || [];
+
+  const workoutsByDate = useMemo(() => Object.fromEntries(scheduledWorkouts.map((w) => [w.date, w])), [scheduledWorkouts]);
+  const bodyStatsByDate = useMemo(() => Object.fromEntries(bodyStatsSchedules.map((b) => [b.date, b])), [bodyStatsSchedules]);
+  const weighInDates = useMemo(() => new Set(weighIns.map((w) => dKey(new Date(w.date)))), [weighIns]);
+  const activeFormSchedules = useMemo(() => formSchedules.filter((s) => s.active), [formSchedules]);
+  const formsById = useMemo(() => Object.fromEntries(forms.map((f) => [f.id, f])), [forms]);
+
+  const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
+  const todayStr = dKey(now);
+
+  function itemsForDate(date) {
+    const dateStr = dKey(date);
+    const items = [];
+    const w = workoutsByDate[dateStr];
+    if (w) items.push({ type: "workout", label: w.label });
+    const b = bodyStatsByDate[dateStr];
+    if (b) items.push({ type: "bodystats", label: "Track Body Stats", done: weighInDates.has(dateStr) });
+    activeFormSchedules
+      .filter((s) => s.dayOfWeek === date.getUTCDay())
+      .forEach((s) => items.push({ type: "form", label: formsById[s.formId]?.name || "Check-in" }));
+    return items;
+  }
+
+  function goToday() {
+    setViewYear(now.getUTCFullYear());
+    setViewMonth(now.getUTCMonth());
+  }
+
+  function shiftMonth(delta) {
+    let m = viewMonth + delta;
+    let y = viewYear;
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    } else if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+    setViewMonth(m);
+    setViewYear(y);
+  }
+
+  const selectedItems = selectedDate ? itemsForDate(new Date(selectedDate + "T00:00:00Z")) : [];
+
+  return (
+    <div className="px-4 py-5 md:px-6 md:py-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <button onClick={() => shiftMonth(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
+            <ChevronRight size={15} className="rotate-180" />
+          </button>
+          <p className="text-black font-semibold text-sm w-36 text-center">
+            {new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" })}
+          </p>
+          <button onClick={() => shiftMonth(1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
+            <ChevronRight size={15} />
+          </button>
+        </div>
+        <button onClick={goToday} className="text-blue-600 hover:text-blue-700 text-xs font-semibold">
+          Today
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {CAL_WEEKDAY_LABELS.map((l) => (
+          <p key={l} className="text-black/35 text-[10px] font-semibold text-center tracking-wide">
+            {l}
+          </p>
+        ))}
+      </div>
+
+      <div className="space-y-1">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7 gap-1">
+            {week.map((date) => {
+              const dateStr = dKey(date);
+              const inMonth = date.getUTCMonth() === viewMonth;
+              const isToday = dateStr === todayStr;
+              const items = itemsForDate(date);
+              return (
+                <button
+                  key={dateStr}
+                  onClick={() => setSelectedDate(dateStr)}
+                  className={`min-h-[64px] md:min-h-[78px] rounded-lg border text-left px-1.5 py-1.5 transition-colors ${
+                    inMonth ? "bg-white border-black/8 hover:bg-black/[0.03]" : "bg-black/[0.02] border-transparent"
+                  }`}
+                >
+                  <span
+                    className={`text-[11px] font-semibold inline-flex items-center justify-center w-5 h-5 rounded-full ${
+                      isToday ? "bg-black text-white" : inMonth ? "text-black/60" : "text-black/25"
+                    }`}
+                  >
+                    {date.getUTCDate()}
+                  </span>
+                  <div className="mt-1 space-y-0.5">
+                    {items.slice(0, 3).map((it, i) => (
+                      <div
+                        key={i}
+                        className={`text-[9px] md:text-[10px] font-medium truncate rounded px-1 py-0.5 ${
+                          it.type === "workout"
+                            ? "bg-blue-50 text-blue-700"
+                            : it.type === "bodystats"
+                            ? "bg-amber-50 text-amber-700"
+                            : "bg-emerald-50 text-emerald-700"
+                        }`}
+                      >
+                        {it.label}
+                      </div>
+                    ))}
+                    {items.length > 3 && <p className="text-black/30 text-[9px]">+{items.length - 3} more</p>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-4 mt-4">
+        {[
+          ["bg-blue-50 text-blue-700", "Workout"],
+          ["bg-amber-50 text-amber-700", "Body Stats"],
+          ["bg-emerald-50 text-emerald-700", "Check-in Form"],
+        ].map(([cls, label]) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <span className={`w-3 h-3 rounded ${cls.split(" ")[0]}`} />
+            <span className="text-black/40 text-[11px]">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <DayDetailSheet
+        date={selectedDate}
+        client={client}
+        items={selectedItems}
+        onClose={() => setSelectedDate(null)}
+        onSchedule={(kind) => setScheduleKind(kind)}
+        onRemoveWorkout={() => {
+          unscheduleWorkout(client.id, selectedDate);
+          showToast("Workout removed");
+        }}
+        onRemoveBodyStats={() => {
+          unscheduleBodyStatsCheckin(client.id, selectedDate);
+          showToast("Check-in removed");
+        }}
+      />
+
+      <ScheduleWorkoutSheet
+        open={scheduleKind === "workout"}
+        onClose={() => setScheduleKind(null)}
+        client={client}
+        initialDate={selectedDate}
+        showToast={showToast}
+      />
+      <ScheduleBodyStatsSheet
+        open={scheduleKind === "bodystats"}
+        onClose={() => setScheduleKind(null)}
+        client={client}
+        initialDate={selectedDate}
+        showToast={showToast}
+      />
+      <ScheduleFormSheet open={scheduleKind === "form"} onClose={() => setScheduleKind(null)} client={client} showToast={showToast} />
+    </div>
   );
 }
 
@@ -1205,6 +1709,7 @@ function SummaryPanel({ client, showToast }) {
 
 const CLIENT_NAV = [
   { id: "summary", label: "Summary", icon: LayoutGrid },
+  { id: "calendar", label: "Calendar", icon: Calendar },
   { id: "program", label: "Training Program", icon: ClipboardList },
   { id: "nutrition", label: "Nutrition", icon: Utensils },
   { id: "progress", label: "Progress", icon: ImageIcon },
@@ -1371,6 +1876,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
       {/* main panel */}
       <div className="flex-1 min-w-0 min-h-0 overflow-y-auto md:overflow-visible">
         {clientTab === "summary" && <SummaryPanel client={client} showToast={showToast} />}
+        {clientTab === "calendar" && <CalendarPanel client={client} showToast={showToast} />}
         {clientTab === "program" && <TrainingProgramPanel client={client} showToast={showToast} />}
         {clientTab === "nutrition" && <NutritionPanel client={client} showToast={showToast} />}
         {clientTab === "progress" && <ProgressPanel client={client} />}
