@@ -3,9 +3,9 @@ import { useApp, flattenSessions } from "../lib/AppContext";
 import { Card, Pill } from "../components/ui";
 import { Users, ClipboardList, Dumbbell, UserPlus, FilePlus, Video, Mail } from "lucide-react";
 
-function StatCard({ icon: Icon, label, value }) {
+function StatCard({ icon: Icon, label, value, onClick }) {
   return (
-    <Card className="!p-4">
+    <Card className="!p-4" onClick={onClick}>
       <Icon size={18} className="text-white/40 mb-3" />
       <p className="text-white text-2xl font-bold leading-none">{value}</p>
       <p className="text-white/40 text-[11px] tracking-wide mt-1.5">{label}</p>
@@ -27,10 +27,10 @@ export default function CoachDashboard({ onNavigate }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <StatCard icon={Users} label="ACTIVE CLIENTS" value={active.length} />
-        <StatCard icon={Mail} label="NOT SENT YET" value={invited.length} />
-        <StatCard icon={ClipboardList} label="PROGRAMS" value={db.programs.length} />
-        <StatCard icon={Dumbbell} label="EXERCISES" value={db.exercises.length} />
+        <StatCard icon={Users} label="ACTIVE CLIENTS" value={active.length} onClick={() => onNavigate("clients")} />
+        <StatCard icon={Mail} label="NOT SENT YET" value={invited.length} onClick={() => onNavigate("clients")} />
+        <StatCard icon={ClipboardList} label="PROGRAMS" value={db.programs.length} onClick={() => onNavigate("programs")} />
+        <StatCard icon={Dumbbell} label="EXERCISES" value={db.exercises.length} onClick={() => onNavigate("exercises")} />
       </div>
 
       <Card>

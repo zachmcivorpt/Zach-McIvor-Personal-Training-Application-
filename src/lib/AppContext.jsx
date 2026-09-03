@@ -6,10 +6,22 @@ import { COACH_SETUP_CODE } from "./config";
 const DB_KEY = "mpt_db_v4";
 const SESSION_KEY = "mpt_session_v2";
 
+// Adds any exercise from the built-in library that isn't already present
+// (by id) — lets us grow the shipped library over time without wiping or
+// duplicating anything in an account that already exists.
+function mergeSeedExercises(existing) {
+  const existingIds = new Set((existing || []).map((e) => e.id));
+  const missing = SEED_EXERCISES.filter((e) => !existingIds.has(e.id));
+  return missing.length ? [...existing, ...missing] : existing;
+}
+
 function loadDb() {
   try {
     const raw = localStorage.getItem(DB_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...parsed, exercises: mergeSeedExercises(parsed.exercises) };
+    }
   } catch {
     // fall through to fresh install
   }
