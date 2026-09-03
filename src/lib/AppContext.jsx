@@ -36,6 +36,7 @@ function loadDb() {
     savedMeals: {}, // clientId -> [{ id, name, ingredients:[{name,cals,protein,carbs,fat}], cals, protein, carbs, fat, createdAt }]
     habits: {}, // clientId -> [{ id, label, createdAt }]
     habitLog: {}, // clientId -> { "YYYY-MM-DD": [habitId, ...] }
+    clientPhases: {}, // clientId -> [{ id, name, level, description, startDate, endDate, weeks:[...] }]
   };
 }
 
@@ -209,6 +210,72 @@ export function AppProvider({ children }) {
         }));
       },
 
+      // Per-client training timeline — each phase is that client's own copy of
+      // a plan (optionally started from a program template) with its own date
+      // range, independent of every other client's phases.
+      addClientPhase(clientId, data) {
+        const id = newId("phase");
+        const phase = {
+          id,
+          name: "New Phase",
+          level: "Intermediate",
+          description: "",
+          startDate: new Date().toISOString().slice(0, 10),
+          endDate: "",
+          weeks: [],
+          createdAt: Date.now(),
+          ...data,
+        };
+        setDb((d) => ({
+          ...d,
+          clientPhases: {
+            ...(d.clientPhases || {}),
+            [clientId]: [...((d.clientPhases || {})[clientId] || []), phase],
+          },
+        }));
+        return phase;
+      },
+
+      updateClientPhase(clientId, phaseId, patch) {
+        setDb((d) => ({
+          ...d,
+          clientPhases: {
+            ...(d.clientPhases || {}),
+            [clientId]: ((d.clientPhases || {})[clientId] || []).map((p) => (p.id === phaseId ? { ...p, ...patch } : p)),
+          },
+        }));
+      },
+
+      deleteClientPhase(clientId, phaseId) {
+        setDb((d) => ({
+          ...d,
+          clientPhases: {
+            ...(d.clientPhases || {}),
+            [clientId]: ((d.clientPhases || {})[clientId] || []).filter((p) => p.id !== phaseId),
+          },
+        }));
+      },
+
+      duplicateClientPhase(clientId, phaseId, overrides) {
+        const phases = (db.clientPhases || {})[clientId] || [];
+        const src = phases.find((p) => p.id === phaseId);
+        if (!src) return null;
+        const cloned = {
+          ...JSON.parse(JSON.stringify(src)),
+          id: newId("phase"),
+          createdAt: Date.now(),
+          ...overrides,
+        };
+        setDb((d) => ({
+          ...d,
+          clientPhases: {
+            ...(d.clientPhases || {}),
+            [clientId]: [...((d.clientPhases || {})[clientId] || []), cloned],
+          },
+        }));
+        return cloned;
+      },
+
       createExercise(data) {
         const id = newId("ex");
         const exercise = { id, instructions: [], formCues: [], secondaryMuscles: [], videoUrl: "", ...data };
@@ -365,6 +432,21 @@ export function flattenSessions(program) {
     }
   }
   return out;
+}
+
+// Picks which of a client's phases is "current" for a given date: the one
+// whose date range contains it, else the most recently finished one, else
+// the next upcoming one — so there's always a sensible program to show.
+export function getCurrentPhase(phases, todayKey) {
+  if (!phases || phases.length === 0) return null;
+  const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const active = sorted.find((p) => p.startDate <= todayKey && (!p.endDate || p.endDate >= todayKey));
+  if (active) return active;
+  const past = sorted.filter((p) => p.endDate && p.endDate < todayKey);
+  if (past.length) return past[past.length - 1];
+  const upcoming = sorted.find((p) => p.startDate > todayKey);
+  if (upcoming) return upcoming;
+  return sorted[sorted.length - 1] || null;
 }
 
 export function estimate1RM(weight, reps) {

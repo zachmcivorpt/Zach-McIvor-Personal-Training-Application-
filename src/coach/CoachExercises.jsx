@@ -190,18 +190,18 @@ export default function CoachExercises({ showToast }) {
   const filtered = db.exercises.filter((e) => e.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="px-5 pb-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="max-w-6xl mx-auto px-8 py-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-white text-2xl font-bold">Exercise Library</h1>
           <p className="text-white/40 text-sm mt-0.5">{db.exercises.length} total</p>
         </div>
-        <button onClick={() => setEditing({ isNew: true })} className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center">
-          <Plus size={20} />
+        <button onClick={() => setEditing({ isNew: true })} className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl">
+          <Plus size={16} /> NEW EXERCISE
         </button>
       </div>
 
-      <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5">
+      <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 mb-5 max-w-sm">
         <Search size={16} className="text-white/40" />
         <input
           value={search}
@@ -211,7 +211,7 @@ export default function CoachExercises({ showToast }) {
         />
       </div>
 
-      <div className="space-y-2.5">
+      <div className="grid grid-cols-3 gap-2.5">
         {filtered.map((ex) => (
           <Card key={ex.id} onClick={() => setEditing(ex)}>
             <div className="flex items-center gap-3">

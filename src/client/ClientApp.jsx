@@ -46,7 +46,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useApp, flattenSessions, estimate1RM, getPreviousPerformance } from "../lib/AppContext";
+import { useApp, flattenSessions, estimate1RM, getPreviousPerformance, getCurrentPhase } from "../lib/AppContext";
 import {
   Card,
   Pill,
@@ -606,8 +606,9 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
     }
 
     if (currentSetNum < exMeta.targetSets) {
-      setRestTime(90);
-      setRestTotal(90);
+      const rest = exMeta.restSeconds ?? 90;
+      setRestTime(rest);
+      setRestTotal(rest);
       setResting(true);
     }
   }
@@ -1671,7 +1672,9 @@ export default function ClientApp() {
   const [seenMessageCount, setSeenMessageCount] = useState(0);
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
 
-  const program = db.programs.find((p) => p.id === currentUser.assignedProgramId) || null;
+  const clientPhases = (db.clientPhases || {})[currentUser.id] || [];
+  const currentPhase = getCurrentPhase(clientPhases, new Date().toISOString().slice(0, 10));
+  const program = currentPhase || db.programs.find((p) => p.id === currentUser.assignedProgramId) || null;
   const thread = db.messages[currentUser.id] || [];
   const photos = db.progressPhotos[currentUser.id] || [];
   const unreadCount = Math.max(0, thread.filter((m) => m.from === "coach").length - seenMessageCount);

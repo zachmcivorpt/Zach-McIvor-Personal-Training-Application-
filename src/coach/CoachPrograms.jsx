@@ -314,26 +314,25 @@ export default function CoachPrograms({ showToast }) {
   }
 
   return (
-    <div className="px-5 pb-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="max-w-6xl mx-auto px-8 py-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-white text-2xl font-bold">Programs</h1>
-          <p className="text-white/40 text-sm mt-0.5">{db.programs.length} total</p>
+          <h1 className="text-white text-2xl font-bold">Program Templates</h1>
+          <p className="text-white/40 text-sm mt-0.5">{db.programs.length} total · reusable starting points for a client's phases</p>
         </div>
-        <button onClick={openNew} className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center">
-          <Plus size={20} />
+        <button onClick={openNew} className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl">
+          <Plus size={16} /> NEW TEMPLATE
         </button>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="grid grid-cols-3 gap-3">
         {db.programs.length === 0 && (
-          <Card>
+          <Card className="col-span-3">
             <p className="text-white/40 text-sm text-center py-6">No programs yet — build your first one.</p>
           </Card>
         )}
         {db.programs.map((p) => {
           const sessions = p.weeks.reduce((a, w) => a + w.days.length, 0);
-          const assignedCount = db.users.filter((u) => u.assignedProgramId === p.id).length;
           return (
             <Card key={p.id} onClick={() => setEditing(p)}>
               <div className="flex items-center justify-between mb-1.5">
@@ -341,11 +340,8 @@ export default function CoachPrograms({ showToast }) {
                 <Pill tone="outline">{p.level}</Pill>
               </div>
               {p.description && <p className="text-white/40 text-xs mb-2 line-clamp-2">{p.description}</p>}
-              <div className="flex items-center gap-3 text-white/35 text-xs">
-                <span className="flex items-center gap-1">
-                  <ClipboardList size={12} /> {sessions} session{sessions === 1 ? "" : "s"}
-                </span>
-                <span>{assignedCount} client{assignedCount === 1 ? "" : "s"} assigned</span>
+              <div className="flex items-center gap-1 text-white/35 text-xs">
+                <ClipboardList size={12} /> {sessions} session{sessions === 1 ? "" : "s"}
               </div>
             </Card>
           );

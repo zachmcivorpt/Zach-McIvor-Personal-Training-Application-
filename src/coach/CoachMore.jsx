@@ -7,9 +7,9 @@ export default function CoachMore({ onNavigate, onLogout }) {
   const { currentUser, updateUser } = useApp();
 
   return (
-    <div className="px-5 pb-6 space-y-4">
+    <div className="max-w-xl px-8 py-8 space-y-4">
       <div>
-        <h1 className="text-white text-2xl font-bold">More</h1>
+        <h1 className="text-white text-2xl font-bold">Settings</h1>
       </div>
 
       <Card onClick={() => onNavigate("exercises")}>
