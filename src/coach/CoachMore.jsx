@@ -1,6 +1,6 @@
 import React from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, Logo, DangerButton } from "../components/ui";
+import { Card, DangerButton } from "../components/ui";
 import { Video, LogOut, ChevronRight } from "lucide-react";
 
 export default function CoachMore({ onNavigate, onLogout }) {
@@ -36,13 +36,6 @@ export default function CoachMore({ onNavigate, onLogout }) {
             <p className="text-white/30 text-xs mt-0.5">@{currentUser?.username}</p>
           </div>
         </div>
-      </Card>
-
-      <Card className="flex flex-col items-center py-8">
-        <Logo variant="wordmark" tone="white" className="h-12 w-auto mb-3" />
-        <p className="text-white/40 text-xs text-center">
-          This mark appears across sign-in, the client app header, and workout completion screens.
-        </p>
       </Card>
 
       <DangerButton className="w-full" onClick={onLogout}>

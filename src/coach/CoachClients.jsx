@@ -11,9 +11,7 @@ import {
   SecondaryButton,
   DangerButton,
   FullScreenOverlay,
-  Sparkline,
 } from "../components/ui";
-import { WEIGHT_HISTORY } from "../lib/mockMetrics";
 import { ThreadView } from "./CoachMessages";
 import {
   UserPlus,
@@ -101,8 +99,6 @@ function ClientProfile({ client, onClose, showToast }) {
   const program = db.programs.find((p) => p.id === client.assignedProgramId);
   const logs = db.workoutLogs[client.id] || [];
   const photos = db.progressPhotos[client.id] || [];
-  // Illustrative body-weight trend only exists for the seeded demo persona.
-  const hasWeightTrend = client.id === "u_client_demo";
 
   return (
     <FullScreenOverlay>
@@ -147,14 +143,6 @@ function ClientProfile({ client, onClose, showToast }) {
             <div className="flex items-center gap-2 -mt-3 text-white/40 text-xs">
               <ClipboardList size={13} /> {program.weeks.reduce((a, w) => a + w.days.length, 0)} sessions · {program.level}
             </div>
-          )}
-
-          {hasWeightTrend && (
-            <Card>
-              <p className="text-white/50 text-xs tracking-wide mb-1">BODY WEIGHT</p>
-              <p className="text-white text-2xl font-bold mb-2">{WEIGHT_HISTORY[WEIGHT_HISTORY.length - 1].value} kg</p>
-              <Sparkline data={WEIGHT_HISTORY} height={44} />
-            </Card>
           )}
 
           <div>

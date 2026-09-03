@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { newId, inviteCode } from "./id";
-import { SEED_EXERCISES, SEED_PROGRAMS, seedUsers, seedWorkoutLogs, seedMessages } from "./seed";
+import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 
-const DB_KEY = "mpt_db_v3";
+const DB_KEY = "mpt_db_v4";
 const SESSION_KEY = "mpt_session_v2";
 
 function loadDb() {
@@ -10,15 +10,15 @@ function loadDb() {
     const raw = localStorage.getItem(DB_KEY);
     if (raw) return JSON.parse(raw);
   } catch {
-    // fall through to fresh seed
+    // fall through to fresh install
   }
   return {
-    users: seedUsers(),
+    users: [], // starts empty — the coach creates their own account on first visit
     exercises: SEED_EXERCISES,
     programs: SEED_PROGRAMS,
-    workoutLogs: { u_client_demo: seedWorkoutLogs() }, // clientId -> [{ id, date, dayLabel, entries:[{exerciseId, sets:[{weight,reps,rpe,isPR}]}] }]
+    workoutLogs: {}, // clientId -> [{ id, date, dayLabel, entries:[{exerciseId, sets:[{weight,reps,rpe,isPR}]}] }]
     nutrition: {}, // clientId -> nutrition state
-    messages: seedMessages(), // clientId -> [{ id, from: 'coach'|'client', text, date }]
+    messages: {}, // clientId -> [{ id, from: 'coach'|'client', text, date }]
     progressPhotos: {}, // clientId -> [{ id, url, date, caption }]
   };
 }
@@ -61,6 +61,8 @@ export function AppProvider({ children }) {
     return db.users.find((u) => u.id === session.userId) || null;
   }, [db.users, session]);
 
+  const hasCoach = useMemo(() => db.users.some((u) => u.role === "coach"), [db.users]);
+
   const actions = useMemo(
     () => ({
       login(username, password) {
@@ -76,6 +78,30 @@ export function AppProvider({ children }) {
 
       logout() {
         setSession(null);
+      },
+
+      createCoachAccount({ name, email, username, password }) {
+        if (db.users.some((u) => u.role === "coach")) {
+          throw new Error("A coach account already exists in this browser.");
+        }
+        const cleanUsername = username.trim();
+        if (db.users.some((u) => u.username.toLowerCase() === cleanUsername.toLowerCase())) {
+          throw new Error("That username is taken.");
+        }
+        const id = newId("u");
+        const coach = {
+          id,
+          role: "coach",
+          name: name.trim(),
+          email: email.trim(),
+          username: cleanUsername,
+          password,
+          status: "active",
+          createdAt: Date.now(),
+        };
+        setDb((d) => ({ ...d, users: [...d.users, coach] }));
+        setSession({ userId: id });
+        return coach;
       },
 
       createInvite({ name, email }) {
@@ -239,7 +265,7 @@ export function AppProvider({ children }) {
     [db]
   );
 
-  const value = { db, session, currentUser, ...actions };
+  const value = { db, session, currentUser, hasCoach, ...actions };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }
 
