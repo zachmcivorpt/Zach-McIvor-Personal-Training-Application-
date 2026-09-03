@@ -462,3 +462,13 @@ export function getPreviousPerformance(logs, exerciseId) {
   }
   return null;
 }
+
+// Every set from the most recent logged session for this exercise, in order —
+// used to show "12 x 22.5 kg" per set row, not just the single last value.
+export function getPreviousSets(logs, exerciseId) {
+  for (const log of logs || []) {
+    const entry = log.entries.find((e) => e.exerciseId === exerciseId);
+    if (entry && entry.sets.length) return entry.sets;
+  }
+  return [];
+}

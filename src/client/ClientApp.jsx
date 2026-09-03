@@ -33,6 +33,10 @@ import {
   Send,
   MessageCircle,
   StickyNote,
+  Clock,
+  MessageSquarePlus,
+  Video,
+  ClipboardList,
 } from "lucide-react";
 import {
   LineChart,
@@ -46,7 +50,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useApp, flattenSessions, estimate1RM, getPreviousPerformance, getCurrentPhase } from "../lib/AppContext";
+import { useApp, flattenSessions, estimate1RM, getPreviousPerformance, getPreviousSets, getCurrentPhase } from "../lib/AppContext";
 import {
   Card,
   Pill,
@@ -133,6 +137,14 @@ function estimateCalories(volume, durationMin) {
   return Math.round(volume * 0.05 + durationMin * 4);
 }
 
+function formatRest(seconds) {
+  if (!seconds) return "0s";
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s ? `${m}m ${s}s` : `${m}m`;
+}
+
 /* ============================================================================
    HOME
 ============================================================================ */
@@ -170,8 +182,6 @@ function Header({ user, onAvatarClick }) {
 }
 
 function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById }) {
-  const [previewOpen, setPreviewOpen] = useState(false);
-
   if (!program || !todaySession) {
     return (
       <Card className="mx-5 text-center py-10">
@@ -234,28 +244,9 @@ function TodayWorkoutCard({ program, todaySession, sessionsLen, activeLog, onSta
               <Check size={14} /> Workout completed
             </div>
           )}
-          <button
-            onClick={() => setPreviewOpen((o) => !o)}
-            className="w-full mt-4 text-black/60 text-sm font-medium py-2.5 rounded-xl bg-black/5"
-          >
-            {previewOpen ? "Hide exercises" : "Preview exercises"}
+          <button onClick={onView} className="w-full mt-4 text-black/60 text-sm font-medium py-2.5 rounded-xl bg-black/5">
+            Preview exercises
           </button>
-          {previewOpen && exercisesById && (
-            <div className="mt-3 space-y-1.5">
-              {todaySession.exercises.map((e, i) => {
-                const ex = exercisesById[e.exerciseId];
-                if (!ex) return null;
-                return (
-                  <div key={i} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-3.5 py-2.5">
-                    <span className="text-black/80 text-sm">{ex.name}</span>
-                    <span className="text-black/35 text-xs">
-                      {e.targetSets} × {e.targetReps}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </>
       )}
     </Card>
@@ -557,31 +548,261 @@ function HomeScreen({
 }
 
 /* ============================================================================
-   WORKOUT SESSION FLOW
+   WORKOUT PREVIEW + SESSION FLOW
 ============================================================================ */
 
-function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForClient, exercisesById, exerciseNotes, setExerciseNotes, onFinish, onExit }) {
-  const exIndex = daySession._exIndex;
-  const exMeta = daySession.exercises[exIndex];
-  const exercise = exercisesById[exMeta.exerciseId];
-  const log = activeLog[exMeta.exerciseId] || [];
-  const currentSetNum = log.filter((s) => s.completed).length + 1;
-  const isLastSetOfExercise = currentSetNum > exMeta.targetSets;
-  const previous = getPreviousPerformance(logsForClient, exMeta.exerciseId);
-  const myNote = exerciseNotes[exMeta.exerciseId] || "";
+function ExerciseThumb({ exercise, size = 56 }) {
+  return (
+    <div
+      className="rounded-2xl bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center"
+      style={{ width: size, height: size }}
+    >
+      {exercise?.videoUrl ? (
+        <video src={exercise.videoUrl} muted className="w-full h-full object-cover" />
+      ) : (
+        <Dumbbell size={Math.round(size * 0.4)} className="text-black/25" />
+      )}
+    </div>
+  );
+}
 
-  const [weight, setWeight] = useState(previous?.weight ?? 0);
-  const [reps, setReps] = useState(exMeta.targetReps);
+function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClose }) {
+  const equipment = useMemo(() => {
+    const set = new Set();
+    session.exercises.forEach((e) => {
+      const ex = exercisesById[e.exerciseId];
+      if (ex?.equipment) set.add(ex.equipment);
+    });
+    return Array.from(set);
+  }, [session, exercisesById]);
+
+  const estMinutes = Math.max(
+    5,
+    Math.round(session.exercises.reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60)
+  );
+
+  return (
+    <FullScreenOverlay>
+      <div className="fixed inset-0 z-[90] bg-white flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5">
+          <button onClick={onClose} className="text-black/60">
+            <X size={22} />
+          </button>
+          <span className="text-black/70 text-sm font-semibold">{session.weekLabel || "Workout Preview"}</span>
+          <ClipboardList size={19} className="text-black/25" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-28">
+          <div className="flex items-center gap-2.5 mt-4">
+            <span className="w-9 h-9 rounded-full border-2 border-black/15 shrink-0" />
+            <h1 className="text-black text-2xl font-bold truncate">{session.label}</h1>
+          </div>
+
+          <div className="flex items-center gap-5 mt-4 text-black/50 text-[13px] font-medium flex-wrap">
+            <span className="flex items-center gap-1.5">
+              <Target size={15} /> Regular
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock size={15} /> ~{estMinutes} min
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Dumbbell size={15} /> {session.exercises.length} Exercises
+            </span>
+          </div>
+
+          {equipment.length > 0 && (
+            <div className="mt-5">
+              <p className="text-black/35 text-xs font-semibold tracking-wide mb-2">EQUIPMENT</p>
+              <div className="flex gap-2.5 flex-wrap">
+                {equipment.map((eq) => (
+                  <div key={eq} className="flex flex-col items-center gap-1.5 w-16">
+                    <div className="w-14 h-14 rounded-2xl bg-black/5 border border-black/5 flex items-center justify-center">
+                      <Dumbbell size={20} className="text-black/40" />
+                    </div>
+                    <span className="text-black/45 text-[10px] text-center leading-tight">{eq}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-5 border-t border-black/5">
+            {session.exercises.map((e, i) => {
+              const ex = exercisesById[e.exerciseId];
+              if (!ex) return null;
+              return (
+                <div key={i} className="relative flex items-center gap-3 py-3.5 border-b border-black/5">
+                  <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full" style={{ background: MEASURE_BLUE }} />
+                  <div className="pl-3 flex items-center gap-3 flex-1 min-w-0">
+                    <ExerciseThumb exercise={ex} size={56} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                      <p className="text-black/45 text-[13px] mt-0.5">
+                        {e.targetSets} sets × {e.targetReps} reps, {formatRest(e.restSeconds ?? 90)} rest between sets
+                      </p>
+                    </div>
+                    {e.notes && <ClipboardList size={16} style={{ color: MEASURE_BLUE }} className="shrink-0" />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {canStart && (
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
+            <button
+              onClick={onStart}
+              className="bg-black text-white font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <Play size={16} fill="white" />
+              Start Now
+            </button>
+          </div>
+        )}
+      </div>
+    </FullScreenOverlay>
+  );
+}
+
+function RestBar({ restTime, restTotal, label, onSkip, onAdd15 }) {
+  const pct = restTotal > 0 ? ((restTotal - restTime) / restTotal) * 100 : 0;
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-[95] flex justify-center">
+      <div className="w-full max-w-md bg-black text-white px-5 py-3.5 flex items-center gap-3 shadow-2xl">
+        <div className="flex-1 min-w-0">
+          <p className="text-white/50 text-[11px] tracking-wide truncate">RESTING · {label}</p>
+          <p className="text-white text-xl font-bold tabular-nums">
+            {Math.floor(Math.max(restTime, 0) / 60)}:{String(Math.max(restTime, 0) % 60).padStart(2, "0")}
+          </p>
+          <div className="h-1 bg-white/15 rounded-full mt-1.5 overflow-hidden">
+            <div className="h-full bg-white rounded-full transition-all" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+        <button onClick={onAdd15} className="bg-white/12 text-white text-xs font-semibold px-3 py-2.5 rounded-xl shrink-0">
+          +15s
+        </button>
+        <button onClick={onSkip} className="bg-white text-black text-xs font-bold px-3 py-2.5 rounded-xl shrink-0">
+          SKIP
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange }) {
+  const [notesExpanded, setNotesExpanded] = useState(false);
+  const coachNote = exMeta.notes || "";
+  const isLongNote = coachNote.length > 90;
+
+  return (
+    <div className="bg-[#F7F7F8] rounded-3xl p-4 border border-black/5">
+      <div className="flex items-center gap-3">
+        <ExerciseThumb exercise={exercise} size={56} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="text-black font-bold text-[15px] truncate">{exercise.name}</p>
+            {exMeta.groupType && (
+              <span className="bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                {exMeta.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
+              </span>
+            )}
+          </div>
+          <p className="text-black/45 text-[13px] mt-0.5">
+            {exMeta.targetSets} sets × {exMeta.targetReps} reps
+          </p>
+        </div>
+        <button
+          onClick={onToggleNote}
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+            noteOpen || note ? "bg-black text-white" : "bg-black/8 text-black/50"
+          }`}
+        >
+          <MessageSquarePlus size={15} />
+        </button>
+      </div>
+
+      {coachNote && (
+        <div className="mt-3 bg-white border border-black/10 rounded-2xl px-3.5 py-2.5">
+          <p className={`text-black/70 text-[13px] leading-snug ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
+          {isLongNote && (
+            <button onClick={() => setNotesExpanded((v) => !v)} className="text-[12px] font-semibold mt-1" style={{ color: MEASURE_BLUE }}>
+              {notesExpanded ? "See less" : "See more"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {noteOpen && (
+        <div className="mt-3">
+          <textarea
+            value={note}
+            onChange={(e) => onNoteChange(e.target.value)}
+            placeholder="Add your own note on this exercise…"
+            rows={2}
+            autoFocus
+            className="w-full bg-white border border-black/10 rounded-2xl px-3.5 py-2.5 text-black text-[13px] outline-none placeholder:text-black/25 resize-none"
+          />
+        </div>
+      )}
+
+      <div className="mt-3 flex items-center gap-2 bg-black/[0.04] rounded-full pl-3 pr-1.5 py-1.5">
+        <Clock size={13} className="text-black/40 shrink-0" />
+        <span className="text-black/50 text-[12px] font-medium flex-1">Rest between each set</span>
+        <span className="bg-white text-black/70 text-[12px] font-semibold px-2.5 py-1 rounded-full shrink-0">
+          {formatRest(exMeta.restSeconds ?? 90)}
+        </span>
+      </div>
+
+      <div className="mt-3">
+        <div className="grid grid-cols-[28px_1fr_60px_60px] gap-2 px-1 mb-1.5">
+          <span className="text-black/35 text-[11px] font-semibold">SET</span>
+          <span className="text-black/35 text-[11px] font-semibold">PREVIOUS</span>
+          <span className="text-black/35 text-[11px] font-semibold text-center">REPS</span>
+          <span className="text-black/35 text-[11px] font-semibold text-center">KG</span>
+        </div>
+        {rows.map((row, i) => {
+          const prev = previousSets[i];
+          return (
+            <div key={i} className="grid grid-cols-[28px_1fr_60px_60px] gap-2 items-center px-1 py-1.5">
+              <span className="text-black/50 text-[13px] font-semibold">{i + 1}</span>
+              <span className="text-black/40 text-[13px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={row.reps}
+                onChange={(e) => onChangeField(i, "reps", e.target.value)}
+                className="w-full bg-white border border-black/10 rounded-xl text-center text-black text-[14px] font-medium py-2 outline-none focus:border-black/30"
+              />
+              <input
+                type="number"
+                inputMode="decimal"
+                value={row.weight}
+                onChange={(e) => onChangeField(i, "weight", e.target.value)}
+                onBlur={() => onBlurKg(i)}
+                className="w-full bg-white border border-black/10 rounded-xl text-center text-black text-[14px] font-medium py-2 outline-none focus:border-black/30"
+              />
+            </div>
+          );
+        })}
+        <button onClick={onAddSet} className="flex items-center gap-1.5 mt-2 px-1" style={{ color: MEASURE_BLUE }}>
+          <Plus size={14} className="border rounded-full p-0.5 box-content" style={{ borderColor: MEASURE_BLUE }} />
+          <span className="text-[13px] font-semibold">Add new set</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForClient, exercisesById, exerciseNotes, setExerciseNotes, onFinish, onExit }) {
+  const [autoFill, setAutoFill] = useState(false);
+  const [noteOpenFor, setNoteOpenFor] = useState(null);
+  const [prToast, setPrToast] = useState(null);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
-  const [prToast, setPrToast] = useState(null);
+  const [restLabel, setRestLabel] = useState("");
   const timerRef = useRef(null);
-
-  useEffect(() => {
-    setWeight(previous?.weight ?? 0);
-    setReps(exMeta.targetReps);
-  }, [exIndex]);
 
   useEffect(() => {
     if (resting && restTime > 0) {
@@ -592,212 +813,154 @@ function WorkoutSession({ session: daySession, activeLog, setActiveLog, logsForC
     return () => clearTimeout(timerRef.current);
   }, [resting, restTime]);
 
-  function completeSet() {
-    const e1rm = estimate1RM(weight, reps);
-    const isPR = previous
-      ? weight > previous.weight || e1rm > estimate1RM(previous.weight, previous.reps)
-      : false;
+  function rowsFor(exMeta) {
+    const existing = activeLog[exMeta.exerciseId] || [];
+    const count = Math.max(exMeta.targetSets, existing.length);
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      out.push(existing[i] || { setNumber: i + 1, weight: "", reps: "", completed: false });
+    }
+    return out;
+  }
 
-    const newSet = { setNumber: currentSetNum, weight, reps, completed: true, isPR };
-    setActiveLog((prev) => ({ ...prev, [exMeta.exerciseId]: [...(prev[exMeta.exerciseId] || []), newSet] }));
+  function setField(exerciseId, idx, field, value) {
+    setActiveLog((prev) => {
+      const arr = [...(prev[exerciseId] || [])];
+      while (arr.length <= idx) arr.push({ setNumber: arr.length + 1, weight: "", reps: "", completed: false });
+      arr[idx] = { ...arr[idx], [field]: value };
+      return { ...prev, [exerciseId]: arr };
+    });
+  }
+
+  function addSet(exMeta) {
+    setActiveLog((prev) => {
+      const arr = [...(prev[exMeta.exerciseId] || [])];
+      while (arr.length < exMeta.targetSets) arr.push({ setNumber: arr.length + 1, weight: "", reps: "", completed: false });
+      arr.push({ setNumber: arr.length + 1, weight: "", reps: "", completed: false });
+      return { ...prev, [exMeta.exerciseId]: arr };
+    });
+  }
+
+  function handleBlurKg(exMeta, idx) {
+    const arr = activeLog[exMeta.exerciseId] || [];
+    const row = arr[idx];
+    if (!row) return;
+    const weight = parseFloat(row.weight);
+    const reps = parseInt(row.reps, 10);
+    if (!weight || !reps || isNaN(weight) || isNaN(reps)) return;
+
+    const prevSets = getPreviousSets(logsForClient, exMeta.exerciseId);
+    const previous = prevSets[idx] || getPreviousPerformance(logsForClient, exMeta.exerciseId);
+    const e1rm = estimate1RM(weight, reps);
+    const isPR = previous ? weight > previous.weight || e1rm > estimate1RM(previous.weight, previous.reps) : false;
+
+    setActiveLog((prev) => {
+      const next = [...(prev[exMeta.exerciseId] || [])];
+      next[idx] = { ...next[idx], completed: true, isPR };
+      return { ...prev, [exMeta.exerciseId]: next };
+    });
 
     if (isPR) {
-      setPrToast({ weight, reps, prevWeight: previous.weight, prevReps: previous.reps });
+      setPrToast({ exerciseName: exercisesById[exMeta.exerciseId]?.name, weight, reps, prevWeight: previous.weight, prevReps: previous.reps });
       setTimeout(() => setPrToast(null), 3200);
     }
 
-    if (currentSetNum < exMeta.targetSets) {
+    const totalRows = Math.max(exMeta.targetSets, arr.length);
+    if (idx < totalRows - 1) {
       const rest = exMeta.restSeconds ?? 90;
       setRestTime(rest);
       setRestTotal(rest);
+      setRestLabel(exercisesById[exMeta.exerciseId]?.name || "");
       setResting(true);
     }
   }
 
-  function nextExercise() {
-    if (exIndex < daySession.exercises.length - 1) {
-      daySession._setExIndex(exIndex + 1);
-    } else {
-      onFinish();
-    }
-  }
-
-  function prevExercise() {
-    if (exIndex > 0) daySession._setExIndex(exIndex - 1);
-  }
-
-  if (resting) {
-    return (
-      <FullScreenOverlay>
-        <div className="fixed inset-0 z-[90] bg-white flex flex-col">
-          <div className="flex items-center justify-between px-5 pt-6">
-            <button onClick={() => setResting(false)} className="text-black/50 text-sm font-medium">
-              End rest
-            </button>
-            <span className="text-black/40 text-sm font-medium">Rest</span>
-            <button onClick={onExit} className="text-black/50">
-              <ChevronDown size={20} className="rotate-180" />
-            </button>
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <Ring value={restTotal - restTime} max={restTotal} size={220} stroke={10}>
-              <div className="text-center">
-                <p className="text-black text-5xl font-bold tabular-nums">
-                  {Math.floor(restTime / 60)}:{String(restTime % 60).padStart(2, "0")}
-                </p>
-                <p className="text-black/40 text-sm mt-1">Next: Set {currentSetNum} of {exMeta.targetSets}</p>
-              </div>
-            </Ring>
-          </div>
-          <div className="flex gap-3 px-6 pb-10">
-            <button
-              onClick={() => {
-                setRestTime((t) => t + 15);
-                setRestTotal((t) => t + 15);
-              }}
-              className="flex-1 bg-black/8 text-black font-semibold py-4 rounded-2xl"
-            >
-              +15s
-            </button>
-            <button onClick={() => setResting(false)} className="flex-1 bg-black text-white font-bold py-4 rounded-2xl">
-              SKIP REST
-            </button>
-          </div>
-        </div>
-      </FullScreenOverlay>
-    );
+  function toggleAutoFill() {
+    setAutoFill((prevOn) => {
+      const next = !prevOn;
+      if (next) {
+        setActiveLog((log) => {
+          const updated = { ...log };
+          daySession.exercises.forEach((exMeta) => {
+            const prevSets = getPreviousSets(logsForClient, exMeta.exerciseId);
+            const arr = [...(updated[exMeta.exerciseId] || [])];
+            for (let i = 0; i < exMeta.targetSets; i++) {
+              if (!arr[i]) arr[i] = { setNumber: i + 1, weight: "", reps: "", completed: false };
+              const p = prevSets[i];
+              if (p && !arr[i].weight && !arr[i].reps) {
+                arr[i] = { ...arr[i], weight: p.weight, reps: p.reps };
+              }
+            }
+            updated[exMeta.exerciseId] = arr;
+          });
+          return updated;
+        });
+      }
+      return next;
+    });
   }
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-white flex flex-col overflow-y-auto">
-        <div className="flex items-center justify-between px-5 pt-6 pb-2 sticky top-0 bg-white z-10">
-          <button onClick={onExit} className="text-black/50">
-            <ChevronDown size={22} />
+      <div className="fixed inset-0 z-[90] bg-white flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5">
+          <button onClick={onExit} className="text-black/60 text-sm font-medium">
+            Cancel
           </button>
-          <div className="flex-1 mx-4">
-            <ProgressBar value={exIndex + 1} max={daySession.exercises.length} height={5} />
-          </div>
-          <span className="text-black/40 text-xs font-medium">
-            {exIndex + 1}/{daySession.exercises.length}
-          </span>
+          <h1 className="text-black font-bold text-[15px] truncate px-2">{daySession.label}</h1>
+          <button onClick={onFinish} className="text-black font-bold text-sm shrink-0">
+            Save
+          </button>
         </div>
 
-        <div className="px-5 pt-4">
-          <div className="w-full h-44 rounded-3xl bg-gradient-to-br from-black/10 to-black/[0.03] flex items-center justify-center border border-black/5 overflow-hidden">
-            {exercise.videoUrl ? (
-              <video src={exercise.videoUrl} controls className="w-full h-full object-cover" />
-            ) : (
-              <Play size={36} className="text-black/30" />
-            )}
-          </div>
-
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2 min-w-0">
-              <h2 className="text-black text-2xl font-bold truncate">{exercise.name}</h2>
-              {exMeta.groupType && (
-                <span className="bg-black/8 text-black/50 text-[10px] font-bold tracking-wide px-2 py-1 rounded shrink-0">
-                  {exMeta.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
-                </span>
-              )}
-            </div>
-            <Pill>{exercise.equipment}</Pill>
-          </div>
-          <p className="text-black/40 text-sm mt-1">{exercise.primaryMuscles.join(" · ")}</p>
-
-          <div className="flex gap-3 mt-4">
-            <div className="flex-1 bg-black/5 rounded-2xl p-3">
-              <p className="text-black/40 text-[11px] tracking-wide">SET</p>
-              <p className="text-black font-bold text-lg">
-                {Math.min(currentSetNum, exMeta.targetSets)} / {exMeta.targetSets}
-              </p>
-            </div>
-            <div className="flex-1 bg-black/5 rounded-2xl p-3">
-              <p className="text-black/40 text-[11px] tracking-wide">TARGET</p>
-              <p className="text-black font-bold text-lg">{exMeta.targetReps} reps</p>
-              <p className="text-black/50 text-[11px] font-semibold mt-0.5">RIR {exMeta.targetRIR ?? 2}</p>
-            </div>
-            <div className="flex-1 bg-black/5 rounded-2xl p-3">
-              <p className="text-black/40 text-[11px] tracking-wide">PREVIOUS</p>
-              <p className="text-black font-bold text-lg">{previous ? `${previous.reps} × ${previous.weight}kg` : "—"}</p>
-            </div>
-          </div>
-
-          {exMeta.notes && (
-            <div className="mt-4 bg-black/5 border border-black/10 rounded-2xl px-4 py-3 flex items-start gap-2.5">
-              <StickyNote size={14} className="text-black/40 mt-0.5 shrink-0" />
-              <p className="text-black/70 text-sm">{exMeta.notes}</p>
-            </div>
-          )}
-
-          <div className="mt-4">
-            <p className="text-black/40 text-xs tracking-wide mb-2">YOUR NOTES ON THIS EXERCISE</p>
-            <textarea
-              value={myNote}
-              onChange={(e) => setExerciseNotes((prev) => ({ ...prev, [exMeta.exerciseId]: e.target.value }))}
-              placeholder="e.g. Left shoulder felt tight, went easy on the last set"
-              rows={2}
-              className="w-full bg-black/5 border border-black/10 rounded-2xl px-4 py-3 text-black text-sm outline-none placeholder:text-black/25 resize-none"
-            />
-          </div>
-
-          {!isLastSetOfExercise ? (
-            <div className="mt-6 bg-[#F7F7F8] rounded-3xl p-5 border border-black/5">
-              <p className="text-black/40 text-xs tracking-wide mb-4">LOG SET {currentSetNum}</p>
-              <div className="grid grid-cols-2 gap-3">
-                <NumberStepper label="WEIGHT (KG)" value={weight} setValue={setWeight} step={2.5} />
-                <NumberStepper label="REPS" value={reps} setValue={setReps} step={1} />
-              </div>
-              <button
-                onClick={completeSet}
-                className="w-full mt-5 bg-black text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-              >
-                <Check size={18} strokeWidth={3} />
-                COMPLETE SET
-              </button>
-            </div>
-          ) : (
-            <div className="mt-6 bg-[#F7F7F8] rounded-3xl p-6 border border-black/5 text-center">
-              <Check size={28} className="mx-auto text-black mb-2" />
-              <p className="text-black font-semibold">Exercise complete</p>
-              <p className="text-black/40 text-sm mt-1">All {exMeta.targetSets} sets logged</p>
-            </div>
-          )}
-
-          <div className="mt-4 space-y-1.5">
-            {log.map((s) => (
-              <div key={s.setNumber} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-4 py-2.5">
-                <span className="text-black/40 text-sm">Set {s.setNumber}</span>
-                <span className="text-black text-sm font-medium">
-                  {s.reps} reps × {s.weight}kg
-                </span>
-                {s.isPR ? <Trophy size={14} className="text-black" /> : <Check size={14} className="text-black/40" />}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex gap-3 mt-6 mb-8">
-            <button
-              onClick={prevExercise}
-              disabled={exIndex === 0}
-              className="flex-1 bg-black/8 text-black font-semibold py-3.5 rounded-2xl disabled:opacity-30 flex items-center justify-center gap-1"
-            >
-              <ChevronLeft size={16} /> Previous
-            </button>
-            <button
-              onClick={nextExercise}
-              className="flex-1 bg-black/8 text-black font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-1"
-            >
-              {exIndex === daySession.exercises.length - 1 ? "Finish workout" : "Next exercise"} <ChevronRight size={16} />
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 pb-28">
+          <div className="flex items-center justify-between bg-black/[0.03] rounded-2xl px-4 py-3">
+            <span className="text-black/70 text-sm font-medium">Auto fill stats</span>
+            <button onClick={toggleAutoFill} className={`w-11 h-6 rounded-full relative transition-colors ${autoFill ? "bg-black" : "bg-black/15"}`}>
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoFill ? "left-[22px]" : "left-0.5"}`} />
             </button>
           </div>
+
+          {daySession.exercises.map((exMeta, i) => {
+            const exercise = exercisesById[exMeta.exerciseId];
+            if (!exercise) return null;
+            return (
+              <ExerciseBlock
+                key={exMeta.exerciseId + i}
+                exMeta={exMeta}
+                exercise={exercise}
+                rows={rowsFor(exMeta)}
+                previousSets={getPreviousSets(logsForClient, exMeta.exerciseId)}
+                onChangeField={(idx, field, value) => setField(exMeta.exerciseId, idx, field, value)}
+                onBlurKg={(idx) => handleBlurKg(exMeta, idx)}
+                onAddSet={() => addSet(exMeta)}
+                note={exerciseNotes[exMeta.exerciseId] || ""}
+                noteOpen={noteOpenFor === exMeta.exerciseId}
+                onToggleNote={() => setNoteOpenFor((cur) => (cur === exMeta.exerciseId ? null : exMeta.exerciseId))}
+                onNoteChange={(value) => setExerciseNotes((prev) => ({ ...prev, [exMeta.exerciseId]: value }))}
+              />
+            );
+          })}
         </div>
+
+        {resting && (
+          <RestBar
+            restTime={restTime}
+            restTotal={restTotal}
+            label={restLabel}
+            onAdd15={() => {
+              setRestTime((t) => t + 15);
+              setRestTotal((t) => t + 15);
+            }}
+            onSkip={() => setResting(false)}
+          />
+        )}
 
         {prToast && (
           <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100] w-[88%] max-w-sm animate-[fadeIn_0.3s_ease-out]">
             <div className="bg-black rounded-2xl p-4 shadow-2xl text-center">
               <p className="text-white font-bold text-sm tracking-wide">🔥 NEW PERSONAL RECORD</p>
-              <p className="text-white text-lg font-bold mt-1">{exercise.name}</p>
+              <p className="text-white text-lg font-bold mt-1">{prToast.exerciseName}</p>
               <p className="text-white/70 text-sm mt-0.5">
                 {prToast.weight}kg × {prToast.reps} · Best previous: {prToast.prevWeight}kg × {prToast.prevReps}
               </p>
@@ -861,7 +1024,7 @@ function WorkoutSummary({ daySession, activeLog, onDone }) {
    WORKOUTS TAB
 ============================================================================ */
 
-function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeLog, onStart, logsForClient, exercisesById }) {
+function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeLog, onStart, onViewWorkout, logsForClient, exercisesById }) {
   const [tab, setTab] = useState("today");
   return (
     <div className="pb-6">
@@ -884,7 +1047,7 @@ function WorkoutsScreen({ program, todaySession, sessions, currentIndex, activeL
 
       {tab === "today" && (
         <div className="px-5 space-y-4">
-          <TodayWorkoutCard program={program} todaySession={todaySession} activeLog={activeLog} onStart={onStart} onView={() => {}} />
+          <TodayWorkoutCard program={program} todaySession={todaySession} activeLog={activeLog} onStart={onStart} onView={onViewWorkout} isToday />
           {todaySession && (
             <Card>
               <h3 className="text-black font-semibold mb-3">Exercises</h3>
@@ -1677,8 +1840,9 @@ export default function ClientApp() {
   const [tab, setTab] = useState("home");
   const [activeLog, setActiveLog] = useState(null); // {exerciseId: [sets]} while a session is open
   const [exerciseNotes, setExerciseNotes] = useState({}); // {exerciseId: note} — the client's own notes, separate from the coach's
-  const [exIndex, setExIndex] = useState(0);
   const [sessionOpen, setSessionOpen] = useState(false);
+  const [previewSession, setPreviewSession] = useState(null);
+  const [previewCanStart, setPreviewCanStart] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "" });
@@ -1732,24 +1896,36 @@ export default function ClientApp() {
   function startWorkout() {
     if (!todaySession) return;
     setActiveLog((prev) => prev || {});
-    setExIndex(0);
     setSessionOpen(true);
   }
 
   function finishWorkout() {
-    const finalLog = activeLog || {};
+    const raw = activeLog || {};
+    const cleanedLog = {};
+    Object.entries(raw).forEach(([exerciseId, sets]) => {
+      const cleaned = (sets || [])
+        .filter((s) => s.weight !== "" && s.weight != null && s.reps !== "" && s.reps != null && !isNaN(Number(s.weight)) && !isNaN(Number(s.reps)))
+        .map((s, i) => ({ setNumber: i + 1, weight: Number(s.weight), reps: Number(s.reps), completed: true, isPR: !!s.isPR }));
+      if (cleaned.length) cleanedLog[exerciseId] = cleaned;
+    });
     logWorkout(currentUser.id, {
       programId: program.id,
       programName: program.name,
       weekLabel: todaySession.weekLabel,
       dayLabel: todaySession.label,
-      entries: Object.entries(finalLog).map(([exerciseId, sets]) => ({ exerciseId, sets, note: exerciseNotes[exerciseId] || "" })),
+      entries: Object.entries(cleanedLog).map(([exerciseId, sets]) => ({ exerciseId, sets, note: exerciseNotes[exerciseId] || "" })),
     });
-    setSummaryData({ daySession: todaySession, activeLog: finalLog });
+    setSummaryData({ daySession: todaySession, activeLog: cleanedLog });
     setActiveLog(null);
     setExerciseNotes({});
     setSessionOpen(false);
     setSummaryOpen(true);
+  }
+
+  function openPreview(session, canStart) {
+    if (!session) return;
+    setPreviewSession(session);
+    setPreviewCanStart(canStart);
   }
 
   function addFood(meal, food) {
@@ -1785,8 +1961,6 @@ export default function ClientApp() {
     setMessagesOpen(true);
   }
 
-  const daySessionWithExIndex = todaySession && { ...todaySession, _exIndex: exIndex, _setExIndex: setExIndex };
-
   return (
     <div className="w-full h-full min-h-screen bg-white font-sans flex justify-center">
       <div className="w-full max-w-md relative">
@@ -1800,7 +1974,7 @@ export default function ClientApp() {
             todaySession={todaySession}
             activeLog={activeLog}
             onStartWorkout={startWorkout}
-            onViewWorkout={() => setTab("workouts")}
+            onViewWorkout={() => openPreview(daySession, isToday)}
             nutrition={nutrition}
             onLogFood={() => setTab("nutrition")}
             onLogWater={() => addWater(0.25)}
@@ -1826,6 +2000,7 @@ export default function ClientApp() {
             currentIndex={currentIndex}
             activeLog={activeLog}
             onStart={startWorkout}
+            onViewWorkout={() => openPreview(todaySession, true)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
           />
@@ -1872,9 +2047,9 @@ export default function ClientApp() {
           </div>
         </div>
 
-        {sessionOpen && activeLog && daySessionWithExIndex && (
+        {sessionOpen && activeLog && todaySession && (
           <WorkoutSession
-            session={daySessionWithExIndex}
+            session={todaySession}
             activeLog={activeLog}
             setActiveLog={setActiveLog}
             logsForClient={logsForClient}
@@ -1887,6 +2062,18 @@ export default function ClientApp() {
         )}
         {summaryOpen && summaryData && (
           <WorkoutSummary daySession={summaryData.daySession} activeLog={summaryData.activeLog} onDone={() => setSummaryOpen(false)} />
+        )}
+        {previewSession && (
+          <WorkoutPreviewSheet
+            session={previewSession}
+            exercisesById={exercisesById}
+            canStart={previewCanStart}
+            onClose={() => setPreviewSession(null)}
+            onStart={() => {
+              setPreviewSession(null);
+              startWorkout();
+            }}
+          />
         )}
 
         <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} ctx={{ user: currentUser, nutrition, todaySession }} />
