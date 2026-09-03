@@ -1209,8 +1209,71 @@ function WorkoutSummary({ daySession, activeLog, durationMin = 0, durationSec = 
    WORKOUTS TAB
 ============================================================================ */
 
-function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, onViewWorkout, logsForClient, exercisesById }) {
+const CARDIO_ACTIVITIES = [
+  { id: "running", label: "Running", icon: Footprints },
+  { id: "cycling", label: "Cycling", icon: Activity },
+  { id: "swimming", label: "Swimming", icon: Droplet },
+  { id: "walking", label: "Walking", icon: Footprints },
+  { id: "rowing", label: "Rowing", icon: Activity },
+  { id: "hiking", label: "Hiking", icon: Footprints },
+  { id: "other", label: "Other", icon: Sparkles },
+];
+
+function LogCardioSheet({ open, onClose, onSave }) {
+  const [activityId, setActivityId] = useState("running");
+  const [duration, setDuration] = useState(30);
+  const [distance, setDistance] = useState(0);
+
+  useEffect(() => {
+    if (open) {
+      setActivityId("running");
+      setDuration(30);
+      setDistance(0);
+    }
+  }, [open]);
+
+  function save() {
+    const activity = CARDIO_ACTIVITIES.find((a) => a.id === activityId);
+    onSave({ activityId, activityLabel: activity.label, durationMin: duration, distanceKm: distance });
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Log Activity">
+      <p className="text-black/40 text-xs tracking-wide mb-2">ACTIVITY</p>
+      <div className="grid grid-cols-3 gap-2 mb-5">
+        {CARDIO_ACTIVITIES.map((a) => {
+          const Icon = a.icon;
+          const active = activityId === a.id;
+          return (
+            <button
+              key={a.id}
+              onClick={() => setActivityId(a.id)}
+              className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-medium transition-colors ${
+                active ? "bg-black text-white" : "bg-black/5 text-black/60"
+              }`}
+            >
+              <Icon size={17} />
+              {a.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        <NumberStepper label="DURATION (MIN)" value={duration} setValue={setDuration} step={5} min={0} />
+        <NumberStepper label="DISTANCE (KM)" value={distance} setValue={setDistance} step={0.5} min={0} />
+      </div>
+
+      <PrimaryButton className="w-full" disabled={duration <= 0} onClick={save}>
+        <Check size={16} /> LOG ACTIVITY
+      </PrimaryButton>
+    </BottomSheet>
+  );
+}
+
+function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, onViewWorkout, logsForClient, exercisesById, onLogCardio }) {
   const [tab, setTab] = useState("today");
+  const [cardioOpen, setCardioOpen] = useState(false);
   const todayStr = new Date().toISOString().slice(0, 10);
   const upcoming = scheduledWorkouts.filter((w) => w.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
   return (
@@ -1235,6 +1298,12 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
       {tab === "today" && (
         <div className="px-5 space-y-4">
           <TodayWorkoutCard todaySession={todaySession} activeLog={activeLog} onStart={onStart} onView={onViewWorkout} isToday />
+          <button
+            onClick={() => setCardioOpen(true)}
+            className="w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
+          >
+            <Footprints size={16} /> + Log a cardio session
+          </button>
           {todaySession && (
             <Card>
               <h3 className="text-black font-semibold mb-3">Exercises</h3>
@@ -1287,13 +1356,28 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
                     <p className="text-black font-semibold">{h.dayLabel}</p>
                     <p className="text-black/40 text-xs mt-0.5">{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
                   </div>
-                  <Pill tone="outline">{volume.toLocaleString()} kg</Pill>
+                  {h.cardio ? (
+                    <Pill tone="outline">
+                      {h.cardio.durationMin}min{h.cardio.distanceKm > 0 ? ` · ${h.cardio.distanceKm}km` : ""}
+                    </Pill>
+                  ) : (
+                    <Pill tone="outline">{volume.toLocaleString()} kg</Pill>
+                  )}
                 </div>
               </Card>
             );
           })}
         </div>
       )}
+
+      <LogCardioSheet
+        open={cardioOpen}
+        onClose={() => setCardioOpen(false)}
+        onSave={(cardio) => {
+          onLogCardio(cardio);
+          setCardioOpen(false);
+        }}
+      />
 
       {tab === "upcoming" && (
         <div className="px-5 space-y-2">
@@ -3057,6 +3141,10 @@ export default function ClientApp() {
             onViewWorkout={() => openPreview(todaySession, true)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
+            onLogCardio={(cardio) => {
+              logWorkout(currentUser.id, { dayLabel: `${cardio.activityLabel} (Cardio)`, entries: [], cardio });
+              showToast(`${cardio.activityLabel} logged`);
+            }}
           />
         )}
         {tab === "nutrition" && (
