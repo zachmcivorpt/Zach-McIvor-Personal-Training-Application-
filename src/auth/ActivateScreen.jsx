@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo } from "../components/ui";
@@ -6,7 +6,7 @@ import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field
 import { ChevronLeft, ShieldCheck } from "lucide-react";
 
 export default function ActivateScreen() {
-  const { activateAccount } = useApp();
+  const { activateAccount, currentUser } = useApp();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [code, setCode] = useState("");
@@ -15,7 +15,14 @@ export default function ActivateScreen() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  function submit(e) {
+  // Same as LoginScreen: the profile doc (and therefore currentUser) loads a
+  // moment after Firebase confirms the credential, so navigation waits for it
+  // rather than firing right after activateAccount() resolves.
+  useEffect(() => {
+    if (currentUser) navigate("/app", { replace: true });
+  }, [currentUser, navigate]);
+
+  async function submit(e) {
     e.preventDefault();
     setError("");
     if (password.length < 6) {
@@ -28,8 +35,7 @@ export default function ActivateScreen() {
     }
     setBusy(true);
     try {
-      activateAccount({ username, code, newPassword: password });
-      navigate("/app", { replace: true });
+      await activateAccount({ username, code, newPassword: password });
     } catch (err) {
       setError(err.message);
     } finally {

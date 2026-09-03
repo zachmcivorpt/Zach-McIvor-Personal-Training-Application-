@@ -1,0 +1,216 @@
+Firestore Security Rules — Zach McIvor Personal Training app
+==============================================================
+
+WHAT THIS IS
+------------
+Firebase Firestore was created in "production mode", which means it starts
+by denying every single read and write. Nothing in the app will work
+against your real Firebase project until you paste the rules below into
+the console.
+
+HOW TO APPLY THESE
+-------------------
+1. Go to https://console.firebase.google.com and open your project
+   (zach-mcivor-pt-app).
+2. In the left sidebar, click "Build" to expand it, then click
+   "Firestore Database".
+3. Click the "Rules" tab along the top of the Firestore Database page.
+4. Select everything in the editor box and delete it.
+5. Copy everything in the "RULES" section below (from "rules_version"
+   to the final closing brace) and paste it in.
+6. Click "Publish".
+
+That's it — changes take effect within about a minute.
+
+HOW THIS IS DESIGNED
+---------------------
+There's no separate backend server in this app — the browser talks
+directly to Firestore, so these rules ARE the entire access-control
+layer (there's nothing else checking who can read or write what).
+
+- The coach (you) can read and write everything.
+- A client can only read/write their own data — never another client's.
+- Shared library data (exercises, programs, templates, forms) is
+  readable by any signed-in user, but only the coach can edit it.
+- `invites` (clients you've added but who haven't set a password yet)
+  can be looked up by email before sign-in — that's what lets someone
+  activate their account — but the full list can only be browsed by
+  you, and only you can create/edit/cancel one.
+- Only one coach account can ever exist. Once your coach account is
+  created, nobody else — even someone who discovers your app's config
+  and calls Firebase directly — can create a second one.
+- A client can only ever create their OWN account, and only if there's
+  a matching pending invite for their email. This stops a stranger who
+  finds your site from just signing themselves up.
+
+One known, accepted limitation: the very first time you ever create your
+coach account (before one exists at all), there's a narrow window where
+Firebase's public sign-up isn't yet blocked by the single-coach rule.
+In practice this only matters if someone else discovers your project's
+config and races you to sign up before you finish your own setup — very
+unlikely for a private app you're about to configure right now, but
+worth knowing. Once your coach account exists, that door closes for good.
+
+RULES
+-----
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isCoach() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "coach";
+    }
+
+    function ownsClientId(clientId) {
+      return isSignedIn() && request.auth.uid == clientId;
+    }
+
+    // --- users/{uid} -------------------------------------------------
+    match /users/{userId} {
+      allow read: if isCoach() || (isSignedIn() && request.auth.uid == userId);
+
+      // Every account (coach or client) creates its OWN doc, right after
+      // Firebase Auth confirms the credential.
+      allow create: if isSignedIn() && request.auth.uid == userId &&
+        (
+          // Creating the coach account: only ever allowed once, ever.
+          (request.resource.data.role == "coach" &&
+            (!exists(/databases/$(database)/documents/settings/appMeta) ||
+             get(/databases/$(database)/documents/settings/appMeta).data.hasCoach != true))
+          ||
+          // Creating a client account: only if a matching invite exists.
+          (request.resource.data.role == "client" &&
+            exists(/databases/$(database)/documents/invites/$(request.resource.data.email)))
+        );
+
+      // Coach can edit anyone. A client can edit their own profile fields
+      // but never change their own role.
+      allow update: if isCoach() ||
+        (isSignedIn() && request.auth.uid == userId &&
+         request.resource.data.role == resource.data.role);
+
+      allow delete: if isCoach();
+    }
+
+    // --- invites/{email} ----------------------------------------------
+    match /invites/{email} {
+      // Looking up ONE invite by its known email (pre-auth activation) is
+      // fine — but browsing the full list is coach-only.
+      allow get: if true;
+      allow list: if isCoach();
+      allow create, update: if isCoach();
+      // Coach can cancel any invite; a freshly-activated client can clean
+      // up their own now-used invite (their new profile's email must
+      // match this invite's id).
+      allow delete: if isCoach() ||
+        (isSignedIn() &&
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == email);
+    }
+
+    // --- settings/appMeta, settings/welcomeMessage ---------------------
+    match /settings/appMeta {
+      // Public so the login screen can tell "no coach yet" from "signed
+      // in as who?" before anyone is authenticated.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    match /settings/welcomeMessage {
+      // Readable pre-auth too, so a brand new client's auto-welcome
+      // message can be sent the moment their account is created.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    // --- shared library data: any signed-in user reads, coach writes ---
+    match /exercises/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /programs/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /masterWorkouts/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /masterMeals/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /customFoods/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /habitPresets/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /forms/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+
+    // --- per-client data: coach reads/writes all, client reads/writes
+    //     only their own (matched by the clientId field on each doc) ---
+    match /workoutLogs/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /messages/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach();
+    }
+    match /progressPhotos/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /savedMeals/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /habits/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /clientPhases/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow write: if isCoach();
+    }
+    match /formSchedules/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow write: if isCoach();
+    }
+    match /formResponses/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach();
+    }
+
+    // --- clientNotes: private trainer notes. The client app never reads
+    //     this collection — keep it that way at the rules level too. ---
+    match /clientNotes/{id} {
+      allow read, write: if isCoach();
+    }
+
+    // --- habitLog/{clientId}: doc id IS the client's uid --------------
+    match /habitLog/{clientId} {
+      allow read, write: if isCoach() || ownsClientId(clientId);
+    }
+  }
+}

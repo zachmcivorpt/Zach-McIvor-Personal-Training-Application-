@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Tagline } from "../components/ui";
@@ -8,7 +8,6 @@ import { COACH_SETUP_CODE } from "../lib/config";
 
 function CoachSignupForm() {
   const { createCoachAccount } = useApp();
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -18,7 +17,7 @@ function CoachSignupForm() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     setError("");
     if (setupCode.trim() !== COACH_SETUP_CODE) {
@@ -35,8 +34,9 @@ function CoachSignupForm() {
     }
     setBusy(true);
     try {
-      createCoachAccount({ name, email, username, password, setupCode });
-      navigate("/coach", { replace: true });
+      await createCoachAccount({ name, email, username, password, setupCode });
+      // Navigation happens once the profile listener picks up the new
+      // account — see the useEffect in LoginScreen below.
     } catch (err) {
       setError(err.message);
     } finally {
@@ -90,7 +90,7 @@ function CoachSignupForm() {
 }
 
 export default function LoginScreen() {
-  const { login, hasCoach } = useApp();
+  const { login, hasCoach, currentUser } = useApp();
   const navigate = useNavigate();
   const [role, setRole] = useState("client");
   const [username, setUsername] = useState("");
@@ -98,13 +98,20 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  function submit(e) {
+  // Auth (sign-in, coach signup, or activation) is async, and the profile
+  // doc that carries `.role` loads a moment after Firebase confirms the
+  // credential — so navigation is driven by currentUser appearing, not by
+  // the submit handler finishing.
+  useEffect(() => {
+    if (currentUser) navigate(currentUser.role === "coach" ? "/coach" : "/app", { replace: true });
+  }, [currentUser, navigate]);
+
+  async function submit(e) {
     e.preventDefault();
     setError("");
     setBusy(true);
     try {
-      const u = login(username, password);
-      navigate(u.role === "coach" ? "/coach" : "/app", { replace: true });
+      await login(username, password);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -148,12 +155,12 @@ export default function LoginScreen() {
         ) : (
           <>
             <form onSubmit={submit} className="space-y-4">
-              <Field label={role === "client" ? "EMAIL" : "USERNAME"}>
+              <Field label="EMAIL">
                 <TextInput
-                  type={role === "client" ? "email" : "text"}
+                  type="email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={role === "client" ? "you@example.com" : "your username"}
+                  placeholder="you@example.com"
                   autoCapitalize="none"
                   autoComplete="username"
                 />

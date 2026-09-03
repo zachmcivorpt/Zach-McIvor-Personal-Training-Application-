@@ -1,10 +1,28 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { newId, inviteCode } from "./id";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  onSnapshot,
+  writeBatch,
+  increment,
+} from "firebase/firestore";
+import { auth, db as firestore } from "./firebase";
+import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 import { COACH_SETUP_CODE } from "./config";
-
-const DB_KEY = "mpt_db_v4";
-const SESSION_KEY = "mpt_session_v2";
 
 const DEFAULT_HABIT_PRESETS = [
   { id: "hp_steps", label: "12,000 steps" },
@@ -31,152 +49,262 @@ const DEFAULT_WELCOME_MESSAGE = {
   autoSend: false,
 };
 
-// Adds any exercise from the built-in library that isn't already present
-// (by id) — lets us grow the shipped library over time without wiping or
-// duplicating anything in an account that already exists.
-function mergeSeedExercises(existing) {
-  const existingIds = new Set((existing || []).map((e) => e.id));
-  const missing = SEED_EXERCISES.filter((e) => !existingIds.has(e.id));
-  return missing.length ? [...existing, ...missing] : existing;
+// Firebase Auth error codes -> the same plain-language messages the app
+// showed when this was a localStorage-only login system.
+function friendlyAuthError(err) {
+  const code = err?.code || "";
+  if (code.includes("invalid-credential") || code.includes("wrong-password") || code.includes("user-not-found")) {
+    return "Incorrect email or password.";
+  }
+  if (code.includes("email-already-in-use")) return "That email is already registered.";
+  if (code.includes("weak-password")) return "Choose a password with at least 6 characters.";
+  if (code.includes("invalid-email")) return "That doesn't look like a valid email.";
+  if (code.includes("network-request-failed")) return "Network error — check your connection and try again.";
+  return err?.message || "Something went wrong. Please try again.";
 }
 
-function loadDb() {
-  try {
-    const raw = localStorage.getItem(DB_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        ...parsed,
-        exercises: mergeSeedExercises(parsed.exercises),
-        masterWorkouts: parsed.masterWorkouts || [],
-        masterMeals: parsed.masterMeals || [],
-        customFoods: parsed.customFoods || [],
-        habitPresets: parsed.habitPresets || DEFAULT_HABIT_PRESETS,
-        forms: parsed.forms || [],
-        formSchedules: parsed.formSchedules || {},
-        formResponses: parsed.formResponses || {},
-        welcomeMessage: parsed.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
-        clientTags: parsed.clientTags || {},
-        clientNotes: parsed.clientNotes || {},
-      };
-    }
-  } catch {
-    // fall through to fresh install
-  }
-  return {
-    users: [], // starts empty — the coach creates their own account on first visit
-    exercises: SEED_EXERCISES,
-    programs: SEED_PROGRAMS,
-    workoutLogs: {}, // clientId -> [{ id, date, dayLabel, entries:[{exerciseId, sets:[{weight,reps,rpe,isPR}]}] }]
-    nutrition: {}, // clientId -> nutrition state
-    messages: {}, // clientId -> [{ id, from: 'coach'|'client', text, date }]
-    progressPhotos: {}, // clientId -> [{ id, url, date, caption }]
-    savedMeals: {}, // clientId -> [{ id, name, ingredients:[{name,cals,protein,carbs,fat}], cals, protein, carbs, fat, createdAt }]
-    habits: {}, // clientId -> [{ id, label, createdAt }]
-    habitLog: {}, // clientId -> { "YYYY-MM-DD": [habitId, ...] }
-    clientPhases: {}, // clientId -> [{ id, name, level, description, startDate, endDate, weeks:[...] }]
-    masterWorkouts: [], // [{ id, label, muscleGroups, exercises, instructions, createdAt }] — reusable workout templates
-    masterMeals: [], // [{ id, name, ingredients, cals, protein, carbs, fat, createdAt }] — coach-authored meal templates
-    customFoods: [], // [{ id, name, cals, protein, carbs, fat }] — merged with the static food database client-side
-    habitPresets: DEFAULT_HABIT_PRESETS, // [{ id, label }] — suggested habits offered per-client
-    forms: [], // [{ id, name, description, questions:[{id,type,label,required}], createdAt }]
-    formSchedules: {}, // clientId -> [{ id, formId, dayOfWeek(0-6), active, createdAt }]
-    formResponses: {}, // clientId -> [{ id, formId, scheduleId, date, answers:{questionId:value} }]
-    welcomeMessage: DEFAULT_WELCOME_MESSAGE, // { text, attachmentName, attachmentUrl, autoSend } — sent to a client automatically when they activate
-    clientTags: {}, // clientId -> [string] — free-form tags the coach adds on a client's Summary
-    clientNotes: {}, // clientId -> [{ id, text, date }] — private trainer notes, coach-only
-  };
+// A fresh, never-written Firestore document id for a given collection —
+// lets create-actions return the new record synchronously (matching how
+// this app's ~40 call sites already use them) while the actual write
+// happens in the background.
+function newDocId(name) {
+  return doc(collection(firestore, name)).id;
 }
 
-function loadSession() {
+// One-time seed of the shared exercise/program library into a brand new
+// Firebase project, so a freshly created coach account isn't empty —
+// mirrors what loadDb() used to default to under localStorage.
+async function seedCoachData() {
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // ignore
+    const exBatch = writeBatch(firestore);
+    SEED_EXERCISES.forEach((ex) => exBatch.set(doc(firestore, "exercises", ex.id), ex));
+    await exBatch.commit();
+    const progBatch = writeBatch(firestore);
+    SEED_PROGRAMS.forEach((p) => progBatch.set(doc(firestore, "programs", p.id), p));
+    await progBatch.commit();
+  } catch (err) {
+    console.error("seedCoachData failed:", err);
   }
-  return null;
+}
+
+// Best-effort delete of every doc in `collectionName` where clientId
+// matches — used to clean up a removed client's history.
+async function deleteWhereClientId(collectionName, clientId) {
+  try {
+    const snap = await getDocs(query(collection(firestore, collectionName), where("clientId", "==", clientId)));
+    if (!snap.docs.length) return;
+    const batch = writeBatch(firestore);
+    snap.docs.forEach((d) => batch.delete(d.ref));
+    await batch.commit();
+  } catch (err) {
+    console.error(`cleanup ${collectionName} for ${clientId} failed:`, err);
+  }
 }
 
 const AppCtx = createContext(null);
 
 export function AppProvider({ children }) {
-  const [db, setDb] = useState(loadDb);
-  const [session, setSession] = useState(loadSession);
+  const [authUser, setAuthUser] = useState(undefined); // undefined = still checking, null = signed out
+  const [profile, setProfile] = useState(null); // users/{uid} doc for whoever is signed in
+  const [raw, setRaw] = useState({}); // aggregated Firestore snapshots, keyed by our own names
+
+  useEffect(() => onAuthStateChanged(auth, (u) => setAuthUser(u)), []);
+
+  // The signed-in user's own profile doc — this is also how we learn their role.
+  useEffect(() => {
+    if (!authUser) {
+      setProfile(null);
+      return;
+    }
+    return onSnapshot(doc(firestore, "users", authUser.uid), (snap) => {
+      setProfile(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+    });
+  }, [authUser]);
+
+  const role = profile?.role;
 
   useEffect(() => {
-    try {
-      localStorage.setItem(DB_KEY, JSON.stringify(db));
-    } catch {
-      // storage unavailable (private mode, sandboxed viewer) — state still works in-memory
+    const unsubs = [];
+    function watch(name, key, constraints) {
+      const colRef = collection(firestore, name);
+      const q = constraints?.length ? query(colRef, ...constraints) : colRef;
+      unsubs.push(
+        onSnapshot(
+          q,
+          (snap) => setRaw((r) => ({ ...r, [key]: snap.docs.map((d) => ({ id: d.id, ...d.data() })) })),
+          (err) => console.error(`listener ${name} failed:`, err)
+        )
+      );
     }
-  }, [db]);
-
-  useEffect(() => {
-    try {
-      if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      else localStorage.removeItem(SESSION_KEY);
-    } catch {
-      // storage unavailable — session still works in-memory for this tab
+    function watchDoc(collectionName, docId, key, fallback) {
+      unsubs.push(
+        onSnapshot(doc(firestore, collectionName, docId), (snap) =>
+          setRaw((r) => ({ ...r, [key]: snap.exists() ? snap.data() : fallback }))
+        )
+      );
     }
-  }, [session]);
 
-  const currentUser = useMemo(() => {
-    if (!session) return null;
-    return db.users.find((u) => u.id === session.userId) || null;
-  }, [db.users, session]);
+    // Readable before sign-in — lets the Login screen know whether to show
+    // "create the coach account" or a normal sign-in form, and lets
+    // activateAccount() send the auto-welcome message the moment a brand
+    // new client account is created (before its role/profile has loaded).
+    watchDoc("settings", "appMeta", "appMeta", { hasCoach: false });
+    watchDoc("settings", "welcomeMessage", "welcomeMessage", DEFAULT_WELCOME_MESSAGE);
 
-  const hasCoach = useMemo(() => db.users.some((u) => u.role === "coach"), [db.users]);
+    if (!authUser || !role) return () => unsubs.forEach((u) => u());
+
+    // Shared library data — every signed-in user (coach or client) can read it.
+    watch("exercises", "exercises");
+    watch("programs", "programs");
+    watch("masterWorkouts", "masterWorkouts");
+    watch("masterMeals", "masterMeals");
+    watch("customFoods", "customFoods");
+    watch("habitPresets", "habitPresets");
+    watch("forms", "forms");
+
+    if (role === "coach") {
+      watch("users", "users");
+      watch("invites", "invites");
+      watch("workoutLogs", "workoutLogs");
+      watch("messages", "messages");
+      watch("progressPhotos", "progressPhotos");
+      watch("savedMeals", "savedMeals");
+      watch("habits", "habits");
+      watch("clientPhases", "clientPhases");
+      watch("formSchedules", "formSchedules");
+      watch("formResponses", "formResponses");
+      watch("clientNotes", "clientNotes");
+      watch("habitLog", "habitLog");
+    } else if (role === "client") {
+      const uid = authUser.uid;
+      watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
+      watch("messages", "messages", [where("clientId", "==", uid)]);
+      watch("progressPhotos", "progressPhotos", [where("clientId", "==", uid)]);
+      watch("savedMeals", "savedMeals", [where("clientId", "==", uid)]);
+      watch("habits", "habits", [where("clientId", "==", uid)]);
+      watch("clientPhases", "clientPhases", [where("clientId", "==", uid)]);
+      watch("formSchedules", "formSchedules", [where("clientId", "==", uid)]);
+      watch("formResponses", "formResponses", [where("clientId", "==", uid)]);
+      // clientNotes intentionally NOT synced here — they're the coach's
+      // private notes about the client, never shown in the client app.
+      unsubs.push(
+        onSnapshot(doc(firestore, "habitLog", uid), (snap) =>
+          setRaw((r) => ({ ...r, habitLog: snap.exists() ? [{ id: uid, ...snap.data() }] : [{ id: uid }] }))
+        )
+      );
+    }
+
+    return () => unsubs.forEach((u) => u());
+  }, [authUser, role]);
+
+  // Assembles every Firestore listener's output into the exact same shape
+  // the rest of this app already expects (db.users, db.workoutLogs, ...) —
+  // so components built against the old localStorage blob barely change.
+  const db = useMemo(() => {
+    const usersFromAuth = role === "client" ? (profile ? [profile] : []) : raw.users || [];
+    const usersFromInvites = (raw.invites || []).map((inv) => ({
+      id: inv.id,
+      role: "client",
+      name: inv.name,
+      email: inv.email,
+      username: inv.email,
+      password: inv.code,
+      status: "invited",
+      createdAt: inv.createdAt,
+      assignedProgramId: null,
+      currentSessionIndex: 0,
+      fitnessLevel: "Beginner",
+      streak: 0,
+      _source: "invite",
+    }));
+    const users = [...usersFromAuth, ...usersFromInvites];
+
+    function bucket(list, sortFn) {
+      const out = {};
+      for (const item of list || []) {
+        const k = item.clientId;
+        (out[k] = out[k] || []).push(item);
+      }
+      if (sortFn) Object.values(out).forEach((arr) => arr.sort(sortFn));
+      return out;
+    }
+
+    return {
+      users,
+      exercises: raw.exercises?.length ? raw.exercises : SEED_EXERCISES,
+      programs: raw.programs?.length ? raw.programs : SEED_PROGRAMS,
+      workoutLogs: bucket(raw.workoutLogs, (a, b) => b.date - a.date),
+      nutrition: Object.fromEntries(users.filter((u) => u.role === "client").map((u) => [u.id, u.nutrition])),
+      messages: bucket(raw.messages, (a, b) => a.date - b.date),
+      progressPhotos: bucket(raw.progressPhotos, (a, b) => b.date - a.date),
+      savedMeals: bucket(raw.savedMeals, (a, b) => b.createdAt - a.createdAt),
+      habits: bucket(raw.habits, (a, b) => a.createdAt - b.createdAt),
+      habitLog: Object.fromEntries((raw.habitLog || []).map(({ id, ...rest }) => [id, rest])),
+      clientPhases: bucket(raw.clientPhases, (a, b) => (a.startDate || "").localeCompare(b.startDate || "")),
+      masterWorkouts: raw.masterWorkouts || [],
+      masterMeals: raw.masterMeals || [],
+      customFoods: raw.customFoods || [],
+      habitPresets: raw.habitPresets?.length ? raw.habitPresets : DEFAULT_HABIT_PRESETS,
+      forms: raw.forms || [],
+      formSchedules: bucket(raw.formSchedules),
+      formResponses: bucket(raw.formResponses, (a, b) => b.date - a.date),
+      welcomeMessage: raw.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
+      clientTags: Object.fromEntries(users.filter((u) => u.role === "client").map((u) => [u.id, u.clientTags || []])),
+      clientNotes: bucket(raw.clientNotes, (a, b) => b.date - a.date),
+    };
+  }, [raw, role, profile]);
+
+  const currentUser = profile;
+  const session = authUser ? { userId: authUser.uid } : null;
+  const hasCoach = !!raw.appMeta?.hasCoach;
+  const authReady = authUser !== undefined;
 
   const actions = useMemo(
     () => ({
-      login(username, password) {
-        const u = db.users.find(
-          (x) => x.username.toLowerCase() === username.trim().toLowerCase() && x.status === "active"
-        );
-        if (!u || u.password !== password) {
-          throw new Error("Incorrect username or password.");
+      async login(email, password) {
+        try {
+          const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+          updateDoc(doc(firestore, "users", cred.user.uid), { lastLoginAt: Date.now() }).catch(() => {});
+          return cred.user;
+        } catch (err) {
+          throw new Error(friendlyAuthError(err));
         }
-        setSession({ userId: u.id });
-        setDb((d) => ({ ...d, users: d.users.map((x) => (x.id === u.id ? { ...x, lastLoginAt: Date.now() } : x)) }));
-        return u;
       },
 
-      logout() {
-        setSession(null);
+      async logout() {
+        await signOut(auth);
       },
 
-      createCoachAccount({ name, email, username, password, setupCode }) {
+      async createCoachAccount({ name, email, username, password, setupCode }) {
         if (setupCode !== COACH_SETUP_CODE) {
           throw new Error("That setup code isn't right.");
         }
-        if (db.users.some((u) => u.role === "coach")) {
-          throw new Error("A coach account already exists in this browser.");
+        if (hasCoach) {
+          throw new Error("A coach account already exists.");
         }
-        const cleanUsername = username.trim();
-        if (db.users.some((u) => u.username.toLowerCase() === cleanUsername.toLowerCase())) {
-          throw new Error("That username is taken.");
+        let cred;
+        try {
+          cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        } catch (err) {
+          throw new Error(friendlyAuthError(err));
         }
-        const id = newId("u");
+        const uid = cred.user.uid;
         const coach = {
-          id,
           role: "coach",
           name: name.trim(),
           email: email.trim(),
-          username: cleanUsername,
-          password,
+          username: username.trim(),
           status: "active",
           createdAt: Date.now(),
+          lastLoginAt: Date.now(),
         };
-        setDb((d) => ({ ...d, users: [...d.users, coach] }));
-        setSession({ userId: id });
-        return coach;
+        await setDoc(doc(firestore, "users", uid), coach);
+        await setDoc(doc(firestore, "settings", "appMeta"), { hasCoach: true });
+        seedCoachData();
+        return { id: uid, ...coach };
       },
 
       createInvite({ name, email }) {
-        const id = newId("u");
-        // Username = the client's own email address, so it's something they
-        // already know rather than a coach-generated slug they have to remember.
         const base = email.trim().toLowerCase();
         let username = base;
         let n = 1;
@@ -185,101 +313,116 @@ export function AppProvider({ children }) {
           n++;
         }
         const code = inviteCode();
-        const newUser = {
-          id,
+        const invite = { name: name.trim(), email: username, code, createdAt: Date.now() };
+        setDoc(doc(firestore, "invites", username), invite).catch(console.error);
+        return { id: username, username, code };
+      },
+
+      async activateAccount({ username, code, newPassword }) {
+        const email = username.trim().toLowerCase();
+        // A direct get() by a known doc id (rather than a list query) so
+        // Firestore rules can let this run pre-auth without exposing the
+        // full invites collection to anyone unauthenticated.
+        const inviteRef = doc(firestore, "invites", email);
+        const inviteSnap = await getDoc(inviteRef);
+        if (!inviteSnap.exists() || inviteSnap.data().code !== code.trim()) {
+          throw new Error("That username or invite code doesn't match an active invite.");
+        }
+        const invite = inviteSnap.data();
+        let cred;
+        try {
+          cred = await createUserWithEmailAndPassword(auth, email, newPassword);
+        } catch (err) {
+          throw new Error(friendlyAuthError(err));
+        }
+        const uid = cred.user.uid;
+        const client = {
           role: "client",
-          name: name.trim(),
-          email: email.trim(),
-          username,
-          password: code, // temp password == invite code, client resets on activation
-          status: "invited",
-          createdAt: Date.now(),
+          name: invite.name,
+          email,
+          username: email,
+          status: "active",
+          createdAt: invite.createdAt,
+          lastLoginAt: Date.now(),
           assignedProgramId: null,
           currentSessionIndex: 0,
           fitnessLevel: "Beginner",
           streak: 0,
+          clientTags: [],
         };
-        setDb((d) => ({ ...d, users: [...d.users, newUser] }));
-        return { id, username, code };
-      },
-
-      activateAccount({ username, code, newPassword }) {
-        const u = db.users.find(
-          (x) => x.username.toLowerCase() === username.trim().toLowerCase() && x.status === "invited"
-        );
-        if (!u || u.password !== code.trim()) {
-          throw new Error("That username or invite code doesn't match an active invite.");
-        }
-        const welcome = db.welcomeMessage;
-        setDb((d) => {
-          const next = {
-            ...d,
-            users: d.users.map((x) =>
-              x.id === u.id ? { ...x, password: newPassword, status: "active", lastLoginAt: Date.now() } : x
-            ),
-          };
-          if (welcome?.autoSend && welcome.text?.trim()) {
-            const text = welcome.text.replace(/\{name\}/gi, u.name.split(" ")[0]);
-            const message = { id: newId("m"), from: "coach", text, date: Date.now() };
-            if (welcome.attachmentUrl) {
-              message.attachment = { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl };
-            }
-            next.messages = { ...d.messages, [u.id]: [...(d.messages[u.id] || []), message] };
+        await setDoc(doc(firestore, "users", uid), client);
+        await deleteDoc(inviteRef);
+        const welcome = raw.welcomeMessage;
+        if (welcome?.autoSend && welcome.text?.trim()) {
+          const text = welcome.text.replace(/\{name\}/gi, invite.name.split(" ")[0]);
+          const msgId = newDocId("messages");
+          const msg = { id: msgId, clientId: uid, from: "coach", text, date: Date.now() };
+          if (welcome.attachmentUrl) {
+            msg.attachment = { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl };
           }
-          return next;
-        });
-        setSession({ userId: u.id });
-        return u;
+          setDoc(doc(firestore, "messages", msgId), msg).catch(console.error);
+        }
+        return { id: uid, ...client };
       },
 
       resendInvite(clientId) {
         const code = inviteCode();
-        setDb((d) => ({
-          ...d,
-          users: d.users.map((x) => (x.id === clientId ? { ...x, password: code } : x)),
-        }));
+        updateDoc(doc(firestore, "invites", clientId), { code }).catch(console.error);
         return code;
       },
 
       removeClient(clientId) {
-        setDb((d) => ({ ...d, users: d.users.filter((u) => u.id !== clientId) }));
+        const target = db.users.find((u) => u.id === clientId);
+        if (!target) return;
+        if (target._source === "invite") {
+          deleteDoc(doc(firestore, "invites", clientId)).catch(console.error);
+          return;
+        }
+        deleteDoc(doc(firestore, "users", clientId)).catch(console.error);
+        deleteDoc(doc(firestore, "habitLog", clientId)).catch(() => {});
+        [
+          "workoutLogs",
+          "messages",
+          "progressPhotos",
+          "savedMeals",
+          "habits",
+          "clientPhases",
+          "formSchedules",
+          "formResponses",
+          "clientNotes",
+        ].forEach((name) => deleteWhereClientId(name, clientId));
       },
 
       assignProgram(clientId, programId) {
-        setDb((d) => ({
-          ...d,
-          users: d.users.map((u) =>
-            u.id === clientId ? { ...u, assignedProgramId: programId, currentSessionIndex: 0 } : u
-          ),
-        }));
+        updateDoc(doc(firestore, "users", clientId), { assignedProgramId: programId, currentSessionIndex: 0 }).catch(console.error);
       },
 
       createProgram(data) {
-        const id = newId("prog");
+        const id = newDocId("programs");
         const program = { id, weeks: [], ...data };
-        setDb((d) => ({ ...d, programs: [...d.programs, program] }));
+        setDoc(doc(firestore, "programs", id), program).catch(console.error);
         return program;
       },
 
       updateProgram(id, data) {
-        setDb((d) => ({ ...d, programs: d.programs.map((p) => (p.id === id ? { ...p, ...data } : p)) }));
+        updateDoc(doc(firestore, "programs", id), data).catch(console.error);
       },
 
       deleteProgram(id) {
-        setDb((d) => ({
-          ...d,
-          programs: d.programs.filter((p) => p.id !== id),
-          users: d.users.map((u) => (u.assignedProgramId === id ? { ...u, assignedProgramId: null } : u)),
-        }));
+        deleteDoc(doc(firestore, "programs", id)).catch(console.error);
+        db.users
+          .filter((u) => u.assignedProgramId === id && u._source !== "invite")
+          .forEach((u) => updateDoc(doc(firestore, "users", u.id), { assignedProgramId: null }).catch(console.error));
       },
 
       // Per-client training timeline — each phase is that client's own copy of
       // a plan (optionally started from a program template) with its own date
       // range, independent of every other client's phases.
       addClientPhase(clientId, data) {
-        const id = newId("phase");
+        const id = newDocId("clientPhases");
         const phase = {
           id,
+          clientId,
           name: "New Phase",
           level: "Intermediate",
           description: "",
@@ -289,349 +432,240 @@ export function AppProvider({ children }) {
           createdAt: Date.now(),
           ...data,
         };
-        setDb((d) => ({
-          ...d,
-          clientPhases: {
-            ...(d.clientPhases || {}),
-            [clientId]: [...((d.clientPhases || {})[clientId] || []), phase],
-          },
-        }));
+        setDoc(doc(firestore, "clientPhases", id), phase).catch(console.error);
         return phase;
       },
 
       updateClientPhase(clientId, phaseId, patch) {
-        setDb((d) => ({
-          ...d,
-          clientPhases: {
-            ...(d.clientPhases || {}),
-            [clientId]: ((d.clientPhases || {})[clientId] || []).map((p) => (p.id === phaseId ? { ...p, ...patch } : p)),
-          },
-        }));
+        updateDoc(doc(firestore, "clientPhases", phaseId), patch).catch(console.error);
       },
 
       deleteClientPhase(clientId, phaseId) {
-        setDb((d) => ({
-          ...d,
-          clientPhases: {
-            ...(d.clientPhases || {}),
-            [clientId]: ((d.clientPhases || {})[clientId] || []).filter((p) => p.id !== phaseId),
-          },
-        }));
+        deleteDoc(doc(firestore, "clientPhases", phaseId)).catch(console.error);
       },
 
       duplicateClientPhase(clientId, phaseId, overrides) {
-        const phases = (db.clientPhases || {})[clientId] || [];
+        const phases = db.clientPhases[clientId] || [];
         const src = phases.find((p) => p.id === phaseId);
         if (!src) return null;
-        const cloned = {
-          ...JSON.parse(JSON.stringify(src)),
-          id: newId("phase"),
-          createdAt: Date.now(),
-          ...overrides,
-        };
-        setDb((d) => ({
-          ...d,
-          clientPhases: {
-            ...(d.clientPhases || {}),
-            [clientId]: [...((d.clientPhases || {})[clientId] || []), cloned],
-          },
-        }));
+        const id = newDocId("clientPhases");
+        const cloned = { ...JSON.parse(JSON.stringify(src)), id, clientId, createdAt: Date.now(), ...overrides };
+        setDoc(doc(firestore, "clientPhases", id), cloned).catch(console.error);
         return cloned;
       },
 
       createExercise(data) {
-        const id = newId("ex");
+        const id = newDocId("exercises");
         const exercise = { id, instructions: [], formCues: [], secondaryMuscles: [], videoUrl: "", ...data };
-        setDb((d) => ({ ...d, exercises: [...d.exercises, exercise] }));
+        setDoc(doc(firestore, "exercises", id), exercise).catch(console.error);
         return exercise;
       },
 
       updateExercise(id, data) {
-        setDb((d) => ({ ...d, exercises: d.exercises.map((e) => (e.id === id ? { ...e, ...data } : e)) }));
+        updateDoc(doc(firestore, "exercises", id), data).catch(console.error);
       },
 
       deleteExercise(id) {
-        setDb((d) => ({ ...d, exercises: d.exercises.filter((e) => e.id !== id) }));
+        deleteDoc(doc(firestore, "exercises", id)).catch(console.error);
       },
 
       logWorkout(clientId, entry) {
-        setDb((d) => ({
-          ...d,
-          workoutLogs: {
-            ...d.workoutLogs,
-            [clientId]: [{ id: newId("log"), date: Date.now(), ...entry }, ...(d.workoutLogs[clientId] || [])],
-          },
-          users: d.users.map((u) =>
-            u.id === clientId ? { ...u, currentSessionIndex: (u.currentSessionIndex || 0) + 1 } : u
-          ),
-        }));
+        const id = newDocId("workoutLogs");
+        setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);
+        updateDoc(doc(firestore, "users", clientId), { currentSessionIndex: increment(1) }).catch(console.error);
       },
 
       setNutrition(clientId, updater) {
-        setDb((d) => ({
-          ...d,
-          nutrition: { ...d.nutrition, [clientId]: updater(d.nutrition[clientId]) },
-        }));
+        const next = updater(db.nutrition[clientId]);
+        updateDoc(doc(firestore, "users", clientId), { nutrition: next }).catch(console.error);
       },
 
       sendMessage(clientId, from, text, attachment) {
         const trimmed = (text || "").trim();
         if (!trimmed && !attachment) return;
-        setDb((d) => ({
-          ...d,
-          messages: {
-            ...d.messages,
-            [clientId]: [
-              ...(d.messages[clientId] || []),
-              { id: newId("m"), from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}) },
-            ],
-          },
-        }));
+        const id = newDocId("messages");
+        const msg = { id, clientId, from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}) };
+        setDoc(doc(firestore, "messages", id), msg).catch(console.error);
       },
 
       addProgressPhoto(clientId, dataUrl, caption = "") {
-        setDb((d) => ({
-          ...d,
-          progressPhotos: {
-            ...d.progressPhotos,
-            [clientId]: [
-              { id: newId("photo"), url: dataUrl, date: Date.now(), caption },
-              ...(d.progressPhotos[clientId] || []),
-            ],
-          },
-        }));
+        const id = newDocId("progressPhotos");
+        setDoc(doc(firestore, "progressPhotos", id), { id, clientId, url: dataUrl, date: Date.now(), caption }).catch(console.error);
       },
 
       deleteProgressPhoto(clientId, photoId) {
-        setDb((d) => ({
-          ...d,
-          progressPhotos: {
-            ...d.progressPhotos,
-            [clientId]: (d.progressPhotos[clientId] || []).filter((p) => p.id !== photoId),
-          },
-        }));
+        deleteDoc(doc(firestore, "progressPhotos", photoId)).catch(console.error);
       },
 
       updateUser(id, data) {
-        setDb((d) => ({ ...d, users: d.users.map((u) => (u.id === id ? { ...u, ...data } : u)) }));
+        updateDoc(doc(firestore, "users", id), data).catch(console.error);
       },
 
       createSavedMeal(clientId, meal) {
-        const savedMeal = { id: newId("meal"), createdAt: Date.now(), ...meal };
-        setDb((d) => ({
-          ...d,
-          savedMeals: {
-            ...(d.savedMeals || {}),
-            [clientId]: [savedMeal, ...((d.savedMeals || {})[clientId] || [])],
-          },
-        }));
+        const id = newDocId("savedMeals");
+        const savedMeal = { id, clientId, createdAt: Date.now(), ...meal };
+        setDoc(doc(firestore, "savedMeals", id), savedMeal).catch(console.error);
         return savedMeal;
       },
 
       deleteSavedMeal(clientId, mealId) {
-        setDb((d) => ({
-          ...d,
-          savedMeals: {
-            ...(d.savedMeals || {}),
-            [clientId]: ((d.savedMeals || {})[clientId] || []).filter((m) => m.id !== mealId),
-          },
-        }));
+        deleteDoc(doc(firestore, "savedMeals", mealId)).catch(console.error);
       },
 
       addHabit(clientId, label) {
-        const habit = { id: newId("habit"), label: label.trim(), createdAt: Date.now() };
-        setDb((d) => ({
-          ...d,
-          habits: { ...(d.habits || {}), [clientId]: [...((d.habits || {})[clientId] || []), habit] },
-        }));
+        const id = newDocId("habits");
+        const habit = { id, clientId, label: label.trim(), createdAt: Date.now() };
+        setDoc(doc(firestore, "habits", id), habit).catch(console.error);
         return habit;
       },
 
       removeHabit(clientId, habitId) {
-        setDb((d) => ({
-          ...d,
-          habits: {
-            ...(d.habits || {}),
-            [clientId]: ((d.habits || {})[clientId] || []).filter((h) => h.id !== habitId),
-          },
-        }));
+        deleteDoc(doc(firestore, "habits", habitId)).catch(console.error);
       },
 
       toggleHabitToday(clientId, habitId) {
         const dateKey = new Date().toISOString().slice(0, 10);
-        setDb((d) => {
-          const clientLog = (d.habitLog || {})[clientId] || {};
-          const today = clientLog[dateKey] || [];
-          const nextToday = today.includes(habitId) ? today.filter((id) => id !== habitId) : [...today, habitId];
-          return {
-            ...d,
-            habitLog: { ...(d.habitLog || {}), [clientId]: { ...clientLog, [dateKey]: nextToday } },
-          };
-        });
+        const current = (db.habitLog[clientId] || {})[dateKey] || [];
+        const next = current.includes(habitId) ? current.filter((id) => id !== habitId) : [...current, habitId];
+        setDoc(doc(firestore, "habitLog", clientId), { [dateKey]: next }, { merge: true }).catch(console.error);
       },
 
       // Master workout templates — reusable building blocks, independent of
       // any single program, that can be dropped into a phase.
       createMasterWorkout(data) {
-        const id = newId("mwk");
+        const id = newDocId("masterWorkouts");
         const workout = { id, label: "New Workout", muscleGroups: [], exercises: [], instructions: "", createdAt: Date.now(), ...data };
-        setDb((d) => ({ ...d, masterWorkouts: [...(d.masterWorkouts || []), workout] }));
+        setDoc(doc(firestore, "masterWorkouts", id), workout).catch(console.error);
         return workout;
       },
       updateMasterWorkout(id, data) {
-        setDb((d) => ({ ...d, masterWorkouts: (d.masterWorkouts || []).map((w) => (w.id === id ? { ...w, ...data } : w)) }));
+        updateDoc(doc(firestore, "masterWorkouts", id), data).catch(console.error);
       },
       deleteMasterWorkout(id) {
-        setDb((d) => ({ ...d, masterWorkouts: (d.masterWorkouts || []).filter((w) => w.id !== id) }));
+        deleteDoc(doc(firestore, "masterWorkouts", id)).catch(console.error);
       },
 
       // Master meal templates — coach-authored, reusable across clients.
       createMasterMeal(data) {
-        const id = newId("mmeal");
+        const id = newDocId("masterMeals");
         const meal = { id, name: "New Meal", ingredients: [], cals: 0, protein: 0, carbs: 0, fat: 0, createdAt: Date.now(), ...data };
-        setDb((d) => ({ ...d, masterMeals: [...(d.masterMeals || []), meal] }));
+        setDoc(doc(firestore, "masterMeals", id), meal).catch(console.error);
         return meal;
       },
       updateMasterMeal(id, data) {
-        setDb((d) => ({ ...d, masterMeals: (d.masterMeals || []).map((m) => (m.id === id ? { ...m, ...data } : m)) }));
+        updateDoc(doc(firestore, "masterMeals", id), data).catch(console.error);
       },
       deleteMasterMeal(id) {
-        setDb((d) => ({ ...d, masterMeals: (d.masterMeals || []).filter((m) => m.id !== id) }));
+        deleteDoc(doc(firestore, "masterMeals", id)).catch(console.error);
       },
 
       // Custom foods — coach-added, merged with the static FOOD_DATABASE
       // wherever the client searches for food to log.
       createFood(data) {
-        const id = newId("food");
+        const id = newDocId("customFoods");
         const food = { id, name: "", cals: 0, protein: 0, carbs: 0, fat: 0, ...data };
-        setDb((d) => ({ ...d, customFoods: [...(d.customFoods || []), food] }));
+        setDoc(doc(firestore, "customFoods", id), food).catch(console.error);
         return food;
       },
       updateFood(id, data) {
-        setDb((d) => ({ ...d, customFoods: (d.customFoods || []).map((f) => (f.id === id ? { ...f, ...data } : f)) }));
+        updateDoc(doc(firestore, "customFoods", id), data).catch(console.error);
       },
       deleteFood(id) {
-        setDb((d) => ({ ...d, customFoods: (d.customFoods || []).filter((f) => f.id !== id) }));
+        deleteDoc(doc(firestore, "customFoods", id)).catch(console.error);
       },
 
       // Habit presets — the master suggestion list offered when adding a
       // client's daily habits (replaces a hardcoded constant).
       createHabitPreset(label) {
-        const preset = { id: newId("hp"), label: label.trim() };
-        setDb((d) => ({ ...d, habitPresets: [...(d.habitPresets || []), preset] }));
+        const id = newDocId("habitPresets");
+        const preset = { id, label: label.trim() };
+        setDoc(doc(firestore, "habitPresets", id), preset).catch(console.error);
         return preset;
       },
       deleteHabitPreset(id) {
-        setDb((d) => ({ ...d, habitPresets: (d.habitPresets || []).filter((h) => h.id !== id) }));
+        deleteDoc(doc(firestore, "habitPresets", id)).catch(console.error);
       },
 
       // Check-in form templates — a custom question builder (text/number/
       // rating/photo questions), scheduled recurring onto a client's week.
       createForm(data) {
-        const id = newId("form");
+        const id = newDocId("forms");
         const form = { id, name: "New Check-in", description: "", questions: [], createdAt: Date.now(), ...data };
-        setDb((d) => ({ ...d, forms: [...(d.forms || []), form] }));
+        setDoc(doc(firestore, "forms", id), form).catch(console.error);
         return form;
       },
       updateForm(id, data) {
-        setDb((d) => ({ ...d, forms: (d.forms || []).map((f) => (f.id === id ? { ...f, ...data } : f)) }));
+        updateDoc(doc(firestore, "forms", id), data).catch(console.error);
       },
       deleteForm(id) {
-        setDb((d) => ({
-          ...d,
-          forms: (d.forms || []).filter((f) => f.id !== id),
-          formSchedules: Object.fromEntries(
-            Object.entries(d.formSchedules || {}).map(([cid, list]) => [cid, list.filter((s) => s.formId !== id)])
-          ),
-        }));
+        deleteDoc(doc(firestore, "forms", id)).catch(console.error);
+        Object.values(db.formSchedules)
+          .flat()
+          .filter((s) => s.formId === id)
+          .forEach((s) => deleteDoc(doc(firestore, "formSchedules", s.id)).catch(console.error));
       },
 
       // Recurring weekly form schedules per client — same mental model as a
       // program day recurring on the client's rotation, but for check-ins.
       scheduleForm(clientId, formId, dayOfWeek) {
-        const schedule = { id: newId("sched"), formId, dayOfWeek, active: true, createdAt: Date.now() };
-        setDb((d) => ({
-          ...d,
-          formSchedules: { ...(d.formSchedules || {}), [clientId]: [...((d.formSchedules || {})[clientId] || []), schedule] },
-        }));
+        const id = newDocId("formSchedules");
+        const schedule = { id, clientId, formId, dayOfWeek, active: true, createdAt: Date.now() };
+        setDoc(doc(firestore, "formSchedules", id), schedule).catch(console.error);
         return schedule;
       },
       unscheduleForm(clientId, scheduleId) {
-        setDb((d) => ({
-          ...d,
-          formSchedules: {
-            ...(d.formSchedules || {}),
-            [clientId]: ((d.formSchedules || {})[clientId] || []).filter((s) => s.id !== scheduleId),
-          },
-        }));
+        deleteDoc(doc(firestore, "formSchedules", scheduleId)).catch(console.error);
       },
       toggleFormSchedule(clientId, scheduleId) {
-        setDb((d) => ({
-          ...d,
-          formSchedules: {
-            ...(d.formSchedules || {}),
-            [clientId]: ((d.formSchedules || {})[clientId] || []).map((s) => (s.id === scheduleId ? { ...s, active: !s.active } : s)),
-          },
-        }));
+        const schedules = db.formSchedules[clientId] || [];
+        const current = schedules.find((s) => s.id === scheduleId);
+        if (!current) return;
+        updateDoc(doc(firestore, "formSchedules", scheduleId), { active: !current.active }).catch(console.error);
       },
 
       // Free-form client tags, shown on the Summary tab.
       addClientTag(clientId, label) {
         const trimmed = label.trim();
         if (!trimmed) return;
-        setDb((d) => {
-          const existing = (d.clientTags || {})[clientId] || [];
-          if (existing.some((t) => t.toLowerCase() === trimmed.toLowerCase())) return d;
-          return { ...d, clientTags: { ...(d.clientTags || {}), [clientId]: [...existing, trimmed] } };
-        });
+        const existing = db.clientTags[clientId] || [];
+        if (existing.some((t) => t.toLowerCase() === trimmed.toLowerCase())) return;
+        updateDoc(doc(firestore, "users", clientId), { clientTags: [...existing, trimmed] }).catch(console.error);
       },
       removeClientTag(clientId, label) {
-        setDb((d) => ({
-          ...d,
-          clientTags: { ...(d.clientTags || {}), [clientId]: ((d.clientTags || {})[clientId] || []).filter((t) => t !== label) },
-        }));
+        const existing = db.clientTags[clientId] || [];
+        updateDoc(doc(firestore, "users", clientId), { clientTags: existing.filter((t) => t !== label) }).catch(console.error);
       },
 
       // Private trainer notes on a client's Summary — coach-only, never shown to the client.
       addClientNote(clientId, text) {
         const trimmed = text.trim();
         if (!trimmed) return;
-        const note = { id: newId("note"), text: trimmed, date: Date.now() };
-        setDb((d) => ({
-          ...d,
-          clientNotes: { ...(d.clientNotes || {}), [clientId]: [note, ...((d.clientNotes || {})[clientId] || [])] },
-        }));
+        const id = newDocId("clientNotes");
+        setDoc(doc(firestore, "clientNotes", id), { id, clientId, text: trimmed, date: Date.now() }).catch(console.error);
       },
       deleteClientNote(clientId, noteId) {
-        setDb((d) => ({
-          ...d,
-          clientNotes: {
-            ...(d.clientNotes || {}),
-            [clientId]: ((d.clientNotes || {})[clientId] || []).filter((n) => n.id !== noteId),
-          },
-        }));
+        deleteDoc(doc(firestore, "clientNotes", noteId)).catch(console.error);
       },
 
       // The coach's automated welcome message template (text + optional PDF),
       // auto-sent when a client activates their account.
       updateWelcomeMessage(patch) {
-        setDb((d) => ({ ...d, welcomeMessage: { ...(d.welcomeMessage || DEFAULT_WELCOME_MESSAGE), ...patch } }));
+        const next = { ...(db.welcomeMessage || DEFAULT_WELCOME_MESSAGE), ...patch };
+        setDoc(doc(firestore, "settings", "welcomeMessage"), next).catch(console.error);
       },
 
       // Client-submitted check-in responses.
       submitFormResponse(clientId, { formId, scheduleId, answers }) {
-        const response = { id: newId("resp"), formId, scheduleId, date: Date.now(), answers };
-        setDb((d) => ({
-          ...d,
-          formResponses: { ...(d.formResponses || {}), [clientId]: [response, ...((d.formResponses || {})[clientId] || [])] },
-        }));
+        const id = newDocId("formResponses");
+        const response = { id, clientId, formId, scheduleId, date: Date.now(), answers };
+        setDoc(doc(firestore, "formResponses", id), response).catch(console.error);
         return response;
       },
     }),
-    [db]
+    [db, raw, hasCoach]
   );
 
-  const value = { db, session, currentUser, hasCoach, ...actions };
+  const value = { db, session, currentUser, hasCoach, authReady, ...actions };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }
 
