@@ -13,6 +13,24 @@ const DEFAULT_HABIT_PRESETS = [
   { id: "hp_sleep", label: "Sleep 7+ Hours" },
 ];
 
+const DEFAULT_WELCOME_MESSAGE = {
+  text: [
+    "Hi {name},",
+    "",
+    "Welcome to the app! Have a look around and familiarise yourself with everything — your training, progress tracking and other resources are all in there.",
+    "",
+    "I've also attached your Nutritional Tracking Guide as a PDF. Have a read through when you get a chance, and we'll go through anything you're unsure about.",
+    "",
+    "Looking forward to getting started!",
+    "",
+    "Zach McIvor",
+    "Zach McIvor Personal Training",
+  ].join("\n"),
+  attachmentName: "",
+  attachmentUrl: "",
+  autoSend: false,
+};
+
 // Adds any exercise from the built-in library that isn't already present
 // (by id) — lets us grow the shipped library over time without wiping or
 // duplicating anything in an account that already exists.
@@ -37,6 +55,9 @@ function loadDb() {
         forms: parsed.forms || [],
         formSchedules: parsed.formSchedules || {},
         formResponses: parsed.formResponses || {},
+        welcomeMessage: parsed.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
+        clientTags: parsed.clientTags || {},
+        clientNotes: parsed.clientNotes || {},
       };
     }
   } catch {
@@ -61,6 +82,9 @@ function loadDb() {
     forms: [], // [{ id, name, description, questions:[{id,type,label,required}], createdAt }]
     formSchedules: {}, // clientId -> [{ id, formId, dayOfWeek(0-6), active, createdAt }]
     formResponses: {}, // clientId -> [{ id, formId, scheduleId, date, answers:{questionId:value} }]
+    welcomeMessage: DEFAULT_WELCOME_MESSAGE, // { text, attachmentName, attachmentUrl, autoSend } — sent to a client automatically when they activate
+    clientTags: {}, // clientId -> [string] — free-form tags the coach adds on a client's Summary
+    clientNotes: {}, // clientId -> [{ id, text, date }] — private trainer notes, coach-only
   };
 }
 
@@ -114,6 +138,7 @@ export function AppProvider({ children }) {
           throw new Error("Incorrect username or password.");
         }
         setSession({ userId: u.id });
+        setDb((d) => ({ ...d, users: d.users.map((x) => (x.id === u.id ? { ...x, lastLoginAt: Date.now() } : x)) }));
         return u;
       },
 
@@ -185,10 +210,24 @@ export function AppProvider({ children }) {
         if (!u || u.password !== code.trim()) {
           throw new Error("That username or invite code doesn't match an active invite.");
         }
-        setDb((d) => ({
-          ...d,
-          users: d.users.map((x) => (x.id === u.id ? { ...x, password: newPassword, status: "active" } : x)),
-        }));
+        const welcome = db.welcomeMessage;
+        setDb((d) => {
+          const next = {
+            ...d,
+            users: d.users.map((x) =>
+              x.id === u.id ? { ...x, password: newPassword, status: "active", lastLoginAt: Date.now() } : x
+            ),
+          };
+          if (welcome?.autoSend && welcome.text?.trim()) {
+            const text = welcome.text.replace(/\{name\}/gi, u.name.split(" ")[0]);
+            const message = { id: newId("m"), from: "coach", text, date: Date.now() };
+            if (welcome.attachmentUrl) {
+              message.attachment = { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl };
+            }
+            next.messages = { ...d.messages, [u.id]: [...(d.messages[u.id] || []), message] };
+          }
+          return next;
+        });
         setSession({ userId: u.id });
         return u;
       },
@@ -335,14 +374,17 @@ export function AppProvider({ children }) {
         }));
       },
 
-      sendMessage(clientId, from, text) {
-        const trimmed = text.trim();
-        if (!trimmed) return;
+      sendMessage(clientId, from, text, attachment) {
+        const trimmed = (text || "").trim();
+        if (!trimmed && !attachment) return;
         setDb((d) => ({
           ...d,
           messages: {
             ...d.messages,
-            [clientId]: [...(d.messages[clientId] || []), { id: newId("m"), from, text: trimmed, date: Date.now() }],
+            [clientId]: [
+              ...(d.messages[clientId] || []),
+              { id: newId("m"), from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}) },
+            ],
           },
         }));
       },
@@ -531,6 +573,49 @@ export function AppProvider({ children }) {
             [clientId]: ((d.formSchedules || {})[clientId] || []).map((s) => (s.id === scheduleId ? { ...s, active: !s.active } : s)),
           },
         }));
+      },
+
+      // Free-form client tags, shown on the Summary tab.
+      addClientTag(clientId, label) {
+        const trimmed = label.trim();
+        if (!trimmed) return;
+        setDb((d) => {
+          const existing = (d.clientTags || {})[clientId] || [];
+          if (existing.some((t) => t.toLowerCase() === trimmed.toLowerCase())) return d;
+          return { ...d, clientTags: { ...(d.clientTags || {}), [clientId]: [...existing, trimmed] } };
+        });
+      },
+      removeClientTag(clientId, label) {
+        setDb((d) => ({
+          ...d,
+          clientTags: { ...(d.clientTags || {}), [clientId]: ((d.clientTags || {})[clientId] || []).filter((t) => t !== label) },
+        }));
+      },
+
+      // Private trainer notes on a client's Summary — coach-only, never shown to the client.
+      addClientNote(clientId, text) {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+        const note = { id: newId("note"), text: trimmed, date: Date.now() };
+        setDb((d) => ({
+          ...d,
+          clientNotes: { ...(d.clientNotes || {}), [clientId]: [note, ...((d.clientNotes || {})[clientId] || [])] },
+        }));
+      },
+      deleteClientNote(clientId, noteId) {
+        setDb((d) => ({
+          ...d,
+          clientNotes: {
+            ...(d.clientNotes || {}),
+            [clientId]: ((d.clientNotes || {})[clientId] || []).filter((n) => n.id !== noteId),
+          },
+        }));
+      },
+
+      // The coach's automated welcome message template (text + optional PDF),
+      // auto-sent when a client activates their account.
+      updateWelcomeMessage(patch) {
+        setDb((d) => ({ ...d, welcomeMessage: { ...(d.welcomeMessage || DEFAULT_WELCOME_MESSAGE), ...patch } }));
       },
 
       // Client-submitted check-in responses.

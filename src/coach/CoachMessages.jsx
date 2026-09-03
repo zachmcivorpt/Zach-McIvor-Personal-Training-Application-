@@ -1,7 +1,24 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { FullScreenOverlay, Avatar } from "../components/ui";
-import { Search, Send, ChevronLeft, MessageCircle } from "lucide-react";
+import { Search, Send, ChevronLeft, MessageCircle, FileText } from "lucide-react";
+
+function AttachmentPill({ attachment, tone = "light" }) {
+  if (!attachment) return null;
+  return (
+    <a
+      href={attachment.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${
+        tone === "dark" ? "bg-white/15 text-white" : "bg-black/8 text-black"
+      }`}
+    >
+      <FileText size={14} className="shrink-0" />
+      <span className="text-xs font-medium truncate">{attachment.name}</span>
+    </a>
+  );
+}
 
 // The message list + composer, with no header/chrome of its own — reused by
 // both the full-screen ThreadView (opened from a client's own profile) and
@@ -29,7 +46,8 @@ function ThreadMessages({ client }) {
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "coach" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "coach" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
-              <p>{m.text}</p>
+              {m.text && <p className="whitespace-pre-line">{m.text}</p>}
+              <AttachmentPill attachment={m.attachment} tone={m.from === "coach" ? "dark" : "light"} />
               <p className={`text-[10px] mt-1 ${m.from === "coach" ? "text-white/40" : "text-black/30"}`}>
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>

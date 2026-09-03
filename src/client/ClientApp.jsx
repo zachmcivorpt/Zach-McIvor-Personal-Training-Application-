@@ -39,6 +39,7 @@ import {
   ClipboardList,
   CalendarCheck,
   Star,
+  FileText,
 } from "lucide-react";
 import {
   LineChart,
@@ -1786,7 +1787,18 @@ function MessagesSheet({ open, onClose, user, thread, onSend }) {
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "client" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
-              <p>{m.text}</p>
+              {m.text && <p className="whitespace-pre-line">{m.text}</p>}
+              {m.attachment && (
+                <a
+                  href={m.attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${m.from === "client" ? "bg-white/15 text-white" : "bg-black/8 text-black"}`}
+                >
+                  <FileText size={14} className="shrink-0" />
+                  <span className="text-xs font-medium truncate">{m.attachment.name}</span>
+                </a>
+              )}
               <p className={`text-[10px] mt-1 ${m.from === "client" ? "text-white/40" : "text-black/30"}`}>
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>

@@ -6,22 +6,29 @@ import { UserPlus, Search, Copy, RefreshCw, Mail, Send } from "lucide-react";
 
 export function inviteMailto({ email, name, username, code, coachName }) {
   const activateUrl = `${window.location.origin}/activate`;
-  const subject = "Your Login Details For Zach McIvor Personal Training App";
+  const subject = "Welcome to Zach McIvor Personal Training — Your Login Details";
   const body = [
-    `Hey ${name.split(" ")[0]},`,
+    `Hi ${name.split(" ")[0]},`,
     "",
-    "Welcome aboard — congrats on taking the first step! I'm genuinely excited to start working with you and help you smash your goals. 💪",
+    "Welcome to Zach McIvor Personal Training!",
+    "",
+    "I've set you up on the training app, where you'll be able to access your personalised training program, workouts, track your progress, and keep everything in one place throughout your journey.",
     "",
     "Here are your login details:",
     "",
-    `Login email: ${username}`,
-    `Invite code: ${code}`,
+    `App: ${activateUrl}`,
+    `Email: ${username}`,
+    `Code: ${code}`,
     "",
-    `Activate your account here: ${activateUrl}`,
+    "When you get a chance, have a look through the app and familiarise yourself with everything. I'll be keeping your program updated and using the app to help keep you on track and progressing towards your goals.",
     "",
-    "You'll choose your own password when you activate. Let's get to work!",
+    "If you have any questions or have any trouble logging in, just reach out to me and I'll help you out.",
     "",
-    coachName || "Zach",
+    "Looking forward to working with you and seeing what we can achieve together!",
+    "",
+    "Cheers,",
+    coachName || "Zach McIvor",
+    "Zach McIvor Personal Training",
   ].join("\n");
   return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
@@ -109,7 +116,7 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
       <button
         onClick={() => {
           const activateUrl = `${window.location.origin}/activate`;
-          navigator.clipboard?.writeText(`Login email: ${client.username}\nInvite code: ${code}\nActivate at: ${activateUrl}`);
+          navigator.clipboard?.writeText(`App: ${activateUrl}\nEmail: ${client.username}\nCode: ${code}`);
           showToast("Copied login details");
         }}
         className="w-full mt-2.5 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"

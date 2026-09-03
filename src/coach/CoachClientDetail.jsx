@@ -22,6 +22,11 @@ import {
   Dumbbell,
   NotebookPen,
   ChevronRight,
+  Watch,
+  Activity,
+  Scale,
+  MailCheck,
+  LayoutGrid,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -776,7 +781,207 @@ function ProgressPanel({ client }) {
   );
 }
 
+function fmtStatDate(ts) {
+  if (!ts) return "Never";
+  return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function SummaryPanel({ client, showToast }) {
+  const { db, addClientTag, removeClientTag, addClientNote, deleteClientNote, sendMessage } = useApp();
+  const [tagInput, setTagInput] = useState("");
+  const [noteInput, setNoteInput] = useState("");
+
+  const logs = db.workoutLogs[client.id] || [];
+  const totalWorkouts = logs.length;
+  const totalPRs = logs.reduce((a, log) => a + log.entries.reduce((b, e) => b + e.sets.filter((s) => s.isPR).length, 0), 0);
+  const thread = db.messages[client.id] || [];
+  const lastSent = [...thread].reverse().find((m) => m.from === "coach");
+  const lastReceived = [...thread].reverse().find((m) => m.from === "client");
+  const tags = (db.clientTags || {})[client.id] || [];
+  const notes = (db.clientNotes || {})[client.id] || [];
+
+  const phases = (db.clientPhases || {})[client.id] || [];
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const phase = getCurrentPhase(phases, todayKey);
+  const daysPerWeek = phase?.weeks?.[0]?.days?.length || 0;
+
+  const now = Date.now();
+  const thisWeekCount = logs.filter((l) => l.date >= now - 7 * 86400000).length;
+  const prevWeekCount = logs.filter((l) => l.date >= now - 14 * 86400000 && l.date < now - 7 * 86400000).length;
+
+  function sendWelcomeNow() {
+    const welcome = db.welcomeMessage;
+    if (!welcome?.text?.trim()) {
+      showToast("Set up a welcome message in Settings first");
+      return;
+    }
+    const text = welcome.text.replace(/\{name\}/gi, client.name.split(" ")[0]);
+    const attachment = welcome.attachmentUrl ? { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl } : undefined;
+    sendMessage(client.id, "coach", text, attachment);
+    showToast("Welcome message sent");
+  }
+
+  return (
+    <div className="px-4 py-5 md:px-6 md:py-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* left: stats, tags, integrations */}
+        <div className="space-y-5">
+          <div>
+            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">STATS</p>
+            <div className="bg-black/[0.03] border border-black/8 rounded-xl divide-y divide-black/5">
+              {[
+                ["Total workouts", totalWorkouts],
+                ["Personal bests", totalPRs],
+                ["Last signed in", fmtStatDate(client.lastLoginAt)],
+                ["Last message sent", fmtStatDate(lastSent?.date)],
+                ["Last message received", fmtStatDate(lastReceived?.date)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between text-sm px-3.5 py-2.5">
+                  <span className="text-black/50">{label}</span>
+                  <span className="text-black font-semibold">{value}</span>
+                </div>
+              ))}
+            </div>
+            {client.status === "active" && (
+              <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold mt-2.5">
+                <MailCheck size={13} /> Send welcome message now
+              </button>
+            )}
+          </div>
+
+          <div>
+            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TAGS</p>
+            <div className="flex flex-wrap gap-1.5 mb-2.5">
+              {tags.length === 0 && <span className="text-black/25 text-xs">No tags yet.</span>}
+              {tags.map((t) => (
+                <span key={t} className="flex items-center gap-1 bg-black/8 text-black/70 text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full">
+                  {t}
+                  <button onClick={() => removeClientTag(client.id, t)} className="text-black/30 hover:text-black/60" aria-label={`Remove ${t}`}>
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                addClientTag(client.id, tagInput);
+                setTagInput("");
+              }}
+              className="flex gap-1.5"
+            >
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="Add a tag, e.g. Low compliance"
+                className="flex-1 bg-black/5 border border-black/10 rounded-lg px-2.5 py-1.5 text-xs text-black outline-none placeholder:text-black/25"
+              />
+              <button type="submit" className="bg-black text-white text-xs font-semibold px-3 rounded-lg shrink-0">
+                Add
+              </button>
+            </form>
+          </div>
+
+          <div>
+            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">CONNECTED DEVICES</p>
+            <div className="space-y-1.5">
+              {[
+                { name: "Apple Watch", icon: Watch },
+                { name: "Fitbit", icon: Activity },
+                { name: "MyFitnessPal", icon: Utensils },
+                { name: "Withings", icon: Scale },
+              ].map(({ name, icon: Icon }) => (
+                <div key={name} className="flex items-center gap-2.5 bg-black/[0.03] rounded-lg px-3 py-2.5">
+                  <Icon size={14} className="text-black/30 shrink-0" />
+                  <span className="text-black/60 text-xs font-medium flex-1">{name}</span>
+                  <span className="text-black/25 text-[11px]">Not available yet</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* middle: program + session activity */}
+        <div className="space-y-5">
+          <div>
+            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINING PROGRAM</p>
+            {phase ? (
+              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4">
+                <p className="text-black font-semibold text-sm">{phase.name}</p>
+                <p className="text-black/40 text-xs mt-1">
+                  {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                  {phase.endDate ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : ""}
+                </p>
+                {phase.description && <p className="text-black/50 text-xs mt-2">{phase.description}</p>}
+              </div>
+            ) : (
+              <p className="text-black/30 text-sm">No phase scheduled.</p>
+            )}
+          </div>
+
+          <div>
+            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">
+              SESSION ACTIVITY{daysPerWeek > 0 ? ` — program is ${daysPerWeek}/week` : ""}
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 text-center">
+                <p className="text-black text-2xl font-bold">{prevWeekCount}</p>
+                <p className="text-black/40 text-xs mt-1">8–14 days ago</p>
+              </div>
+              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 text-center">
+                <p className="text-black text-2xl font-bold">{thisWeekCount}</p>
+                <p className="text-black/40 text-xs mt-1">Last 7 days</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* right: trainer notes */}
+        <div>
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINER'S NOTES</p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              addClientNote(client.id, noteInput);
+              setNoteInput("");
+            }}
+            className="mb-3"
+          >
+            <textarea
+              value={noteInput}
+              onChange={(e) => setNoteInput(e.target.value)}
+              placeholder="Private note — only you can see this"
+              rows={2}
+              className="w-full bg-black/5 border border-black/10 rounded-xl px-3 py-2 text-sm text-black outline-none placeholder:text-black/25 resize-none mb-2"
+            />
+            <button type="submit" className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-lg">
+              Add note
+            </button>
+          </form>
+          <div className="space-y-2">
+            {notes.length === 0 && <p className="text-black/25 text-xs">No notes yet.</p>}
+            {notes.map((n) => (
+              <div key={n.id} className="bg-black/[0.03] rounded-lg px-3 py-2.5">
+                <p className="text-black text-sm">{n.text}</p>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-black/30 text-[10px]">
+                    {new Date(n.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
+                  <button onClick={() => deleteClientNote(client.id, n.id)} className="text-black/25 hover:text-black/50" aria-label="Delete note">
+                    <X size={11} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const CLIENT_NAV = [
+  { id: "summary", label: "Summary", icon: LayoutGrid },
   { id: "program", label: "Training Program", icon: ClipboardList },
   { id: "nutrition", label: "Nutrition", icon: Utensils },
   { id: "progress", label: "Progress", icon: ImageIcon },
@@ -786,7 +991,7 @@ const CLIENT_NAV = [
 
 export default function CoachClientDetail({ clientId, onClose, showToast }) {
   const { db, removeClient } = useApp();
-  const [clientTab, setClientTab] = useState("program");
+  const [clientTab, setClientTab] = useState("summary");
   const [messaging, setMessaging] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -942,6 +1147,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
 
       {/* main panel */}
       <div className="flex-1 min-w-0 min-h-0 overflow-y-auto md:overflow-visible">
+        {clientTab === "summary" && <SummaryPanel client={client} showToast={showToast} />}
         {clientTab === "program" && <TrainingProgramPanel client={client} showToast={showToast} />}
         {clientTab === "nutrition" && <NutritionPanel client={client} showToast={showToast} />}
         {clientTab === "progress" && <ProgressPanel client={client} />}

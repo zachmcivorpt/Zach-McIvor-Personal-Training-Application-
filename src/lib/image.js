@@ -1,3 +1,14 @@
+// Reads any file (PDF, etc.) to a base64 data URL as-is — no compression,
+// since that only makes sense for raster images.
+export function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
 // Downscales an uploaded image client-side before it goes into the local
 // store — a phone photo can be several MB; a 900px-wide JPEG is plenty for
 // a progress-photo thumbnail/detail view and keeps localStorage healthy.
