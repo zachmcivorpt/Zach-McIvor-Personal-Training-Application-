@@ -2,11 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast, Avatar } from "../components/ui";
-import { LayoutDashboard, Users, ClipboardList, MessageCircle, Dumbbell, Settings, LogOut, Search, X } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, MessageCircle, Library, Settings, LogOut, Search, X } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
 import CoachPrograms from "./CoachPrograms";
-import CoachExercises from "./CoachExercises";
+import CoachLibrary from "./CoachLibrary";
 import CoachMessages from "./CoachMessages";
 import CoachMore from "./CoachMore";
 
@@ -15,7 +15,7 @@ const MAIN_MENU = [
   { id: "messages", label: "Messages", icon: MessageCircle },
   { id: "clients", label: "Clients", icon: Users },
   { id: "programs", label: "Programs", icon: ClipboardList },
-  { id: "exercises", label: "Exercise Library", icon: Dumbbell },
+  { id: "library", label: "Library", icon: Library },
 ];
 
 const OTHER_MENU = [{ id: "more", label: "Settings", icon: Settings }];
@@ -62,9 +62,7 @@ export default function CoachShell() {
       >
         <Icon size={17} strokeWidth={active ? 2.4 : 2} />
         <span className="flex-1 text-left">{item.label}</span>
-        {item.id === "messages" && unreadMessages && (
-          <span className={`w-2 h-2 rounded-full ${active ? "bg-white" : "bg-black"}`} />
-        )}
+        {item.id === "messages" && unreadMessages && <span className="w-2 h-2 rounded-full bg-blue-500" />}
       </button>
     );
   }
@@ -152,7 +150,7 @@ export default function CoachShell() {
         {tab === "dashboard" && <CoachDashboard onNavigate={setTab} />}
         {tab === "clients" && <CoachClients showToast={showToast} search={clientSearch} setSearch={setClientSearch} />}
         {tab === "programs" && <CoachPrograms showToast={showToast} />}
-        {tab === "exercises" && <CoachExercises showToast={showToast} />}
+        {tab === "library" && <CoachLibrary showToast={showToast} />}
         {tab === "messages" && <CoachMessages />}
         {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} />}
       </div>
@@ -167,10 +165,10 @@ export default function CoachShell() {
               <button key={item.id} onClick={() => setTab(item.id)} className="flex-1 flex flex-col items-center gap-1 py-2.5 relative">
                 <Icon size={19} className={active ? "text-black" : "text-black/35"} strokeWidth={active ? 2.4 : 2} />
                 <span className={`text-[9px] font-medium leading-none ${active ? "text-black" : "text-black/35"}`}>
-                  {item.id === "exercises" ? "Library" : item.label}
+                  {item.label}
                 </span>
                 {item.id === "messages" && unreadMessages && (
-                  <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-black" />
+                  <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-blue-500" />
                 )}
               </button>
             );

@@ -32,8 +32,13 @@ export const ACCENT_INK = "#FFFFFF"; // text/icon color when sitting on ACCENT
 export const STATE_SUCCESS = "#0A0A0B";
 export const STATE_MUTED = "rgba(10,10,11,0.3)";
 
-// The one accent: a crisp, cool blue used exclusively for measurement data —
-// weight, sleep, steps, heart rate, training charts. Never used on chrome.
+// The one accent: a crisp, cool blue. In the client app it's used exclusively
+// for measurement data (weight, sleep, steps, heart rate, training charts),
+// never on chrome. The coach console is the deliberate exception: blue is
+// also used there as a UI accent (active/interactive elements, badges,
+// library icons) per an explicit "make it more colourful, blue + black
+// outlines" request — chrome there still defaults to black, blue marks what's
+// interactive or "yours" (custom library items) vs. static/built-in.
 export const MEASURE_BLUE = "#2F8FFF";
 export const MEASURE_BLUE_SOFT = "rgba(47,143,255,0.16)";
 export const MEASURE_BLUE_FAINT = "rgba(47,143,255,0.35)";

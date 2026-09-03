@@ -175,7 +175,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
         <div
           className={`${
             mobilePanel === "picker" ? "hidden" : "flex-1"
-          } md:flex-1 overflow-y-auto px-4 md:px-6 py-5 md:border-r border-black/8`}
+          } md:block md:flex-1 overflow-y-auto px-4 md:px-6 py-5 md:border-r border-black/8`}
         >
           <p className="text-black/40 text-[11px] font-semibold tracking-wide mb-2">INSTRUCTIONS</p>
           <TextArea
@@ -359,7 +359,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
         <div
           className={`${
             mobilePanel === "editor" ? "hidden" : "flex-1"
-          } md:flex md:flex-none md:w-[380px] shrink-0 overflow-y-auto px-4 md:px-5 py-5`}
+          } md:block md:flex-none md:w-[380px] shrink-0 overflow-y-auto px-4 md:px-5 py-5`}
         >
           <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-3">
             <Search size={15} className="text-black/40" />

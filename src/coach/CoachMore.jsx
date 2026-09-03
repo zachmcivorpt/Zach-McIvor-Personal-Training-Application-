@@ -12,7 +12,7 @@ export default function CoachMore({ onNavigate, onLogout }) {
         <h1 className="text-black text-2xl font-bold">Settings</h1>
       </div>
 
-      <Card onClick={() => onNavigate("exercises")}>
+      <Card onClick={() => onNavigate("library")}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-black/10 flex items-center justify-center shrink-0">
             <Video size={18} className="text-black" />

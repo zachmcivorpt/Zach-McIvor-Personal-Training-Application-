@@ -6,6 +6,13 @@ import { COACH_SETUP_CODE } from "./config";
 const DB_KEY = "mpt_db_v4";
 const SESSION_KEY = "mpt_session_v2";
 
+const DEFAULT_HABIT_PRESETS = [
+  { id: "hp_steps", label: "12,000 steps" },
+  { id: "hp_mobility", label: "Do your Mobility" },
+  { id: "hp_nutrition", label: "Log your Nutrition" },
+  { id: "hp_sleep", label: "Sleep 7+ Hours" },
+];
+
 // Adds any exercise from the built-in library that isn't already present
 // (by id) — lets us grow the shipped library over time without wiping or
 // duplicating anything in an account that already exists.
@@ -20,7 +27,17 @@ function loadDb() {
     const raw = localStorage.getItem(DB_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...parsed, exercises: mergeSeedExercises(parsed.exercises) };
+      return {
+        ...parsed,
+        exercises: mergeSeedExercises(parsed.exercises),
+        masterWorkouts: parsed.masterWorkouts || [],
+        masterMeals: parsed.masterMeals || [],
+        customFoods: parsed.customFoods || [],
+        habitPresets: parsed.habitPresets || DEFAULT_HABIT_PRESETS,
+        forms: parsed.forms || [],
+        formSchedules: parsed.formSchedules || {},
+        formResponses: parsed.formResponses || {},
+      };
     }
   } catch {
     // fall through to fresh install
@@ -37,6 +54,13 @@ function loadDb() {
     habits: {}, // clientId -> [{ id, label, createdAt }]
     habitLog: {}, // clientId -> { "YYYY-MM-DD": [habitId, ...] }
     clientPhases: {}, // clientId -> [{ id, name, level, description, startDate, endDate, weeks:[...] }]
+    masterWorkouts: [], // [{ id, label, muscleGroups, exercises, instructions, createdAt }] — reusable workout templates
+    masterMeals: [], // [{ id, name, ingredients, cals, protein, carbs, fat, createdAt }] — coach-authored meal templates
+    customFoods: [], // [{ id, name, cals, protein, carbs, fat }] — merged with the static food database client-side
+    habitPresets: DEFAULT_HABIT_PRESETS, // [{ id, label }] — suggested habits offered per-client
+    forms: [], // [{ id, name, description, questions:[{id,type,label,required}], createdAt }]
+    formSchedules: {}, // clientId -> [{ id, formId, dayOfWeek(0-6), active, createdAt }]
+    formResponses: {}, // clientId -> [{ id, formId, scheduleId, date, answers:{questionId:value} }]
   };
 }
 
@@ -402,6 +426,121 @@ export function AppProvider({ children }) {
             habitLog: { ...(d.habitLog || {}), [clientId]: { ...clientLog, [dateKey]: nextToday } },
           };
         });
+      },
+
+      // Master workout templates — reusable building blocks, independent of
+      // any single program, that can be dropped into a phase.
+      createMasterWorkout(data) {
+        const id = newId("mwk");
+        const workout = { id, label: "New Workout", muscleGroups: [], exercises: [], instructions: "", createdAt: Date.now(), ...data };
+        setDb((d) => ({ ...d, masterWorkouts: [...(d.masterWorkouts || []), workout] }));
+        return workout;
+      },
+      updateMasterWorkout(id, data) {
+        setDb((d) => ({ ...d, masterWorkouts: (d.masterWorkouts || []).map((w) => (w.id === id ? { ...w, ...data } : w)) }));
+      },
+      deleteMasterWorkout(id) {
+        setDb((d) => ({ ...d, masterWorkouts: (d.masterWorkouts || []).filter((w) => w.id !== id) }));
+      },
+
+      // Master meal templates — coach-authored, reusable across clients.
+      createMasterMeal(data) {
+        const id = newId("mmeal");
+        const meal = { id, name: "New Meal", ingredients: [], cals: 0, protein: 0, carbs: 0, fat: 0, createdAt: Date.now(), ...data };
+        setDb((d) => ({ ...d, masterMeals: [...(d.masterMeals || []), meal] }));
+        return meal;
+      },
+      updateMasterMeal(id, data) {
+        setDb((d) => ({ ...d, masterMeals: (d.masterMeals || []).map((m) => (m.id === id ? { ...m, ...data } : m)) }));
+      },
+      deleteMasterMeal(id) {
+        setDb((d) => ({ ...d, masterMeals: (d.masterMeals || []).filter((m) => m.id !== id) }));
+      },
+
+      // Custom foods — coach-added, merged with the static FOOD_DATABASE
+      // wherever the client searches for food to log.
+      createFood(data) {
+        const id = newId("food");
+        const food = { id, name: "", cals: 0, protein: 0, carbs: 0, fat: 0, ...data };
+        setDb((d) => ({ ...d, customFoods: [...(d.customFoods || []), food] }));
+        return food;
+      },
+      updateFood(id, data) {
+        setDb((d) => ({ ...d, customFoods: (d.customFoods || []).map((f) => (f.id === id ? { ...f, ...data } : f)) }));
+      },
+      deleteFood(id) {
+        setDb((d) => ({ ...d, customFoods: (d.customFoods || []).filter((f) => f.id !== id) }));
+      },
+
+      // Habit presets — the master suggestion list offered when adding a
+      // client's daily habits (replaces a hardcoded constant).
+      createHabitPreset(label) {
+        const preset = { id: newId("hp"), label: label.trim() };
+        setDb((d) => ({ ...d, habitPresets: [...(d.habitPresets || []), preset] }));
+        return preset;
+      },
+      deleteHabitPreset(id) {
+        setDb((d) => ({ ...d, habitPresets: (d.habitPresets || []).filter((h) => h.id !== id) }));
+      },
+
+      // Check-in form templates — a custom question builder (text/number/
+      // rating/photo questions), scheduled recurring onto a client's week.
+      createForm(data) {
+        const id = newId("form");
+        const form = { id, name: "New Check-in", description: "", questions: [], createdAt: Date.now(), ...data };
+        setDb((d) => ({ ...d, forms: [...(d.forms || []), form] }));
+        return form;
+      },
+      updateForm(id, data) {
+        setDb((d) => ({ ...d, forms: (d.forms || []).map((f) => (f.id === id ? { ...f, ...data } : f)) }));
+      },
+      deleteForm(id) {
+        setDb((d) => ({
+          ...d,
+          forms: (d.forms || []).filter((f) => f.id !== id),
+          formSchedules: Object.fromEntries(
+            Object.entries(d.formSchedules || {}).map(([cid, list]) => [cid, list.filter((s) => s.formId !== id)])
+          ),
+        }));
+      },
+
+      // Recurring weekly form schedules per client — same mental model as a
+      // program day recurring on the client's rotation, but for check-ins.
+      scheduleForm(clientId, formId, dayOfWeek) {
+        const schedule = { id: newId("sched"), formId, dayOfWeek, active: true, createdAt: Date.now() };
+        setDb((d) => ({
+          ...d,
+          formSchedules: { ...(d.formSchedules || {}), [clientId]: [...((d.formSchedules || {})[clientId] || []), schedule] },
+        }));
+        return schedule;
+      },
+      unscheduleForm(clientId, scheduleId) {
+        setDb((d) => ({
+          ...d,
+          formSchedules: {
+            ...(d.formSchedules || {}),
+            [clientId]: ((d.formSchedules || {})[clientId] || []).filter((s) => s.id !== scheduleId),
+          },
+        }));
+      },
+      toggleFormSchedule(clientId, scheduleId) {
+        setDb((d) => ({
+          ...d,
+          formSchedules: {
+            ...(d.formSchedules || {}),
+            [clientId]: ((d.formSchedules || {})[clientId] || []).map((s) => (s.id === scheduleId ? { ...s, active: !s.active } : s)),
+          },
+        }));
+      },
+
+      // Client-submitted check-in responses.
+      submitFormResponse(clientId, { formId, scheduleId, answers }) {
+        const response = { id: newId("resp"), formId, scheduleId, date: Date.now(), answers };
+        setDb((d) => ({
+          ...d,
+          formResponses: { ...(d.formResponses || {}), [clientId]: [response, ...((d.formResponses || {})[clientId] || [])] },
+        }));
+        return response;
       },
     }),
     [db]

@@ -18,9 +18,12 @@ import {
   Calendar,
   Edit3,
   X,
+  Library,
+  Dumbbell,
+  NotebookPen,
+  ChevronRight,
 } from "lucide-react";
 
-const HABIT_PRESETS = ["12,000 steps", "Do your Mobility", "Log your Nutrition", "Sleep 7+ Hours"];
 const todayKey = () => new Date().toISOString().slice(0, 10);
 
 function emptyPhase(programs) {
@@ -186,6 +189,7 @@ function TrainingProgramPanel({ client, showToast }) {
   const [duplicating, setDuplicating] = useState(null);
   const [confirmDeletePhase, setConfirmDeletePhase] = useState(null);
   const [editingWorkout, setEditingWorkout] = useState(null); // { dayIndex, day } | null
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
 
   const phase = phases.find((p) => p.id === selectedPhaseId) || sorted[0] || null;
   const days = phase?.weeks?.[0]?.days || [];
@@ -213,6 +217,19 @@ function TrainingProgramPanel({ client, showToast }) {
     if (!phase) return;
     const newDay = { id: `d_${Date.now()}`, label: `Workout ${days.length + 1}`, muscleGroups: [], exercises: [] };
     setEditingWorkout({ dayIndex: days.length, day: newDay });
+  }
+
+  function addWorkoutFromLibrary(masterWorkout) {
+    if (!phase) return;
+    const newDay = {
+      id: `d_${Date.now()}`,
+      label: masterWorkout.label,
+      muscleGroups: masterWorkout.muscleGroups || [],
+      exercises: JSON.parse(JSON.stringify(masterWorkout.exercises || [])),
+      instructions: masterWorkout.instructions || "",
+    };
+    setEditingWorkout({ dayIndex: days.length, day: newDay });
+    setLibraryPickerOpen(false);
   }
 
   function saveWorkout(day) {
@@ -382,9 +399,14 @@ function TrainingProgramPanel({ client, showToast }) {
 
             <div className="flex items-center justify-between mb-3">
               <p className="text-black font-semibold text-sm">Workouts</p>
-              <button onClick={addWorkout} className="flex items-center gap-1.5 text-black/60 text-xs font-semibold">
-                <Plus size={13} /> New workout
-              </button>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setLibraryPickerOpen(true)} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+                  <Library size={13} /> From library
+                </button>
+                <button onClick={addWorkout} className="flex items-center gap-1.5 text-black/60 text-xs font-semibold">
+                  <Plus size={13} /> New workout
+                </button>
+              </div>
             </div>
 
             {days.length === 0 ? (
@@ -421,6 +443,32 @@ function TrainingProgramPanel({ client, showToast }) {
 
       <NewPhaseSheet open={newPhaseOpen} onClose={() => setNewPhaseOpen(false)} programs={db.programs} onCreate={createPhase} />
       <DuplicatePhaseSheet open={!!duplicating} onClose={() => setDuplicating(null)} phase={duplicating} onDuplicate={duplicatePhase} />
+      <BottomSheet open={libraryPickerOpen} onClose={() => setLibraryPickerOpen(false)} title="Add from Workout Library">
+        {(db.masterWorkouts || []).length === 0 ? (
+          <p className="text-black/30 text-sm text-center py-6">No workout templates yet — build some in Library → Workouts.</p>
+        ) : (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {(db.masterWorkouts || []).map((w) => (
+              <button
+                key={w.id}
+                onClick={() => addWorkoutFromLibrary(w)}
+                className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 text-left transition-colors"
+              >
+                <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                  <Dumbbell size={15} className="text-blue-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-black font-semibold text-sm truncate">{w.label}</p>
+                  <p className="text-black/35 text-xs truncate">
+                    {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
+                    {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </BottomSheet>
       {editingWorkout && (
         <WorkoutEditor
           open={!!editingWorkout}
@@ -439,6 +487,7 @@ function HabitsPanel({ client }) {
   const [label, setLabel] = useState("");
   const habits = (db.habits || {})[client.id] || [];
   const existingLabels = new Set(habits.map((h) => h.label.toLowerCase()));
+  const presets = (db.habitPresets || []).map((p) => p.label);
 
   function submit(e) {
     e.preventDefault();
@@ -469,12 +518,179 @@ function HabitsPanel({ client }) {
         </button>
       </form>
       <div className="flex flex-wrap gap-1.5">
-        {HABIT_PRESETS.filter((p) => !existingLabels.has(p.toLowerCase())).map((preset) => (
+        {presets.filter((p) => !existingLabels.has(p.toLowerCase())).map((preset) => (
           <button key={preset} onClick={() => addHabit(client.id, preset)} className="text-xs bg-black/8 text-black/60 px-3 py-1.5 rounded-full">
             + {preset}
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function ScheduleFormSheet({ open, onClose, client, showToast }) {
+  const { db, scheduleForm } = useApp();
+  const forms = db.forms || [];
+  const [formId, setFormId] = useState("");
+  const [dayOfWeek, setDayOfWeek] = useState(1);
+
+  React.useEffect(() => {
+    if (open) {
+      setFormId(forms[0]?.id || "");
+      setDayOfWeek(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function submit(e) {
+    e.preventDefault();
+    if (!formId) return;
+    scheduleForm(client.id, formId, dayOfWeek);
+    showToast("Check-in scheduled");
+    onClose();
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Schedule a Check-in">
+      {forms.length === 0 ? (
+        <p className="text-black/30 text-sm text-center py-6">No check-in forms yet — build one in Library → Forms first.</p>
+      ) : (
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">FORM</p>
+            <Select value={formId} onChange={(e) => setFormId(e.target.value)}>
+              {forms.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">REPEATS WEEKLY ON</p>
+            <div className="grid grid-cols-7 gap-1.5">
+              {DAY_LABELS.map((label, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setDayOfWeek(i)}
+                  className={`py-2.5 rounded-lg text-xs font-semibold ${dayOfWeek === i ? "bg-blue-500 text-white" : "bg-black/8 text-black/50"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <PrimaryButton type="submit" className="w-full">
+            <Calendar size={16} /> SCHEDULE CHECK-IN
+          </PrimaryButton>
+        </form>
+      )}
+    </BottomSheet>
+  );
+}
+
+function CheckInsPanel({ client, showToast }) {
+  const { db, unscheduleForm, toggleFormSchedule } = useApp();
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [viewingResponse, setViewingResponse] = useState(null);
+  const forms = db.forms || [];
+  const schedules = (db.formSchedules || {})[client.id] || [];
+  const responses = (db.formResponses || {})[client.id] || [];
+  const formsById = Object.fromEntries(forms.map((f) => [f.id, f]));
+
+  return (
+    <div className="max-w-2xl px-4 py-5 md:px-6 md:py-6">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-black font-semibold">Scheduled Check-ins</p>
+        <button onClick={() => setScheduleOpen(true)} className="flex items-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2 rounded-lg">
+          <Plus size={13} /> Schedule
+        </button>
+      </div>
+
+      {schedules.length === 0 ? (
+        <div className="border border-dashed border-black/12 rounded-2xl py-8 text-center mb-6">
+          <p className="text-black/30 text-sm">No check-ins scheduled yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-2 mb-6">
+          {schedules.map((s) => {
+            const form = formsById[s.formId];
+            return (
+              <div key={s.id} className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                  <NotebookPen size={15} className="text-blue-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
+                  <p className="text-black/35 text-xs">Every {DAY_LABELS[s.dayOfWeek]}</p>
+                </div>
+                <button
+                  onClick={() => toggleFormSchedule(client.id, s.id)}
+                  className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${s.active ? "bg-blue-500" : "bg-black/15"}`}
+                  aria-label={s.active ? "Pause schedule" : "Resume schedule"}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${s.active ? "left-[18px]" : "left-0.5"}`} />
+                </button>
+                <button
+                  onClick={() => unscheduleForm(client.id, s.id)}
+                  className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60"
+                  aria-label="Remove schedule"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="text-black font-semibold mb-3">Responses</p>
+      {responses.length === 0 ? (
+        <p className="text-black/30 text-sm">No check-ins submitted yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {responses.map((r) => {
+            const form = formsById[r.formId];
+            return (
+              <button
+                key={r.id}
+                onClick={() => setViewingResponse(r)}
+                className="w-full flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3 text-left hover:bg-black/[0.06] transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
+                  <p className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                </div>
+                <ChevronRight size={16} className="text-black/25 shrink-0" />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <ScheduleFormSheet open={scheduleOpen} onClose={() => setScheduleOpen(false)} client={client} showToast={showToast} />
+
+      <BottomSheet open={!!viewingResponse} onClose={() => setViewingResponse(null)} title={formsById[viewingResponse?.formId]?.name || "Check-in"}>
+        {viewingResponse && (
+          <div className="space-y-3">
+            {(formsById[viewingResponse.formId]?.questions || []).map((q) => (
+              <div key={q.id} className="bg-black/5 rounded-xl px-3.5 py-2.5">
+                <p className="text-black/40 text-[11px] tracking-wide mb-1">{q.label || "Untitled question"}</p>
+                {q.type === "photo" && viewingResponse.answers[q.id] ? (
+                  <img src={viewingResponse.answers[q.id]} alt="" className="w-full rounded-lg mt-1 max-h-48 object-cover" />
+                ) : (
+                  <p className="text-black text-sm">
+                    {q.type === "rating" && viewingResponse.answers[q.id] ? `${viewingResponse.answers[q.id]} / 5` : viewingResponse.answers[q.id] || "—"}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </BottomSheet>
     </div>
   );
 }
@@ -565,6 +781,7 @@ const CLIENT_NAV = [
   { id: "nutrition", label: "Nutrition", icon: Utensils },
   { id: "progress", label: "Progress", icon: ImageIcon },
   { id: "habits", label: "Habits", icon: ListChecks },
+  { id: "checkins", label: "Check-ins", icon: NotebookPen },
 ];
 
 export default function CoachClientDetail({ clientId, onClose, showToast }) {
@@ -729,6 +946,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
         {clientTab === "nutrition" && <NutritionPanel client={client} showToast={showToast} />}
         {clientTab === "progress" && <ProgressPanel client={client} />}
         {clientTab === "habits" && <HabitsPanel client={client} />}
+        {clientTab === "checkins" && <CheckInsPanel client={client} showToast={showToast} />}
       </div>
 
       {messaging && <ThreadView client={client} onClose={() => setMessaging(false)} />}

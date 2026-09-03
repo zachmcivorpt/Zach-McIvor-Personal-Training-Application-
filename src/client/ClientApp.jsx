@@ -37,6 +37,8 @@ import {
   MessageSquarePlus,
   Video,
   ClipboardList,
+  CalendarCheck,
+  Star,
 } from "lucide-react";
 import {
   LineChart,
@@ -1810,6 +1812,220 @@ function MessagesSheet({ open, onClose, user, thread, onSend }) {
 }
 
 /* ============================================================================
+   CHECK-INS
+============================================================================ */
+
+function nextOccurrence(dayOfWeek, fromDate = new Date()) {
+  const d = new Date(fromDate);
+  const diff = (dayOfWeek - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function lastOccurrence(dayOfWeek, fromDate = new Date()) {
+  const d = new Date(fromDate);
+  const diff = (d.getDay() - dayOfWeek + 7) % 7;
+  d.setDate(d.getDate() - diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function isCheckInDue(schedule, responses) {
+  const occurrence = lastOccurrence(schedule.dayOfWeek);
+  const lastResponse = responses.find((r) => r.scheduleId === schedule.id);
+  return !lastResponse || lastResponse.date < occurrence.getTime();
+}
+
+function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
+  const [answers, setAnswers] = useState({});
+  const [uploading, setUploading] = useState(null);
+
+  useEffect(() => {
+    if (open) setAnswers({});
+  }, [open, form?.id]);
+
+  if (!form) return null;
+
+  function set(qId, value) {
+    setAnswers((a) => ({ ...a, [qId]: value }));
+  }
+
+  async function handlePhoto(qId, file) {
+    if (!file) return;
+    setUploading(qId);
+    const dataUrl = await fileToCompressedDataUrl(file);
+    set(qId, dataUrl);
+    setUploading(null);
+  }
+
+  const canSubmit = form.questions.every((q) => !q.required || (answers[q.id] !== undefined && answers[q.id] !== ""));
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title={form.name}>
+      {form.description && <p className="text-black/50 text-sm mb-4">{form.description}</p>}
+      <div className="space-y-4">
+        {form.questions.map((q) => (
+          <div key={q.id}>
+            <p className="text-black/40 text-xs tracking-wide mb-1.5">
+              {q.label || "Untitled question"} {q.required && <span className="text-black/25">*</span>}
+            </p>
+            {q.type === "text" && (
+              <textarea
+                value={answers[q.id] || ""}
+                onChange={(e) => set(q.id, e.target.value)}
+                rows={2}
+                className="w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none placeholder:text-black/25 resize-none"
+              />
+            )}
+            {q.type === "number" && (
+              <input
+                type="number"
+                value={answers[q.id] || ""}
+                onChange={(e) => set(q.id, e.target.value)}
+                className="w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none"
+              />
+            )}
+            {q.type === "rating" && (
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => set(q.id, n)}
+                    className={`flex-1 flex items-center justify-center py-2.5 rounded-xl ${n <= (answers[q.id] || 0) ? "bg-black" : "bg-black/5"}`}
+                  >
+                    <Star size={16} className={n <= (answers[q.id] || 0) ? "text-white" : "text-black/30"} fill={n <= (answers[q.id] || 0) ? "white" : "none"} />
+                  </button>
+                ))}
+              </div>
+            )}
+            {q.type === "photo" && (
+              <div>
+                {answers[q.id] ? (
+                  <div className="relative">
+                    <img src={answers[q.id]} alt="" className="w-full rounded-xl max-h-56 object-cover" />
+                    <button
+                      onClick={() => set(q.id, "")}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 flex items-center justify-center text-white"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="w-full flex flex-col items-center justify-center gap-1.5 bg-black/5 border border-dashed border-black/15 rounded-xl py-6 cursor-pointer">
+                    <Camera size={18} className="text-black/40" />
+                    <span className="text-black/40 text-xs">{uploading === q.id ? "Uploading…" : "Add a photo"}</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhoto(q.id, e.target.files?.[0])} />
+                  </label>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={() => onSubmit(answers)}
+        disabled={!canSubmit}
+        className="w-full mt-6 bg-black text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30"
+      >
+        <Check size={18} strokeWidth={3} /> SUBMIT CHECK-IN
+      </button>
+    </BottomSheet>
+  );
+}
+
+function CheckInCard({ schedule, form, due, onFill }) {
+  if (!form) return null;
+  return (
+    <div className="flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${due ? "bg-black" : "bg-black/6"}`}>
+        <CalendarCheck size={17} className={due ? "text-white" : "text-black/40"} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-black font-semibold text-sm truncate">{form.name}</p>
+        <p className="text-black/40 text-xs mt-0.5">Every {DAY_LABELS[schedule.dayOfWeek]}</p>
+      </div>
+      {due ? (
+        <button onClick={onFill} className="bg-black text-white text-xs font-bold px-3.5 py-2 rounded-lg shrink-0">
+          Fill out
+        </button>
+      ) : (
+        <span className="text-black/30 text-xs shrink-0">Done</span>
+      )}
+    </div>
+  );
+}
+
+function CheckInsScreen({ userId, showToast }) {
+  const { db, submitFormResponse } = useApp();
+  const [filling, setFilling] = useState(null); // schedule object
+
+  const schedules = ((db.formSchedules || {})[userId] || []).filter((s) => s.active);
+  const responses = (db.formResponses || {})[userId] || [];
+  const formsById = Object.fromEntries((db.forms || []).map((f) => [f.id, f]));
+
+  const due = schedules.filter((s) => isCheckInDue(s, responses));
+  const upcoming = schedules.filter((s) => !isCheckInDue(s, responses));
+
+  function submit(answers) {
+    submitFormResponse(userId, { formId: filling.formId, scheduleId: filling.id, answers });
+    showToast("Check-in submitted");
+    setFilling(null);
+  }
+
+  return (
+    <div className="pb-6 space-y-4">
+      <div className="px-5 pt-6 pb-2">
+        <h1 className="text-black text-2xl font-bold">Check-ins</h1>
+        <p className="text-black/40 text-sm mt-0.5">Scheduled by your coach</p>
+      </div>
+
+      {schedules.length === 0 ? (
+        <Card className="mx-5 text-center py-10">
+          <CalendarCheck size={26} className="text-black/25 mx-auto mb-3" />
+          <p className="text-black font-semibold">No check-ins scheduled</p>
+          <p className="text-black/40 text-sm mt-1">Your coach hasn't scheduled any check-ins yet.</p>
+        </Card>
+      ) : (
+        <>
+          {due.length > 0 && (
+            <div className="px-5 space-y-2.5">
+              <p className="text-black/40 text-xs tracking-wide font-semibold">DUE NOW</p>
+              {due.map((s) => (
+                <CheckInCard key={s.id} schedule={s} form={formsById[s.formId]} due onFill={() => setFilling(s)} />
+              ))}
+            </div>
+          )}
+          {upcoming.length > 0 && (
+            <div className="px-5 space-y-2.5">
+              <p className="text-black/40 text-xs tracking-wide font-semibold mt-2">UPCOMING</p>
+              {upcoming.map((s) => (
+                <CheckInCard key={s.id} schedule={s} form={formsById[s.formId]} due={false} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {responses.length > 0 && (
+        <div className="px-5 space-y-2.5">
+          <p className="text-black/40 text-xs tracking-wide font-semibold mt-2">HISTORY</p>
+          {responses.slice(0, 10).map((r) => (
+            <div key={r.id} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-4 py-2.5">
+              <span className="text-black/70 text-sm">{formsById[r.formId]?.name || "Check-in"}</span>
+              <span className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <FillCheckInSheet schedule={filling} form={filling ? formsById[filling.formId] : null} open={!!filling} onClose={() => setFilling(null)} onSubmit={submit} />
+    </div>
+  );
+}
+
+/* ============================================================================
    APP SHELL
 ============================================================================ */
 
@@ -1817,9 +2033,12 @@ const TABS = [
   { id: "home", label: "Home", icon: HomeIcon },
   { id: "workouts", label: "Workouts", icon: Dumbbell },
   { id: "nutrition", label: "Nutrition", icon: Utensils },
+  { id: "checkins", label: "Check-ins", icon: CalendarCheck },
   { id: "progress", label: "Progress", icon: TrendingUp },
   { id: "profile", label: "Profile", icon: User },
 ];
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function ClientApp() {
   const {
@@ -1857,6 +2076,10 @@ export default function ClientApp() {
   const thread = db.messages[currentUser.id] || [];
   const photos = db.progressPhotos[currentUser.id] || [];
   const unreadCount = Math.max(0, thread.filter((m) => m.from === "coach").length - seenMessageCount);
+  const checkInResponses = (db.formResponses || {})[currentUser.id] || [];
+  const dueCheckInsCount = ((db.formSchedules || {})[currentUser.id] || []).filter(
+    (s) => s.active && isCheckInDue(s, checkInResponses)
+  ).length;
   const sessions = useMemo(() => flattenSessions(program), [program]);
   const currentIndex = sessions.length ? (currentUser.currentSessionIndex || 0) % sessions.length : 0;
   const todaySession = sessions.length ? sessions[currentIndex] : null;
@@ -2016,6 +2239,7 @@ export default function ClientApp() {
             showToast={showToast}
           />
         )}
+        {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} />}
         {tab === "progress" && (
           <ProgressScreen userId={currentUser.id} photos={photos} onAddPhoto={addProgressPhoto} onDeletePhoto={deleteProgressPhoto} />
         )}
@@ -2038,9 +2262,12 @@ export default function ClientApp() {
               const Icon = t.icon;
               const active = tab === t.id;
               return (
-                <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3">
+                <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3 relative">
                   <Icon size={21} className={active ? "text-black" : "text-black/35"} strokeWidth={active ? 2.4 : 2} />
                   <span className={`text-[10px] font-medium ${active ? "text-black" : "text-black/35"}`}>{t.label}</span>
+                  {t.id === "checkins" && dueCheckInsCount > 0 && (
+                    <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-black" />
+                  )}
                 </button>
               );
             })}

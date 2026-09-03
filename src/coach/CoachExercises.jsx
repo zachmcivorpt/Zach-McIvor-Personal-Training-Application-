@@ -182,7 +182,7 @@ function ExerciseSheet({ exercise, open, onClose, showToast }) {
   );
 }
 
-export default function CoachExercises({ showToast }) {
+export default function CoachExercises({ showToast, compact = false }) {
   const { db } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | exercise | null
   const [search, setSearch] = useState("");
@@ -190,10 +190,10 @@ export default function CoachExercises({ showToast }) {
   const filtered = db.exercises.filter((e) => e.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
-      <div className="flex items-center justify-between gap-3 mb-6">
+    <div className={compact ? "max-w-6xl mx-auto px-4 pb-8 md:px-8" : "max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8"}>
+      <div className={`flex items-center justify-between gap-3 ${compact ? "mb-4" : "mb-6"}`}>
         <div className="min-w-0">
-          <h1 className="text-black text-2xl font-bold">Exercise Library</h1>
+          {!compact && <h1 className="text-black text-2xl font-bold">Exercise Library</h1>}
           <p className="text-black/40 text-sm mt-0.5">{db.exercises.length} total</p>
         </div>
         <button onClick={() => setEditing({ isNew: true })} aria-label="New exercise" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
