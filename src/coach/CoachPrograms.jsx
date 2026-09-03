@@ -13,7 +13,8 @@ import {
   DangerButton,
   FullScreenOverlay,
 } from "../components/ui";
-import { ClipboardList, Plus, ChevronDown, X, Trash2, GripVertical, ChevronLeft } from "lucide-react";
+import { ClipboardList, Plus, ChevronDown, X, Trash2, GripVertical, ChevronLeft, Download } from "lucide-react";
+import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 
 function emptyDraft() {
   return { name: "", level: "Beginner", description: "", weeks: [] };
@@ -286,6 +287,7 @@ function ProgramEditor({ program, exercises, onClose, onSave, onDelete }) {
 export default function CoachPrograms({ showToast }) {
   const { db, createProgram, updateProgram, deleteProgram } = useApp();
   const [editing, setEditing] = useState(null); // program object, or {} for new
+  const [importing, setImporting] = useState(false);
   const exercises = db.exercises;
 
   function openNew() {
@@ -313,16 +315,48 @@ export default function CoachPrograms({ showToast }) {
     setEditing(null);
   }
 
+  async function importStarterTemplates() {
+    setImporting(true);
+    const existingNames = new Set(db.programs.map((p) => p.name));
+    const toImport = STARTER_PROGRAMS.filter((p) => !existingNames.has(p.name));
+    let created = 0;
+    try {
+      for (const template of toImport) {
+        await createProgram(template);
+        created++;
+      }
+      if (created === 0) {
+        showToast("All starter templates are already in your library");
+      } else {
+        showToast(`Imported ${created} starter template${created === 1 ? "" : "s"}`);
+      }
+    } catch (err) {
+      showToast(err.message || "Import stopped — something went wrong");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
-      <div className="flex items-center justify-between gap-3 mb-6">
+      <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
         <div className="min-w-0">
           <h1 className="text-black text-2xl font-bold">Program Templates</h1>
           <p className="text-black/40 text-sm mt-0.5 truncate">{db.programs.length} total · reusable starting points for a client's phases</p>
         </div>
-        <button onClick={openNew} aria-label="New template" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
-          <Plus size={16} /> <span className="hidden sm:inline">NEW TEMPLATE</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={importStarterTemplates}
+            disabled={importing}
+            aria-label="Import starter templates"
+            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+          >
+            <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "IMPORT STARTER TEMPLATES"}</span>
+          </button>
+          <button onClick={openNew} aria-label="New template" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
+            <Plus size={16} /> <span className="hidden sm:inline">NEW TEMPLATE</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">

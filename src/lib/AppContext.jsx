@@ -412,10 +412,14 @@ export function AppProvider({ children }) {
         updateDoc(doc(firestore, "users", clientId), { assignedProgramId: programId, currentSessionIndex: 0 }).catch(console.error);
       },
 
-      createProgram(data) {
+      async createProgram(data) {
         const id = newDocId("programs");
         const program = { id, weeks: [], ...data };
-        setDoc(doc(firestore, "programs", id), program).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "programs", id), program);
+        } catch (err) {
+          throw new Error("Couldn't create that program — " + (err.message || "please try again."));
+        }
         return program;
       },
 
