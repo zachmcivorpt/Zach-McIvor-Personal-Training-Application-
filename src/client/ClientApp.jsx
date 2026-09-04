@@ -1922,7 +1922,7 @@ function ClientProgramTab({ onPreviewDay }) {
   );
 }
 
-function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio }) {
+function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio }) {
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -1948,7 +1948,14 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
 
       {tab === "today" && (
         <div className="px-3 space-y-4">
-          <TodayWorkoutCard todaySession={todaySession} activeLog={activeLog} onStart={onStart} onView={onViewWorkout} isToday />
+          <TodayWorkoutCard
+            todaySession={todaySession}
+            activeLog={activeLog}
+            onStart={onStart}
+            onView={onViewWorkout}
+            isToday
+            completedOnDate={completedOnDate}
+          />
           <button
             onClick={() => setCardioOpen(true)}
             className="w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
@@ -3845,6 +3852,7 @@ export default function ClientApp() {
   const todaySession = scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
   const logsForClient = db.workoutLogs[currentUser.id] || [];
+  const completedToday = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === todayDateKey);
   const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || [];
   const nutritionByDateKey = useMemo(
     () => Object.fromEntries(nutritionLogsForClient.map((n) => [n.date, n])),
@@ -4095,6 +4103,7 @@ export default function ClientApp() {
             todaySession={todaySession}
             scheduledWorkouts={scheduledWorkoutsForClient}
             activeLog={activeLog}
+            completedOnDate={completedToday}
             onStart={startWorkout}
             onViewWorkout={() => openPreview(todaySession, true)}
             onPreviewWorkout={(day) => openPreview(day, false)}
