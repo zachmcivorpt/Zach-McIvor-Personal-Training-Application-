@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed } from "lucide-react";
+import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
@@ -358,6 +358,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [pendingFood, setPendingFood] = useState(null);
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -368,6 +369,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
       setIngredients([]);
       setSearch("");
       setManualOpen(false);
+      setBarcodeOpen(false);
     }
   }, [open]);
 
@@ -501,12 +503,20 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
             )}
 
             {!manualOpen ? (
-              <button
-                onClick={() => setManualOpen(true)}
-                className="w-full flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03]"
-              >
-                <Plus size={13} /> Add a custom ingredient
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setBarcodeOpen(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03]"
+                >
+                  <ScanLine size={14} /> Scan barcode
+                </button>
+                <button
+                  onClick={() => setManualOpen(true)}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03]"
+                >
+                  <Plus size={13} /> Add manually
+                </button>
+              </div>
             ) : (
               <div className="bg-black/[0.03] rounded-xl p-3 space-y-2">
                 <TextInput
@@ -562,6 +572,14 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
           setPendingFood(null);
         }}
       />
+      <BarcodeScanSheet
+        open={barcodeOpen}
+        onClose={() => setBarcodeOpen(false)}
+        onAdd={(food) => {
+          setBarcodeOpen(false);
+          setPendingFood(food);
+        }}
+      />
     </BottomSheet>
   );
 }
@@ -577,6 +595,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [pendingFood, setPendingFood] = useState(null);
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -584,6 +603,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
       setIngredients(prefill?.ingredients?.map((i) => ({ ...i, id: i.id || `ing_${Math.random().toString(36).slice(2, 8)}` })) || []);
       setSearch("");
       setManualOpen(false);
+      setBarcodeOpen(false);
     }
   }, [open, prefill]);
 
@@ -682,12 +702,20 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
         )}
 
         {!manualOpen ? (
-          <button
-            onClick={() => setManualOpen(true)}
-            className="w-full flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03]"
-          >
-            <Plus size={13} /> Add a custom ingredient
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setBarcodeOpen(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03]"
+            >
+              <ScanLine size={14} /> Scan barcode
+            </button>
+            <button
+              onClick={() => setManualOpen(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03]"
+            >
+              <Plus size={13} /> Add manually
+            </button>
+          </div>
         ) : (
           <div className="bg-black/[0.03] rounded-xl p-3 space-y-2">
             <TextInput
@@ -730,6 +758,14 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
         onConfirm={(scaled) => {
           addIngredient(scaled);
           setPendingFood(null);
+        }}
+      />
+      <BarcodeScanSheet
+        open={barcodeOpen}
+        onClose={() => setBarcodeOpen(false)}
+        onAdd={(food) => {
+          setBarcodeOpen(false);
+          setPendingFood(food);
         }}
       />
     </BottomSheet>
