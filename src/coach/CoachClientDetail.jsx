@@ -845,28 +845,43 @@ function CalendarPanel({ client, showToast }) {
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = dKey(now);
 
-  // What actually got trained (and what didn't) across the month currently
-  // in view — driven off real completed sessions, not what was scheduled,
-  // so a missed session correctly shows up as "not trained."
-  const monthStats = useMemo(() => {
+  // What actually got completed in the viewed month — driven off real
+  // completed sessions, not what was scheduled, so a missed session doesn't
+  // quietly disappear from the picture.
+  const completedThisMonth = useMemo(() => {
     const monthStart = dKey(new Date(Date.UTC(viewYear, viewMonth, 1)));
     const monthEnd = dKey(new Date(Date.UTC(viewYear, viewMonth + 1, 0)));
-    const completedThisMonth = workoutLogs
+    return workoutLogs
       .filter((log) => {
         const key = dKey(new Date(log.date));
         return key >= monthStart && key <= monthEnd;
       })
       .sort((a, b) => a.date - b.date);
-    const trained = new Set();
-    completedThisMonth.forEach((log) => {
+  }, [workoutLogs, viewYear, viewMonth]);
+  const completedDatesThisMonth = useMemo(() => new Set(completedThisMonth.map((log) => dKey(new Date(log.date)))), [completedThisMonth]);
+
+  // Relative training volume per muscle group over a trailing 2-week
+  // window (not tied to whatever month is being viewed) — sorted lowest
+  // first, so the groups lagging behind the rest surface at a glance
+  // rather than a flat "trained / not trained" toggle.
+  const muscleBalance = useMemo(() => {
+    const since = new Date();
+    since.setUTCDate(since.getUTCDate() - 13);
+    const sinceKey = dKey(since);
+    const counts = Object.fromEntries(MUSCLE_CATEGORIES.map((c) => [c, 0]));
+    workoutLogs.forEach((log) => {
+      const key = dKey(new Date(log.date));
+      if (key < sinceKey || key > todayStr) return;
       (log.entries || []).forEach((e) => {
         const category = exercisesById[e.exerciseId]?.category;
-        if (category) trained.add(category);
+        if (category && counts[category] !== undefined) counts[category] += (e.sets || []).length;
       });
     });
-    const avoided = MUSCLE_CATEGORIES.filter((c) => !trained.has(c));
-    return { completedThisMonth, avoided };
-  }, [workoutLogs, exercisesById, viewYear, viewMonth]);
+    const max = Math.max(1, ...Object.values(counts));
+    return MUSCLE_CATEGORIES.map((c) => ({ category: c, sets: counts[c], pct: Math.max(4, Math.round((counts[c] / max) * 100)) })).sort(
+      (a, b) => a.sets - b.sets
+    );
+  }, [workoutLogs, exercisesById, todayStr]);
 
   function itemsForDate(date) {
     const dateStr = dKey(date);
@@ -918,7 +933,7 @@ function CalendarPanel({ client, showToast }) {
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6 items-start">
-        <div>
+        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <button onClick={() => shiftMonth(-1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
@@ -1013,14 +1028,40 @@ function CalendarPanel({ client, showToast }) {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4">
-            <p className="text-black font-semibold text-sm mb-1">Completed This Month</p>
-            <p className="text-black/40 text-xs mb-3">{monthLabel}</p>
-            {monthStats.completedThisMonth.length === 0 ? (
+          <div className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-baseline justify-between mb-3">
+              <p className="text-black font-bold text-2xl leading-none">{completedThisMonth.length}</p>
+              <p className="text-black/40 text-[11px] font-semibold tracking-wide">COMPLETED · {monthLabel.toUpperCase()}</p>
+            </div>
+            {/* mini contribution-style strip — same week grid as the main
+                calendar, dots only, so a month's rhythm reads at a glance */}
+            <div className="space-y-1 mb-3">
+              {weeks.map((week, wi) => (
+                <div key={wi} className="grid grid-cols-7 gap-1">
+                  {week.map((date) => {
+                    const dateStr = dKey(date);
+                    const inMonth = date.getUTCMonth() === viewMonth;
+                    const done = completedDatesThisMonth.has(dateStr);
+                    const isToday = dateStr === todayStr;
+                    return (
+                      <button
+                        key={dateStr}
+                        onClick={() => inMonth && setSelectedDate(dateStr)}
+                        className={`aspect-square rounded-[3px] transition-colors ${
+                          !inMonth ? "bg-transparent" : done ? "bg-emerald-500" : isToday ? "bg-black/20" : "bg-black/8"
+                        }`}
+                        aria-label={dateStr}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            {completedThisMonth.length === 0 ? (
               <p className="text-black/30 text-xs">No completed workouts yet this month.</p>
             ) : (
-              <div className="space-y-2">
-                {monthStats.completedThisMonth.map((log) => (
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {completedThisMonth.map((log) => (
                   <button
                     key={log.id}
                     onClick={() => setSelectedDate(dKey(new Date(log.date)))}
@@ -1037,19 +1078,26 @@ function CalendarPanel({ client, showToast }) {
             )}
           </div>
 
-          <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4">
-            <p className="text-black font-semibold text-sm mb-1">Not Trained This Month</p>
-            <p className="text-black/40 text-xs mb-3">Muscle groups avoided so far</p>
-            {monthStats.completedThisMonth.length === 0 ? (
-              <p className="text-black/30 text-xs">No sessions logged yet — nothing to compare.</p>
-            ) : monthStats.avoided.length === 0 ? (
-              <p className="text-emerald-700 text-xs font-medium">Every muscle group has been trained this month 🎯</p>
+          <div className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm">
+            <p className="text-black font-semibold text-sm mb-0.5">Muscle Balance</p>
+            <p className="text-black/40 text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
+            {muscleBalance.every((m) => m.sets === 0) ? (
+              <p className="text-black/30 text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
             ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {monthStats.avoided.map((c) => (
-                  <span key={c} className="bg-red-50 text-red-600 text-[11px] font-semibold px-2 py-1 rounded-lg">
-                    {c}
-                  </span>
+              <div className="space-y-2">
+                {muscleBalance.map((m, i) => (
+                  <div key={m.category} className="flex items-center gap-2">
+                    <span className={`text-xs w-16 shrink-0 truncate ${i < 2 ? "text-red-600 font-semibold" : "text-black/60 font-medium"}`}>
+                      {m.category}
+                    </span>
+                    <div className="flex-1 h-2 rounded-full bg-black/[0.06] overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${i < 2 ? "bg-red-400" : "bg-black/25"}`}
+                        style={{ width: `${m.pct}%` }}
+                      />
+                    </div>
+                    <span className="text-black/35 text-[11px] w-6 text-right shrink-0">{m.sets}</span>
+                  </div>
                 ))}
               </div>
             )}
