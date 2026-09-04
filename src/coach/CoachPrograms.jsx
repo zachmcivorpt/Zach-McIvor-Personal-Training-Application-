@@ -11,7 +11,22 @@ import {
   FullScreenOverlay,
   BottomSheet,
 } from "../components/ui";
-import { ClipboardList, Plus, ChevronDown, X, Trash2, GripVertical, ChevronLeft, ChevronRight, Download, Copy, Edit3 } from "lucide-react";
+import {
+  ClipboardList,
+  Plus,
+  ChevronDown,
+  X,
+  Trash2,
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Copy,
+  Edit3,
+  Link2,
+  RefreshCw,
+  Ungroup,
+} from "lucide-react";
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import { ExerciseSheet } from "./CoachExercises";
 
@@ -21,16 +36,32 @@ const SECTIONS = [
   { key: "main", label: "Main Session" },
   { key: "cooldown", label: "Cool-down" },
 ];
+const GROUP_LABELS = { superset: "SUPERSET", circuit: "CIRCUIT" };
+const GROUP_ICONS = { superset: Link2, circuit: RefreshCw };
 
-function ExerciseRow({ row, exercises, onChange, onRemove, showToast }) {
+function ExerciseRow({ row, exercises, onChange, onRemove, showToast, selectMode, selected, onToggleSelect, onUngroup }) {
   const ex = exercises.find((e) => e.id === row.exerciseId);
   const rir = row.targetRIR ?? 2;
   const isAmrap = row.targetReps === "AMRAP";
+  const isTime = row.targetType === "time";
   const [editingExercise, setEditingExercise] = useState(false);
+  const GroupIcon = row.groupType ? GROUP_ICONS[row.groupType] : null;
 
   return (
     <div className="bg-black/5 rounded-xl p-3">
+      {row.groupType && (
+        <div className="flex items-center gap-1.5 mb-2">
+          <GroupIcon size={11} className="text-black/50" />
+          <span className="text-black/50 text-[10px] font-bold tracking-wide">{GROUP_LABELS[row.groupType]}</span>
+          <button onClick={onUngroup} className="text-black/30 hover:text-black/60 flex items-center gap-0.5 text-[10px]">
+            <Ungroup size={11} /> Ungroup
+          </button>
+        </div>
+      )}
       <div className="flex items-center gap-2">
+        {selectMode && (
+          <input type="checkbox" checked={selected} onChange={onToggleSelect} className="w-4 h-4 shrink-0 accent-black" />
+        )}
         <Select value={row.exerciseId} onChange={(e) => onChange({ ...row, exerciseId: e.target.value })} className="flex-1 !py-2 text-xs">
           {exercises.map((e) => (
             <option key={e.id} value={e.id}>
@@ -77,17 +108,48 @@ function ExerciseRow({ row, exercises, onChange, onRemove, showToast }) {
           />
         </div>
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-black/30 text-[10px]">REPETITIONS</p>
-            <button
-              type="button"
-              onClick={() => onChange({ ...row, targetReps: isAmrap ? 10 : "AMRAP" })}
-              className={`text-[9px] font-bold px-1.5 rounded ${isAmrap ? "bg-black text-white" : "bg-black/8 text-black/40"}`}
-            >
-              AMRAP
-            </button>
+          <div className="flex items-center justify-between mb-1 gap-1">
+            <p className="text-black/30 text-[10px] shrink-0">{isTime ? "TIME" : "REPETITIONS"}</p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onChange({ ...row, targetType: isTime ? "reps" : "time", targetReps: isTime ? 10 : 30 })}
+                className="text-[9px] font-bold px-1.5 rounded bg-black/8 text-black/40"
+              >
+                {isTime ? "REPS" : "TIME"}
+              </button>
+              {!isTime && (
+                <button
+                  type="button"
+                  onClick={() => onChange({ ...row, targetReps: isAmrap ? 10 : "AMRAP" })}
+                  className={`text-[9px] font-bold px-1.5 rounded ${isAmrap ? "bg-black text-white" : "bg-black/8 text-black/40"}`}
+                >
+                  AMRAP
+                </button>
+              )}
+            </div>
           </div>
-          {isAmrap ? (
+          {isTime ? (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onChange({ ...row, targetReps: Math.max(10, (Number(row.targetReps) || 30) - 10) })}
+                className="w-7 h-7 shrink-0 rounded-lg bg-white border border-black/10 text-black/50 text-sm font-bold"
+              >
+                −
+              </button>
+              <div className="flex-1 !py-1.5 text-center text-xs rounded-lg bg-white border border-black/10 text-black font-semibold">
+                {row.targetReps || 30}s
+              </div>
+              <button
+                type="button"
+                onClick={() => onChange({ ...row, targetReps: (Number(row.targetReps) || 30) + 10 })}
+                className="w-7 h-7 shrink-0 rounded-lg bg-white border border-black/10 text-black/50 text-sm font-bold"
+              >
+                +
+              </button>
+            </div>
+          ) : isAmrap ? (
             <div className="w-full !py-1.5 text-center text-xs rounded-lg bg-white border border-black/10 text-black font-semibold">AMRAP</div>
           ) : (
             <TextInput
@@ -138,6 +200,8 @@ function ExerciseRow({ row, exercises, onChange, onRemove, showToast }) {
 
 function DayEditor({ day, exercises, onChange, onRemove, showToast }) {
   const [open, setOpen] = useState(true);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
 
   function updateExercise(i, row) {
     const exs = day.exercises.map((r, idx) => (idx === i ? row : r));
@@ -150,8 +214,34 @@ function DayEditor({ day, exercises, onChange, onRemove, showToast }) {
     if (exercises.length === 0) return;
     onChange({
       ...day,
-      exercises: [...day.exercises, { exerciseId: exercises[0].id, section, targetSets: 3, targetReps: 10, targetRIR: 2, notes: "" }],
+      exercises: [
+        ...day.exercises,
+        { exerciseId: exercises[0].id, section, targetSets: 3, targetReps: 10, targetType: "reps", targetRIR: 2, notes: "" },
+      ],
     });
+  }
+  function toggleSelected(i) {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  }
+  function groupSelected(type) {
+    if (selected.size < 2) return;
+    const groupId = newId("grp");
+    const indices = [...selected].sort((a, b) => a - b);
+    const chosen = indices.map((i) => day.exercises[i]);
+    const rest = day.exercises.filter((_, i) => !selected.has(i));
+    const insertAt = indices[0];
+    const next = [...rest.slice(0, insertAt), ...chosen.map((row) => ({ ...row, groupId, groupType: type })), ...rest.slice(insertAt)];
+    onChange({ ...day, exercises: next });
+    setSelected(new Set());
+    setSelectMode(false);
+  }
+  function ungroup(groupId) {
+    onChange({ ...day, exercises: day.exercises.map((row) => (row.groupId === groupId ? { ...row, groupId: null, groupType: null } : row)) });
   }
 
   return (
@@ -179,6 +269,40 @@ function DayEditor({ day, exercises, onChange, onRemove, showToast }) {
             placeholder="Muscle groups (comma separated)"
             className="text-xs !py-2"
           />
+
+          {day.exercises.length >= 2 && (
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setSelectMode((m) => !m);
+                  setSelected(new Set());
+                }}
+                className="text-black/50 hover:text-black text-xs font-semibold"
+              >
+                {selectMode ? "Cancel" : "Select exercises to group"}
+              </button>
+              {selectMode && (
+                <div className="flex items-center gap-2">
+                  <span className="text-black/40 text-[11px]">{selected.size} selected</span>
+                  <button
+                    onClick={() => groupSelected("superset")}
+                    disabled={selected.size < 2}
+                    className="flex items-center gap-1 bg-black text-white text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-30"
+                  >
+                    <Link2 size={11} /> Superset
+                  </button>
+                  <button
+                    onClick={() => groupSelected("circuit")}
+                    disabled={selected.size < 2}
+                    className="flex items-center gap-1 bg-black text-white text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-30"
+                  >
+                    <RefreshCw size={11} /> Circuit
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {SECTIONS.map((section) => {
             const sectionRows = day.exercises.map((row, i) => ({ row, i })).filter(({ row }) => (row.section || "main") === section.key);
             return (
@@ -195,6 +319,10 @@ function DayEditor({ day, exercises, onChange, onRemove, showToast }) {
                       onChange={(r) => updateExercise(i, r)}
                       onRemove={() => removeExercise(i)}
                       showToast={showToast}
+                      selectMode={selectMode}
+                      selected={selected.has(i)}
+                      onToggleSelect={() => toggleSelected(i)}
+                      onUngroup={() => ungroup(row.groupId)}
                     />
                   ))}
                 </div>

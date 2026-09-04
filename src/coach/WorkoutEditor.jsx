@@ -24,7 +24,18 @@ function formatRest(seconds) {
 }
 
 function newRow(exerciseId, section = "main") {
-  return { exerciseId, section, targetSets: 3, targetReps: 10, targetRIR: 2, restSeconds: 90, notes: "", groupId: null, groupType: null };
+  return {
+    exerciseId,
+    section,
+    targetSets: 3,
+    targetReps: 10,
+    targetType: "reps",
+    targetRIR: 2,
+    restSeconds: 90,
+    notes: "",
+    groupId: null,
+    groupType: null,
+  };
 }
 
 // Full-screen desktop editor for one workout (a "day"): instructions +
@@ -346,19 +357,52 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                               />
                             </div>
                             <div>
-                              <div className="flex items-center justify-between mb-1">
-                                <p className="text-black/30 text-[10px]">REPETITIONS</p>
-                                <button
-                                  type="button"
-                                  onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}
-                                  className={`text-[9px] font-bold px-1.5 rounded ${
-                                    row.targetReps === "AMRAP" ? "bg-black text-white" : "bg-black/8 text-black/40"
-                                  }`}
-                                >
-                                  AMRAP
-                                </button>
+                              <div className="flex items-center justify-between mb-1 gap-1">
+                                <p className="text-black/30 text-[10px] shrink-0">{row.targetType === "time" ? "TIME" : "REPETITIONS"}</p>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      updateRow(i, row.targetType === "time" ? { targetType: "reps", targetReps: 10 } : { targetType: "time", targetReps: 30 })
+                                    }
+                                    className="text-[9px] font-bold px-1.5 rounded bg-black/8 text-black/40"
+                                  >
+                                    {row.targetType === "time" ? "REPS" : "TIME"}
+                                  </button>
+                                  {row.targetType !== "time" && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}
+                                      className={`text-[9px] font-bold px-1.5 rounded ${
+                                        row.targetReps === "AMRAP" ? "bg-black text-white" : "bg-black/8 text-black/40"
+                                      }`}
+                                    >
+                                      AMRAP
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              {row.targetReps === "AMRAP" ? (
+                              {row.targetType === "time" ? (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateRow(i, { targetReps: Math.max(10, (Number(row.targetReps) || 30) - 10) })}
+                                    className="w-6 h-[30px] shrink-0 rounded-lg bg-black/5 text-black/50 text-sm font-bold"
+                                  >
+                                    −
+                                  </button>
+                                  <div className="flex-1 bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">
+                                    {row.targetReps || 30}s
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateRow(i, { targetReps: (Number(row.targetReps) || 30) + 10 })}
+                                    className="w-6 h-[30px] shrink-0 rounded-lg bg-black/5 text-black/50 text-sm font-bold"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              ) : row.targetReps === "AMRAP" ? (
                                 <div className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">AMRAP</div>
                               ) : (
                                 <input

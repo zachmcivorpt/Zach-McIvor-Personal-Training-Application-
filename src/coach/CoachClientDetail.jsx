@@ -1038,7 +1038,9 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
                     <p className="text-black/45 text-[13px] mt-0.5">
-                      {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR {e.targetRIR ?? 2}
+                      {e.targetSets} sets ×{" "}
+                      {e.targetType === "time" ? `${e.targetReps || 30}s` : e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR{" "}
+                      {e.targetRIR ?? 2}
                     </p>
                   </div>
                   <span className="text-black/30 text-xs shrink-0">{ex.equipment}</span>

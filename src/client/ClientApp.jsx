@@ -167,6 +167,14 @@ function formatRest(seconds) {
   return s ? `${m}m ${s}s` : `${m}m`;
 }
 
+// A prescribed exercise is either a rep count, AMRAP, or a held/worked
+// duration in seconds (e.g. a plank) — this renders whichever it is.
+function formatTargetReps(exMeta) {
+  if (exMeta.targetType === "time") return `${exMeta.targetReps || 30}s`;
+  if (exMeta.targetReps === "AMRAP") return "AMRAP";
+  return `${exMeta.targetReps} Repetitions`;
+}
+
 const SECTION_ORDER = [
   { key: "warmup", label: "Warm-up" },
   { key: "main", label: "Main Session" },
@@ -687,7 +695,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                         <div className="min-w-0 flex-1">
                           <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
                           <p className="text-black/45 text-[13px] mt-0.5">
-                            {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`}, {formatRest(e.restSeconds ?? 90)} rest
+                            {e.targetSets} sets × {formatTargetReps(e)}, {formatRest(e.restSeconds ?? 90)} rest
                             between sets
                           </p>
                         </div>
@@ -940,7 +948,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             )}
           </div>
           <p className="text-black/45 text-[13px] mt-0.5">
-            {exMeta.targetSets} sets × {exMeta.targetReps === "AMRAP" ? "AMRAP" : `${exMeta.targetReps} Repetitions`}
+            {exMeta.targetSets} sets × {formatTargetReps(exMeta)}
           </p>
         </button>
         <button
@@ -1018,7 +1026,9 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         <div className="grid grid-cols-[28px_1fr_80px_60px] gap-2 px-1 mb-1.5">
           <span className="text-black/60 text-[12px] font-bold">Set</span>
           <span className="text-black/60 text-[12px] font-bold">Previous</span>
-          <span className="text-black/60 text-[10px] font-bold text-center leading-tight">Repetitions</span>
+          <span className="text-black/60 text-[10px] font-bold text-center leading-tight">
+            {exMeta.targetType === "time" ? "Seconds" : "Repetitions"}
+          </span>
           <span className="text-black/60 text-[12px] font-bold text-center">Kg</span>
         </div>
         {rows.map((row, i) => {
@@ -1685,7 +1695,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
                           )}
                         </div>
                         <p className="text-black/40 text-xs">
-                          {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR {e.targetRIR ?? 2}
+                          {e.targetSets} sets × {formatTargetReps(e)} · RIR {e.targetRIR ?? 2}
                         </p>
                         {e.notes && <p className="text-black/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
                       </div>
