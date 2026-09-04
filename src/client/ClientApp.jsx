@@ -289,16 +289,21 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
             </div>
           )}
           <div className="flex gap-2 mt-3.5">
+            {(!completedOnDate || started) && (
+              <button
+                onClick={onStart}
+                className="flex-1 bg-black text-white font-bold py-3 rounded-none text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+              >
+                <Play size={16} fill="white" />
+                {started ? "RESUME" : "START WORKOUT"}
+              </button>
+            )}
             <button
-              onClick={onStart}
-              className={`flex-1 font-bold py-3 rounded-none text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${
-                completedOnDate && !started ? "bg-black/8 text-black" : "bg-black text-white"
+              onClick={onView}
+              className={`text-black/70 text-sm font-semibold px-4 rounded-none border-2 border-black/15 bg-black/5 ${
+                completedOnDate && !started ? "flex-1 py-3" : ""
               }`}
             >
-              <Play size={16} fill={completedOnDate && !started ? "black" : "white"} />
-              {started ? "RESUME" : completedOnDate ? "DO IT AGAIN" : "START WORKOUT"}
-            </button>
-            <button onClick={onView} className="text-black/70 text-sm font-semibold px-4 rounded-none border-2 border-black/15 bg-black/5">
               View
             </button>
           </div>
