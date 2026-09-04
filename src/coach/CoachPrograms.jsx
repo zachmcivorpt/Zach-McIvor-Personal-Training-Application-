@@ -16,6 +16,11 @@ import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import { ExerciseSheet } from "./CoachExercises";
 
 const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
+const SECTIONS = [
+  { key: "warmup", label: "Warm-up" },
+  { key: "main", label: "Main Session" },
+  { key: "cooldown", label: "Cool-down" },
+];
 
 function ExerciseRow({ row, exercises, onChange, onRemove, showToast }) {
   const ex = exercises.find((e) => e.id === row.exerciseId);
@@ -45,6 +50,20 @@ function ExerciseRow({ row, exercises, onChange, onRemove, showToast }) {
         <button onClick={onRemove} className="w-8 h-8 shrink-0 rounded-lg bg-black/5 flex items-center justify-center text-black/40">
           <X size={14} />
         </button>
+      </div>
+      <div className="flex gap-1.5 mt-2">
+        {SECTIONS.map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            onClick={() => onChange({ ...row, section: s.key })}
+            className={`flex-1 py-1 rounded-lg text-[10px] font-bold ${
+              (row.section || "main") === s.key ? "bg-black text-white" : "bg-black/8 text-black/40"
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
       </div>
       <div className="grid grid-cols-2 gap-2 mt-2">
         <div>
@@ -127,11 +146,11 @@ function DayEditor({ day, exercises, onChange, onRemove, showToast }) {
   function removeExercise(i) {
     onChange({ ...day, exercises: day.exercises.filter((_, idx) => idx !== i) });
   }
-  function addExercise() {
+  function addExercise(section) {
     if (exercises.length === 0) return;
     onChange({
       ...day,
-      exercises: [...day.exercises, { exerciseId: exercises[0].id, targetSets: 3, targetReps: 10, targetRIR: 2, notes: "" }],
+      exercises: [...day.exercises, { exerciseId: exercises[0].id, section, targetSets: 3, targetReps: 10, targetRIR: 2, notes: "" }],
     });
   }
 
@@ -160,23 +179,35 @@ function DayEditor({ day, exercises, onChange, onRemove, showToast }) {
             placeholder="Muscle groups (comma separated)"
             className="text-xs !py-2"
           />
-          {day.exercises.map((row, i) => (
-            <ExerciseRow
-              key={i}
-              row={row}
-              exercises={exercises}
-              onChange={(r) => updateExercise(i, r)}
-              onRemove={() => removeExercise(i)}
-              showToast={showToast}
-            />
-          ))}
-          <button
-            onClick={addExercise}
-            disabled={exercises.length === 0}
-            className="w-full flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 rounded-xl bg-black/[0.03] disabled:opacity-30"
-          >
-            <Plus size={13} /> Add exercise
-          </button>
+          {SECTIONS.map((section) => {
+            const sectionRows = day.exercises.map((row, i) => ({ row, i })).filter(({ row }) => (row.section || "main") === section.key);
+            return (
+              <div key={section.key} className="pt-1">
+                <p className="text-black/35 text-[10px] font-bold tracking-wide mb-1.5">
+                  {section.label.toUpperCase()} {sectionRows.length > 0 && `(${sectionRows.length})`}
+                </p>
+                <div className="space-y-2">
+                  {sectionRows.map(({ row, i }) => (
+                    <ExerciseRow
+                      key={i}
+                      row={row}
+                      exercises={exercises}
+                      onChange={(r) => updateExercise(i, r)}
+                      onRemove={() => removeExercise(i)}
+                      showToast={showToast}
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={() => addExercise(section.key)}
+                  disabled={exercises.length === 0}
+                  className="w-full flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2 mt-2 rounded-xl bg-black/[0.03] disabled:opacity-30"
+                >
+                  <Plus size={13} /> Add to {section.label}
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

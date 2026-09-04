@@ -135,9 +135,11 @@ export default function LoginScreen() {
           e.currentTarget.style.display = "none";
         }}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
+        style={{ filter: "brightness(0.7) contrast(1.08) saturate(0.85)" }}
         draggable={false}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/55 to-black/90" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/60 to-black/95" />
+      <div className="absolute inset-0 bg-black/25" />
 
       <div className="relative min-h-screen w-full flex flex-col px-6 py-8">
         <div className="flex justify-center pt-2">
@@ -212,7 +214,7 @@ export default function LoginScreen() {
           )}
 
           <div className="flex flex-col items-center mt-10">
-            <Tagline tone="white" className="h-6 w-auto opacity-90" />
+            <Tagline tone="white" className="h-9 w-auto opacity-90" />
           </div>
         </div>
       </div>

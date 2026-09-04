@@ -44,6 +44,8 @@ import {
   BellRing,
   Calendar,
   Hand,
+  Banana,
+  ThermometerSun,
 } from "lucide-react";
 import { enablePush, disablePush } from "../lib/push";
 import {
@@ -161,6 +163,26 @@ function formatRest(seconds) {
   return s ? `${m}m ${s}s` : `${m}m`;
 }
 
+const SECTION_ORDER = [
+  { key: "warmup", label: "Warm-up" },
+  { key: "main", label: "Main Session" },
+  { key: "cooldown", label: "Cool-down" },
+];
+
+// Groups a session's exercises into Warm-up / Main / Cool-down for display.
+// Older sessions have no `section` tag on any exercise (everything defaults
+// to "main") — in that case we skip the headers entirely so a plain
+// program still renders as a plain list, not a lone "MAIN SESSION" title.
+function sectionedExercises(list) {
+  const withIndex = list.map((exMeta, i) => ({ exMeta, i }));
+  const groups = SECTION_ORDER.map((s) => ({
+    ...s,
+    items: withIndex.filter(({ exMeta }) => (exMeta.section || "main") === s.key),
+  })).filter((g) => g.items.length > 0);
+  const showHeader = groups.length > 1;
+  return groups.map((g) => ({ ...g, showHeader }));
+}
+
 /* ============================================================================
    HOME
 ============================================================================ */
@@ -178,7 +200,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
-    <div className="flex items-center justify-between px-5 pt-6 pb-2">
+    <div className="flex items-center justify-between px-3 pt-6 pb-2">
       <div>
         <p className="text-black text-xl font-semibold flex items-center gap-1.5">
           {greeting}, {user.name.split(" ")[0]}
@@ -204,7 +226,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
 function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById }) {
   if (!todaySession) {
     return (
-      <Card className="mx-5 text-center py-10">
+      <Card className="mx-3 text-center py-10">
         <Dumbbell size={26} className="text-black/25 mx-auto mb-3" />
         <p className="text-black font-semibold">No workout scheduled</p>
         <p className="text-black/40 text-sm mt-1">
@@ -219,7 +241,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const pillLabel = isToday ? "TODAY'S WORKOUT" : completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : "SCHEDULED";
 
   return (
-    <Card className="mx-5 !p-4 !rounded-none !border-2" style={{ borderColor: BORDER_STRONG }}>
+    <Card className="mx-3 !p-4 !rounded-none !border-0">
       <div className="flex items-center justify-between mb-2">
         <Pill tone="solid">{pillLabel}</Pill>
       </div>
@@ -286,7 +308,7 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
     { label: "FAT", value: round1(logged.fat), target: targets.fat, unit: "g" },
   ];
   return (
-    <Card className="mx-5 !rounded-none !border-2" style={{ borderColor: BORDER_STRONG }}>
+    <Card className="mx-3 !rounded-none !border-2" style={{ borderColor: BORDER_STRONG }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-black font-bold border-l-[3px] border-black pl-2.5">{isToday ? "Nutrition Today" : "Nutrition"}</h3>
         <Utensils size={16} className="text-black/30" />
@@ -361,7 +383,7 @@ function DayHeader({ selectedOffset, onJumpToday }) {
   const label = dateForOffset(selectedOffset).toLocaleDateString(undefined, { month: "long", day: "numeric" });
   const isToday = selectedOffset === 0;
   return (
-    <div className="flex items-center justify-between px-5 pt-1 pb-1">
+    <div className="flex items-center justify-between px-3 pt-1 pb-1">
       <p className="text-black text-lg font-bold">{label}</p>
       {!isToday && (
         <button onClick={onJumpToday} className="text-black/50 text-sm font-semibold underline underline-offset-2">
@@ -387,7 +409,7 @@ function DateStrip({ selectedOffset, onSelect }) {
   }, []);
 
   return (
-    <div className="px-5">
+    <div className="px-3">
       <div ref={stripRef} className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
         {offsets.map((offset) => {
           const d = dateForOffset(offset);
@@ -432,7 +454,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
   if (habits.length === 0) return null;
   const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
   return (
-    <Card className="mx-5">
+    <Card className="mx-3">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-black font-semibold">Daily Habits</h3>
         <span className="text-black/40 text-xs">
@@ -484,7 +506,7 @@ function ActiveChallengesCard({ challenges, userId }) {
   if (active.length === 0) return null;
 
   return (
-    <div className="px-5 space-y-2.5">
+    <div className="px-3 space-y-2.5">
       {active.map((c) => {
         const snapshot = c.leaderboardSnapshot || [];
         const mine = snapshot.find((r) => r.clientId === userId);
@@ -550,7 +572,7 @@ function HomeScreen({
       <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       {isToday && bodyStatsDueToday && (
-        <div className="mx-5 flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+        <div className="mx-3 flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
           <Scale size={18} className="text-amber-600 shrink-0" />
           <p className="flex-1 text-amber-800 text-sm font-medium">Body stats check-in due today</p>
           <button onClick={onLogWeight} className="bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0">
@@ -659,28 +681,33 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
             </div>
           )}
 
-          <div className="mt-5 border-t border-black/5">
-            {session.exercises.map((e, i) => {
-              const ex = exercisesById[e.exerciseId];
-              if (!ex) return null;
-              return (
-                <div key={i} className="relative flex items-center gap-3 py-3.5 border-b border-black/5">
-                  <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full" style={{ background: MEASURE_BLUE }} />
-                  <div className="pl-3 flex items-center gap-3 flex-1 min-w-0">
-                    <ExerciseThumb exercise={ex} size={56} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
-                      <p className="text-black/45 text-[13px] mt-0.5">
-                        {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`}, {formatRest(e.restSeconds ?? 90)} rest between
-                        sets
-                      </p>
+          {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
+            <div key={group.key} className="mt-5">
+              {group.showHeader && <p className="text-black/40 text-xs font-bold tracking-wide mb-1">{group.label.toUpperCase()}</p>}
+              <div className="border-t border-black/5">
+                {group.items.map(({ exMeta: e, i }) => {
+                  const ex = exercisesById[e.exerciseId];
+                  if (!ex) return null;
+                  return (
+                    <div key={i} className="relative flex items-center gap-3 py-3.5 border-b border-black/5">
+                      <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full" style={{ background: MEASURE_BLUE }} />
+                      <div className="pl-3 flex items-center gap-3 flex-1 min-w-0">
+                        <ExerciseThumb exercise={ex} size={56} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                          <p className="text-black/45 text-[13px] mt-0.5">
+                            {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`}, {formatRest(e.restSeconds ?? 90)} rest
+                            between sets
+                          </p>
+                        </div>
+                        {e.notes && <ClipboardList size={16} style={{ color: MEASURE_BLUE }} className="shrink-0" />}
+                      </div>
                     </div>
-                    {e.notes && <ClipboardList size={16} style={{ color: MEASURE_BLUE }} className="shrink-0" />}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {canStart && (
@@ -696,6 +723,44 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
         )}
       </div>
     </FullScreenOverlay>
+  );
+}
+
+const PRE_WORKOUT_REMINDERS = [
+  { icon: GlassWater, title: "Got your water bottle?", body: "Sip through the session, not just at the end." },
+  {
+    icon: Banana,
+    title: "Had your pre-workout carbs?",
+    body: "A banana, a couple of rice cakes, or a spoon of honey 30–60 min out keeps energy steady.",
+  },
+  {
+    icon: ThermometerSun,
+    title: "Training somewhere hot, or a long session?",
+    body: "Grab electrolytes too — plain water alone won't cut it.",
+  },
+];
+
+function PreWorkoutReadySheet({ open, onClose, onReady }) {
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Ready to train?">
+      <div className="space-y-3">
+        {PRE_WORKOUT_REMINDERS.map((r, i) => (
+          <div key={i} className="flex items-start gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
+            <r.icon size={18} className="text-black/50 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-black text-sm font-semibold">{r.title}</p>
+              <p className="text-black/45 text-[13px] mt-0.5 leading-snug">{r.body}</p>
+            </div>
+          </div>
+        ))}
+        <button
+          onClick={onReady}
+          className="w-full bg-black text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-1"
+        >
+          <Play size={16} fill="white" /> LET'S GO
+        </button>
+      </div>
+    </BottomSheet>
   );
 }
 
@@ -1099,30 +1164,39 @@ function WorkoutSession({
             </button>
           </div>
 
-          {exercisesForSession.map((exMeta, i) => {
-            const exercise = exercisesById[exMeta.exerciseId];
-            if (!exercise) return null;
-            const swap = exMeta.originalExerciseId ? exerciseSwaps[exMeta.originalExerciseId] : null;
-            return (
-              <ExerciseBlock
-                key={(exMeta.originalExerciseId || exMeta.exerciseId) + i}
-                exMeta={exMeta}
-                exercise={exercise}
-                rows={rowsFor(exMeta)}
-                previousSets={getPreviousSets(logsForClient, exMeta.exerciseId)}
-                onChangeField={(idx, field, value) => setField(exMeta.exerciseId, idx, field, value)}
-                onBlurKg={(idx) => handleBlurKg(exMeta, idx)}
-                onAddSet={() => addSet(exMeta)}
-                note={exerciseNotes[exMeta.exerciseId] || ""}
-                noteOpen={noteOpenFor === exMeta.exerciseId}
-                onToggleNote={() => setNoteOpenFor((cur) => (cur === exMeta.exerciseId ? null : exMeta.exerciseId))}
-                onNoteChange={(value) => setExerciseNotes((prev) => ({ ...prev, [exMeta.exerciseId]: value }))}
-                swapInfo={swap}
-                onSwap={() => setSwapFor({ exerciseId: exMeta.originalExerciseId || exMeta.exerciseId })}
-                onStartRest={handleStartRest}
-              />
-            );
-          })}
+          {sectionedExercises(exercisesForSession).map((group) => (
+            <div key={group.key}>
+              {group.showHeader && (
+                <p className="text-black/40 text-[11px] font-bold tracking-wide mb-2 mt-1">{group.label.toUpperCase()}</p>
+              )}
+              <div className="space-y-4">
+                {group.items.map(({ exMeta, i }) => {
+                  const exercise = exercisesById[exMeta.exerciseId];
+                  if (!exercise) return null;
+                  const swap = exMeta.originalExerciseId ? exerciseSwaps[exMeta.originalExerciseId] : null;
+                  return (
+                    <ExerciseBlock
+                      key={(exMeta.originalExerciseId || exMeta.exerciseId) + i}
+                      exMeta={exMeta}
+                      exercise={exercise}
+                      rows={rowsFor(exMeta)}
+                      previousSets={getPreviousSets(logsForClient, exMeta.exerciseId)}
+                      onChangeField={(idx, field, value) => setField(exMeta.exerciseId, idx, field, value)}
+                      onBlurKg={(idx) => handleBlurKg(exMeta, idx)}
+                      onAddSet={() => addSet(exMeta)}
+                      note={exerciseNotes[exMeta.exerciseId] || ""}
+                      noteOpen={noteOpenFor === exMeta.exerciseId}
+                      onToggleNote={() => setNoteOpenFor((cur) => (cur === exMeta.exerciseId ? null : exMeta.exerciseId))}
+                      onNoteChange={(value) => setExerciseNotes((prev) => ({ ...prev, [exMeta.exerciseId]: value }))}
+                      swapInfo={swap}
+                      onSwap={() => setSwapFor({ exerciseId: exMeta.originalExerciseId || exMeta.exerciseId })}
+                      onStartRest={handleStartRest}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         <SwapExerciseSheet
@@ -1341,7 +1415,7 @@ function ClientProgramTab({ onPreviewDay }) {
 
   if (phases.length === 0) {
     return (
-      <div className="px-5">
+      <div className="px-3">
         <Card>
           <p className="text-black/40 text-sm text-center py-8">No training program set up yet — your coach will assign one soon.</p>
         </Card>
@@ -1353,7 +1427,7 @@ function ClientProgramTab({ onPreviewDay }) {
   const days = phase?.weeks?.[0]?.days || [];
 
   return (
-    <div className="px-5 space-y-4">
+    <div className="px-3 space-y-4">
       <Card>
         <div className="flex items-start justify-between gap-3 mb-1">
           <h2 className="text-black text-lg font-bold min-w-0 truncate">{phase.name}</h2>
@@ -1424,10 +1498,10 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
   const upcoming = scheduledWorkouts.filter((w) => w.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
   return (
     <div className="pb-6">
-      <div className="px-5 pt-6 pb-4">
+      <div className="px-3 pt-6 pb-4">
         <h1 className="text-black text-2xl font-bold">Training</h1>
       </div>
-      <div className="flex gap-2 px-5 mb-4 overflow-x-auto no-scrollbar">
+      <div className="flex gap-2 px-3 mb-4 overflow-x-auto no-scrollbar">
         {["today", "program", "history", "upcoming"].map((t) => (
           <button
             key={t}
@@ -1442,7 +1516,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
       </div>
 
       {tab === "today" && (
-        <div className="px-5 space-y-4">
+        <div className="px-3 space-y-4">
           <TodayWorkoutCard todaySession={todaySession} activeLog={activeLog} onStart={onStart} onView={onViewWorkout} isToday />
           <button
             onClick={() => setCardioOpen(true)}
@@ -1489,7 +1563,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
       {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} />}
 
       {tab === "history" && (
-        <div className="px-5 space-y-3">
+        <div className="px-3 space-y-3">
           {logsForClient.length === 0 && (
             <Card>
               <p className="text-black/40 text-sm text-center py-6">No completed workouts yet — finish today's session to see it here.</p>
@@ -1529,7 +1603,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
       />
 
       {tab === "upcoming" && (
-        <div className="px-5 space-y-2">
+        <div className="px-3 space-y-2">
           {upcoming.length === 0 && (
             <Card>
               <p className="text-black/40 text-sm text-center py-6">Nothing scheduled yet — your coach will set up your upcoming workouts.</p>
@@ -3207,6 +3281,7 @@ export default function ClientApp() {
   const [exerciseNotes, setExerciseNotes] = useState({}); // {exerciseId: note} — the client's own notes, separate from the coach's
   const [exerciseSwaps, setExerciseSwaps] = useState({}); // {originalExerciseId: {toExerciseId, toName, fromName, reason}}
   const [sessionOpen, setSessionOpen] = useState(false);
+  const [preStartOpen, setPreStartOpen] = useState(false);
   const [previewSession, setPreviewSession] = useState(null);
   const [previewCanStart, setPreviewCanStart] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -3321,6 +3396,10 @@ export default function ClientApp() {
 
   function startWorkout() {
     if (!todaySession) return;
+    setPreStartOpen(true);
+  }
+
+  function beginSession() {
     setActiveLog((prev) => {
       if (!prev) sessionStartedAtRef.current = Date.now();
       return prev || {};
@@ -3555,6 +3634,14 @@ export default function ClientApp() {
             onDone={() => setSummaryOpen(false)}
           />
         )}
+        <PreWorkoutReadySheet
+          open={preStartOpen}
+          onClose={() => setPreStartOpen(false)}
+          onReady={() => {
+            setPreStartOpen(false);
+            beginSession();
+          }}
+        />
         {previewSession && (
           <WorkoutPreviewSheet
             session={previewSession}

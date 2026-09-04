@@ -7,6 +7,11 @@ const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
 const REST_PRESETS = [30, 45, 60, 90, 120, 180, 240];
 const GROUP_LABELS = { superset: "SUPERSET", circuit: "CIRCUIT" };
 const GROUP_ICONS = { superset: Link2, circuit: RefreshCw };
+const SECTIONS = [
+  { key: "warmup", label: "Warm-up", hint: "Dynamic stretches & activation" },
+  { key: "main", label: "Main Session", hint: "" },
+  { key: "cooldown", label: "Cool-down", hint: "Static stretches" },
+];
 
 function formatRest(seconds) {
   if (seconds >= 60) {
@@ -16,8 +21,8 @@ function formatRest(seconds) {
   return `${seconds} sec`;
 }
 
-function newRow(exerciseId) {
-  return { exerciseId, targetSets: 3, targetReps: 10, targetRIR: 2, restSeconds: 90, notes: "", groupId: null, groupType: null };
+function newRow(exerciseId, section = "main") {
+  return { exerciseId, section, targetSets: 3, targetReps: 10, targetRIR: 2, restSeconds: 90, notes: "", groupId: null, groupType: null };
 }
 
 // Full-screen desktop editor for one workout (a "day"): instructions +
@@ -38,6 +43,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [mobilePanel, setMobilePanel] = useState("editor"); // "editor" | "picker" — mobile-only tab switch
+  const [addSection, setAddSection] = useState("main"); // which section new exercises from the picker land in
 
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(
@@ -105,7 +111,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
     setRows((r) => r.map((row) => (row.groupId === groupId ? { ...row, groupId: null, groupType: null } : row)));
   }
   function addExercise(exerciseId) {
-    setRows((r) => [...r, newRow(exerciseId)]);
+    setRows((r) => [...r, newRow(exerciseId, addSection)]);
     setMobilePanel("editor");
   }
   function addCustomExercise() {
@@ -237,137 +243,170 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
             </div>
           )}
 
-          <div className="space-y-2.5">
-            {rows.map((row, i) => {
-              const ex = exercisesById[row.exerciseId];
-              const GroupIcon = row.groupType ? GROUP_ICONS[row.groupType] : null;
-              return (
-                <div
-                  key={i}
-                  onDragOver={(e) => handleDragOver(e, i)}
-                  onDrop={() => handleDrop(i)}
-                  className={`bg-black/[0.03] border rounded-2xl p-3.5 transition-colors ${
-                    overIndex === i && dragIndex !== null && dragIndex !== i ? "border-black/40" : "border-black/8"
-                  } ${dragIndex === i ? "opacity-40" : ""}`}
-                >
-                  {row.groupType && (
-                    <div className="flex items-center gap-1.5 mb-2.5">
-                      <GroupIcon size={11} className="text-black/50" />
-                      <span className="text-black/50 text-[10px] font-bold tracking-wide">{GROUP_LABELS[row.groupType]}</span>
-                      <button onClick={() => ungroup(row.groupId)} className="text-black/30 hover:text-black/60 flex items-center gap-0.5 text-[10px]">
-                        <Ungroup size={11} /> Ungroup
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3">
-                    {selectMode ? (
-                      <input
-                        type="checkbox"
-                        checked={selected.has(i)}
-                        onChange={() => toggleSelected(i)}
-                        className="w-4 h-4 shrink-0 accent-black"
-                      />
-                    ) : (
-                      <div
-                        draggable
-                        onDragStart={() => handleDragStart(i)}
-                        onDragEnd={handleDragEnd}
-                        className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing"
-                      >
-                        <GripVertical size={16} />
-                      </div>
-                    )}
-                    <div className="w-9 h-9 rounded-lg bg-black/8 flex items-center justify-center shrink-0">
-                      {ex?.videoUrl ? <Video size={15} className="text-black/60" /> : <Dumbbell size={15} className="text-black/40" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-black font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
-                      {ex && <p className="text-black/35 text-[11px] truncate">{ex.equipment} · {ex.category}</p>}
-                    </div>
-                    <button onClick={() => removeRow(i)} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60">
-                      <X size={15} />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    <div>
-                      <p className="text-black/30 text-[10px] mb-1">SETS</p>
-                      <input
-                        type="number"
-                        min={1}
-                        value={row.targetSets}
-                        onChange={(e) => updateRow(i, { targetSets: +e.target.value })}
-                        className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-black/30 text-[10px]">REPETITIONS</p>
-                        <button
-                          type="button"
-                          onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}
-                          className={`text-[9px] font-bold px-1.5 rounded ${
-                            row.targetReps === "AMRAP" ? "bg-black text-white" : "bg-black/8 text-black/40"
-                          }`}
-                        >
-                          AMRAP
-                        </button>
-                      </div>
-                      {row.targetReps === "AMRAP" ? (
-                        <div className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">AMRAP</div>
-                      ) : (
-                        <input
-                          type="number"
-                          min={1}
-                          value={row.targetReps}
-                          onChange={(e) => updateRow(i, { targetReps: +e.target.value })}
-                          className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
-                        />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-black/30 text-[10px] mb-1">REST</p>
-                      <select
-                        value={row.restSeconds ?? 90}
-                        onChange={(e) => updateRow(i, { restSeconds: +e.target.value })}
-                        className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none appearance-none"
-                      >
-                        {REST_PRESETS.map((s) => (
-                          <option key={s} value={s}>
-                            {formatRest(s)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="mt-2.5">
-                    <p className="text-black/30 text-[10px] mb-1">TARGET RIR (REPS IN RESERVE)</p>
-                    <div className="flex gap-1.5">
-                      {RIR_OPTIONS.map((v) => (
-                        <button
-                          key={v}
-                          onClick={() => updateRow(i, { targetRIR: v })}
-                          className={`flex-1 py-1.5 rounded-lg text-xs font-semibold ${
-                            (row.targetRIR ?? 2) === v ? "bg-black text-white" : "bg-black/8 text-black/50"
-                          }`}
-                        >
-                          {v}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <input
-                    value={row.notes || ""}
-                    onChange={(e) => updateRow(i, { notes: e.target.value })}
-                    placeholder="Cue or note for this exercise (tempo, form reminder...)"
-                    className="w-full bg-black/5 rounded-lg px-3 py-2 mt-2.5 text-black text-xs outline-none placeholder:text-black/25"
-                  />
+          {SECTIONS.map((section) => {
+            const sectionRows = rows.map((row, i) => ({ row, i })).filter(({ row }) => (row.section || "main") === section.key);
+            if (rows.length > 0 && sectionRows.length === 0 && section.key !== "main") return null;
+            return (
+              <div key={section.key} className="mb-6">
+                <div className="flex items-center justify-between mb-2.5">
+                  <p className="text-black/40 text-[11px] font-bold tracking-wide">
+                    {section.label.toUpperCase()} {sectionRows.length > 0 && `(${sectionRows.length})`}
+                  </p>
+                  {section.hint && <p className="text-black/25 text-[10px]">{section.hint}</p>}
                 </div>
-              );
-            })}
-          </div>
+                {sectionRows.length === 0 ? (
+                  <p className="text-black/25 text-xs mb-2">No {section.label.toLowerCase()} exercises yet.</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {sectionRows.map(({ row, i }) => {
+                      const ex = exercisesById[row.exerciseId];
+                      const GroupIcon = row.groupType ? GROUP_ICONS[row.groupType] : null;
+                      return (
+                        <div
+                          key={i}
+                          onDragOver={(e) => handleDragOver(e, i)}
+                          onDrop={() => handleDrop(i)}
+                          className={`bg-black/[0.03] border rounded-2xl p-3.5 transition-colors ${
+                            overIndex === i && dragIndex !== null && dragIndex !== i ? "border-black/40" : "border-black/8"
+                          } ${dragIndex === i ? "opacity-40" : ""}`}
+                        >
+                          {row.groupType && (
+                            <div className="flex items-center gap-1.5 mb-2.5">
+                              <GroupIcon size={11} className="text-black/50" />
+                              <span className="text-black/50 text-[10px] font-bold tracking-wide">{GROUP_LABELS[row.groupType]}</span>
+                              <button onClick={() => ungroup(row.groupId)} className="text-black/30 hover:text-black/60 flex items-center gap-0.5 text-[10px]">
+                                <Ungroup size={11} /> Ungroup
+                              </button>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-3">
+                            {selectMode ? (
+                              <input
+                                type="checkbox"
+                                checked={selected.has(i)}
+                                onChange={() => toggleSelected(i)}
+                                className="w-4 h-4 shrink-0 accent-black"
+                              />
+                            ) : (
+                              <div
+                                draggable
+                                onDragStart={() => handleDragStart(i)}
+                                onDragEnd={handleDragEnd}
+                                className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing"
+                              >
+                                <GripVertical size={16} />
+                              </div>
+                            )}
+                            <div className="w-9 h-9 rounded-lg bg-black/8 flex items-center justify-center shrink-0">
+                              {ex?.videoUrl ? <Video size={15} className="text-black/60" /> : <Dumbbell size={15} className="text-black/40" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-black font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
+                              {ex && <p className="text-black/35 text-[11px] truncate">{ex.equipment} · {ex.category}</p>}
+                            </div>
+                            <button onClick={() => removeRow(i)} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60">
+                              <X size={15} />
+                            </button>
+                          </div>
+
+                          <div className="flex gap-1.5 mt-3">
+                            {SECTIONS.map((s) => (
+                              <button
+                                key={s.key}
+                                type="button"
+                                onClick={() => updateRow(i, { section: s.key })}
+                                className={`flex-1 py-1 rounded-lg text-[10px] font-bold ${
+                                  (row.section || "main") === s.key ? "bg-black text-white" : "bg-black/8 text-black/40"
+                                }`}
+                              >
+                                {s.label}
+                              </button>
+                            ))}
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 mt-2.5">
+                            <div>
+                              <p className="text-black/30 text-[10px] mb-1">SETS</p>
+                              <input
+                                type="number"
+                                min={1}
+                                value={row.targetSets}
+                                onChange={(e) => updateRow(i, { targetSets: +e.target.value })}
+                                className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="text-black/30 text-[10px]">REPETITIONS</p>
+                                <button
+                                  type="button"
+                                  onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}
+                                  className={`text-[9px] font-bold px-1.5 rounded ${
+                                    row.targetReps === "AMRAP" ? "bg-black text-white" : "bg-black/8 text-black/40"
+                                  }`}
+                                >
+                                  AMRAP
+                                </button>
+                              </div>
+                              {row.targetReps === "AMRAP" ? (
+                                <div className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">AMRAP</div>
+                              ) : (
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={row.targetReps}
+                                  onChange={(e) => updateRow(i, { targetReps: +e.target.value })}
+                                  className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
+                                />
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-black/30 text-[10px] mb-1">REST</p>
+                              <select
+                                value={row.restSeconds ?? 90}
+                                onChange={(e) => updateRow(i, { restSeconds: +e.target.value })}
+                                className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none appearance-none"
+                              >
+                                {REST_PRESETS.map((s) => (
+                                  <option key={s} value={s}>
+                                    {formatRest(s)}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="mt-2.5">
+                            <p className="text-black/30 text-[10px] mb-1">TARGET RIR (REPS IN RESERVE)</p>
+                            <div className="flex gap-1.5">
+                              {RIR_OPTIONS.map((v) => (
+                                <button
+                                  key={v}
+                                  onClick={() => updateRow(i, { targetRIR: v })}
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold ${
+                                    (row.targetRIR ?? 2) === v ? "bg-black text-white" : "bg-black/8 text-black/50"
+                                  }`}
+                                >
+                                  {v}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <input
+                            value={row.notes || ""}
+                            onChange={(e) => updateRow(i, { notes: e.target.value })}
+                            placeholder="Cue or note for this exercise (tempo, form reminder...)"
+                            className="w-full bg-black/5 rounded-lg px-3 py-2 mt-2.5 text-black text-xs outline-none placeholder:text-black/25"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* right: exercise picker */}
@@ -384,6 +423,24 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
               placeholder="Search for an exercise"
               className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
             />
+          </div>
+
+          <div className="mb-3">
+            <p className="text-black/30 text-[10px] font-semibold tracking-wide mb-1.5">ADDING TO</p>
+            <div className="flex gap-1.5">
+              {SECTIONS.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setAddSection(s.key)}
+                  className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold ${
+                    addSection === s.key ? "bg-black text-white" : "bg-black/8 text-black/40"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {!addCustomOpen ? (
