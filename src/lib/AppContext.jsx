@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import {
   collection,
@@ -386,6 +387,18 @@ export function AppProvider({ children }) {
         const code = inviteCode();
         updateDoc(doc(firestore, "invites", clientId), { code }).catch(console.error);
         return code;
+      },
+
+      // For a client who's already activated their own account (so there's
+      // no invite code to resend) — Firebase's own "forgot password" email,
+      // triggered by the coach on the client's behalf when they've lost
+      // their login details.
+      async sendPasswordReset(email) {
+        try {
+          await sendPasswordResetEmail(auth, email);
+        } catch (err) {
+          throw new Error("Couldn't send that reset email — " + (err.message || "please try again."));
+        }
       },
 
       removeClient(clientId) {

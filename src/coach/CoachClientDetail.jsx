@@ -1820,10 +1820,23 @@ function fmtStatDate(ts) {
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function SummaryPanel({ client, showToast }) {
-  const { db, addClientTag, removeClientTag, addClientNote, deleteClientNote, sendMessage } = useApp();
+function SummaryPanel({ client, showToast, onSendLogin }) {
+  const { db, addClientTag, removeClientTag, addClientNote, deleteClientNote, sendMessage, sendPasswordReset } = useApp();
   const [tagInput, setTagInput] = useState("");
   const [noteInput, setNoteInput] = useState("");
+  const [sendingReset, setSendingReset] = useState(false);
+
+  async function sendLoginHelp() {
+    setSendingReset(true);
+    try {
+      await sendPasswordReset(client.email);
+      showToast(`Password reset email sent to ${client.email}`);
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSendingReset(false);
+    }
+  }
 
   const logs = db.workoutLogs[client.id] || [];
   const totalWorkouts = logs.length;
@@ -1876,9 +1889,22 @@ function SummaryPanel({ client, showToast }) {
                 </div>
               ))}
             </div>
-            {client.status === "active" && (
-              <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold mt-2.5">
-                <MailCheck size={13} /> Send welcome message now
+            {client.status === "active" ? (
+              <div className="flex flex-col gap-1.5 mt-2.5">
+                <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+                  <MailCheck size={13} /> Send welcome message now
+                </button>
+                <button
+                  onClick={sendLoginHelp}
+                  disabled={sendingReset}
+                  className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-40"
+                >
+                  <Send size={13} /> {sendingReset ? "Sending…" : "Resend login help"}
+                </button>
+              </div>
+            ) : (
+              <button onClick={onSendLogin} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold mt-2.5">
+                <Send size={13} /> Send Login Details
               </button>
             )}
           </div>
@@ -2263,7 +2289,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
 
       {/* main panel */}
       <div className="flex-1 min-w-0 min-h-0 overflow-y-auto md:overflow-visible">
-        {clientTab === "summary" && <SummaryPanel client={client} showToast={showToast} />}
+        {clientTab === "summary" && <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} />}
         {clientTab === "calendar" && <CalendarPanel client={client} showToast={showToast} />}
         {clientTab === "program" && <TrainingProgramPanel client={client} showToast={showToast} />}
         {clientTab === "nutrition" && <NutritionPanel client={client} showToast={showToast} />}
