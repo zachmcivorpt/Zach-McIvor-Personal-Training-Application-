@@ -525,6 +525,13 @@ export function AppProvider({ children }) {
         setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);
       },
 
+      // A client's own note on an exercise, saved as soon as they finish
+      // typing it (not just bundled into the log when the whole workout is
+      // finished) so it survives a refresh or an abandoned session.
+      saveExerciseNote(clientId, exerciseId, note) {
+        updateDoc(doc(firestore, "users", clientId), { [`draftExerciseNotes.${exerciseId}`]: note }).catch(console.error);
+      },
+
       // Nutrition logged per calendar day — doc id is deterministic
       // (clientId__date) so each day's log is separate, mirroring the
       // scheduledWorkouts date-keyed pattern.

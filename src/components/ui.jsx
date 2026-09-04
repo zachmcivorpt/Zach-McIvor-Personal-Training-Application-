@@ -10,7 +10,7 @@ import { parseVideoUrl } from "../lib/video";
 // Full-screen video player — opened by tapping an ExerciseThumb that has a
 // video attached. Handles YouTube/Vimeo embeds and directly-hosted files
 // the same way the rest of the app's video parsing does.
-function VideoPlayerSheet({ exerciseName, videoUrl, onClose }) {
+export function VideoPlayerSheet({ exerciseName, videoUrl, onClose }) {
   if (!videoUrl) return null;
   const parsed = parseVideoUrl(videoUrl);
   return (

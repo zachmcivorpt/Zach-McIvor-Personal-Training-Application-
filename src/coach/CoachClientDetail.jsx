@@ -34,6 +34,7 @@ import {
   Target,
   CalendarPlus,
   Clock,
+  CheckCircle2,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -641,7 +642,8 @@ function ScheduleBodyStatsSheet({ open, onClose, client, initialDate, showToast 
   );
 }
 
-function DayDetailSheet({ date, client, items, onClose, onSchedule, onRemoveWorkout, onRemoveBodyStats }) {
+function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedule, onRemoveWorkout, onRemoveBodyStats }) {
+  const [expandedLog, setExpandedLog] = useState(null);
   if (!date) return null;
   const label = new Date(date + "T00:00:00Z").toLocaleDateString(undefined, {
     weekday: "long",
@@ -657,50 +659,74 @@ function DayDetailSheet({ date, client, items, onClose, onSchedule, onRemoveWork
         <p className="text-black/30 text-sm text-center py-4">Nothing scheduled for this day yet.</p>
       ) : (
         <div className="space-y-2 mb-4">
-          {items.map((it, i) => (
-            <div key={i} className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
-              <div
-                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  it.type === "workout"
-                    ? "bg-blue-50 border border-blue-100"
-                    : it.type === "bodystats"
-                    ? "bg-amber-50 border border-amber-100"
-                    : it.type === "habits"
-                    ? "bg-purple-50 border border-purple-100"
-                    : "bg-emerald-50 border border-emerald-100"
-                }`}
-              >
-                {it.type === "workout" && <Dumbbell size={15} className="text-blue-500" />}
-                {it.type === "bodystats" && <Scale size={15} className="text-amber-600" />}
-                {it.type === "form" && <NotebookPen size={15} className="text-emerald-600" />}
-                {it.type === "habits" && <ListChecks size={15} className="text-purple-600" />}
+          {items.map((it, i) => {
+            const clickable = it.type === "workout" && it.done && it.log;
+            return (
+              <div key={i}>
+                <div
+                  onClick={clickable ? () => setExpandedLog((cur) => (cur === it.log ? null : it.log)) : undefined}
+                  className={`flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3 ${clickable ? "cursor-pointer hover:bg-black/[0.05]" : ""}`}
+                >
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                      it.type === "workout"
+                        ? it.done
+                          ? "bg-emerald-50 border border-emerald-100"
+                          : "bg-blue-50 border border-blue-100"
+                        : it.type === "bodystats"
+                        ? "bg-amber-50 border border-amber-100"
+                        : it.type === "habits"
+                        ? "bg-purple-50 border border-purple-100"
+                        : "bg-emerald-50 border border-emerald-100"
+                    }`}
+                  >
+                    {it.type === "workout" &&
+                      (it.done ? <CheckCircle2 size={15} className="text-emerald-600" /> : <Dumbbell size={15} className="text-blue-500" />)}
+                    {it.type === "bodystats" && <Scale size={15} className="text-amber-600" />}
+                    {it.type === "form" && <NotebookPen size={15} className="text-emerald-600" />}
+                    {it.type === "habits" && <ListChecks size={15} className="text-purple-600" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-black text-sm font-medium truncate">{it.label}</p>
+                    <p className="text-black/35 text-xs">
+                      {it.type === "workout"
+                        ? it.done
+                          ? "Workout · completed (tap to view)"
+                          : "Workout · scheduled"
+                        : it.type === "bodystats"
+                        ? it.done
+                          ? "Body stats · logged"
+                          : "Body stats · pending"
+                        : it.type === "habits"
+                        ? `Daily habits · ${it.doneCount}/${it.total} done`
+                        : "Check-in form"}
+                    </p>
+                  </div>
+                  {it.type === "workout" && !it.done && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveWorkout();
+                      }}
+                      className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                  {it.type === "bodystats" && (
+                    <button onClick={onRemoveBodyStats} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                {clickable && expandedLog === it.log && (
+                  <div className="mt-2">
+                    <WorkoutLogCard log={it.log} exercisesById={exercisesById} defaultOpen />
+                  </div>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-black text-sm font-medium truncate">{it.label}</p>
-                <p className="text-black/35 text-xs">
-                  {it.type === "workout"
-                    ? "Workout"
-                    : it.type === "bodystats"
-                    ? it.done
-                      ? "Body stats · logged"
-                      : "Body stats · pending"
-                    : it.type === "habits"
-                    ? `Daily habits · ${it.doneCount}/${it.total} done`
-                    : "Check-in form"}
-                </p>
-              </div>
-              {it.type === "workout" && (
-                <button onClick={onRemoveWorkout} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60">
-                  <X size={14} />
-                </button>
-              )}
-              {it.type === "bodystats" && (
-                <button onClick={onRemoveBodyStats} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60">
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       <div className="grid grid-cols-1 gap-2">
@@ -742,10 +768,20 @@ function CalendarPanel({ client, showToast }) {
   const weighIns = (db.weighIns || {})[client.id] || [];
   const habits = (db.habits || {})[client.id] || [];
   const habitLogForClient = (db.habitLog || {})[client.id] || {};
+  const workoutLogs = (db.workoutLogs || {})[client.id] || [];
+  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
   const workoutsByDate = useMemo(() => Object.fromEntries(scheduledWorkouts.map((w) => [w.date, w])), [scheduledWorkouts]);
   const bodyStatsByDate = useMemo(() => Object.fromEntries(bodyStatsSchedules.map((b) => [b.date, b])), [bodyStatsSchedules]);
   const weighInDates = useMemo(() => new Set(weighIns.map((w) => dKey(new Date(w.date)))), [weighIns]);
+  const completedWorkoutsByDate = useMemo(() => {
+    const map = {};
+    workoutLogs.forEach((log) => {
+      const key = dKey(new Date(log.date));
+      if (!map[key]) map[key] = log;
+    });
+    return map;
+  }, [workoutLogs]);
   const activeFormSchedules = useMemo(() => formSchedules.filter((s) => s.active), [formSchedules]);
   const formsById = useMemo(() => Object.fromEntries(forms.map((f) => [f.id, f])), [forms]);
 
@@ -755,8 +791,10 @@ function CalendarPanel({ client, showToast }) {
   function itemsForDate(date) {
     const dateStr = dKey(date);
     const items = [];
+    const completedLog = completedWorkoutsByDate[dateStr];
     const w = workoutsByDate[dateStr];
-    if (w) items.push({ type: "workout", label: w.label });
+    if (w) items.push({ type: "workout", label: w.label, done: !!completedLog, log: completedLog });
+    else if (completedLog) items.push({ type: "workout", label: completedLog.dayLabel || "Workout Completed", done: true, log: completedLog });
     const b = bodyStatsByDate[dateStr];
     if (b) items.push({ type: "bodystats", label: "Track Body Stats", done: weighInDates.has(dateStr) });
     activeFormSchedules
@@ -848,9 +886,11 @@ function CalendarPanel({ client, showToast }) {
                     {items.slice(0, 3).map((it, i) => (
                       <div
                         key={i}
-                        className={`text-[9px] md:text-[10px] font-medium truncate rounded px-1 py-0.5 ${
+                        className={`flex items-center gap-1 text-[9px] md:text-[10px] font-medium truncate rounded px-1 py-0.5 ${
                           it.type === "workout"
-                            ? "bg-blue-50 text-blue-700"
+                            ? it.done
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-blue-50 text-blue-700"
                             : it.type === "bodystats"
                             ? "bg-amber-50 text-amber-700"
                             : it.type === "habits"
@@ -858,7 +898,8 @@ function CalendarPanel({ client, showToast }) {
                             : "bg-emerald-50 text-emerald-700"
                         }`}
                       >
-                        {it.label}
+                        {it.type === "workout" && it.done && <CheckCircle2 size={9} className="shrink-0" />}
+                        <span className="truncate">{it.label}</span>
                       </div>
                     ))}
                     {items.length > 3 && <p className="text-black/30 text-[9px]">+{items.length - 3} more</p>}
@@ -888,6 +929,7 @@ function CalendarPanel({ client, showToast }) {
         date={selectedDate}
         client={client}
         items={selectedItems}
+        exercisesById={exercisesById}
         onClose={() => setSelectedDate(null)}
         onSchedule={(kind) => setScheduleKind(kind)}
         onRemoveWorkout={() => {
@@ -1732,9 +1774,10 @@ function NutritionPanel({ client, showToast }) {
   );
 }
 
-function WorkoutLogCard({ log, exercisesById }) {
-  const [open, setOpen] = useState(false);
+export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   const hasFlags = log.entries.some((e) => e.note || e.swapReason);
+  const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
   return (
     <div className="bg-black/[0.03] border border-black/8 rounded-xl overflow-hidden">
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-3.5 py-3 text-left">
@@ -1742,6 +1785,7 @@ function WorkoutLogCard({ log, exercisesById }) {
           <p className="text-black text-sm font-semibold">{log.dayLabel}</p>
           <p className="text-black/40 text-xs mt-0.5">
             {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+            {prCount > 0 && <span className="text-amber-600 font-semibold"> · {prCount} PR{prCount === 1 ? "" : "s"}</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1756,8 +1800,12 @@ function WorkoutLogCard({ log, exercisesById }) {
             return (
               <div key={i} className="bg-white border border-black/5 rounded-lg px-3 py-2.5">
                 <p className="text-black text-sm font-semibold">{exercise?.name || "Exercise"}</p>
-                <p className="text-black/40 text-xs mt-0.5">
-                  {e.sets.map((s) => `${s.reps}×${s.weight}kg`).join(", ")}
+                <p className="text-black/40 text-xs mt-0.5 flex flex-wrap gap-x-1.5 gap-y-0.5">
+                  {e.sets.map((s, si) => (
+                    <span key={si} className={s.isPR ? "text-amber-600 font-semibold" : ""}>
+                      {s.reps}×{s.weight}kg{s.isPR ? " (PR)" : ""}
+                    </span>
+                  ))}
                 </p>
                 {e.swapReason && (
                   <div className="mt-2 flex items-start gap-1.5 bg-blue-50 rounded-lg px-2.5 py-2">

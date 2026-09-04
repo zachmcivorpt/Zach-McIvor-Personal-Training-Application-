@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
-import { Card, Pill, Avatar } from "../components/ui";
+import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
+import { WorkoutLogCard } from "./CoachClientDetail";
 import { MEASURE_BLUE } from "../theme";
 import {
   Users,
@@ -92,9 +93,13 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
   );
 }
 
-function ActivityItem({ item }) {
+function ActivityItem({ item, onClick }) {
+  const clickable = item.type === "workout" && !!item.log;
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-black/5 last:border-0">
+    <div
+      onClick={clickable ? onClick : undefined}
+      className={`flex items-start gap-3 py-3 border-b border-black/5 last:border-0 ${clickable ? "cursor-pointer hover:bg-black/[0.03] -mx-1 px-1 rounded-lg" : ""}`}
+    >
       <Avatar name={item.clientName} url={item.clientAvatar} size={32} />
       <div className="flex-1 min-w-0">
         <p className="text-black/80 text-[13px] leading-snug">
@@ -106,7 +111,10 @@ function ActivityItem({ item }) {
           )}
           {item.suffix}
         </p>
-        <p className="text-black/30 text-[11px] mt-1">{timeAgo(item.date)}</p>
+        <p className="text-black/30 text-[11px] mt-1">
+          {timeAgo(item.date)}
+          {clickable && <span className="font-medium" style={{ color: MEASURE_BLUE }}> · Tap to view</span>}
+        </p>
       </div>
     </div>
   );
@@ -117,6 +125,8 @@ export default function CoachDashboard({ onNavigate }) {
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = new Date().toISOString().slice(0, 10);
+  const [viewingActivity, setViewingActivity] = useState(null); // {clientName, log} for the Recent Activity detail sheet
+  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
   // ---- smart segments ----
   const needsNewPhase = active.filter((c) => {
@@ -159,12 +169,14 @@ export default function CoachDashboard({ onNavigate }) {
     logs.slice(0, 5).forEach((log) => {
       const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
       activity.push({
+        type: "workout",
         date: log.date,
         clientName: c.name,
         clientAvatar: c.avatarUrl,
         verb: "completed",
         subject: log.dayLabel,
         suffix: prCount > 0 ? ` and set ${prCount} new personal best${prCount === 1 ? "" : "s"}.` : ".",
+        log,
       });
     });
     const thread = db.messages[c.id] || [];
@@ -232,7 +244,9 @@ export default function CoachDashboard({ onNavigate }) {
             {recentActivity.length === 0 ? (
               <p className="text-black/30 text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
             ) : (
-              recentActivity.map((item, i) => <ActivityItem key={i} item={item} />)
+              recentActivity.map((item, i) => (
+                <ActivityItem key={i} item={item} onClick={() => setViewingActivity({ clientName: item.clientName, log: item.log })} />
+              ))
             )}
           </div>
         </Card>
@@ -280,6 +294,10 @@ export default function CoachDashboard({ onNavigate }) {
           </div>
         </Card>
       </div>
+
+      <BottomSheet open={!!viewingActivity} onClose={() => setViewingActivity(null)} title={viewingActivity?.clientName}>
+        {viewingActivity && <WorkoutLogCard log={viewingActivity.log} exercisesById={exercisesById} defaultOpen />}
+      </BottomSheet>
     </div>
   );
 }
