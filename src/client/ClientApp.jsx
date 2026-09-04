@@ -1254,17 +1254,20 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       )}
 
       {coachNote && (
-        <div className="mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
-          <p className={`text-black/80 text-[13px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
-          {isLongNote && (
-            <button
-              onClick={() => setNotesExpanded((v) => !v)}
-              className="text-[12px] font-semibold shrink-0"
-              style={{ color: MEASURE_BLUE }}
-            >
-              {notesExpanded ? "See less" : "See more"}
-            </button>
-          )}
+        <div className="mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5">
+          <p className="text-black/35 text-[10px] font-semibold tracking-wide mb-1">COACH'S NOTES</p>
+          <div className="flex items-start gap-2">
+            <p className={`text-black/80 text-[13px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
+            {isLongNote && (
+              <button
+                onClick={() => setNotesExpanded((v) => !v)}
+                className="text-[12px] font-semibold shrink-0"
+                style={{ color: MEASURE_BLUE }}
+              >
+                {notesExpanded ? "See less" : "See more"}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
