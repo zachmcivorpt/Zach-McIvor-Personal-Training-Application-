@@ -1989,7 +1989,7 @@ function TDEECalculator({ client, latestWeight, onApply }) {
   const suggestedCalories = Math.max(1200, Math.round((tdee + goal.delta) / 25) * 25);
 
   return (
-    <div className="border-t border-black/10 pt-4 mt-3">
+    <div>
       <p className="text-black text-sm font-semibold mb-3">TDEE Calculator</p>
       {!ready ? (
         <p className="text-black/40 text-xs">Add age, sex and height on the Summary tab to enable this.</p>
@@ -2135,68 +2135,70 @@ function NutritionTargetsCard({ client, showToast }) {
   ];
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 md:p-6">
       <p className="text-black font-semibold mb-1">Nutrition Targets</p>
-      <p className="text-black/40 text-xs">What this client sees as their daily calorie and macro goals in the app.</p>
+      <p className="text-black/40 text-xs mb-5">What this client sees as their daily calorie and macro goals in the app.</p>
 
-      <TDEECalculator
-        client={client}
-        latestWeight={latestWeight}
-        onApply={({ calories: kcal, proteinPct, carbsPct, fatPct }) => {
-          setCalories(Math.min(4500, Math.max(1200, kcal)));
-          setPcts({ protein: proteinPct, carbs: carbsPct, fat: fatPct });
-        }}
-      />
-
-      <div className="border-t border-black/10 pt-4 mt-4">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-black/50 text-xs tracking-wide">CALORIES</span>
-          <span className="text-black font-bold text-sm">{calories} kcal</span>
-        </div>
-        <input
-          type="range"
-          min={1200}
-          max={4500}
-          step={25}
-          value={calories}
-          onChange={(e) => setCalories(Number(e.target.value))}
-          className="w-full accent-black"
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <TDEECalculator
+          client={client}
+          latestWeight={latestWeight}
+          onApply={({ calories: kcal, proteinPct, carbsPct, fatPct }) => {
+            setCalories(Math.min(4500, Math.max(1200, kcal)));
+            setPcts({ protein: proteinPct, carbs: carbsPct, fat: fatPct });
+          }}
         />
 
-        <div className="mt-4 space-y-3.5">
-          {MACROS.map((m) => (
-            <div key={m.key}>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-black/50 text-xs tracking-wide">{m.label.toUpperCase()}</span>
-                <span className="text-black text-sm font-semibold">
-                  {pcts[m.key]}% · {grams[m.key]}g
-                </span>
+        <div className="lg:border-l lg:border-black/10 lg:pl-8">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-black/50 text-xs tracking-wide">CALORIES</span>
+            <span className="text-black font-bold text-sm">{calories} kcal</span>
+          </div>
+          <input
+            type="range"
+            min={1200}
+            max={4500}
+            step={25}
+            value={calories}
+            onChange={(e) => setCalories(Number(e.target.value))}
+            className="w-full accent-black"
+          />
+
+          <div className="mt-4 space-y-3.5">
+            {MACROS.map((m) => (
+              <div key={m.key}>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-black/50 text-xs tracking-wide">{m.label.toUpperCase()}</span>
+                  <span className="text-black text-sm font-semibold">
+                    {pcts[m.key]}% · {grams[m.key]}g
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={pcts[m.key]}
+                  onChange={(e) => setPct(m.key, Number(e.target.value))}
+                  className="w-full"
+                  style={{ accentColor: m.color }}
+                />
               </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={pcts[m.key]}
-                onChange={(e) => setPct(m.key, Number(e.target.value))}
-                className="w-full"
-                style={{ accentColor: m.color }}
-              />
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <p className="text-black/25 text-[11px] mt-3">Protein + Carbs + Fat always add up to 100% of calories — adjusting one rebalances the others.</p>
+
+          <button
+            onClick={save}
+            disabled={!dirty || saving}
+            className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+              !dirty && !saving ? "bg-black/8 text-black/30" : "bg-black text-white"
+            }`}
+          >
+            {saving ? "SAVING…" : dirty ? "SAVE TARGETS" : "SAVED"}
+          </button>
         </div>
-
-        <p className="text-black/25 text-[11px] mt-3">Protein + Carbs + Fat always add up to 100% of calories — adjusting one rebalances the others.</p>
-
-        <button
-          onClick={save}
-          disabled={!dirty || saving}
-          className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-            !dirty && !saving ? "bg-black/8 text-black/30" : "bg-black text-white"
-          }`}
-        >
-          {saving ? "SAVING…" : dirty ? "SAVE TARGETS" : "SAVED"}
-        </button>
       </div>
     </div>
   );
@@ -2236,11 +2238,11 @@ function ClientFoodPreferencesCard({ client, showToast }) {
   }
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 md:p-6">
       <p className="text-black font-semibold mb-1">Client Nutrition Info</p>
-      <p className="text-black/40 text-xs mb-4">Context for planning meals — occupation, eating pattern, likes/dislikes.</p>
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div>
+      <p className="text-black/40 text-xs mb-5">Context for planning meals — occupation, eating pattern, likes/dislikes.</p>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+        <div className="sm:col-span-1">
           <p className="text-black/40 text-[10px] mb-1">OCCUPATION</p>
           <input
             value={occupation}
@@ -2249,7 +2251,7 @@ function ClientFoodPreferencesCard({ client, showToast }) {
             className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none placeholder:text-black/25"
           />
         </div>
-        <div>
+        <div className="sm:col-span-1">
           <p className="text-black/40 text-[10px] mb-1">PREFERRED MEALS/DAY</p>
           <input
             type="number"
@@ -2262,27 +2264,29 @@ function ClientFoodPreferencesCard({ client, showToast }) {
           />
         </div>
       </div>
-      <div className="mb-3">
-        <p className="text-black/40 text-[10px] mb-1">FOODS THEY ENJOY</p>
-        <textarea
-          rows={2}
-          value={likes}
-          onChange={(e) => setLikes(e.target.value)}
-          placeholder="e.g. Chicken, rice, most fruit, spicy food"
-          className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">FOODS THEY ENJOY</p>
+          <textarea
+            rows={3}
+            value={likes}
+            onChange={(e) => setLikes(e.target.value)}
+            placeholder="e.g. Chicken, rice, most fruit, spicy food"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+          />
+        </div>
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">FOODS THEY DISLIKE / AVOID</p>
+          <textarea
+            rows={3}
+            value={dislikes}
+            onChange={(e) => setDislikes(e.target.value)}
+            placeholder="e.g. Mushrooms, seafood, doesn't like eating breakfast"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+          />
+        </div>
       </div>
-      <div className="mb-4">
-        <p className="text-black/40 text-[10px] mb-1">FOODS THEY DISLIKE / AVOID</p>
-        <textarea
-          rows={2}
-          value={dislikes}
-          onChange={(e) => setDislikes(e.target.value)}
-          placeholder="e.g. Mushrooms, seafood, doesn't like eating breakfast"
-          className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
-        />
-      </div>
-      <button onClick={save} disabled={saving} className="w-full bg-black text-white text-xs font-bold py-2.5 rounded-xl disabled:opacity-50">
+      <button onClick={save} disabled={saving} className="w-full sm:w-auto sm:px-8 bg-black text-white text-xs font-bold py-2.5 rounded-xl disabled:opacity-50">
         {saving ? "SAVING…" : "SAVE NUTRITION INFO"}
       </button>
     </div>
@@ -2297,7 +2301,7 @@ function NutritionPanel({ client, showToast }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start mb-6">
+      <div className="space-y-6 mb-6">
         <NutritionTargetsCard client={client} showToast={showToast} />
         <ClientFoodPreferencesCard client={client} showToast={showToast} />
       </div>

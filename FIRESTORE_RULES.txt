@@ -131,6 +131,15 @@ service cloud.firestore {
       allow write: if isCoach();
     }
 
+    match /settings/coachProfile {
+      // Public mirror of the coach's name/avatar — lets a client's app
+      // (e.g. the chat bubble) show who their coach is without needing
+      // broad read access to the users collection. Kept in sync
+      // automatically whenever the coach's own profile changes.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
     // --- shared library data: any signed-in user reads, coach writes ---
     match /exercises/{id} {
       allow read: if isSignedIn();
