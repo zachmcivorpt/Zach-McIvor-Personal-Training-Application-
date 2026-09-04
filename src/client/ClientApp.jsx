@@ -1231,15 +1231,17 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         </button>
         <button
           onClick={onSwap}
-          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors"
-          style={swapInfo ? { background: MEASURE_BLUE, color: "#fff" } : { color: MEASURE_BLUE }}
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+            swapInfo ? "bg-black text-white" : "text-black/40"
+          }`}
         >
           <Repeat size={17} />
         </button>
         <button
           onClick={onToggleNote}
-          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors"
-          style={noteOpen || note ? { background: MEASURE_BLUE, color: "#fff" } : { color: MEASURE_BLUE }}
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
+            noteOpen || note ? "bg-black text-white" : "text-black/40"
+          }`}
         >
           <ClipboardList size={17} />
         </button>
