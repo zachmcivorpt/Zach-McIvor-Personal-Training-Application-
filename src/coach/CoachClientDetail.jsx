@@ -187,18 +187,40 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
       const start = new Date(phase.startDate);
       const end = phase.endDate ? new Date(phase.endDate) : null;
       const spanDays = end ? Math.round((end - start) / 86400000) : 27;
-      const newStart = new Date();
+      // Default to picking up right where the original phase leaves off —
+      // this is almost always used to line up the client's next phase —
+      // rather than today, which would leave a gap or an overlap.
+      const newStart = end ? new Date(end) : new Date();
+      if (end) newStart.setDate(newStart.getDate() + 1);
+      const weeks = Math.max(1, Math.round(spanDays / 7));
       const newEnd = new Date(newStart);
-      newEnd.setDate(newEnd.getDate() + spanDays);
+      newEnd.setDate(newEnd.getDate() + weeks * 7);
       setForm({
         name: `${phase.name} (copy)`,
         startDate: newStart.toISOString().slice(0, 10),
         endDate: newEnd.toISOString().slice(0, 10),
+        weeks,
       });
     }
   }, [phase]);
 
   if (!phase || !form) return null;
+
+  function setStartDate(startDate) {
+    setForm((f) => {
+      const newEnd = new Date(startDate);
+      newEnd.setDate(newEnd.getDate() + f.weeks * 7);
+      return { ...f, startDate, endDate: newEnd.toISOString().slice(0, 10) };
+    });
+  }
+
+  function setWeeks(weeks) {
+    setForm((f) => {
+      const newEnd = new Date(f.startDate);
+      newEnd.setDate(newEnd.getDate() + weeks * 7);
+      return { ...f, weeks, endDate: newEnd.toISOString().slice(0, 10) };
+    });
+  }
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Duplicate & Schedule Phase">
@@ -208,7 +230,11 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          onDuplicate(form);
+          // form.weeks is only used locally to drive the duration stepper —
+          // it must never reach the phase document itself, which already
+          // has its own unrelated `weeks` field holding the actual workout
+          // days, or duplicating a phase would wipe them out.
+          onDuplicate({ name: form.name, startDate: form.startDate, endDate: form.endDate });
         }}
         className="space-y-4"
       >
@@ -216,25 +242,39 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
           <p className="text-black/40 text-xs tracking-wide mb-1.5">NEW PHASE NAME</p>
           <TextInput value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-black/40 text-xs tracking-wide mb-1.5">START DATE</p>
-            <input
-              type="date"
-              value={form.startDate}
-              onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
-            />
+        <div>
+          <p className="text-black/40 text-xs tracking-wide mb-1.5">START DATE</p>
+          <input
+            type="date"
+            value={form.startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
+          />
+        </div>
+        <div>
+          <p className="text-black/40 text-xs tracking-wide mb-1.5">DURATION</p>
+          <div className="flex items-center bg-black/8 border border-black/10 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setWeeks(Math.max(1, form.weeks - 1))}
+              className="w-11 h-11 flex items-center justify-center text-black/50 text-lg"
+              aria-label="Decrease duration"
+            >
+              −
+            </button>
+            <span className="flex-1 text-center text-black text-sm font-semibold">
+              {form.weeks} week{form.weeks === 1 ? "" : "s"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setWeeks(form.weeks + 1)}
+              className="w-11 h-11 flex items-center justify-center text-black/50 text-lg"
+              aria-label="Increase duration"
+            >
+              +
+            </button>
           </div>
-          <div>
-            <p className="text-black/40 text-xs tracking-wide mb-1.5">END DATE</p>
-            <input
-              type="date"
-              value={form.endDate}
-              onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
-            />
-          </div>
+          <p className="text-black/30 text-xs mt-1.5">Ends {new Date(form.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</p>
         </div>
         <PrimaryButton type="submit" className="w-full">
           <Copy size={16} /> DUPLICATE & SCHEDULE
