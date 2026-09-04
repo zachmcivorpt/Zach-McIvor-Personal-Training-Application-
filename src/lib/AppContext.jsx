@@ -306,6 +306,15 @@ export function AppProvider({ children }) {
   const session = authUser ? { userId: authUser.uid } : null;
   const hasCoach = !!raw.appMeta?.hasCoach;
   const authReady = authUser !== undefined;
+  // True for the whole window where we can't yet say for certain whether
+  // someone is signed in — either Firebase Auth itself hasn't resolved
+  // yet (authReady false), or it has confirmed a session but that
+  // session's own users/{uid} doc hasn't loaded yet (authUser set,
+  // profile still null). Routing must NOT treat either window as
+  // "signed out" — that's exactly what caused a flash of the login
+  // screen on every cold app launch (most visible as an installed PWA
+  // icon tap), even though the session was never actually lost.
+  const sessionLoading = !authReady || (!!authUser && !profile);
 
   const actions = useMemo(
     () => ({
@@ -972,6 +981,7 @@ export function AppProvider({ children }) {
     stopViewAsClient: () => setViewAsClientId(null),
     hasCoach,
     authReady,
+    sessionLoading,
     ...actions,
   };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
