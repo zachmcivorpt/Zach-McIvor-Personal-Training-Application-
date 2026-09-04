@@ -612,6 +612,114 @@ function ActiveChallengesCard({ challenges, userId }) {
 // still has to go through a real tap (browser permission APIs require a
 // user gesture), so "automatic" here means "put in front of them," not a
 // silent background enable, which no browser allows anyway.
+// Floating button to message the coach — draggable (so it never permanently
+// blocks something underneath) and dismissible (a small X, remembered per
+// device). Uses raw pointer events rather than a plain onClick: a plain
+// click near scrollable content can get silently cancelled by the browser
+// in favor of a scroll gesture on mobile if the finger drifts even a
+// couple of pixels, which is exactly what made this feel "unclickable" —
+// tracking the gesture ourselves (and marking it touch-none) avoids that.
+const CHAT_BUBBLE_SIZE = 56;
+function CoachChatBubble({ coachUser, unreadCount, onOpen }) {
+  function computeDefaultPos() {
+    const appWidth = Math.min(window.innerWidth, 448);
+    const appLeft = (window.innerWidth - appWidth) / 2;
+    return { x: appLeft + 16, y: window.innerHeight - 92 - CHAT_BUBBLE_SIZE };
+  }
+  function clamp(p) {
+    const maxX = Math.max(4, window.innerWidth - CHAT_BUBBLE_SIZE - 4);
+    const maxY = Math.max(4, window.innerHeight - CHAT_BUBBLE_SIZE - 4);
+    return { x: Math.min(Math.max(4, p.x), maxX), y: Math.min(Math.max(4, p.y), maxY) };
+  }
+
+  const [hidden, setHidden] = useState(() => localStorage.getItem("chatBubbleHidden") === "1");
+  const [pos, setPos] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("chatBubblePos") || "null");
+      if (saved && typeof saved.x === "number" && typeof saved.y === "number") return clamp(saved);
+    } catch {
+      // ignore malformed saved position
+    }
+    return computeDefaultPos();
+  });
+  const dragRef = useRef(null); // {startX, startY, origX, origY, moved}
+
+  useEffect(() => {
+    function onResize() {
+      if (!localStorage.getItem("chatBubblePos")) setPos(computeDefaultPos());
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  if (hidden) return null;
+
+  function onPointerDown(e) {
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function onPointerMove(e) {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) d.moved = true;
+    if (d.moved) setPos(clamp({ x: d.origX + dx, y: d.origY + dy }));
+  }
+  function onPointerUp() {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (!d) return;
+    if (d.moved) {
+      setPos((p) => {
+        localStorage.setItem("chatBubblePos", JSON.stringify(p));
+        return p;
+      });
+    } else {
+      onOpen();
+    }
+  }
+
+  function dismiss(e) {
+    e.stopPropagation();
+    localStorage.setItem("chatBubbleHidden", "1");
+    setHidden(true);
+  }
+
+  return (
+    <div className="fixed z-[55]" style={{ left: pos.x, top: pos.y, width: CHAT_BUBBLE_SIZE, height: CHAT_BUBBLE_SIZE }}>
+      <button
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        className="touch-none select-none w-14 h-14 rounded-full shadow-lg"
+        aria-label={`Message ${coachUser.name}`}
+      >
+        <div className="w-full h-full rounded-full overflow-hidden ring-2 ring-white bg-black pointer-events-none">
+          {coachUser.avatarUrl ? (
+            <img src={coachUser.avatarUrl} alt={coachUser.name} className="w-full h-full object-cover" />
+          ) : (
+            <img src="/brand/mark-white.png" alt={coachUser.name} className="w-full h-full object-contain p-3" />
+          )}
+        </div>
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white pointer-events-none">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+      <button
+        onClick={dismiss}
+        aria-label="Hide chat button"
+        className="absolute -top-1 -left-1 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center ring-2 ring-white"
+      >
+        <X size={9} strokeWidth={3} />
+      </button>
+    </div>
+  );
+}
+
 function NotificationsPromptCard({ userId, showToast }) {
   const [supported, setSupported] = useState(false);
   const [dismissed, setDismissed] = useState(() => localStorage.getItem("pushPromptDismissed") === "1");
@@ -3230,7 +3338,7 @@ function CoachSheet({ open, onClose, ctx }) {
   );
 }
 
-function MessagesSheet({ open, onClose, user, thread, onSend }) {
+function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const [input, setInput] = useState("");
   const endRef = useRef(null);
 
@@ -3248,7 +3356,13 @@ function MessagesSheet({ open, onClose, user, thread, onSend }) {
     <BottomSheet open={open} onClose={onClose} title="Messages">
       <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
         {thread.length === 0 && (
-          <p className="text-black/30 text-sm text-center py-8">No messages yet — say hello to your coach.</p>
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-black/8 text-black/85">
+              <p className="whitespace-pre-line">
+                {`Hey, this is your 24/7 coach — ${coachName || "your coach"} will respond within due time. Ask any questions any time!`}
+              </p>
+            </div>
+          </div>
         )}
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "client" ? "justify-end" : "justify-start"}`}>
@@ -3884,24 +3998,7 @@ export default function ClientApp() {
           />
         )}
 
-        {coachUser && (
-          <div className="fixed bottom-[92px] left-0 right-0 z-[55] flex justify-center pointer-events-none">
-            <div className="w-full max-w-md relative">
-              <button
-                onClick={openMessages}
-                className="pointer-events-auto absolute left-4 bottom-0 w-14 h-14 rounded-full shadow-lg ring-2 ring-white overflow-hidden"
-                aria-label={`Message ${coachUser.name}`}
-              >
-                <Avatar name={coachUser.name} url={coachUser.avatarUrl} size={56} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[19px] h-[19px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
+        {coachUser && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
           <div className="w-full max-w-md bg-[#FAFAFA]/95 backdrop-blur border-t border-black/5 flex px-2 pb-safe">
@@ -3975,6 +4072,7 @@ export default function ClientApp() {
           user={currentUser}
           thread={thread}
           onSend={(text) => sendMessage(currentUser.id, "client", text)}
+          coachName={coachUser?.name}
         />
         <NotificationsCenterSheet open={notifOpen} onClose={() => setNotifOpen(false)} items={notificationItems} />
         <Toast message={toast.message} show={toast.show} />
