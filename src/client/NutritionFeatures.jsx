@@ -210,19 +210,15 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
       return;
     }
 
-    const scanner = new Html5Qrcode(elId, {
-      verbose: false,
-      formatsToSupport: BARCODE_FORMATS,
-      useBarCodeDetectorIfSupported: true,
-    });
-    scannerRef.current = scanner;
+    let cancelled = false;
     let stopped = false;
+    let activeScanner = null; // the instance that actually succeeded, if any
 
     async function onDecoded(decodedText) {
       if (stopped) return;
       stopped = true;
       try {
-        await scanner.stop();
+        await activeScanner?.stop();
       } catch {
         // already stopped
       }
@@ -246,25 +242,63 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
     // Prefer the rear camera, but a device that rejects that constraint
     // (some laptops/tablets, odd Android camera stacks) shouldn't just
     // dead-end — fall back to whatever camera the browser will give us
-    // before giving up and showing an error.
-    scanner
-      .start({ facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }, scanConfig, onDecoded, noop)
-      .catch(() =>
-        scanner
-          .start({ facingMode: "environment" }, scanConfig, onDecoded, noop)
-          .catch(() => scanner.start({}, scanConfig, onDecoded, noop))
-      )
-      .catch((err) => {
-        const classified = classifyCameraError(err);
+    // before giving up and showing an error. Each attempt gets its own
+    // fresh Html5Qrcode instance — reusing one instance across retries
+    // could leave its internal state machine mid-transition from the
+    // failed attempt and made every retry fail with an unrelated
+    // "already under transition" error instead of a real camera error.
+    const constraintAttempts = [
+      { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      { facingMode: "environment" },
+      {},
+    ];
+
+    (async () => {
+      let lastErr = null;
+      for (const constraints of constraintAttempts) {
+        if (cancelled) return;
+        const instance = new Html5Qrcode(elId, {
+          verbose: false,
+          formatsToSupport: BARCODE_FORMATS,
+          useBarCodeDetectorIfSupported: true,
+        });
+        try {
+          await instance.start(constraints, scanConfig, onDecoded, noop);
+          if (cancelled) {
+            // The sheet closed while this attempt was still resolving —
+            // shut down the camera we just opened instead of leaking it.
+            instance.stop().catch(() => {}).finally(() => instance.clear());
+            return;
+          }
+          activeScanner = instance;
+          scannerRef.current = instance;
+          return;
+        } catch (err) {
+          lastErr = err;
+          try {
+            await instance.clear();
+          } catch {
+            // never got as far as rendering anything — nothing to clear
+          }
+        }
+      }
+      if (!cancelled) {
+        const classified = classifyCameraError(lastErr);
         setError(classified.text);
         setErrorDetail(classified.raw);
         setStatus("error");
-      });
+      }
+    })();
 
     return () => {
+      cancelled = true;
       stopped = true;
-      scanner.stop().catch(() => {});
-      scanner.clear();
+      if (activeScanner) {
+        activeScanner
+          .stop()
+          .catch(() => {})
+          .finally(() => activeScanner.clear());
+      }
       setStatus("scanning");
     };
   }, [open, scanKey]);
