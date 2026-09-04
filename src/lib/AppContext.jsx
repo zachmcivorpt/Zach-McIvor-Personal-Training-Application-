@@ -671,6 +671,13 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "scheduledWorkouts", `${clientId}__${date}`)).catch(console.error);
       },
 
+      // Removes a completed session (a workoutLogs entry) entirely — used
+      // by the coach's calendar bulk-delete for cleaning up test/duplicate
+      // entries, including client-logged cardio sessions.
+      deleteWorkoutLog(logId) {
+        deleteDoc(doc(firestore, "workoutLogs", logId)).catch(console.error);
+      },
+
       // Reminders for the client to log a bodyweight/measurements check-in
       // on a given date — completion is derived from whether a weighIn
       // exists for that date, not tracked separately here.

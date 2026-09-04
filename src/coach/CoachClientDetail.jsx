@@ -33,6 +33,7 @@ import {
   CalendarPlus,
   Clock,
   CheckCircle2,
+  Check,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -802,13 +803,22 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
   );
 }
 
+const DELETE_CATEGORIES = [
+  { key: "workout", label: "Workouts" },
+  { key: "habits", label: "Habits" },
+  { key: "cardio", label: "Cardio" },
+];
+
 function CalendarPanel({ client, showToast }) {
-  const { db, unscheduleWorkout, unscheduleBodyStatsCheckin } = useApp();
+  const { db, unscheduleWorkout, unscheduleBodyStatsCheckin, deleteWorkoutLog, removeHabit } = useApp();
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getUTCFullYear());
   const [viewMonth, setViewMonth] = useState(now.getUTCMonth());
   const [selectedDate, setSelectedDate] = useState(null);
   const [scheduleKind, setScheduleKind] = useState(null); // "workout" | "bodystats" | "form" | null
+  const [selectMode, setSelectMode] = useState(false);
+  const [activeCategories, setActiveCategories] = useState(() => new Set(["workout", "habits", "cardio"]));
+  const [selectedKeys, setSelectedKeys] = useState(() => new Set());
 
   const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const bodyStatsSchedules = (db.bodyStatsSchedules || {})[client.id] || [];
@@ -873,8 +883,25 @@ function CalendarPanel({ client, showToast }) {
     const items = [];
     const completedLog = completedWorkoutsByDate[dateStr];
     const w = workoutsByDate[dateStr];
-    if (w) items.push({ type: "workout", label: w.label, done: !!completedLog, log: completedLog });
-    else if (completedLog) items.push({ type: "workout", label: completedLog.dayLabel || "Workout Completed", done: true, log: completedLog });
+    if (w) {
+      items.push({
+        type: "workout",
+        label: w.label,
+        done: !!completedLog,
+        log: completedLog,
+        category: completedLog?.cardio ? "cardio" : "workout",
+        key: completedLog ? `log:${completedLog.id}` : `sched:${dateStr}`,
+      });
+    } else if (completedLog) {
+      items.push({
+        type: "workout",
+        label: completedLog.dayLabel || "Workout Completed",
+        done: true,
+        log: completedLog,
+        category: completedLog.cardio ? "cardio" : "workout",
+        key: `log:${completedLog.id}`,
+      });
+    }
     const b = bodyStatsByDate[dateStr];
     if (b) items.push({ type: "bodystats", label: "Track Body Stats", done: weighInDates.has(dateStr) });
     activeFormSchedules
@@ -896,7 +923,14 @@ function CalendarPanel({ client, showToast }) {
         return true;
       })
       .forEach((h) => {
-        items.push({ type: "habits", label: h.label, done: isPastOrToday && completedIds.includes(h.id) });
+        items.push({
+          type: "habits",
+          label: h.label,
+          done: isPastOrToday && completedIds.includes(h.id),
+          category: "habits",
+          key: `habit:${h.id}`,
+          habitId: h.id,
+        });
       });
     const nutrition = nutritionByDate[dateStr];
     if (nutrition) items.push({ type: "nutrition", label: `${Math.round(nutrition.calories)} kcal logged`, nutrition });
@@ -922,132 +956,219 @@ function CalendarPanel({ client, showToast }) {
     setViewYear(y);
   }
 
+  function toggleCategory(key) {
+    setActiveCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
+  function toggleSelectedKey(item) {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.key)) next.delete(item.key);
+      else next.add(item.key);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedKeys(new Set());
+  }
+
+  function deleteSelected() {
+    selectedKeys.forEach((key) => {
+      if (key.startsWith("log:")) deleteWorkoutLog(key.slice(4));
+      else if (key.startsWith("sched:")) unscheduleWorkout(client.id, key.slice(6));
+      else if (key.startsWith("habit:")) removeHabit(client.id, key.slice(6));
+    });
+    showToast(`Deleted ${selectedKeys.size} item${selectedKeys.size === 1 ? "" : "s"}`);
+    exitSelectMode();
+  }
+
   const selectedItems = selectedDate ? itemsForDate(new Date(selectedDate + "T00:00:00Z")) : [];
   const monthLabel = new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6 items-start">
-        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <button onClick={() => shiftMonth(-1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
-                <ChevronRight size={17} className="rotate-180" />
-              </button>
-              <p className="text-black font-bold text-lg w-48 text-center">{monthLabel}</p>
-              <button onClick={() => shiftMonth(1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
-                <ChevronRight size={17} />
-              </button>
-            </div>
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+        <p className="text-black font-semibold text-sm mb-0.5">Recent Training Load</p>
+        <p className="text-black/40 text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
+        {muscleBalance.every((m) => m.sets === 0) ? (
+          <p className="text-black/30 text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+            {muscleBalance.map((m, i) => (
+              <div key={m.category} className="flex items-center gap-2">
+                <span className={`text-xs w-16 shrink-0 truncate ${i < 2 ? "text-red-600 font-semibold" : "text-black/60 font-medium"}`}>
+                  {m.category}
+                </span>
+                <div className="flex-1 h-2 rounded-full bg-black/[0.06] overflow-hidden">
+                  <div className={`h-full rounded-full ${i < 2 ? "bg-red-400" : "bg-black/25"}`} style={{ width: `${m.pct}%` }} />
+                </div>
+                <span className="text-black/35 text-[11px] w-6 text-right shrink-0">{m.sets}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <button onClick={() => shiftMonth(-1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
+              <ChevronRight size={17} className="rotate-180" />
+            </button>
+            <p className="text-black font-bold text-lg w-48 text-center">{monthLabel}</p>
+            <button onClick={() => shiftMonth(1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
+              <ChevronRight size={17} />
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
             <button onClick={goToday} className="text-blue-600 hover:text-blue-700 text-sm font-semibold">
               Today
             </button>
-          </div>
-
-          <div className="grid grid-cols-7 border-b border-black/10 pb-2 mb-1">
-            {CAL_WEEKDAY_LABELS.map((l) => (
-              <p key={l} className="text-black/35 text-xs font-semibold text-center tracking-wide font-sans">
-                {l}
-              </p>
-            ))}
-          </div>
-
-          {/* seamless table — cells share border lines instead of each
-              being its own boxed card, matching Trainerize's calendar */}
-          <div className="border-l border-t border-black/10">
-            {weeks.map((week, wi) => (
-              <div key={wi} className="grid grid-cols-7">
-                {week.map((date) => {
-                  const dateStr = dKey(date);
-                  const inMonth = date.getUTCMonth() === viewMonth;
-                  const isToday = dateStr === todayStr;
-                  const items = itemsForDate(date);
-                  return (
-                    <button
-                      key={dateStr}
-                      onClick={() => setSelectedDate(dateStr)}
-                      className={`min-h-[104px] md:min-h-[130px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors font-sans ${
-                        inMonth ? "bg-white hover:bg-black/[0.02]" : "bg-black/[0.015]"
-                      }`}
-                    >
-                      <div className="flex justify-end">
-                        <span
-                          className={`text-xs font-semibold ${
-                            isToday ? "text-blue-600" : inMonth ? "text-black/60" : "text-black/25"
-                          }`}
-                        >
-                          {date.getUTCDate()}
-                        </span>
-                      </div>
-                      <div className="mt-1 space-y-1">
-                        {items.slice(0, 4).map((it, i) => {
-                          const dot =
-                            it.type === "workout"
-                              ? { border: "border-blue-500", bg: "bg-blue-500" }
-                              : it.type === "bodystats"
-                              ? { border: "border-amber-500", bg: "bg-amber-500" }
-                              : it.type === "habits"
-                              ? { border: "border-purple-500", bg: "bg-purple-500" }
-                              : it.type === "nutrition"
-                              ? { border: "border-rose-500", bg: "bg-rose-500" }
-                              : { border: "border-emerald-500", bg: "bg-emerald-500" };
-                          return (
-                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-black/70 truncate">
-                              <span className={`w-2 h-2 rounded-full shrink-0 border-2 ${dot.border} ${it.done ? dot.bg : "bg-transparent"}`} />
-                              <span className="truncate">{it.label}</span>
-                            </div>
-                          );
-                        })}
-                        {items.length > 4 && <p className="text-black/30 text-[11px]">+{items.length - 4} more</p>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center flex-wrap gap-4 mt-5">
-            {[
-              ["border-blue-500", "Workout"],
-              ["border-emerald-500", "Completed"],
-              ["border-amber-500", "Body Stats"],
-              ["border-purple-500", "Daily Habits"],
-              ["border-rose-500", "Nutrition Logged"],
-            ].map(([cls, label]) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <span className={`w-2.5 h-2.5 rounded-full border-2 ${cls}`} />
-                <span className="text-black/40 text-xs">{label}</span>
-              </div>
-            ))}
+            {selectMode ? (
+              <button onClick={exitSelectMode} className="text-black/50 hover:text-black text-sm font-semibold">
+                Cancel
+              </button>
+            ) : (
+              <button
+                onClick={() => setSelectMode(true)}
+                aria-label="Select items to delete"
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-red-50 text-black/50 hover:text-red-600 transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm">
-            <p className="text-black font-semibold text-sm mb-0.5">Recent Training Load</p>
-            <p className="text-black/40 text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
-            {muscleBalance.every((m) => m.sets === 0) ? (
-              <p className="text-black/30 text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
-            ) : (
-              <div className="space-y-2">
-                {muscleBalance.map((m, i) => (
-                  <div key={m.category} className="flex items-center gap-2">
-                    <span className={`text-xs w-16 shrink-0 truncate ${i < 2 ? "text-red-600 font-semibold" : "text-black/60 font-medium"}`}>
-                      {m.category}
-                    </span>
-                    <div className="flex-1 h-2 rounded-full bg-black/[0.06] overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${i < 2 ? "bg-red-400" : "bg-black/25"}`}
-                        style={{ width: `${m.pct}%` }}
-                      />
-                    </div>
-                    <span className="text-black/35 text-[11px] w-6 text-right shrink-0">{m.sets}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+        {selectMode && (
+          <div className="flex items-center justify-between flex-wrap gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-2.5 mb-4">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {DELETE_CATEGORIES.map((c) => (
+                <button
+                  key={c.key}
+                  onClick={() => toggleCategory(c.key)}
+                  className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
+                    activeCategories.has(c.key) ? "bg-black text-white" : "bg-white border border-black/10 text-black/50"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={deleteSelected}
+              disabled={selectedKeys.size === 0}
+              className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-30"
+            >
+              <Trash2 size={13} /> Delete {selectedKeys.size > 0 ? `(${selectedKeys.size})` : ""}
+            </button>
           </div>
+        )}
+
+        <div className="grid grid-cols-7 border-b border-black/10 pb-2 mb-1">
+          {CAL_WEEKDAY_LABELS.map((l) => (
+            <p key={l} className="text-black/35 text-xs font-semibold text-center tracking-wide font-sans">
+              {l}
+            </p>
+          ))}
+        </div>
+
+        {/* seamless table — cells share border lines instead of each
+            being its own boxed card, matching Trainerize's calendar */}
+        <div className="border-l border-t border-black/10">
+          {weeks.map((week, wi) => (
+            <div key={wi} className="grid grid-cols-7">
+              {week.map((date) => {
+                const dateStr = dKey(date);
+                const inMonth = date.getUTCMonth() === viewMonth;
+                const isToday = dateStr === todayStr;
+                const items = itemsForDate(date);
+                return (
+                  <div
+                    key={dateStr}
+                    onClick={!selectMode ? () => setSelectedDate(dateStr) : undefined}
+                    className={`min-h-[104px] md:min-h-[130px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors font-sans ${
+                      inMonth ? "bg-white" : "bg-black/[0.015]"
+                    } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""}`}
+                  >
+                    <div className="flex justify-end">
+                      <span className={`text-xs font-semibold ${isToday ? "text-blue-600" : inMonth ? "text-black/60" : "text-black/25"}`}>
+                        {date.getUTCDate()}
+                      </span>
+                    </div>
+                    <div className="mt-1 space-y-1">
+                      {items.slice(0, 4).map((it, i) => {
+                        const dot =
+                          it.type === "workout"
+                            ? { border: "border-blue-500", bg: "bg-blue-500" }
+                            : it.type === "bodystats"
+                            ? { border: "border-amber-500", bg: "bg-amber-500" }
+                            : it.type === "habits"
+                            ? { border: "border-purple-500", bg: "bg-purple-500" }
+                            : it.type === "nutrition"
+                            ? { border: "border-rose-500", bg: "bg-rose-500" }
+                            : { border: "border-emerald-500", bg: "bg-emerald-500" };
+                        const selectable = selectMode && it.category && activeCategories.has(it.category);
+                        const checked = selectable && selectedKeys.has(it.key);
+                        return (
+                          <div
+                            key={i}
+                            onClick={
+                              selectable
+                                ? (e) => {
+                                    e.stopPropagation();
+                                    toggleSelectedKey(it);
+                                  }
+                                : undefined
+                            }
+                            className={`flex items-center gap-1.5 text-[11px] truncate ${
+                              selectable ? "cursor-pointer" : ""
+                            } ${checked ? "text-red-600 font-semibold" : selectMode && !selectable ? "text-black/25" : "text-black/70"}`}
+                          >
+                            {selectable ? (
+                              <span
+                                className={`w-3 h-3 rounded shrink-0 border-2 flex items-center justify-center ${
+                                  checked ? "bg-red-600 border-red-600" : "border-black/25 bg-white"
+                                }`}
+                              >
+                                {checked && <Check size={9} className="text-white" strokeWidth={3} />}
+                              </span>
+                            ) : (
+                              <span className={`w-2 h-2 rounded-full shrink-0 border-2 ${dot.border} ${it.done ? dot.bg : "bg-transparent"}`} />
+                            )}
+                            <span className="truncate">{it.label}</span>
+                          </div>
+                        );
+                      })}
+                      {items.length > 4 && <p className="text-black/30 text-[11px]">+{items.length - 4} more</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center flex-wrap gap-4 mt-5">
+          {[
+            ["border-blue-500", "Workout"],
+            ["border-emerald-500", "Completed"],
+            ["border-amber-500", "Body Stats"],
+            ["border-purple-500", "Daily Habits"],
+            ["border-rose-500", "Nutrition Logged"],
+          ].map(([cls, label]) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full border-2 ${cls}`} />
+              <span className="text-black/40 text-xs">{label}</span>
+            </div>
+          ))}
         </div>
       </div>
 
