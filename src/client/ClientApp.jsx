@@ -716,7 +716,7 @@ function RestBar({ restTime, restTotal, label, onSkip, onAdd15 }) {
   );
 }
 
-function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, swapInfo, onSwap }) {
+function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, swapInfo, onSwap, onStartRest }) {
   const [notesExpanded, setNotesExpanded] = useState(false);
   const coachNote = exMeta.notes || "";
   const isLongNote = coachNote.length > 90;
@@ -790,13 +790,17 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         </div>
       )}
 
-      <div className="mt-3 flex items-center gap-2 bg-black/[0.04] rounded-full pl-3 pr-1.5 py-1.5">
+      <button
+        type="button"
+        onClick={() => onStartRest(exMeta)}
+        className="mt-3 w-full flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.08] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"
+      >
         <Clock size={13} className="text-black/40 shrink-0" />
-        <span className="text-black/50 text-[12px] font-medium flex-1">Rest between each set</span>
+        <span className="text-black/50 text-[12px] font-medium flex-1 text-left">Tap to start rest timer</span>
         <span className="bg-white text-black/70 text-[12px] font-semibold px-2.5 py-1 rounded-full shrink-0">
           {formatRest(exMeta.restSeconds ?? 90)}
         </span>
-      </div>
+      </button>
 
       <div className="mt-3">
         <div className="grid grid-cols-[28px_1fr_60px_60px] gap-2 px-1 mb-1.5">
@@ -1024,15 +1028,14 @@ function WorkoutSession({
       setPrToast({ exerciseName: exercisesById[exMeta.exerciseId]?.name, weight, reps, prevWeight: previous.weight, prevReps: previous.reps });
       setTimeout(() => setPrToast(null), 3200);
     }
+  }
 
-    const totalRows = Math.max(exMeta.targetSets, arr.length);
-    if (idx < totalRows - 1) {
-      const rest = exMeta.restSeconds ?? 90;
-      setRestTime(rest);
-      setRestTotal(rest);
-      setRestLabel(exercisesById[exMeta.exerciseId]?.name || "");
-      setResting(true);
-    }
+  function handleStartRest(exMeta) {
+    const rest = exMeta.restSeconds ?? 90;
+    setRestTime(rest);
+    setRestTotal(rest);
+    setRestLabel(exercisesById[exMeta.exerciseId]?.name || "");
+    setResting(true);
   }
 
   function toggleAutoFill() {
@@ -1101,6 +1104,7 @@ function WorkoutSession({
                 onNoteChange={(value) => setExerciseNotes((prev) => ({ ...prev, [exMeta.exerciseId]: value }))}
                 swapInfo={swap}
                 onSwap={() => setSwapFor({ exerciseId: exMeta.originalExerciseId || exMeta.exerciseId })}
+                onStartRest={handleStartRest}
               />
             );
           })}
