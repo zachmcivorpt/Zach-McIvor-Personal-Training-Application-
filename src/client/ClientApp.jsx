@@ -3468,7 +3468,10 @@ export default function ClientApp() {
   const photos = db.progressPhotos[currentUser.id] || [];
   const weighIns = (db.weighIns || {})[currentUser.id] || [];
   const unreadCount = Math.max(0, thread.filter((m) => m.from === "coach").length - seenMessageCount);
-  const coachUser = db.users.find((u) => u.role === "coach");
+  // A real client's `users` listener only ever includes their own doc (see
+  // AppContext), so the coach's name/avatar for the chat bubble comes from
+  // the public settings/coachProfile mirror instead.
+  const coachUser = db.coachProfile?.name ? db.coachProfile : null;
   const checkInResponses = (db.formResponses || {})[currentUser.id] || [];
   const dueCheckInsCount = ((db.formSchedules || {})[currentUser.id] || []).filter(
     (s) => s.active && isCheckInDue(s, checkInResponses)

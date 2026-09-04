@@ -132,6 +132,15 @@ export function AppProvider({ children }) {
 
   const role = profile?.role;
 
+  // Keeps settings/coachProfile (public, readable by clients) in sync with
+  // the coach's real users/{uid} doc whenever their name or avatar changes.
+  useEffect(() => {
+    if (role !== "coach" || !profile) return;
+    setDoc(doc(firestore, "settings", "coachProfile"), { name: profile.name || "", avatarUrl: profile.avatarUrl || null }, { merge: true }).catch(
+      (err) => console.error("coachProfile mirror failed:", err)
+    );
+  }, [role, profile]);
+
   useEffect(() => {
     const unsubs = [];
     function watch(name, key, constraints) {
@@ -159,6 +168,11 @@ export function AppProvider({ children }) {
     // new client account is created (before its role/profile has loaded).
     watchDoc("settings", "appMeta", "appMeta", { hasCoach: false });
     watchDoc("settings", "welcomeMessage", "welcomeMessage", DEFAULT_WELCOME_MESSAGE);
+    // A real client's `users` listener only ever returns their own doc (see
+    // the role==="client" branch below), so they have no way to look up the
+    // coach's name/avatar for things like the client-app chat bubble. This
+    // small public mirror doc is the workaround.
+    watchDoc("settings", "coachProfile", "coachProfile", { name: "", avatarUrl: null });
 
     if (!authUser || !role) return () => unsubs.forEach((u) => u());
 
@@ -276,6 +290,7 @@ export function AppProvider({ children }) {
       bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
       notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       challenges: (raw.challenges || []).slice().sort((a, b) => b.createdAt - a.createdAt),
+      coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
     };
   }, [raw, role, profile]);
 
