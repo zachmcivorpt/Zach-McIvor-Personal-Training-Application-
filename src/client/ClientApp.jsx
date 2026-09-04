@@ -94,6 +94,13 @@ import { fileToCompressedDataUrl } from "../lib/image";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
 
+// Repeated float addition/subtraction on macro grams drifts into ugly
+// values like 14.200000000000003 — round back to 1 decimal after every
+// running-total update so it never has to be cleaned up at display time.
+function round1(n) {
+  return Math.round((n + Number.EPSILON) * 10) / 10;
+}
+
 const DEFAULT_NUTRITION = {
   calories: 0,
   protein: 0,
@@ -268,10 +275,10 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
 
 function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
   const items = [
-    { label: "CALORIES", value: nutrition.calories, target: targets.calories, unit: "" },
-    { label: "PROTEIN", value: nutrition.protein, target: targets.protein, unit: "g" },
-    { label: "CARBS", value: nutrition.carbs, target: targets.carbs, unit: "g" },
-    { label: "FAT", value: nutrition.fat, target: targets.fat, unit: "g" },
+    { label: "CALORIES", value: Math.round(nutrition.calories), target: targets.calories, unit: "" },
+    { label: "PROTEIN", value: round1(nutrition.protein), target: targets.protein, unit: "g" },
+    { label: "CARBS", value: round1(nutrition.carbs), target: targets.carbs, unit: "g" },
+    { label: "FAT", value: round1(nutrition.fat), target: targets.fat, unit: "g" },
   ];
   return (
     <Card className="mx-5">
@@ -309,7 +316,12 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
             Water: <span className="font-semibold text-black">{nutrition.water}L</span> / {targets.water}L
           </span>
         </div>
-        <ProgressBar value={nutrition.water} max={targets.water} height={6} />
+        <ProgressBar
+          value={nutrition.water}
+          max={targets.water}
+          height={6}
+          color={nutrition.water >= targets.water ? GOAL_GREEN : MEASURE_BLUE}
+        />
       </div>
       <div className="flex gap-2 mt-4">
         <button onClick={onLogFood} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform">
@@ -1442,6 +1454,7 @@ function SwipeableRow({ onDelete, children }) {
 function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
+  const [detailMeal, setDetailMeal] = useState(null);
   const [waterSheetOpen, setWaterSheetOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [barcodeOpen, setBarcodeOpen] = useState(false);
@@ -1502,9 +1515,9 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
           </div>
           <div className="space-y-3 mt-4 pt-4 border-t border-black/5">
             {[
-              { l: "Protein", v: nutrition.protein, t: targets.protein },
-              { l: "Carbs", v: nutrition.carbs, t: targets.carbs },
-              { l: "Fat", v: nutrition.fat, t: targets.fat },
+              { l: "Protein", v: round1(nutrition.protein), t: targets.protein },
+              { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs },
+              { l: "Fat", v: round1(nutrition.fat), t: targets.fat },
             ].map((m) => (
               <div key={m.l}>
                 <div className="flex items-baseline justify-between mb-1">
@@ -1535,7 +1548,12 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               {nutrition.water}L / {targets.water}L
             </span>
           </div>
-          <ProgressBar value={nutrition.water} max={targets.water} height={6} />
+          <ProgressBar
+          value={nutrition.water}
+          max={targets.water}
+          height={6}
+          color={nutrition.water >= targets.water ? GOAL_GREEN : MEASURE_BLUE}
+        />
           <div className="flex gap-2 mt-3">
             <button
               onClick={() => onAddWater(0.25)}
@@ -1571,49 +1589,90 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         />
       </div>
 
-      <div className="px-5 mt-5 space-y-3">
+      <div className="px-5 mt-5 space-y-2.5">
         {mealCategories.map((meal) => {
           const items = nutrition.meals[meal] || [];
           const totalCals = items.reduce((a, f) => a + f.cals, 0);
           return (
-            <Card key={meal}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-black font-semibold">{meal}</p>
-                <span className="text-black/40 text-xs">{totalCals} kcal</span>
-              </div>
-              {items.length === 0 ? (
-                <p className="text-black/30 text-sm py-1">No items logged</p>
-              ) : (
-                <div className="space-y-1.5 mb-2">
-                  {items.map((f) => (
-                    <SwipeableRow key={f.id} onDelete={() => onRemoveFood(meal, f.id)}>
-                      <div className="flex items-center justify-between text-sm bg-white py-1">
-                        <span className="flex items-center gap-2 text-black/70 min-w-0">
-                          {f.photoUrl && (
-                            <img src={f.photoUrl} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
-                          )}
-                          <span className="truncate">{f.name}</span>
-                        </span>
-                        <span className="text-black/40 shrink-0 ml-2">{f.cals} kcal</span>
-                      </div>
-                    </SwipeableRow>
-                  ))}
-                  <p className="text-black/25 text-[10px] text-center pt-0.5">Swipe an item left to remove it</p>
+            <button key={meal} onClick={() => setDetailMeal(meal)} className="w-full text-left active:scale-[0.99] transition-transform">
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="text-black font-semibold">{meal}</p>
+                    <p className="text-black/40 text-xs mt-0.5">
+                      {items.length === 0 ? "No items logged" : `${items.length} item${items.length === 1 ? "" : "s"} logged`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-black/50 text-sm font-medium">{totalCals} kcal</span>
+                    <ChevronRight size={16} className="text-black/25" />
+                  </div>
                 </div>
-              )}
-              <button
-                onClick={() => {
-                  setActiveMeal(meal);
-                  setSheetOpen(true);
-                }}
-                className="w-full mt-1 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"
-              >
-                <Plus size={14} /> Add food
-              </button>
-            </Card>
+              </Card>
+            </button>
           );
         })}
       </div>
+
+      <BottomSheet open={!!detailMeal} onClose={() => setDetailMeal(null)} title={detailMeal || ""}>
+        {detailMeal &&
+          (() => {
+            const items = nutrition.meals[detailMeal] || [];
+            const totals = items.reduce(
+              (a, f) => ({ cals: a.cals + f.cals, protein: a.protein + f.protein, carbs: a.carbs + f.carbs, fat: a.fat + f.fat }),
+              { cals: 0, protein: 0, carbs: 0, fat: 0 }
+            );
+            return (
+              <div>
+                <div className="bg-black/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mb-4">
+                  {[
+                    ["Cals", Math.round(totals.cals)],
+                    ["Protein", `${round1(totals.protein)}g`],
+                    ["Carbs", `${round1(totals.carbs)}g`],
+                    ["Fat", `${round1(totals.fat)}g`],
+                  ].map(([l, v]) => (
+                    <div key={l} className="text-center">
+                      <p className="text-black font-bold text-sm">{v}</p>
+                      <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {items.length === 0 ? (
+                  <p className="text-black/30 text-sm text-center py-4">No items logged yet</p>
+                ) : (
+                  <div className="space-y-1.5 mb-2">
+                    {items.map((f) => (
+                      <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id)}>
+                        <div className="flex items-center justify-between text-sm bg-white py-2">
+                          <span className="flex items-center gap-2 text-black/70 min-w-0">
+                            {f.photoUrl && (
+                              <img src={f.photoUrl} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
+                            )}
+                            <span className="truncate">{f.name}</span>
+                          </span>
+                          <span className="text-black/40 shrink-0 ml-2">{f.cals} kcal</span>
+                        </div>
+                      </SwipeableRow>
+                    ))}
+                    <p className="text-black/25 text-[10px] text-center pt-0.5">Swipe an item left to remove it</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => {
+                    setActiveMeal(detailMeal);
+                    setDetailMeal(null);
+                    setSheetOpen(true);
+                  }}
+                  className="w-full mt-3 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+                >
+                  <Plus size={14} /> Add food
+                </button>
+              </div>
+            );
+          })()}
+      </BottomSheet>
 
       <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title={`Add to ${activeMeal}`}>
         <div className="flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3">
@@ -3098,10 +3157,10 @@ export default function ClientApp() {
       const base = n || DEFAULT_NUTRITION;
       return {
         ...base,
-        calories: base.calories + food.cals,
-        protein: base.protein + food.protein,
-        carbs: base.carbs + food.carbs,
-        fat: base.fat + food.fat,
+        calories: Math.round(base.calories + food.cals),
+        protein: round1(base.protein + food.protein),
+        carbs: round1(base.carbs + food.carbs),
+        fat: round1(base.fat + food.fat),
         meals: { ...base.meals, [meal]: [...base.meals[meal], { ...food, id: food.id + "-" + Date.now() }] },
       };
     });
@@ -3116,10 +3175,10 @@ export default function ClientApp() {
       if (!entry) return base;
       return {
         ...base,
-        calories: Math.max(0, base.calories - entry.cals),
-        protein: Math.max(0, base.protein - entry.protein),
-        carbs: Math.max(0, base.carbs - entry.carbs),
-        fat: Math.max(0, base.fat - entry.fat),
+        calories: Math.max(0, Math.round(base.calories - entry.cals)),
+        protein: Math.max(0, round1(base.protein - entry.protein)),
+        carbs: Math.max(0, round1(base.carbs - entry.carbs)),
+        fat: Math.max(0, round1(base.fat - entry.fat)),
         meals: { ...base.meals, [meal]: items.filter((f) => f.id !== entryId) },
       };
     });
