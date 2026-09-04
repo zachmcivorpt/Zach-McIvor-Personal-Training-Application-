@@ -479,10 +479,14 @@ export function AppProvider({ children }) {
         return cloned;
       },
 
-      createExercise(data) {
+      async createExercise(data) {
         const id = newDocId("exercises");
         const exercise = { id, instructions: [], formCues: [], secondaryMuscles: [], videoUrl: "", ...data };
-        setDoc(doc(firestore, "exercises", id), exercise).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "exercises", id), exercise);
+        } catch (err) {
+          throw new Error("Couldn't add that exercise — " + (err.message || "please try again."));
+        }
         return exercise;
       },
 

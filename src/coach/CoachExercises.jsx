@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Card, Pill, BottomSheet, Field, TextInput, TextArea, Select, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
-import { Plus, Video, Upload, Search, Trash2, Dumbbell } from "lucide-react";
+import { Plus, Video, Upload, Search, Trash2, Dumbbell, Download } from "lucide-react";
+import { SEED_EXERCISES } from "../lib/seed";
 
 function emptyExercise() {
   return {
@@ -183,22 +184,56 @@ function ExerciseSheet({ exercise, open, onClose, showToast }) {
 }
 
 export default function CoachExercises({ showToast, compact = false }) {
-  const { db } = useApp();
+  const { db, createExercise } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | exercise | null
   const [search, setSearch] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const filtered = db.exercises.filter((e) => e.name.toLowerCase().includes(search.toLowerCase()));
 
+  async function importSeedExercises() {
+    setImporting(true);
+    const existingNames = new Set(db.exercises.map((e) => e.name));
+    const toImport = SEED_EXERCISES.filter((e) => !existingNames.has(e.name));
+    let created = 0;
+    try {
+      for (const ex of toImport) {
+        const { id, ...data } = ex;
+        await createExercise(data);
+        created++;
+      }
+      if (created === 0) {
+        showToast("Your library already has every exercise in the seed list");
+      } else {
+        showToast(`Imported ${created} exercise${created === 1 ? "" : "s"}`);
+      }
+    } catch (err) {
+      showToast(err.message || "Import stopped — something went wrong");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <div className={compact ? "max-w-6xl mx-auto px-4 pb-8 md:px-8" : "max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8"}>
-      <div className={`flex items-center justify-between gap-3 ${compact ? "mb-4" : "mb-6"}`}>
+      <div className={`flex items-center justify-between gap-3 flex-wrap ${compact ? "mb-4" : "mb-6"}`}>
         <div className="min-w-0">
           {!compact && <h1 className="text-black text-2xl font-bold">Exercise Library</h1>}
           <p className="text-black/40 text-sm mt-0.5">{db.exercises.length} total</p>
         </div>
-        <button onClick={() => setEditing({ isNew: true })} aria-label="New exercise" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
-          <Plus size={16} /> <span className="hidden sm:inline">NEW EXERCISE</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={importSeedExercises}
+            disabled={importing}
+            aria-label="Import seed exercises"
+            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+          >
+            <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "IMPORT MORE EXERCISES"}</span>
+          </button>
+          <button onClick={() => setEditing({ isNew: true })} aria-label="New exercise" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
+            <Plus size={16} /> <span className="hidden sm:inline">NEW EXERCISE</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
