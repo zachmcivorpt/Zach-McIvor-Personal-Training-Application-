@@ -204,6 +204,7 @@ export function AppProvider({ children }) {
       watch("notifications", "notifications");
       watch("challenges", "challenges");
       watch("nutritionLogs", "nutritionLogs");
+      watch("bodyMetrics", "bodyMetrics");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -218,6 +219,7 @@ export function AppProvider({ children }) {
       watch("scheduledWorkouts", "scheduledWorkouts", [where("clientId", "==", uid)]);
       watch("bodyStatsSchedules", "bodyStatsSchedules", [where("clientId", "==", uid)]);
       watch("nutritionLogs", "nutritionLogs", [where("clientId", "==", uid)]);
+      watch("bodyMetrics", "bodyMetrics", [where("clientId", "==", uid)]);
       watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
       // clientNotes intentionally NOT synced here — they're the coach's
       // private notes about the client, never shown in the client app.
@@ -291,6 +293,7 @@ export function AppProvider({ children }) {
       notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       challenges: (raw.challenges || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
+      bodyMetrics: bucket(raw.bodyMetrics, (a, b) => a.date.localeCompare(b.date)),
     };
   }, [raw, role, profile]);
 
@@ -634,6 +637,15 @@ export function AppProvider({ children }) {
       logWeight(clientId, weight) {
         const id = newDocId("weighIns");
         setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date: Date.now() }).catch(console.error);
+      },
+
+      // One doc per client per calendar day (steps, sleep, body fat %, lean
+      // mass, resting heart rate) — merge-upserted so logging a second
+      // field for the same day fills it in alongside whatever's already
+      // there instead of overwriting it.
+      logBodyMetric(clientId, dateKey, field, value) {
+        const id = `${clientId}_${dateKey}`;
+        setDoc(doc(firestore, "bodyMetrics", id), { id, clientId, date: dateKey, [field]: value }, { merge: true }).catch(console.error);
       },
 
       deleteWeighIn(clientId, weighInId) {

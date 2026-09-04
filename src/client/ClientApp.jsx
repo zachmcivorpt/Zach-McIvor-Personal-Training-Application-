@@ -48,6 +48,7 @@ import {
   Banana,
   ThermometerSun,
   Video,
+  Percent,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo } from "../lib/storage";
@@ -2781,11 +2782,224 @@ function PerformanceTimelineCard({ timeline }) {
   );
 }
 
-function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, logsForClient, exercisesById }) {
+// Daily body metrics logged manually (no wearable sync yet) — one Firestore
+// doc per client per calendar day (bodyMetrics/{clientId}_{date}), each
+// field filled in independently. Same card/chart/history treatment as Body
+// Weight above, just generalized instead of duplicated five times.
+const BODY_METRICS_CONFIG = [
+  { key: "steps", label: "Steps", unit: "", icon: Footprints, placeholder: "e.g. 8500" },
+  { key: "sleepHours", label: "Sleep", unit: "hrs", icon: Moon, placeholder: "e.g. 7.5" },
+  { key: "bodyFatPct", label: "Body Fat", unit: "%", icon: Percent, placeholder: "e.g. 18.5" },
+  { key: "leanMassKg", label: "Lean Body Mass", unit: "kg", icon: Activity, placeholder: "e.g. 65.2" },
+  { key: "restingHeartRate", label: "Resting Heart Rate", unit: "bpm", icon: Heart, placeholder: "e.g. 58" },
+];
+
+function LogBodyMetricSheet({ open, onClose, config, lastValue, onSave }) {
+  const [value, setValue] = useState("");
+
+  useEffect(() => {
+    if (open) setValue(lastValue != null ? String(lastValue) : "");
+  }, [open, lastValue]);
+
+  if (!config) return null;
+  const parsed = Number(value);
+  const valid = value !== "" && !isNaN(parsed) && parsed >= 0;
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title={`Log ${config.label}`}>
+      <Field label={`${config.label.toUpperCase()}${config.unit ? ` (${config.unit.toUpperCase()})` : ""}`}>
+        <TextInput type="number" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} placeholder={config.placeholder} autoFocus />
+      </Field>
+      <PrimaryButton
+        className="w-full mt-4"
+        disabled={!valid}
+        onClick={() => {
+          onSave(parsed);
+          setValue("");
+        }}
+      >
+        <Check size={16} /> SAVE
+      </PrimaryButton>
+    </BottomSheet>
+  );
+}
+
+function BodyMetricHistoryScreen({ config, entries, onClose, onLog }) {
+  const [logOpen, setLogOpen] = useState(false);
+  const chartData = entries.map((e) => ({ date: new Date(e.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }), value: e.value }));
+  const latest = entries[entries.length - 1];
+  const first = entries[0];
+  const change = latest && first ? Math.round((latest.value - first.value) * 10) / 10 : null;
+  const Icon = config.icon;
+  const gradId = `bmGrad-${config.key}`;
+
+  return (
+    <FullScreenOverlay>
+      <div className="fixed inset-0 z-[95] bg-white flex flex-col">
+        <div className="flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5">
+          <button onClick={onClose} className="text-black/60">
+            <X size={20} />
+          </button>
+          <span className="text-black font-semibold">{config.label}</span>
+          <button onClick={() => setLogOpen(true)} className="text-black font-bold text-sm">
+            + Log
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-3 py-5">
+          {entries.length === 0 ? (
+            <div className="py-16 text-center">
+              <Icon size={28} className="mx-auto text-black/15 mb-3" />
+              <p className="text-black/40 text-sm mb-4">No {config.label.toLowerCase()} logged yet.</p>
+              <PrimaryButton onClick={() => setLogOpen(true)} className="mx-auto">
+                <Plus size={16} /> LOG YOUR FIRST ENTRY
+              </PrimaryButton>
+            </div>
+          ) : (
+            <>
+              <p className="text-black text-3xl font-bold tabular-nums">
+                {latest.value}
+                {config.unit ? <span className="text-lg font-semibold"> {config.unit}</span> : ""}
+              </p>
+              <p className="text-black/40 text-xs mt-1">
+                {entries.length > 1 && change != null
+                  ? `${change > 0 ? "up" : change < 0 ? "down" : "steady"} ${Math.abs(change)}${config.unit} since your first log`
+                  : "Your first logged entry"}
+              </p>
+
+              {entries.length >= 2 && (
+                <div className="h-64 mt-5">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData}>
+                      <defs>
+                        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+                      <Tooltip
+                        contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                      />
+                      <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill={`url(#${gradId})`} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              <p className="text-black/30 text-xs tracking-wide mt-6 mb-2">ALL ENTRIES · {entries.length}</p>
+              <div className="space-y-1">
+                {[...entries].reverse().map((e) => (
+                  <div key={e.id} className="flex items-center justify-between py-2.5 border-b border-black/5 last:border-0">
+                    <span className="text-black/50 text-sm">
+                      {new Date(e.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                    </span>
+                    <span className="text-black font-semibold text-sm">
+                      {e.value}
+                      {config.unit ? ` ${config.unit}` : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <LogBodyMetricSheet
+        open={logOpen}
+        onClose={() => setLogOpen(false)}
+        config={config}
+        lastValue={latest?.value}
+        onSave={(v) => {
+          onLog(v);
+          setLogOpen(false);
+        }}
+      />
+    </FullScreenOverlay>
+  );
+}
+
+function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
+  const chartData = entries.map((e) => ({ date: new Date(e.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }), value: e.value }));
+  const latest = entries[entries.length - 1];
+  const first = entries[0];
+  const change = latest && first ? Math.round((latest.value - first.value) * 10) / 10 : null;
+  const Icon = config.icon;
+  const gradId = `bmcGrad-${config.key}`;
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-black font-semibold flex items-center gap-1.5">
+            <Icon size={14} className="text-black/40" /> {config.label}
+          </p>
+          <p className="text-black/40 text-xs mt-0.5">
+            {entries.length === 0
+              ? `No ${config.label.toLowerCase()} logged yet`
+              : entries.length === 1
+              ? `${latest.value}${config.unit ? ` ${config.unit}` : ""} · first log`
+              : `${latest.value}${config.unit ? ` ${config.unit}` : ""} · ${change > 0 ? "up" : change < 0 ? "down" : "steady"} ${Math.abs(
+                  change
+                )}${config.unit} since your first log`}
+          </p>
+        </div>
+        <button
+          onClick={() => onLog(config)}
+          className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+        >
+          <Plus size={15} />
+        </button>
+      </div>
+      {entries.length >= 2 ? (
+        <button onClick={() => onOpenHistory(config)} className="w-full h-40 mt-3 -ml-4 block">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.3} />
+                  <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+              <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
+              <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+              <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill={`url(#${gradId})`} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </button>
+      ) : (
+        <button
+          onClick={() => onOpenHistory(config)}
+          className="w-full mt-3 text-center text-black/30 text-xs py-6 border border-dashed border-black/10 rounded-xl"
+        >
+          {entries.length === 0 ? `Log your ${config.label.toLowerCase()} to start your history` : "Log another entry to see a trend"}
+        </button>
+      )}
+    </Card>
+  );
+}
+
+function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric }) {
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
+  const [logMetricConfig, setLogMetricConfig] = useState(null);
+  const [historyMetricConfig, setHistoryMetricConfig] = useState(null);
+
+  const bodyMetricEntries = useMemo(() => {
+    const out = {};
+    BODY_METRICS_CONFIG.forEach((cfg) => {
+      out[cfg.key] = (bodyMetrics || [])
+        .filter((m) => m[cfg.key] != null)
+        .map((m) => ({ id: m.id, date: m.date, value: m[cfg.key] }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    });
+    return out;
+  }, [bodyMetrics]);
 
   const tiles = useMemo(() => {
     const workoutsSeries = computeWorkoutsSeries(logsForClient);
@@ -2906,6 +3120,16 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           )}
         </Card>
 
+        {BODY_METRICS_CONFIG.map((cfg) => (
+          <BodyMetricCard
+            key={cfg.key}
+            config={cfg}
+            entries={bodyMetricEntries[cfg.key]}
+            onLog={setLogMetricConfig}
+            onOpenHistory={setHistoryMetricConfig}
+          />
+        ))}
+
         {benchExercise && benchHistory.length >= 2 ? (
           <ChartCard
             title="Bench Press e1RM"
@@ -2996,6 +3220,25 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         onSave={(w) => {
           onLogWeight(w);
           setQuickLogOpen(false);
+        }}
+      />
+
+      {historyMetricConfig && (
+        <BodyMetricHistoryScreen
+          config={historyMetricConfig}
+          entries={bodyMetricEntries[historyMetricConfig.key]}
+          onClose={() => setHistoryMetricConfig(null)}
+          onLog={(v) => onLogBodyMetric(historyMetricConfig.key, v)}
+        />
+      )}
+      <LogBodyMetricSheet
+        open={!!logMetricConfig}
+        config={logMetricConfig}
+        lastValue={logMetricConfig ? bodyMetricEntries[logMetricConfig.key]?.[bodyMetricEntries[logMetricConfig.key].length - 1]?.value : null}
+        onClose={() => setLogMetricConfig(null)}
+        onSave={(v) => {
+          onLogBodyMetric(logMetricConfig.key, v);
+          setLogMetricConfig(null);
         }}
       />
     </div>
@@ -3800,6 +4043,7 @@ export default function ClientApp() {
     toggleHabitToday,
     updateUser,
     logWeight,
+    logBodyMetric,
     saveExerciseNote,
     viewingAsClient,
     stopViewAsClient,
@@ -3830,6 +4074,7 @@ export default function ClientApp() {
   const thread = db.messages[currentUser.id] || [];
   const photos = db.progressPhotos[currentUser.id] || [];
   const weighIns = (db.weighIns || {})[currentUser.id] || [];
+  const bodyMetricsForClient = (db.bodyMetrics || {})[currentUser.id] || [];
   const unreadCount = Math.max(0, thread.filter((m) => m.from === "coach").length - seenMessageCount);
   // A real client's `users` listener only ever includes their own doc (see
   // AppContext), so the coach's name/avatar for the chat bubble comes from
@@ -4139,6 +4384,8 @@ export default function ClientApp() {
             onLogWeight={(w) => logWeight(currentUser.id, w)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
+            bodyMetrics={bodyMetricsForClient}
+            onLogBodyMetric={(field, value) => logBodyMetric(currentUser.id, todayDateKey, field, value)}
           />
         )}
         {tab === "profile" && (
