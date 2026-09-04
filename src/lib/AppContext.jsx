@@ -568,6 +568,23 @@ export function AppProvider({ children }) {
         return dates;
       },
 
+      // Same as scheduleWorkout, but for an arbitrary hand-picked set of
+      // dates (e.g. every Mon/Wed/Fri circled on a calendar) rather than a
+      // fixed weekly cadence.
+      async scheduleWorkoutDates(clientId, { dates, label, muscleGroups, exercises }) {
+        const batch = writeBatch(firestore);
+        dates.forEach((date) => {
+          const id = `${clientId}__${date}`;
+          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises });
+        });
+        try {
+          await batch.commit();
+        } catch (err) {
+          throw new Error("Couldn't schedule that workout — " + (err.message || "please try again."));
+        }
+        return dates;
+      },
+
       unscheduleWorkout(clientId, date) {
         deleteDoc(doc(firestore, "scheduledWorkouts", `${clientId}__${date}`)).catch(console.error);
       },
@@ -868,6 +885,15 @@ export function getCurrentPhase(phases, todayKey) {
   const upcoming = sorted.find((p) => p.startDate > todayKey);
   if (upcoming) return upcoming;
   return sorted[sorted.length - 1] || null;
+}
+
+// The phase immediately after whichever one getCurrentPhase() picked —
+// the earliest phase starting after the current one ends, if any.
+export function getNextPhase(phases, todayKey) {
+  const current = getCurrentPhase(phases, todayKey);
+  if (!current) return null;
+  const sorted = [...(phases || [])].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  return sorted.find((p) => p.startDate > (current.endDate || current.startDate) && p !== current) || null;
 }
 
 export function estimate1RM(weight, reps) {

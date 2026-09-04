@@ -260,28 +260,141 @@ function buildMonthGrid(year, month) {
   return weeks;
 }
 
+// Click-to-circle date grid — pick any number of specific dates in one
+// pass, the same interaction as the source layout's scheduling popover.
+// Renders in the client's local month; navigable and reusable at a
+// compact size inside a sheet.
+function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth }) {
+  const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
+  const todayStr = dKey(new Date());
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <button
+          type="button"
+          onClick={() => onShiftMonth(-1)}
+          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60"
+        >
+          <ChevronRight size={13} className="rotate-180" />
+        </button>
+        <p className="text-black text-sm font-semibold">
+          {new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" })}
+        </p>
+        <button
+          type="button"
+          onClick={() => onShiftMonth(1)}
+          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60"
+        >
+          <ChevronRight size={13} />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {CAL_WEEKDAY_LABELS.map((l) => (
+          <p key={l} className="text-black/30 text-[9px] font-semibold text-center tracking-wide">
+            {l[0]}
+          </p>
+        ))}
+      </div>
+      <div className="space-y-1">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7 gap-1">
+            {week.map((date) => {
+              const dateStr = dKey(date);
+              const inMonth = date.getUTCMonth() === viewMonth;
+              const isToday = dateStr === todayStr;
+              const selected = selectedDates.has(dateStr);
+              return (
+                <button
+                  key={dateStr}
+                  type="button"
+                  onClick={() => onToggle(dateStr)}
+                  className={`aspect-square rounded-full text-xs font-medium transition-colors ${
+                    selected
+                      ? "bg-blue-500 text-white"
+                      : isToday
+                      ? "border border-blue-400 text-black"
+                      : inMonth
+                      ? "text-black/70 hover:bg-black/8"
+                      : "text-black/20"
+                  }`}
+                >
+                  {date.getUTCDate()}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast }) {
-  const { db, scheduleWorkout, scheduleWorkoutRecurring } = useApp();
+  const { db, scheduleWorkoutDates } = useApp();
   const [source, setSource] = useState("library"); // library | custom
   const [masterWorkoutId, setMasterWorkoutId] = useState("");
   const [customDay, setCustomDay] = useState(null); // built via WorkoutEditor
   const [editingCustom, setEditingCustom] = useState(false);
-  const [date, setDate] = useState(initialDate || dKey(new Date()));
-  const [repeatWeekly, setRepeatWeekly] = useState(false);
-  const [weeks, setWeeks] = useState(4);
+  const [selectedDates, setSelectedDates] = useState(() => new Set());
+  const [viewYear, setViewYear] = useState(new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(new Date().getMonth());
+  const [weeklyWeekday, setWeeklyWeekday] = useState(null); // 0=Mon..6=Sun, or null
+  const [weeklyWeeks, setWeeklyWeeks] = useState(4);
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
     if (open) {
+      const base = initialDate ? new Date(initialDate + "T00:00:00Z") : new Date();
       setSource("library");
       setMasterWorkoutId(db.masterWorkouts?.[0]?.id || "");
       setCustomDay(null);
-      setDate(initialDate || dKey(new Date()));
-      setRepeatWeekly(false);
-      setWeeks(4);
+      setSelectedDates(new Set(initialDate ? [initialDate] : []));
+      setViewYear(base.getUTCFullYear());
+      setViewMonth(base.getUTCMonth());
+      setWeeklyWeekday(null);
+      setWeeklyWeeks(4);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialDate]);
+
+  function shiftMonth(delta) {
+    let m = viewMonth + delta;
+    let y = viewYear;
+    if (m < 0) {
+      m = 11;
+      y -= 1;
+    } else if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+    setViewMonth(m);
+    setViewYear(y);
+  }
+
+  function toggleDate(dateStr) {
+    setSelectedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(dateStr)) next.delete(dateStr);
+      else next.add(dateStr);
+      return next;
+    });
+  }
+
+  // Quick-add convenience: fill in every occurrence of a chosen weekday for
+  // the next N weeks, starting from today — still just adds circles to the
+  // same set, so any of them can be individually removed afterward.
+  function applyWeeklyPattern() {
+    if (weeklyWeekday === null) return;
+    const dates = [];
+    const d = new Date();
+    // advance to the first matching weekday (Mon=0..Sun=6)
+    while ((d.getDay() + 6) % 7 !== weeklyWeekday) d.setDate(d.getDate() + 1);
+    for (let i = 0; i < weeklyWeeks; i++) {
+      dates.push(dKey(d));
+      d.setDate(d.getDate() + 7);
+    }
+    setSelectedDates((prev) => new Set([...prev, ...dates]));
+  }
 
   const selectedMaster = (db.masterWorkouts || []).find((w) => w.id === masterWorkoutId);
   const payload =
@@ -295,16 +408,12 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast })
 
   async function submit(e) {
     e.preventDefault();
-    if (!payload) return;
+    if (!payload || selectedDates.size === 0) return;
     setSaving(true);
     try {
-      if (repeatWeekly) {
-        await scheduleWorkoutRecurring(client.id, { startDate: date, weeks, ...payload });
-        showToast(`Scheduled weekly for ${weeks} week${weeks === 1 ? "" : "s"}`);
-      } else {
-        await scheduleWorkout(client.id, { date, ...payload });
-        showToast("Workout scheduled");
-      }
+      const dates = [...selectedDates].sort();
+      await scheduleWorkoutDates(client.id, { dates, ...payload });
+      showToast(`Scheduled on ${dates.length} date${dates.length === 1 ? "" : "s"}`);
       onClose();
     } catch (err) {
       showToast(err.message || "Couldn't schedule that workout");
@@ -360,42 +469,60 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast })
         )}
 
         <div>
-          <p className="text-black/40 text-xs tracking-wide mb-1.5">DATE</p>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
-          />
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-black/40 text-xs tracking-wide">DATES</p>
+            {selectedDates.size > 0 && (
+              <button type="button" onClick={() => setSelectedDates(new Set())} className="text-black/30 text-xs font-medium hover:text-black/50">
+                Clear ({selectedDates.size})
+              </button>
+            )}
+          </div>
+          <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3">
+            <MiniDatePicker selectedDates={selectedDates} onToggle={toggleDate} viewYear={viewYear} viewMonth={viewMonth} onShiftMonth={shiftMonth} />
+          </div>
+          <p className="text-black/30 text-[11px] mt-1.5">Tap any dates to circle them — pick as many as you like.</p>
         </div>
 
-        <div className="flex items-center justify-between bg-black/[0.03] rounded-xl px-3.5 py-2.5">
-          <span className="text-black/70 text-sm font-medium">Repeat weekly</span>
-          <button
-            type="button"
-            onClick={() => setRepeatWeekly((v) => !v)}
-            className={`w-11 h-6 rounded-full relative transition-colors ${repeatWeekly ? "bg-blue-500" : "bg-black/15"}`}
-          >
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${repeatWeekly ? "left-[22px]" : "left-0.5"}`} />
-          </button>
-        </div>
-
-        {repeatWeekly && (
-          <div>
-            <p className="text-black/40 text-xs tracking-wide mb-1.5">FOR HOW MANY WEEKS (UP TO 52)</p>
+        <div className="bg-black/[0.03] rounded-xl p-3">
+          <p className="text-black/40 text-xs tracking-wide mb-2">QUICK ADD: SAME WEEKDAY EVERY WEEK</p>
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {CAL_WEEKDAY_LABELS.map((l, i) => (
+              <button
+                key={l}
+                type="button"
+                onClick={() => setWeeklyWeekday((v) => (v === i ? null : i))}
+                className={`py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${
+                  weeklyWeekday === i ? "bg-blue-500 text-white" : "bg-white border border-black/10 text-black/50"
+                }`}
+              >
+                {l[0]}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
             <input
               type="number"
               min={1}
               max={52}
-              value={weeks}
-              onChange={(e) => setWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
-              className="w-full bg-black/8 border border-black/10 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none"
+              value={weeklyWeeks}
+              onChange={(e) => setWeeklyWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
+              className="w-16 bg-white border border-black/10 rounded-lg px-2 py-1.5 text-black text-sm outline-none text-center"
             />
+            <span className="text-black/40 text-xs flex-1">weeks, starting this week</span>
+            <button
+              type="button"
+              disabled={weeklyWeekday === null}
+              onClick={applyWeeklyPattern}
+              className="bg-black text-white text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-30"
+            >
+              Add
+            </button>
           </div>
-        )}
+        </div>
 
-        <PrimaryButton type="submit" className="w-full" disabled={!payload || saving}>
-          <Calendar size={16} /> {saving ? "SCHEDULING…" : "SCHEDULE WORKOUT"}
+        <PrimaryButton type="submit" className="w-full" disabled={!payload || selectedDates.size === 0 || saving}>
+          <Calendar size={16} />
+          {saving ? "SCHEDULING…" : `SCHEDULE${selectedDates.size > 0 ? ` (${selectedDates.size})` : ""}`}
         </PrimaryButton>
       </form>
 

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { useApp, getCurrentPhase } from "../lib/AppContext";
-import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, Avatar, ProgressBar } from "../components/ui";
+import { useApp, getCurrentPhase, getNextPhase } from "../lib/AppContext";
+import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
-import { UserPlus, Search, Copy, RefreshCw, Mail } from "lucide-react";
+import { MEASURE_BLUE } from "../theme";
+import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X } from "lucide-react";
 
 export function inviteMailto({ email, name, username, code, coachName }) {
   const activateUrl = `${window.location.origin}/activate`;
@@ -161,35 +162,158 @@ function PhaseCell({ phase }) {
       </p>
       {pct !== null && (
         <div className="mt-1.5 w-32">
-          <ProgressBar value={pct} max={100} height={5} />
+          <ProgressBar value={pct} max={100} height={5} color={MEASURE_BLUE} />
         </div>
       )}
     </div>
   );
 }
 
+function NextPhaseCell({ phase }) {
+  if (!phase) return <span className="text-black/25 text-sm">—</span>;
+  return (
+    <div className="min-w-[140px]">
+      <p className="text-black/70 text-sm font-medium truncate">{phase.name}</p>
+      <p className="text-black/35 text-xs mt-0.5">Starts {new Date(phase.startDate).toLocaleDateString()}</p>
+    </div>
+  );
+}
+
+// "Jacob's program" — a simple derived label rather than a stored field;
+// this app doesn't model a separate Program entity above the phase
+// timeline, so the umbrella name is just the client's own possessive.
+function mainProgramLabel(client) {
+  const first = client.name.split(" ")[0];
+  return `${first}${first.endsWith("s") ? "'" : "'s"} program`;
+}
+
+// Small icon+count chips showing what needs the coach's attention for this
+// client — mirrors the same "awaiting reply" / "unread check-in" signals
+// already surfaced in aggregate on the Overview dashboard, just per-row.
+function EngagementBadges({ awaitingReply, pendingCheckins }) {
+  if (!awaitingReply && !pendingCheckins) return <span className="text-black/20 text-xs">—</span>;
+  return (
+    <div className="flex items-center gap-1.5">
+      {awaitingReply && (
+        <span className="flex items-center gap-1 bg-blue-50 text-blue-600 text-[11px] font-bold px-1.5 py-1 rounded-md">
+          <MessageCircle size={11} /> 1
+        </span>
+      )}
+      {pendingCheckins > 0 && (
+        <span className="flex items-center gap-1 bg-amber-50 text-amber-600 text-[11px] font-bold px-1.5 py-1 rounded-md">
+          <NotebookPen size={11} /> {pendingCheckins}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// OPEN ▾ row action — the primary "open" action plus a small dropdown for
+// the one other thing you'd do from the roster itself: remove a client.
+function RowActions({ onOpen, onRemove }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative flex justify-end" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-stretch rounded-lg overflow-hidden border border-black/10">
+        <button onClick={onOpen} className="bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3.5 py-2 transition-colors">
+          OPEN
+        </button>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="bg-black/8 hover:bg-black/15 text-black/50 px-2 border-l border-black/10 transition-colors"
+        >
+          <ChevronDown size={13} />
+        </button>
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-black/10 rounded-xl shadow-lg overflow-hidden w-40">
+            <button
+              onClick={() => {
+                setOpen(false);
+                onRemove();
+              }}
+              className="w-full flex items-center gap-2 px-3.5 py-2.5 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+            >
+              <Trash2 size={13} /> Remove client
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function CoachClients({ showToast, search, setSearch }) {
-  const { db } = useApp();
+  const { db, removeClient } = useApp();
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  const [checkedIds, setCheckedIds] = useState(() => new Set());
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const q = (search || "").toLowerCase();
   const clients = db.users.filter((u) => u.role === "client" && u.name.toLowerCase().includes(q));
+  const today = new Date().toISOString().slice(0, 10);
+
+  function toggleChecked(id) {
+    setCheckedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function bulkRemove() {
+    checkedIds.forEach((id) => removeClient(id));
+    showToast(`Removed ${checkedIds.size} client${checkedIds.size === 1 ? "" : "s"}`);
+    setCheckedIds(new Set());
+    setConfirmRemove(false);
+  }
+
+  function rowData(c) {
+    const phases = (db.clientPhases || {})[c.id] || [];
+    const currentPhase = getCurrentPhase(phases, today);
+    const nextPhase = getNextPhase(phases, today);
+    const thread = db.messages[c.id] || [];
+    const lastMsg = thread[thread.length - 1];
+    const awaitingReply = !!(lastMsg && lastMsg.from === "client");
+    const pendingCheckins = ((db.formResponses || {})[c.id] || []).filter((r) => r.read === false).length;
+    return { currentPhase, nextPhase, awaitingReply, pendingCheckins };
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
-      <div className="flex items-center justify-between gap-3 mb-6">
-        <div className="min-w-0">
-          <h1 className="text-black text-2xl font-bold">Clients</h1>
-          <p className="text-black/40 text-sm mt-0.5 truncate">{clients.length} total · access every client's full profile</p>
+      {checkedIds.size > 0 ? (
+        <div className="flex items-center justify-between gap-3 mb-6 bg-black text-white rounded-xl px-4 py-3">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setCheckedIds(new Set())} className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10">
+              <X size={14} />
+            </button>
+            <p className="text-sm font-semibold">{checkedIds.size} selected</p>
+          </div>
+          <button
+            onClick={() => setConfirmRemove(true)}
+            className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-colors"
+          >
+            <Trash2 size={13} /> REMOVE
+          </button>
         </div>
-        <button
-          onClick={() => setAddOpen(true)}
-          aria-label="Add client"
-          className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
-        >
-          <UserPlus size={16} /> <span className="hidden sm:inline">ADD CLIENT</span>
-        </button>
-      </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3 mb-6">
+          <div className="min-w-0">
+            <h1 className="text-black text-2xl font-bold">Clients</h1>
+            <p className="text-black/40 text-sm mt-0.5 truncate">{clients.length} total · access every client's full profile</p>
+          </div>
+          <button
+            onClick={() => setAddOpen(true)}
+            aria-label="Add client"
+            className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
+          >
+            <UserPlus size={16} /> <span className="hidden sm:inline">ADD CLIENT</span>
+          </button>
+        </div>
+      )}
 
       <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3.5 py-2.5 mb-5 md:max-w-sm">
         <Search size={15} className="text-black/40" />
@@ -206,8 +330,12 @@ export default function CoachClients({ showToast, search, setSearch }) {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-black/[0.03] border-b border-black/8">
-              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NAME</th>
+              <th className="w-10 px-4 py-3" />
+              <th className="px-2 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NAME</th>
+              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">MAIN PROGRAM</th>
               <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
+              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NEXT PHASE</th>
+              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">ENGAGEMENT</th>
               <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">STATUS</th>
               <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide text-right">ACTION</th>
             </tr>
@@ -215,21 +343,30 @@ export default function CoachClients({ showToast, search, setSearch }) {
           <tbody>
             {clients.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-5 py-10 text-center text-black/40 text-sm">
+                <td colSpan={8} className="px-5 py-10 text-center text-black/40 text-sm">
                   No clients yet — add your first one to get started.
                 </td>
               </tr>
             )}
             {clients.map((c) => {
-              const phases = (db.clientPhases || {})[c.id] || [];
-              const currentPhase = getCurrentPhase(phases, new Date().toISOString().slice(0, 10));
+              const { currentPhase, nextPhase, awaitingReply, pendingCheckins } = rowData(c);
               return (
                 <tr
                   key={c.id}
                   onClick={() => setSelectedId(c.id)}
-                  className="border-b border-black/5 last:border-0 hover:bg-black/[0.03] cursor-pointer transition-colors"
+                  className={`border-b border-black/5 last:border-0 hover:bg-black/[0.03] cursor-pointer transition-colors ${
+                    checkedIds.has(c.id) ? "bg-blue-50/50" : ""
+                  }`}
                 >
-                  <td className="px-5 py-3.5">
+                  <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={checkedIds.has(c.id)}
+                      onChange={() => toggleChecked(c.id)}
+                      className="w-4 h-4 rounded accent-black cursor-pointer"
+                    />
+                  </td>
+                  <td className="px-2 py-3.5">
                     <div className="flex items-center gap-3">
                       <Avatar name={c.name} url={c.avatarUrl} size={38} />
                       <div className="min-w-0">
@@ -239,21 +376,22 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     </div>
                   </td>
                   <td className="px-5 py-3.5">
+                    <span className="text-black/60 text-sm">{mainProgramLabel(c)}</span>
+                  </td>
+                  <td className="px-5 py-3.5">
                     <PhaseCell phase={currentPhase} />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <NextPhaseCell phase={nextPhase} />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <EngagementBadges awaitingReply={awaitingReply} pendingCheckins={pendingCheckins} />
                   </td>
                   <td className="px-5 py-3.5">
                     <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
                   </td>
                   <td className="px-5 py-3.5 text-right">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedId(c.id);
-                      }}
-                      className="bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3.5 py-2 rounded-lg transition-colors"
-                    >
-                      OPEN
-                    </button>
+                    <RowActions onOpen={() => setSelectedId(c.id)} onRemove={() => removeClient(c.id)} />
                   </td>
                 </tr>
               );
@@ -270,8 +408,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
           </div>
         )}
         {clients.map((c) => {
-          const phases = (db.clientPhases || {})[c.id] || [];
-          const currentPhase = getCurrentPhase(phases, new Date().toISOString().slice(0, 10));
+          const { currentPhase, nextPhase, awaitingReply, pendingCheckins } = rowData(c);
           return (
             <div
               key={c.id}
@@ -282,14 +419,29 @@ export default function CoachClients({ showToast, search, setSearch }) {
               className="w-full text-left border border-black/8 rounded-2xl p-4 active:bg-black/[0.03] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3 mb-3">
+                <input
+                  type="checkbox"
+                  checked={checkedIds.has(c.id)}
+                  onChange={() => toggleChecked(c.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-4 h-4 rounded accent-black cursor-pointer shrink-0"
+                />
                 <Avatar name={c.name} url={c.avatarUrl} size={42} />
                 <div className="min-w-0 flex-1">
                   <p className="text-black font-semibold text-sm truncate">{c.name}</p>
-                  <p className="text-black/35 text-xs truncate">{c.email}</p>
+                  <p className="text-black/35 text-xs truncate">{mainProgramLabel(c)}</p>
                 </div>
                 <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
               </div>
-              <PhaseCell phase={currentPhase} />
+              <div className="flex items-center justify-between gap-3">
+                <PhaseCell phase={currentPhase} />
+                <EngagementBadges awaitingReply={awaitingReply} pendingCheckins={pendingCheckins} />
+              </div>
+              {nextPhase && (
+                <p className="text-black/30 text-xs mt-2 pt-2 border-t border-black/5">
+                  Next: {nextPhase.name} · starts {new Date(nextPhase.startDate).toLocaleDateString()}
+                </p>
+              )}
             </div>
           );
         })}
@@ -297,6 +449,16 @@ export default function CoachClients({ showToast, search, setSearch }) {
 
       <AddClientSheet open={addOpen} onClose={() => setAddOpen(false)} onCreated={setSelectedId} />
       {selectedId && <CoachClientDetail clientId={selectedId} onClose={() => setSelectedId(null)} showToast={showToast} />}
+
+      <BottomSheet open={confirmRemove} onClose={() => setConfirmRemove(false)} title="Remove selected clients?">
+        <p className="text-black/50 text-sm mb-4">
+          This permanently deletes {checkedIds.size} client{checkedIds.size === 1 ? "" : "s"} and all their workout history,
+          messages, and progress data. This can't be undone.
+        </p>
+        <DangerButton className="w-full" onClick={bulkRemove}>
+          <Trash2 size={14} /> Remove {checkedIds.size} client{checkedIds.size === 1 ? "" : "s"}
+        </DangerButton>
+      </BottomSheet>
     </div>
   );
 }
