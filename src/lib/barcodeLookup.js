@@ -19,25 +19,73 @@ function parseServingGrams(product) {
   return match ? parseFloat(match[1]) : null;
 }
 
-export async function lookupBarcode(code) {
-  const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`, {
-    headers: { Accept: "application/json" },
-  });
-  if (!res.ok) throw new Error("Couldn't reach the food database — check your connection and try again.");
-  const data = await res.json();
-  if (data.status !== 1 || !data.product) {
-    throw new Error("No product found for that barcode.");
+async function fetchProduct(code, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.status === 1 && data.product ? data.product : null;
+  } catch {
+    return null; // timeout, offline, or a malformed response — treat as "not found" so the caller's fallbacks/manual-entry path still runs
+  } finally {
+    clearTimeout(timer);
   }
-  const p = data.product;
-  const n = p.nutriments || {};
-  const name = p.product_name || p.generic_name || `Scanned item (${code})`;
+}
+
+// Barcode scanners and product databases don't always agree on how many
+// digits a code should have — a UPC-A code (12 digits) is frequently
+// catalogued in Open Food Facts under its EAN-13 form (zero-padded to 13),
+// and occasionally the reverse. Try the scanned code as-is first, then the
+// zero-padded and leading-zero-stripped variants before giving up — this
+// alone recovers a meaningful share of "not found" results that are
+// actually a formatting mismatch, not a missing product.
+function codeVariants(code) {
+  const digits = String(code).replace(/\D/g, "");
+  const variants = [digits];
+  if (digits.length === 12) variants.push("0" + digits);
+  if (digits.length === 13 && digits[0] === "0") variants.push(digits.slice(1));
+  return [...new Set(variants)];
+}
+
+export async function lookupBarcode(code) {
+  let product = null;
+  for (const variant of codeVariants(code)) {
+    product = await fetchProduct(variant);
+    if (product) break;
+  }
+
+  if (!product) {
+    const err = new Error("No product found for that barcode — you can still add it manually below.");
+    err.notFound = true;
+    throw err;
+  }
+
+  const n = product.nutriments || {};
+  const name = product.product_name || product.generic_name || `Scanned item (${code})`;
+  const hasNutrition = n["energy-kcal_100g"] != null || n["proteins_100g"] != null || n["carbohydrates_100g"] != null || n["fat_100g"] != null;
+
+  if (!hasNutrition) {
+    // The product exists in the database (so we know its name) but nobody's
+    // entered its nutrition facts yet — common for smaller/local brands.
+    // Surface the name so manual entry can be pre-filled instead of typed
+    // from scratch, rather than pretending it's a valid zero-calorie food.
+    const err = new Error(`Found "${name}", but it doesn't have nutrition info yet — you can add it manually below.`);
+    err.notFound = true;
+    err.productName = name;
+    throw err;
+  }
 
   const cals = Math.round(n["energy-kcal_100g"] || 0);
   const protein = Math.round((n["proteins_100g"] || 0) * 10) / 10;
   const carbs = Math.round((n["carbohydrates_100g"] || 0) * 10) / 10;
   const fat = Math.round((n["fat_100g"] || 0) * 10) / 10;
 
-  const servingGrams = parseServingGrams(p);
+  const servingGrams = parseServingGrams(product);
 
   return {
     id: `off_${code}`,

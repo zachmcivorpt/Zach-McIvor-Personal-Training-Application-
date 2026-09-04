@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
-import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet } from "../components/ui";
+import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
 import { ThreadView } from "./CoachMessages";
 import { SendLoginSheet } from "./CoachClients";
@@ -32,6 +32,8 @@ import {
   ChevronDown,
   User,
   Target,
+  CalendarPlus,
+  Clock,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -329,7 +331,7 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
   );
 }
 
-function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast }) {
+function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, presetPayload }) {
   const { db, scheduleWorkoutDates } = useApp();
   const [source, setSource] = useState("library"); // library | custom
   const [masterWorkoutId, setMasterWorkoutId] = useState("");
@@ -398,13 +400,14 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast })
 
   const selectedMaster = (db.masterWorkouts || []).find((w) => w.id === masterWorkoutId);
   const payload =
-    source === "library"
+    presetPayload ||
+    (source === "library"
       ? selectedMaster
         ? { label: selectedMaster.label, muscleGroups: selectedMaster.muscleGroups || [], exercises: selectedMaster.exercises }
         : null
       : customDay
       ? { label: customDay.label, muscleGroups: customDay.muscleGroups || [], exercises: customDay.exercises }
-      : null;
+      : null);
 
   async function submit(e) {
     e.preventDefault();
@@ -425,47 +428,63 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast })
   return (
     <BottomSheet open={open} onClose={onClose} title="Schedule a Workout">
       <form onSubmit={submit} className="space-y-4">
-        <div className="flex bg-black/5 rounded-xl p-1">
-          {[
-            { id: "library", label: "From Library" },
-            { id: "custom", label: "Build Custom" },
-          ].map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setSource(s.id)}
-              className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
-                source === s.id ? "bg-white shadow text-black" : "text-black/50"
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        {source === "library" ? (
-          (db.masterWorkouts || []).length === 0 ? (
-            <p className="text-black/30 text-sm text-center py-4">No workout templates yet — build one in Library → Workouts.</p>
-          ) : (
-            <Select value={masterWorkoutId} onChange={(e) => setMasterWorkoutId(e.target.value)}>
-              {db.masterWorkouts.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.label} · {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
-                </option>
-              ))}
-            </Select>
-          )
+        {presetPayload ? (
+          <div className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+              <Dumbbell size={15} className="text-blue-500" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-black font-semibold text-sm truncate">{presetPayload.label}</p>
+              <p className="text-black/35 text-xs truncate">
+                {presetPayload.exercises.length} exercise{presetPayload.exercises.length === 1 ? "" : "s"}
+              </p>
+            </div>
+          </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setEditingCustom(true)}
-            className="w-full flex items-center justify-between bg-black/[0.03] border border-dashed border-black/15 rounded-xl px-4 py-3.5 text-left"
-          >
-            <span className="text-black/70 text-sm">
-              {customDay ? `${customDay.label} · ${customDay.exercises.length} exercises` : "Tap to build this workout"}
-            </span>
-            <Edit3 size={15} className="text-black/30" />
-          </button>
+          <>
+            <div className="flex bg-black/5 rounded-xl p-1">
+              {[
+                { id: "library", label: "From Library" },
+                { id: "custom", label: "Build Custom" },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSource(s.id)}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                    source === s.id ? "bg-white shadow text-black" : "text-black/50"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {source === "library" ? (
+              (db.masterWorkouts || []).length === 0 ? (
+                <p className="text-black/30 text-sm text-center py-4">No workout templates yet — build one in Library → Workouts.</p>
+              ) : (
+                <Select value={masterWorkoutId} onChange={(e) => setMasterWorkoutId(e.target.value)}>
+                  {db.masterWorkouts.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.label} · {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
+                    </option>
+                  ))}
+                </Select>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditingCustom(true)}
+                className="w-full flex items-center justify-between bg-black/[0.03] border border-dashed border-black/15 rounded-xl px-4 py-3.5 text-left"
+              >
+                <span className="text-black/70 text-sm">
+                  {customDay ? `${customDay.label} · ${customDay.exercises.length} exercises` : "Tap to build this workout"}
+                </span>
+                <Edit3 size={15} className="text-black/30" />
+              </button>
+            )}
+          </>
         )}
 
         <div>
@@ -893,6 +912,97 @@ function CalendarPanel({ client, showToast }) {
   );
 }
 
+// Same estimate the client-side preview uses, so a workout never shows a
+// different "est. time" depending on which side of the app you're on.
+function estimateWorkoutMinutes(exercises) {
+  return Math.max(5, Math.round((exercises || []).reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60));
+}
+
+// Read-only look at one workout day — title, est. time, exercise count and
+// equipment up top (same info a client sees on their side), plus a quick
+// "schedule this" shortcut so the coach doesn't have to leave the preview
+// and re-find the workout in the separate Schedule sheet.
+function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit }) {
+  const exercisesById = useMemo(() => Object.fromEntries((exercises || []).map((e) => [e.id, e])), [exercises]);
+  const equipment = useMemo(() => {
+    if (!day) return [];
+    const set = new Set();
+    day.exercises.forEach((e) => {
+      const ex = exercisesById[e.exerciseId];
+      if (ex?.equipment) set.add(ex.equipment);
+    });
+    return [...set];
+  }, [day, exercisesById]);
+
+  if (!day) return null;
+  const estMinutes = estimateWorkoutMinutes(day.exercises);
+
+  return (
+    <FullScreenOverlay>
+      <div className="fixed inset-0 z-[90] bg-white flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5">
+          <button onClick={onClose} className="text-black/60">
+            <X size={22} />
+          </button>
+          <span className="text-black/70 text-sm font-semibold">Workout Preview</span>
+          <div className="flex items-center gap-1">
+            <button onClick={onSchedule} className="w-9 h-9 flex items-center justify-center text-black/60" aria-label="Schedule this workout">
+              <CalendarPlus size={19} />
+            </button>
+            <button onClick={onEdit} className="w-9 h-9 flex items-center justify-center text-black/60" aria-label="Edit this workout">
+              <Edit3 size={17} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-10">
+          <h1 className="text-black text-2xl font-bold mt-4">{day.label}</h1>
+
+          <div className="flex items-center gap-5 mt-4 text-black/50 text-[13px] font-medium flex-wrap">
+            <span className="flex items-center gap-1.5">
+              <Clock size={15} /> est. {estMinutes} min
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Dumbbell size={15} /> {day.exercises.length} exercise{day.exercises.length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          {equipment.length > 0 && (
+            <div className="mt-5">
+              <p className="text-black/35 text-xs font-semibold tracking-wide mb-2">EQUIPMENT</p>
+              <div className="flex gap-2 flex-wrap">
+                {equipment.map((eq) => (
+                  <span key={eq} className="bg-black/5 text-black/60 text-xs font-medium px-3 py-1.5 rounded-full">
+                    {eq}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-5 border-t border-black/5">
+            {day.exercises.map((e, i) => {
+              const ex = exercisesById[e.exerciseId];
+              if (!ex) return null;
+              return (
+                <div key={i} className="flex items-center justify-between gap-3 py-3.5 border-b border-black/5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                    <p className="text-black/45 text-[13px] mt-0.5">
+                      {e.targetSets} sets × {e.targetReps} reps · RIR {e.targetRIR ?? 2}
+                    </p>
+                  </div>
+                  <span className="text-black/30 text-xs shrink-0">{ex.equipment}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </FullScreenOverlay>
+  );
+}
+
 function TrainingProgramPanel({ client, showToast }) {
   const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase } = useApp();
   const phases = (db.clientPhases || {})[client.id] || [];
@@ -903,6 +1013,8 @@ function TrainingProgramPanel({ client, showToast }) {
   const [confirmDeletePhase, setConfirmDeletePhase] = useState(null);
   const [editingWorkout, setEditingWorkout] = useState(null); // { dayIndex, day } | null
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
+  const [previewIndex, setPreviewIndex] = useState(null);
+  const [schedulingDay, setSchedulingDay] = useState(null);
 
   const phase = phases.find((p) => p.id === selectedPhaseId) || sorted[0] || null;
   const days = phase?.weeks?.[0]?.days || [];
@@ -1129,24 +1241,37 @@ function TrainingProgramPanel({ client, showToast }) {
             ) : (
               <div className="space-y-2">
                 {days.map((d, i) => (
-                  <div key={d.id || i} className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3">
+                  <button
+                    key={d.id || i}
+                    onClick={() => setPreviewIndex(i)}
+                    className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-4 py-3 text-left transition-colors"
+                  >
                     <div className="flex-1 min-w-0">
                       <p className="text-black font-medium text-sm truncate">{d.label}</p>
                       <p className="text-black/35 text-xs truncate">
-                        {d.exercises.length} exercise{d.exercises.length === 1 ? "" : "s"}
+                        est. {estimateWorkoutMinutes(d.exercises)} min · {d.exercises.length} exercise{d.exercises.length === 1 ? "" : "s"}
                         {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
                       </p>
                     </div>
-                    <button
-                      onClick={() => setEditingWorkout({ dayIndex: i, day: d })}
-                      className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors"
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingWorkout({ dayIndex: i, day: d });
+                      }}
+                      className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors shrink-0"
                     >
                       <Edit3 size={13} /> Edit
-                    </button>
-                    <button onClick={() => deleteWorkout(i)} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60">
+                    </span>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteWorkout(i);
+                      }}
+                      className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60 shrink-0"
+                    >
                       <X size={14} />
-                    </button>
-                  </div>
+                    </span>
+                  </button>
                 ))}
               </div>
             )}
@@ -1191,6 +1316,28 @@ function TrainingProgramPanel({ client, showToast }) {
           onSave={saveWorkout}
         />
       )}
+      {previewIndex !== null && days[previewIndex] && (
+        <DayPreviewSheet
+          day={days[previewIndex]}
+          exercises={db.exercises}
+          onClose={() => setPreviewIndex(null)}
+          onSchedule={() => {
+            setSchedulingDay(days[previewIndex]);
+            setPreviewIndex(null);
+          }}
+          onEdit={() => {
+            setEditingWorkout({ dayIndex: previewIndex, day: days[previewIndex] });
+            setPreviewIndex(null);
+          }}
+        />
+      )}
+      <ScheduleWorkoutSheet
+        open={!!schedulingDay}
+        onClose={() => setSchedulingDay(null)}
+        client={client}
+        showToast={showToast}
+        presetPayload={schedulingDay ? { label: schedulingDay.label, muscleGroups: schedulingDay.muscleGroups || [], exercises: schedulingDay.exercises } : null}
+      />
     </div>
   );
 }

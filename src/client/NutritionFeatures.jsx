@@ -151,8 +151,10 @@ const BARCODE_FORMATS = [
 ];
 
 export function BarcodeScanSheet({ open, onClose, onAdd }) {
-  const [status, setStatus] = useState("scanning"); // scanning | looking-up | error
+  const [status, setStatus] = useState("scanning"); // scanning | looking-up | error | not-found
   const [error, setError] = useState("");
+  const [scanKey, setScanKey] = useState(0);
+  const [manual, setManual] = useState({ name: "", cals: "", protein: "", carbs: "", fat: "" });
   const scannerRef = useRef(null);
   const elId = "barcode-scanner-region";
 
@@ -186,7 +188,8 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
             onAdd(food);
           } catch (err) {
             setError(err.message);
-            setStatus("error");
+            setManual({ name: err.productName || "", cals: "", protein: "", carbs: "", fat: "" });
+            setStatus(err.notFound ? "not-found" : "error");
           }
         },
         () => {
@@ -203,13 +206,31 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
       scanner.stop().catch(() => {});
       scanner.clear();
     };
-  }, [open]);
+  }, [open, scanKey]);
+
+  function scanAgain() {
+    setScanKey((k) => k + 1);
+  }
+
+  function addManual() {
+    if (!manual.name.trim()) return;
+    onAdd({
+      id: `manual_${Date.now()}`,
+      name: manual.name.trim(),
+      cals: Math.round(Number(manual.cals) || 0),
+      protein: Number(manual.protein) || 0,
+      carbs: Number(manual.carbs) || 0,
+      fat: Number(manual.fat) || 0,
+      per: 100,
+      defaultQty: 100,
+    });
+  }
 
   if (!open) return null;
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[95] bg-white flex flex-col">
+      <div className="fixed inset-0 z-[95] bg-white flex flex-col overflow-y-auto">
         <div className="flex items-center justify-between px-5 pt-6 pb-3">
           <span className="text-black font-semibold">Scan Barcode</span>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-black/60">
@@ -237,9 +258,47 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
           <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
             <p className="text-black font-semibold mb-2">Couldn't complete that scan</p>
             <p className="text-black/40 text-sm mb-6">{error}</p>
-            <SecondaryButton onClick={onClose} className="px-8">
-              Close
-            </SecondaryButton>
+            <div className="flex gap-2">
+              <SecondaryButton onClick={scanAgain} className="px-6">
+                Try again
+              </SecondaryButton>
+              <SecondaryButton onClick={onClose} className="px-6">
+                Close
+              </SecondaryButton>
+            </div>
+          </div>
+        )}
+
+        {status === "not-found" && (
+          <div className="flex-1 px-5 pb-6">
+            <p className="text-black/50 text-sm text-center mb-5">{error}</p>
+            <p className="text-black/30 text-xs tracking-wide mb-2">ADD IT MANUALLY — PER 100G</p>
+            <div className="space-y-2.5">
+              <TextInput
+                value={manual.name}
+                onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
+                placeholder="Product name"
+              />
+              <div className="grid grid-cols-4 gap-1.5">
+                {["cals", "protein", "carbs", "fat"].map((k) => (
+                  <input
+                    key={k}
+                    type="number"
+                    inputMode="decimal"
+                    value={manual[k]}
+                    onChange={(e) => setManual((m) => ({ ...m, [k]: e.target.value }))}
+                    placeholder={k}
+                    className="bg-black/5 rounded-lg text-center text-black text-xs py-2.5 outline-none placeholder:text-black/25 placeholder:capitalize"
+                  />
+                ))}
+              </div>
+            </div>
+            <PrimaryButton className="w-full mt-4" disabled={!manual.name.trim()} onClick={addManual}>
+              <Check size={16} /> ADD
+            </PrimaryButton>
+            <button onClick={scanAgain} className="w-full text-center text-black/40 text-sm font-medium py-3">
+              Scan a different item
+            </button>
           </div>
         )}
       </div>

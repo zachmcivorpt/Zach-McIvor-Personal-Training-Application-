@@ -43,6 +43,7 @@ import {
   Sparkles,
   Trash2,
   BellRing,
+  Calendar,
 } from "lucide-react";
 import { enablePush, disablePush } from "../lib/push";
 import {
@@ -57,7 +58,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useApp, estimate1RM, getPreviousPerformance, getPreviousSets } from "../lib/AppContext";
+import { useApp, estimate1RM, getPreviousPerformance, getPreviousSets, getCurrentPhase } from "../lib/AppContext";
 import {
   Card,
   Pill,
@@ -1264,7 +1265,136 @@ function LogCardioSheet({ open, onClose, onSave }) {
   );
 }
 
-function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, onViewWorkout, logsForClient, exercisesById, onLogCardio }) {
+// Same ~min-per-set estimate WorkoutPreviewSheet uses, so a phase's workout
+// list and its individual preview never disagree with each other.
+function estimateWorkoutMinutes(exercises) {
+  return Math.max(5, Math.round((exercises || []).reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60));
+}
+
+function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId, onSelect }) {
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Training Phases">
+      {phases.length === 0 ? (
+        <p className="text-black/30 text-sm text-center py-6">No phases yet.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {phases.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => onSelect(p.id)}
+              className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${p.id === selectedId ? "bg-black/8" : "hover:bg-black/[0.03]"}`}
+            >
+              <div className="flex items-center gap-2">
+                <p className="text-black text-sm font-medium flex-1 truncate">{p.name}</p>
+                {p.id === currentId && (
+                  <span className="text-[10px] font-bold text-white bg-black px-2 py-0.5 rounded-full shrink-0">CURRENT</span>
+                )}
+              </div>
+              <p className="text-black/35 text-xs mt-0.5">
+                {new Date(p.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                {p.endDate
+                  ? ` – ${new Date(p.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                  : ""}
+              </p>
+            </button>
+          ))}
+        </div>
+      )}
+    </BottomSheet>
+  );
+}
+
+// Read-only mirror of the coach's own Training Program view — same phase
+// (name/dates/description) + workout-list structure, just without any
+// edit/add/schedule controls, which stay coach-only.
+function ClientProgramTab({ onPreviewDay }) {
+  const { db, currentUser } = useApp();
+  const phases = (db.clientPhases || {})[currentUser.id] || [];
+  const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const current = getCurrentPhase(phases, todayStr);
+  const [selectedId, setSelectedId] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  if (phases.length === 0) {
+    return (
+      <div className="px-5">
+        <Card>
+          <p className="text-black/40 text-sm text-center py-8">No training program set up yet — your coach will assign one soon.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  const phase = phases.find((p) => p.id === selectedId) || current || sorted[sorted.length - 1];
+  const days = phase?.weeks?.[0]?.days || [];
+
+  return (
+    <div className="px-5 space-y-4">
+      <Card>
+        <div className="flex items-start justify-between gap-3 mb-1">
+          <h2 className="text-black text-lg font-bold min-w-0 truncate">{phase.name}</h2>
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold shrink-0"
+          >
+            <Calendar size={14} /> PHASES
+          </button>
+        </div>
+        <p className="text-black/40 text-xs mb-3">
+          {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+          {phase.endDate
+            ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+            : ""}
+          {phase.id === current?.id && <span className="ml-2 text-black font-semibold">· Current</span>}
+        </p>
+        {phase.description && <p className="text-black/60 text-sm leading-relaxed whitespace-pre-line">{phase.description}</p>}
+      </Card>
+
+      <div>
+        <p className="text-black/40 text-xs tracking-wide mb-2 px-1">WORKOUTS IN THIS PHASE</p>
+        {days.length === 0 ? (
+          <Card>
+            <p className="text-black/30 text-sm text-center py-6">No workouts added to this phase yet.</p>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {days.map((d, i) => (
+              <button key={d.id || i} onClick={() => onPreviewDay(d)} className="w-full text-left">
+                <Card className="!py-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-black font-semibold text-sm truncate">{d.label}</p>
+                      <p className="text-black/40 text-xs mt-0.5 truncate">
+                        est. {estimateWorkoutMinutes(d.exercises)} min · {d.exercises.length} exercise{d.exercises.length === 1 ? "" : "s"}
+                        {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
+                      </p>
+                    </div>
+                    <ChevronRight size={16} className="text-black/25 shrink-0" />
+                  </div>
+                </Card>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <ClientPhaseHistorySheet
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        phases={sorted}
+        currentId={current?.id}
+        selectedId={phase.id}
+        onSelect={(id) => {
+          setSelectedId(id);
+          setHistoryOpen(false);
+        }}
+      />
+    </div>
+  );
+}
+
+function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio }) {
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -1275,7 +1405,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
         <h1 className="text-black text-2xl font-bold">Training</h1>
       </div>
       <div className="flex gap-2 px-5 mb-4 overflow-x-auto no-scrollbar">
-        {["today", "history", "upcoming"].map((t) => (
+        {["today", "program", "history", "upcoming"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -1332,6 +1462,8 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
           )}
         </div>
       )}
+
+      {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} />}
 
       {tab === "history" && (
         <div className="px-5 space-y-3">
@@ -3306,6 +3438,7 @@ export default function ClientApp() {
             activeLog={activeLog}
             onStart={startWorkout}
             onViewWorkout={() => openPreview(todaySession, true)}
+            onPreviewWorkout={(day) => openPreview(day, false)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
             onLogCardio={(cardio) => {
