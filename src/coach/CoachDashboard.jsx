@@ -167,6 +167,25 @@ export default function CoachDashboard({ onNavigate }) {
   active.forEach((c) => {
     const logs = db.workoutLogs[c.id] || [];
     logs.slice(0, 5).forEach((log) => {
+      if (log.cardio) {
+        const details = [
+          log.cardio.durationMin ? `${log.cardio.durationMin} min` : null,
+          log.cardio.distanceKm ? `${log.cardio.distanceKm} km` : null,
+          log.cardio.caloriesBurned ? `${log.cardio.caloriesBurned} kcal` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        activity.push({
+          type: "cardio",
+          date: log.date,
+          clientName: c.name,
+          clientAvatar: c.avatarUrl,
+          verb: "logged",
+          subject: log.cardio.activityLabel,
+          suffix: details ? ` (${details}).` : ".",
+        });
+        return;
+      }
       const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
       activity.push({
         type: "workout",

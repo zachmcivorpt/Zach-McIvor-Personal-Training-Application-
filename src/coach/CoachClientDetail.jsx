@@ -1214,11 +1214,27 @@ function estimateWorkoutMinutes(exercises) {
   return Math.max(5, Math.round((exercises || []).reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60));
 }
 
+// An exercise counts as "stale" once it's been sitting in the program for
+// a month and a half (45 days) without being touched — addedAt is stamped
+// when it's added (see newRow() in WorkoutEditor.jsx) or re-stamped when
+// the coach explicitly chooses to keep it. Older rows created before this
+// feature existed have no addedAt at all — fall back to the phase's own
+// createdAt rather than treating them as brand new.
+const STALE_EXERCISE_DAYS = 45;
+function exerciseAgeDays(entry, phaseCreatedAt) {
+  const since = entry.addedAt || phaseCreatedAt;
+  if (!since) return 0;
+  return Math.floor((Date.now() - since) / 86400000);
+}
+function isExerciseStale(entry, phaseCreatedAt) {
+  return exerciseAgeDays(entry, phaseCreatedAt) >= STALE_EXERCISE_DAYS;
+}
+
 // Read-only look at one workout day — title, est. time, exercise count and
 // equipment up top (same info a client sees on their side), plus a quick
 // "schedule this" shortcut so the coach doesn't have to leave the preview
 // and re-find the workout in the separate Schedule sheet.
-function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit }) {
+function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCreatedAt, onKeepExercise }) {
   const exercisesById = useMemo(() => Object.fromEntries((exercises || []).map((e) => [e.id, e])), [exercises]);
   const equipment = useMemo(() => {
     if (!day) return [];
@@ -1280,17 +1296,38 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit }) {
             {day.exercises.map((e, i) => {
               const ex = exercisesById[e.exerciseId];
               if (!ex) return null;
+              const stale = isExerciseStale(e, phaseCreatedAt);
               return (
-                <div key={i} className="flex items-center justify-between gap-3 py-3.5 border-b border-black/5">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
-                    <p className="text-black/45 text-[13px] mt-0.5">
-                      {e.targetSets} sets ×{" "}
-                      {e.targetType === "time" ? `${e.targetReps || 30}s` : e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR{" "}
-                      {e.targetRIR ?? 2}
-                    </p>
+                <div key={i} className="py-3.5 border-b border-black/5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                      <p className="text-black/45 text-[13px] mt-0.5">
+                        {e.targetSets} sets ×{" "}
+                        {e.targetType === "time" ? `${e.targetReps || 30}s` : e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR{" "}
+                        {e.targetRIR ?? 2}
+                      </p>
+                    </div>
+                    <span className="text-black/30 text-xs shrink-0">{ex.equipment}</span>
                   </div>
-                  <span className="text-black/30 text-xs shrink-0">{ex.equipment}</span>
+                  {stale && (
+                    <div className="mt-2.5 flex items-center justify-between gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                      <p className="text-amber-800 text-xs font-medium flex-1">
+                        In this program {exerciseAgeDays(e, phaseCreatedAt)} days — keep it or change it?
+                      </p>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={() => onKeepExercise?.(i)}
+                          className="bg-white border border-amber-200 text-amber-800 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                        >
+                          Keep
+                        </button>
+                        <button onClick={onEdit} className="bg-amber-600 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg">
+                          Change
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -1372,11 +1409,18 @@ function TrainingProgramPanel({ client, showToast }) {
 
   function addWorkoutFromLibrary(masterWorkout) {
     if (!phase) return;
+    // Re-stamp addedAt on every copied exercise — what matters for the
+    // stale-exercise flag is when it entered THIS client's program, not
+    // whatever addedAt the template happened to carry.
+    const copiedExercises = JSON.parse(JSON.stringify(masterWorkout.exercises || [])).map((ex) => ({
+      ...ex,
+      addedAt: Date.now(),
+    }));
     const newDay = {
       id: `d_${Date.now()}`,
       label: masterWorkout.label,
       muscleGroups: masterWorkout.muscleGroups || [],
-      exercises: JSON.parse(JSON.stringify(masterWorkout.exercises || [])),
+      exercises: copiedExercises,
       instructions: masterWorkout.instructions || "",
     };
     setEditingWorkout({ dayIndex: days.length, day: newDay });
@@ -1401,6 +1445,22 @@ function TrainingProgramPanel({ client, showToast }) {
       showToast("Workout saved");
     } catch (err) {
       showToast("Couldn't save that workout — check your connection and try again");
+    }
+  }
+
+  // Coach chose to keep a flagged exercise as-is — resets its clock rather
+  // than silently dismissing the flag, so it'll surface again in another
+  // 45 days rather than never again.
+  async function keepStaleExercise(dayIndex, exIndex) {
+    if (!phase || dayIndex === null || !days[dayIndex]) return;
+    const nextDays = days.map((d, i) =>
+      i !== dayIndex ? d : { ...d, exercises: d.exercises.map((e, j) => (j !== exIndex ? e : { ...e, addedAt: Date.now() })) }
+    );
+    try {
+      await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+      showToast("Kept — won't flag again for another 45 days");
+    } catch (err) {
+      showToast("Couldn't update — check your connection and try again");
     }
   }
 
@@ -1592,7 +1652,15 @@ function TrainingProgramPanel({ client, showToast }) {
                     className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-4 py-3 text-left transition-colors"
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-black font-medium text-sm truncate">{d.label}</p>
+                      <p className="text-black font-medium text-sm truncate flex items-center gap-1.5">
+                        {d.label}
+                        {d.exercises.some((e) => isExerciseStale(e, phase?.createdAt)) && (
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+                            title="Has an exercise that's been in the program 45+ days"
+                          />
+                        )}
+                      </p>
                       <p className="text-black/35 text-xs truncate">
                         est. {estimateWorkoutMinutes(d.exercises)} min · {d.exercises.length} exercise{d.exercises.length === 1 ? "" : "s"}
                         {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
@@ -1684,6 +1752,8 @@ function TrainingProgramPanel({ client, showToast }) {
             setEditingWorkout({ dayIndex: previewIndex, day: days[previewIndex] });
             setPreviewIndex(null);
           }}
+          phaseCreatedAt={phase?.createdAt}
+          onKeepExercise={(exIndex) => keepStaleExercise(previewIndex, exIndex)}
         />
       )}
       <ScheduleWorkoutSheet

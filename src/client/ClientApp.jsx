@@ -95,6 +95,7 @@ import {
   computeSessionsThisWeek,
   computeWeeklyStreak,
   computeAchievements,
+  suggestNextSet,
 } from "../lib/trainingStats";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { challengeStatus } from "../lib/challengeMetrics";
@@ -765,6 +766,36 @@ function NotificationsPromptCard({ userId, showToast }) {
   );
 }
 
+// Cardio logged for the day being viewed on Home — a client's cardio
+// sessions (entries: [], cardio: {...}) previously only ever surfaced
+// buried in the Workouts tab's history list.
+function CardioLogCard({ logs }) {
+  if (!logs || logs.length === 0) return null;
+  return (
+    <div className="mx-3 space-y-2">
+      {logs.map((log) => (
+        <div key={log.id} className="flex items-center gap-3 bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3">
+          <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+            <Footprints size={17} className="text-orange-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-orange-900 text-sm font-semibold truncate">{log.cardio.activityLabel}</p>
+            <p className="text-orange-700/70 text-xs mt-0.5">
+              {[
+                log.cardio.durationMin ? `${log.cardio.durationMin} min` : null,
+                log.cardio.distanceKm ? `${log.cardio.distanceKm} km` : null,
+                log.cardio.caloriesBurned ? `${log.cardio.caloriesBurned} kcal` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function HomeScreen({
   user,
   todaySession,
@@ -793,6 +824,7 @@ function HomeScreen({
   onOpenNotifications,
   challenges,
   userId,
+  cardioLogs,
 }) {
   return (
     <div className="pb-6 space-y-4">
@@ -820,6 +852,7 @@ function HomeScreen({
         isPastDate={dayOffset < 0}
         exercisesById={exercisesById}
       />
+      <CardioLogCard logs={cardioLogs} />
       <DailyHabitsCard
         habits={habits}
         completedIds={isToday ? completedHabitIds : dayHabitCompletedIds}
@@ -1499,9 +1532,9 @@ function WorkoutSession({
             const arr = [...(updated[exMeta.exerciseId] || [])];
             for (let i = 0; i < exMeta.targetSets; i++) {
               if (!arr[i]) arr[i] = { setNumber: i + 1, weight: "", reps: "", completed: false };
-              const p = prevSets[i];
-              if (p && !arr[i].weight && !arr[i].reps) {
-                arr[i] = { ...arr[i], weight: p.weight, reps: p.reps };
+              const suggestion = suggestNextSet(prevSets[i], exMeta.targetReps);
+              if (suggestion && !arr[i].weight && !arr[i].reps) {
+                arr[i] = { ...arr[i], weight: suggestion.weight, reps: suggestion.reps };
               }
             }
             updated[exMeta.exerciseId] = arr;
@@ -1528,8 +1561,14 @@ function WorkoutSession({
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 pb-28">
           <div className="flex items-center justify-between bg-black/[0.03] rounded-2xl px-4 py-3 mx-2">
-            <span className="text-black/70 text-sm font-medium">Auto fill stats</span>
-            <button onClick={toggleAutoFill} className={`w-11 h-6 rounded-full relative transition-colors ${autoFill ? "bg-black" : "bg-black/15"}`}>
+            <div>
+              <span className="text-black/70 text-sm font-medium">Suggest progression</span>
+              <p className="text-black/35 text-[11px] mt-0.5">Fills empty sets with your next weight/reps based on last time</p>
+            </div>
+            <button
+              onClick={toggleAutoFill}
+              className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${autoFill ? "bg-black" : "bg-black/15"}`}
+            >
               <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoFill ? "left-[22px]" : "left-0.5"}`} />
             </button>
           </div>
@@ -3730,6 +3769,10 @@ export default function ClientApp() {
   const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
   const completedOnDate = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
   const dayNutrition = isToday ? nutrition : nutritionByDateKey[selectedDateKey] || null;
+  const cardioLogsForSelectedDate = useMemo(
+    () => logsForClient.filter((l) => l.cardio && new Date(l.date).toISOString().slice(0, 10) === selectedDateKey),
+    [logsForClient, selectedDateKey]
+  );
 
   const notificationItems = useMemo(() => {
     const items = [];
@@ -3937,6 +3980,7 @@ export default function ClientApp() {
             onOpenNotifications={() => setNotifOpen(true)}
             challenges={db.challenges || []}
             userId={currentUser.id}
+            cardioLogs={cardioLogsForSelectedDate}
           />
         )}
         {tab === "workouts" && (

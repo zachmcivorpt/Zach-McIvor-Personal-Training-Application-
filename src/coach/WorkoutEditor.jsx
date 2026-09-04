@@ -35,6 +35,11 @@ function newRow(exerciseId, section = "main") {
     notes: "",
     groupId: null,
     groupType: null,
+    // When this exercise entered the program — used to flag exercises
+    // that have sat unchanged for a long stretch (see staleExerciseWeeks
+    // in CoachClientDetail.jsx). Meaningless on master library templates,
+    // but stamped everywhere newRow() is used for consistency.
+    addedAt: Date.now(),
   };
 }
 

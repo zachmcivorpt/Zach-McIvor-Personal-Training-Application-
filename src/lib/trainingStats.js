@@ -21,6 +21,25 @@ function fmtDate(ts) {
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+// Simple double-progression suggestion: if the client hit (or beat) the
+// target reps last time, the weight goes up (~2.5% of the previous
+// weight, rounded to the nearest plate-friendly 2.5); otherwise the
+// weight stays put and the target is just to add one more rep. This is
+// what "auto fill" now suggests, instead of literally repeating last
+// session's numbers.
+export function suggestNextSet(prevSet, targetReps) {
+  if (!prevSet || !prevSet.weight) return null;
+  const prevWeight = Number(prevSet.weight);
+  const prevReps = Number(prevSet.reps) || 0;
+  const target = Number(targetReps) || prevReps || 1;
+  if (prevReps >= target) {
+    const raw = prevWeight * 1.025;
+    const bumped = Math.max(prevWeight + 2.5, Math.round(raw / 2.5) * 2.5);
+    return { weight: bumped, reps: target };
+  }
+  return { weight: prevWeight, reps: prevReps + 1 };
+}
+
 // Total volume (kg lifted) per week, most recent `weeks` weeks that have data.
 export function computeWeeklyVolume(logs, weeks = 8) {
   const buckets = {};
