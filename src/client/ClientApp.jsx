@@ -219,7 +219,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const pillLabel = isToday ? "TODAY'S WORKOUT" : completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : "SCHEDULED";
 
   return (
-    <Card className="mx-5 !p-4 !rounded-2xl !border-2" style={{ borderColor: BORDER_STRONG }}>
+    <Card className="mx-5 !p-4 !rounded-none !border-2" style={{ borderColor: BORDER_STRONG }}>
       <div className="flex items-center justify-between mb-2">
         <Pill tone="solid">{pillLabel}</Pill>
       </div>
@@ -251,12 +251,12 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
         <div className="flex gap-2 mt-3.5">
           <button
             onClick={onStart}
-            className="flex-1 bg-black text-white font-bold py-3 rounded-lg text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="flex-1 bg-black text-white font-bold py-3 rounded-none text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <Play size={16} fill="white" />
             {started ? "RESUME" : "START WORKOUT"}
           </button>
-          <button onClick={onView} className="text-black/70 text-sm font-semibold px-4 rounded-lg border border-black/15 bg-black/5">
+          <button onClick={onView} className="text-black/70 text-sm font-semibold px-4 rounded-none border-2 border-black/15 bg-black/5">
             View
           </button>
         </div>
@@ -267,7 +267,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
               <Check size={14} /> Workout completed
             </div>
           )}
-          <button onClick={onView} className="w-full mt-3 text-black/60 text-sm font-medium py-2 rounded-xl bg-black/5">
+          <button onClick={onView} className="w-full mt-3 text-black/60 text-sm font-medium py-2 rounded-none border-2 border-black/15 bg-black/5">
             Preview exercises
           </button>
         </>
@@ -284,7 +284,7 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
     { label: "FAT", value: round1(nutrition.fat), target: targets.fat, unit: "g" },
   ];
   return (
-    <Card className="mx-5 !rounded-2xl !border-2" style={{ borderColor: BORDER_STRONG }}>
+    <Card className="mx-5 !rounded-none !border-2" style={{ borderColor: BORDER_STRONG }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-black font-bold border-l-[3px] border-black pl-2.5">Nutrition Today</h3>
         <Utensils size={16} className="text-black/30" />
@@ -722,7 +722,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const isLongNote = coachNote.length > 90;
 
   return (
-    <div className="relative bg-[#F7F7F8] rounded-xl p-4 pl-[18px] border-2 overflow-hidden" style={{ borderColor: BORDER_STRONG }}>
+    <div className="relative bg-[#F7F7F8] rounded-none p-4 pl-[18px] border-2 overflow-hidden" style={{ borderColor: BORDER_STRONG }}>
       <span className="absolute left-0 top-0 bottom-0 w-1 bg-black" />
       <div className="flex items-center gap-3">
         <ExerciseThumb exercise={exercise} size={56} />
@@ -758,7 +758,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       </div>
 
       {swapInfo && (
-        <div className="mt-3 bg-black/[0.04] border border-black/15 rounded-lg px-3.5 py-2.5">
+        <div className="mt-3 bg-black/[0.04] border border-black/15 rounded-none px-3.5 py-2.5">
           <p className="text-black/70 text-[13px] leading-snug">
             <span className="font-semibold">Swapped from {swapInfo.fromName}.</span> {swapInfo.reason}
           </p>
@@ -766,7 +766,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       )}
 
       {coachNote && (
-        <div className="mt-3 bg-white border-2 border-black/15 rounded-lg px-3.5 py-2.5">
+        <div className="mt-3 bg-white border-2 border-black/15 rounded-none px-3.5 py-2.5">
           <p className="text-black/40 text-[10px] font-bold tracking-wide mb-1">COACH'S NOTE</p>
           <p className={`text-black/80 text-[13px] leading-snug ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
           {isLongNote && (
@@ -785,7 +785,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             placeholder="Add your own note on this exercise…"
             rows={2}
             autoFocus
-            className="w-full bg-white border border-black/15 rounded-lg px-3.5 py-2.5 text-black text-[13px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
+            className="w-full bg-white border border-black/15 rounded-none px-3.5 py-2.5 text-black text-[13px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
           />
         </div>
       )}
@@ -817,7 +817,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.reps}
                 onChange={(e) => onChangeField(i, "reps", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border-2 border-black/15 rounded-lg text-center text-black text-[14px] font-bold py-2 outline-none focus:border-black"
+                className="w-full bg-white border-2 border-black/15 rounded-none text-center text-black text-[14px] font-bold py-2 outline-none focus:border-black"
               />
               <input
                 type="number"
@@ -825,7 +825,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border-2 border-black/15 rounded-lg text-center text-black text-[14px] font-bold py-2 outline-none focus:border-black"
+                className="w-full bg-white border-2 border-black/15 rounded-none text-center text-black text-[14px] font-bold py-2 outline-none focus:border-black"
               />
             </div>
           );
