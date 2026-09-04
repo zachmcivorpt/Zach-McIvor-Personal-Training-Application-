@@ -95,6 +95,7 @@ import {
   computeSessionsThisWeek,
   computeWeeklyStreak,
   computeAchievements,
+  computePerformanceTimeline,
   suggestNextSet,
 } from "../lib/trainingStats";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
@@ -1044,6 +1045,11 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
   const [videoOpen, setVideoOpen] = useState(false);
   const [notesExpanded, setNotesExpanded] = useState(false);
 
+  const e1rmHistory = useMemo(
+    () => (exercise ? computeE1RMHistory(logsForClient, exercise.id) : []),
+    [logsForClient, exercise]
+  );
+
   const history = useMemo(() => {
     if (!exercise) return [];
     const rows = [];
@@ -1139,6 +1145,25 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
               {best.weight}
               <span className="text-sm font-semibold">kg</span>
             </p>
+          </div>
+        )}
+
+        {e1rmHistory.length >= 2 && (
+          <div className="px-5 pt-5">
+            <p className="text-black/40 text-xs font-semibold tracking-wide mb-3">PROGRESSION</p>
+            <div style={{ height: 140 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={e1rmHistory}>
+                  <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+                  <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
+                  <Tooltip
+                    contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                    formatter={(v) => [`${v} kg`, "Est. 1RM"]}
+                  />
+                  <Line type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: MEASURE_BLUE }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
 
@@ -2721,6 +2746,42 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
   );
 }
 
+// Clean 30-day snapshot — strength trend, bodyweight change, consistency,
+// PRs — the "how's the last month actually gone" view, distinct from the
+// tiles above it which are lifetime/this-week counters.
+function PerformanceTimelineCard({ timeline }) {
+  const items = [
+    {
+      label: "Strength",
+      sub: "key lifts, e1RM",
+      value: timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
+    },
+    {
+      label: "Bodyweight",
+      sub: "change",
+      value: timeline.bodyweightChange != null ? `${timeline.bodyweightChange > 0 ? "+" : ""}${timeline.bodyweightChange} kg` : "—",
+    },
+    { label: "Consistency", sub: "sessions / week", value: `${timeline.sessionsPerWeek}` },
+    { label: "PRs set", sub: "personal bests", value: `${timeline.prCount}` },
+  ];
+  return (
+    <div className="bg-black rounded-2xl p-5">
+      <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last {timeline.days} Days</p>
+      <p className="text-white font-bold text-lg mt-0.5 mb-4">Performance Timeline</p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+        {items.map((it) => (
+          <div key={it.label}>
+            <p className="text-white text-xl font-bold tabular-nums">{it.value}</p>
+            <p className="text-white/40 text-[11px] mt-0.5">
+              {it.label} <span className="text-white/25">· {it.sub}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, logsForClient, exercisesById }) {
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
@@ -2745,6 +2806,10 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
   );
   const personalBests = useMemo(() => computePersonalBests(logsForClient, exercisesById), [logsForClient, exercisesById]);
   const achievements = useMemo(() => computeAchievements(logsForClient), [logsForClient]);
+  const timeline = useMemo(
+    () => computePerformanceTimeline(logsForClient, weighIns, exercisesById, 30),
+    [logsForClient, weighIns, exercisesById]
+  );
 
   const latestWeighIn = weighIns[weighIns.length - 1];
   const firstWeighIn = weighIns[0];
@@ -2789,6 +2854,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             ))}
           </div>
         </div>
+
+        <PerformanceTimelineCard timeline={timeline} />
 
         <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} />
 

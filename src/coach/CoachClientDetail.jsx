@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
+import { computePerformanceTimeline } from "../lib/trainingStats";
 import { ThreadView } from "./CoachMessages";
 import { SendLoginSheet } from "./CoachClients";
 import WorkoutEditor from "./WorkoutEditor";
@@ -2552,6 +2553,49 @@ function UnderlineField({ label, children }) {
 // separate from TAGS/NOTES (which are freeform) so age/height/sex are
 // structured enough for the TDEE calculator in the Nutrition tab to read
 // directly off the client doc.
+// Same 30-day snapshot the client sees on their own Progress tab —
+// strength trend, bodyweight change, consistency, PRs — surfaced here so
+// the coach doesn't have to go dig for it separately.
+function PerformanceTimelineCard({ client }) {
+  const { db } = useApp();
+  const logs = db.workoutLogs[client.id] || [];
+  const weighIns = (db.weighIns || {})[client.id] || [];
+  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
+  const timeline = useMemo(() => computePerformanceTimeline(logs, weighIns, exercisesById, 30), [logs, weighIns, exercisesById]);
+
+  const items = [
+    {
+      label: "Strength",
+      sub: "key lifts, e1RM",
+      value: timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
+    },
+    {
+      label: "Bodyweight",
+      sub: "change",
+      value: timeline.bodyweightChange != null ? `${timeline.bodyweightChange > 0 ? "+" : ""}${timeline.bodyweightChange} kg` : "—",
+    },
+    { label: "Consistency", sub: "sessions / week", value: `${timeline.sessionsPerWeek}` },
+    { label: "PRs set", sub: "personal bests", value: `${timeline.prCount}` },
+  ];
+
+  return (
+    <div className="bg-black rounded-2xl p-5 mb-6">
+      <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last 30 Days</p>
+      <p className="text-white font-bold text-lg mt-0.5 mb-4">Performance Timeline</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
+        {items.map((it) => (
+          <div key={it.label}>
+            <p className="text-white text-xl font-bold tabular-nums">{it.value}</p>
+            <p className="text-white/40 text-[11px] mt-0.5">
+              {it.label} <span className="text-white/25">· {it.sub}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function PersonalDetailsCard({ client, showToast }) {
   const { updateUser } = useApp();
   const [age, setAge] = useState(client.age || "");
@@ -2724,6 +2768,8 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
       <PersonalDetailsCard client={client} showToast={showToast} />
+
+      <PerformanceTimelineCard client={client} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* left: stats, tags */}

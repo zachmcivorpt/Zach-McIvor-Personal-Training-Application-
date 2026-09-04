@@ -136,6 +136,54 @@ export function computePRsInLastNDays(logs, days = 30) {
   return count;
 }
 
+// A single 30(ish)-day snapshot: session frequency, PRs, strength trend
+// (average e1RM % change across whichever key lifts were actually logged
+// both before and inside the window), and bodyweight change. Any figure
+// without enough data to be meaningful comes back null rather than a
+// misleading zero.
+export function computePerformanceTimeline(logs, weighIns, exercisesById, days = 30) {
+  const cutoff = Date.now() - days * DAY_MS;
+  const sessionsCount = logs.filter((l) => l.date >= cutoff).length;
+  const sessionsPerWeek = Math.round((sessionsCount / (days / 7)) * 10) / 10;
+  const prCount = computePRsInLastNDays(logs, days);
+
+  const exList = Object.values(exercisesById || {});
+  const liftDeltas = [];
+  KEY_LIFTS.forEach((lift) => {
+    const ex = exList.find((e) => lift.match(e.name.toLowerCase()));
+    if (!ex) return;
+    let before = 0;
+    let within = 0;
+    logs.forEach((log) => {
+      const entry = log.entries.find((e) => e.exerciseId === ex.id);
+      if (!entry) return;
+      entry.sets.forEach((s) => {
+        const e1 = epley1RM(s.weight, s.reps);
+        if (e1 <= 0) return;
+        if (log.date < cutoff) {
+          if (e1 > before) before = e1;
+        } else if (e1 > within) {
+          within = e1;
+        }
+      });
+    });
+    if (before > 0 && within > 0) liftDeltas.push(((within - before) / before) * 100);
+  });
+  const strengthChangePct = liftDeltas.length
+    ? Math.round((liftDeltas.reduce((a, b) => a + b, 0) / liftDeltas.length) * 10) / 10
+    : null;
+
+  const sortedWeighIns = [...(weighIns || [])].sort((a, b) => a.date - b.date);
+  const beforeWindow = sortedWeighIns.filter((w) => w.date < cutoff);
+  const withinOrAfter = sortedWeighIns.filter((w) => w.date >= cutoff);
+  const bodyweightChange =
+    beforeWindow.length && withinOrAfter.length
+      ? Math.round((withinOrAfter[withinOrAfter.length - 1].weight - beforeWindow[beforeWindow.length - 1].weight) * 10) / 10
+      : null;
+
+  return { days, sessionsCount, sessionsPerWeek, prCount, strengthChangePct, bodyweightChange };
+}
+
 export function computeSessionsThisWeek(logs) {
   const cutoff = Date.now() - 7 * DAY_MS;
   return logs.filter((l) => l.date >= cutoff).length;
