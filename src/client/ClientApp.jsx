@@ -103,6 +103,38 @@ import { parseVideoUrl } from "../lib/video";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
 
+// A short two-tone chime for when the rest timer hits zero — synthesized
+// with the Web Audio API rather than an audio file, so it works offline in
+// the PWA and needs no asset to ship. Silently no-ops if the browser
+// blocks audio without a user gesture, or has no AudioContext at all.
+let sharedAudioCtx = null;
+function playTimerDing() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!sharedAudioCtx) sharedAudioCtx = new Ctx();
+    const ctx = sharedAudioCtx;
+    if (ctx.state === "suspended") ctx.resume();
+    [880, 1175].forEach((freq, i) => {
+      const start = ctx.currentTime + i * 0.16;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.35, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + 0.32);
+    });
+    if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+  } catch {
+    // ignore — audio is a nice-to-have, never worth breaking the timer over
+  }
+}
+
 // Repeated float addition/subtraction on macro grams drifts into ugly
 // values like 14.200000000000003 — round back to 1 decimal after every
 // running-total update so it never has to be cleaned up at display time.
@@ -1185,6 +1217,7 @@ function WorkoutSession({
       timerRef.current = setTimeout(() => setRestTime((t) => t - 1), 1000);
     } else if (resting && restTime === 0) {
       setResting(false);
+      playTimerDing();
     }
     return () => clearTimeout(timerRef.current);
   }, [resting, restTime]);
