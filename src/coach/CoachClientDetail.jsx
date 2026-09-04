@@ -2287,14 +2287,81 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
   );
 }
 
-function ProfilePanel({ client }) {
+const PROFILE_EQUIPMENT_OPTIONS = [
+  "Barbell",
+  "Dumbbells",
+  "Kettlebells",
+  "Resistance Bands",
+  "Pull-up Bar",
+  "Bench",
+  "Cardio Machine",
+  "Full Gym Access",
+  "Bodyweight Only",
+];
+const PROFILE_DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const PROFILE_SESSION_LENGTH_OPTIONS = ["30 min", "45 min", "60 min", "75 min", "90+ min"];
+const PROFILE_DIET_OPTIONS = ["No restrictions", "Vegetarian", "Vegan", "Halal", "Kosher", "Dairy-free", "Gluten-free", "Low-carb / Keto"];
+
+function ProfileChip({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${active ? "bg-black text-white" : "bg-black/8 text-black/50 hover:bg-black/12"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Same fields the client can set for themselves (ClientApp.jsx's
+// PreferencesSheet) — a coach can now set/override every one of them
+// directly, e.g. after an in-person consult, instead of waiting for the
+// client to fill them in from their side.
+function ProfilePanel({ client, showToast }) {
+  const { updateUser } = useApp();
   const prefs = client.preferences || {};
-  const hasAnyPrefs =
-    prefs.goals || (prefs.equipment || []).length || (prefs.trainingDays || []).length || prefs.sessionLength || prefs.trainingNotes || prefs.dietType || prefs.nutritionNotes;
+  const [goals, setGoals] = useState(prefs.goals || "");
+  const [equipment, setEquipment] = useState(prefs.equipment || []);
+  const [trainingDays, setTrainingDays] = useState(prefs.trainingDays || []);
+  const [sessionLength, setSessionLength] = useState(prefs.sessionLength || "");
+  const [trainingNotes, setTrainingNotes] = useState(prefs.trainingNotes || "");
+  const [dietType, setDietType] = useState(prefs.dietType || "");
+  const [nutritionNotes, setNutritionNotes] = useState(prefs.nutritionNotes || "");
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    setGoals(prefs.goals || "");
+    setEquipment(prefs.equipment || []);
+    setTrainingDays(prefs.trainingDays || []);
+    setSessionLength(prefs.sessionLength || "");
+    setTrainingNotes(prefs.trainingNotes || "");
+    setDietType(prefs.dietType || "");
+    setNutritionNotes(prefs.nutritionNotes || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client.id]);
+
+  function toggle(list, setList, val) {
+    setList(list.includes(val) ? list.filter((v) => v !== val) : [...list, val]);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateUser(client.id, {
+        preferences: { ...prefs, goals, equipment, trainingDays, sessionLength, trainingNotes, dietType, nutritionNotes },
+      });
+      showToast("Profile updated");
+    } catch (err) {
+      showToast(err.message || "Couldn't save — please try again");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 max-w-2xl">
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-6">
         <Avatar name={client.name} url={client.avatarUrl} size={56} />
         <div className="min-w-0">
           <p className="text-black font-bold text-lg truncate">{client.name}</p>
@@ -2302,62 +2369,80 @@ function ProfilePanel({ client }) {
         </div>
       </div>
 
-      {!hasAnyPrefs ? (
-        <p className="text-black/30 text-sm">This client hasn't set any preferences yet.</p>
-      ) : (
-        <div className="space-y-5">
-          {prefs.goals && (
-            <div>
-              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5">
-                <Target size={12} /> GOALS
-              </p>
-              <p className="text-black text-sm bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3">{prefs.goals}</p>
-            </div>
-          )}
+      <div className="space-y-6">
+        <div>
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+            <Target size={12} /> GOALS
+          </p>
+          <TextArea rows={3} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on main lifts..." />
+        </div>
 
-          {(prefs.equipment || []).length > 0 && (
+        <div>
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+            <Dumbbell size={12} /> EQUIPMENT ACCESS
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {PROFILE_EQUIPMENT_OPTIONS.map((opt) => (
+              <ProfileChip key={opt} active={equipment.includes(opt)} onClick={() => toggle(equipment, setEquipment, opt)}>
+                {opt}
+              </ProfileChip>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINING PREFERENCES</p>
+          <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 space-y-3">
             <div>
-              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5">
-                <Dumbbell size={12} /> EQUIPMENT
-              </p>
+              <p className="text-black/40 text-xs mb-1.5">Preferred training days</p>
               <div className="flex flex-wrap gap-1.5">
-                {prefs.equipment.map((e) => (
-                  <Pill key={e} tone="outline">
-                    {e}
-                  </Pill>
+                {PROFILE_DAY_OPTIONS.map((d) => (
+                  <ProfileChip key={d} active={trainingDays.includes(d)} onClick={() => toggle(trainingDays, setTrainingDays, d)}>
+                    {d}
+                  </ProfileChip>
                 ))}
               </div>
             </div>
-          )}
-
-          {(prefs.trainingDays?.length || prefs.sessionLength || prefs.trainingNotes) && (
             <div>
-              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINING PREFERENCES</p>
-              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 space-y-2.5">
-                {prefs.trainingDays?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {prefs.trainingDays.map((d) => (
-                      <Pill key={d}>{d}</Pill>
-                    ))}
-                  </div>
-                )}
-                {prefs.sessionLength && <p className="text-black/70 text-sm">Preferred session length: {prefs.sessionLength}</p>}
-                {prefs.trainingNotes && <p className="text-black text-sm">{prefs.trainingNotes}</p>}
+              <p className="text-black/40 text-xs mb-1.5">Preferred session length</p>
+              <div className="flex flex-wrap gap-1.5">
+                {PROFILE_SESSION_LENGTH_OPTIONS.map((s) => (
+                  <ProfileChip key={s} active={sessionLength === s} onClick={() => setSessionLength(sessionLength === s ? "" : s)}>
+                    {s}
+                  </ProfileChip>
+                ))}
               </div>
             </div>
-          )}
-
-          {(prefs.dietType || prefs.nutritionNotes) && (
-            <div>
-              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">NUTRITION PREFERENCES</p>
-              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 space-y-2.5">
-                {prefs.dietType && <Pill tone="outline">{prefs.dietType}</Pill>}
-                {prefs.nutritionNotes && <p className="text-black text-sm">{prefs.nutritionNotes}</p>}
-              </div>
-            </div>
-          )}
+            <TextArea
+              rows={2}
+              value={trainingNotes}
+              onChange={(e) => setTrainingNotes(e.target.value)}
+              placeholder="Injuries, limitations, preferred/avoided exercises..."
+            />
+          </div>
         </div>
-      )}
+
+        <div>
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">NUTRITION PREFERENCES</p>
+          <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 space-y-3">
+            <div>
+              <p className="text-black/40 text-xs mb-1.5">Diet type</p>
+              <div className="flex flex-wrap gap-1.5">
+                {PROFILE_DIET_OPTIONS.map((d) => (
+                  <ProfileChip key={d} active={dietType === d} onClick={() => setDietType(dietType === d ? "" : d)}>
+                    {d}
+                  </ProfileChip>
+                ))}
+              </div>
+            </div>
+            <TextArea rows={2} value={nutritionNotes} onChange={(e) => setNutritionNotes(e.target.value)} placeholder="Allergies, intolerances, other notes..." />
+          </div>
+        </div>
+
+        <PrimaryButton onClick={save} disabled={saving} className="w-full">
+          {saving ? "Saving…" : "Save Profile"}
+        </PrimaryButton>
+      </div>
     </div>
   );
 }
@@ -2543,7 +2628,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
         {clientTab === "progress" && <ProgressPanel client={client} />}
         {clientTab === "habits" && <HabitsPanel client={client} />}
         {clientTab === "checkins" && <CheckInsPanel client={client} showToast={showToast} />}
-        {clientTab === "profile" && <ProfilePanel client={client} />}
+        {clientTab === "profile" && <ProfilePanel client={client} showToast={showToast} />}
       </div>
 
       {messaging && <ThreadView client={client} onClose={() => setMessaging(false)} />}
