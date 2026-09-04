@@ -3,6 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { Card, Pill, BottomSheet, Field, TextInput, TextArea, Select, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
 import { Plus, Video, Upload, Search, Trash2, Dumbbell, Download } from "lucide-react";
 import { SEED_EXERCISES } from "../lib/seed";
+import { parseVideoUrl } from "../lib/video";
 
 function emptyExercise() {
   return {
@@ -138,9 +139,20 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
             >
               <Upload size={15} /> {uploadedName || "Upload a video file"}
             </button>
-            {form.videoUrl && (
-              <video src={form.videoUrl} controls className="w-full rounded-xl bg-white max-h-48" />
-            )}
+            {form.videoUrl && (() => {
+              const parsed = parseVideoUrl(form.videoUrl);
+              return parsed.kind === "file" ? (
+                <video src={parsed.src} controls className="w-full rounded-xl bg-white max-h-48" />
+              ) : (
+                <iframe
+                  src={parsed.embedSrc}
+                  title="Exercise demo preview"
+                  className="w-full aspect-video rounded-xl bg-black"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              );
+            })()}
             <p className="text-black/25 text-[11px] leading-relaxed">
               Uploaded files preview instantly but only persist for this browser session — connect real video storage (S3, Mux,
               Cloudinary...) to keep them long-term. A pasted URL persists normally.
