@@ -205,6 +205,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
       stopped = true;
       scanner.stop().catch(() => {});
       scanner.clear();
+      setStatus("scanning");
     };
   }, [open, scanKey]);
 
@@ -238,14 +239,16 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
           </button>
         </div>
 
-        {status === "scanning" && (
-          <>
-            <div className="px-5">
-              <div id={elId} className="w-full rounded-2xl overflow-hidden bg-white" />
-            </div>
-            <p className="text-black/40 text-sm text-center mt-4 px-8">Point your camera at a product barcode</p>
-          </>
-        )}
+        {/* Always mounted (just hidden outside "scanning") — html5-qrcode
+            looks this element up by id the instant the effect below runs,
+            and that must never race a render that's still showing the
+            error/not-found screen from a previous attempt. */}
+        <div className={status === "scanning" ? "" : "hidden"}>
+          <div className="px-5">
+            <div id={elId} className="w-full rounded-2xl overflow-hidden bg-white" />
+          </div>
+          <p className="text-black/40 text-sm text-center mt-4 px-8">Point your camera at a product barcode</p>
+        </div>
 
         {status === "looking-up" && (
           <div className="flex-1 flex flex-col items-center justify-center">
