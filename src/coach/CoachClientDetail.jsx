@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
-import { computePerformanceTimeline } from "../lib/trainingStats";
+import { computePerformanceTimeline, computePRsInLastNDays } from "../lib/trainingStats";
 import { ThreadView } from "./CoachMessages";
 import { SendLoginSheet } from "./CoachClients";
 import WorkoutEditor from "./WorkoutEditor";
@@ -2596,6 +2596,121 @@ function PerformanceTimelineCard({ client }) {
   );
 }
 
+// A weekly digest so the coach doesn't have to piece together training,
+// nutrition and habit consistency by hand — plus a coach-editable "focus
+// for next week" note, pre-filled with a suggestion pointed at whichever
+// area looks weakest this week.
+function WeeklyCoachReviewCard({ client, showToast }) {
+  const { db, updateUser } = useApp();
+  const logs = db.workoutLogs[client.id] || [];
+  const nutritionLogs = (db.nutritionLogs || {})[client.id] || [];
+  const habits = (db.habits || {})[client.id] || [];
+  const habitLog = ((db.habitLog || {})[client.id]) || {};
+  const weekAgo = Date.now() - 7 * 86400000;
+
+  const sessionsThisWeek = logs.filter((l) => l.date >= weekAgo).length;
+  const volumeThisWeek = Math.round(
+    logs
+      .filter((l) => l.date >= weekAgo)
+      .reduce((a, log) => a + log.entries.reduce((b, e) => b + e.sets.reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0), 0)
+  );
+  const prCount = computePRsInLastNDays(logs, 7);
+
+  const last7Dates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return d.toISOString().slice(0, 10);
+  });
+  const nutritionByDate = Object.fromEntries(nutritionLogs.map((n) => [n.date, n]));
+  const daysLogged = last7Dates.filter((d) => nutritionByDate[d]?.calories > 0).length;
+  const nutritionAdherencePct = Math.round((daysLogged / 7) * 100);
+
+  let habitPossible = 0;
+  let habitDone = 0;
+  last7Dates.forEach((d) => {
+    const completed = habitLog[d] || [];
+    habits.forEach((h) => {
+      if (h.endsAt && h.endsAt < weekAgo) return;
+      const createdKey = new Date(h.createdAt).toISOString().slice(0, 10);
+      if (d < createdKey) return;
+      habitPossible += 1;
+      if (completed.includes(h.id)) habitDone += 1;
+    });
+  });
+  const consistencyPct = habitPossible > 0 ? Math.round((habitDone / habitPossible) * 100) : null;
+
+  const autoFocus = useMemo(() => {
+    if (sessionsThisWeek === 0) return "No sessions logged this week — check they're not stuck, injured, or need the program adjusted.";
+    if (nutritionAdherencePct < 60) return "Nutrition logging dropped off this week — check in on what's getting in the way.";
+    if (consistencyPct != null && consistencyPct < 60) return "Habit consistency slipped — worth a quick nudge or simplifying the list.";
+    return "Solid week across the board — keep the current program and progress load as planned.";
+  }, [sessionsThisWeek, nutritionAdherencePct, consistencyPct]);
+
+  const [focus, setFocus] = useState(client.weeklyFocusNote || "");
+  const [saving, setSaving] = useState(false);
+  const loadedRef = useRef(client.id);
+  if (loadedRef.current !== client.id) {
+    loadedRef.current = client.id;
+    setFocus(client.weeklyFocusNote || "");
+  }
+
+  async function saveFocus() {
+    setSaving(true);
+    try {
+      await updateUser(client.id, { weeklyFocusNote: focus });
+      showToast("Focus saved");
+    } catch (err) {
+      showToast("Couldn't save — check your connection and try again");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const stats = [
+    { label: "Sessions", sub: "this week", value: sessionsThisWeek },
+    { label: "Volume", sub: "kg lifted", value: volumeThisWeek.toLocaleString() },
+    { label: "Nutrition", sub: "days logged", value: `${nutritionAdherencePct}%` },
+    { label: "Habits", sub: "completion", value: consistencyPct != null ? `${consistencyPct}%` : "—" },
+    { label: "PRs", sub: "this week", value: prCount },
+  ];
+
+  return (
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 md:p-6 mb-6">
+      <p className="text-black font-semibold mb-1">Weekly Coach Review</p>
+      <p className="text-black/40 text-xs mb-4">Training, nutrition, recovery and performance — last 7 days.</p>
+
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-5">
+        {stats.map((s) => (
+          <div key={s.label}>
+            <p className="text-black text-lg font-bold tabular-nums">{s.value}</p>
+            <p className="text-black/40 text-[11px] mt-0.5">
+              {s.label} <span className="text-black/25">· {s.sub}</span>
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-black/10 pt-4">
+        <p className="text-black/40 text-[10px] font-semibold tracking-wide mb-1.5">FOCUS FOR NEXT WEEK</p>
+        <textarea
+          value={focus}
+          onChange={(e) => setFocus(e.target.value)}
+          placeholder={autoFocus}
+          rows={2}
+          className="w-full bg-black/[0.03] border border-black/10 rounded-xl px-3 py-2 text-sm text-black outline-none placeholder:text-black/30 resize-none"
+        />
+        <button
+          onClick={saveFocus}
+          disabled={saving || focus === (client.weeklyFocusNote || "")}
+          className="mt-2 bg-black text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-30"
+        >
+          {saving ? "SAVING…" : "SAVE FOCUS"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function PersonalDetailsCard({ client, showToast }) {
   const { updateUser } = useApp();
   const [age, setAge] = useState(client.age || "");
@@ -2770,6 +2885,8 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
       <PersonalDetailsCard client={client} showToast={showToast} />
 
       <PerformanceTimelineCard client={client} />
+
+      <WeeklyCoachReviewCard client={client} showToast={showToast} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* left: stats, tags */}
