@@ -48,7 +48,7 @@ import {
   Banana,
   ThermometerSun,
 } from "lucide-react";
-import { enablePush, disablePush } from "../lib/push";
+import { enablePush, disablePush, pushSupported } from "../lib/push";
 import {
   LineChart,
   Line,
@@ -108,6 +108,24 @@ import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSectio
 // the PWA and needs no asset to ship. Silently no-ops if the browser
 // blocks audio without a user gesture, or has no AudioContext at all.
 let sharedAudioCtx = null;
+
+// Browsers refuse to let an AudioContext produce sound unless it was
+// created (or resumed) inside a real user gesture — a click/tap. The rest
+// timer actually finishing is a setTimeout callback, not a gesture, so
+// creating the AudioContext there gets silently blocked, no error thrown.
+// Call this from the tap that STARTS the rest timer instead, so the
+// context is already unlocked and running by the time it later expires.
+function unlockTimerAudio() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!sharedAudioCtx) sharedAudioCtx = new Ctx();
+    if (sharedAudioCtx.state === "suspended") sharedAudioCtx.resume();
+  } catch {
+    // ignore
+  }
+}
+
 function playTimerDing() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -588,6 +606,57 @@ function ActiveChallengesCard({ challenges, userId }) {
   );
 }
 
+// Surfaces the push-notifications opt-in proactively on Home instead of
+// leaving it buried in Profile settings — dismissed once enabled, or once
+// the client explicitly closes it (both remembered per-device). Enabling
+// still has to go through a real tap (browser permission APIs require a
+// user gesture), so "automatic" here means "put in front of them," not a
+// silent background enable, which no browser allows anyway.
+function NotificationsPromptCard({ userId, showToast }) {
+  const [supported, setSupported] = useState(false);
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem("pushPromptDismissed") === "1");
+  const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    pushSupported().then(setSupported);
+  }, []);
+
+  if (!supported || dismissed || enabled) return null;
+
+  function dismiss() {
+    localStorage.setItem("pushPromptDismissed", "1");
+    setDismissed(true);
+  }
+
+  async function enable() {
+    setBusy(true);
+    try {
+      const token = await enablePush(userId);
+      localStorage.setItem("pushToken", token);
+      setEnabled(true);
+      showToast?.("Notifications turned on");
+    } catch (err) {
+      showToast?.(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-3 flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
+      <BellRing size={18} className="text-blue-600 shrink-0" />
+      <p className="flex-1 text-blue-800 text-sm font-medium">Turn on notifications so you never miss a message from your coach</p>
+      <button onClick={enable} disabled={busy} className="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0 disabled:opacity-50">
+        {busy ? "…" : "ENABLE"}
+      </button>
+      <button onClick={dismiss} aria-label="Dismiss" className="text-blue-400 hover:text-blue-600 shrink-0">
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
+
 function HomeScreen({
   user,
   todaySession,
@@ -622,6 +691,7 @@ function HomeScreen({
       <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
       <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
+      {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
         <div className="mx-3 flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
           <Scale size={18} className="text-amber-600 shrink-0" />
@@ -1302,6 +1372,7 @@ function WorkoutSession({
   }
 
   function handleStartRest(exMeta) {
+    unlockTimerAudio();
     const rest = exMeta.restSeconds ?? 90;
     setRestTime(rest);
     setRestTotal(rest);
