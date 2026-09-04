@@ -935,6 +935,7 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 
 function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, onNoteSave, swapInfo, onSwap, onStartRest, onOpenDetail }) {
   const [notesExpanded, setNotesExpanded] = useState(false);
+  const noteSaveTimeout = useRef(null);
   const coachNote = exMeta.notes || "";
   const isLongNote = coachNote.length > 90;
 
@@ -999,8 +1000,16 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         <div className="mt-3">
           <textarea
             value={note}
-            onChange={(e) => onNoteChange(e.target.value)}
-            onBlur={() => onNoteSave?.(note)}
+            onChange={(e) => {
+              const value = e.target.value;
+              onNoteChange(value);
+              if (noteSaveTimeout.current) clearTimeout(noteSaveTimeout.current);
+              noteSaveTimeout.current = setTimeout(() => onNoteSave?.(value), 500);
+            }}
+            onBlur={() => {
+              if (noteSaveTimeout.current) clearTimeout(noteSaveTimeout.current);
+              onNoteSave?.(note);
+            }}
             placeholder="Add your own note on this exercise…"
             rows={2}
             autoFocus
