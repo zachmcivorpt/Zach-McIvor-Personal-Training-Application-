@@ -374,7 +374,25 @@ export function AppProvider({ children }) {
           throw new Error(friendlyAuthError(err));
         }
         const uid = cred.user.uid;
+        // Before activation, the client was shown to the coach as a
+        // synthetic row keyed by their email (there's no real Firebase Auth
+        // user yet to own a users/{uid} doc), so anything the coach filled
+        // in for them meanwhile — personal details, tags, nutrition
+        // targets/profile, an assigned program — was saved to users/{email}
+        // as the only doc that could exist at that point. Fold it into the
+        // real doc now the client is authenticated. This is best-effort:
+        // activation must succeed even if this read is denied or the draft
+        // never existed.
+        let draft = {};
+        const draftRef = doc(firestore, "users", email);
+        try {
+          const draftSnap = await getDoc(draftRef);
+          if (draftSnap.exists()) draft = draftSnap.data();
+        } catch (err) {
+          console.error(err);
+        }
         const client = {
+          ...draft,
           role: "client",
           name: invite.name,
           email,
@@ -382,13 +400,14 @@ export function AppProvider({ children }) {
           status: "active",
           createdAt: invite.createdAt,
           lastLoginAt: Date.now(),
-          assignedProgramId: null,
+          assignedProgramId: draft.assignedProgramId ?? null,
           currentSessionIndex: 0,
-          fitnessLevel: "Beginner",
+          fitnessLevel: draft.fitnessLevel || "Beginner",
           streak: 0,
-          clientTags: [],
+          clientTags: draft.clientTags || [],
         };
         await setDoc(doc(firestore, "users", uid), client);
+        deleteDoc(draftRef).catch(() => {});
         await deleteDoc(inviteRef);
         const welcome = raw.welcomeMessage;
         if (welcome?.autoSend && welcome.text?.trim()) {
@@ -455,7 +474,7 @@ export function AppProvider({ children }) {
       },
 
       assignProgram(clientId, programId) {
-        updateDoc(doc(firestore, "users", clientId), { assignedProgramId: programId, currentSessionIndex: 0 }).catch(console.error);
+        setDoc(doc(firestore, "users", clientId), { assignedProgramId: programId, currentSessionIndex: 0 }, { merge: true }).catch(console.error);
       },
 
       async createProgram(data) {
@@ -681,7 +700,12 @@ export function AppProvider({ children }) {
 
       async updateUser(id, data) {
         try {
-          await updateDoc(doc(firestore, "users", id), data);
+          // A client who's been invited but hasn't activated yet has no
+          // real users/{id} doc — they're shown from the invites
+          // collection instead — so updateDoc would fail outright with
+          // "No document to update." setDoc+merge creates it if missing
+          // and behaves exactly like updateDoc when it already exists.
+          await setDoc(doc(firestore, "users", id), stripUndefined(data), { merge: true });
         } catch (err) {
           throw new Error("Couldn't save — " + (err.message || "please try again."));
         }
@@ -873,11 +897,11 @@ export function AppProvider({ children }) {
         if (!trimmed) return;
         const existing = db.clientTags[clientId] || [];
         if (existing.some((t) => t.toLowerCase() === trimmed.toLowerCase())) return;
-        updateDoc(doc(firestore, "users", clientId), { clientTags: [...existing, trimmed] }).catch(console.error);
+        setDoc(doc(firestore, "users", clientId), { clientTags: [...existing, trimmed] }, { merge: true }).catch(console.error);
       },
       removeClientTag(clientId, label) {
         const existing = db.clientTags[clientId] || [];
-        updateDoc(doc(firestore, "users", clientId), { clientTags: existing.filter((t) => t !== label) }).catch(console.error);
+        setDoc(doc(firestore, "users", clientId), { clientTags: existing.filter((t) => t !== label) }, { merge: true }).catch(console.error);
       },
 
       // Private trainer notes on a client's Summary — coach-only, never shown to the client.
