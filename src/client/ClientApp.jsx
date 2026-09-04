@@ -3943,11 +3943,19 @@ export default function ClientApp() {
     const swapByToId = Object.fromEntries(
       Object.entries(exerciseSwaps).map(([fromId, s]) => [s.toExerciseId, { swappedFrom: fromId, swappedFromName: s.fromName, swapReason: s.reason }])
     );
+    // An exercise only ends up in cleanedLog if it has at least one
+    // completed set — but a client can leave a note (e.g. "skipped, knee
+    // felt off") on an exercise they never logged sets for at all. Build
+    // the saved entries from the union of both, so a note-only exercise
+    // still gets an entry (with an empty sets array) instead of the note
+    // silently vanishing because nothing else referenced that exercise.
+    const notedExerciseIds = Object.keys(exerciseNotes).filter((id) => (exerciseNotes[id] || "").trim());
+    const allExerciseIds = new Set([...Object.keys(cleanedLog), ...notedExerciseIds]);
     logWorkout(currentUser.id, {
       dayLabel: todaySession.label,
-      entries: Object.entries(cleanedLog).map(([exerciseId, sets]) => ({
+      entries: Array.from(allExerciseIds).map((exerciseId) => ({
         exerciseId,
-        sets,
+        sets: cleanedLog[exerciseId] || [],
         note: exerciseNotes[exerciseId] || "",
         ...(swapByToId[exerciseId] || {}),
       })),
