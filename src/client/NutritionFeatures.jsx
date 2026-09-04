@@ -150,6 +150,29 @@ const BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.CODE_128,
 ];
 
+// Browsers/devices surface a camera failure in wildly inconsistent shapes
+// (a structured MediaStream error name, a plain string, an Error with a
+// differently-cased message) — check every signal we can rather than one
+// brittle substring match, and give an actionable message per real cause
+// instead of one catch-all "couldn't start the camera".
+function classifyCameraError(err) {
+  const name = err?.name || "";
+  const msg = String(err?.message || err || "").toLowerCase();
+  if (name === "NotAllowedError" || msg.includes("permission") || msg.includes("denied")) {
+    return "Camera permission denied — allow camera access for this app in your browser/device settings, then try again.";
+  }
+  if (name === "NotFoundError" || msg.includes("notfound") || msg.includes("no camera")) {
+    return "No camera found on this device.";
+  }
+  if (name === "NotReadableError" || name === "TrackStartError" || msg.includes("notreadable") || msg.includes("trackstart") || msg.includes("in use")) {
+    return "Your camera seems to be in use by another app — close other camera apps or tabs and try again.";
+  }
+  if (name === "OverconstrainedError" || msg.includes("overconstrained") || msg.includes("constraint")) {
+    return "This device's camera doesn't support the requested mode.";
+  }
+  return "Couldn't start the camera. Try closing and reopening this screen.";
+}
+
 export function BarcodeScanSheet({ open, onClose, onAdd }) {
   const [status, setStatus] = useState("scanning"); // scanning | looking-up | error | not-found
   const [error, setError] = useState("");
@@ -170,34 +193,43 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
     scannerRef.current = scanner;
     let stopped = false;
 
+    async function onDecoded(decodedText) {
+      if (stopped) return;
+      stopped = true;
+      try {
+        await scanner.stop();
+      } catch {
+        // already stopped
+      }
+      setStatus("looking-up");
+      try {
+        const food = await lookupBarcode(decodedText);
+        onAdd(food);
+      } catch (err) {
+        setError(err.message);
+        setManual({ name: err.productName || "", cals: "", protein: "", carbs: "", fat: "" });
+        setStatus(err.notFound ? "not-found" : "error");
+      }
+    }
+
+    const scanConfig = { fps: 20, qrbox: { width: 280, height: 130 }, disableFlip: true };
+    const noop = () => {
+      // per-frame "no code found yet" callback — expected, ignore
+    };
+
+    // Prefer the rear camera, but a device that rejects that constraint
+    // (some laptops/tablets, odd Android camera stacks) shouldn't just
+    // dead-end — fall back to whatever camera the browser will give us
+    // before giving up and showing an error.
     scanner
-      .start(
-        { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-        { fps: 20, qrbox: { width: 280, height: 130 }, disableFlip: true },
-        async (decodedText) => {
-          if (stopped) return;
-          stopped = true;
-          try {
-            await scanner.stop();
-          } catch {
-            // already stopped
-          }
-          setStatus("looking-up");
-          try {
-            const food = await lookupBarcode(decodedText);
-            onAdd(food);
-          } catch (err) {
-            setError(err.message);
-            setManual({ name: err.productName || "", cals: "", protein: "", carbs: "", fat: "" });
-            setStatus(err.notFound ? "not-found" : "error");
-          }
-        },
-        () => {
-          // per-frame "no code found yet" callback — expected, ignore
-        }
+      .start({ facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }, scanConfig, onDecoded, noop)
+      .catch(() =>
+        scanner
+          .start({ facingMode: "environment" }, scanConfig, onDecoded, noop)
+          .catch(() => scanner.start({}, scanConfig, onDecoded, noop))
       )
       .catch((err) => {
-        setError(err?.message?.includes("Permission") ? "Camera permission denied — allow camera access to scan." : "Couldn't start the camera.");
+        setError(classifyCameraError(err));
         setStatus("error");
       });
 
