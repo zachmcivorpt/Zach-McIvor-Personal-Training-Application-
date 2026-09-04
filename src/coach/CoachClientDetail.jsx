@@ -1847,13 +1847,123 @@ function CheckInsPanel({ client, showToast }) {
   );
 }
 
+const ACTIVITY_LEVELS = [
+  { key: "sedentary", label: "Sedentary — little/no exercise", mult: 1.2 },
+  { key: "light", label: "Light — exercise 1–3 days/week", mult: 1.375 },
+  { key: "moderate", label: "Moderate — exercise 3–5 days/week", mult: 1.55 },
+  { key: "active", label: "Active — exercise 6–7 days/week", mult: 1.725 },
+  { key: "veryActive", label: "Very active — hard training + physical job", mult: 1.9 },
+];
+
+// Mifflin-St Jeor — the standard, well-validated BMR formula. Needs
+// age/sex/height (set on the client's Summary tab) and a current weight
+// (their latest weigh-in), so it's disabled with a nudge until those exist
+// rather than guessing.
+function TDEECalculator({ client, latestWeight, onApply }) {
+  const [open, setOpen] = useState(false);
+  const [weight, setWeight] = useState(latestWeight || "");
+  const [activity, setActivity] = useState("moderate");
+
+  const ready = client.age && client.sex && client.heightCm;
+  const w = Number(weight) || 0;
+  const level = ACTIVITY_LEVELS.find((l) => l.key === activity);
+  const bmr = ready && w > 0 ? 10 * w + 6.25 * client.heightCm - 5 * client.age + (client.sex === "Male" ? 5 : -161) : 0;
+  const tdee = Math.round((bmr * level.mult) / 25) * 25;
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="text-blue-600 hover:text-blue-700 text-xs font-semibold mb-4">
+        Calculate from TDEE →
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3.5 mb-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-black text-xs font-semibold">TDEE Calculator</p>
+        <button type="button" onClick={() => setOpen(false)} className="text-black/30 hover:text-black/60">
+          <X size={14} />
+        </button>
+      </div>
+      {!ready ? (
+        <p className="text-black/40 text-xs">Add age, sex and height on the Summary tab to enable this.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-black/30 text-[10px]">AGE</p>
+              <p className="text-black text-sm font-semibold">{client.age}</p>
+            </div>
+            <div>
+              <p className="text-black/30 text-[10px]">SEX</p>
+              <p className="text-black text-sm font-semibold">{client.sex}</p>
+            </div>
+            <div>
+              <p className="text-black/30 text-[10px]">HEIGHT</p>
+              <p className="text-black text-sm font-semibold">{client.heightCm}cm</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-black/40 text-[10px] mb-1">CURRENT WEIGHT (KG)</p>
+            <input
+              type="number"
+              min={0}
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder={latestWeight ? String(latestWeight) : "No weigh-ins logged yet"}
+              className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none"
+            />
+          </div>
+          <div>
+            <p className="text-black/40 text-[10px] mb-1">ACTIVITY LEVEL</p>
+            <select
+              value={activity}
+              onChange={(e) => setActivity(e.target.value)}
+              className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-xs outline-none"
+            >
+              {ACTIVITY_LEVELS.map((l) => (
+                <option key={l.key} value={l.key}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {w > 0 && (
+            <div className="flex items-center justify-between bg-white border border-black/10 rounded-lg px-3 py-2.5">
+              <div>
+                <p className="text-black/40 text-[10px]">SUGGESTED BMR / TDEE</p>
+                <p className="text-black text-sm font-bold">
+                  {Math.round(bmr)} kcal · {tdee} kcal
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onApply(tdee);
+                  setOpen(false);
+                }}
+                className="bg-black text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0"
+              >
+                USE {tdee}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function NutritionTargetsCard({ client, showToast }) {
-  const { updateUser } = useApp();
+  const { db, updateUser } = useApp();
   const saved = { ...DEFAULT_NUTRITION_TARGETS, ...(client.nutritionTargets || {}) };
   const [calories, setCalories] = useState(saved.calories);
   const [pcts, setPcts] = useState({ protein: saved.proteinPct, carbs: saved.carbsPct, fat: saved.fatPct });
   const [saving, setSaving] = useState(false);
   const loadedRef = useRef(client.id);
+  const weighIns = (db.weighIns || {})[client.id] || [];
+  const latestWeight = weighIns.length ? [...weighIns].sort((a, b) => b.date - a.date)[0].weight : null;
 
   // Re-seed the draft if the coach switches to a different client.
   if (loadedRef.current !== client.id) {
@@ -1897,6 +2007,8 @@ function NutritionTargetsCard({ client, showToast }) {
     <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 mb-5">
       <p className="text-black font-semibold mb-1">Nutrition Targets</p>
       <p className="text-black/40 text-xs mb-4">What this client sees as their daily calorie and macro goals in the app.</p>
+
+      <TDEECalculator client={client} latestWeight={latestWeight} onApply={(kcal) => setCalories(Math.min(4500, Math.max(1200, kcal)))} />
 
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-black/50 text-xs tracking-wide">CALORIES</span>
@@ -1950,6 +2062,93 @@ function NutritionTargetsCard({ client, showToast }) {
   );
 }
 
+// Context a coach would gather on an intake call and lean on when
+// building meal plans — kept in the Nutrition tab (not Profile/Summary)
+// since it's nutrition-specific, unlike the general preferences a client
+// sets for themselves.
+function ClientFoodPreferencesCard({ client, showToast }) {
+  const { updateUser } = useApp();
+  const info = client.nutritionProfile || {};
+  const [likes, setLikes] = useState(info.likes || "");
+  const [dislikes, setDislikes] = useState(info.dislikes || "");
+  const [mealsPerDay, setMealsPerDay] = useState(info.mealsPerDay || "");
+  const [occupation, setOccupation] = useState(info.occupation || "");
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    setLikes(info.likes || "");
+    setDislikes(info.dislikes || "");
+    setMealsPerDay(info.mealsPerDay || "");
+    setOccupation(info.occupation || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client.id]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateUser(client.id, { nutritionProfile: { likes, dislikes, mealsPerDay, occupation } });
+      showToast("Nutrition info saved");
+    } catch (err) {
+      showToast(err.message || "Couldn't save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 mb-5">
+      <p className="text-black font-semibold mb-1">Client Nutrition Info</p>
+      <p className="text-black/40 text-xs mb-4">Context for planning meals — occupation, eating pattern, likes/dislikes.</p>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">OCCUPATION</p>
+          <input
+            value={occupation}
+            onChange={(e) => setOccupation(e.target.value)}
+            placeholder="e.g. Office worker, tradie"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none placeholder:text-black/25"
+          />
+        </div>
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">PREFERRED MEALS/DAY</p>
+          <input
+            type="number"
+            min={1}
+            max={10}
+            value={mealsPerDay}
+            onChange={(e) => setMealsPerDay(e.target.value)}
+            placeholder="e.g. 3"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none placeholder:text-black/25"
+          />
+        </div>
+      </div>
+      <div className="mb-3">
+        <p className="text-black/40 text-[10px] mb-1">FOODS THEY ENJOY</p>
+        <textarea
+          rows={2}
+          value={likes}
+          onChange={(e) => setLikes(e.target.value)}
+          placeholder="e.g. Chicken, rice, most fruit, spicy food"
+          className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+        />
+      </div>
+      <div className="mb-4">
+        <p className="text-black/40 text-[10px] mb-1">FOODS THEY DISLIKE / AVOID</p>
+        <textarea
+          rows={2}
+          value={dislikes}
+          onChange={(e) => setDislikes(e.target.value)}
+          placeholder="e.g. Mushrooms, seafood, doesn't like eating breakfast"
+          className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+        />
+      </div>
+      <button onClick={save} disabled={saving} className="w-full bg-black text-white text-xs font-bold py-2.5 rounded-xl disabled:opacity-50">
+        {saving ? "SAVING…" : "SAVE NUTRITION INFO"}
+      </button>
+    </div>
+  );
+}
+
 function NutritionPanel({ client, showToast }) {
   const { db, setNutritionForDate } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -1959,6 +2158,7 @@ function NutritionPanel({ client, showToast }) {
   return (
     <div className="max-w-xl px-4 py-5 md:px-6 md:py-6">
       <NutritionTargetsCard client={client} showToast={showToast} />
+      <ClientFoodPreferencesCard client={client} showToast={showToast} />
       <p className="text-black font-semibold mb-4">Today's Nutrition Log</p>
       {!nutrition ? (
         <p className="text-black/30 text-sm">Nothing logged yet.</p>
@@ -2115,6 +2315,130 @@ function fmtStatDate(ts) {
   return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
+const SEX_OPTIONS = ["Male", "Female", "Other"];
+
+// The stuff a coach would normally ask about on an intake call — kept
+// separate from TAGS/NOTES (which are freeform) so age/height/sex are
+// structured enough for the TDEE calculator in the Nutrition tab to read
+// directly off the client doc.
+function PersonalDetailsCard({ client, showToast }) {
+  const { updateUser } = useApp();
+  const [age, setAge] = useState(client.age || "");
+  const [sex, setSex] = useState(client.sex || "");
+  const [heightCm, setHeightCm] = useState(client.heightCm || "");
+  const [trainingHistory, setTrainingHistory] = useState(client.trainingHistory || "");
+  const [injuries, setInjuries] = useState(client.injuries || "");
+  const [otherInfo, setOtherInfo] = useState(client.otherInfo || "");
+  const [saving, setSaving] = useState(false);
+
+  React.useEffect(() => {
+    setAge(client.age || "");
+    setSex(client.sex || "");
+    setHeightCm(client.heightCm || "");
+    setTrainingHistory(client.trainingHistory || "");
+    setInjuries(client.injuries || "");
+    setOtherInfo(client.otherInfo || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client.id]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateUser(client.id, {
+        age: age === "" ? null : Number(age),
+        sex,
+        heightCm: heightCm === "" ? null : Number(heightCm),
+        trainingHistory,
+        injuries,
+        otherInfo,
+      });
+      showToast("Personal details saved");
+    } catch (err) {
+      showToast(err.message || "Couldn't save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">PERSONAL DETAILS</p>
+      <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3.5 space-y-3">
+        <div className="grid grid-cols-3 gap-2">
+          <div>
+            <p className="text-black/40 text-[10px] mb-1">AGE</p>
+            <input
+              type="number"
+              min={0}
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              className="w-full bg-white border border-black/10 rounded-lg px-2 py-1.5 text-black text-sm outline-none"
+            />
+          </div>
+          <div>
+            <p className="text-black/40 text-[10px] mb-1">SEX</p>
+            <select
+              value={sex}
+              onChange={(e) => setSex(e.target.value)}
+              className="w-full bg-white border border-black/10 rounded-lg px-1.5 py-1.5 text-black text-sm outline-none appearance-none"
+            >
+              <option value=""></option>
+              {SEX_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <p className="text-black/40 text-[10px] mb-1">HEIGHT (CM)</p>
+            <input
+              type="number"
+              min={0}
+              value={heightCm}
+              onChange={(e) => setHeightCm(e.target.value)}
+              className="w-full bg-white border border-black/10 rounded-lg px-2 py-1.5 text-black text-sm outline-none"
+            />
+          </div>
+        </div>
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">TRAINING HISTORY</p>
+          <textarea
+            rows={2}
+            value={trainingHistory}
+            onChange={(e) => setTrainingHistory(e.target.value)}
+            placeholder="e.g. 2 years lifting on and off, new to structured programming"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+          />
+        </div>
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">INJURIES / LIMITATIONS</p>
+          <textarea
+            rows={2}
+            value={injuries}
+            onChange={(e) => setInjuries(e.target.value)}
+            placeholder="e.g. Bad left knee, avoid deep squats"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+          />
+        </div>
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">OTHER RELEVANT INFO</p>
+          <textarea
+            rows={2}
+            value={otherInfo}
+            onChange={(e) => setOtherInfo(e.target.value)}
+            placeholder="Anything else worth knowing about this client"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+          />
+        </div>
+        <button onClick={save} disabled={saving} className="w-full bg-black text-white text-xs font-bold py-2 rounded-lg disabled:opacity-50">
+          {saving ? "SAVING…" : "SAVE DETAILS"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function SummaryPanel({ client, showToast, onSendLogin }) {
   const { db, addClientTag, removeClientTag, addClientNote, deleteClientNote, sendMessage, sendPasswordReset } = useApp();
   const [tagInput, setTagInput] = useState("");
@@ -2166,8 +2490,10 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* left: stats, tags, integrations */}
+        {/* left: personal details, stats, tags, integrations */}
         <div className="space-y-5">
+          <PersonalDetailsCard client={client} showToast={showToast} />
+
           <div>
             <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">STATS</p>
             <div className="bg-black/[0.03] border border-black/8 rounded-xl divide-y divide-black/5">
