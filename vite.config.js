@@ -27,6 +27,12 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,svg,ico}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Without these, a newly-deployed service worker sits "waiting"
+        // until every open tab/installed-app instance is fully closed, so
+        // a normal refresh keeps serving the old cached JS indefinitely —
+        // this is why UI changes can look like they never deployed.
+        skipWaiting: true,
+        clientsClaim: true,
       },
     }),
   ],

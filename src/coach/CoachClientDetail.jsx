@@ -23,8 +23,6 @@ import {
   Dumbbell,
   NotebookPen,
   ChevronRight,
-  Watch,
-  Activity,
   Scale,
   MailCheck,
   LayoutGrid,
@@ -745,7 +743,9 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                           ? "Body stats · logged"
                           : "Body stats · pending"
                         : it.type === "habits"
-                        ? `Daily habits · ${it.doneCount}/${it.total} done`
+                        ? it.done
+                          ? "Habit · done"
+                          : "Habit · not yet done"
                         : it.type === "nutrition"
                         ? `${Math.round(it.nutrition.protein)}g protein · ${Math.round(it.nutrition.carbs)}g carbs · ${Math.round(it.nutrition.fat)}g fat`
                         : "Check-in form"}
@@ -845,21 +845,6 @@ function CalendarPanel({ client, showToast }) {
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = dKey(now);
 
-  // What actually got completed in the viewed month — driven off real
-  // completed sessions, not what was scheduled, so a missed session doesn't
-  // quietly disappear from the picture.
-  const completedThisMonth = useMemo(() => {
-    const monthStart = dKey(new Date(Date.UTC(viewYear, viewMonth, 1)));
-    const monthEnd = dKey(new Date(Date.UTC(viewYear, viewMonth + 1, 0)));
-    return workoutLogs
-      .filter((log) => {
-        const key = dKey(new Date(log.date));
-        return key >= monthStart && key <= monthEnd;
-      })
-      .sort((a, b) => a.date - b.date);
-  }, [workoutLogs, viewYear, viewMonth]);
-  const completedDatesThisMonth = useMemo(() => new Set(completedThisMonth.map((log) => dKey(new Date(log.date)))), [completedThisMonth]);
-
   // Relative training volume per muscle group over a trailing 2-week
   // window (not tied to whatever month is being viewed) — sorted lowest
   // first, so the groups lagging behind the rest surface at a glance
@@ -895,14 +880,24 @@ function CalendarPanel({ client, showToast }) {
     activeFormSchedules
       .filter((s) => s.dayOfWeek === date.getUTCDay())
       .forEach((s) => items.push({ type: "form", label: formsById[s.formId]?.name || "Check-in" }));
-    // Habits aren't scheduled per day (they're a fixed daily list) — show
-    // real completion for today/past days only, never a fake "due" state
-    // for future dates.
-    if (habits.length > 0 && dateStr <= todayStr) {
-      const completedIds = habitLogForClient[dateStr] || [];
-      const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
-      items.push({ type: "habits", label: "Daily Habits", done: doneCount === habits.length, doneCount, total: habits.length });
-    }
+    // One item per habit actually active that day (from when it was added
+    // through its duration limit, if it has one) — showing the real habit
+    // name rather than a vague "Daily Habits" aggregate also makes a
+    // habit's scheduled window visible on the calendar itself: it simply
+    // stops appearing on days past its end. Completion only applies to
+    // today/past days, never a fake "due" state for future dates.
+    const isPastOrToday = dateStr <= todayStr;
+    const completedIds = isPastOrToday ? habitLogForClient[dateStr] || [] : [];
+    habits
+      .filter((h) => {
+        const createdKey = dKey(new Date(h.createdAt));
+        if (dateStr < createdKey) return false;
+        if (h.endsAt && dateStr > dKey(new Date(h.endsAt))) return false;
+        return true;
+      })
+      .forEach((h) => {
+        items.push({ type: "habits", label: h.label, done: isPastOrToday && completedIds.includes(h.id) });
+      });
     const nutrition = nutritionByDate[dateStr];
     if (nutrition) items.push({ type: "nutrition", label: `${Math.round(nutrition.calories)} kcal logged`, nutrition });
     return items;
@@ -1030,57 +1025,7 @@ function CalendarPanel({ client, showToast }) {
 
         <div className="space-y-4">
           <div className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm">
-            <div className="flex items-baseline justify-between mb-3">
-              <p className="text-black font-bold text-2xl leading-none">{completedThisMonth.length}</p>
-              <p className="text-black/40 text-[11px] font-semibold tracking-wide">COMPLETED · {monthLabel.toUpperCase()}</p>
-            </div>
-            {/* mini contribution-style strip — same week grid as the main
-                calendar, dots only, so a month's rhythm reads at a glance */}
-            <div className="space-y-1 mb-3">
-              {weeks.map((week, wi) => (
-                <div key={wi} className="grid grid-cols-7 gap-1">
-                  {week.map((date) => {
-                    const dateStr = dKey(date);
-                    const inMonth = date.getUTCMonth() === viewMonth;
-                    const done = completedDatesThisMonth.has(dateStr);
-                    const isToday = dateStr === todayStr;
-                    return (
-                      <button
-                        key={dateStr}
-                        onClick={() => inMonth && setSelectedDate(dateStr)}
-                        className={`aspect-square rounded-[3px] transition-colors ${
-                          !inMonth ? "bg-transparent" : done ? "bg-emerald-500" : isToday ? "bg-black/20" : "bg-black/8"
-                        }`}
-                        aria-label={dateStr}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-            {completedThisMonth.length === 0 ? (
-              <p className="text-black/30 text-xs">No completed workouts yet this month.</p>
-            ) : (
-              <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                {completedThisMonth.map((log) => (
-                  <button
-                    key={log.id}
-                    onClick={() => setSelectedDate(dKey(new Date(log.date)))}
-                    className="w-full flex items-center gap-2 text-left hover:bg-black/[0.04] rounded-lg px-1.5 py-1 -mx-1.5 transition-colors"
-                  >
-                    <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
-                    <span className="text-black text-xs font-medium truncate flex-1">{log.dayLabel}</span>
-                    <span className="text-black/35 text-[11px] shrink-0">
-                      {new Date(log.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white border border-black/10 rounded-2xl p-4 shadow-sm">
-            <p className="text-black font-semibold text-sm mb-0.5">Muscle Balance</p>
+            <p className="text-black font-semibold text-sm mb-0.5">Recent Training Load</p>
             <p className="text-black/40 text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
             {muscleBalance.every((m) => m.sets === 0) ? (
               <p className="text-black/30 text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
@@ -1895,37 +1840,36 @@ const ACTIVITY_LEVELS = [
   { key: "veryActive", label: "Very active — hard training + physical job", mult: 1.9 },
 ];
 
+// A goal shifts the suggested calorie target off TDEE and shifts the
+// suggested macro split with it — a cut leans on more protein to protect
+// muscle and satiety in a deficit, a bulk leans on more carbs to fuel the
+// extra training volume a surplus is meant to support.
+const NUTRITION_GOALS = [
+  { key: "cut", label: "Cut", delta: -500, macros: { protein: 40, carbs: 30, fat: 30 } },
+  { key: "maintain", label: "Maintain", delta: 0, macros: { protein: 30, carbs: 40, fat: 30 } },
+  { key: "bulk", label: "Bulk", delta: 350, macros: { protein: 30, carbs: 45, fat: 25 } },
+];
+
 // Mifflin-St Jeor — the standard, well-validated BMR formula. Needs
 // age/sex/height (set on the client's Summary tab) and a current weight
 // (their latest weigh-in), so it's disabled with a nudge until those exist
 // rather than guessing.
 function TDEECalculator({ client, latestWeight, onApply }) {
-  const [open, setOpen] = useState(false);
   const [weight, setWeight] = useState(latestWeight || "");
   const [activity, setActivity] = useState("moderate");
+  const [goalKey, setGoalKey] = useState("maintain");
 
   const ready = client.age && client.sex && client.heightCm;
   const w = Number(weight) || 0;
   const level = ACTIVITY_LEVELS.find((l) => l.key === activity);
+  const goal = NUTRITION_GOALS.find((g) => g.key === goalKey);
   const bmr = ready && w > 0 ? 10 * w + 6.25 * client.heightCm - 5 * client.age + (client.sex === "Male" ? 5 : -161) : 0;
   const tdee = Math.round((bmr * level.mult) / 25) * 25;
-
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} className="text-blue-600 hover:text-blue-700 text-xs font-semibold mb-4">
-        Calculate from TDEE →
-      </button>
-    );
-  }
+  const suggestedCalories = Math.max(1200, Math.round((tdee + goal.delta) / 25) * 25);
 
   return (
     <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3.5 mb-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-black text-xs font-semibold">TDEE Calculator</p>
-        <button type="button" onClick={() => setOpen(false)} className="text-black/30 hover:text-black/60">
-          <X size={14} />
-        </button>
-      </div>
+      <p className="text-black text-xs font-semibold">TDEE Calculator</p>
       {!ready ? (
         <p className="text-black/40 text-xs">Add age, sex and height on the Summary tab to enable this.</p>
       ) : (
@@ -1969,24 +1913,48 @@ function TDEECalculator({ client, latestWeight, onApply }) {
               ))}
             </select>
           </div>
+          <div>
+            <p className="text-black/40 text-[10px] mb-1">GOAL</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {NUTRITION_GOALS.map((g) => (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => setGoalKey(g.key)}
+                  className={`py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                    goalKey === g.key ? "bg-black text-white" : "bg-white border border-black/10 text-black/50"
+                  }`}
+                >
+                  {g.label}
+                </button>
+              ))}
+            </div>
+          </div>
           {w > 0 && (
-            <div className="flex items-center justify-between bg-white border border-black/10 rounded-lg px-3 py-2.5">
-              <div>
-                <p className="text-black/40 text-[10px]">SUGGESTED BMR / TDEE</p>
-                <p className="text-black text-sm font-bold">
-                  {Math.round(bmr)} kcal · {tdee} kcal
-                </p>
+            <div className="bg-white border border-black/10 rounded-lg px-3 py-2.5">
+              <p className="text-black/40 text-[10px]">BMR {Math.round(bmr)} kcal · TDEE {tdee} kcal</p>
+              <div className="flex items-center justify-between mt-1.5">
+                <div>
+                  <p className="text-black text-lg font-bold leading-none">{suggestedCalories} kcal</p>
+                  <p className="text-black/40 text-[11px] mt-1">
+                    P {goal.macros.protein}% · C {goal.macros.carbs}% · F {goal.macros.fat}%
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onApply({
+                      calories: suggestedCalories,
+                      proteinPct: goal.macros.protein,
+                      carbsPct: goal.macros.carbs,
+                      fatPct: goal.macros.fat,
+                    })
+                  }
+                  className="bg-black text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0"
+                >
+                  USE THIS
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  onApply(tdee);
-                  setOpen(false);
-                }}
-                className="bg-black text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0"
-              >
-                USE {tdee}
-              </button>
             </div>
           )}
         </>
@@ -2048,7 +2016,14 @@ function NutritionTargetsCard({ client, showToast }) {
       <p className="text-black font-semibold mb-1">Nutrition Targets</p>
       <p className="text-black/40 text-xs mb-4">What this client sees as their daily calorie and macro goals in the app.</p>
 
-      <TDEECalculator client={client} latestWeight={latestWeight} onApply={(kcal) => setCalories(Math.min(4500, Math.max(1200, kcal)))} />
+      <TDEECalculator
+        client={client}
+        latestWeight={latestWeight}
+        onApply={({ calories: kcal, proteinPct, carbsPct, fatPct }) => {
+          setCalories(Math.min(4500, Math.max(1200, kcal)));
+          setPcts({ protein: proteinPct, carbs: carbsPct, fat: fatPct });
+        }}
+      />
 
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-black/50 text-xs tracking-wide">CALORIES</span>
@@ -2196,7 +2171,7 @@ function NutritionPanel({ client, showToast }) {
   const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === todayDateKey);
 
   return (
-    <div className="max-w-xl px-4 py-5 md:px-6 md:py-6">
+    <div className="max-w-xl px-4 py-5 md:px-6 md:py-6 pb-16">
       <NutritionTargetsCard client={client} showToast={showToast} />
       <ClientFoodPreferencesCard client={client} showToast={showToast} />
       <p className="text-black font-semibold mb-4">Today's Nutrition Log</p>
@@ -2357,6 +2332,18 @@ function fmtStatDate(ts) {
 
 const SEX_OPTIONS = ["Male", "Female", "Other"];
 
+// A label above a bottom-border-only field — no boxed input, just a clean
+// underline that brightens on focus-within, for a lighter "form" feel
+// than another nested bordered box.
+function UnderlineField({ label, children }) {
+  return (
+    <label className="block">
+      <p className="text-black/35 text-[10px] font-semibold tracking-wide mb-1">{label.toUpperCase()}</p>
+      <div className="border-b border-black/10 focus-within:border-black/40 pb-1.5 transition-colors">{children}</div>
+    </label>
+  );
+}
+
 // The stuff a coach would normally ask about on an intake call — kept
 // separate from TAGS/NOTES (which are freeform) so age/height/sex are
 // structured enough for the TDEE calculator in the Nutrition tab to read
@@ -2401,26 +2388,31 @@ function PersonalDetailsCard({ client, showToast }) {
   }
 
   return (
-    <div>
-      <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">PERSONAL DETAILS</p>
-      <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3.5 space-y-3">
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-black/40 text-[10px] mb-1">AGE</p>
-            <input
-              type="number"
-              min={0}
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-              className="w-full bg-white border border-black/10 rounded-lg px-2 py-1.5 text-black text-sm outline-none"
-            />
-          </div>
-          <div>
-            <p className="text-black/40 text-[10px] mb-1">SEX</p>
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden">
+      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-black/8">
+        <div>
+          <p className="text-black font-bold text-[15px]">Personal Details</p>
+          <p className="text-black/35 text-xs mt-0.5">The essentials for planning their training and nutrition</p>
+        </div>
+        <button
+          onClick={save}
+          disabled={saving}
+          className="bg-black text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-50 shrink-0"
+        >
+          {saving ? "SAVING…" : "SAVE"}
+        </button>
+      </div>
+
+      <div className="px-5 py-4">
+        <div className="grid grid-cols-3 gap-5 mb-4">
+          <UnderlineField label="Age">
+            <input type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-transparent outline-none text-black text-sm" />
+          </UnderlineField>
+          <UnderlineField label="Sex">
             <select
               value={sex}
               onChange={(e) => setSex(e.target.value)}
-              className="w-full bg-white border border-black/10 rounded-lg px-1.5 py-1.5 text-black text-sm outline-none appearance-none"
+              className="w-full bg-transparent outline-none text-black text-sm appearance-none"
             >
               <option value=""></option>
               {SEX_OPTIONS.map((s) => (
@@ -2429,51 +2421,49 @@ function PersonalDetailsCard({ client, showToast }) {
                 </option>
               ))}
             </select>
-          </div>
-          <div>
-            <p className="text-black/40 text-[10px] mb-1">HEIGHT (CM)</p>
+          </UnderlineField>
+          <UnderlineField label="Height (cm)">
             <input
               type="number"
               min={0}
               value={heightCm}
               onChange={(e) => setHeightCm(e.target.value)}
-              className="w-full bg-white border border-black/10 rounded-lg px-2 py-1.5 text-black text-sm outline-none"
+              className="w-full bg-transparent outline-none text-black text-sm"
             />
+          </UnderlineField>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <UnderlineField label="Training history">
+            <textarea
+              rows={2}
+              value={trainingHistory}
+              onChange={(e) => setTrainingHistory(e.target.value)}
+              placeholder="e.g. 2 years lifting on and off, new to structured programming"
+              className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+            />
+          </UnderlineField>
+          <UnderlineField label="Injuries / limitations">
+            <textarea
+              rows={2}
+              value={injuries}
+              onChange={(e) => setInjuries(e.target.value)}
+              placeholder="e.g. Bad left knee, avoid deep squats"
+              className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+            />
+          </UnderlineField>
+          <div className="md:col-span-2">
+            <UnderlineField label="Other relevant info">
+              <textarea
+                rows={2}
+                value={otherInfo}
+                onChange={(e) => setOtherInfo(e.target.value)}
+                placeholder="Anything else worth knowing about this client"
+                className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+              />
+            </UnderlineField>
           </div>
         </div>
-        <div>
-          <p className="text-black/40 text-[10px] mb-1">TRAINING HISTORY</p>
-          <textarea
-            rows={2}
-            value={trainingHistory}
-            onChange={(e) => setTrainingHistory(e.target.value)}
-            placeholder="e.g. 2 years lifting on and off, new to structured programming"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
-          />
-        </div>
-        <div>
-          <p className="text-black/40 text-[10px] mb-1">INJURIES / LIMITATIONS</p>
-          <textarea
-            rows={2}
-            value={injuries}
-            onChange={(e) => setInjuries(e.target.value)}
-            placeholder="e.g. Bad left knee, avoid deep squats"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
-          />
-        </div>
-        <div>
-          <p className="text-black/40 text-[10px] mb-1">OTHER RELEVANT INFO</p>
-          <textarea
-            rows={2}
-            value={otherInfo}
-            onChange={(e) => setOtherInfo(e.target.value)}
-            placeholder="Anything else worth knowing about this client"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
-          />
-        </div>
-        <button onClick={save} disabled={saving} className="w-full bg-black text-white text-xs font-bold py-2 rounded-lg disabled:opacity-50">
-          {saving ? "SAVING…" : "SAVE DETAILS"}
-        </button>
       </div>
     </div>
   );
@@ -2529,11 +2519,11 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* left: personal details, stats, tags, integrations */}
-        <div className="space-y-5">
-          <PersonalDetailsCard client={client} showToast={showToast} />
+      <PersonalDetailsCard client={client} showToast={showToast} />
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* left: stats, tags */}
+        <div className="space-y-5">
           <div>
             <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">STATS</p>
             <div className="bg-black/[0.03] border border-black/8 rounded-xl divide-y divide-black/5">
@@ -2603,23 +2593,6 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
             </form>
           </div>
 
-          <div>
-            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">CONNECTED DEVICES</p>
-            <div className="space-y-1.5">
-              {[
-                { name: "Apple Watch", icon: Watch },
-                { name: "Fitbit", icon: Activity },
-                { name: "MyFitnessPal", icon: Utensils },
-                { name: "Withings", icon: Scale },
-              ].map(({ name, icon: Icon }) => (
-                <div key={name} className="flex items-center gap-2.5 bg-black/[0.03] rounded-lg px-3 py-2.5">
-                  <Icon size={14} className="text-black/30 shrink-0" />
-                  <span className="text-black/60 text-xs font-medium flex-1">{name}</span>
-                  <span className="text-black/25 text-[11px]">Not available yet</span>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* middle: program + session activity */}
@@ -3053,7 +3026,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
       </div>
 
       {/* main panel */}
-      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto md:overflow-visible">
+      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
         {clientTab === "summary" && <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} />}
         {clientTab === "calendar" && <CalendarPanel client={client} showToast={showToast} />}
         {clientTab === "program" && <TrainingProgramPanel client={client} showToast={showToast} />}
