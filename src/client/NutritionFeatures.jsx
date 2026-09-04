@@ -320,8 +320,11 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
         {status === "error" && (
           <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
             <p className="text-black font-semibold mb-2">Couldn't complete that scan</p>
-            <p className="text-black/40 text-sm mb-6">{error}</p>
-            <div className="flex gap-2">
+            <p className="text-black/40 text-sm mb-3">{error}</p>
+            {errorDetail && (
+              <p className="text-black/25 text-[11px] font-mono break-all bg-black/[0.03] rounded-lg px-3 py-2">{errorDetail}</p>
+            )}
+            <div className="flex gap-2 mt-6">
               <SecondaryButton onClick={scanAgain} className="px-6">
                 Try again
               </SecondaryButton>
