@@ -2,7 +2,59 @@ import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Card, DangerButton, AvatarPicker, Tagline, TextArea } from "../components/ui";
 import { fileToDataUrl } from "../lib/image";
-import { Video, LogOut, ChevronRight, MessageSquareText, Paperclip, X, Upload } from "lucide-react";
+import { enablePush, disablePush } from "../lib/push";
+import { Video, LogOut, ChevronRight, MessageSquareText, Paperclip, X, Upload, BellRing } from "lucide-react";
+
+function PushNotificationsCard({ userId, showToast }) {
+  const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function toggle() {
+    setError("");
+    setBusy(true);
+    try {
+      if (enabled) {
+        await disablePush(userId, localStorage.getItem("pushToken"));
+        localStorage.removeItem("pushToken");
+        setEnabled(false);
+        showToast?.("Push notifications turned off");
+      } else {
+        const token = await enablePush(userId);
+        localStorage.setItem("pushToken", token);
+        setEnabled(true);
+        showToast?.("Push notifications enabled");
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+          <BellRing size={18} className="text-blue-500" />
+        </div>
+        <div className="flex-1">
+          <p className="text-black font-semibold text-sm">Push Notifications</p>
+          <p className="text-black/40 text-xs mt-0.5">Get alerted on this device for new messages and check-ins — even app closed</p>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={busy}
+          className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${enabled ? "bg-blue-500" : "bg-black/15"}`}
+          aria-label={enabled ? "Turn off push notifications" : "Turn on push notifications"}
+        >
+          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
+        </button>
+      </div>
+      {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
+    </Card>
+  );
+}
 
 function WelcomeMessageCard() {
   const { db, updateWelcomeMessage } = useApp();
@@ -150,7 +202,7 @@ function WelcomeMessageCard() {
   );
 }
 
-export default function CoachMore({ onNavigate, onLogout }) {
+export default function CoachMore({ onNavigate, onLogout, showToast }) {
   const { currentUser, updateUser } = useApp();
 
   return (
@@ -173,6 +225,8 @@ export default function CoachMore({ onNavigate, onLogout }) {
       </Card>
 
       <WelcomeMessageCard />
+
+      {currentUser && <PushNotificationsCard userId={currentUser.id} showToast={showToast} />}
 
       <Card>
         <div className="flex items-center gap-4">

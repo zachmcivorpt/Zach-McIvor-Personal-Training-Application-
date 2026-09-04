@@ -42,7 +42,9 @@ import {
   Droplets,
   Sparkles,
   Trash2,
+  BellRing,
 } from "lucide-react";
+import { enablePush, disablePush } from "../lib/push";
 import {
   LineChart,
   Line,
@@ -2465,6 +2467,55 @@ function ConnectedDevicesSheet({ open, onClose }) {
   );
 }
 
+function PushNotificationsSheet({ open, onClose, showToast, userId }) {
+  const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function toggle() {
+    setError("");
+    setBusy(true);
+    try {
+      if (enabled) {
+        await disablePush(userId, localStorage.getItem("pushToken"));
+        localStorage.removeItem("pushToken");
+        setEnabled(false);
+        showToast("Push notifications turned off");
+      } else {
+        const token = await enablePush(userId);
+        localStorage.setItem("pushToken", token);
+        setEnabled(true);
+        showToast("Push notifications enabled");
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Push Notifications">
+      <p className="text-black/50 text-sm mb-4">
+        Get notified on this device when your coach messages you or reviews a check-in — even when the app is closed.
+      </p>
+      <div className="flex items-center justify-between bg-black/5 rounded-xl px-4 py-3.5">
+        <span className="text-black font-medium text-sm">{enabled ? "Enabled on this device" : "Turn on"}</span>
+        <button
+          onClick={toggle}
+          disabled={busy}
+          className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${enabled ? "bg-blue-500" : "bg-black/15"}`}
+          aria-label={enabled ? "Turn off push notifications" : "Turn on push notifications"}
+        >
+          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
+        </button>
+      </div>
+      {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
+      <p className="text-black/30 text-[11px] mt-3">This is per-device — turn it on separately on each phone or browser you use.</p>
+    </BottomSheet>
+  );
+}
+
 function NotificationRow({ icon: Icon, title, subtitle, onClick }) {
   return (
     <button onClick={onClick} className="w-full text-left flex items-center gap-3 bg-black/5 rounded-xl px-3.5 py-3">
@@ -2512,17 +2563,20 @@ function ProfileScreen({
   logsForClient,
   onOpenNotifications,
   notifCount,
+  showToast,
 }) {
   const weekStreak = computeWeeklyStreak(logsForClient);
   const prsThisMonth = computePRsInLastNDays(logsForClient, 30);
   const [prefSection, setPrefSection] = useState(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
+  const [pushOpen, setPushOpen] = useState(false);
   const rows = [
     { label: "Goals", icon: Target, onClick: () => setPrefSection("goals") },
     { label: "Equipment", icon: Dumbbell, onClick: () => setPrefSection("equipment") },
     { label: "Training preferences", icon: Settings, onClick: () => setPrefSection("training") },
     { label: "Nutrition preferences", icon: Utensils, onClick: () => setPrefSection("nutrition") },
     { label: "Notifications", icon: Bell, onClick: onOpenNotifications },
+    { label: "Push Notifications", icon: BellRing, onClick: () => setPushOpen(true) },
     { label: "Connected devices", icon: Heart, onClick: () => setDevicesOpen(true) },
   ];
   return (
@@ -2624,6 +2678,7 @@ function ProfileScreen({
 
       <PreferencesSheet section={prefSection} open={!!prefSection} onClose={() => setPrefSection(null)} user={user} />
       <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} />
+      <PushNotificationsSheet open={pushOpen} onClose={() => setPushOpen(false)} showToast={showToast} userId={user.id} />
     </div>
   );
 }
@@ -3298,6 +3353,7 @@ export default function ClientApp() {
             logsForClient={logsForClient}
             onOpenNotifications={() => setNotifOpen(true)}
             notifCount={notificationItems.length}
+            showToast={showToast}
           />
         )}
 

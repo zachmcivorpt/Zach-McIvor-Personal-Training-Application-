@@ -189,7 +189,7 @@ export default function CoachShell() {
         {tab === "library" && <CoachLibrary showToast={showToast} />}
         {tab === "challenges" && <CoachChallenges showToast={showToast} />}
         {tab === "messages" && <CoachMessages />}
-        {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} />}
+        {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} showToast={showToast} />}
       </div>
 
       {/* mobile bottom tab bar */}

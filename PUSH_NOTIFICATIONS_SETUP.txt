@@ -1,0 +1,103 @@
+Push Notifications Setup — Zach McIvor Personal Training app
+==============================================================
+
+WHAT THIS IS
+------------
+Real push notifications (message received, check-in submitted) that work
+even when the app isn't open — via Firebase Cloud Messaging (FCM).
+
+This is the one part of the app that needs an actual server-side piece
+(a couple of small Cloud Functions), because sending a push requires a
+privileged call the browser can never be trusted to make itself.
+Everything else in the app still runs with no backend, as before — this
+is a deliberate, minimal exception, all still inside the same Firebase
+project you already have.
+
+Two things only I can't do for you, because they need your own Firebase
+login and billing details: turning on the Blaze plan, and deploying the
+Cloud Functions. Everything else is already written and pushed.
+
+
+STEP 1 — UPGRADE TO THE BLAZE PLAN
+------------------------------------
+Cloud Functions require Firebase's "Blaze" (pay-as-you-go) plan — the
+free "Spark" plan can't run them at all, even at zero usage.
+
+1. Go to https://console.firebase.google.com and open your project
+   (zach-mcivor-pt-app).
+2. Click "Upgrade" in the bottom-left corner (or Project Settings →
+   Usage and billing).
+3. Follow the prompts to attach a billing method and switch to Blaze.
+
+Don't worry about a surprise bill: Blaze still includes a generous free
+tier (2 million function invocations/month, plus FCM sends are free,
+unlimited). For a one-coach app, you will realistically never be charged
+anything from this. You can also set a budget alert in Google Cloud
+Console if you want peace of mind.
+
+
+STEP 2 — GENERATE A WEB PUSH (VAPID) KEY
+-------------------------------------------
+1. In the Firebase Console, go to Project Settings (the gear icon) →
+   the "Cloud Messaging" tab.
+2. Scroll to "Web configuration" → "Web Push certificates".
+3. Click "Generate key pair". You'll get a long key string.
+4. Copy it, and paste it in as the value of VAPID_KEY in
+   src/lib/config.js (replacing "PASTE_YOUR_VAPID_KEY_HERE"), then
+   commit/push/redeploy as usual. This value isn't secret — it's fine to
+   commit, same as the rest of your Firebase config.
+
+Until this is filled in, the "Push Notifications" toggle in the app will
+show a clear error instead of silently failing.
+
+
+STEP 3 — DEPLOY THE CLOUD FUNCTIONS
+--------------------------------------
+This needs to be run from a computer with Node.js installed (the
+functions/ folder is already written and included in the repo).
+
+1. Install the Firebase CLI (one-time, if you don't have it):
+     npm install -g firebase-tools
+
+2. Log in with the same Google account that owns the Firebase project:
+     firebase login
+
+3. From the root of this project folder, install the functions'
+   dependencies:
+     cd functions
+     npm install
+     cd ..
+
+4. Deploy just the functions:
+     firebase deploy --only functions
+
+That's it — you should see "onNewMessage" and "onNewCheckIn" listed as
+deployed. No further steps needed; they start working immediately.
+
+If you ever change functions/index.js, just re-run
+"firebase deploy --only functions" again to push the update.
+
+
+HOW IT WORKS
+-------------
+- A client (or the coach) turns on the "Push Notifications" toggle
+  (Profile → Push Notifications on the client side, Settings on the
+  coach side). This asks the browser/device for notification permission
+  and saves a device token onto that person's own user document.
+- When a new chat message is sent, a Cloud Function notifies whichever
+  side didn't send it.
+- When a client submits a check-in, a Cloud Function notifies the coach.
+- Notifications are per-device — each phone/browser needs the toggle
+  turned on separately, and can be turned off the same way.
+- No new Firestore security rules were needed — device tokens are just
+  a new field on the existing users/{uid} document, already covered by
+  the rule that lets you edit your own profile.
+
+
+LATER IDEAS (not built yet)
+-----------------------------
+- Scheduled reminders (e.g. "workout today" nudges) — needs a
+  time-based Cloud Function (Cloud Scheduler) rather than an
+  event trigger; a bigger addition than this first pass.
+- Notifying a client when their coach schedules a new workout/phase.
+Ask any time you want either added.
