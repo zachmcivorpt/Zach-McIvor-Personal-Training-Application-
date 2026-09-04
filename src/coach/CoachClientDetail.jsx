@@ -1989,13 +1989,13 @@ function TDEECalculator({ client, latestWeight, onApply }) {
   const suggestedCalories = Math.max(1200, Math.round((tdee + goal.delta) / 25) * 25);
 
   return (
-    <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3.5 mb-4 space-y-3">
-      <p className="text-black text-xs font-semibold">TDEE Calculator</p>
+    <div className="border-t border-black/10 pt-4 mt-3">
+      <p className="text-black text-sm font-semibold mb-3">TDEE Calculator</p>
       {!ready ? (
         <p className="text-black/40 text-xs">Add age, sex and height on the Summary tab to enable this.</p>
       ) : (
-        <>
-          <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="space-y-3.5">
+          <div className="grid grid-cols-3 gap-2 text-center bg-black/[0.03] rounded-xl py-2.5">
             <div>
               <p className="text-black/30 text-[10px]">AGE</p>
               <p className="text-black text-sm font-semibold">{client.age}</p>
@@ -2009,30 +2009,32 @@ function TDEECalculator({ client, latestWeight, onApply }) {
               <p className="text-black text-sm font-semibold">{client.heightCm}cm</p>
             </div>
           </div>
-          <div>
-            <p className="text-black/40 text-[10px] mb-1">CURRENT WEIGHT (KG)</p>
-            <input
-              type="number"
-              min={0}
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              placeholder={latestWeight ? String(latestWeight) : "No weigh-ins logged yet"}
-              className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none"
-            />
-          </div>
-          <div>
-            <p className="text-black/40 text-[10px] mb-1">ACTIVITY LEVEL</p>
-            <select
-              value={activity}
-              onChange={(e) => setActivity(e.target.value)}
-              className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-xs outline-none"
-            >
-              {ACTIVITY_LEVELS.map((l) => (
-                <option key={l.key} value={l.key}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-black/40 text-[10px] mb-1">CURRENT WEIGHT (KG)</p>
+              <input
+                type="number"
+                min={0}
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                placeholder={latestWeight ? String(latestWeight) : "No weigh-ins yet"}
+                className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none"
+              />
+            </div>
+            <div>
+              <p className="text-black/40 text-[10px] mb-1">ACTIVITY LEVEL</p>
+              <select
+                value={activity}
+                onChange={(e) => setActivity(e.target.value)}
+                className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-xs outline-none"
+              >
+                {ACTIVITY_LEVELS.map((l) => (
+                  <option key={l.key} value={l.key}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <div>
             <p className="text-black/40 text-[10px] mb-1">GOAL</p>
@@ -2052,9 +2054,9 @@ function TDEECalculator({ client, latestWeight, onApply }) {
             </div>
           </div>
           {w > 0 && (
-            <div className="bg-white border border-black/10 rounded-lg px-3 py-2.5">
+            <div className="bg-black/[0.03] rounded-xl px-3.5 py-3">
               <p className="text-black/40 text-[10px]">BMR {Math.round(bmr)} kcal · TDEE {tdee} kcal</p>
-              <div className="flex items-center justify-between mt-1.5">
+              <div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
                 <div>
                   <p className="text-black text-lg font-bold leading-none">{suggestedCalories} kcal</p>
                   <p className="text-black/40 text-[11px] mt-1">
@@ -2078,7 +2080,7 @@ function TDEECalculator({ client, latestWeight, onApply }) {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
@@ -2133,9 +2135,9 @@ function NutritionTargetsCard({ client, showToast }) {
   ];
 
   return (
-    <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 mb-5">
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
       <p className="text-black font-semibold mb-1">Nutrition Targets</p>
-      <p className="text-black/40 text-xs mb-4">What this client sees as their daily calorie and macro goals in the app.</p>
+      <p className="text-black/40 text-xs">What this client sees as their daily calorie and macro goals in the app.</p>
 
       <TDEECalculator
         client={client}
@@ -2146,54 +2148,56 @@ function NutritionTargetsCard({ client, showToast }) {
         }}
       />
 
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-black/50 text-xs tracking-wide">CALORIES</span>
-        <span className="text-black font-bold text-sm">{calories} kcal</span>
-      </div>
-      <input
-        type="range"
-        min={1200}
-        max={4500}
-        step={25}
-        value={calories}
-        onChange={(e) => setCalories(Number(e.target.value))}
-        className="w-full accent-black"
-      />
+      <div className="border-t border-black/10 pt-4 mt-4">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-black/50 text-xs tracking-wide">CALORIES</span>
+          <span className="text-black font-bold text-sm">{calories} kcal</span>
+        </div>
+        <input
+          type="range"
+          min={1200}
+          max={4500}
+          step={25}
+          value={calories}
+          onChange={(e) => setCalories(Number(e.target.value))}
+          className="w-full accent-black"
+        />
 
-      <div className="mt-4 space-y-3.5">
-        {MACROS.map((m) => (
-          <div key={m.key}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-black/50 text-xs tracking-wide">{m.label.toUpperCase()}</span>
-              <span className="text-black text-sm font-semibold">
-                {pcts[m.key]}% · {grams[m.key]}g
-              </span>
+        <div className="mt-4 space-y-3.5">
+          {MACROS.map((m) => (
+            <div key={m.key}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-black/50 text-xs tracking-wide">{m.label.toUpperCase()}</span>
+                <span className="text-black text-sm font-semibold">
+                  {pcts[m.key]}% · {grams[m.key]}g
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={pcts[m.key]}
+                onChange={(e) => setPct(m.key, Number(e.target.value))}
+                className="w-full"
+                style={{ accentColor: m.color }}
+              />
             </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={pcts[m.key]}
-              onChange={(e) => setPct(m.key, Number(e.target.value))}
-              className="w-full"
-              style={{ accentColor: m.color }}
-            />
-          </div>
-        ))}
+          ))}
+        </div>
+
+        <p className="text-black/25 text-[11px] mt-3">Protein + Carbs + Fat always add up to 100% of calories — adjusting one rebalances the others.</p>
+
+        <button
+          onClick={save}
+          disabled={!dirty || saving}
+          className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${
+            !dirty && !saving ? "bg-black/8 text-black/30" : "bg-black text-white"
+          }`}
+        >
+          {saving ? "SAVING…" : dirty ? "SAVE TARGETS" : "SAVED"}
+        </button>
       </div>
-
-      <p className="text-black/25 text-[11px] mt-3">Protein + Carbs + Fat always add up to 100% of calories — adjusting one rebalances the others.</p>
-
-      <button
-        onClick={save}
-        disabled={!dirty || saving}
-        className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-          !dirty && !saving ? "bg-black/8 text-black/30" : "bg-black text-white"
-        }`}
-      >
-        {saving ? "SAVING…" : dirty ? "SAVE TARGETS" : "SAVED"}
-      </button>
     </div>
   );
 }
@@ -2232,7 +2236,7 @@ function ClientFoodPreferencesCard({ client, showToast }) {
   }
 
   return (
-    <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 mb-5">
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
       <p className="text-black font-semibold mb-1">Client Nutrition Info</p>
       <p className="text-black/40 text-xs mb-4">Context for planning meals — occupation, eating pattern, likes/dislikes.</p>
       <div className="grid grid-cols-2 gap-3 mb-3">
@@ -2292,58 +2296,63 @@ function NutritionPanel({ client, showToast }) {
   const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === todayDateKey);
 
   return (
-    <div className="max-w-xl px-4 py-5 md:px-6 md:py-6 pb-16">
-      <NutritionTargetsCard client={client} showToast={showToast} />
-      <ClientFoodPreferencesCard client={client} showToast={showToast} />
-      <p className="text-black font-semibold mb-4">Today's Nutrition Log</p>
-      {!nutrition ? (
-        <p className="text-black/30 text-sm">Nothing logged yet.</p>
-      ) : (
-        <div className="bg-black/5 border border-black/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          {[
-            ["Cals", nutrition.calories],
-            ["Protein", `${nutrition.protein}g`],
-            ["Carbs", `${nutrition.carbs}g`],
-            ["Fat", `${nutrition.fat}g`],
-          ].map(([l, v]) => (
-            <div key={l} className="text-center">
-              <p className="text-black font-bold">{v}</p>
-              <p className="text-black/40 text-[11px] mt-0.5">{l}</p>
-            </div>
-          ))}
-        </div>
-      )}
-      {!confirmReset ? (
-        <button
-          onClick={() => setConfirmReset(true)}
-          className="flex items-center gap-2 bg-black/5 border border-black/10 text-black/60 text-sm font-medium px-4 py-2.5 rounded-xl"
-        >
-          <Trash2 size={13} /> Clear today's log
-        </button>
-      ) : (
-        <div className="flex gap-2 max-w-xs">
-          <SecondaryButton className="flex-1" onClick={() => setConfirmReset(false)}>
-            Cancel
-          </SecondaryButton>
-          <DangerButton
-            className="flex-1"
-            onClick={() => {
-              setNutritionForDate(client.id, todayDateKey, () => ({
-                calories: 0,
-                protein: 0,
-                carbs: 0,
-                fat: 0,
-                water: 0,
-                meals: { Breakfast: [], Lunch: [], Dinner: [], Snacks: [], "Pre-workout": [], "Post-workout": [] },
-              }));
-              setConfirmReset(false);
-              showToast("Today's nutrition log cleared");
-            }}
+    <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start mb-6">
+        <NutritionTargetsCard client={client} showToast={showToast} />
+        <ClientFoodPreferencesCard client={client} showToast={showToast} />
+      </div>
+
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
+        <p className="text-black font-semibold mb-4">Today's Nutrition Log</p>
+        {!nutrition ? (
+          <p className="text-black/30 text-sm">Nothing logged yet.</p>
+        ) : (
+          <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            {[
+              ["Cals", nutrition.calories],
+              ["Protein", `${nutrition.protein}g`],
+              ["Carbs", `${nutrition.carbs}g`],
+              ["Fat", `${nutrition.fat}g`],
+            ].map(([l, v]) => (
+              <div key={l} className="text-center">
+                <p className="text-black font-bold">{v}</p>
+                <p className="text-black/40 text-[11px] mt-0.5">{l}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {!confirmReset ? (
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="flex items-center gap-2 bg-black/5 border border-black/10 text-black/60 text-sm font-medium px-4 py-2.5 rounded-xl"
           >
-            Confirm clear
-          </DangerButton>
-        </div>
-      )}
+            <Trash2 size={13} /> Clear today's log
+          </button>
+        ) : (
+          <div className="flex gap-2 max-w-xs">
+            <SecondaryButton className="flex-1" onClick={() => setConfirmReset(false)}>
+              Cancel
+            </SecondaryButton>
+            <DangerButton
+              className="flex-1"
+              onClick={() => {
+                setNutritionForDate(client.id, todayDateKey, () => ({
+                  calories: 0,
+                  protein: 0,
+                  carbs: 0,
+                  fat: 0,
+                  water: 0,
+                  meals: { Breakfast: [], Lunch: [], Dinner: [], Snacks: [], "Pre-workout": [], "Post-workout": [] },
+                }));
+                setConfirmReset(false);
+                showToast("Today's nutrition log cleared");
+              }}
+            >
+              Confirm clear
+            </DangerButton>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
