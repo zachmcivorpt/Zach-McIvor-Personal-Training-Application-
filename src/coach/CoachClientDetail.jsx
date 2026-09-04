@@ -995,7 +995,7 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
                     <p className="text-black/45 text-[13px] mt-0.5">
-                      {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} reps`} · RIR {e.targetRIR ?? 2}
+                      {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR {e.targetRIR ?? 2}
                     </p>
                   </div>
                   <span className="text-black/30 text-xs shrink-0">{ex.equipment}</span>
@@ -1669,14 +1669,15 @@ function NutritionTargetsCard({ client, showToast }) {
 }
 
 function NutritionPanel({ client, showToast }) {
-  const { db, setNutrition } = useApp();
+  const { db, setNutritionForDate } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
-  const nutrition = db.nutrition[client.id];
+  const todayDateKey = new Date().toISOString().slice(0, 10);
+  const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === todayDateKey);
 
   return (
     <div className="max-w-xl px-4 py-5 md:px-6 md:py-6">
       <NutritionTargetsCard client={client} showToast={showToast} />
-      <p className="text-black font-semibold mb-4">Nutrition Log</p>
+      <p className="text-black font-semibold mb-4">Today's Nutrition Log</p>
       {!nutrition ? (
         <p className="text-black/30 text-sm">Nothing logged yet.</p>
       ) : (
@@ -1699,7 +1700,7 @@ function NutritionPanel({ client, showToast }) {
           onClick={() => setConfirmReset(true)}
           className="flex items-center gap-2 bg-black/5 border border-black/10 text-black/60 text-sm font-medium px-4 py-2.5 rounded-xl"
         >
-          <Trash2 size={13} /> Clear logged nutrition
+          <Trash2 size={13} /> Clear today's log
         </button>
       ) : (
         <div className="flex gap-2 max-w-xs">
@@ -1709,7 +1710,7 @@ function NutritionPanel({ client, showToast }) {
           <DangerButton
             className="flex-1"
             onClick={() => {
-              setNutrition(client.id, () => ({
+              setNutritionForDate(client.id, todayDateKey, () => ({
                 calories: 0,
                 protein: 0,
                 carbs: 0,
@@ -1718,7 +1719,7 @@ function NutritionPanel({ client, showToast }) {
                 meals: { Breakfast: [], Lunch: [], Dinner: [], Snacks: [], "Pre-workout": [], "Post-workout": [] },
               }));
               setConfirmReset(false);
-              showToast("Nutrition log cleared");
+              showToast("Today's nutrition log cleared");
             }}
           >
             Confirm clear

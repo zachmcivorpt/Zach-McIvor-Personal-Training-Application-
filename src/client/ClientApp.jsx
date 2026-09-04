@@ -276,67 +276,77 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   );
 }
 
-function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
+function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isToday = true }) {
+  const logged = nutrition || DEFAULT_NUTRITION;
+  const hasAnyData = !!nutrition;
   const items = [
-    { label: "CALORIES", value: Math.round(nutrition.calories), target: targets.calories, unit: "" },
-    { label: "PROTEIN", value: round1(nutrition.protein), target: targets.protein, unit: "g" },
-    { label: "CARBS", value: round1(nutrition.carbs), target: targets.carbs, unit: "g" },
-    { label: "FAT", value: round1(nutrition.fat), target: targets.fat, unit: "g" },
+    { label: "CALORIES", value: Math.round(logged.calories), target: targets.calories, unit: "" },
+    { label: "PROTEIN", value: round1(logged.protein), target: targets.protein, unit: "g" },
+    { label: "CARBS", value: round1(logged.carbs), target: targets.carbs, unit: "g" },
+    { label: "FAT", value: round1(logged.fat), target: targets.fat, unit: "g" },
   ];
   return (
     <Card className="mx-5 !rounded-none !border-2" style={{ borderColor: BORDER_STRONG }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-black font-bold border-l-[3px] border-black pl-2.5">Nutrition Today</h3>
+        <h3 className="text-black font-bold border-l-[3px] border-black pl-2.5">{isToday ? "Nutrition Today" : "Nutrition"}</h3>
         <Utensils size={16} className="text-black/30" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        {items.map((it) => (
-          <div key={it.label}>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-black/40 tracking-wide">{it.label}</span>
+      {!isToday && !hasAnyData ? (
+        <p className="text-black/35 text-sm">Nothing logged on this day.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            {items.map((it) => (
+              <div key={it.label}>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-black/40 tracking-wide">{it.label}</span>
+                </div>
+                <p className="text-black text-sm font-semibold mb-1.5">
+                  {it.value}
+                  {it.unit} <span className="text-black/30 font-normal">/ {it.target}{it.unit}</span>
+                </p>
+                <ProgressBar
+                  value={it.value}
+                  max={it.target}
+                  height={6}
+                  color={it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t-2 border-black/10">
+            <div className="flex items-center gap-3 mb-1.5">
+              {logged.water >= targets.water ? (
+                <Droplets size={16} className="text-black shrink-0" />
+              ) : (
+                <GlassWater size={16} className="text-black/50 shrink-0" />
+              )}
+              <span className="text-black/70 text-sm flex-1">
+                Water: <span className="font-semibold text-black">{logged.water}L</span> / {targets.water}L
+              </span>
             </div>
-            <p className="text-black text-sm font-semibold mb-1.5">
-              {it.value}
-              {it.unit} <span className="text-black/30 font-normal">/ {it.target}{it.unit}</span>
-            </p>
             <ProgressBar
-              value={it.value}
-              max={it.target}
+              value={logged.water}
+              max={targets.water}
               height={6}
-              color={it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE}
+              color={logged.water >= targets.water ? GOAL_GREEN : MEASURE_BLUE}
             />
           </div>
-        ))}
-      </div>
-      <div className="mt-4 pt-4 border-t-2 border-black/10">
-        <div className="flex items-center gap-3 mb-1.5">
-          {nutrition.water >= targets.water ? (
-            <Droplets size={16} className="text-black shrink-0" />
-          ) : (
-            <GlassWater size={16} className="text-black/50 shrink-0" />
-          )}
-          <span className="text-black/70 text-sm flex-1">
-            Water: <span className="font-semibold text-black">{nutrition.water}L</span> / {targets.water}L
-          </span>
+        </>
+      )}
+      {isToday && (
+        <div className="flex gap-2 mt-4">
+          <button onClick={onLogFood} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform">
+            + LOG FOOD
+          </button>
+          <button
+            onClick={onLogWater}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-90 transition-transform duration-150"
+          >
+            <GlassWater size={15} /> + LOG WATER
+          </button>
         </div>
-        <ProgressBar
-          value={nutrition.water}
-          max={targets.water}
-          height={6}
-          color={nutrition.water >= targets.water ? GOAL_GREEN : MEASURE_BLUE}
-        />
-      </div>
-      <div className="flex gap-2 mt-4">
-        <button onClick={onLogFood} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform">
-          + LOG FOOD
-        </button>
-        <button
-          onClick={onLogWater}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-90 transition-transform duration-150"
-        >
-          <GlassWater size={15} /> + LOG WATER
-        </button>
-      </div>
+      )}
     </Card>
   );
 }
@@ -511,7 +521,7 @@ function HomeScreen({
   activeLog,
   onStartWorkout,
   onViewWorkout,
-  nutrition,
+  dayNutrition,
   targets,
   onLogFood,
   onLogWater,
@@ -565,9 +575,7 @@ function HomeScreen({
         onToggle={onToggleHabit}
         interactive={isToday}
       />
-      {isToday && (
-        <NutritionSummaryCard nutrition={nutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} />
-      )}
+      <NutritionSummaryCard nutrition={dayNutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} isToday={isToday} />
     </div>
   );
 }
@@ -663,7 +671,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                     <div className="min-w-0 flex-1">
                       <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
                       <p className="text-black/45 text-[13px] mt-0.5">
-                        {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} reps`}, {formatRest(e.restSeconds ?? 90)} rest between
+                        {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`}, {formatRest(e.restSeconds ?? 90)} rest between
                         sets
                       </p>
                     </div>
@@ -722,8 +730,8 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const isLongNote = coachNote.length > 90;
 
   return (
-    <div className="relative bg-white rounded-2xl p-4 pl-[18px] border border-black/10 overflow-hidden">
-      <span className="absolute left-0 top-0 bottom-0 w-1 rounded-full" style={{ background: MEASURE_BLUE }} />
+    <div className="relative pt-1 pb-5 pl-[18px] pr-1 border-b border-black/10 last:border-b-0">
+      <span className="absolute left-2 top-1 bottom-5 w-1 rounded-full" style={{ background: MEASURE_BLUE }} />
       <div className="flex items-center gap-3">
         <ExerciseThumb exercise={exercise} size={56} />
         <div className="min-w-0 flex-1">
@@ -736,7 +744,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             )}
           </div>
           <p className="text-black/45 text-[13px] mt-0.5">
-            {exMeta.targetSets} sets × {exMeta.targetReps === "AMRAP" ? "AMRAP" : `${exMeta.targetReps} reps`}
+            {exMeta.targetSets} sets × {exMeta.targetReps === "AMRAP" ? "AMRAP" : `${exMeta.targetReps} Repetitions`}
           </p>
         </div>
         <button
@@ -810,16 +818,16 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       </button>
 
       <div className="mt-3">
-        <div className="grid grid-cols-[28px_1fr_60px_60px] gap-2 px-1 mb-1.5">
+        <div className="grid grid-cols-[28px_1fr_80px_60px] gap-2 px-1 mb-1.5">
           <span className="text-black/60 text-[12px] font-bold">Set</span>
           <span className="text-black/60 text-[12px] font-bold">Previous</span>
-          <span className="text-black/60 text-[12px] font-bold text-center">Reps</span>
+          <span className="text-black/60 text-[10px] font-bold text-center leading-tight">Repetitions</span>
           <span className="text-black/60 text-[12px] font-bold text-center">Kg</span>
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           return (
-            <div key={i} className="grid grid-cols-[28px_1fr_60px_60px] gap-2 items-center px-1 py-1.5">
+            <div key={i} className="grid grid-cols-[28px_1fr_80px_60px] gap-2 items-center px-1 py-1.5">
               <span className="text-black text-[14px] font-medium">{i + 1}</span>
               <span className="text-black/40 text-[13px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</span>
               <input
@@ -1083,8 +1091,8 @@ function WorkoutSession({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 pb-28">
-          <div className="flex items-center justify-between bg-black/[0.03] rounded-2xl px-4 py-3">
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 pb-28">
+          <div className="flex items-center justify-between bg-black/[0.03] rounded-2xl px-4 py-3 mx-2">
             <span className="text-black/70 text-sm font-medium">Auto fill stats</span>
             <button onClick={toggleAutoFill} className={`w-11 h-6 rounded-full relative transition-colors ${autoFill ? "bg-black" : "bg-black/15"}`}>
               <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoFill ? "left-[22px]" : "left-0.5"}`} />
@@ -1464,7 +1472,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
                           )}
                         </div>
                         <p className="text-black/40 text-xs">
-                          {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} reps`} · RIR {e.targetRIR ?? 2}
+                          {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR {e.targetRIR ?? 2}
                         </p>
                         {e.notes && <p className="text-black/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
                       </div>
@@ -3182,7 +3190,7 @@ export default function ClientApp() {
     currentUser,
     db,
     logWorkout,
-    setNutrition,
+    setNutritionForDate,
     logout,
     sendMessage,
     addProgressPhoto,
@@ -3232,7 +3240,12 @@ export default function ClientApp() {
   const todaySession = scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
   const logsForClient = db.workoutLogs[currentUser.id] || [];
-  const nutrition = db.nutrition[currentUser.id] || DEFAULT_NUTRITION;
+  const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || [];
+  const nutritionByDateKey = useMemo(
+    () => Object.fromEntries(nutritionLogsForClient.map((n) => [n.date, n])),
+    [nutritionLogsForClient]
+  );
+  const nutrition = nutritionByDateKey[todayDateKey] || DEFAULT_NUTRITION;
   const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
   const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
   const habits = (db.habits || {})[currentUser.id] || [];
@@ -3249,6 +3262,7 @@ export default function ClientApp() {
   const daySession = scheduledToSession(scheduledWorkoutsByDate[selectedDateKey]);
   const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
   const completedOnDate = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
+  const dayNutrition = isToday ? nutrition : nutritionByDateKey[selectedDateKey] || null;
 
   const notificationItems = useMemo(() => {
     const items = [];
@@ -3299,13 +3313,6 @@ export default function ClientApp() {
     }
     return items;
   }, [unreadCount, thread, todaySession, completedOnDate, dueCheckInsCount, bodyStatsDueToday]);
-
-  useEffect(() => {
-    if (!db.nutrition[currentUser.id]) {
-      setNutrition(currentUser.id, () => DEFAULT_NUTRITION);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function showToast(message) {
     setToast({ show: true, message });
@@ -3361,7 +3368,7 @@ export default function ClientApp() {
   }
 
   function addFood(meal, food) {
-    setNutrition(currentUser.id, (n) => {
+    setNutritionForDate(currentUser.id, todayDateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       return {
         ...base,
@@ -3376,7 +3383,7 @@ export default function ClientApp() {
   }
 
   function removeFood(meal, entryId) {
-    setNutrition(currentUser.id, (n) => {
+    setNutritionForDate(currentUser.id, todayDateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       const items = base.meals[meal] || [];
       const entry = items.find((f) => f.id === entryId);
@@ -3394,7 +3401,7 @@ export default function ClientApp() {
   }
 
   function addWater(liters) {
-    setNutrition(currentUser.id, (n) => {
+    setNutritionForDate(currentUser.id, todayDateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       return { ...base, water: Math.round((base.water + liters) * 100) / 100 };
     });
@@ -3422,7 +3429,7 @@ export default function ClientApp() {
             activeLog={activeLog}
             onStartWorkout={startWorkout}
             onViewWorkout={() => openPreview(daySession, isToday)}
-            nutrition={nutrition}
+            dayNutrition={dayNutrition}
             targets={targets}
             onLogFood={() => setTab("nutrition")}
             onLogWater={() => addWater(0.25)}

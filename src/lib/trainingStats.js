@@ -103,7 +103,7 @@ export function computePersonalBests(logs, exercisesById) {
   return KEY_LIFTS.map((k) => {
     const b = best[k.label];
     if (!b) return null;
-    return { name: k.label, value: b.weight > 0 ? `${b.weight} kg × ${b.reps}` : `${b.reps} reps` };
+    return { name: k.label, value: b.weight > 0 ? `${b.weight} kg × ${b.reps}` : `${b.reps} Repetitions` };
   }).filter(Boolean);
 }
 

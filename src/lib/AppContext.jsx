@@ -180,6 +180,7 @@ export function AppProvider({ children }) {
       watch("bodyStatsSchedules", "bodyStatsSchedules");
       watch("notifications", "notifications");
       watch("challenges", "challenges");
+      watch("nutritionLogs", "nutritionLogs");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -193,6 +194,7 @@ export function AppProvider({ children }) {
       watch("weighIns", "weighIns", [where("clientId", "==", uid)]);
       watch("scheduledWorkouts", "scheduledWorkouts", [where("clientId", "==", uid)]);
       watch("bodyStatsSchedules", "bodyStatsSchedules", [where("clientId", "==", uid)]);
+      watch("nutritionLogs", "nutritionLogs", [where("clientId", "==", uid)]);
       watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
       // clientNotes intentionally NOT synced here — they're the coach's
       // private notes about the client, never shown in the client app.
@@ -243,7 +245,7 @@ export function AppProvider({ children }) {
       exercises: raw.exercises?.length ? raw.exercises : SEED_EXERCISES,
       programs: raw.programs?.length ? raw.programs : SEED_PROGRAMS,
       workoutLogs: bucket(raw.workoutLogs, (a, b) => b.date - a.date),
-      nutrition: Object.fromEntries(users.filter((u) => u.role === "client").map((u) => [u.id, u.nutrition])),
+      nutritionLogs: bucket(raw.nutritionLogs, (a, b) => a.date.localeCompare(b.date)),
       messages: bucket(raw.messages, (a, b) => a.date - b.date),
       progressPhotos: bucket(raw.progressPhotos, (a, b) => b.date - a.date),
       savedMeals: bucket(raw.savedMeals, (a, b) => b.createdAt - a.createdAt),
@@ -523,9 +525,17 @@ export function AppProvider({ children }) {
         setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);
       },
 
-      setNutrition(clientId, updater) {
-        const next = updater(db.nutrition[clientId]);
-        updateDoc(doc(firestore, "users", clientId), { nutrition: next }).catch(console.error);
+      // Nutrition logged per calendar day — doc id is deterministic
+      // (clientId__date) so each day's log is separate, mirroring the
+      // scheduledWorkouts date-keyed pattern.
+      setNutritionForDate(clientId, date, updater) {
+        const id = `${clientId}__${date}`;
+        const current = (db.nutritionLogs[clientId] || []).find((n) => n.date === date);
+        const base = current
+          ? { calories: current.calories, protein: current.protein, carbs: current.carbs, fat: current.fat, water: current.water, meals: current.meals }
+          : null;
+        const next = updater(base);
+        setDoc(doc(firestore, "nutritionLogs", id), { id, clientId, date, ...next }).catch(console.error);
       },
 
       sendMessage(clientId, from, text, attachment) {

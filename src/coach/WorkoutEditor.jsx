@@ -302,7 +302,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
                     </div>
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-black/30 text-[10px]">REPS</p>
+                        <p className="text-black/30 text-[10px]">REPETITIONS</p>
                         <button
                           type="button"
                           onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}

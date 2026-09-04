@@ -59,7 +59,7 @@ function ExerciseRow({ row, exercises, onChange, onRemove, showToast }) {
         </div>
         <div>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-black/30 text-[10px]">REPS</p>
+            <p className="text-black/30 text-[10px]">REPETITIONS</p>
             <button
               type="button"
               onClick={() => onChange({ ...row, targetReps: isAmrap ? 10 : "AMRAP" })}
