@@ -79,7 +79,7 @@ import {
   AvatarPicker,
   Tagline,
 } from "../components/ui";
-import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
+import { MEASURE_BLUE, GOAL_GREEN, BORDER_STRONG } from "../theme";
 import {
   computeWeeklyVolume,
   computeWorkoutsSeries,
@@ -219,12 +219,12 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const pillLabel = isToday ? "TODAY'S WORKOUT" : completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : "SCHEDULED";
 
   return (
-    <Card className="mx-5 !p-4">
+    <Card className="mx-5 !p-4 !rounded-2xl !border-2" style={{ borderColor: BORDER_STRONG }}>
       <div className="flex items-center justify-between mb-2">
         <Pill tone="solid">{pillLabel}</Pill>
       </div>
-      <h2 className="text-black text-lg font-bold">{todaySession.label}</h2>
-      <p className="text-black/50 text-xs mt-0.5">
+      <h2 className="text-black text-lg font-bold border-l-[3px] border-black pl-2.5">{todaySession.label}</h2>
+      <p className="text-black/50 text-xs mt-0.5 pl-2.5">
         {todaySession.exercises.length} exercise{todaySession.exercises.length === 1 ? "" : "s"}
       </p>
       {(todaySession.muscleGroups || []).length > 0 && (
@@ -251,12 +251,12 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
         <div className="flex gap-2 mt-3.5">
           <button
             onClick={onStart}
-            className="flex-1 bg-black text-white font-bold py-3 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="flex-1 bg-black text-white font-bold py-3 rounded-lg text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <Play size={16} fill="white" />
             {started ? "RESUME" : "START WORKOUT"}
           </button>
-          <button onClick={onView} className="text-black/60 text-sm font-medium px-4 rounded-xl bg-black/5">
+          <button onClick={onView} className="text-black/70 text-sm font-semibold px-4 rounded-lg border border-black/15 bg-black/5">
             View
           </button>
         </div>
@@ -284,9 +284,9 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
     { label: "FAT", value: round1(nutrition.fat), target: targets.fat, unit: "g" },
   ];
   return (
-    <Card className="mx-5">
+    <Card className="mx-5 !rounded-2xl !border-2" style={{ borderColor: BORDER_STRONG }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-black font-semibold">Nutrition Today</h3>
+        <h3 className="text-black font-bold border-l-[3px] border-black pl-2.5">Nutrition Today</h3>
         <Utensils size={16} className="text-black/30" />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -308,7 +308,7 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
           </div>
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t border-black/5">
+      <div className="mt-4 pt-4 border-t-2 border-black/10">
         <div className="flex items-center gap-3 mb-1.5">
           {nutrition.water >= targets.water ? (
             <Droplets size={16} className="text-black shrink-0" />
@@ -722,7 +722,8 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const isLongNote = coachNote.length > 90;
 
   return (
-    <div className="bg-[#F7F7F8] rounded-3xl p-4 border border-black/5">
+    <div className="relative bg-[#F7F7F8] rounded-xl p-4 pl-[18px] border-2 overflow-hidden" style={{ borderColor: BORDER_STRONG }}>
+      <span className="absolute left-0 top-0 bottom-0 w-1 bg-black" />
       <div className="flex items-center gap-3">
         <ExerciseThumb exercise={exercise} size={56} />
         <div className="min-w-0 flex-1">
@@ -757,7 +758,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       </div>
 
       {swapInfo && (
-        <div className="mt-3 bg-black/[0.04] border border-black/10 rounded-2xl px-3.5 py-2.5">
+        <div className="mt-3 bg-black/[0.04] border border-black/15 rounded-lg px-3.5 py-2.5">
           <p className="text-black/70 text-[13px] leading-snug">
             <span className="font-semibold">Swapped from {swapInfo.fromName}.</span> {swapInfo.reason}
           </p>
@@ -765,10 +766,11 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       )}
 
       {coachNote && (
-        <div className="mt-3 bg-white border border-black/10 rounded-2xl px-3.5 py-2.5">
-          <p className={`text-black/70 text-[13px] leading-snug ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
+        <div className="mt-3 bg-white border-2 border-black/15 rounded-lg px-3.5 py-2.5">
+          <p className="text-black/40 text-[10px] font-bold tracking-wide mb-1">COACH'S NOTE</p>
+          <p className={`text-black/80 text-[13px] leading-snug ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
           {isLongNote && (
-            <button onClick={() => setNotesExpanded((v) => !v)} className="text-[12px] font-semibold mt-1" style={{ color: MEASURE_BLUE }}>
+            <button onClick={() => setNotesExpanded((v) => !v)} className="text-[12px] font-bold mt-1 text-black">
               {notesExpanded ? "See less" : "See more"}
             </button>
           )}
@@ -783,7 +785,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             placeholder="Add your own note on this exercise…"
             rows={2}
             autoFocus
-            className="w-full bg-white border border-black/10 rounded-2xl px-3.5 py-2.5 text-black text-[13px] outline-none placeholder:text-black/25 resize-none"
+            className="w-full bg-white border border-black/15 rounded-lg px-3.5 py-2.5 text-black text-[13px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
           />
         </div>
       )}
@@ -814,7 +816,8 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 inputMode="numeric"
                 value={row.reps}
                 onChange={(e) => onChangeField(i, "reps", e.target.value)}
-                className="w-full bg-white border border-black/10 rounded-xl text-center text-black text-[14px] font-medium py-2 outline-none focus:border-black/30"
+                onBlur={() => onBlurKg(i)}
+                className="w-full bg-white border-2 border-black/15 rounded-lg text-center text-black text-[14px] font-bold py-2 outline-none focus:border-black"
               />
               <input
                 type="number"
@@ -822,7 +825,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border border-black/10 rounded-xl text-center text-black text-[14px] font-medium py-2 outline-none focus:border-black/30"
+                className="w-full bg-white border-2 border-black/15 rounded-lg text-center text-black text-[14px] font-bold py-2 outline-none focus:border-black"
               />
             </div>
           );
