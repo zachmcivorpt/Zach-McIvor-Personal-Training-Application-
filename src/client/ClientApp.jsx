@@ -940,19 +940,16 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
                   return (
-                    <div key={i} className="relative flex items-center gap-3 py-3.5 border-b border-black/5">
-                      <span className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full" style={{ background: MEASURE_BLUE }} />
-                      <div className="pl-3 flex items-center gap-3 flex-1 min-w-0">
-                        <ExerciseThumb exercise={ex} size={56} />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
-                          <p className="text-black/45 text-[13px] mt-0.5">
-                            {e.targetSets} sets × {formatTargetReps(e)}, {formatRest(e.restSeconds ?? 90)} rest
-                            between sets
-                          </p>
-                        </div>
-                        {e.notes && <ClipboardList size={16} style={{ color: MEASURE_BLUE }} className="shrink-0" />}
+                    <div key={i} className="flex items-center gap-3 py-3.5 border-b border-black/5">
+                      <ExerciseThumb exercise={ex} size={56} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                        <p className="text-black/45 text-[13px] mt-0.5">
+                          {e.targetSets} sets × {formatTargetReps(e)}, {formatRest(e.restSeconds ?? 90)} rest
+                          between sets
+                        </p>
                       </div>
+                      {e.notes && <ClipboardList size={16} className="text-black/40 shrink-0" />}
                     </div>
                   );
                 })}

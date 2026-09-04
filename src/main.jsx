@@ -17,6 +17,22 @@ if ('serviceWorker' in navigator) {
     reloading = true
     window.location.reload()
   })
+
+  // Opening the app from its home-screen icon is usually the OS resuming an
+  // already-loaded instance, not a fresh network request — so the browser
+  // never gets a natural moment to notice a new deploy exists, and a fix
+  // can sit on the server indefinitely without ever reaching the device.
+  // Explicitly ask the service worker to check for an update every time the
+  // app is opened or brought back to the foreground; if one's found, the
+  // controllerchange listener above reloads to it immediately.
+  const checkForUpdate = () => {
+    navigator.serviceWorker.getRegistration().then((reg) => reg?.update())
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkForUpdate()
+  })
+  window.addEventListener('focus', checkForUpdate)
+  checkForUpdate()
 }
 
 createRoot(document.getElementById('root')).render(
