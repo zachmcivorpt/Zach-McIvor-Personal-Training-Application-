@@ -198,7 +198,7 @@ export default function CoachExercises({ showToast, compact = false }) {
     let created = 0;
     try {
       for (const ex of toImport) {
-        const { id, ...data } = ex;
+        const { id: _id, ...data } = ex;
         await createExercise(data);
         created++;
       }

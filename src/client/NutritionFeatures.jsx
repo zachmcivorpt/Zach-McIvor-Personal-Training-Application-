@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, ScanLine, X, Check, Plus, Minus, Trash2, UtensilsCrossed } from "lucide-react";
-import { Card, Pill, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
+import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed } from "lucide-react";
+import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFood } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";

@@ -9,9 +9,7 @@ import {
   Play,
   Check,
   ChevronRight,
-  ChevronLeft,
   Plus,
-  Minus,
   Droplet,
   Moon,
   Activity,
@@ -21,8 +19,6 @@ import {
   Search,
   Bell,
   Settings,
-  ChevronDown,
-  Award,
   Target,
   BarChart3,
   Camera,
@@ -32,10 +28,8 @@ import {
   X,
   Send,
   MessageCircle,
-  StickyNote,
   Clock,
   MessageSquarePlus,
-  Video,
   ClipboardList,
   CalendarCheck,
   Star,
@@ -65,13 +59,11 @@ import {
   Card,
   Pill,
   ProgressBar,
-  Ring,
   BottomSheet,
   Toast,
   FullScreenOverlay,
   NumberStepper,
   Logo,
-  Sparkline,
   MetricTile,
   DangerButton,
   PrimaryButton,
@@ -101,13 +93,6 @@ import { fileToCompressedDataUrl } from "../lib/image";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
 
-/* ============================================================================
-   ILLUSTRATIVE METRICS
-   Not part of the coach's editable data model (yet) — wearable/nutrition
-   integrations would populate these in a production build.
-============================================================================ */
-const RECOVERY = { score: 82, status: "Ready to train", sleep: "8h 12m", restingHr: 58 };
-const ACTIVITY = { steps: 8421, stepGoal: 10000, activeCalories: 412, distanceKm: 5.8 };
 const DEFAULT_NUTRITION = {
   calories: 0,
   protein: 0,
@@ -331,29 +316,6 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
           <GlassWater size={15} /> + LOG WATER
         </button>
       </div>
-    </Card>
-  );
-}
-
-function RecoveryCardCompact({ recovery }) {
-  return (
-    <Card>
-      <Ring value={recovery.score} max={100} size={48} stroke={5}>
-        <span className="text-black font-bold text-sm">{recovery.score}%</span>
-      </Ring>
-      <p className="text-black/40 text-[11px] tracking-wide mt-3">RECOVERY</p>
-      <p className="text-black text-sm font-semibold">{recovery.status}</p>
-    </Card>
-  );
-}
-
-function ActivityCardCompact({ activity }) {
-  return (
-    <Card>
-      <Footprints size={22} className="text-black/60" />
-      <p className="text-black/40 text-[11px] tracking-wide mt-3">STEPS</p>
-      <p className="text-black text-lg font-bold">{activity.steps.toLocaleString()}</p>
-      <p className="text-black/30 text-[11px]">{activity.activeCalories} kcal</p>
     </Card>
   );
 }
@@ -2639,14 +2601,6 @@ function MessagesSheet({ open, onClose, user, thread, onSend }) {
 /* ============================================================================
    CHECK-INS
 ============================================================================ */
-
-function nextOccurrence(dayOfWeek, fromDate = new Date()) {
-  const d = new Date(fromDate);
-  const diff = (dayOfWeek - d.getDay() + 7) % 7;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
 
 function lastOccurrence(dayOfWeek, fromDate = new Date()) {
   const d = new Date(fromDate);

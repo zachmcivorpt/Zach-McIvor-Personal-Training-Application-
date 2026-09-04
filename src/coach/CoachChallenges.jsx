@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, Pill, Field, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, FullScreenOverlay, Avatar, BottomSheet } from "../components/ui";
+import { Card, Pill, Field, TextInput, TextArea, Select, SecondaryButton, DangerButton, FullScreenOverlay, Avatar, BottomSheet } from "../components/ui";
 import { CHALLENGE_METRICS, computeLeaderboard, challengeStatus } from "../lib/challengeMetrics";
 import { Trophy, Plus, ChevronLeft, Trash2, Users } from "lucide-react";
 

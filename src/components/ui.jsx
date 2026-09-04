@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { X, Check, Camera } from "lucide-react";
-import { SURFACE, SURFACE_RAISED, BORDER, TEXT_MUTED, ACCENT, ACCENT_INK, MEASURE_BLUE } from "../theme";
+import { SURFACE, SURFACE_RAISED, BORDER, ACCENT, MEASURE_BLUE } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE, TAGLINE_LOGO, TAGLINE_LOGO_BLACK } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
 

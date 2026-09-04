@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { TextInput, TextArea, Select } from "../components/ui";
-import { X, Plus, Trash2, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup } from "lucide-react";
+import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup } from "lucide-react";
 
 const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
 const REST_PRESETS = [30, 45, 60, 90, 120, 180, 240];

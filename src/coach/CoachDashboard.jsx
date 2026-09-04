@@ -116,7 +116,6 @@ export default function CoachDashboard({ onNavigate }) {
   const { db } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
-  const invited = clients.filter((c) => c.status === "invited");
   const todayKey = new Date().toISOString().slice(0, 10);
 
   // ---- smart segments ----

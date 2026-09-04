@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { newId } from "../lib/id";
-import { Card, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton, FullScreenOverlay } from "../components/ui";
+import { Card, Field, TextInput, TextArea, SecondaryButton, DangerButton, FullScreenOverlay } from "../components/ui";
 import { NotebookPen, Plus, ChevronLeft, ChevronUp, ChevronDown, Trash2, Type, Hash, Star, Camera, ListChecks, X, Download } from "lucide-react";
 import { CHECKIN_TEMPLATES } from "../lib/checkinTemplates";
 

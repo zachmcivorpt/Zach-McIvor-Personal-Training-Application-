@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
-import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar, BottomSheet } from "../components/ui";
+import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
 import { ThreadView } from "./CoachMessages";
 import { SendLoginSheet } from "./CoachClients";
@@ -236,7 +236,6 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
 }
 
 const CAL_WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const CAL_DAY_LABELS_SUN0 = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function dKey(d) {
   return d.toISOString().slice(0, 10);

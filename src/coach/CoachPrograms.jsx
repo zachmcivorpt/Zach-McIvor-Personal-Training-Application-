@@ -8,7 +8,6 @@ import {
   TextInput,
   TextArea,
   Select,
-  PrimaryButton,
   SecondaryButton,
   DangerButton,
   FullScreenOverlay,

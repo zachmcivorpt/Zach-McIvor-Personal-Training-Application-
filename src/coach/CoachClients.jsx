@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
-import { UserPlus, Search, Copy, RefreshCw, Mail, Send } from "lucide-react";
+import { UserPlus, Search, Copy, RefreshCw, Mail } from "lucide-react";
 
 export function inviteMailto({ email, name, username, code, coachName }) {
   const activateUrl = `${window.location.origin}/activate`;
