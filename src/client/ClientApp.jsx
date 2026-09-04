@@ -1415,15 +1415,21 @@ function SwipeableRow({ onDelete, children }) {
     startXRef.current = e.clientX;
     widthRef.current = rowRef.current?.offsetWidth || 300;
     setDragging(true);
+    // Without capture, a translating row can slide out from under a touch
+    // that hasn't moved on screen, firing a premature pointerleave that
+    // cancels the drag — capture keeps this element getting the events
+    // regardless of where the row itself has moved to.
+    e.currentTarget.setPointerCapture?.(e.pointerId);
   }
   function onPointerMove(e) {
     if (!dragging) return;
     const dx = e.clientX - startXRef.current;
     setDragX(Math.min(0, Math.max(dx, -widthRef.current)));
   }
-  function onPointerUp() {
+  function onPointerUp(e) {
     if (!dragging) return;
     setDragging(false);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
     if (dragX < -(widthRef.current * 0.35)) {
       setDragX(-widthRef.current);
       setTimeout(onDelete, 150);
@@ -1441,7 +1447,7 @@ function SwipeableRow({ onDelete, children }) {
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
+        onPointerCancel={onPointerUp}
         style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
         className="relative bg-white touch-pan-y select-none"
       >
