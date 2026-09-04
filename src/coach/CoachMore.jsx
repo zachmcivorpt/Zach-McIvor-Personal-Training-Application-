@@ -3,7 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { Card, DangerButton, AvatarPicker, Tagline, TextArea } from "../components/ui";
 import { fileToDataUrl } from "../lib/image";
 import { enablePush, disablePush } from "../lib/push";
-import { Video, LogOut, ChevronRight, MessageSquareText, Paperclip, X, Upload, BellRing } from "lucide-react";
+import { Video, LogOut, ChevronRight, MessageSquareText, Paperclip, X, Upload, BellRing, Download } from "lucide-react";
 
 function PushNotificationsCard({ userId, showToast }) {
   const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
@@ -202,8 +202,55 @@ function WelcomeMessageCard() {
   );
 }
 
+// A manual, on-demand safety net on top of Firebase's own backups — every
+// collection the coach can see, downloaded straight to their device as one
+// JSON file. Not meant to be re-imported; just a copy the coach physically
+// holds, independent of this app or Firebase staying online.
+function DataBackupCard({ db }) {
+  const [downloading, setDownloading] = useState(false);
+
+  function download() {
+    setDownloading(true);
+    try {
+      const payload = { exportedAt: new Date().toISOString(), ...db };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `zm-training-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+          <Download size={18} className="text-blue-500" />
+        </div>
+        <div className="flex-1">
+          <p className="text-black font-semibold text-sm">Download Data Backup</p>
+          <p className="text-black/40 text-xs mt-0.5">Every client, program and log as one JSON file, saved straight to this device</p>
+        </div>
+      </div>
+      <button
+        onClick={download}
+        disabled={downloading}
+        className="w-full mt-3 flex items-center justify-center gap-2 bg-black/5 border border-black/10 text-black text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50"
+      >
+        <Download size={14} /> {downloading ? "Preparing…" : "Download Backup"}
+      </button>
+    </Card>
+  );
+}
+
 export default function CoachMore({ onNavigate, onLogout, showToast }) {
-  const { currentUser, updateUser } = useApp();
+  const { currentUser, updateUser, db } = useApp();
 
   return (
     <div className="max-w-xl px-4 py-5 md:px-8 md:py-8 space-y-4">
@@ -227,6 +274,8 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
       <WelcomeMessageCard />
 
       {currentUser && <PushNotificationsCard userId={currentUser.id} showToast={showToast} />}
+
+      <DataBackupCard db={db} />
 
       <Card>
         <div className="flex items-center gap-4">
