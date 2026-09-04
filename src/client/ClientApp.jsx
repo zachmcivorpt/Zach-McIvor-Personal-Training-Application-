@@ -1205,7 +1205,9 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 
 function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, onNoteSave, swapInfo, onSwap, onStartRest, onOpenDetail }) {
   const [notesExpanded, setNotesExpanded] = useState(false);
+  const [noteStatus, setNoteStatus] = useState("idle"); // idle | saving | saved
   const noteSaveTimeout = useRef(null);
+  const noteStatusResetRef = useRef(null);
   const coachNote = exMeta.notes || "";
   const isLongNote = coachNote.length > 90;
 
@@ -1272,18 +1274,30 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             onChange={(e) => {
               const value = e.target.value;
               onNoteChange(value);
+              setNoteStatus("saving");
               if (noteSaveTimeout.current) clearTimeout(noteSaveTimeout.current);
-              noteSaveTimeout.current = setTimeout(() => onNoteSave?.(value), 500);
+              if (noteStatusResetRef.current) clearTimeout(noteStatusResetRef.current);
+              noteSaveTimeout.current = setTimeout(() => {
+                onNoteSave?.(value);
+                setNoteStatus("saved");
+                noteStatusResetRef.current = setTimeout(() => setNoteStatus("idle"), 1500);
+              }, 500);
             }}
             onBlur={() => {
               if (noteSaveTimeout.current) clearTimeout(noteSaveTimeout.current);
               onNoteSave?.(note);
+              setNoteStatus("saved");
+              if (noteStatusResetRef.current) clearTimeout(noteStatusResetRef.current);
+              noteStatusResetRef.current = setTimeout(() => setNoteStatus("idle"), 1500);
             }}
             placeholder="Add your own note on this exercise…"
             rows={2}
             autoFocus
             className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[13px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
           />
+          <p className="text-[11px] mt-1 px-0.5" style={{ color: noteStatus === "saved" ? "#16A34A" : "rgba(10,10,11,0.3)" }}>
+            {noteStatus === "saving" ? "Saving…" : noteStatus === "saved" ? "Saved ✓" : "Autosaves as you type"}
+          </p>
         </div>
       )}
 
