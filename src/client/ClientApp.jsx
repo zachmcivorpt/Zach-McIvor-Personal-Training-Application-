@@ -29,7 +29,6 @@ import {
   Send,
   MessageCircle,
   Clock,
-  MessageSquarePlus,
   ClipboardList,
   CalendarCheck,
   Star,
@@ -44,6 +43,7 @@ import {
   Trash2,
   BellRing,
   Calendar,
+  Hand,
 } from "lucide-react";
 import { enablePush, disablePush } from "../lib/push";
 import {
@@ -722,8 +722,8 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const isLongNote = coachNote.length > 90;
 
   return (
-    <div className="relative bg-[#F7F7F8] rounded-none p-4 pl-[18px] border-2 overflow-hidden" style={{ borderColor: BORDER_STRONG }}>
-      <span className="absolute left-0 top-0 bottom-0 w-1 bg-black" />
+    <div className="relative bg-white rounded-2xl p-4 pl-[18px] border border-black/10 overflow-hidden">
+      <span className="absolute left-0 top-0 bottom-0 w-1 rounded-full" style={{ background: MEASURE_BLUE }} />
       <div className="flex items-center gap-3">
         <ExerciseThumb exercise={exercise} size={56} />
         <div className="min-w-0 flex-1">
@@ -741,24 +741,22 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         </div>
         <button
           onClick={onSwap}
-          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-            swapInfo ? "bg-black text-white" : "bg-black/8 text-black/50"
-          }`}
+          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors"
+          style={swapInfo ? { background: MEASURE_BLUE, color: "#fff" } : { color: MEASURE_BLUE }}
         >
-          <Repeat size={14} />
+          <Repeat size={17} />
         </button>
         <button
           onClick={onToggleNote}
-          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-            noteOpen || note ? "bg-black text-white" : "bg-black/8 text-black/50"
-          }`}
+          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors"
+          style={noteOpen || note ? { background: MEASURE_BLUE, color: "#fff" } : { color: MEASURE_BLUE }}
         >
-          <MessageSquarePlus size={15} />
+          <ClipboardList size={17} />
         </button>
       </div>
 
       {swapInfo && (
-        <div className="mt-3 bg-black/[0.04] border border-black/15 rounded-none px-3.5 py-2.5">
+        <div className="mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5">
           <p className="text-black/70 text-[13px] leading-snug">
             <span className="font-semibold">Swapped from {swapInfo.fromName}.</span> {swapInfo.reason}
           </p>
@@ -766,11 +764,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       )}
 
       {coachNote && (
-        <div className="mt-3 bg-white border-2 border-black/15 rounded-none px-3.5 py-2.5">
-          <p className="text-black/40 text-[10px] font-bold tracking-wide mb-1">COACH'S NOTE</p>
-          <p className={`text-black/80 text-[13px] leading-snug ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
+        <div className="mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5 flex items-start gap-2">
+          <p className={`text-black/80 text-[13px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
           {isLongNote && (
-            <button onClick={() => setNotesExpanded((v) => !v)} className="text-[12px] font-bold mt-1 text-black">
+            <button
+              onClick={() => setNotesExpanded((v) => !v)}
+              className="text-[12px] font-semibold shrink-0"
+              style={{ color: MEASURE_BLUE }}
+            >
               {notesExpanded ? "See less" : "See more"}
             </button>
           )}
@@ -785,7 +786,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             placeholder="Add your own note on this exercise…"
             rows={2}
             autoFocus
-            className="w-full bg-white border border-black/15 rounded-none px-3.5 py-2.5 text-black text-[13px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
+            className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[13px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
           />
         </div>
       )}
@@ -793,27 +794,33 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       <button
         type="button"
         onClick={() => onStartRest(exMeta)}
-        className="mt-3 w-full flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.08] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"
+        className="mt-3 w-full flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"
       >
-        <Clock size={13} className="text-black/40 shrink-0" />
-        <span className="text-black/50 text-[12px] font-medium flex-1 text-left">Tap to start rest timer</span>
-        <span className="bg-white text-black/70 text-[12px] font-semibold px-2.5 py-1 rounded-full shrink-0">
+        <Hand size={14} style={{ color: MEASURE_BLUE }} className="shrink-0" />
+        <span className="text-[12px] font-medium flex-1 text-left" style={{ color: MEASURE_BLUE }}>
+          Tap to start rest timer
+        </span>
+        <span
+          className="bg-white border border-black/10 text-[12px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
+          style={{ color: MEASURE_BLUE }}
+        >
+          <Clock size={11} />
           {formatRest(exMeta.restSeconds ?? 90)}
         </span>
       </button>
 
       <div className="mt-3">
         <div className="grid grid-cols-[28px_1fr_60px_60px] gap-2 px-1 mb-1.5">
-          <span className="text-black/35 text-[11px] font-semibold">SET</span>
-          <span className="text-black/35 text-[11px] font-semibold">PREVIOUS</span>
-          <span className="text-black/35 text-[11px] font-semibold text-center">REPS</span>
-          <span className="text-black/35 text-[11px] font-semibold text-center">KG</span>
+          <span className="text-black/60 text-[12px] font-bold">Set</span>
+          <span className="text-black/60 text-[12px] font-bold">Previous</span>
+          <span className="text-black/60 text-[12px] font-bold text-center">Reps</span>
+          <span className="text-black/60 text-[12px] font-bold text-center">Kg</span>
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           return (
             <div key={i} className="grid grid-cols-[28px_1fr_60px_60px] gap-2 items-center px-1 py-1.5">
-              <span className="text-black/50 text-[13px] font-semibold">{i + 1}</span>
+              <span className="text-black text-[14px] font-medium">{i + 1}</span>
               <span className="text-black/40 text-[13px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</span>
               <input
                 type="number"
@@ -821,7 +828,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.reps}
                 onChange={(e) => onChangeField(i, "reps", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border-2 border-black/15 rounded-none text-center text-black text-[14px] font-bold py-2 outline-none focus:border-black"
+                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[14px] font-medium py-2 outline-none focus:border-black/40"
               />
               <input
                 type="number"
@@ -829,7 +836,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border-2 border-black/15 rounded-none text-center text-black text-[14px] font-bold py-2 outline-none focus:border-black"
+                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[14px] font-medium py-2 outline-none focus:border-black/40"
               />
             </div>
           );
