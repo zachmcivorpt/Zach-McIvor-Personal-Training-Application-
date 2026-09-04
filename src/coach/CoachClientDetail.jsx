@@ -1053,7 +1053,7 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit }) {
 }
 
 function TrainingProgramPanel({ client, showToast }) {
-  const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase } = useApp();
+  const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase, createProgram } = useApp();
   const phases = (db.clientPhases || {})[client.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const [selectedPhaseId, setSelectedPhaseId] = useState(() => getCurrentPhase(phases, todayKey())?.id || sorted[0]?.id || null);
@@ -1085,6 +1085,34 @@ function TrainingProgramPanel({ client, showToast }) {
       showToast("Phase duplicated and scheduled");
     }
     setDuplicating(null);
+  }
+
+  // Copies this client's phase into the reusable Master Programs library —
+  // a fresh program the coach can then edit and assign to any client,
+  // completely independent of the client's own copy from here on.
+  async function saveAsMasterProgram() {
+    if (!phase || days.length === 0) {
+      showToast("Add at least one workout to this phase first");
+      return;
+    }
+    try {
+      await createProgram({
+        name: phase.name,
+        level: phase.level || "Intermediate",
+        description: phase.description || "",
+        phases: [
+          {
+            id: `ph_${Date.now()}`,
+            name: "Phase 1",
+            durationWeeks: 4,
+            days: JSON.parse(JSON.stringify(days)),
+          },
+        ],
+      });
+      showToast("Saved to Master Programs — find it in Library");
+    } catch (err) {
+      showToast(err.message || "Couldn't save that to Master Programs");
+    }
   }
 
   function addWorkout() {
@@ -1217,6 +1245,13 @@ function TrainingProgramPanel({ client, showToast }) {
                 className="bg-transparent outline-none text-black text-xl font-bold flex-1 min-w-[140px]"
               />
               <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={saveAsMasterProgram}
+                  className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+                  title="Save this phase as a reusable Master Program"
+                >
+                  <Library size={13} /> Save to Library
+                </button>
                 <button
                   onClick={() => setDuplicating(phase)}
                   className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
