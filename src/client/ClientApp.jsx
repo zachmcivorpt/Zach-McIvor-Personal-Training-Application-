@@ -4072,7 +4072,7 @@ export default function ClientApp() {
             todaySession={todaySession}
             activeLog={activeLog}
             onStartWorkout={startWorkout}
-            onViewWorkout={() => openPreview(daySession, isToday)}
+            onViewWorkout={() => openPreview(daySession, isToday && !completedOnDate)}
             dayNutrition={dayNutrition}
             targets={targets}
             onLogFood={() => setTab("nutrition")}
@@ -4105,7 +4105,7 @@ export default function ClientApp() {
             activeLog={activeLog}
             completedOnDate={completedToday}
             onStart={startWorkout}
-            onViewWorkout={() => openPreview(todaySession, true)}
+            onViewWorkout={() => openPreview(todaySession, !completedToday)}
             onPreviewWorkout={(day) => openPreview(day, false)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
