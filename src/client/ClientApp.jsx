@@ -777,13 +777,13 @@ function CardioLogCard({ logs }) {
   return (
     <div className="mx-3 space-y-2">
       {logs.map((log) => (
-        <div key={log.id} className="flex items-center gap-3 bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
-            <Footprints size={17} className="text-orange-600" />
+        <div key={log.id} className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+            <Footprints size={17} className="text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-orange-900 text-sm font-semibold truncate">{log.cardio.activityLabel}</p>
-            <p className="text-orange-700/70 text-xs mt-0.5">
+            <p className="text-blue-900 text-sm font-semibold truncate">{log.cardio.activityLabel}</p>
+            <p className="text-blue-700/70 text-xs mt-0.5">
               {[
                 log.cardio.durationMin ? `${log.cardio.durationMin} min` : null,
                 log.cardio.distanceKm ? `${log.cardio.distanceKm} km` : null,
@@ -1317,10 +1317,26 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
+          const suggestion = suggestNextSet(prev, exMeta.targetReps);
           return (
             <div key={i} className="grid grid-cols-[28px_1fr_80px_60px] gap-2 items-center px-1 py-1.5">
               <span className="text-black text-[14px] font-medium">{i + 1}</span>
-              <span className="text-black/40 text-[13px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</span>
+              <div className="min-w-0">
+                <p className="text-black/40 text-[13px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
+                {suggestion && !row.weight && !row.reps && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChangeField(i, "weight", String(suggestion.weight));
+                      onChangeField(i, "reps", String(suggestion.reps));
+                    }}
+                    className="flex items-center gap-1 text-amber-600 text-[11px] font-semibold mt-0.5"
+                  >
+                    <TrendingUp size={11} className="shrink-0" />
+                    <span className="truncate">Try {suggestion.reps} × {suggestion.weight}kg</span>
+                  </button>
+                )}
+              </div>
               <input
                 type="number"
                 inputMode="numeric"
@@ -1439,7 +1455,6 @@ function WorkoutSession({
   onExit,
   onSaveNote,
 }) {
-  const [autoFill, setAutoFill] = useState(false);
   const [noteOpenFor, setNoteOpenFor] = useState(null);
   const [swapFor, setSwapFor] = useState(null); // the original exMeta currently being swapped
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
@@ -1548,31 +1563,6 @@ function WorkoutSession({
     setResting(true);
   }
 
-  function toggleAutoFill() {
-    setAutoFill((prevOn) => {
-      const next = !prevOn;
-      if (next) {
-        setActiveLog((log) => {
-          const updated = { ...log };
-          exercisesForSession.forEach((exMeta) => {
-            const prevSets = getPreviousSets(logsForClient, exMeta.exerciseId);
-            const arr = [...(updated[exMeta.exerciseId] || [])];
-            for (let i = 0; i < exMeta.targetSets; i++) {
-              if (!arr[i]) arr[i] = { setNumber: i + 1, weight: "", reps: "", completed: false };
-              const suggestion = suggestNextSet(prevSets[i], exMeta.targetReps);
-              if (suggestion && !arr[i].weight && !arr[i].reps) {
-                arr[i] = { ...arr[i], weight: suggestion.weight, reps: suggestion.reps };
-              }
-            }
-            updated[exMeta.exerciseId] = arr;
-          });
-          return updated;
-        });
-      }
-      return next;
-    });
-  }
-
   return (
     <FullScreenOverlay>
       <div className="fixed inset-0 z-[90] bg-white flex flex-col">
@@ -1587,19 +1577,6 @@ function WorkoutSession({
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 pb-28">
-          <div className="flex items-center justify-between bg-black/[0.03] rounded-2xl px-4 py-3 mx-2">
-            <div>
-              <span className="text-black/70 text-sm font-medium">Suggest progression</span>
-              <p className="text-black/35 text-[11px] mt-0.5">Fills empty sets with your next weight/reps based on last time</p>
-            </div>
-            <button
-              onClick={toggleAutoFill}
-              className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${autoFill ? "bg-black" : "bg-black/15"}`}
-            >
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoFill ? "left-[22px]" : "left-0.5"}`} />
-            </button>
-          </div>
-
           {sectionedExercises(exercisesForSession).map((group) => (
             <div key={group.key}>
               {group.showHeader && (
