@@ -1134,7 +1134,7 @@ function TrainingProgramPanel({ client, showToast }) {
     setLibraryPickerOpen(false);
   }
 
-  function saveWorkout(day) {
+  async function saveWorkout(day) {
     if (!phase) return;
     const nextDays = [...days];
     if (editingWorkout.dayIndex < nextDays.length) {
@@ -1142,15 +1142,27 @@ function TrainingProgramPanel({ client, showToast }) {
     } else {
       nextDays.push(day);
     }
-    updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
-    setEditingWorkout(null);
-    showToast("Workout saved");
+    try {
+      // Keep the editor open on its own local state until the write is
+      // actually confirmed — closing early (the old behavior) meant a
+      // failed save looked identical to a successful one and the workout
+      // just vanished next time the phase was opened.
+      await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+      setEditingWorkout(null);
+      showToast("Workout saved");
+    } catch (err) {
+      showToast("Couldn't save that workout — check your connection and try again");
+    }
   }
 
-  function deleteWorkout(i) {
+  async function deleteWorkout(i) {
     if (!phase) return;
     const nextDays = days.filter((_, idx) => idx !== i);
-    updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+    try {
+      await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+    } catch (err) {
+      showToast("Couldn't delete that workout — check your connection and try again");
+    }
   }
 
   return (

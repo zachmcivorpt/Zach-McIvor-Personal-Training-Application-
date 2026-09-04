@@ -24,6 +24,15 @@ import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 import { COACH_SETUP_CODE } from "./config";
 
+// Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
+// throw synchronously with "Unsupported field value: undefined"), and old
+// exercise rows saved before a field like restSeconds existed can still
+// carry one. A JSON round-trip drops every undefined recursively, so a
+// workout with a couple of legacy rows in it can't silently fail to save.
+function stripUndefined(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 const DEFAULT_HABIT_PRESETS = [
   { id: "hp_steps", label: "12,000 steps" },
   { id: "hp_mobility", label: "Do your Mobility" },
@@ -444,7 +453,7 @@ export function AppProvider({ children }) {
         const id = newDocId("programs");
         const program = { id, phases: [], ...data };
         try {
-          await setDoc(doc(firestore, "programs", id), program);
+          await setDoc(doc(firestore, "programs", id), stripUndefined(program));
         } catch (err) {
           throw new Error("Couldn't create that program — " + (err.message || "please try again."));
         }
@@ -452,7 +461,9 @@ export function AppProvider({ children }) {
       },
 
       updateProgram(id, data) {
-        updateDoc(doc(firestore, "programs", id), data).catch(console.error);
+        const promise = updateDoc(doc(firestore, "programs", id), stripUndefined(data));
+        promise.catch(console.error);
+        return promise;
       },
 
       deleteProgram(id) {
@@ -479,12 +490,18 @@ export function AppProvider({ children }) {
           createdAt: Date.now(),
           ...data,
         };
-        setDoc(doc(firestore, "clientPhases", id), phase).catch(console.error);
+        setDoc(doc(firestore, "clientPhases", id), stripUndefined(phase)).catch(console.error);
         return phase;
       },
 
+      // Returns the write's promise (in addition to logging any failure)
+      // so a caller that carries user-entered data — like the workout
+      // editor — can detect a failed save and keep it on screen instead of
+      // showing "Saved" and quietly losing it.
       updateClientPhase(clientId, phaseId, patch) {
-        updateDoc(doc(firestore, "clientPhases", phaseId), patch).catch(console.error);
+        const promise = updateDoc(doc(firestore, "clientPhases", phaseId), stripUndefined(patch));
+        promise.catch(console.error);
+        return promise;
       },
 
       deleteClientPhase(clientId, phaseId) {
@@ -497,7 +514,7 @@ export function AppProvider({ children }) {
         if (!src) return null;
         const id = newDocId("clientPhases");
         const cloned = { ...JSON.parse(JSON.stringify(src)), id, clientId, createdAt: Date.now(), ...overrides };
-        setDoc(doc(firestore, "clientPhases", id), cloned).catch(console.error);
+        setDoc(doc(firestore, "clientPhases", id), stripUndefined(cloned)).catch(console.error);
         return cloned;
       },
 
