@@ -1210,8 +1210,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const isLongNote = coachNote.length > 90;
 
   return (
-    <div className="relative pt-1 pb-5 pl-[18px] pr-1 border-b border-black/10 last:border-b-0">
-      <span className="absolute left-2 top-1 bottom-5 w-1 rounded-full" style={{ background: MEASURE_BLUE }} />
+    <div className="pt-1 pb-5 px-1 border-b border-black/10 last:border-b-0">
       <div className="flex items-center gap-3">
         <ExerciseThumb exercise={exercise} size={56} />
         <button type="button" onClick={() => onOpenDetail?.(exercise, exMeta)} className="min-w-0 flex-1 text-left">
