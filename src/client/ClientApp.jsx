@@ -47,8 +47,10 @@ import {
   Hand,
   Banana,
   ThermometerSun,
+  Video,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
+import { uploadMessageVideo } from "../lib/storage";
 import {
   LineChart,
   Line,
@@ -3446,6 +3448,9 @@ function CoachSheet({ open, onClose, ctx }) {
 
 function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const [input, setInput] = useState("");
+  const [uploadPct, setUploadPct] = useState(null);
+  const [uploadError, setUploadError] = useState("");
+  const videoInputRef = useRef(null);
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -3456,6 +3461,22 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
     if (!input.trim()) return;
     onSend(input);
     setInput("");
+  }
+
+  async function handleVideoFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError("");
+    setUploadPct(0);
+    try {
+      const attachment = await uploadMessageVideo(user.id, file, setUploadPct);
+      onSend("", attachment);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadPct(null);
+    }
   }
 
   return (
@@ -3474,16 +3495,20 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           <div key={m.id} className={`flex ${m.from === "client" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
               {m.text && <p className="whitespace-pre-line">{m.text}</p>}
-              {m.attachment && (
-                <a
-                  href={m.attachment.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${m.from === "client" ? "bg-white/15 text-white" : "bg-black/8 text-black"}`}
-                >
-                  <FileText size={14} className="shrink-0" />
-                  <span className="text-xs font-medium truncate">{m.attachment.name}</span>
-                </a>
+              {m.attachment && m.attachment.type === "video" ? (
+                <video src={m.attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />
+              ) : (
+                m.attachment && (
+                  <a
+                    href={m.attachment.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${m.from === "client" ? "bg-white/15 text-white" : "bg-black/8 text-black"}`}
+                  >
+                    <FileText size={14} className="shrink-0" />
+                    <span className="text-xs font-medium truncate">{m.attachment.name}</span>
+                  </a>
+                )
               )}
               <p className={`text-[10px] mt-1 ${m.from === "client" ? "text-white/40" : "text-black/30"}`}>
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
@@ -3493,7 +3518,24 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         ))}
         <div ref={endRef} />
       </div>
+      {uploadError && (
+        <div className="mb-2 flex items-center justify-between gap-2 bg-red-50 border border-red-100 text-red-700 text-xs px-3 py-2 rounded-lg">
+          <span>{uploadError}</span>
+          <button onClick={() => setUploadError("")} aria-label="Dismiss">
+            <X size={13} />
+          </button>
+        </div>
+      )}
       <div className="flex gap-2">
+        <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
+        <button
+          onClick={() => videoInputRef.current?.click()}
+          disabled={uploadPct !== null}
+          aria-label="Attach a form-check video"
+          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+        >
+          {uploadPct !== null ? <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span> : <Video size={17} />}
+        </button>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -4182,7 +4224,7 @@ export default function ClientApp() {
           onClose={() => setMessagesOpen(false)}
           user={currentUser}
           thread={thread}
-          onSend={(text) => sendMessage(currentUser.id, "client", text)}
+          onSend={(text, attachment) => sendMessage(currentUser.id, "client", text, attachment)}
           coachName={coachUser?.name}
         />
         <NotificationsCenterSheet open={notifOpen} onClose={() => setNotifOpen(false)} items={notificationItems} />

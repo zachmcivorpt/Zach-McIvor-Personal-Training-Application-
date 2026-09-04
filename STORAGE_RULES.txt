@@ -1,0 +1,69 @@
+Firebase Storage Security Rules — Zach McIvor Personal Training app
+======================================================================
+
+WHAT THIS IS
+------------
+This unlocks video messages (e.g. a client sending a form-check video to
+you). Everything else in the app still works without this — it only
+gates the new "attach a video" button in Messages.
+
+Firebase Storage was created in "production mode" (same as Firestore),
+which denies every read and write until you paste rules in. If Storage
+isn't enabled on your project yet at all, you'll need to turn it on
+first (see STEP 0).
+
+
+STEP 0 — ENABLE STORAGE (skip if you've already used it before)
+-------------------------------------------------------------------
+1. Go to https://console.firebase.google.com and open your project
+   (zach-mcivor-pt-app).
+2. In the left sidebar, click "Build" to expand it, then click
+   "Storage".
+3. Click "Get started" and follow the prompts (accept the default
+   location unless you have a reason not to). This requires the Blaze
+   plan — the same one you're already setting up for push
+   notifications, so if that's done, this is too.
+
+
+STEP 1 — APPLY THE RULES
+----------------------------
+1. Still in Storage, click the "Rules" tab along the top.
+2. Select everything in the editor box and delete it.
+3. Copy everything in the "RULES" section below (from "rules_version"
+   to the final closing brace) and paste it in.
+4. Click "Publish".
+
+Changes take effect within about a minute.
+
+
+HOW THIS IS DESIGNED
+---------------------
+- A client can only upload into their own folder (messageVideos/{their
+  own uid}/...) — never another client's.
+- You (the coach) can upload into any client's folder.
+- Any signed-in user (you or any client) can READ any video under
+  messageVideos/ — needed so the video actually plays back in the
+  message thread. Nobody signed out, and nobody outside your two-person
+  app, can access these.
+- Every upload is capped at 75MB and must actually be a video file
+  (checked by its content type) — rejects anything else before it's
+  even stored.
+
+
+RULES
+-----
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /messageVideos/{clientId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        (request.auth.uid == clientId ||
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "coach") &&
+        request.resource.size < 75 * 1024 * 1024 &&
+        request.resource.contentType.matches('video/.*');
+    }
+  }
+}

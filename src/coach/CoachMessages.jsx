@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { FullScreenOverlay, Avatar } from "../components/ui";
-import { Search, Send, ChevronLeft, MessageCircle, FileText } from "lucide-react";
+import { Search, Send, ChevronLeft, MessageCircle, FileText, Video, X } from "lucide-react";
+import { uploadMessageVideo } from "../lib/storage";
 
 function AttachmentPill({ attachment, tone = "light" }) {
   if (!attachment) return null;
+  if (attachment.type === "video") {
+    return <video src={attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />;
+  }
   return (
     <a
       href={attachment.url}
@@ -26,6 +30,9 @@ function AttachmentPill({ attachment, tone = "light" }) {
 function ThreadMessages({ client }) {
   const { db, sendMessage } = useApp();
   const [input, setInput] = useState("");
+  const [uploadPct, setUploadPct] = useState(null);
+  const [uploadError, setUploadError] = useState("");
+  const videoInputRef = useRef(null);
   const endRef = useRef(null);
   const thread = db.messages[client.id] || [];
 
@@ -37,6 +44,22 @@ function ThreadMessages({ client }) {
     if (!input.trim()) return;
     sendMessage(client.id, "coach", input);
     setInput("");
+  }
+
+  async function handleVideoFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError("");
+    setUploadPct(0);
+    try {
+      const attachment = await uploadMessageVideo(client.id, file, setUploadPct);
+      sendMessage(client.id, "coach", "", attachment);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadPct(null);
+    }
   }
 
   return (
@@ -57,7 +80,28 @@ function ThreadMessages({ client }) {
         <div ref={endRef} />
       </div>
 
+      {uploadError && (
+        <div className="mx-5 mb-2 flex items-center justify-between gap-2 bg-red-50 border border-red-100 text-red-700 text-xs px-3 py-2 rounded-lg">
+          <span>{uploadError}</span>
+          <button onClick={() => setUploadError("")} aria-label="Dismiss">
+            <X size={13} />
+          </button>
+        </div>
+      )}
       <div className="flex gap-2 px-5 pb-5 pt-2 border-t border-black/5">
+        <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
+        <button
+          onClick={() => videoInputRef.current?.click()}
+          disabled={uploadPct !== null}
+          aria-label="Attach a video"
+          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+        >
+          {uploadPct !== null ? (
+            <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span>
+          ) : (
+            <Video size={17} />
+          )}
+        </button>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
