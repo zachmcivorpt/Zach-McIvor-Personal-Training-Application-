@@ -178,13 +178,13 @@ export function Toast({ message, show }) {
    PRIMITIVES
 ============================================================================ */
 
-export function ProgressBar({ value, max, height = 8, dim = false }) {
+export function ProgressBar({ value, max, height = 8, dim = false, color }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
     <div className="w-full rounded-full bg-black/10" style={{ height }}>
       <div
         className="rounded-full transition-all duration-700 ease-out"
-        style={{ width: `${pct}%`, height, backgroundColor: dim ? "rgba(10,10,11,0.5)" : ACCENT }}
+        style={{ width: `${pct}%`, height, backgroundColor: color || (dim ? "rgba(10,10,11,0.5)" : ACCENT) }}
       />
     </div>
   );

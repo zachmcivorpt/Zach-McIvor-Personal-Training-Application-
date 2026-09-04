@@ -41,6 +41,7 @@ import {
   GlassWater,
   Droplets,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import {
   LineChart,
@@ -75,7 +76,7 @@ import {
   AvatarPicker,
   Tagline,
 } from "../components/ui";
-import { MEASURE_BLUE } from "../theme";
+import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
 import {
   computeWeeklyVolume,
   computeWorkoutsSeries,
@@ -279,7 +280,7 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
         <Utensils size={16} className="text-black/30" />
       </div>
       <div className="grid grid-cols-2 gap-4">
-        {items.map((it, i) => (
+        {items.map((it) => (
           <div key={it.label}>
             <div className="flex justify-between text-xs mb-1">
               <span className="text-black/40 tracking-wide">{it.label}</span>
@@ -288,7 +289,12 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater }) {
               {it.value}
               {it.unit} <span className="text-black/30 font-normal">/ {it.target}{it.unit}</span>
             </p>
-            <ProgressBar value={it.value} max={it.target} height={6} dim={i > 0} />
+            <ProgressBar
+              value={it.value}
+              max={it.target}
+              height={6}
+              color={it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE}
+            />
           </div>
         ))}
       </div>
@@ -1185,18 +1191,26 @@ function LogCardioSheet({ open, onClose, onSave }) {
   const [activityId, setActivityId] = useState("running");
   const [duration, setDuration] = useState(30);
   const [distance, setDistance] = useState(0);
+  const [caloriesBurned, setCaloriesBurned] = useState(0);
 
   useEffect(() => {
     if (open) {
       setActivityId("running");
       setDuration(30);
       setDistance(0);
+      setCaloriesBurned(0);
     }
   }, [open]);
 
   function save() {
     const activity = CARDIO_ACTIVITIES.find((a) => a.id === activityId);
-    onSave({ activityId, activityLabel: activity.label, durationMin: duration, distanceKm: distance });
+    onSave({
+      activityId,
+      activityLabel: activity.label,
+      durationMin: duration,
+      distanceKm: distance,
+      caloriesBurned: caloriesBurned > 0 ? caloriesBurned : null,
+    });
   }
 
   return (
@@ -1221,9 +1235,12 @@ function LogCardioSheet({ open, onClose, onSave }) {
         })}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-5">
+      <div className="grid grid-cols-2 gap-3 mb-3">
         <NumberStepper label="DURATION (MIN)" value={duration} setValue={setDuration} step={5} min={0} />
         <NumberStepper label="DISTANCE (KM)" value={distance} setValue={setDistance} step={0.5} min={0} />
+      </div>
+      <div className="mb-5">
+        <NumberStepper label="CALORIES BURNED (OPTIONAL)" value={caloriesBurned} setValue={setCaloriesBurned} step={25} min={0} />
       </div>
 
       <PrimaryButton className="w-full" disabled={duration <= 0} onClick={save}>
@@ -1321,6 +1338,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
                   {h.cardio ? (
                     <Pill tone="outline">
                       {h.cardio.durationMin}min{h.cardio.distanceKm > 0 ? ` · ${h.cardio.distanceKm}km` : ""}
+                      {h.cardio.caloriesBurned > 0 ? ` · ${h.cardio.caloriesBurned} kcal` : ""}
                     </Pill>
                   ) : (
                     <Pill tone="outline">{volume.toLocaleString()} kg</Pill>
@@ -1371,7 +1389,57 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
    NUTRITION TAB
 ============================================================================ */
 
-function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
+// Swipe (or drag) a row left past the threshold to delete it — reveals a red
+// trash affordance underneath as it moves. Works with touch and mouse alike
+// since it's built on pointer events.
+function SwipeableRow({ onDelete, children }) {
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startXRef = useRef(0);
+  const widthRef = useRef(0);
+  const rowRef = useRef(null);
+
+  function onPointerDown(e) {
+    startXRef.current = e.clientX;
+    widthRef.current = rowRef.current?.offsetWidth || 300;
+    setDragging(true);
+  }
+  function onPointerMove(e) {
+    if (!dragging) return;
+    const dx = e.clientX - startXRef.current;
+    setDragX(Math.min(0, Math.max(dx, -widthRef.current)));
+  }
+  function onPointerUp() {
+    if (!dragging) return;
+    setDragging(false);
+    if (dragX < -(widthRef.current * 0.35)) {
+      setDragX(-widthRef.current);
+      setTimeout(onDelete, 150);
+    } else {
+      setDragX(0);
+    }
+  }
+
+  return (
+    <div ref={rowRef} className="relative overflow-hidden rounded-lg">
+      <div className="absolute inset-0 bg-red-500 rounded-lg flex items-center justify-end pr-3">
+        <Trash2 size={14} className="text-white" />
+      </div>
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
+        className="relative bg-white touch-pan-y select-none"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
   const [waterSheetOpen, setWaterSheetOpen] = useState(false);
@@ -1426,7 +1494,11 @@ function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals
             <span className="text-black/40 text-sm">remaining of {targets.calories}</span>
           </div>
           <div className="mt-3">
-            <ProgressBar value={nutrition.calories} max={targets.calories} />
+            <ProgressBar
+              value={nutrition.calories}
+              max={targets.calories}
+              color={nutrition.calories >= targets.calories ? GOAL_GREEN : MEASURE_BLUE}
+            />
           </div>
           <div className="space-y-3 mt-4 pt-4 border-t border-black/5">
             {[
@@ -1441,7 +1513,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals
                     {m.v}g <span className="text-black/25">/ {m.t}g</span>
                   </span>
                 </div>
-                <ProgressBar value={m.v} max={m.t} height={6} />
+                <ProgressBar value={m.v} max={m.t} height={6} color={m.v >= m.t ? GOAL_GREEN : MEASURE_BLUE} />
               </div>
             ))}
           </div>
@@ -1514,16 +1586,19 @@ function NutritionScreen({ nutrition, targets, onAddFood, onAddWater, savedMeals
               ) : (
                 <div className="space-y-1.5 mb-2">
                   {items.map((f) => (
-                    <div key={f.id} className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2 text-black/70 min-w-0">
-                        {f.photoUrl && (
-                          <img src={f.photoUrl} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
-                        )}
-                        <span className="truncate">{f.name}</span>
-                      </span>
-                      <span className="text-black/40 shrink-0 ml-2">{f.cals} kcal</span>
-                    </div>
+                    <SwipeableRow key={f.id} onDelete={() => onRemoveFood(meal, f.id)}>
+                      <div className="flex items-center justify-between text-sm bg-white py-1">
+                        <span className="flex items-center gap-2 text-black/70 min-w-0">
+                          {f.photoUrl && (
+                            <img src={f.photoUrl} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
+                          )}
+                          <span className="truncate">{f.name}</span>
+                        </span>
+                        <span className="text-black/40 shrink-0 ml-2">{f.cals} kcal</span>
+                      </div>
+                    </SwipeableRow>
                   ))}
+                  <p className="text-black/25 text-[10px] text-center pt-0.5">Swipe an item left to remove it</p>
                 </div>
               )}
               <button
@@ -3033,6 +3108,24 @@ export default function ClientApp() {
     showToast(`${food.name} added to ${meal}`);
   }
 
+  function removeFood(meal, entryId) {
+    setNutrition(currentUser.id, (n) => {
+      const base = n || DEFAULT_NUTRITION;
+      const items = base.meals[meal] || [];
+      const entry = items.find((f) => f.id === entryId);
+      if (!entry) return base;
+      return {
+        ...base,
+        calories: Math.max(0, base.calories - entry.cals),
+        protein: Math.max(0, base.protein - entry.protein),
+        carbs: Math.max(0, base.carbs - entry.carbs),
+        fat: Math.max(0, base.fat - entry.fat),
+        meals: { ...base.meals, [meal]: items.filter((f) => f.id !== entryId) },
+      };
+    });
+    showToast("Entry removed");
+  }
+
   function addWater(liters) {
     setNutrition(currentUser.id, (n) => {
       const base = n || DEFAULT_NUTRITION;
@@ -3106,6 +3199,7 @@ export default function ClientApp() {
             nutrition={nutrition}
             targets={targets}
             onAddFood={addFood}
+            onRemoveFood={removeFood}
             onAddWater={addWater}
             savedMeals={savedMeals}
             onCreateSavedMeal={(meal) => createSavedMeal(currentUser.id, meal)}

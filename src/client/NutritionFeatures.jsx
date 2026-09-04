@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
-import { FOOD_DATABASE, scaleFood } from "../lib/foodDatabase";
+import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 
@@ -12,57 +12,105 @@ import { fileToCompressedDataUrl } from "../lib/image";
    picked from the database (main food log, photo-meal builder, saved meals).
 ============================================================================ */
 
+// A unit's display label, pluralised when the quantity isn't exactly 1 (g/ml
+// stay unpluralised — "150g", never "150gs").
+function unitLabel(unit, qty) {
+  if (unit.id === "g" || unit.id === "ml") return unit.label;
+  return qty === 1 ? unit.label : unit.pluralLabel || `${unit.label}s`;
+}
+
+function presetsFor(food, unit) {
+  if (unit.id === "g" || unit.id === "ml") {
+    const base = food.defaultQty || 100;
+    return [Math.round(base / 2), base, base * 2].filter((v, i, arr) => v > 0 && arr.indexOf(v) === i);
+  }
+  if (unit.id === "cup") return [0.5, 1, 1.5, 2];
+  return [1, 2, 3, 4];
+}
+
 export function FoodQuantitySheet({ food, onClose, onConfirm }) {
-  const [grams, setGrams] = useState(100);
+  const [unitId, setUnitId] = useState("g");
+  const [qty, setQty] = useState(100);
+
+  const units = food ? unitsFor(food) : [];
 
   useEffect(() => {
-    if (food) setGrams(food.defaultQty || 100);
+    if (food) {
+      setUnitId("g");
+      setQty(food.defaultQty || 100);
+    }
   }, [food]);
 
   if (!food) return null;
-  const scaled = scaleFood(food, grams);
+
+  const unit = units.find((u) => u.id === unitId) || UNIT_DEFS.g;
+  const step = unit.id === "g" || unit.id === "ml" ? 10 : unit.id === "cup" ? 0.25 : 1;
+  const presets = presetsFor(food, unit);
+  const scaled = scaleFoodByUnit(food, unitId, qty);
+
+  function selectUnit(id) {
+    setUnitId(id);
+    setQty(id === "g" || id === "ml" ? food.defaultQty || 100 : 1);
+  }
 
   return (
     <BottomSheet open={!!food} onClose={onClose} title={food.name}>
       <p className="text-black/40 text-xs text-center mb-4">How much did you have?</p>
+
+      {units.length > 1 && (
+        <div className="flex flex-wrap justify-center gap-1.5 mb-5">
+          {units.map((u) => (
+            <button
+              key={u.id}
+              onClick={() => selectUnit(u.id)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                unitId === u.id ? "bg-black text-white" : "bg-black/8 text-black/50"
+              }`}
+            >
+              {unitLabel(u, 2)}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-center gap-4 mb-5">
         <button
-          onClick={() => setGrams((g) => Math.max(0, g - 10))}
-          className="w-10 h-10 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+          onClick={() => setQty((q) => Math.max(0, Math.round((q - step) * 100) / 100))}
+          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0 active:scale-90 transition-transform"
         >
           <Minus size={16} />
         </button>
-        <div className="text-center">
+        <div className="text-center w-28">
           <input
             type="number"
-            value={grams}
-            onChange={(e) => setGrams(Math.max(0, +e.target.value))}
-            className="w-24 text-center text-3xl font-bold text-black outline-none bg-transparent"
+            step={step}
+            value={qty}
+            onChange={(e) => setQty(Math.max(0, +e.target.value))}
+            className="w-full text-center text-3xl font-bold text-black outline-none bg-transparent"
           />
-          <p className="text-black/40 text-xs mt-0.5 tracking-wide">GRAMS</p>
+          <p className="text-black/40 text-xs mt-0.5 tracking-wide uppercase">{unitLabel(unit, qty)}</p>
         </div>
         <button
-          onClick={() => setGrams((g) => g + 10)}
-          className="w-10 h-10 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+          onClick={() => setQty((q) => Math.round((q + step) * 100) / 100)}
+          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0 active:scale-90 transition-transform"
         >
           <Plus size={16} />
         </button>
       </div>
 
       <div className="flex flex-wrap justify-center gap-2 mb-5">
-        {[food.defaultQty, food.defaultQty * 2, Math.round(food.defaultQty / 2)]
-          .filter((v, i, arr) => v > 0 && arr.indexOf(v) === i)
-          .map((v) => (
-            <button
-              key={v}
-              onClick={() => setGrams(v)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold ${
-                grams === v ? "bg-black text-white" : "bg-black/8 text-black/60"
-              }`}
-            >
-              {v}g
-            </button>
-          ))}
+        {presets.map((v) => (
+          <button
+            key={v}
+            onClick={() => setQty(v)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold ${
+              qty === v ? "bg-black text-white" : "bg-black/8 text-black/60"
+            }`}
+          >
+            {v}
+            {unit.id === "g" || unit.id === "ml" ? unit.label : ` ${unitLabel(unit, v)}`}
+          </button>
+        ))}
       </div>
 
       <div className="bg-black/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mb-5">
@@ -79,7 +127,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm }) {
         ))}
       </div>
 
-      <PrimaryButton className="w-full" disabled={grams <= 0} onClick={() => onConfirm(scaled)}>
+      <PrimaryButton className="w-full" disabled={qty <= 0} onClick={() => onConfirm(scaled)}>
         <Check size={16} /> ADD
       </PrimaryButton>
     </BottomSheet>

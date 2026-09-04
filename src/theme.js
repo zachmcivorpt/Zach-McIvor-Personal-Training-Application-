@@ -42,3 +42,7 @@ export const STATE_MUTED = "rgba(10,10,11,0.3)";
 export const MEASURE_BLUE = "#2F8FFF";
 export const MEASURE_BLUE_SOFT = "rgba(47,143,255,0.16)";
 export const MEASURE_BLUE_FAINT = "rgba(47,143,255,0.35)";
+
+// Goal-reached green — used only where a bar needs to visibly flip on hitting
+// a target (nutrition calorie/macro bars), never as chrome.
+export const GOAL_GREEN = "#22C55E";
