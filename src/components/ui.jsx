@@ -1,10 +1,103 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
-import { X, Check, Camera } from "lucide-react";
+import { X, Check, Camera, Dumbbell, Video, Play } from "lucide-react";
 import { SURFACE, SURFACE_RAISED, BORDER, ACCENT, MEASURE_BLUE } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE, TAGLINE_LOGO, TAGLINE_LOGO_BLACK } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
+import { parseVideoUrl } from "../lib/video";
+
+// Full-screen video player — opened by tapping an ExerciseThumb that has a
+// video attached. Handles YouTube/Vimeo embeds and directly-hosted files
+// the same way the rest of the app's video parsing does.
+function VideoPlayerSheet({ exerciseName, videoUrl, onClose }) {
+  if (!videoUrl) return null;
+  const parsed = parseVideoUrl(videoUrl);
+  return (
+    <FullScreenOverlay>
+      <div className="fixed inset-0 z-[130] bg-black flex flex-col">
+        <div className="flex items-center justify-between px-4 pt-6 pb-3 shrink-0">
+          <span className="text-white font-semibold text-sm truncate pr-3">{exerciseName || "Exercise demo"}</span>
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white shrink-0">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 flex items-center justify-center px-2 pb-6">
+          {parsed.kind === "file" ? (
+            <video src={parsed.src} controls autoPlay playsInline className="w-full max-h-full rounded-lg" />
+          ) : (
+            <iframe
+              src={`${parsed.embedSrc}${parsed.embedSrc.includes("?") ? "&" : "?"}autoplay=1`}
+              title={exerciseName || "Exercise demo"}
+              className="w-full aspect-video rounded-lg"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          )}
+        </div>
+      </div>
+    </FullScreenOverlay>
+  );
+}
+
+// A small square preview for an exercise — shows the actual video (its
+// first frame for an uploaded file, YouTube's static thumbnail for a
+// YouTube link) so it's visually obvious a video is attached, rather than
+// a generic camera icon standing in for it, and tapping it opens a full
+// player. Falls back to a plain (non-interactive) dumbbell icon when there's
+// no video at all.
+export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl" }) {
+  const [playerOpen, setPlayerOpen] = useState(false);
+  const parsed = exercise?.videoUrl ? parseVideoUrl(exercise.videoUrl) : null;
+
+  const content = (
+    <>
+      {!parsed ? (
+        <Dumbbell size={Math.round(size * 0.4)} className="text-black/25" />
+      ) : parsed.kind === "file" ? (
+        <video src={parsed.src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+      ) : parsed.thumbnail ? (
+        <>
+          <img src={parsed.thumbnail} alt="" className="w-full h-full object-cover" />
+          <Play size={Math.round(size * 0.3)} className="absolute text-white drop-shadow" fill="white" />
+        </>
+      ) : (
+        <Video size={Math.round(size * 0.35)} className="text-black/30" />
+      )}
+    </>
+  );
+
+  if (!parsed) {
+    return (
+      <div
+        className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded}`}
+        style={{ width: size, height: size }}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setPlayerOpen(true);
+        }}
+        className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded}`}
+        style={{ width: size, height: size }}
+        aria-label={`Play demo video${exercise?.name ? ` for ${exercise.name}` : ""}`}
+      >
+        {content}
+      </button>
+      {playerOpen && (
+        <VideoPlayerSheet exerciseName={exercise?.name} videoUrl={exercise.videoUrl} onClose={() => setPlayerOpen(false)} />
+      )}
+    </>
+  );
+}
 
 /* ============================================================================
    BRAND

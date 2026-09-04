@@ -46,7 +46,6 @@ import {
   Hand,
   Banana,
   ThermometerSun,
-  Video,
 } from "lucide-react";
 import { enablePush, disablePush } from "../lib/push";
 import {
@@ -81,6 +80,7 @@ import {
   Avatar,
   AvatarPicker,
   Tagline,
+  ExerciseThumb,
 } from "../components/ui";
 import { MEASURE_BLUE, GOAL_GREEN, BORDER_STRONG } from "../theme";
 import {
@@ -97,7 +97,6 @@ import {
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
-import { parseVideoUrl } from "../lib/video";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
 
@@ -607,29 +606,6 @@ function HomeScreen({
 /* ============================================================================
    WORKOUT PREVIEW + SESSION FLOW
 ============================================================================ */
-
-function ExerciseThumb({ exercise, size = 56 }) {
-  const parsed = exercise?.videoUrl ? parseVideoUrl(exercise.videoUrl) : null;
-  return (
-    <div
-      className="relative rounded-2xl bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center"
-      style={{ width: size, height: size }}
-    >
-      {!parsed ? (
-        <Dumbbell size={Math.round(size * 0.4)} className="text-black/25" />
-      ) : parsed.kind === "file" ? (
-        <video src={parsed.src} muted className="w-full h-full object-cover" />
-      ) : parsed.thumbnail ? (
-        <>
-          <img src={parsed.thumbnail} alt="" className="w-full h-full object-cover" />
-          <Play size={Math.round(size * 0.3)} className="absolute text-white drop-shadow" fill="white" />
-        </>
-      ) : (
-        <Video size={Math.round(size * 0.35)} className="text-black/30" />
-      )}
-    </div>
-  );
-}
 
 function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClose }) {
   const equipment = useMemo(() => {

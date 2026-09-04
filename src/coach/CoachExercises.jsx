@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, Pill, BottomSheet, Field, TextInput, TextArea, Select, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
-import { Plus, Video, Upload, Search, Trash2, Dumbbell, Download } from "lucide-react";
+import { Card, Pill, BottomSheet, Field, TextInput, TextArea, Select, PrimaryButton, DangerButton, SecondaryButton, ExerciseThumb } from "../components/ui";
+import { Plus, Upload, Search, Trash2, Download } from "lucide-react";
 import { SEED_EXERCISES } from "../lib/seed";
 import { parseVideoUrl } from "../lib/video";
 
@@ -262,9 +262,7 @@ export default function CoachExercises({ showToast, compact = false }) {
         {filtered.map((ex) => (
           <Card key={ex.id} onClick={() => setEditing(ex)}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-black/8 flex items-center justify-center shrink-0">
-                {ex.videoUrl ? <Video size={16} className="text-black/60" /> : <Dumbbell size={16} className="text-black/40" />}
-              </div>
+              <ExerciseThumb exercise={ex} size={40} rounded="rounded-xl" />
               <div className="flex-1 min-w-0">
                 <p className="text-black font-semibold text-sm truncate">{ex.name}</p>
                 <p className="text-black/40 text-xs truncate mt-0.5">

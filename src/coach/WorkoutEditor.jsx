@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { TextInput, TextArea, Select } from "../components/ui";
-import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup, Edit3 } from "lucide-react";
+import { TextInput, TextArea, Select, ExerciseThumb } from "../components/ui";
+import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup, Edit3, Play } from "lucide-react";
 import { ExerciseSheet } from "./CoachExercises";
+import { parseVideoUrl } from "../lib/video";
 
 const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
 const REST_PRESETS = [30, 45, 60, 90, 120, 180, 240];
@@ -299,9 +300,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                 <GripVertical size={16} />
                               </div>
                             )}
-                            <div className="w-9 h-9 rounded-lg bg-black/8 flex items-center justify-center shrink-0">
-                              {ex?.videoUrl ? <Video size={15} className="text-black/60" /> : <Dumbbell size={15} className="text-black/40" />}
-                            </div>
+                            <ExerciseThumb exercise={ex} size={36} rounded="rounded-lg" />
                             <div className="flex-1 min-w-0">
                               <p className="text-black font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
                               {ex && <p className="text-black/35 text-[11px] truncate">{ex.equipment} · {ex.category}</p>}
@@ -494,8 +493,23 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
             {filtered.map((ex) => (
               <div key={ex.id} className="relative bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl p-3 transition-colors">
                 <button type="button" onClick={() => addExercise(ex.id)} className="w-full text-left">
-                  <div className="w-full aspect-square rounded-lg bg-black/8 flex items-center justify-center mb-2">
-                    {ex.videoUrl ? <Video size={20} className="text-black/50" /> : <Dumbbell size={20} className="text-black/35" />}
+                  <div className="relative w-full aspect-square rounded-lg bg-black/8 overflow-hidden flex items-center justify-center mb-2">
+                    {(() => {
+                      const parsed = ex.videoUrl ? parseVideoUrl(ex.videoUrl) : null;
+                      if (!parsed) return <Dumbbell size={20} className="text-black/35" />;
+                      if (parsed.kind === "file") {
+                        return <video src={parsed.src} muted playsInline preload="metadata" className="w-full h-full object-cover" />;
+                      }
+                      if (parsed.thumbnail) {
+                        return (
+                          <>
+                            <img src={parsed.thumbnail} alt="" className="w-full h-full object-cover" />
+                            <Play size={18} className="absolute text-white drop-shadow" fill="white" />
+                          </>
+                        );
+                      }
+                      return <Video size={20} className="text-black/50" />;
+                    })()}
                   </div>
                   <p className="text-black text-xs font-semibold leading-tight line-clamp-2 pr-5">{ex.name}</p>
                   <p className="text-black/35 text-[10px] mt-0.5">{ex.equipment}</p>
