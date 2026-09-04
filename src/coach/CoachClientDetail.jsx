@@ -1403,6 +1403,15 @@ function TrainingProgramPanel({ client, showToast }) {
                     <span
                       onClick={(e) => {
                         e.stopPropagation();
+                        setSchedulingDay(d);
+                      }}
+                      className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors shrink-0"
+                    >
+                      <CalendarPlus size={13} /> Schedule
+                    </span>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
                         deleteWorkout(i);
                       }}
                       className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60 shrink-0"
