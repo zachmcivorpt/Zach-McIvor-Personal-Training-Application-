@@ -395,7 +395,14 @@ export function AppProvider({ children }) {
       // their login details.
       async sendPasswordReset(email) {
         try {
-          await sendPasswordResetEmail(auth, email);
+          // After the client sets a new password on Firebase's reset page,
+          // this is the "Continue" link back into the app it shows them —
+          // without it they'd be left on a bare Firebase page with nowhere
+          // to go next.
+          await sendPasswordResetEmail(auth, email, {
+            url: `${window.location.origin}/login`,
+            handleCodeInApp: false,
+          });
         } catch (err) {
           throw new Error("Couldn't send that reset email — " + (err.message || "please try again."));
         }
