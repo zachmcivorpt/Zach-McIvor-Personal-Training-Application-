@@ -2877,7 +2877,7 @@ const CLIENT_NAV = [
 ];
 
 export default function CoachClientDetail({ clientId, onClose, showToast }) {
-  const { db, removeClient } = useApp();
+  const { db, removeClient, startViewAsClient } = useApp();
   const [clientTab, setClientTab] = useState("summary");
   const [messaging, setMessaging] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
@@ -2911,6 +2911,15 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
               className="w-full mt-3 flex items-center justify-center gap-2 bg-black text-white text-sm font-bold py-2.5 rounded-xl"
             >
               <Send size={15} /> Send Login Details
+            </button>
+          )}
+          {client.status === "active" && (
+            <button
+              onClick={() => startViewAsClient(client.id)}
+              className="w-full mt-2 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              title="Browse and act in the app exactly as this client"
+            >
+              <Repeat size={15} /> View as Client
             </button>
           )}
         </div>
@@ -2977,12 +2986,22 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
             <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
           </div>
           {client.status === "active" ? (
-            <button
-              onClick={() => setMessaging(true)}
-              className="w-9 h-9 rounded-full bg-black/8 flex items-center justify-center shrink-0"
-            >
-              <MessageCircle size={15} className="text-black/70" />
-            </button>
+            <>
+              <button
+                onClick={() => startViewAsClient(client.id)}
+                aria-label="View as client"
+                title="Browse and act in the app exactly as this client"
+                className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0"
+              >
+                <Repeat size={15} className="text-blue-700" />
+              </button>
+              <button
+                onClick={() => setMessaging(true)}
+                className="w-9 h-9 rounded-full bg-black/8 flex items-center justify-center shrink-0"
+              >
+                <MessageCircle size={15} className="text-black/70" />
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setSendOpen(true)}

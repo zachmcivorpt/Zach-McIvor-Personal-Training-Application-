@@ -279,7 +279,15 @@ export function AppProvider({ children }) {
     };
   }, [raw, role, profile]);
 
-  const currentUser = profile;
+  // "View as Client" — lets a coach browse/act inside the client app exactly
+  // as one of their clients would (e.g. logging an in-person session for
+  // them), without a second Firebase sign-in. The real auth session stays
+  // the coach's the whole time — role/db above are still driven by
+  // `profile`, so every client's data stays loaded — this only swaps which
+  // user doc the rest of the app treats as "you".
+  const [viewAsClientId, setViewAsClientId] = useState(null);
+  const currentUser =
+    viewAsClientId && profile?.role === "coach" ? (db.users || []).find((u) => u.id === viewAsClientId) || profile : profile;
   const session = authUser ? { userId: authUser.uid } : null;
   const hasCoach = !!raw.appMeta?.hasCoach;
   const authReady = authUser !== undefined;
@@ -297,6 +305,7 @@ export function AppProvider({ children }) {
       },
 
       async logout() {
+        setViewAsClientId(null);
         await signOut(auth);
       },
 
@@ -907,7 +916,18 @@ export function AppProvider({ children }) {
     [db, raw, hasCoach]
   );
 
-  const value = { db, session, currentUser, hasCoach, authReady, ...actions };
+  const value = {
+    db,
+    session,
+    currentUser,
+    realUser: profile,
+    viewingAsClient: !!viewAsClientId,
+    startViewAsClient: (clientId) => setViewAsClientId(clientId),
+    stopViewAsClient: () => setViewAsClientId(null),
+    hasCoach,
+    authReady,
+    ...actions,
+  };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }
 

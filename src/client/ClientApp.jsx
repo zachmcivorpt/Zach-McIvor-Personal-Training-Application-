@@ -3424,6 +3424,8 @@ export default function ClientApp() {
     updateUser,
     logWeight,
     saveExerciseNote,
+    viewingAsClient,
+    stopViewAsClient,
   } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
@@ -3643,6 +3645,13 @@ export default function ClientApp() {
   }
 
   function doLogout() {
+    // If a coach is browsing as this client, "log out" here must only end
+    // the impersonation — actually signing out would kill their own real
+    // session too.
+    if (viewingAsClient) {
+      stopViewAsClient();
+      return;
+    }
     logout();
     navigate("/login", { replace: true });
   }
@@ -3655,6 +3664,14 @@ export default function ClientApp() {
   return (
     <div className="w-full h-full min-h-screen bg-white font-sans flex justify-center">
       <div className="w-full max-w-md relative">
+        {viewingAsClient && (
+          <div className="sticky top-0 z-[70] bg-blue-600 text-white flex items-center justify-between gap-2 px-4 py-2 pt-safe">
+            <span className="text-xs font-semibold truncate">Viewing as {currentUser.name}</span>
+            <button onClick={stopViewAsClient} className="flex items-center gap-1 bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-2.5 py-1 rounded-lg shrink-0">
+              <ChevronLeft size={12} /> Exit
+            </button>
+          </div>
+        )}
         <BrandBar />
         {tab === "home" && (
           <HomeScreen
