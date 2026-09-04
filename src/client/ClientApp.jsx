@@ -3778,18 +3778,22 @@ export default function ClientApp() {
         )}
 
         {coachUser && (
-          <button
-            onClick={openMessages}
-            className="fixed left-4 bottom-[92px] z-[55] w-14 h-14 rounded-full shadow-lg ring-2 ring-white overflow-hidden"
-            aria-label={`Message ${coachUser.name}`}
-          >
-            <Avatar name={coachUser.name} url={coachUser.avatarUrl} size={56} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[19px] h-[19px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
-                {unreadCount}
-              </span>
-            )}
-          </button>
+          <div className="fixed bottom-[92px] left-0 right-0 z-[55] flex justify-center pointer-events-none">
+            <div className="w-full max-w-md relative">
+              <button
+                onClick={openMessages}
+                className="pointer-events-auto absolute left-4 bottom-0 w-14 h-14 rounded-full shadow-lg ring-2 ring-white overflow-hidden"
+                aria-label={`Message ${coachUser.name}`}
+              >
+                <Avatar name={coachUser.name} url={coachUser.avatarUrl} size={56} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[19px] h-[19px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
         )}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
