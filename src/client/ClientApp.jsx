@@ -3452,6 +3452,7 @@ export default function ClientApp() {
   const photos = db.progressPhotos[currentUser.id] || [];
   const weighIns = (db.weighIns || {})[currentUser.id] || [];
   const unreadCount = Math.max(0, thread.filter((m) => m.from === "coach").length - seenMessageCount);
+  const coachUser = db.users.find((u) => u.role === "coach");
   const checkInResponses = (db.formResponses || {})[currentUser.id] || [];
   const dueCheckInsCount = ((db.formSchedules || {})[currentUser.id] || []).filter(
     (s) => s.active && isCheckInDue(s, checkInResponses)
@@ -3477,7 +3478,7 @@ export default function ClientApp() {
   const nutrition = nutritionByDateKey[todayDateKey] || DEFAULT_NUTRITION;
   const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
   const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
-  const habits = (db.habits || {})[currentUser.id] || [];
+  const habits = ((db.habits || {})[currentUser.id] || []).filter((h) => !h.endsAt || h.endsAt >= Date.now());
   const todayKey = todayDateKey;
   const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
   const bodyStatsDueToday = bodyStatsSchedulesForClient.some((s) => s.date === todayDateKey) && !weighIns.some((w) => new Date(w.date).toISOString().slice(0, 10) === todayDateKey);
@@ -3743,6 +3744,21 @@ export default function ClientApp() {
             notifCount={notificationItems.length}
             showToast={showToast}
           />
+        )}
+
+        {coachUser && (
+          <button
+            onClick={openMessages}
+            className="fixed left-4 bottom-[92px] z-[55] w-14 h-14 rounded-full shadow-lg ring-2 ring-white overflow-hidden"
+            aria-label={`Message ${coachUser.name}`}
+          >
+            <Avatar name={coachUser.name} url={coachUser.avatarUrl} size={56} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[19px] h-[19px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">
+                {unreadCount}
+              </span>
+            )}
+          </button>
         )}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">

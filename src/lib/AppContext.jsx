@@ -731,9 +731,17 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "savedMeals", mealId)).catch(console.error);
       },
 
-      addHabit(clientId, label) {
+      addHabit(clientId, label, durationWeeks) {
         const id = newDocId("habits");
-        const habit = { id, clientId, label: label.trim(), createdAt: Date.now() };
+        const weeks = Number(durationWeeks) || null;
+        const habit = {
+          id,
+          clientId,
+          label: label.trim(),
+          createdAt: Date.now(),
+          durationWeeks: weeks,
+          endsAt: weeks ? Date.now() + weeks * 7 * 86400000 : null,
+        };
         setDoc(doc(firestore, "habits", id), habit).catch(console.error);
         return habit;
       },

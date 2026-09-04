@@ -1630,18 +1630,30 @@ function TrainingProgramPanel({ client, showToast }) {
   );
 }
 
+const HABIT_DURATION_OPTIONS = [
+  { label: "No limit", weeks: null },
+  { label: "1 week", weeks: 1 },
+  { label: "2 weeks", weeks: 2 },
+  { label: "4 weeks", weeks: 4 },
+  { label: "10 weeks", weeks: 10 },
+  { label: "50 weeks", weeks: 50 },
+];
+
 function HabitsPanel({ client }) {
   const { db, addHabit, removeHabit } = useApp();
   const [label, setLabel] = useState("");
+  const [durationWeeks, setDurationWeeks] = useState(null);
   const habits = (db.habits || {})[client.id] || [];
   const existingLabels = new Set(habits.map((h) => h.label.toLowerCase()));
   const presets = (db.habitPresets || []).map((p) => p.label);
+  const now = Date.now();
 
   function submit(e) {
     e.preventDefault();
     if (!label.trim()) return;
-    addHabit(client.id, label);
+    addHabit(client.id, label, durationWeeks);
     setLabel("");
+    setDurationWeeks(null);
   }
 
   return (
@@ -1649,21 +1661,48 @@ function HabitsPanel({ client }) {
       <p className="text-black font-semibold mb-4">Daily Habits</p>
       {habits.length > 0 && (
         <div className="space-y-1.5 mb-4">
-          {habits.map((h) => (
-            <div key={h.id} className="flex items-center justify-between bg-black/5 rounded-xl px-3.5 py-2.5">
-              <span className="text-black text-sm">{h.label}</span>
-              <button onClick={() => removeHabit(client.id, h.id)} className="w-7 h-7 flex items-center justify-center text-black/30">
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
+          {habits.map((h) => {
+            const expired = h.endsAt && h.endsAt < now;
+            const daysLeft = h.endsAt ? Math.max(0, Math.ceil((h.endsAt - now) / 86400000)) : null;
+            return (
+              <div key={h.id} className="flex items-center justify-between bg-black/5 rounded-xl px-3.5 py-2.5">
+                <div className="min-w-0">
+                  <span className="text-black text-sm">{h.label}</span>
+                  {h.endsAt && (
+                    <p className={`text-[11px] mt-0.5 ${expired ? "text-red-500 font-medium" : "text-black/35"}`}>
+                      {expired ? "Ended" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}
+                    </p>
+                  )}
+                </div>
+                <button onClick={() => removeHabit(client.id, h.id)} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
-      <form onSubmit={submit} className="flex gap-2 mb-3">
-        <TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Stretch for 10 minutes" className="flex-1" />
-        <button type="submit" className="w-11 h-11 shrink-0 rounded-xl bg-black text-white flex items-center justify-center">
-          <Plus size={18} />
-        </button>
+      <form onSubmit={submit} className="space-y-2 mb-3">
+        <div className="flex gap-2">
+          <TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Stretch for 10 minutes" className="flex-1" />
+          <button type="submit" className="w-11 h-11 shrink-0 rounded-xl bg-black text-white flex items-center justify-center">
+            <Plus size={18} />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {HABIT_DURATION_OPTIONS.map((opt) => (
+            <button
+              key={opt.label}
+              type="button"
+              onClick={() => setDurationWeeks(opt.weeks)}
+              className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-full ${
+                durationWeeks === opt.weeks ? "bg-black text-white" : "bg-black/8 text-black/50"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </form>
       <div className="flex flex-wrap gap-1.5">
         {presets.filter((p) => !existingLabels.has(p.toLowerCase())).map((preset) => (
