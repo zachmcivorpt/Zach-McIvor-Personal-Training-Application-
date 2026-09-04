@@ -20,9 +20,9 @@ function ex(exerciseId, targetSets, targetReps, targetRIR = 2, notes = "") {
 }
 
 const PHASES = [
-  { id: "w1", label: "Week 1-4: Stabilisation & Body Recomposition Phase", kind: "stabilisation" },
-  { id: "w2", label: "Week 5-8: Hypertrophy & Body Recomposition Phase", kind: "hypertrophy" },
-  { id: "w3", label: "Week 9-12: Strength Phase", kind: "strength" },
+  { id: "ph1", name: "Stabilisation & Body Recomposition Phase", durationWeeks: 4, kind: "stabilisation" },
+  { id: "ph2", name: "Hypertrophy & Body Recomposition Phase", durationWeeks: 4, kind: "hypertrophy" },
+  { id: "ph3", name: "Strength Phase", durationWeeks: 4, kind: "strength" },
 ];
 
 // Timed/carry-style entries are authored with targetReps: 1 (the real
@@ -52,10 +52,11 @@ function scaleDay(day, kind) {
 }
 
 // Takes the hypertrophy-baseline days and produces the full 3-phase block.
-function periodisedWeeks(days) {
+function periodisedPhases(days) {
   return PHASES.map((phase) => ({
     id: phase.id,
-    label: phase.label,
+    name: phase.name,
+    durationWeeks: phase.durationWeeks,
     days: days.map((day) => scaleDay(day, phase.kind)),
   }));
 }
@@ -65,7 +66,7 @@ export const STARTER_PROGRAMS = [
     name: "5-Day Push/Pull/Lower/Upper Training System",
     level: "Intermediate",
     description: "Classic 5-day PPLUL rotation — push, pull, legs, then a second upper/lower pass for extra frequency. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Push Day", ["Chest", "Shoulders", "Triceps"], [
         ex("ex_bench-press", 4, 6, 2, "Top set heavy, back-off sets at the same weight."),
         ex("ex_incline-dumbbell-press", 3, 10, 2),
@@ -108,7 +109,7 @@ export const STARTER_PROGRAMS = [
     name: "5-Day Comprehensive Hypertrophy Split",
     level: "Intermediate",
     description: "Traditional body-part split for maximum per-muscle volume and mind-muscle focus. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Chest", ["Chest", "Triceps"], [
         ex("ex_bench-press", 4, 8, 2),
         ex("ex_incline-dumbbell-press", 4, 10, 2),
@@ -153,7 +154,7 @@ export const STARTER_PROGRAMS = [
     name: "5-Day Structured Resistance Training Program",
     level: "Intermediate",
     description: "Power days early in the week for heavy compounds, hypertrophy days later for volume and finish work. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Upper Power", ["Chest", "Back", "Shoulders"], [
         ex("ex_bench-press", 5, 5, 2, "Heavy, controlled — build to a top set."),
         ex("ex_bent-over-bb-row", 5, 5, 2),
@@ -193,7 +194,7 @@ export const STARTER_PROGRAMS = [
     name: "5-Day Upper-Body Emphasis Training Split",
     level: "Intermediate",
     description: "Four upper-body sessions and one dedicated leg day for clients prioritising upper-body size and strength. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Chest & Triceps", ["Chest", "Triceps"], [
         ex("ex_bench-press", 4, 8, 2),
         ex("ex_incline-dumbbell-press", 3, 10, 2),
@@ -235,7 +236,7 @@ export const STARTER_PROGRAMS = [
     name: "5-Day Progressive Strength & Hypertrophy Program",
     level: "Advanced",
     description: "Powerbuilding split — one heavy main lift per day, backed by hypertrophy accessory work. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Squat Day", ["Legs", "Core"], [
         ex("ex_squat", 5, 5, 2, "Build to a heavy top set for the week."),
         ex("ex_leg-press", 3, 10, 1),
@@ -273,7 +274,7 @@ export const STARTER_PROGRAMS = [
     name: "5-Day Comprehensive Development Program",
     level: "Intermediate",
     description: "Two full-body sessions bookend a push/pull/legs middle for balanced strength and size development. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Full Body A", ["Legs", "Chest", "Back"], [
         ex("ex_squat", 4, 6, 2),
         ex("ex_bench-press", 3, 8, 2),
@@ -310,7 +311,7 @@ export const STARTER_PROGRAMS = [
     name: "5-Day Push/Pull/Lower/Core/Upper Protocol",
     level: "Intermediate",
     description: "A push/pull/lower base with a dedicated core & conditioning day and a finishing upper session. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Push Day", ["Chest", "Shoulders", "Triceps"], [
         ex("ex_bench-press", 4, 8, 2),
         ex("ex_db-shoulder-press", 3, 10, 2),
@@ -349,7 +350,7 @@ export const STARTER_PROGRAMS = [
     name: "5-Day Periodised Resistance Training Split",
     level: "Advanced",
     description: "Heavy strength days early in the week, hypertrophy volume mid-week, lighter accessory/conditioning to close it out. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Heavy Lower (Strength)", ["Legs"], [
         ex("ex_squat", 5, 5, 1, "Heavy — 1-2 reps left in the tank."),
         ex("ex_romanian-deadlift", 4, 6, 2),
@@ -385,7 +386,7 @@ export const STARTER_PROGRAMS = [
     name: "3-Day Push/Pull/Legs Training System",
     level: "Beginner",
     description: "The classic 3-day PPL rotation — a great starting split for clients training three times a week. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Push Day", ["Chest", "Shoulders", "Triceps"], [
         ex("ex_bench-press", 4, 8, 2),
         ex("ex_incline-dumbbell-press", 3, 10, 2),
@@ -412,7 +413,7 @@ export const STARTER_PROGRAMS = [
     name: "3-Day Full-Body Strength Program",
     level: "Intermediate",
     description: "Three full-body sessions built around the big compound lifts, rotating emphasis each day. Periodised across a 12-week block.",
-    weeks: periodisedWeeks([
+    phases: periodisedPhases([
       d("Full Body A — Squat Focus", ["Legs", "Chest", "Back"], [
         ex("ex_squat", 4, 6, 2),
         ex("ex_bench-press", 3, 8, 2),

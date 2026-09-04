@@ -646,10 +646,11 @@ export const SEED_PROGRAMS = [
     name: "Push / Pull / Legs",
     level: "Intermediate",
     description: "Classic 3-day split rotating push, pull and leg sessions for balanced hypertrophy and strength.",
-    weeks: [
+    phases: [
       {
-        id: "w1",
-        label: "Week 1",
+        id: "ph1",
+        name: "Phase 1",
+        durationWeeks: 4,
         days: [
           day("Push Day", ["Chest", "Shoulders", "Triceps"], [
             { exerciseId: "ex_bench-press", targetSets: 4, targetReps: 8, targetRIR: 2, notes: "Controlled 3-second eccentric, touch and go." },

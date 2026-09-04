@@ -663,7 +663,8 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                     <div className="min-w-0 flex-1">
                       <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
                       <p className="text-black/45 text-[13px] mt-0.5">
-                        {e.targetSets} sets × {e.targetReps} reps, {formatRest(e.restSeconds ?? 90)} rest between sets
+                        {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} reps`}, {formatRest(e.restSeconds ?? 90)} rest between
+                        sets
                       </p>
                     </div>
                     {e.notes && <ClipboardList size={16} style={{ color: MEASURE_BLUE }} className="shrink-0" />}
@@ -734,7 +735,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             )}
           </div>
           <p className="text-black/45 text-[13px] mt-0.5">
-            {exMeta.targetSets} sets × {exMeta.targetReps} reps
+            {exMeta.targetSets} sets × {exMeta.targetReps === "AMRAP" ? "AMRAP" : `${exMeta.targetReps} reps`}
           </p>
         </div>
         <button
@@ -1449,7 +1450,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, onStart, o
                           )}
                         </div>
                         <p className="text-black/40 text-xs">
-                          {e.targetSets} sets × {e.targetReps} reps · RIR {e.targetRIR ?? 2}
+                          {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} reps`} · RIR {e.targetRIR ?? 2}
                         </p>
                         {e.notes && <p className="text-black/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
                       </div>

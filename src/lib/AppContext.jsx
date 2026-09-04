@@ -440,7 +440,7 @@ export function AppProvider({ children }) {
 
       async createProgram(data) {
         const id = newDocId("programs");
-        const program = { id, weeks: [], ...data };
+        const program = { id, phases: [], ...data };
         try {
           await setDoc(doc(firestore, "programs", id), program);
         } catch (err) {
@@ -879,14 +879,28 @@ export function useApp() {
    SELECTORS
 ============================================================================ */
 
+// Normalizes a master program template to its current {phases:[{id, name,
+// durationWeeks, days}]} shape — whether it was saved that way already, or
+// (for a coach account whose programs collection was seeded/created before
+// phases existed) still carries the older {weeks:[{id, label, days}]}
+// shape. Reading through this instead of `program.phases` directly means an
+// existing coach's programs keep working with no migration step; any save
+// from the Program Templates editor writes the current shape, which
+// upgrades the doc in place.
+export function programPhases(program) {
+  if (!program) return [];
+  if (program.phases) return program.phases;
+  return (program.weeks || []).map((w) => ({ id: w.id, name: w.label, durationWeeks: 1, days: w.days || [] }));
+}
+
 // Flattens every program into an ordered list of "sessions" (days), each
-// tagged with its program/week context, so a client can rotate through them.
+// tagged with its program/phase context, so a client can rotate through them.
 export function flattenSessions(program) {
   if (!program) return [];
   const out = [];
-  for (const week of program.weeks) {
-    for (const d of week.days) {
-      out.push({ ...d, weekLabel: week.label, programId: program.id, programName: program.name });
+  for (const phase of programPhases(program)) {
+    for (const d of phase.days) {
+      out.push({ ...d, weekLabel: phase.name, programId: program.id, programName: program.name });
     }
   }
   return out;

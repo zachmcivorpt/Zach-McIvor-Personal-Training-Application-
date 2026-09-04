@@ -301,14 +301,29 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
                       />
                     </div>
                     <div>
-                      <p className="text-black/30 text-[10px] mb-1">REPS</p>
-                      <input
-                        type="number"
-                        min={1}
-                        value={row.targetReps}
-                        onChange={(e) => updateRow(i, { targetReps: +e.target.value })}
-                        className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
-                      />
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-black/30 text-[10px]">REPS</p>
+                        <button
+                          type="button"
+                          onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}
+                          className={`text-[9px] font-bold px-1.5 rounded ${
+                            row.targetReps === "AMRAP" ? "bg-black text-white" : "bg-black/8 text-black/40"
+                          }`}
+                        >
+                          AMRAP
+                        </button>
+                      </div>
+                      {row.targetReps === "AMRAP" ? (
+                        <div className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">AMRAP</div>
+                      ) : (
+                        <input
+                          type="number"
+                          min={1}
+                          value={row.targetReps}
+                          onChange={(e) => updateRow(i, { targetReps: +e.target.value })}
+                          className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
+                        />
+                      )}
                     </div>
                     <div>
                       <p className="text-black/30 text-[10px] mb-1">REST</p>

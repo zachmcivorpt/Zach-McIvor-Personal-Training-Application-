@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { useApp, getCurrentPhase } from "../lib/AppContext";
+import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
 import { ThreadView } from "./CoachMessages";
@@ -81,13 +81,19 @@ function NewPhaseSheet({ open, onClose, programs, onCreate }) {
   function submit(e) {
     e.preventDefault();
     const template = programs.find((p) => p.id === form.templateId);
+    // A program template can carry several training phases of its own now
+    // (Stabilisation, Hypertrophy, Strength, etc.) — starting a client's
+    // phase from one just takes the template's first phase as the starting
+    // point; the coach can build out further phases from there the same
+    // way as any other client phase (duplicate & schedule).
+    const templateDays = template ? programPhases(template)[0]?.days || [] : [];
     onCreate({
       name: form.name.trim() || "New Phase",
       level: form.level,
       description: form.description,
       startDate: form.startDate,
       endDate: form.endDate,
-      weeks: template ? JSON.parse(JSON.stringify(template.weeks)) : [{ id: "w1", label: "Week 1", days: [] }],
+      weeks: [{ id: "w1", label: "Week 1", days: JSON.parse(JSON.stringify(templateDays)) }],
     });
     reset();
     onClose();
@@ -989,7 +995,7 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
                     <p className="text-black/45 text-[13px] mt-0.5">
-                      {e.targetSets} sets × {e.targetReps} reps · RIR {e.targetRIR ?? 2}
+                      {e.targetSets} sets × {e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} reps`} · RIR {e.targetRIR ?? 2}
                     </p>
                   </div>
                   <span className="text-black/30 text-xs shrink-0">{ex.equipment}</span>

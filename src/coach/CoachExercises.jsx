@@ -46,7 +46,7 @@ function fromFormState(f) {
   };
 }
 
-function ExerciseSheet({ exercise, open, onClose, showToast }) {
+export function ExerciseSheet({ exercise, open, onClose, showToast }) {
   const { createExercise, updateExercise, deleteExercise } = useApp();
   const [form, setForm] = useState(() => (exercise ? toFormState(exercise) : emptyExercise()));
   const [confirmDelete, setConfirmDelete] = useState(false);
