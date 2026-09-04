@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { TextInput, TextArea, Select } from "../components/ui";
-import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup } from "lucide-react";
+import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup, Edit3 } from "lucide-react";
+import { ExerciseSheet } from "./CoachExercises";
 
 const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
 const REST_PRESETS = [30, 45, 60, 90, 120, 180, 240];
@@ -29,7 +30,7 @@ function newRow(exerciseId, section = "main") {
 // an exercise table on the left, a searchable exercise picker on the right.
 // Used both for a client's own phase workouts and the shared program
 // template library, so sets/reps/RIR/rest/notes only need building once.
-export default function WorkoutEditor({ open, day, exercises, onClose, onSave }) {
+export default function WorkoutEditor({ open, day, exercises, onClose, onSave, showToast }) {
   const { createExercise } = useApp();
   const [label, setLabel] = useState(day?.label || "");
   const [instructions, setInstructions] = useState(day?.instructions || "");
@@ -44,6 +45,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
   const [selected, setSelected] = useState(() => new Set());
   const [mobilePanel, setMobilePanel] = useState("editor"); // "editor" | "picker" — mobile-only tab switch
   const [addSection, setAddSection] = useState("main"); // which section new exercises from the picker land in
+  const [editingExercise, setEditingExercise] = useState(null); // exercise being edited inline (name/video/etc.)
 
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(
@@ -304,6 +306,15 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
                               <p className="text-black font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
                               {ex && <p className="text-black/35 text-[11px] truncate">{ex.equipment} · {ex.category}</p>}
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditingExercise(ex)}
+                              disabled={!ex}
+                              className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60 disabled:opacity-30"
+                              aria-label="Edit this exercise"
+                            >
+                              <Edit3 size={14} />
+                            </button>
                             <button onClick={() => removeRow(i)} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60">
                               <X size={15} />
                             </button>
@@ -481,22 +492,35 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave })
 
           <div className="grid grid-cols-2 gap-2.5">
             {filtered.map((ex) => (
-              <button
-                key={ex.id}
-                onClick={() => addExercise(ex.id)}
-                className="bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl p-3 text-left transition-colors"
-              >
-                <div className="w-full aspect-square rounded-lg bg-black/8 flex items-center justify-center mb-2">
-                  {ex.videoUrl ? <Video size={20} className="text-black/50" /> : <Dumbbell size={20} className="text-black/35" />}
-                </div>
-                <p className="text-black text-xs font-semibold leading-tight line-clamp-2">{ex.name}</p>
-                <p className="text-black/35 text-[10px] mt-0.5">{ex.equipment}</p>
-              </button>
+              <div key={ex.id} className="relative bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl p-3 transition-colors">
+                <button type="button" onClick={() => addExercise(ex.id)} className="w-full text-left">
+                  <div className="w-full aspect-square rounded-lg bg-black/8 flex items-center justify-center mb-2">
+                    {ex.videoUrl ? <Video size={20} className="text-black/50" /> : <Dumbbell size={20} className="text-black/35" />}
+                  </div>
+                  <p className="text-black text-xs font-semibold leading-tight line-clamp-2 pr-5">{ex.name}</p>
+                  <p className="text-black/35 text-[10px] mt-0.5">{ex.equipment}</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingExercise(ex)}
+                  className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/80 flex items-center justify-center text-black/50 hover:text-black hover:bg-white"
+                  aria-label={`View or edit ${ex.name}`}
+                >
+                  <Edit3 size={12} />
+                </button>
+              </div>
             ))}
             {filtered.length === 0 && <p className="text-black/30 text-xs col-span-2 text-center py-6">No exercises match.</p>}
           </div>
         </div>
       </div>
+
+      <ExerciseSheet
+        exercise={editingExercise}
+        open={!!editingExercise}
+        onClose={() => setEditingExercise(null)}
+        showToast={showToast || (() => {})}
+      />
     </div>
   );
 }

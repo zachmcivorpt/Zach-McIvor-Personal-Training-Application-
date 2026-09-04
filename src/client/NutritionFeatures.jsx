@@ -156,26 +156,37 @@ const BARCODE_FORMATS = [
 // brittle substring match, and give an actionable message per real cause
 // instead of one catch-all "couldn't start the camera".
 function classifyCameraError(err) {
+  // html5-qrcode rejects with a plain string in several cases (not an Error
+  // object), so `err` itself — not just `err.message` — is a real signal.
   const name = err?.name || "";
-  const msg = String(err?.message || err || "").toLowerCase();
+  const raw = String(err?.message || err || "");
+  const msg = raw.toLowerCase();
   if (name === "NotAllowedError" || msg.includes("permission") || msg.includes("denied")) {
-    return "Camera permission denied — allow camera access for this app in your browser/device settings, then try again.";
+    return { text: "Camera permission denied — allow camera access for this app in your browser/device settings, then try again.", raw };
   }
   if (name === "NotFoundError" || msg.includes("notfound") || msg.includes("no camera")) {
-    return "No camera found on this device.";
+    return { text: "No camera found on this device.", raw };
   }
   if (name === "NotReadableError" || name === "TrackStartError" || msg.includes("notreadable") || msg.includes("trackstart") || msg.includes("in use")) {
-    return "Your camera seems to be in use by another app — close other camera apps or tabs and try again.";
+    return { text: "Your camera seems to be in use by another app — close other camera apps or tabs and try again.", raw };
   }
   if (name === "OverconstrainedError" || msg.includes("overconstrained") || msg.includes("constraint")) {
-    return "This device's camera doesn't support the requested mode.";
+    return { text: "This device's camera doesn't support the requested mode.", raw };
   }
-  return "Couldn't start the camera. Try closing and reopening this screen.";
+  if (msg.includes("mediadevices not supported") || msg.includes("streaming not supported")) {
+    return {
+      text:
+        "This browser can't access the camera here. If you opened this from the app icon on your home screen, try opening the site directly in Safari/Chrome instead — camera access inside installed PWAs is unreliable on some iOS versions.",
+      raw,
+    };
+  }
+  return { text: "Couldn't start the camera. Try closing and reopening this screen.", raw };
 }
 
 export function BarcodeScanSheet({ open, onClose, onAdd }) {
   const [status, setStatus] = useState("scanning"); // scanning | looking-up | error | not-found
   const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
   const [scanKey, setScanKey] = useState(0);
   const [manual, setManual] = useState({ name: "", cals: "", protein: "", carbs: "", fat: "" });
   const scannerRef = useRef(null);
@@ -185,6 +196,20 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
     if (!open) return;
     setStatus("scanning");
     setError("");
+    setErrorDetail("");
+
+    // Fail fast with a specific, actionable message when the browser has no
+    // camera API at all here (most commonly: opened from the home-screen
+    // PWA icon on an iOS version that doesn't support it there) instead of
+    // burning through three doomed start() attempts first.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      const classified = classifyCameraError("navigator.mediaDevices not supported");
+      setError(classified.text);
+      setErrorDetail(classified.raw);
+      setStatus("error");
+      return;
+    }
+
     const scanner = new Html5Qrcode(elId, {
       verbose: false,
       formatsToSupport: BARCODE_FORMATS,
@@ -207,6 +232,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
         onAdd(food);
       } catch (err) {
         setError(err.message);
+        setErrorDetail("");
         setManual({ name: err.productName || "", cals: "", protein: "", carbs: "", fat: "" });
         setStatus(err.notFound ? "not-found" : "error");
       }
@@ -229,7 +255,9 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
           .catch(() => scanner.start({}, scanConfig, onDecoded, noop))
       )
       .catch((err) => {
-        setError(classifyCameraError(err));
+        const classified = classifyCameraError(err);
+        setError(classified.text);
+        setErrorDetail(classified.raw);
         setStatus("error");
       });
 

@@ -70,7 +70,7 @@ export default function CoachWorkoutLibrary({ showToast }) {
       )}
 
       {editing && (
-        <WorkoutEditor open={!!editing} day={editing.isNew ? null : editing} exercises={db.exercises} onClose={() => setEditing(null)} onSave={handleSave} />
+        <WorkoutEditor open={!!editing} day={editing.isNew ? null : editing} exercises={db.exercises} onClose={() => setEditing(null)} onSave={handleSave} showToast={showToast} />
       )}
     </div>
   );

@@ -561,6 +561,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
             setCustomDay(day);
             setEditingCustom(false);
           }}
+          showToast={showToast}
         />
       )}
     </BottomSheet>
@@ -1320,6 +1321,7 @@ function TrainingProgramPanel({ client, showToast }) {
           exercises={db.exercises}
           onClose={() => setEditingWorkout(null)}
           onSave={saveWorkout}
+          showToast={showToast}
         />
       )}
       {previewIndex !== null && days[previewIndex] && (
