@@ -285,6 +285,10 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
 }
 
 const CAL_WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+// The real muscle-group categories exercises are tagged with (excludes
+// Warm-up/Cool-down/Full Body/Cardio, which aren't a "muscle" a coach would
+// track as trained-or-avoided).
+const MUSCLE_CATEGORIES = ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs", "Core", "Forearms"];
 
 function dKey(d) {
   return d.toISOString().slice(0, 10);
@@ -717,6 +721,8 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                         ? "bg-amber-50 border border-amber-100"
                         : it.type === "habits"
                         ? "bg-purple-50 border border-purple-100"
+                        : it.type === "nutrition"
+                        ? "bg-rose-50 border border-rose-100"
                         : "bg-emerald-50 border border-emerald-100"
                     }`}
                   >
@@ -725,6 +731,7 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                     {it.type === "bodystats" && <Scale size={15} className="text-amber-600" />}
                     {it.type === "form" && <NotebookPen size={15} className="text-emerald-600" />}
                     {it.type === "habits" && <ListChecks size={15} className="text-purple-600" />}
+                    {it.type === "nutrition" && <Utensils size={15} className="text-rose-600" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-black text-sm font-medium truncate">{it.label}</p>
@@ -739,6 +746,8 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                           : "Body stats · pending"
                         : it.type === "habits"
                         ? `Daily habits · ${it.doneCount}/${it.total} done`
+                        : it.type === "nutrition"
+                        ? `${Math.round(it.nutrition.protein)}g protein · ${Math.round(it.nutrition.carbs)}g carbs · ${Math.round(it.nutrition.fat)}g fat`
                         : "Check-in form"}
                     </p>
                   </div>
@@ -809,6 +818,7 @@ function CalendarPanel({ client, showToast }) {
   const habits = (db.habits || {})[client.id] || [];
   const habitLogForClient = (db.habitLog || {})[client.id] || {};
   const workoutLogs = (db.workoutLogs || {})[client.id] || [];
+  const nutritionLogs = (db.nutritionLogs || {})[client.id] || [];
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
   const workoutsByDate = useMemo(() => Object.fromEntries(scheduledWorkouts.map((w) => [w.date, w])), [scheduledWorkouts]);
@@ -822,11 +832,41 @@ function CalendarPanel({ client, showToast }) {
     });
     return map;
   }, [workoutLogs]);
+  const nutritionByDate = useMemo(() => {
+    const map = {};
+    nutritionLogs.forEach((log) => {
+      if (log.calories > 0 || log.protein > 0 || log.carbs > 0 || log.fat > 0 || log.water > 0) map[log.date] = log;
+    });
+    return map;
+  }, [nutritionLogs]);
   const activeFormSchedules = useMemo(() => formSchedules.filter((s) => s.active), [formSchedules]);
   const formsById = useMemo(() => Object.fromEntries(forms.map((f) => [f.id, f])), [forms]);
 
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = dKey(now);
+
+  // What actually got trained (and what didn't) across the month currently
+  // in view — driven off real completed sessions, not what was scheduled,
+  // so a missed session correctly shows up as "not trained."
+  const monthStats = useMemo(() => {
+    const monthStart = dKey(new Date(Date.UTC(viewYear, viewMonth, 1)));
+    const monthEnd = dKey(new Date(Date.UTC(viewYear, viewMonth + 1, 0)));
+    const completedThisMonth = workoutLogs
+      .filter((log) => {
+        const key = dKey(new Date(log.date));
+        return key >= monthStart && key <= monthEnd;
+      })
+      .sort((a, b) => a.date - b.date);
+    const trained = new Set();
+    completedThisMonth.forEach((log) => {
+      (log.entries || []).forEach((e) => {
+        const category = exercisesById[e.exerciseId]?.category;
+        if (category) trained.add(category);
+      });
+    });
+    const avoided = MUSCLE_CATEGORIES.filter((c) => !trained.has(c));
+    return { completedThisMonth, avoided };
+  }, [workoutLogs, exercisesById, viewYear, viewMonth]);
 
   function itemsForDate(date) {
     const dateStr = dKey(date);
@@ -848,6 +888,8 @@ function CalendarPanel({ client, showToast }) {
       const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
       items.push({ type: "habits", label: "Daily Habits", done: doneCount === habits.length, doneCount, total: habits.length });
     }
+    const nutrition = nutritionByDate[dateStr];
+    if (nutrition) items.push({ type: "nutrition", label: `${Math.round(nutrition.calories)} kcal logged`, nutrition });
     return items;
   }
 
@@ -871,98 +913,148 @@ function CalendarPanel({ client, showToast }) {
   }
 
   const selectedItems = selectedDate ? itemsForDate(new Date(selectedDate + "T00:00:00Z")) : [];
+  const monthLabel = new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <button onClick={() => shiftMonth(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
-            <ChevronRight size={15} className="rotate-180" />
-          </button>
-          <p className="text-black font-semibold text-sm w-36 text-center">
-            {new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" })}
-          </p>
-          <button onClick={() => shiftMonth(1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
-            <ChevronRight size={15} />
-          </button>
-        </div>
-        <button onClick={goToday} className="text-blue-600 hover:text-blue-700 text-xs font-semibold">
-          Today
-        </button>
-      </div>
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6 items-start">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <button onClick={() => shiftMonth(-1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
+                <ChevronRight size={17} className="rotate-180" />
+              </button>
+              <p className="text-black font-bold text-lg w-48 text-center">{monthLabel}</p>
+              <button onClick={() => shiftMonth(1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
+                <ChevronRight size={17} />
+              </button>
+            </div>
+            <button onClick={goToday} className="text-blue-600 hover:text-blue-700 text-sm font-semibold">
+              Today
+            </button>
+          </div>
 
-      <div className="grid grid-cols-7 gap-1 mb-1">
-        {CAL_WEEKDAY_LABELS.map((l) => (
-          <p key={l} className="text-black/35 text-[10px] font-semibold text-center tracking-wide">
-            {l}
-          </p>
-        ))}
-      </div>
+          <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+            {CAL_WEEKDAY_LABELS.map((l) => (
+              <p key={l} className="text-black/35 text-xs font-semibold text-center tracking-wide">
+                {l}
+              </p>
+            ))}
+          </div>
 
-      <div className="space-y-1">
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 gap-1">
-            {week.map((date) => {
-              const dateStr = dKey(date);
-              const inMonth = date.getUTCMonth() === viewMonth;
-              const isToday = dateStr === todayStr;
-              const items = itemsForDate(date);
-              return (
-                <button
-                  key={dateStr}
-                  onClick={() => setSelectedDate(dateStr)}
-                  className={`min-h-[64px] md:min-h-[78px] rounded-lg border text-left px-1.5 py-1.5 transition-colors ${
-                    inMonth ? "bg-white border-black/8 hover:bg-black/[0.03]" : "bg-black/[0.02] border-transparent"
-                  }`}
-                >
-                  <span
-                    className={`text-[11px] font-semibold inline-flex items-center justify-center w-5 h-5 rounded-full ${
-                      isToday ? "bg-black text-white" : inMonth ? "text-black/60" : "text-black/25"
-                    }`}
-                  >
-                    {date.getUTCDate()}
-                  </span>
-                  <div className="mt-1 space-y-0.5">
-                    {items.slice(0, 3).map((it, i) => (
-                      <div
-                        key={i}
-                        className={`flex items-center gap-1 text-[9px] md:text-[10px] font-medium truncate rounded px-1 py-0.5 ${
-                          it.type === "workout"
-                            ? it.done
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-blue-50 text-blue-700"
-                            : it.type === "bodystats"
-                            ? "bg-amber-50 text-amber-700"
-                            : it.type === "habits"
-                            ? "bg-purple-50 text-purple-700"
-                            : "bg-emerald-50 text-emerald-700"
+          <div className="space-y-1.5">
+            {weeks.map((week, wi) => (
+              <div key={wi} className="grid grid-cols-7 gap-1.5">
+                {week.map((date) => {
+                  const dateStr = dKey(date);
+                  const inMonth = date.getUTCMonth() === viewMonth;
+                  const isToday = dateStr === todayStr;
+                  const items = itemsForDate(date);
+                  return (
+                    <button
+                      key={dateStr}
+                      onClick={() => setSelectedDate(dateStr)}
+                      className={`min-h-[100px] md:min-h-[128px] rounded-xl border text-left px-2 py-2 transition-colors ${
+                        inMonth ? "bg-white border-black/8 hover:bg-black/[0.03]" : "bg-black/[0.02] border-transparent"
+                      }`}
+                    >
+                      <span
+                        className={`text-sm font-semibold inline-flex items-center justify-center w-7 h-7 rounded-full ${
+                          isToday ? "bg-black text-white" : inMonth ? "text-black/60" : "text-black/25"
                         }`}
                       >
-                        {it.type === "workout" && it.done && <CheckCircle2 size={9} className="shrink-0" />}
-                        <span className="truncate">{it.label}</span>
+                        {date.getUTCDate()}
+                      </span>
+                      <div className="mt-1.5 space-y-1">
+                        {items.slice(0, 4).map((it, i) => (
+                          <div
+                            key={i}
+                            className={`flex items-center gap-1 text-[11px] md:text-xs font-medium truncate rounded px-1.5 py-1 ${
+                              it.type === "workout"
+                                ? it.done
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-blue-50 text-blue-700"
+                                : it.type === "bodystats"
+                                ? "bg-amber-50 text-amber-700"
+                                : it.type === "habits"
+                                ? "bg-purple-50 text-purple-700"
+                                : it.type === "nutrition"
+                                ? "bg-rose-50 text-rose-700"
+                                : "bg-emerald-50 text-emerald-700"
+                            }`}
+                          >
+                            {it.type === "workout" && it.done && <CheckCircle2 size={11} className="shrink-0" />}
+                            <span className="truncate">{it.label}</span>
+                          </div>
+                        ))}
+                        {items.length > 4 && <p className="text-black/30 text-[11px]">+{items.length - 4} more</p>}
                       </div>
-                    ))}
-                    {items.length > 3 && <p className="text-black/30 text-[9px]">+{items.length - 3} more</p>}
-                  </div>
-                </button>
-              );
-            })}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="flex items-center gap-4 mt-4">
-        {[
-          ["bg-blue-50 text-blue-700", "Workout"],
-          ["bg-amber-50 text-amber-700", "Body Stats"],
-          ["bg-emerald-50 text-emerald-700", "Check-in Form"],
-          ["bg-purple-50 text-purple-700", "Daily Habits"],
-        ].map(([cls, label]) => (
-          <div key={label} className="flex items-center gap-1.5">
-            <span className={`w-3 h-3 rounded ${cls.split(" ")[0]}`} />
-            <span className="text-black/40 text-[11px]">{label}</span>
+          <div className="flex items-center flex-wrap gap-4 mt-5">
+            {[
+              ["bg-blue-50 text-blue-700", "Workout"],
+              ["bg-emerald-50 text-emerald-700", "Completed"],
+              ["bg-amber-50 text-amber-700", "Body Stats"],
+              ["bg-purple-50 text-purple-700", "Daily Habits"],
+              ["bg-rose-50 text-rose-700", "Nutrition Logged"],
+            ].map(([cls, label]) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <span className={`w-3 h-3 rounded ${cls.split(" ")[0]}`} />
+                <span className="text-black/40 text-xs">{label}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4">
+            <p className="text-black font-semibold text-sm mb-1">Completed This Month</p>
+            <p className="text-black/40 text-xs mb-3">{monthLabel}</p>
+            {monthStats.completedThisMonth.length === 0 ? (
+              <p className="text-black/30 text-xs">No completed workouts yet this month.</p>
+            ) : (
+              <div className="space-y-2">
+                {monthStats.completedThisMonth.map((log) => (
+                  <button
+                    key={log.id}
+                    onClick={() => setSelectedDate(dKey(new Date(log.date)))}
+                    className="w-full flex items-center gap-2 text-left hover:bg-black/[0.04] rounded-lg px-1.5 py-1 -mx-1.5 transition-colors"
+                  >
+                    <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                    <span className="text-black text-xs font-medium truncate flex-1">{log.dayLabel}</span>
+                    <span className="text-black/35 text-[11px] shrink-0">
+                      {new Date(log.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4">
+            <p className="text-black font-semibold text-sm mb-1">Not Trained This Month</p>
+            <p className="text-black/40 text-xs mb-3">Muscle groups avoided so far</p>
+            {monthStats.completedThisMonth.length === 0 ? (
+              <p className="text-black/30 text-xs">No sessions logged yet — nothing to compare.</p>
+            ) : monthStats.avoided.length === 0 ? (
+              <p className="text-emerald-700 text-xs font-medium">Every muscle group has been trained this month 🎯</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {monthStats.avoided.map((c) => (
+                  <span key={c} className="bg-red-50 text-red-600 text-[11px] font-semibold px-2 py-1 rounded-lg">
+                    {c}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <DayDetailSheet
