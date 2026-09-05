@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
@@ -183,22 +183,23 @@ function ActivityItem({ item, onClick }) {
 
 // A running note only the coach sees — separate from the per-client "Focus
 // for next week" note on each client's own Weekly Coach Review, this is
-// general/business-level scratch space (this week's plan, reminders,
-// things to follow up on) that isn't tied to any one client.
-function WeeklyNotesCard({ currentUser, updateUser, showToast }) {
-  const [notes, setNotes] = useState(currentUser?.coachWeeklyNotes || "");
+// general/business-level scratch space (plans, reminders, things to
+// follow up on) that isn't tied to any one client.
+function CoachNotesCard({ currentUser, updateUser, showToast }) {
+  // Local state is only ever seeded from currentUser once, on mount — it
+  // deliberately does NOT resync if currentUser.coachNotes changes later
+  // (e.g. this same write echoing back through the realtime listener),
+  // since that previously could clobber keystrokes typed after a save was
+  // already in flight.
+  const [notes, setNotes] = useState(currentUser?.coachNotes || "");
   const [saving, setSaving] = useState(false);
-  const hydratedRef = useRef(false);
-  if (!hydratedRef.current && currentUser?.coachWeeklyNotes) {
-    hydratedRef.current = true;
-    setNotes(currentUser.coachWeeklyNotes);
-  }
-  const dirty = notes !== (currentUser?.coachWeeklyNotes || "");
+  const dirty = notes !== (currentUser?.coachNotes || "");
 
   async function save() {
+    if (saving) return;
     setSaving(true);
     try {
-      await updateUser(currentUser.id, { coachWeeklyNotes: notes });
+      await updateUser(currentUser.id, { coachNotes: notes });
       showToast?.("Notes saved");
     } catch (err) {
       showToast?.(err.message || "Couldn't save");
@@ -211,26 +212,23 @@ function WeeklyNotesCard({ currentUser, updateUser, showToast }) {
     <Card>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
-            <StickyNote size={15} className="text-amber-600" />
+          <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+            <StickyNote size={15} className="text-blue-500" />
           </div>
-          <p className="text-black font-semibold">Weekly Notes</p>
+          <p className="text-black font-semibold">Coach's Notes</p>
         </div>
-        {dirty && (
-          <button
-            onClick={save}
-            disabled={saving}
-            className="text-xs font-bold text-white bg-black px-3 py-1.5 rounded-lg disabled:opacity-40 transition-opacity"
-          >
-            {saving ? "SAVING…" : "SAVE"}
-          </button>
-        )}
+        <button
+          onClick={save}
+          disabled={saving || !dirty}
+          className="text-xs font-bold text-white bg-black px-3 py-1.5 rounded-lg disabled:opacity-30 transition-opacity"
+        >
+          {saving ? "SAVING…" : "SAVE"}
+        </button>
       </div>
       <textarea
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
-        onBlur={() => dirty && save()}
-        placeholder="Anything to remember this week — plans, reminders, things to follow up on. Only you can see this."
+        placeholder="Anything to remember — plans, reminders, things to follow up on. Only you can see this."
         rows={4}
         className="w-full bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-3 text-sm text-black outline-none placeholder:text-black/30 resize-none"
       />
@@ -417,7 +415,7 @@ export default function CoachDashboard({ onNavigate, showToast }) {
       </div>
 
       <div className="mb-4">
-        <WeeklyNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
+        <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
