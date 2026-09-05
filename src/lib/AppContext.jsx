@@ -679,6 +679,40 @@ export function AppProvider({ children }) {
         const id = newDocId("clientPhases");
         const cloned = { ...JSON.parse(JSON.stringify(src)), id, clientId, createdAt: Date.now(), ...overrides };
         setDoc(doc(firestore, "clientPhases", id), stripUndefined(cloned)).catch(console.error);
+
+        // Re-create the same schedule shape on the new phase's date range —
+        // every session actually scheduled during the OLD phase gets a twin
+        // shifted by however many days the new start date is offset from
+        // the old one, so it lands on the same weekday pattern without the
+        // coach re-scheduling everything by hand. If the old phase was
+        // never actually scheduled onto the calendar, there's nothing to
+        // replicate and this is a no-op.
+        const oldStart = new Date(src.startDate + "T00:00:00Z").getTime();
+        const newStart = new Date(cloned.startDate + "T00:00:00Z").getTime();
+        const oldEnd = src.endDate ? new Date(src.endDate + "T00:00:00Z").getTime() : Infinity;
+        const dayMs = 86400000;
+        const oldScheduled = (db.scheduledWorkouts[clientId] || []).filter((w) => {
+          const t = new Date(w.date + "T00:00:00Z").getTime();
+          return t >= oldStart && t <= oldEnd;
+        });
+        if (oldScheduled.length > 0) {
+          const batch = writeBatch(firestore);
+          oldScheduled.forEach((w) => {
+            const offsetDays = Math.round((new Date(w.date + "T00:00:00Z").getTime() - oldStart) / dayMs);
+            const newDate = new Date(newStart + offsetDays * dayMs).toISOString().slice(0, 10);
+            const entryId = `${clientId}__${newDate}`;
+            batch.set(doc(firestore, "scheduledWorkouts", entryId), {
+              id: entryId,
+              clientId,
+              date: newDate,
+              label: w.label,
+              muscleGroups: w.muscleGroups || [],
+              exercises: w.exercises,
+            });
+          });
+          batch.commit().catch(console.error);
+        }
+
         return cloned;
       },
 
