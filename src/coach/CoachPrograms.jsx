@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApp, programPhases } from "../lib/AppContext";
 import { newId } from "../lib/id";
 import { Field, TextInput, TextArea, Select, PrimaryButton, BottomSheet, ExerciseThumb } from "../components/ui";
-import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVertical } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVertical, Check } from "lucide-react";
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
@@ -315,6 +315,10 @@ export default function CoachPrograms({ showToast }) {
   const [editingWorkout, setEditingWorkout] = useState(null); // { phaseIndex, dayIndex, day } | null
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [copyIndices, setCopyIndices] = useState(null); // array of day indices being copied, or null
+  const [programDraft, setProgramDraft] = useState({ name: "", level: "Beginner", description: "" });
+  const [savingProgram, setSavingProgram] = useState(false);
+  const [phaseNameDraft, setPhaseNameDraft] = useState("");
+  const [savingPhaseName, setSavingPhaseName] = useState(false);
 
   const exercises = db.exercises;
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
@@ -326,19 +330,67 @@ export default function CoachPrograms({ showToast }) {
   const selectedPhase = phases.find((p) => p.id === selectedPhaseId) || phases[0] || null;
   const phaseIndex = selectedPhase ? phases.findIndex((p) => p.id === selectedPhase.id) : -1;
 
+  // Draft state resets to whatever's actually saved whenever the coach
+  // switches to a different program/phase, so edits never leak across items.
+  useEffect(() => {
+    if (selected) setProgramDraft({ name: selected.name, level: selected.level, description: selected.description || "" });
+  }, [selected?.id]);
+  useEffect(() => {
+    if (selectedPhase) setPhaseNameDraft(selectedPhase.name);
+  }, [selectedPhase?.id]);
+
+  const programDirty =
+    !!selected &&
+    (programDraft.name !== selected.name || programDraft.level !== selected.level || programDraft.description !== (selected.description || ""));
+  const phaseNameDirty = !!selectedPhase && phaseNameDraft !== selectedPhase.name;
+
+  async function saveProgramFields() {
+    if (!selected || !programDirty) return;
+    setSavingProgram(true);
+    try {
+      await updateProgram(selected.id, {
+        name: programDraft.name.trim() || selected.name,
+        level: programDraft.level,
+        description: programDraft.description,
+      });
+      showToast("Program saved");
+    } catch (err) {
+      showToast(err.message || "Couldn't save — check your connection and try again");
+    } finally {
+      setSavingProgram(false);
+    }
+  }
+
+  async function savePhaseName() {
+    if (!selectedPhase || !phaseNameDirty || phaseIndex < 0) return;
+    setSavingPhaseName(true);
+    try {
+      await savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, name: phaseNameDraft.trim() || p.name } : p)));
+      showToast("Phase saved");
+    } catch (err) {
+      showToast(err.message || "Couldn't save — check your connection and try again");
+    } finally {
+      setSavingPhaseName(false);
+    }
+  }
+
+  // Flushes any unsaved edit to the program/phase being left, so switching
+  // away before hitting Save never silently discards it.
   function selectProgram(id) {
+    if (programDirty) saveProgramFields();
     setSelectedId(id);
     setSelectedPhaseId(null);
     setConfirmDeletePhase(false);
   }
   function selectPhase(id) {
+    if (phaseNameDirty) savePhaseName();
     setSelectedPhaseId(id);
     setConfirmDeletePhase(false);
   }
 
   function savePhases(next) {
     if (!selected) return;
-    updateProgram(selected.id, { phases: next });
+    return updateProgram(selected.id, { phases: next });
   }
 
   function addPhase() {
@@ -347,10 +399,6 @@ export default function CoachPrograms({ showToast }) {
     savePhases([...phases, newPhase]);
     setSelectedPhaseId(newPhase.id);
     showToast("Phase added");
-  }
-  function renamePhase(name) {
-    if (phaseIndex < 0) return;
-    savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, name } : p)));
   }
   function setDuration(weeks) {
     if (phaseIndex < 0) return;
@@ -656,11 +704,24 @@ export default function CoachPrograms({ showToast }) {
             <>
               <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
                 <input
-                  value={selected.name}
-                  onChange={(e) => updateProgram(selected.id, { name: e.target.value })}
+                  value={programDraft.name}
+                  onChange={(e) => setProgramDraft((d) => ({ ...d, name: e.target.value }))}
                   className="bg-transparent outline-none text-black text-xl font-bold flex-1 min-w-[140px]"
                 />
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={saveProgramFields}
+                    disabled={!programDirty || savingProgram}
+                    className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition-colors ${
+                      programDirty ? "bg-black text-white" : "bg-black/8 text-black/30"
+                    } disabled:cursor-default`}
+                  >
+                    {savingProgram ? "SAVING…" : programDirty ? "SAVE" : (
+                      <>
+                        <Check size={13} /> SAVED
+                      </>
+                    )}
+                  </button>
                   {!confirmDeleteProgram ? (
                     <button
                       onClick={() => setConfirmDeleteProgram(true)}
@@ -683,7 +744,11 @@ export default function CoachPrograms({ showToast }) {
               </div>
 
               <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <Select value={selected.level} onChange={(e) => updateProgram(selected.id, { level: e.target.value })} className="!py-1.5 !text-xs !w-auto">
+                <Select
+                  value={programDraft.level}
+                  onChange={(e) => setProgramDraft((d) => ({ ...d, level: e.target.value }))}
+                  className="!py-1.5 !text-xs !w-auto"
+                >
                   <option>Beginner</option>
                   <option>Intermediate</option>
                   <option>Advanced</option>
@@ -693,8 +758,8 @@ export default function CoachPrograms({ showToast }) {
 
               <TextArea
                 rows={2}
-                value={selected.description || ""}
-                onChange={(e) => updateProgram(selected.id, { description: e.target.value })}
+                value={programDraft.description}
+                onChange={(e) => setProgramDraft((d) => ({ ...d, description: e.target.value }))}
                 placeholder="What this program is for, who it suits..."
                 className="mb-5"
               />
@@ -710,11 +775,20 @@ export default function CoachPrograms({ showToast }) {
                 <>
                   <div className="flex items-start justify-between gap-3 mb-1 flex-wrap border-t border-black/8 pt-4">
                     <input
-                      value={selectedPhase.name}
-                      onChange={(e) => renamePhase(e.target.value)}
+                      value={phaseNameDraft}
+                      onChange={(e) => setPhaseNameDraft(e.target.value)}
                       className="bg-transparent outline-none text-black font-bold text-base flex-1 min-w-[120px]"
                     />
                     <div className="flex items-center gap-2 shrink-0">
+                      {phaseNameDirty && (
+                        <button
+                          onClick={savePhaseName}
+                          disabled={savingPhaseName}
+                          className="bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg"
+                        >
+                          {savingPhaseName ? "SAVING…" : "SAVE"}
+                        </button>
+                      )}
                       <div className="flex items-center bg-black/5 rounded-lg">
                         <button
                           type="button"
