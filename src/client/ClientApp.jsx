@@ -65,6 +65,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useApp, estimate1RM, getPreviousPerformance, getPreviousSets, getCurrentPhase } from "../lib/AppContext";
+import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "../lib/workoutStats";
 import {
   Card,
   Pill,
@@ -232,7 +233,7 @@ function coachReply(prompt, ctx) {
     return "Check the Progress tab for your real lift history and e1RM trend — I don't have that pulled up here. If you're unsure whether to increase the weight, message your coach and they'll make the call.";
   if (p.includes("today") || p.includes("train"))
     return ctx.todaySession
-      ? `Today's plan is ${ctx.todaySession.label} — ${ctx.todaySession.exercises.length} exercises. Head to the Training tab when you're ready to start.`
+      ? `Today's plan is ${ctx.todaySession.label} — ${countExercises(ctx.todaySession.exercises)} exercises. Head to the Training tab when you're ready to start.`
       : "You don't have a workout scheduled today — check the Training tab, or message your coach if that doesn't look right.";
   if (p.includes("progress"))
     return "Your real trends (volume, bodyweight, PRs) are on the Progress tab — I don't have them loaded in this chat.";
@@ -332,7 +333,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
     );
   }
   const completedSets = isToday && activeLog ? Object.values(activeLog).flat().filter((s) => s.completed).length : 0;
-  const totalSets = todaySession.exercises.reduce((a, e) => a + e.targetSets, 0);
+  const totalSets = countWorkoutSets(todaySession.exercises);
   const started = isToday && !!activeLog;
   const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S WORKOUT" : isPastDate ? "MISSED" : "SCHEDULED";
 
@@ -343,7 +344,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
       </div>
       <h2 className="text-black text-lg font-bold border-l-[3px] border-black pl-2.5">{todaySession.label}</h2>
       <p className="text-black/50 text-xs mt-0.5 pl-2.5">
-        {todaySession.exercises.length} exercise{todaySession.exercises.length === 1 ? "" : "s"}
+        {countExercises(todaySession.exercises)} exercise{countExercises(todaySession.exercises) === 1 ? "" : "s"}
       </p>
       {(todaySession.muscleGroups || []).length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
@@ -852,10 +853,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
     return Array.from(set);
   }, [session, exercisesById]);
 
-  const estMinutes = Math.max(
-    5,
-    Math.round(session.exercises.reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60)
-  );
+  const estMinutes = estimateWorkoutMinutes(session.exercises);
 
   return (
     <FullScreenOverlay>
@@ -882,7 +880,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
               <Clock size={15} /> ~{estMinutes} min
             </span>
             <span className="flex items-center gap-1.5">
-              <Dumbbell size={15} /> {session.exercises.length} Exercises
+              <Dumbbell size={15} /> {countExercises(session.exercises)} Exercises
             </span>
           </div>
 
@@ -1766,11 +1764,6 @@ function LogCardioSheet({ open, onClose, onSave }) {
   );
 }
 
-// Same ~min-per-set estimate WorkoutPreviewSheet uses, so a phase's workout
-// list and its individual preview never disagree with each other.
-function estimateWorkoutMinutes(exercises) {
-  return Math.max(5, Math.round((exercises || []).reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60));
-}
 
 function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId, onSelect }) {
   return (
@@ -1867,7 +1860,7 @@ function ClientProgramTab({ onPreviewDay }) {
                     <div className="min-w-0">
                       <p className="text-black font-semibold text-sm truncate">{d.label}</p>
                       <p className="text-black/40 text-xs mt-0.5 truncate">
-                        est. {estimateWorkoutMinutes(d.exercises)} min · {d.exercises.length} exercise{d.exercises.length === 1 ? "" : "s"}
+                        est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
                         {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
                       </p>
                     </div>
@@ -2029,7 +2022,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
                     {new Date(w.date + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
                   </p>
                 </div>
-                <span className="text-black/30 text-xs">{w.exercises.length} ex</span>
+                <span className="text-black/30 text-xs">{countExercises(w.exercises)} ex</span>
               </div>
             </Card>
           ))}

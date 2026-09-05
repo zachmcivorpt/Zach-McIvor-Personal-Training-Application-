@@ -4,11 +4,8 @@ import { newId } from "../lib/id";
 import { Field, TextInput, TextArea, Select, PrimaryButton, BottomSheet, ExerciseThumb } from "../components/ui";
 import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVertical } from "lucide-react";
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
+import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
-
-function estimateWorkoutMinutes(exercises) {
-  return Math.max(5, Math.round((exercises || []).reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60));
-}
 
 function NewProgramSheet({ open, onClose, onCreate }) {
   const [name, setName] = useState("");
@@ -175,7 +172,8 @@ function RowMenu({ onDuplicate, onDelete }) {
 // Edit / Copy to / ⋯ actions, mirroring Trainerize's workout row.
 function WorkoutRow({ day, exercisesById, selected, onToggleSelect, onOpen, onCopy, onDuplicate, onDelete }) {
   const exs = day.exercises || [];
-  const firstEx = exs[0] ? exercisesById[exs[0].exerciseId] : null;
+  const firstReal = exs.find((e) => !e.isRest);
+  const firstEx = firstReal ? exercisesById[firstReal.exerciseId] : null;
 
   return (
     <div className="flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 transition-colors">
@@ -186,7 +184,7 @@ function WorkoutRow({ day, exercisesById, selected, onToggleSelect, onOpen, onCo
       <button onClick={onOpen} className="flex-1 min-w-0 text-left">
         <p className="text-blue-700 font-semibold text-sm truncate hover:underline">{day.label}</p>
         <p className="text-black/40 text-xs truncate mt-0.5">
-          est. {estimateWorkoutMinutes(exs)} min · {exs.length} exercise{exs.length === 1 ? "" : "s"}
+          est. {estimateWorkoutMinutes(exs)} min · {countExercises(exs)} exercise{countExercises(exs) === 1 ? "" : "s"}
         </p>
         {day.muscleGroups?.length > 0 && <p className="text-black/30 text-[11px] truncate mt-0.5">{day.muscleGroups.join(", ")}</p>}
       </button>
@@ -795,11 +793,11 @@ export default function CoachPrograms({ showToast }) {
                 onClick={() => openWorkoutFromLibrary(w)}
                 className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 text-left transition-colors"
               >
-                <ExerciseThumb exercise={exercisesById[w.exercises?.[0]?.exerciseId]} size={36} rounded="rounded-lg" />
+                <ExerciseThumb exercise={exercisesById[w.exercises?.find((e) => !e.isRest)?.exerciseId]} size={36} rounded="rounded-lg" />
                 <div className="min-w-0 flex-1">
                   <p className="text-black font-semibold text-sm truncate">{w.label}</p>
                   <p className="text-black/35 text-xs truncate">
-                    {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
+                    {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
                     {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
                   </p>
                 </div>

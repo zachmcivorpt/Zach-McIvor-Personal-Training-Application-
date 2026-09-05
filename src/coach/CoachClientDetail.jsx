@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
+import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
 import { computePerformanceTimeline, computePRsInLastNDays } from "../lib/trainingStats";
@@ -487,7 +488,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
             <div className="min-w-0 flex-1">
               <p className="text-black font-semibold text-sm truncate">{presetPayload.label}</p>
               <p className="text-black/35 text-xs truncate">
-                {presetPayload.exercises.length} exercise{presetPayload.exercises.length === 1 ? "" : "s"}
+                {countExercises(presetPayload.exercises)} exercise{countExercises(presetPayload.exercises) === 1 ? "" : "s"}
               </p>
             </div>
           </div>
@@ -518,7 +519,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
                 <Select value={masterWorkoutId} onChange={(e) => setMasterWorkoutId(e.target.value)}>
                   {db.masterWorkouts.map((w) => (
                     <option key={w.id} value={w.id}>
-                      {w.label} · {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
+                      {w.label} · {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
                     </option>
                   ))}
                 </Select>
@@ -530,7 +531,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
                 className="w-full flex items-center justify-between bg-black/[0.03] border border-dashed border-black/15 rounded-xl px-4 py-3.5 text-left"
               >
                 <span className="text-black/70 text-sm">
-                  {customDay ? `${customDay.label} · ${customDay.exercises.length} exercises` : "Tap to build this workout"}
+                  {customDay ? `${customDay.label} · ${countExercises(customDay.exercises)} exercises` : "Tap to build this workout"}
                 </span>
                 <Edit3 size={15} className="text-black/30" />
               </button>
@@ -1209,12 +1210,6 @@ function CalendarPanel({ client, showToast }) {
   );
 }
 
-// Same estimate the client-side preview uses, so a workout never shows a
-// different "est. time" depending on which side of the app you're on.
-function estimateWorkoutMinutes(exercises) {
-  return Math.max(5, Math.round((exercises || []).reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60));
-}
-
 // An exercise counts as "stale" once it's been sitting in the program for
 // a month and a half (45 days) without being touched — addedAt is stamped
 // when it's added (see newRow() in WorkoutEditor.jsx) or re-stamped when
@@ -1276,7 +1271,7 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
               <Clock size={15} /> est. {estMinutes} min
             </span>
             <span className="flex items-center gap-1.5">
-              <Dumbbell size={15} /> {day.exercises.length} exercise{day.exercises.length === 1 ? "" : "s"}
+              <Dumbbell size={15} /> {countExercises(day.exercises)} exercise{countExercises(day.exercises) === 1 ? "" : "s"}
             </span>
           </div>
 
@@ -1663,7 +1658,7 @@ function TrainingProgramPanel({ client, showToast }) {
                         )}
                       </p>
                       <p className="text-black/35 text-xs truncate">
-                        est. {estimateWorkoutMinutes(d.exercises)} min · {d.exercises.length} exercise{d.exercises.length === 1 ? "" : "s"}
+                        est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
                         {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
                       </p>
                     </div>
@@ -1721,7 +1716,7 @@ function TrainingProgramPanel({ client, showToast }) {
                 <div className="min-w-0 flex-1">
                   <p className="text-black font-semibold text-sm truncate">{w.label}</p>
                   <p className="text-black/35 text-xs truncate">
-                    {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
+                    {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
                     {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
                   </p>
                 </div>

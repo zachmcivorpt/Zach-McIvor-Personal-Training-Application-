@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Card } from "../components/ui";
 import WorkoutEditor from "./WorkoutEditor";
+import { countExercises } from "../lib/workoutStats";
 import { Plus, Dumbbell, Trash2 } from "lucide-react";
 
 export default function CoachWorkoutLibrary({ showToast }) {
@@ -48,7 +49,7 @@ export default function CoachWorkoutLibrary({ showToast }) {
                 <div className="flex-1 min-w-0">
                   <p className="text-black font-semibold text-sm truncate">{w.label}</p>
                   <p className="text-black/40 text-xs truncate mt-0.5">
-                    {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
+                    {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
                     {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
                   </p>
                 </div>
