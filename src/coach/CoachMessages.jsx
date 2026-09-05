@@ -82,7 +82,7 @@ function ThreadMessages({ client }) {
   return (
     <>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-        {thread.length === 0 && <p className="text-black/30 text-sm text-center py-10">No messages yet with {client.name.split(" ")[0]}.</p>}
+        {thread.length === 0 && <p className="text-black/30 text-sm text-center py-10">No messages yet with {client.name?.split(" ")[0] || "them"}.</p>}
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "coach" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "coach" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
@@ -132,7 +132,7 @@ function ThreadMessages({ client }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder={`Message ${client.name.split(" ")[0]}...`}
+          placeholder={`Message ${client.name?.split(" ")[0] || "your client"}...`}
           className="flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
         />
         <button onClick={send} className="w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0">

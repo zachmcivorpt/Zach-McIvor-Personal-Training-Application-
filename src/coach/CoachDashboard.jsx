@@ -31,7 +31,7 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
     if (response.read === false) markFormResponseRead(response.id);
     setReply("");
     setSent(true);
-    showToast?.(`Message sent to ${clientName.split(" ")[0]}`);
+    showToast?.(`Message sent to ${clientName?.split(" ")[0] || "your client"}`);
     setTimeout(() => setSent(false), 1800);
   }
 
@@ -53,7 +53,7 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
         {!form && <p className="text-black/30 text-sm">This check-in form was deleted.</p>}
       </div>
       <div className="border-t border-black/8 pt-3">
-        <p className="text-black/40 text-xs font-semibold tracking-wide mb-2">REPLY TO {clientName.split(" ")[0].toUpperCase()}</p>
+        <p className="text-black/40 text-xs font-semibold tracking-wide mb-2">REPLY TO {(clientName?.split(" ")[0] || "CLIENT").toUpperCase()}</p>
         <div className="flex gap-2">
           <input
             value={reply}

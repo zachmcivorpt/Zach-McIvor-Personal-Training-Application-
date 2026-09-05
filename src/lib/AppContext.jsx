@@ -314,22 +314,43 @@ export function AppProvider({ children }) {
   // the rest of this app already expects (db.users, db.workoutLogs, ...) —
   // so components built against the old localStorage blob barely change.
   const db = useMemo(() => {
-    const usersFromAuth = role === "client" ? (profile ? [profile] : []) : raw.users || [];
-    const usersFromInvites = (raw.invites || []).map((inv) => ({
-      id: inv.id,
-      role: "client",
-      name: inv.name,
-      email: inv.email,
-      username: inv.email,
-      password: inv.code,
-      status: "invited",
-      createdAt: inv.createdAt,
-      assignedProgramId: null,
-      currentSessionIndex: 0,
-      fitnessLevel: "Beginner",
-      streak: 0,
-      _source: "invite",
-    }));
+    // Editing a not-yet-activated client's Personal Details (or anything
+    // else) before they've signed up writes to users/{email} as a "draft"
+    // doc — see updateUser's comment. That draft doc has no name/email/etc,
+    // just whatever fields were saved. It used to get concatenated in ahead
+    // of the invite-derived synthetic row with the SAME id, so .find()
+    // picked the nameless draft over the real invite data and any UI
+    // reading client.name (e.g. SendLoginSheet) crashed outright. Now any
+    // draft doc that matches a pending invite gets folded into that
+    // invite's row instead of standing alone, so identity fields always
+    // come from the invite while draft fields (age, height, etc.) still
+    // show up.
+    const draftsById = new Map((raw.users || []).map((u) => [u.id, u]));
+    const usersFromAuth =
+      role === "client"
+        ? profile
+          ? [profile]
+          : []
+        : (raw.users || []).filter((u) => !(raw.invites || []).some((inv) => inv.id === u.id));
+    const usersFromInvites = (raw.invites || []).map((inv) => {
+      const draft = draftsById.get(inv.id) || {};
+      return {
+        ...draft,
+        id: inv.id,
+        role: "client",
+        name: inv.name,
+        email: inv.email,
+        username: inv.email,
+        password: inv.code,
+        status: "invited",
+        createdAt: inv.createdAt,
+        assignedProgramId: draft.assignedProgramId ?? null,
+        currentSessionIndex: 0,
+        fitnessLevel: draft.fitnessLevel || "Beginner",
+        streak: 0,
+        _source: "invite",
+      };
+    });
     const users = [...usersFromAuth, ...usersFromInvites];
 
     function bucket(list, sortFn) {

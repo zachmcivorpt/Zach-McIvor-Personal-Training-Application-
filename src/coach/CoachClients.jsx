@@ -107,7 +107,7 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
   return (
     <BottomSheet open={open} onClose={onClose} title="Send Login Details">
       <p className="text-black/50 text-sm mb-4">
-        Only you can see this. Send it to {client.name.split(" ")[0]} however you like — they'll set their own password when
+        Only you can see this. Send it to {client.name?.split(" ")[0] || "them"} however you like — they'll set their own password when
         they activate.
       </p>
       <div className="bg-black/5 border border-black/10 rounded-2xl p-4 space-y-3">
@@ -183,6 +183,7 @@ function NextPhaseCell({ phase }) {
 // this app doesn't model a separate Program entity above the phase
 // timeline, so the umbrella name is just the client's own possessive.
 function mainProgramLabel(client) {
+  if (!client.name) return "Their program";
   const first = client.name.split(" ")[0];
   return `${first}${first.endsWith("s") ? "'" : "'s"} program`;
 }
