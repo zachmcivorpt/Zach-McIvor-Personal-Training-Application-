@@ -4225,9 +4225,9 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       onPointerMove={draggable ? onPointerMove : undefined}
       onPointerUp={draggable ? onPointerUp : undefined}
       onPointerCancel={draggable ? onPointerUp : undefined}
-      className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left ${
-        onClick ? "hover:bg-black/[0.02] transition-colors" : ""
-      } ${draggable ? "cursor-grab active:cursor-grabbing select-none" : ""} ${dragging ? "opacity-40" : ""}`}
+      className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
+        onClick ? "hover:bg-black/[0.02]" : ""
+      } ${draggable ? "cursor-grab active:cursor-grabbing select-none" : ""} ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
       style={draggable ? { touchAction: "none" } : undefined}
     >
       <span
@@ -4300,11 +4300,12 @@ function ClientCalendarScreen({
   // and touch identically, so the same code drives both: press and hold
   // briefly (so an ordinary tap/scroll isn't mistaken for a drag), then
   // move to the target day and release.
-  const [dragItem, setDragItem] = useState(null); // { date, type: "workout" | "bodystats" }
+  const [dragItem, setDragItem] = useState(null); // { date, type: "workout" | "bodystats", label }
   const [dragOverDate, setDragOverDate] = useState(null);
-  const pressRef = useRef(null); // { timer, startX, startY, date, type, fired }
+  const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while actively dragging, drives the floating ghost
+  const pressRef = useRef(null); // { timer, startX, startY, date, type, label, fired }
 
-  function cardPointerDown(e, date, type) {
+  function cardPointerDown(e, date, type, label) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const startX = e.clientX;
     const startY = e.clientY;
@@ -4313,13 +4314,14 @@ function ClientCalendarScreen({
     const timer = setTimeout(() => {
       if (!pressRef.current) return;
       pressRef.current.fired = true;
-      setDragItem({ date, type });
+      setDragItem({ date, type, label });
+      setDragPos({ x: startX, y: startY });
       try {
         el.setPointerCapture(pointerId);
       } catch {}
       if (navigator.vibrate) navigator.vibrate(10);
-    }, 350);
-    pressRef.current = { timer, startX, startY, date, type, fired: false };
+    }, 300);
+    pressRef.current = { timer, startX, startY, date, type, label, fired: false };
   }
 
   function cardPointerMove(e) {
@@ -4333,6 +4335,7 @@ function ClientCalendarScreen({
       }
       return;
     }
+    setDragPos({ x: e.clientX, y: e.clientY });
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const dayEl = target?.closest("[data-date]");
     const overDate = dayEl?.getAttribute("data-date") || null;
@@ -4348,6 +4351,7 @@ function ClientCalendarScreen({
     pressRef.current = null;
     setDragItem(null);
     setDragOverDate(null);
+    setDragPos(null);
   }
 
   const logsByDate = useMemo(() => {
@@ -4436,7 +4440,7 @@ function ClientCalendarScreen({
               key={dateStr}
               data-date={dateStr}
               ref={isToday ? todayRef : null}
-              className={`${i > 0 ? "mt-5" : ""} ${
+              className={`${i > 0 ? "mt-5" : ""} transition-colors duration-150 ${
                 isDropTarget && dragOverDate === dateStr ? "bg-blue-50 rounded-2xl ring-2 ring-blue-300" : ""
               }`}
             >
@@ -4463,7 +4467,7 @@ function ClientCalendarScreen({
                     }
                     draggable={canDragWorkout}
                     dragging={dragItem?.date === dateStr && dragItem?.type === "workout"}
-                    onPointerDown={(e) => cardPointerDown(e, dateStr, "workout")}
+                    onPointerDown={(e) => cardPointerDown(e, dateStr, "workout", scheduled.label)}
                     onPointerMove={cardPointerMove}
                     onPointerUp={cardPointerUp}
                   />
@@ -4503,7 +4507,7 @@ function ClientCalendarScreen({
                     }
                     draggable={canDragBodyStats}
                     dragging={dragItem?.date === dateStr && dragItem?.type === "bodystats"}
-                    onPointerDown={(e) => cardPointerDown(e, dateStr, "bodystats")}
+                    onPointerDown={(e) => cardPointerDown(e, dateStr, "bodystats", "Body Stats Check-in")}
                     onPointerMove={cardPointerMove}
                     onPointerUp={cardPointerUp}
                   />
@@ -4516,6 +4520,19 @@ function ClientCalendarScreen({
           );
         })}
       </div>
+      {/* Floating "ghost" that tracks the finger/cursor once a drag has
+          started — without this the dragged card just sits there dimmed,
+          which reads as unresponsive rather than as an active drag.
+          pointer-events-none so it never blocks the elementFromPoint()
+          lookup that finds the day underneath it. */}
+      {dragItem && dragPos && (
+        <div
+          className="fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl"
+          style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
+        >
+          {dragItem.label}
+        </div>
+      )}
     </div>
   );
 }

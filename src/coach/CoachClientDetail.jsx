@@ -820,11 +820,12 @@ function CalendarPanel({ client, showToast }) {
   // this didn't work at all on a phone. Pointer Events cover mouse and
   // touch identically: press and hold briefly (so an ordinary tap/scroll
   // isn't mistaken for a drag), then move to the target day and release.
-  const [dragItem, setDragItem] = useState(null); // { date, type } — the item's own date + which kind, while dragging it
+  const [dragItem, setDragItem] = useState(null); // { date, type, label } — the item's own date + which kind, while dragging it
   const [dragOverDate, setDragOverDate] = useState(null);
-  const pressRef = useRef(null); // { timer, startX, startY, date, type, fired }
+  const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while actively dragging, drives the floating ghost
+  const pressRef = useRef(null); // { timer, startX, startY, date, type, label, fired }
 
-  function itemPointerDown(e, dateStr, type) {
+  function itemPointerDown(e, dateStr, type, label) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.stopPropagation();
     const startX = e.clientX;
@@ -834,13 +835,14 @@ function CalendarPanel({ client, showToast }) {
     const timer = setTimeout(() => {
       if (!pressRef.current) return;
       pressRef.current.fired = true;
-      setDragItem({ date: dateStr, type });
+      setDragItem({ date: dateStr, type, label });
+      setDragPos({ x: startX, y: startY });
       try {
         el.setPointerCapture(pointerId);
       } catch {}
       if (navigator.vibrate) navigator.vibrate(10);
-    }, 350);
-    pressRef.current = { timer, startX, startY, date: dateStr, type, fired: false };
+    }, 300);
+    pressRef.current = { timer, startX, startY, date: dateStr, type, label, fired: false };
   }
 
   function itemPointerMove(e) {
@@ -853,6 +855,7 @@ function CalendarPanel({ client, showToast }) {
       }
       return;
     }
+    setDragPos({ x: e.clientX, y: e.clientY });
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const dayEl = target?.closest("[data-date]");
     const overDate = dayEl?.getAttribute("data-date") || null;
@@ -869,6 +872,7 @@ function CalendarPanel({ client, showToast }) {
     pressRef.current = null;
     setDragItem(null);
     setDragOverDate(null);
+    setDragPos(null);
   }
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getUTCFullYear());
@@ -1241,7 +1245,7 @@ function CalendarPanel({ client, showToast }) {
                     key={dateStr}
                     data-date={dateStr}
                     onClick={!selectMode ? () => setSelectedDate(dateStr) : undefined}
-                    className={`min-h-[104px] md:min-h-[130px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors font-sans ${
+                    className={`min-h-[104px] md:min-h-[130px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors duration-150 font-sans ${
                       inMonth ? "bg-white" : "bg-black/[0.015]"
                     } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""} ${
                       dragOverDate === dateStr ? "bg-blue-50 ring-2 ring-inset ring-blue-400" : ""
@@ -1276,7 +1280,7 @@ function CalendarPanel({ client, showToast }) {
                         return (
                           <div
                             key={i}
-                            onPointerDown={draggableItem ? (e) => itemPointerDown(e, dateStr, it.type) : undefined}
+                            onPointerDown={draggableItem ? (e) => itemPointerDown(e, dateStr, it.type, it.label) : undefined}
                             onPointerMove={draggableItem ? itemPointerMove : undefined}
                             onPointerUp={draggableItem ? itemPointerUp : undefined}
                             onPointerCancel={draggableItem ? itemPointerUp : undefined}
@@ -1289,9 +1293,11 @@ function CalendarPanel({ client, showToast }) {
                                 : undefined
                             }
                             style={draggableItem ? { touchAction: "none" } : undefined}
-                            className={`flex items-center gap-1.5 text-[11px] truncate ${
+                            className={`flex items-center gap-1.5 text-[11px] truncate transition-all duration-150 ${
                               selectable ? "cursor-pointer" : ""
-                            } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${dragging ? "opacity-40" : ""} ${
+                            } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${
+                              dragging ? "opacity-30 scale-[0.97]" : ""
+                            } ${
                               checked ? "text-red-600 font-semibold" : selectMode && !selectable ? "text-black/25" : "text-black/70"
                             }`}
                           >
@@ -1367,6 +1373,20 @@ function CalendarPanel({ client, showToast }) {
         showToast={showToast}
       />
       <ScheduleFormSheet open={scheduleKind === "form"} onClose={() => setScheduleKind(null)} client={client} showToast={showToast} />
+
+      {/* Floating "ghost" that tracks the finger/cursor once a drag has
+          started — without this the dragged item just sits there dimmed,
+          which reads as unresponsive rather than as an active drag.
+          pointer-events-none so it never blocks the elementFromPoint()
+          lookup that finds the day underneath it. */}
+      {dragItem && dragPos && (
+        <div
+          className="fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl"
+          style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
+        >
+          {dragItem.label}
+        </div>
+      )}
     </div>
   );
 }
