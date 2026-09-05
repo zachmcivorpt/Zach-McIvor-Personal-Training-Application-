@@ -2649,8 +2649,9 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
   );
 }
 
-function WeightHistoryScreen({ weighIns, onClose, onLog }) {
+function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
   const [logOpen, setLogOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const chartData = weighIns.map((w) => ({
     date: new Date(w.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
     value: w.weight,
@@ -2718,7 +2719,29 @@ function WeightHistoryScreen({ weighIns, onClose, onLog }) {
                     <span className="text-black/50 text-sm">
                       {new Date(w.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </span>
-                    <span className="text-black font-semibold text-sm">{w.weight} kg</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-black font-semibold text-sm">{w.weight} kg</span>
+                      {confirmDeleteId === w.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => setConfirmDeleteId(null)} className="text-black/40 text-xs font-semibold px-2 py-1">
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => {
+                              onDelete?.(w.id);
+                              setConfirmDeleteId(null);
+                            }}
+                            className="text-red-600 text-xs font-bold px-2 py-1 bg-red-50 rounded-lg"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmDeleteId(w.id)} className="text-black/25 hover:text-red-500 p-1" aria-label="Delete this entry">
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2901,8 +2924,9 @@ function LogBodyMetricSheet({ open, onClose, config, lastValue, onSave }) {
   );
 }
 
-function BodyMetricHistoryScreen({ config, entries, onClose, onLog }) {
+function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDelete }) {
   const [logOpen, setLogOpen] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const chartData = entries.map((e) => ({ date: new Date(e.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }), value: e.value }));
   const latest = entries[entries.length - 1];
   const first = entries[0];
@@ -2972,10 +2996,32 @@ function BodyMetricHistoryScreen({ config, entries, onClose, onLog }) {
                     <span className="text-black/50 text-sm">
                       {new Date(e.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </span>
-                    <span className="text-black font-semibold text-sm">
-                      {e.value}
-                      {config.unit ? ` ${config.unit}` : ""}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-black font-semibold text-sm">
+                        {e.value}
+                        {config.unit ? ` ${config.unit}` : ""}
+                      </span>
+                      {confirmDeleteId === e.id ? (
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => setConfirmDeleteId(null)} className="text-black/40 text-xs font-semibold px-2 py-1">
+                            Cancel
+                          </button>
+                          <button
+                            onClick={() => {
+                              onDelete?.(e.date);
+                              setConfirmDeleteId(null);
+                            }}
+                            className="text-red-600 text-xs font-bold px-2 py-1 bg-red-50 rounded-lg"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmDeleteId(e.id)} className="text-black/25 hover:text-red-500 p-1" aria-label="Delete this entry">
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -3059,7 +3105,7 @@ function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
   );
 }
 
-function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, scheduledWorkouts }) {
+function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts }) {
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
@@ -3292,7 +3338,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
       <MetricDetailSheet metric={openMetric} onClose={() => setOpenMetric(null)} />
       {weightHistoryOpen && (
-        <WeightHistoryScreen weighIns={weighIns} onClose={() => setWeightHistoryOpen(false)} onLog={onLogWeight} />
+        <WeightHistoryScreen weighIns={weighIns} onClose={() => setWeightHistoryOpen(false)} onLog={onLogWeight} onDelete={onDeleteWeighIn} />
       )}
       <LogWeightSheet
         open={quickLogOpen}
@@ -3310,6 +3356,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           entries={bodyMetricEntries[historyMetricConfig.key]}
           onClose={() => setHistoryMetricConfig(null)}
           onLog={(v) => onLogBodyMetric(historyMetricConfig.key, v)}
+          onDelete={(dateKey) => onDeleteBodyMetric(dateKey, historyMetricConfig.key)}
         />
       )}
       <LogBodyMetricSheet
@@ -4360,7 +4407,9 @@ export default function ClientApp() {
     toggleHabitToday,
     updateUser,
     logWeight,
+    deleteWeighIn,
     logBodyMetric,
+    deleteBodyMetric,
     saveExerciseNote,
     viewingAsClient,
     stopViewAsClient,
@@ -4734,10 +4783,12 @@ export default function ClientApp() {
             onDeletePhoto={deleteProgressPhoto}
             weighIns={weighIns}
             onLogWeight={(w) => logWeight(currentUser.id, w)}
+            onDeleteWeighIn={(id) => deleteWeighIn(currentUser.id, id)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
             bodyMetrics={bodyMetricsForClient}
             onLogBodyMetric={(field, value) => logBodyMetric(currentUser.id, todayDateKey, field, value)}
+            onDeleteBodyMetric={(dateKey, field) => deleteBodyMetric(currentUser.id, dateKey, field)}
             scheduledWorkouts={scheduledWorkoutsForClient}
           />
         )}

@@ -18,6 +18,7 @@ import {
   where,
   onSnapshot,
   writeBatch,
+  deleteField,
 } from "firebase/firestore";
 import { auth, db as firestore } from "./firebase";
 import { inviteCode } from "./id";
@@ -661,6 +662,15 @@ export function AppProvider({ children }) {
       logBodyMetric(clientId, dateKey, field, value) {
         const id = `${clientId}_${dateKey}`;
         setDoc(doc(firestore, "bodyMetrics", id), { id, clientId, date: dateKey, [field]: value }, { merge: true }).catch(console.error);
+      },
+
+      // Clears one field from a day's body-metrics doc (steps/sleep/etc. are
+      // one merged doc per day, so "deleting an entry" means removing just
+      // that field) — lets a client fix a mis-typed log without it lingering
+      // as a stray 0/blank value.
+      deleteBodyMetric(clientId, dateKey, field) {
+        const id = `${clientId}_${dateKey}`;
+        updateDoc(doc(firestore, "bodyMetrics", id), { [field]: deleteField() }).catch(console.error);
       },
 
       deleteWeighIn(clientId, weighInId) {
