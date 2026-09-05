@@ -209,6 +209,10 @@ export function AvatarPicker({ name, url, size = 72, onChange }) {
    OVERLAYS
 ============================================================================ */
 
+// Every full-screen sheet in the app (workout session, workout preview,
+// messages, exercise detail, video player, notifications...) is built on
+// this one wrapper, so a fade-in here softens all of their entrances at
+// once instead of every screen popping in instantly.
 export function FullScreenOverlay({ children }) {
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -218,17 +222,47 @@ export function FullScreenOverlay({ children }) {
     };
   }, []);
   if (typeof document === "undefined") return null;
-  return createPortal(children, document.body);
+  return createPortal(
+    <>
+      <div className="animate-[fullScreenFadeIn_0.18s_ease-out]">{children}</div>
+      <style>{`@keyframes fullScreenFadeIn{from{opacity:0}to{opacity:1}}`}</style>
+    </>,
+    document.body
+  );
 }
 
 export function BottomSheet({ open, onClose, title, children }) {
-  if (!open) return null;
+  // Opening already slid up smoothly, but closing just vanished the instant
+  // `open` went false — no exit animation at all, which is exactly the kind
+  // of "blocky" jump a native app never has. Keeping the sheet mounted for
+  // one transition's worth of time after close (sliding/fading it back out
+  // first) makes every sheet in the app — habits, meals, weigh-ins, forms —
+  // close the same smooth way it opened, since they all share this component.
+  const [mounted, setMounted] = useState(open);
+  const [visible, setVisible] = useState(open);
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+      const raf = requestAnimationFrame(() => setVisible(true));
+      return () => cancelAnimationFrame(raf);
+    }
+    setVisible(false);
+    const t = setTimeout(() => setMounted(false), 300);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  if (!mounted) return null;
   return (
     <FullScreenOverlay>
       <div className="fixed inset-0 z-[110] flex items-end justify-center">
-        <div className="absolute inset-0 bg-black/50" onClick={onClose} />
         <div
-          className="relative w-full max-w-md rounded-t-3xl max-h-[88vh] overflow-y-auto animate-[slideUp_0.25s_ease-out] border-t border-black/10"
+          className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
+          onClick={onClose}
+        />
+        <div
+          className={`relative w-full max-w-md rounded-t-3xl max-h-[88vh] overflow-y-auto border-t border-black/10 transition-transform duration-300 ease-out ${
+            visible ? "translate-y-0" : "translate-y-full"
+          }`}
           style={{ backgroundColor: SURFACE_RAISED }}
         >
           <div
@@ -244,7 +278,6 @@ export function BottomSheet({ open, onClose, title, children }) {
           </div>
           <div className="p-5">{children}</div>
         </div>
-        <style>{`@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}`}</style>
       </div>
     </FullScreenOverlay>
   );

@@ -185,7 +185,32 @@ const COACH_SUGGESTIONS = [
   "I only have 30 minutes.",
   "How much protein do I have left?",
   "Should I increase my bench weight?",
+  "Give me some snack ideas",
+  "What should I eat post-workout?",
 ];
+
+// Real, common, easy-to-grab options with real macros (pulled from the same
+// food database the Nutrition tab logs against) — including the kind of
+// thing someone actually grabs on the way out (a packet of jerky, a
+// fridge protein shake), not just meal-prep ideas.
+const SNACK_SUGGESTIONS = [
+  { name: "Beef jerky (1 packet, ~30g)", cals: 123, protein: 10, carbs: 3, fat: 2 },
+  { name: "Protein shake, RTD (375ml — e.g. a 7-Eleven fridge one)", cals: 139, protein: 30, carbs: 4, fat: 2 },
+  { name: "YoPro protein yoghurt (170g tub)", cals: 158, protein: 26, carbs: 9, fat: 2 },
+  { name: "Banana + a small handful of almonds (30g)", cals: 279, protein: 7, carbs: 34, fat: 15 },
+  { name: "Cottage cheese (150g) + 2 rice cakes", cals: 224, protein: 19, carbs: 21, fat: 6 },
+];
+const POST_WORKOUT_SUGGESTIONS = [
+  { name: "Protein shake, RTD (375ml) + a banana", cals: 244, protein: 31, carbs: 31, fat: 2 },
+  { name: "Beef jerky (1 packet) + 2 rice cakes", cals: 200, protein: 12, carbs: 19, fat: 2 },
+  { name: "Cottage cheese (150g) + 2 rice cakes", cals: 224, protein: 19, carbs: 21, fat: 6 },
+  { name: "YoPro protein yoghurt (170g) + a banana", cals: 263, protein: 27, carbs: 36, fat: 2 },
+];
+
+function formatFoodSuggestions(intro, list) {
+  const lines = list.map((f) => `• ${f.name} — ${f.cals} kcal, ${f.protein}g protein, ${f.carbs}g carbs, ${f.fat}g fat`);
+  return [intro, ...lines, "Log whichever one you actually have under Nutrition — search its name and it'll pull the same numbers."].join("\n");
+}
 
 // Quick Tips — canned, rule-based answers to common questions, built only
 // from real data already loaded in this session (nutrition, today's
@@ -197,6 +222,10 @@ function coachReply(prompt, ctx) {
   const p = prompt.toLowerCase();
   if (p.includes("30 minutes") || p.includes("short"))
     return "With 30 minutes, try a condensed version of today's session — pick the 3 heaviest compound lifts and cut rest to 60 seconds. Message your coach if you'd like them to trim it for you.";
+  if (p.includes("post") && (p.includes("workout") || p.includes("training")))
+    return formatFoodSuggestions("Good post-training options — protein-forward and easy to grab:", POST_WORKOUT_SUGGESTIONS);
+  if (p.includes("snack"))
+    return formatFoodSuggestions("A few easy snack options with the macros:", SNACK_SUGGESTIONS);
   if (p.includes("protein"))
     return `You've had ${ctx.nutrition.protein}g of your ${ctx.targets.protein}g target — that leaves ${Math.max(0, ctx.targets.protein - ctx.nutrition.protein)}g. A chicken breast and a scoop of whey would close most of that gap.`;
   if (p.includes("bench") || p.includes("weight") || p.includes("increase"))
@@ -626,64 +655,9 @@ function ActiveChallengesCard({ challenges, userId }) {
 // tracking the gesture ourselves (and marking it touch-none) avoids that.
 const CHAT_BUBBLE_SIZE = 56;
 function CoachChatBubble({ coachUser, unreadCount, onOpen }) {
-  function computeDefaultPos() {
-    const appWidth = Math.min(window.innerWidth, 448);
-    const appLeft = (window.innerWidth - appWidth) / 2;
-    return { x: appLeft + 16, y: window.innerHeight - 92 - CHAT_BUBBLE_SIZE };
-  }
-  function clamp(p) {
-    const maxX = Math.max(4, window.innerWidth - CHAT_BUBBLE_SIZE - 4);
-    const maxY = Math.max(4, window.innerHeight - CHAT_BUBBLE_SIZE - 4);
-    return { x: Math.min(Math.max(4, p.x), maxX), y: Math.min(Math.max(4, p.y), maxY) };
-  }
-
   const [hidden, setHidden] = useState(() => localStorage.getItem("chatBubbleHidden") === "1");
-  const [pos, setPos] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("chatBubblePos") || "null");
-      if (saved && typeof saved.x === "number" && typeof saved.y === "number") return clamp(saved);
-    } catch {
-      // ignore malformed saved position
-    }
-    return computeDefaultPos();
-  });
-  const dragRef = useRef(null); // {startX, startY, origX, origY, moved}
-
-  useEffect(() => {
-    function onResize() {
-      if (!localStorage.getItem("chatBubblePos")) setPos(computeDefaultPos());
-    }
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
 
   if (hidden) return null;
-
-  function onPointerDown(e) {
-    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y, moved: false };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-  function onPointerMove(e) {
-    const d = dragRef.current;
-    if (!d) return;
-    const dx = e.clientX - d.startX;
-    const dy = e.clientY - d.startY;
-    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) d.moved = true;
-    if (d.moved) setPos(clamp({ x: d.origX + dx, y: d.origY + dy }));
-  }
-  function onPointerUp() {
-    const d = dragRef.current;
-    dragRef.current = null;
-    if (!d) return;
-    if (d.moved) {
-      setPos((p) => {
-        localStorage.setItem("chatBubblePos", JSON.stringify(p));
-        return p;
-      });
-    } else {
-      onOpen();
-    }
-  }
 
   function dismiss(e) {
     e.stopPropagation();
@@ -692,15 +666,11 @@ function CoachChatBubble({ coachUser, unreadCount, onOpen }) {
   }
 
   return (
-    <div className="fixed z-[55]" style={{ left: pos.x, top: pos.y, width: CHAT_BUBBLE_SIZE, height: CHAT_BUBBLE_SIZE }}>
-      <button
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        className="touch-none select-none w-14 h-14 rounded-full shadow-lg"
-        aria-label={`Message ${coachUser.name}`}
-      >
+    <div
+      className="fixed z-[55] right-4"
+      style={{ bottom: "calc(88px + env(safe-area-inset-bottom, 0px))", width: CHAT_BUBBLE_SIZE, height: CHAT_BUBBLE_SIZE }}
+    >
+      <button onClick={onOpen} className="w-14 h-14 rounded-full shadow-lg" aria-label={`Message ${coachUser.name}`}>
         <div className="w-full h-full rounded-full overflow-hidden ring-2 ring-white bg-black pointer-events-none">
           {coachUser.avatarUrl ? (
             <img src={coachUser.avatarUrl} alt={coachUser.name} className="w-full h-full object-cover" />
@@ -3659,7 +3629,11 @@ function CoachSheet({ open, onClose, ctx }) {
       <div className="space-y-3 mb-4 max-h-[45vh] overflow-y-auto">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
+            <div
+              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line ${
+                m.role === "user" ? "bg-black text-white" : "bg-black/8 text-black/85"
+              }`}
+            >
               {m.text}
             </div>
           </div>
@@ -3797,18 +3771,17 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
    CHECK-INS
 ============================================================================ */
 
-function lastOccurrence(dayOfWeek, fromDate = new Date()) {
-  const d = new Date(fromDate);
-  const diff = (d.getDay() - dayOfWeek + 7) % 7;
-  d.setDate(d.getDate() - diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+const CHECK_IN_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
 
+// Due once every 7 days since the client's last submission — a rolling
+// window rather than "since the most recent occurrence of the scheduled
+// weekday". Anchoring to the exact weekday meant a client who submitted a
+// few days early (before that weekday came back around) would see it flip
+// back to due the moment the scheduled day arrived, even though they'd
+// already filled out that week's check-in days earlier.
 function isCheckInDue(schedule, responses) {
-  const occurrence = lastOccurrence(schedule.dayOfWeek);
   const lastResponse = responses.find((r) => r.scheduleId === schedule.id);
-  return !lastResponse || lastResponse.date < occurrence.getTime();
+  return !lastResponse || Date.now() - lastResponse.date >= CHECK_IN_PERIOD_MS;
 }
 
 function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
@@ -4019,6 +3992,20 @@ function CheckInsScreen({ userId, showToast }) {
    APP SHELL
 ============================================================================ */
 
+// Switching bottom-nav tabs used to just swap content instantly — a hard
+// cut with none of the softness a native app has. Fading the new tab in on
+// every switch (remounts fresh per `tabKey`, so no crossfade bookkeeping
+// needed) smooths that one transition every single tab change goes through.
+function TabFade({ tabKey, children }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    setVisible(false);
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [tabKey]);
+  return <div className={`transition-opacity duration-200 ease-out ${visible ? "opacity-100" : "opacity-0"}`}>{children}</div>;
+}
+
 const TABS = [
   { id: "home", label: "Home", icon: HomeIcon },
   { id: "workouts", label: "Training", icon: Dumbbell },
@@ -4073,6 +4060,26 @@ export default function ClientApp() {
   const [notifOpen, setNotifOpen] = useState(false);
   const sessionStartedAtRef = useRef(null); // wall-clock time the current session started, for a real WORKOUT COMPLETE duration
 
+  // An installed PWA is routinely left open (backgrounded, phone locked)
+  // across a real calendar-day rollover without ever fully closing — so
+  // "today" as far as this component's memoized values are concerned can
+  // silently freeze at whatever date it was when last interacted with,
+  // showing yesterday's stats even though the device's clock has moved on.
+  // Bumping this on every resume forces those date-keyed values to
+  // recompute against the actual current date instead of a stale one.
+  const [dateTick, setDateTick] = useState(0);
+  useEffect(() => {
+    function refresh() {
+      if (document.visibilityState === "visible") setDateTick((n) => n + 1);
+    }
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+
   const thread = db.messages[currentUser.id] || [];
   const photos = db.progressPhotos[currentUser.id] || [];
   const weighIns = (db.weighIns || {})[currentUser.id] || [];
@@ -4118,7 +4125,8 @@ export default function ClientApp() {
     const d = new Date();
     d.setDate(d.getDate() + dayOffset);
     return d.toISOString().slice(0, 10);
-  }, [dayOffset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayOffset, dateTick]);
   const daySession = scheduledToSession(scheduledWorkoutsByDate[selectedDateKey]);
   const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
   const completedOnDate = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
@@ -4313,6 +4321,7 @@ export default function ClientApp() {
           </div>
         )}
         <BrandBar />
+        <TabFade tabKey={tab}>
         {tab === "home" && (
           <HomeScreen
             user={currentUser}
@@ -4406,6 +4415,7 @@ export default function ClientApp() {
             showToast={showToast}
           />
         )}
+        </TabFade>
 
         {coachUser && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
 
