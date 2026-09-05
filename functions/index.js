@@ -4,12 +4,14 @@
 // else in this app runs entirely client-side against Firestore; this is
 // the deliberate, minimal exception.
 //
-// Two triggers, both event-driven off collections the client already
-// writes to — no new data model, no polling, no schedule:
-//   - a new "messages" doc  -> push the other party (coach <-> client)
-//   - a new "formResponses" doc -> push the coach ("check-in submitted")
+// Three triggers:
+//   - a new "messages" doc  -> push the other party (coach <-> client), event-driven
+//   - a new "formResponses" doc -> push the coach ("check-in submitted"), event-driven
+//   - a daily schedule -> push a client whose weekly check-in form is due
+//     tomorrow and who hasn't already filled it out this week
 
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -68,3 +70,51 @@ exports.onNewCheckIn = onDocumentCreated("formResponses/{id}", async () => {
     await notifyUser(coachId, { title: "New check-in submitted", body: "A client just submitted a check-in — tap to review." });
   }
 });
+
+// Same "already done it" window the client app itself uses (CheckInsScreen's
+// isCheckInDue) — a check-in stays satisfied for 7 days after it's filled
+// out, so this only reminds someone who's genuinely about to miss one.
+const CHECK_IN_PERIOD_MS = 7 * 24 * 60 * 60 * 1000;
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Runs once a day at 9am Sydney time (this coach's own timezone — the
+// functions themselves are deployed to australia-southeast2). Firestore's
+// "dayOfWeek" on a form schedule (0=Sun..6=Sat, matching JS's own
+// Date#getDay()) is a fixed weekday each week; "24 hours before" that day
+// means firing on the day before it, so this checks whichever schedules
+// are due tomorrow.
+exports.checkInReminders = onSchedule(
+  { schedule: "0 9 * * *", timeZone: "Australia/Sydney" },
+  async () => {
+    const todayName = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", weekday: "short" }).format(new Date());
+    const tomorrowDow = (WEEKDAY_NAMES.indexOf(todayName) + 1) % 7;
+
+    // Filtering "active" in JS rather than a second .where(...) avoids
+    // needing a composite index for a query that only runs once a day.
+    const schedulesSnap = await db.collection("formSchedules").where("dayOfWeek", "==", tomorrowDow).get();
+    const dueTomorrow = schedulesSnap.docs.map((d) => d.data()).filter((s) => s.active);
+    if (dueTomorrow.length === 0) return;
+
+    const formNames = new Map();
+    for (const schedule of dueTomorrow) {
+      const responsesSnap = await db.collection("formResponses").where("scheduleId", "==", schedule.id).get();
+      let lastDate = 0;
+      responsesSnap.forEach((d) => {
+        const t = d.data().date;
+        if (t > lastDate) lastDate = t;
+      });
+      if (lastDate && Date.now() - lastDate < CHECK_IN_PERIOD_MS) continue; // already done recently — skip
+
+      if (!formNames.has(schedule.formId)) {
+        const formSnap = await db.collection("forms").doc(schedule.formId).get();
+        formNames.set(schedule.formId, formSnap.exists ? formSnap.data().name : null);
+      }
+      const formName = formNames.get(schedule.formId) || "check-in";
+
+      await notifyUser(schedule.clientId, {
+        title: "Check-in due tomorrow",
+        body: `Your "${formName}" is due tomorrow — fill it out when you get a chance.`,
+      });
+    }
+  }
+);
