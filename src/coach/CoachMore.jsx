@@ -1,14 +1,32 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, DangerButton, AvatarPicker, Tagline, TextArea } from "../components/ui";
+import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput } from "../components/ui";
 import { fileToDataUrl } from "../lib/image";
 import { enablePush, disablePush } from "../lib/push";
-import { Video, LogOut, ChevronRight, MessageSquareText, Paperclip, X, Upload, BellRing, Download } from "lucide-react";
+import { Video, LogOut, ChevronRight, MessageSquareText, Paperclip, X, Upload, BellRing, Download, User } from "lucide-react";
 
-function PushNotificationsCard({ userId, showToast }) {
+// Small on/off row shared by the two per-type notification toggles — same
+// visual switch as the master toggle above it, just smaller and inline.
+function NotifPrefRow({ label, on, onToggle }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-black/70 text-sm">{label}</span>
+      <button
+        onClick={onToggle}
+        className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${on ? "bg-blue-500" : "bg-black/15"}`}
+        aria-label={`Turn ${on ? "off" : "on"} ${label.toLowerCase()} notifications`}
+      >
+        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${on ? "left-[18px]" : "left-0.5"}`} />
+      </button>
+    </div>
+  );
+}
+
+function PushNotificationsCard({ userId, notificationPrefs, updateUser, showToast }) {
   const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const prefs = { messages: true, checkins: true, ...notificationPrefs };
 
   async function toggle() {
     setError("");
@@ -32,6 +50,12 @@ function PushNotificationsCard({ userId, showToast }) {
     }
   }
 
+  function togglePref(key) {
+    updateUser(userId, { notificationPrefs: { ...prefs, [key]: !prefs[key] } }).catch((err) =>
+      showToast?.(err.message || "Couldn't save")
+    );
+  }
+
   return (
     <Card>
       <div className="flex items-center gap-3">
@@ -40,7 +64,7 @@ function PushNotificationsCard({ userId, showToast }) {
         </div>
         <div className="flex-1">
           <p className="text-black font-semibold text-sm">Push Notifications</p>
-          <p className="text-black/40 text-xs mt-0.5">Get alerted on this device for new messages and check-ins — even app closed</p>
+          <p className="text-black/40 text-xs mt-0.5">Get alerted on this device — even app closed</p>
         </div>
         <button
           onClick={toggle}
@@ -51,7 +75,115 @@ function PushNotificationsCard({ userId, showToast }) {
           <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
         </button>
       </div>
+      {enabled && (
+        <div className="mt-3.5 pt-3.5 border-t border-black/8 space-y-2.5">
+          <NotifPrefRow label="New messages" on={prefs.messages} onToggle={() => togglePref("messages")} />
+          <NotifPrefRow label="Check-in submissions" on={prefs.checkins} onToggle={() => togglePref("checkins")} />
+        </div>
+      )}
       {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
+    </Card>
+  );
+}
+
+// Name is a plain Firestore field — safe to change any time. Email is the
+// real Firebase Auth login credential, so changing it needs the current
+// password re-typed (Firebase requires a "recent" login for this) and only
+// takes effect once the coach clicks the verification link sent to the new
+// address — the old email keeps working right up until then.
+function AccountCard({ currentUser, updateUser, updateCoachEmail, showToast }) {
+  const [name, setName] = useState(currentUser?.name || "");
+  const [email, setEmail] = useState(currentUser?.email || "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [error, setError] = useState("");
+
+  const nameDirty = name.trim() !== (currentUser?.name || "") && name.trim().length > 0;
+  const emailDirty = email.trim() !== (currentUser?.email || "");
+
+  async function saveName() {
+    if (!nameDirty) return;
+    setSavingName(true);
+    try {
+      await updateUser(currentUser.id, { name: name.trim() });
+      showToast?.("Name updated");
+    } catch (err) {
+      showToast?.(err.message || "Couldn't save");
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  async function saveEmail(e) {
+    e.preventDefault();
+    setError("");
+    if (!emailDirty) return;
+    if (!currentPassword) {
+      setError("Enter your current password to confirm this change.");
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      await updateCoachEmail({ currentPassword, newEmail: email });
+      setCurrentPassword("");
+      showToast?.(`Verification link sent to ${email.trim()}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingEmail(false);
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3 mb-3.5">
+        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+          <User size={18} className="text-blue-500" />
+        </div>
+        <p className="text-black font-semibold text-sm">Account</p>
+      </div>
+
+      <p className="text-black/30 text-[11px] mb-1.5">NAME</p>
+      <div className="flex gap-2 mb-4">
+        <TextInput value={name} onChange={(e) => setName(e.target.value)} className="flex-1" />
+        <button
+          onClick={saveName}
+          disabled={!nameDirty || savingName}
+          className="bg-black text-white text-xs font-bold px-4 rounded-xl disabled:opacity-30 shrink-0"
+        >
+          {savingName ? "…" : "Save"}
+        </button>
+      </div>
+
+      <form onSubmit={saveEmail}>
+        <p className="text-black/30 text-[11px] mb-1.5">LOGIN EMAIL</p>
+        <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        {emailDirty && (
+          <>
+            <p className="text-black/30 text-[11px] mt-3 mb-1.5">CURRENT PASSWORD (to confirm)</p>
+            <TextInput
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Required to change your email"
+            />
+            <p className="text-black/40 text-[11px] mt-2">
+              We'll send a verification link to the new address — your login stays on the old one until you click it.
+            </p>
+          </>
+        )}
+        {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
+        {emailDirty && (
+          <button
+            type="submit"
+            disabled={savingEmail}
+            className="w-full mt-3 bg-black text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50"
+          >
+            {savingEmail ? "Sending…" : "Update Email"}
+          </button>
+        )}
+      </form>
     </Card>
   );
 }
@@ -250,13 +382,30 @@ function DataBackupCard({ db }) {
 }
 
 export default function CoachMore({ onNavigate, onLogout, showToast }) {
-  const { currentUser, updateUser, db } = useApp();
+  const { currentUser, updateUser, updateCoachEmail, db } = useApp();
 
   return (
     <div className="max-w-xl px-4 py-5 md:px-8 md:py-8 space-y-4">
       <div>
         <h1 className="text-black text-2xl font-bold">Settings</h1>
       </div>
+
+      <Card>
+        <div className="flex items-center gap-4">
+          <AvatarPicker
+            name={currentUser?.name}
+            url={currentUser?.avatarUrl}
+            size={64}
+            onChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
+          />
+          <div>
+            <p className="text-black font-bold">{currentUser?.name}</p>
+            <p className="text-black/40 text-sm">{currentUser?.email}</p>
+          </div>
+        </div>
+      </Card>
+
+      <AccountCard currentUser={currentUser} updateUser={updateUser} updateCoachEmail={updateCoachEmail} showToast={showToast} />
 
       <Card onClick={() => onNavigate("library")}>
         <div className="flex items-center gap-3">
@@ -273,25 +422,16 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
 
       <WelcomeMessageCard />
 
-      {currentUser && <PushNotificationsCard userId={currentUser.id} showToast={showToast} />}
+      {currentUser && (
+        <PushNotificationsCard
+          userId={currentUser.id}
+          notificationPrefs={currentUser.notificationPrefs}
+          updateUser={updateUser}
+          showToast={showToast}
+        />
+      )}
 
       <DataBackupCard db={db} />
-
-      <Card>
-        <div className="flex items-center gap-4">
-          <AvatarPicker
-            name={currentUser?.name}
-            url={currentUser?.avatarUrl}
-            size={64}
-            onChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
-          />
-          <div>
-            <p className="text-black font-bold">{currentUser?.name}</p>
-            <p className="text-black/40 text-sm">{currentUser?.email}</p>
-            <p className="text-black/30 text-xs mt-0.5">@{currentUser?.username}</p>
-          </div>
-        </div>
-      </Card>
 
       <DangerButton className="w-full" onClick={onLogout}>
         <LogOut size={14} /> Sign out

@@ -23,9 +23,14 @@ const messaging = getMessaging();
 // Sends to every device token stored on a user's profile doc, then prunes
 // any token Firebase reports as dead (uninstalled app, revoked
 // permission, expired registration) so the array doesn't grow forever.
-async function notifyUser(uid, { title, body }) {
+// `prefKey`, when given, is checked against that user's own
+// notificationPrefs — false explicitly opts out of that one notification
+// type; anything else (including the field never having been set at all,
+// for a coach account that predates this setting) defaults to on.
+async function notifyUser(uid, { title, body }, prefKey) {
   const userRef = db.collection("users").doc(uid);
   const snap = await userRef.get();
+  if (prefKey && snap.data()?.notificationPrefs?.[prefKey] === false) return;
   const tokens = snap.data()?.fcmTokens || [];
   if (tokens.length === 0) return;
 
@@ -58,7 +63,7 @@ exports.onNewMessage = onDocumentCreated("messages/{id}", async (event) => {
 
   if (m.from === "client") {
     const coachId = await getCoachId();
-    if (coachId) await notifyUser(coachId, { title: "New message", body: preview });
+    if (coachId) await notifyUser(coachId, { title: "New message", body: preview }, "messages");
   } else if (m.from === "coach" && m.clientId) {
     await notifyUser(m.clientId, { title: "Your coach sent a message", body: preview });
   }
@@ -67,7 +72,7 @@ exports.onNewMessage = onDocumentCreated("messages/{id}", async (event) => {
 exports.onNewCheckIn = onDocumentCreated("formResponses/{id}", async () => {
   const coachId = await getCoachId();
   if (coachId) {
-    await notifyUser(coachId, { title: "New check-in submitted", body: "A client just submitted a check-in — tap to review." });
+    await notifyUser(coachId, { title: "New check-in submitted", body: "A client just submitted a check-in — tap to review." }, "checkins");
   }
 });
 

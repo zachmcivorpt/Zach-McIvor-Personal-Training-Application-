@@ -5,6 +5,9 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   sendPasswordResetEmail,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  verifyBeforeUpdateEmail,
 } from "firebase/auth";
 import {
   collection,
@@ -569,6 +572,32 @@ export function AppProvider({ children }) {
           });
         } catch (err) {
           throw new Error("Couldn't send that reset email — " + (err.message || "please try again."));
+        }
+      },
+
+      // Changing the coach's own login email needs Firebase's own
+      // re-authentication (typing the current password again) since the
+      // session may be old, then a verification link sent to the NEW
+      // address — the credential doesn't actually switch over until that
+      // link is clicked, so the old email still signs in until then. The
+      // Firestore copy (email/username, used for display) updates right
+      // away regardless, which is why the UI has to say this plainly
+      // rather than implying the change is already complete.
+      async updateCoachEmail({ currentPassword, newEmail }) {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Not signed in.");
+        const trimmed = newEmail.trim();
+        try {
+          const credential = EmailAuthProvider.credential(user.email, currentPassword);
+          await reauthenticateWithCredential(user, credential);
+          await verifyBeforeUpdateEmail(user, trimmed);
+        } catch (err) {
+          throw new Error(friendlyAuthError(err));
+        }
+        try {
+          await setDoc(doc(firestore, "users", user.uid), { email: trimmed, username: trimmed }, { merge: true });
+        } catch (err) {
+          console.error(err);
         }
       },
 
