@@ -90,11 +90,17 @@ export async function lookupBarcode(code) {
   return {
     id: `off_${code}`,
     name,
+    brand: product.brands || "",
+    // Small preview image, not the full-res photo — this is only ever shown
+    // at thumbnail size so the client can eyeball "is this really what I
+    // scanned" before adding it.
+    imageUrl: product.image_front_small_url || product.image_small_url || product.image_url || "",
     cals,
     protein,
     carbs,
     fat,
     per: 100,
     defaultQty: servingGrams || 100,
+    fromBarcode: true,
   };
 }

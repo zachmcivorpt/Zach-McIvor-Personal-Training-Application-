@@ -4,6 +4,7 @@ import {
   Home as HomeIcon,
   Dumbbell,
   Utensils,
+  UtensilsCrossed,
   TrendingUp,
   User,
   Play,
@@ -2431,17 +2432,24 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                 {items.length === 0 ? (
                   <p className="text-black/30 text-sm text-center py-4">No items logged yet</p>
                 ) : (
-                  <div className="space-y-1.5 mb-2">
+                  <div className="space-y-2 mb-2">
                     {items.map((f) => (
                       <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id)}>
-                        <div className="flex items-center justify-between text-sm bg-white py-2">
-                          <span className="flex items-center gap-2 text-black/70 min-w-0">
-                            {f.photoUrl && (
-                              <img src={f.photoUrl} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
-                            )}
-                            <span className="truncate">{f.name}</span>
-                          </span>
-                          <span className="text-black/40 shrink-0 ml-2">{f.cals} kcal</span>
+                        <div className="flex items-center gap-3 bg-black/[0.02] border border-black/5 rounded-xl px-3 py-2.5">
+                          {f.photoUrl ? (
+                            <img src={f.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-black/8 flex items-center justify-center shrink-0">
+                              <UtensilsCrossed size={16} className="text-black/30" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-black text-sm font-semibold truncate">{f.name}</p>
+                            <p className="text-black/40 text-[11px] mt-0.5">
+                              {round1(f.protein)}g P · {round1(f.carbs)}g C · {round1(f.fat)}g F
+                            </p>
+                          </div>
+                          <span className="text-black font-semibold text-sm shrink-0">{f.cals}</span>
                         </div>
                       </SwipeableRow>
                     ))}

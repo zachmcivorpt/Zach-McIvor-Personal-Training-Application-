@@ -55,6 +55,23 @@ export function FoodQuantitySheet({ food, onClose, onConfirm }) {
 
   return (
     <BottomSheet open={!!food} onClose={onClose} title={food.name}>
+      {food.fromBarcode && (
+        <div className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4">
+          {food.imageUrl ? (
+            <img src={food.imageUrl} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0 bg-white" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl bg-black/8 flex items-center justify-center shrink-0">
+              <ScanLine size={20} className="text-black/25" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            {food.brand && <p className="text-black/40 text-[11px] truncate">{food.brand}</p>}
+            <p className="text-black/50 text-xs mt-0.5">
+              Matched from the barcode database — not what you scanned? Close this and search or enter it manually instead.
+            </p>
+          </div>
+        </div>
+      )}
       <p className="text-black/40 text-xs text-center mb-4">How much did you have?</p>
 
       {units.length > 1 && (
