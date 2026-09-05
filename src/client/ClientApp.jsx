@@ -100,6 +100,7 @@ import {
   computePRsInLastNDays,
   computeSessionsThisWeek,
   computeWeeklyStreak,
+  computeWorkoutStreak,
   computeAchievements,
   computePerformanceTimeline,
   computeWeeklySessionCompletion,
@@ -3650,13 +3651,14 @@ function ProfileScreen({
   unreadCount,
   onAvatarChange,
   logsForClient,
+  scheduledWorkouts,
   onOpenNotifications,
   notifCount,
   showToast,
   dueCheckInsCount,
   onOpenCheckIns,
 }) {
-  const weekStreak = computeWeeklyStreak(logsForClient);
+  const workoutStreak = computeWorkoutStreak(logsForClient, scheduledWorkouts);
   const prsThisMonth = computePRsInLastNDays(logsForClient, 30);
   const [prefSection, setPrefSection] = useState(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
@@ -3688,8 +3690,8 @@ function ProfileScreen({
           </div>
           <div className="flex gap-2 mt-4">
             <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
-              <p className="text-black font-bold">{weekStreak}🔥</p>
-              <p className="text-black/40 text-[11px]">week streak</p>
+              <p className="text-black font-bold">{workoutStreak}🔥</p>
+              <p className="text-black/40 text-[11px]">workout streak</p>
             </div>
             <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
               <p className="text-black font-bold">{logsForClient.length}</p>
@@ -5152,6 +5154,7 @@ export default function ClientApp() {
             unreadCount={unreadCount}
             onAvatarChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
             logsForClient={logsForClient}
+            scheduledWorkouts={scheduledWorkoutsForClient}
             onOpenNotifications={() => setNotifOpen(true)}
             notifCount={notificationItems.length}
             showToast={showToast}

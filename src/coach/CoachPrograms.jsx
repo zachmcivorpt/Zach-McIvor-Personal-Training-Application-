@@ -535,15 +535,15 @@ export default function CoachPrograms({ showToast }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
+    <div className="max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8">
       <div className="mb-5">
         <h1 className="text-black text-2xl font-bold">Program Templates</h1>
         <p className="text-black/40 text-sm mt-0.5">{programs.length} total · reusable phase-based programs for a client's training</p>
       </div>
 
-      <div className="flex flex-col md:flex-row md:h-[calc(100vh-230px)] md:min-h-[520px] border border-black/8 rounded-2xl overflow-hidden">
+      <div className="flex flex-col md:flex-row md:h-[calc(100vh-200px)] md:min-h-[600px] border border-black/8 rounded-2xl overflow-hidden">
         {/* left: program list, with the active program's phases nested right below it */}
-        <div className="hidden md:flex w-72 shrink-0 border-r border-black/8 flex-col bg-[#F7F7F8]">
+        <div className="hidden md:flex w-80 shrink-0 border-r border-black/8 flex-col bg-[#F7F7F8]">
           <div className="p-3 border-b border-black/8 space-y-1.5">
             <button
               onClick={() => setNewProgramOpen(true)}

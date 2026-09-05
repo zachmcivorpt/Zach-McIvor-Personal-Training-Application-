@@ -252,6 +252,28 @@ export function computeWeeklyStreak(logs) {
   return streak;
 }
 
+// Consecutive SCHEDULED workout days (most recent first, counting back from
+// today) that were actually completed — resets to 0 the moment a scheduled
+// day was missed, unlike computeWeeklyStreak which only cares that *some*
+// workout happened that week. Today's own scheduled session doesn't break
+// the streak while it simply hasn't been done yet — the day isn't over.
+export function computeWorkoutStreak(logs, scheduledWorkouts) {
+  if (!scheduledWorkouts || scheduledWorkouts.length === 0) return 0;
+  const completedDates = new Set((logs || []).map((l) => new Date(l.date).toISOString().slice(0, 10)));
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const pastScheduled = scheduledWorkouts
+    .map((w) => w.date)
+    .filter((d) => d <= todayKey)
+    .sort()
+    .reverse();
+  let streak = 0;
+  for (const d of pastScheduled) {
+    if (completedDates.has(d)) streak++;
+    else if (d !== todayKey) break;
+  }
+  return streak;
+}
+
 // Milestone badges — only ones actually earned show up.
 export function computeAchievements(logs) {
   const badges = [];
