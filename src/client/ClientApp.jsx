@@ -4196,14 +4196,16 @@ function CheckInsScreen({ userId, showToast }) {
       )}
 
       {responses.length > 0 && (
-        <div className="px-3 space-y-2.5">
-          <p className="text-black/40 text-xs tracking-wide font-semibold mt-2">HISTORY</p>
-          {responses.slice(0, 10).map((r) => (
-            <div key={r.id} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-4 py-2.5">
-              <span className="text-black/70 text-sm">{formsById[r.formId]?.name || "Check-in"}</span>
-              <span className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
-            </div>
-          ))}
+        <div className="px-3">
+          <p className="text-black/40 text-xs tracking-wide font-semibold mt-2 mb-2.5">HISTORY</p>
+          <Card className="!p-0 divide-y divide-black/5 overflow-hidden">
+            {responses.slice(0, 10).map((r) => (
+              <div key={r.id} className="flex items-center justify-between px-4 py-3">
+                <span className="text-black/70 text-sm font-medium">{formsById[r.formId]?.name || "Check-in"}</span>
+                <span className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+              </div>
+            ))}
+          </Card>
         </div>
       )}
 
