@@ -10,6 +10,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['brand/mark-black.png'],
       manifest: {
+        // A stable id keeps Android/Play treating this as the same app even
+        // if name/start_url ever change later — PWABuilder's Android
+        // packaging step reads this for the TWA's identity.
+        id: '/',
         name: 'Zach McIvor Personal Training',
         short_name: 'ZM Training',
         description: 'Forge Your Path — coaching and client app for Zach McIvor Personal Training.',
@@ -18,6 +22,7 @@ export default defineConfig({
         display: 'standalone',
         background_color: '#FFFFFF',
         theme_color: '#FFFFFF',
+        categories: ['health', 'fitness', 'lifestyle'],
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
