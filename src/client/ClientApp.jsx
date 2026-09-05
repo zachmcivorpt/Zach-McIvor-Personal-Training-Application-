@@ -100,6 +100,8 @@ import {
   computeWeeklyStreak,
   computeAchievements,
   computePerformanceTimeline,
+  computeWeeklySessionCompletion,
+  closestWeighIn,
   suggestNextSet,
 } from "../lib/trainingStats";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
@@ -190,27 +192,83 @@ const COACH_SUGGESTIONS = [
   "What should I eat post-workout?",
 ];
 
-// Real, common, easy-to-grab options with real macros (pulled from the same
+// Real, common, easy-to-grab options with real macros (scaled from the same
 // food database the Nutrition tab logs against) — including the kind of
 // thing someone actually grabs on the way out (a packet of jerky, a
-// fridge protein shake), not just meal-prep ideas.
+// fridge protein shake), not just meal-prep ideas. 20 each so there's
+// always something new to suggest — see formatFoodSuggestions below for
+// why only a few show up per message.
 const SNACK_SUGGESTIONS = [
   { name: "Beef jerky (1 packet, ~30g)", cals: 123, protein: 10, carbs: 3, fat: 2 },
   { name: "Protein shake, RTD (375ml — e.g. a 7-Eleven fridge one)", cals: 139, protein: 30, carbs: 4, fat: 2 },
   { name: "YoPro protein yoghurt (170g tub)", cals: 158, protein: 26, carbs: 9, fat: 2 },
   { name: "Banana + a small handful of almonds (30g)", cals: 279, protein: 7, carbs: 34, fat: 15 },
   { name: "Cottage cheese (150g) + 2 rice cakes", cals: 224, protein: 19, carbs: 21, fat: 6 },
+  { name: "Greek yoghurt, low fat (170g) + a banana", cals: 205, protein: 18, carbs: 33, fat: 1 },
+  { name: "2 boiled eggs + a rice cake", cals: 182, protein: 14, carbs: 9, fat: 10 },
+  { name: "Tuna, canned (100g) + 2 rice cakes", cals: 193, protein: 28, carbs: 16, fat: 2 },
+  { name: "Cheddar cheese (30g) + an apple", cals: 215, protein: 9, carbs: 25, fat: 10 },
+  { name: "Protein bar (1 bar, ~60g)", cals: 210, protein: 18, carbs: 21, fat: 6 },
+  { name: "Peanut butter (20g) + an apple", cals: 212, protein: 6, carbs: 29, fat: 10 },
+  { name: "Almonds (30g, small handful)", cals: 174, protein: 6, carbs: 7, fat: 15 },
+  { name: "Hummus (50g) + 2 rice cakes", cals: 160, protein: 6, carbs: 23, fat: 6 },
+  { name: "Oats, dry (50g) — add water or milk", cals: 190, protein: 7, carbs: 34, fat: 4 },
+  { name: "Cottage cheese (150g) + a banana", cals: 252, protein: 18, carbs: 32, fat: 6 },
+  { name: "Egg whites (130g) + 2 rice cakes", cals: 145, protein: 16, carbs: 17, fat: 1 },
+  { name: "Mozzarella cheese (30g) + an apple", cals: 178, protein: 9, carbs: 26, fat: 5 },
+  { name: "Vegan protein bar (1 bar, ~60g)", cals: 210, protein: 12, carbs: 24, fat: 6 },
+  { name: "Ricotta (100g) + an apple", cals: 268, protein: 12, carbs: 28, fat: 13 },
+  { name: "Walnuts (30g, small handful)", cals: 196, protein: 5, carbs: 4, fat: 20 },
 ];
 const POST_WORKOUT_SUGGESTIONS = [
   { name: "Protein shake, RTD (375ml) + a banana", cals: 244, protein: 31, carbs: 31, fat: 2 },
   { name: "Beef jerky (1 packet) + 2 rice cakes", cals: 200, protein: 12, carbs: 19, fat: 2 },
   { name: "Cottage cheese (150g) + 2 rice cakes", cals: 224, protein: 19, carbs: 21, fat: 6 },
   { name: "YoPro protein yoghurt (170g) + a banana", cals: 263, protein: 27, carbs: 36, fat: 2 },
+  { name: "Chicken breast (100g) + 2 rice cakes", cals: 242, protein: 33, carbs: 16, fat: 4 },
+  { name: "Tuna, canned (100g) + a banana", cals: 221, protein: 27, carbs: 27, fat: 1 },
+  { name: "Egg whites (130g) + a banana", cals: 173, protein: 15, carbs: 28, fat: 0 },
+  { name: "Greek yoghurt, low fat (170g) + oats (25g)", cals: 195, protein: 20, carbs: 23, fat: 3 },
+  { name: "Protein bar (1 bar) + a banana", cals: 315, protein: 19, carbs: 48, fat: 6 },
+  { name: "2 whole eggs + 2 rice cakes", cals: 220, protein: 15, carbs: 17, fat: 11 },
+  { name: "Cottage cheese (150g) + a banana", cals: 252, protein: 18, carbs: 32, fat: 6 },
+  { name: "Turkey breast (100g) + 2 rice cakes", cals: 212, protein: 32, carbs: 16, fat: 2 },
+  { name: "Protein shake, RTD (375ml) + oats (25g)", cals: 234, protein: 33, carbs: 21, fat: 4 },
+  { name: "Chicken tenderloin (150g) + a banana", cals: 270, protein: 36, carbs: 27, fat: 2 },
+  { name: "YoPro protein yoghurt (170g) + oats (25g)", cals: 253, protein: 29, carbs: 26, fat: 4 },
+  { name: "Egg white protein powder (1 scoop) + a banana", cals: 216, protein: 26, carbs: 28, fat: 0 },
+  { name: "Beef jerky (1 packet) + a banana", cals: 228, protein: 11, carbs: 30, fat: 2 },
+  { name: "Vegan protein bar + a banana", cals: 315, protein: 13, carbs: 51, fat: 6 },
+  { name: "Tuna steak (150g) + 2 rice cakes", cals: 353, protein: 47, carbs: 16, fat: 10 },
+  { name: "Ham, deli slices (50g) + 2 rice cakes", cals: 131, protein: 11, carbs: 17, fat: 3 },
 ];
 
-function formatFoodSuggestions(intro, list) {
-  const lines = list.map((f) => `• ${f.name} — ${f.cals} kcal, ${f.protein}g protein, ${f.carbs}g carbs, ${f.fat}g fat`);
-  return [intro, ...lines, "Log whichever one you actually have under Nutrition — search its name and it'll pull the same numbers."].join("\n");
+const SNACK_INTRO = "A few easy snack options with the macros:";
+const POST_WORKOUT_INTRO = "Good post-training options — protein-forward and easy to grab:";
+
+// Counts how many bullet options have already been sent for this topic
+// across the whole conversation, so "more" continues from where it left
+// off instead of repeating (or re-explaining) the same batch.
+function countShownSuggestions(messages, intro) {
+  let count = 0;
+  (messages || []).forEach((m) => {
+    if (m.role === "coach" && m.text.startsWith(intro)) count += (m.text.match(/^• /gm) || []).length;
+  });
+  return count;
+}
+
+// Only sends a few at a time — a wall of 20 options in one bubble is
+// harder to actually read than useful. Points at "more" for the rest.
+function formatFoodSuggestions(intro, list, offset, batchSize = 3) {
+  const batch = list.slice(offset, offset + batchSize);
+  if (batch.length === 0) return `That's every option I've got for now (${list.length} sent) — message your coach if you'd like more ideas.`;
+  const lines = batch.map((f) => `• ${f.name} — ${f.cals} kcal, ${f.protein}g protein, ${f.carbs}g carbs, ${f.fat}g fat`);
+  const remaining = list.length - (offset + batch.length);
+  const tail =
+    remaining > 0
+      ? `Just ask for "more" and I'll send another ${Math.min(batchSize, remaining)}.`
+      : "Log whichever one you actually have under Nutrition — search its name and it'll pull the same numbers.";
+  return [intro, ...lines, tail].join("\n");
 }
 
 // Quick Tips — canned, rule-based answers to common questions, built only
@@ -219,14 +277,25 @@ function formatFoodSuggestions(intro, list) {
 // against, so it never invents specific numbers (lift history, recovery
 // scores) it doesn't actually have. Anything it can't answer honestly
 // points the client to messaging their coach instead.
-function coachReply(prompt, ctx) {
+function coachReply(prompt, ctx, messages = []) {
   const p = prompt.toLowerCase();
+  const askingFoodTopic = p.includes("snack") || (p.includes("post") && (p.includes("workout") || p.includes("training")));
+  const wantsMore = (p.includes("more") || p.trim() === "more please") && !askingFoodTopic;
+  if (wantsMore) {
+    const lastCoach = [...messages].reverse().find((m) => m.role === "coach");
+    if (lastCoach?.text.startsWith(POST_WORKOUT_INTRO)) {
+      return formatFoodSuggestions(POST_WORKOUT_INTRO, POST_WORKOUT_SUGGESTIONS, countShownSuggestions(messages, POST_WORKOUT_INTRO));
+    }
+    if (lastCoach?.text.startsWith(SNACK_INTRO)) {
+      return formatFoodSuggestions(SNACK_INTRO, SNACK_SUGGESTIONS, countShownSuggestions(messages, SNACK_INTRO));
+    }
+  }
   if (p.includes("30 minutes") || p.includes("short"))
     return "With 30 minutes, try a condensed version of today's session — pick the 3 heaviest compound lifts and cut rest to 60 seconds. Message your coach if you'd like them to trim it for you.";
   if (p.includes("post") && (p.includes("workout") || p.includes("training")))
-    return formatFoodSuggestions("Good post-training options — protein-forward and easy to grab:", POST_WORKOUT_SUGGESTIONS);
+    return formatFoodSuggestions(POST_WORKOUT_INTRO, POST_WORKOUT_SUGGESTIONS, 0);
   if (p.includes("snack"))
-    return formatFoodSuggestions("A few easy snack options with the macros:", SNACK_SUGGESTIONS);
+    return formatFoodSuggestions(SNACK_INTRO, SNACK_SUGGESTIONS, 0);
   if (p.includes("protein"))
     return `You've had ${ctx.nutrition.protein}g of your ${ctx.targets.protein}g target — that leaves ${Math.max(0, ctx.targets.protein - ctx.nutrition.protein)}g. A chicken breast and a scoop of whey would close most of that gap.`;
   if (p.includes("bench") || p.includes("weight") || p.includes("increase"))
@@ -1992,6 +2061,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
           )}
           {logsForClient.map((h) => {
             const volume = h.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + s.weight * s.reps, 0), 0);
+            const prCount = h.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
             return (
               <Card key={h.id}>
                 <div className="flex justify-between items-center">
@@ -2005,7 +2075,14 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
                       {h.cardio.caloriesBurned > 0 ? ` · ${h.cardio.caloriesBurned} kcal` : ""}
                     </Pill>
                   ) : (
-                    <Pill tone="outline">{volume.toLocaleString()} kg</Pill>
+                    <div className="flex flex-col items-end gap-1">
+                      <Pill tone="outline">{volume.toLocaleString()} kg</Pill>
+                      {prCount > 0 && (
+                        <span className="text-amber-600 text-[11px] font-semibold">
+                          {prCount} PR{prCount === 1 ? "" : "s"}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               </Card>
@@ -2663,7 +2740,7 @@ function WeightHistoryScreen({ weighIns, onClose, onLog }) {
   );
 }
 
-function PhotosSection({ photos, onAdd, onDelete, busy }) {
+function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
   const fileRef = useRef(null);
   const [viewing, setViewing] = useState(null);
 
@@ -2701,8 +2778,11 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
           <span className="text-[10px] font-medium">{busy ? "Uploading…" : "Add photo"}</span>
         </button>
         {photos.map((p) => (
-          <button key={p.id} onClick={() => setViewing(p)} className="aspect-square rounded-xl overflow-hidden bg-black/5">
+          <button key={p.id} onClick={() => setViewing(p)} className="relative aspect-square rounded-xl overflow-hidden bg-black/5">
             <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
+            <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent text-white text-[10px] font-medium px-1.5 py-1 text-center">
+              {new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+            </span>
           </button>
         ))}
       </div>
@@ -2711,7 +2791,17 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
       <BottomSheet open={!!viewing} onClose={() => setViewing(null)} title={viewing ? new Date(viewing.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : ""}>
         {viewing && (
           <div>
-            <img src={viewing.url} alt="Progress" className="w-full rounded-2xl mb-4" />
+            <img src={viewing.url} alt="Progress" className="w-full rounded-2xl mb-3" />
+            {(() => {
+              const w = closestWeighIn(weighIns, viewing.date);
+              return w ? (
+                <p className="text-black/50 text-sm text-center mb-4">
+                  {w.weight} kg around this time
+                </p>
+              ) : (
+                <p className="text-black/30 text-xs text-center mb-4">No weigh-in logged near this date.</p>
+              );
+            })()}
             <DangerButton
               className="w-full"
               onClick={() => {
@@ -2731,25 +2821,30 @@ function PhotosSection({ photos, onAdd, onDelete, busy }) {
 // Clean 30-day snapshot — strength trend, bodyweight change, consistency,
 // PRs — the "how's the last month actually gone" view, distinct from the
 // tiles above it which are lifetime/this-week counters.
-function PerformanceTimelineCard({ timeline }) {
+function PerformanceTimelineCard({ timeline, weekly }) {
   const items = [
     {
       label: "Strength",
-      sub: "key lifts, e1RM",
+      sub: "avg. gain on main lifts",
       value: timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
     },
     {
       label: "Bodyweight",
-      sub: "change",
+      sub: "change over 30 days",
       value: timeline.bodyweightChange != null ? `${timeline.bodyweightChange > 0 ? "+" : ""}${timeline.bodyweightChange} kg` : "—",
     },
-    { label: "Consistency", sub: "sessions / week", value: `${timeline.sessionsPerWeek}` },
-    { label: "PRs set", sub: "personal bests", value: `${timeline.prCount}` },
+    {
+      label: "Consistency",
+      sub: weekly.pct != null ? `${weekly.completed} of ${weekly.expected} sessions` : "nothing scheduled this week",
+      value: weekly.pct != null ? `${weekly.pct}%` : "—",
+    },
+    { label: "PRs set", sub: "new heaviest lifts", value: `${timeline.prCount}` },
   ];
   return (
     <div className="bg-black rounded-2xl p-5">
       <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last {timeline.days} Days</p>
-      <p className="text-white font-bold text-lg mt-0.5 mb-4">Performance Timeline</p>
+      <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
+      <p className="text-white/35 text-xs mt-1 mb-4">A quick read on how you've been trending: getting stronger, showing up, hitting new bests.</p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-4">
         {items.map((it) => (
           <div key={it.label}>
@@ -2964,7 +3059,7 @@ function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
   );
 }
 
-function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric }) {
+function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, scheduledWorkouts }) {
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
@@ -3004,6 +3099,10 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
   const timeline = useMemo(
     () => computePerformanceTimeline(logsForClient, weighIns, exercisesById, 30),
     [logsForClient, weighIns, exercisesById]
+  );
+  const weekly = useMemo(
+    () => computeWeeklySessionCompletion(logsForClient, scheduledWorkouts),
+    [logsForClient, scheduledWorkouts]
   );
 
   const latestWeighIn = weighIns[weighIns.length - 1];
@@ -3050,9 +3149,9 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           </div>
         </div>
 
-        <PerformanceTimelineCard timeline={timeline} />
+        <PerformanceTimelineCard timeline={timeline} weekly={weekly} />
 
-        <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} />
+        <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
 
         <Card>
           <div className="flex items-center justify-between">
@@ -3629,7 +3728,7 @@ function CoachSheet({ open, onClose, ctx }) {
   function send(text) {
     if (!text.trim()) return;
     const userMsg = { role: "user", text };
-    const reply = { role: "coach", text: coachReply(text, ctx) };
+    const reply = { role: "coach", text: coachReply(text, ctx, messages) };
     setMessages((m) => [...m, userMsg, reply]);
     setInput("");
   }
@@ -3650,6 +3749,19 @@ function CoachSheet({ open, onClose, ctx }) {
         ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-3">
+        {(() => {
+          const lastCoach = [...messages].reverse().find((m) => m.role === "coach");
+          const isFoodList = lastCoach?.text.startsWith(SNACK_INTRO) || lastCoach?.text.startsWith(POST_WORKOUT_INTRO);
+          const outOfOptions = lastCoach?.text.startsWith("That's every option");
+          return (
+            isFoodList &&
+            !outOfOptions && (
+              <button onClick={() => send("more")} className="text-xs bg-black text-white px-3 py-1.5 rounded-full font-semibold">
+                More options
+              </button>
+            )
+          );
+        })()}
         {COACH_SUGGESTIONS.map((s) => (
           <button key={s} onClick={() => send(s)} className="text-xs bg-black/8 text-black/60 px-3 py-1.5 rounded-full">
             {s}
@@ -4407,6 +4519,7 @@ export default function ClientApp() {
             exercisesById={exercisesById}
             bodyMetrics={bodyMetricsForClient}
             onLogBodyMetric={(field, value) => logBodyMetric(currentUser.id, todayDateKey, field, value)}
+            scheduledWorkouts={scheduledWorkoutsForClient}
           />
         )}
         {tab === "profile" && (

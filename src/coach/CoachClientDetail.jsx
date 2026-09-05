@@ -3,7 +3,7 @@ import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
-import { computePerformanceTimeline, computePRsInLastNDays } from "../lib/trainingStats";
+import { computePerformanceTimeline, computePRsInLastNDays, computeWeeklySessionCompletion, closestWeighIn } from "../lib/trainingStats";
 import { ThreadView } from "./CoachMessages";
 import { SendLoginSheet } from "./CoachClients";
 import WorkoutEditor from "./WorkoutEditor";
@@ -821,6 +821,8 @@ function CalendarPanel({ client, showToast }) {
   const [selectMode, setSelectMode] = useState(false);
   const [activeCategories, setActiveCategories] = useState(() => new Set(["workout", "habits", "cardio"]));
   const [selectedKeys, setSelectedKeys] = useState(() => new Set());
+  const [rangeStart, setRangeStart] = useState("");
+  const [rangeEnd, setRangeEnd] = useState("");
 
   const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const bodyStatsSchedules = (db.bodyStatsSchedules || {})[client.id] || [];
@@ -979,6 +981,35 @@ function CalendarPanel({ client, showToast }) {
   function exitSelectMode() {
     setSelectMode(false);
     setSelectedKeys(new Set());
+    setRangeStart("");
+    setRangeEnd("");
+  }
+
+  // Selects every item that matches the active category filters between
+  // two dates in one go, so cleaning up a stretch of weeks/months doesn't
+  // mean clicking each item on the calendar one at a time.
+  function selectDateRange() {
+    if (!rangeStart || !rangeEnd) return;
+    const start = new Date(rangeStart + "T00:00:00Z");
+    const end = new Date(rangeEnd + "T00:00:00Z");
+    if (start > end) {
+      showToast("Start date must be before the end date");
+      return;
+    }
+    if ((end - start) / 86400000 > 366) {
+      showToast("Pick a range of a year or less");
+      return;
+    }
+    const keys = new Set(selectedKeys);
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      itemsForDate(cursor).forEach((it) => {
+        if (it.category && activeCategories.has(it.category)) keys.add(it.key);
+      });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    setSelectedKeys(keys);
+    showToast(`Selected ${keys.size} item${keys.size === 1 ? "" : "s"} in that range`);
   }
 
   function deleteSelected() {
@@ -1050,27 +1081,52 @@ function CalendarPanel({ client, showToast }) {
         </div>
 
         {selectMode && (
-          <div className="flex items-center justify-between flex-wrap gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-2.5 mb-4">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {DELETE_CATEGORIES.map((c) => (
-                <button
-                  key={c.key}
-                  onClick={() => toggleCategory(c.key)}
-                  className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
-                    activeCategories.has(c.key) ? "bg-black text-white" : "bg-white border border-black/10 text-black/50"
-                  }`}
-                >
-                  {c.label}
-                </button>
-              ))}
+          <div className="bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-2.5 mb-4 space-y-2.5">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {DELETE_CATEGORIES.map((c) => (
+                  <button
+                    key={c.key}
+                    onClick={() => toggleCategory(c.key)}
+                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
+                      activeCategories.has(c.key) ? "bg-black text-white" : "bg-white border border-black/10 text-black/50"
+                    }`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={deleteSelected}
+                disabled={selectedKeys.size === 0}
+                className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-30"
+              >
+                <Trash2 size={13} /> Delete {selectedKeys.size > 0 ? `(${selectedKeys.size})` : ""}
+              </button>
             </div>
-            <button
-              onClick={deleteSelected}
-              disabled={selectedKeys.size === 0}
-              className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-30"
-            >
-              <Trash2 size={13} /> Delete {selectedKeys.size > 0 ? `(${selectedKeys.size})` : ""}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap border-t border-black/8 pt-2.5">
+              <span className="text-black/40 text-[11px] font-semibold shrink-0">SELECT A DATE RANGE</span>
+              <input
+                type="date"
+                value={rangeStart}
+                onChange={(e) => setRangeStart(e.target.value)}
+                className="bg-white border border-black/10 rounded-lg text-xs text-black px-2 py-1.5 outline-none"
+              />
+              <span className="text-black/30 text-xs">to</span>
+              <input
+                type="date"
+                value={rangeEnd}
+                onChange={(e) => setRangeEnd(e.target.value)}
+                className="bg-white border border-black/10 rounded-lg text-xs text-black px-2 py-1.5 outline-none"
+              />
+              <button
+                onClick={selectDateRange}
+                disabled={!rangeStart || !rangeEnd}
+                className="bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-30"
+              >
+                Select range
+              </button>
+            </div>
           </div>
         )}
 
@@ -2438,6 +2494,27 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   const hasFlags = log.entries.some((e) => e.note || e.swapReason);
   const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
+  const volume = log.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.weight || 0) * (s.reps || 0), 0), 0);
+
+  if (log.cardio) {
+    const details = [
+      log.cardio.durationMin ? `${log.cardio.durationMin} min` : null,
+      log.cardio.distanceKm ? `${log.cardio.distanceKm} km` : null,
+      log.cardio.caloriesBurned ? `${log.cardio.caloriesBurned} kcal` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    return (
+      <div className="bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
+        <p className="text-black text-sm font-semibold">{log.cardio.activityLabel || log.dayLabel}</p>
+        <p className="text-black/40 text-xs mt-0.5">
+          {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+          {details && <span> · {details}</span>}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-black/[0.03] border border-black/8 rounded-xl overflow-hidden">
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-3.5 py-3 text-left">
@@ -2445,6 +2522,8 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
           <p className="text-black text-sm font-semibold">{log.dayLabel}</p>
           <p className="text-black/40 text-xs mt-0.5">
             {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+            {" · "}
+            {volume.toLocaleString()} kg lifted
             {prCount > 0 && <span className="text-amber-600 font-semibold"> · {prCount} PR{prCount === 1 ? "" : "s"}</span>}
           </p>
         </div>
@@ -2494,6 +2573,7 @@ function ProgressPanel({ client }) {
   const { db } = useApp();
   const photos = db.progressPhotos[client.id] || [];
   const logs = db.workoutLogs[client.id] || [];
+  const weighIns = (db.weighIns || {})[client.id] || [];
   const exercisesById = Object.fromEntries(db.exercises.map((e) => [e.id, e]));
 
   return (
@@ -2504,11 +2584,18 @@ function ProgressPanel({ client }) {
           <p className="text-black/30 text-sm">No photos uploaded by this client yet.</p>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-            {photos.map((p) => (
-              <div key={p.id} className="aspect-square rounded-xl overflow-hidden bg-black/5">
-                <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
-              </div>
-            ))}
+            {photos.map((p) => {
+              const w = closestWeighIn(weighIns, p.date);
+              return (
+                <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden bg-black/5">
+                  <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
+                  <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] font-medium px-1.5 py-1 text-center">
+                    {new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    {w ? ` · ${w.weight}kg` : ""}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -2562,28 +2649,37 @@ function PerformanceTimelineCard({ client }) {
   const { db } = useApp();
   const logs = db.workoutLogs[client.id] || [];
   const weighIns = (db.weighIns || {})[client.id] || [];
+  const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
   const timeline = useMemo(() => computePerformanceTimeline(logs, weighIns, exercisesById, 30), [logs, weighIns, exercisesById]);
+  const weekly = useMemo(() => computeWeeklySessionCompletion(logs, scheduledWorkouts), [logs, scheduledWorkouts]);
 
   const items = [
     {
       label: "Strength",
-      sub: "key lifts, e1RM",
+      sub: "avg. gain on main lifts",
       value: timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
     },
     {
       label: "Bodyweight",
-      sub: "change",
+      sub: "change over 30 days",
       value: timeline.bodyweightChange != null ? `${timeline.bodyweightChange > 0 ? "+" : ""}${timeline.bodyweightChange} kg` : "—",
     },
-    { label: "Consistency", sub: "sessions / week", value: `${timeline.sessionsPerWeek}` },
-    { label: "PRs set", sub: "personal bests", value: `${timeline.prCount}` },
+    {
+      label: "Consistency",
+      sub: weekly.pct != null ? `${weekly.completed} of ${weekly.expected} sessions` : "nothing scheduled this week",
+      value: weekly.pct != null ? `${weekly.pct}%` : "—",
+    },
+    { label: "PRs set", sub: "new heaviest lifts", value: `${timeline.prCount}` },
   ];
 
   return (
     <div className="bg-black rounded-2xl p-5 mb-6">
       <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last 30 Days</p>
-      <p className="text-white font-bold text-lg mt-0.5 mb-4">Performance Timeline</p>
+      <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
+      <p className="text-white/35 text-xs mt-1 mb-4">
+        A quick read on how {client.name?.split(" ")[0] || "they"}'ve been trending: getting stronger, showing up, hitting new bests.
+      </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
         {items.map((it) => (
           <div key={it.label}>

@@ -184,9 +184,51 @@ export function computePerformanceTimeline(logs, weighIns, exercisesById, days =
   return { days, sessionsCount, sessionsPerWeek, prCount, strengthChangePct, bodyweightChange };
 }
 
+// The weigh-in logged closest to a given timestamp — within 3 days either
+// way, so a progress photo from long before any weigh-in existed doesn't
+// get paired with a wildly unrelated number. Used to caption a progress
+// photo with "what did they weigh around this time."
+export function closestWeighIn(weighIns, ts, maxDays = 3) {
+  if (!weighIns || weighIns.length === 0) return null;
+  let best = null;
+  let bestDiff = Infinity;
+  weighIns.forEach((w) => {
+    const diff = Math.abs(w.date - ts);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = w;
+    }
+  });
+  if (bestDiff > maxDays * 86400000) return null;
+  return best;
+}
+
 export function computeSessionsThisWeek(logs) {
   const cutoff = Date.now() - 7 * DAY_MS;
   return logs.filter((l) => l.date >= cutoff).length;
+}
+
+// This calendar week's (Monday-start) scheduled-vs-completed count — a
+// concrete "2 of 4 sessions done (50%)" instead of a 30-day average that's
+// hard to read at a glance. Comes back with pct: null (not 0%) when
+// nothing's been scheduled for this week at all, so an unused calendar
+// doesn't look like a missed week.
+export function computeWeeklySessionCompletion(logs, scheduledWorkouts) {
+  const now = new Date();
+  const dow = (now.getDay() + 6) % 7; // 0 = Monday
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow);
+  const weekDates = new Set(
+    Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      return d.toISOString().slice(0, 10);
+    })
+  );
+  const scheduledThisWeek = (scheduledWorkouts || []).filter((w) => weekDates.has(w.date));
+  if (scheduledThisWeek.length === 0) return { completed: 0, expected: 0, pct: null };
+  const loggedDates = new Set((logs || []).map((l) => new Date(l.date).toISOString().slice(0, 10)));
+  const completed = scheduledThisWeek.filter((w) => loggedDates.has(w.date)).length;
+  return { completed, expected: scheduledThisWeek.length, pct: Math.round((completed / scheduledThisWeek.length) * 100) };
 }
 
 // Consecutive weeks (most recent first) with at least one logged workout.
