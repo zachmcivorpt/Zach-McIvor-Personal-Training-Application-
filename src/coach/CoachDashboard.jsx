@@ -14,7 +14,66 @@ import {
   MessageCircleOff,
   NotebookPen,
   MessageCircle,
+  Send,
+  Check,
 } from "lucide-react";
+
+// The check-in's own Q&A, plus a reply box right there — so reviewing one
+// from the dashboard doesn't require a separate trip into Messages first.
+function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, showToast }) {
+  const [reply, setReply] = useState("");
+  const [sent, setSent] = useState(false);
+
+  function send() {
+    const text = reply.trim();
+    if (!text) return;
+    sendMessage(clientId, "coach", text);
+    setReply("");
+    setSent(true);
+    showToast?.(`Message sent to ${clientName.split(" ")[0]}`);
+    setTimeout(() => setSent(false), 1800);
+  }
+
+  return (
+    <div>
+      <div className="space-y-3 mb-4">
+        {(form?.questions || []).map((q) => (
+          <div key={q.id} className="bg-black/5 rounded-xl px-3.5 py-2.5">
+            <p className="text-black/40 text-[11px] tracking-wide mb-1">{q.label || "Untitled question"}</p>
+            {q.type === "photo" && response.answers[q.id] ? (
+              <img src={response.answers[q.id]} alt="" className="w-full rounded-lg mt-1 max-h-48 object-cover" />
+            ) : (
+              <p className="text-black text-sm">
+                {q.type === "rating" && response.answers[q.id] ? `${response.answers[q.id]} / 5` : response.answers[q.id] || "—"}
+              </p>
+            )}
+          </div>
+        ))}
+        {!form && <p className="text-black/30 text-sm">This check-in form was deleted.</p>}
+      </div>
+      <div className="border-t border-black/8 pt-3">
+        <p className="text-black/40 text-xs font-semibold tracking-wide mb-2">REPLY TO {clientName.split(" ")[0].toUpperCase()}</p>
+        <div className="flex gap-2">
+          <input
+            value={reply}
+            onChange={(e) => setReply(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder="Send a message about this check-in..."
+            className="flex-1 bg-black/5 rounded-full px-4 py-2.5 text-sm text-black outline-none placeholder:text-black/30"
+          />
+          <button
+            onClick={send}
+            disabled={!reply.trim()}
+            className="w-10 h-10 rounded-full bg-black flex items-center justify-center disabled:opacity-30 shrink-0"
+            aria-label="Send message"
+          >
+            {sent ? <Check size={16} className="text-white" /> : <Send size={15} className="text-white" />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StatCard({ icon: Icon, label, value, onClick }) {
   return (
@@ -94,7 +153,7 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
 }
 
 function ActivityItem({ item, onClick }) {
-  const clickable = item.type === "workout" && !!item.log;
+  const clickable = (item.type === "workout" && !!item.log) || (item.type === "checkin" && !!item.response);
   return (
     <div
       onClick={clickable ? onClick : undefined}
@@ -120,12 +179,12 @@ function ActivityItem({ item, onClick }) {
   );
 }
 
-export default function CoachDashboard({ onNavigate }) {
-  const { db } = useApp();
+export default function CoachDashboard({ onNavigate, showToast }) {
+  const { db, sendMessage, markFormResponseRead } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = new Date().toISOString().slice(0, 10);
-  const [viewingActivity, setViewingActivity] = useState(null); // {clientName, log} for the Recent Activity detail sheet
+  const [viewingActivity, setViewingActivity] = useState(null); // the clicked Recent Activity item (workout or check-in) for the detail sheet
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
   // ---- smart segments ----
@@ -160,7 +219,13 @@ export default function CoachDashboard({ onNavigate }) {
     return last && last.from === "client";
   }).length;
 
-  const pendingCheckins = active.reduce((a, c) => a + ((db.formResponses || {})[c.id] || []).filter((r) => r.read === false).length, 0);
+  const pendingCheckinList = [];
+  active.forEach((c) => {
+    ((db.formResponses || {})[c.id] || [])
+      .filter((r) => r.read === false)
+      .forEach((r) => pendingCheckinList.push({ client: c, response: r }));
+  });
+  const pendingCheckins = pendingCheckinList.length;
 
   // ---- recent activity feed, merged across every active client ----
   const activity = [];
@@ -216,12 +281,16 @@ export default function CoachDashboard({ onNavigate }) {
     responses.slice(0, 5).forEach((r) => {
       const form = (db.forms || []).find((f) => f.id === r.formId);
       activity.push({
+        type: "checkin",
         date: r.date,
         clientName: c.name,
         clientAvatar: c.avatarUrl,
+        clientId: c.id,
         verb: "submitted",
         subject: form?.name || "a check-in",
         suffix: ".",
+        response: r,
+        form,
       });
     });
   });
@@ -238,7 +307,21 @@ export default function CoachDashboard({ onNavigate }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <StatCard icon={Users} label="ACTIVE CLIENTS" value={active.length} onClick={() => onNavigate("clients")} />
         <StatCard icon={Trophy} label="CHALLENGES" value={(db.challenges || []).length} onClick={() => onNavigate("challenges")} />
-        <StatCard icon={NotebookPen} label="CHECK-INS TO REVIEW" value={pendingCheckins} onClick={() => onNavigate("clients")} />
+        <StatCard
+          icon={NotebookPen}
+          label="CHECK-INS TO REVIEW"
+          value={pendingCheckins}
+          onClick={() => {
+            if (pendingCheckins === 1) {
+              const { client, response } = pendingCheckinList[0];
+              const form = (db.forms || []).find((f) => f.id === response.formId);
+              setViewingActivity({ type: "checkin", clientId: client.id, clientName: client.name, subject: form?.name || "a check-in", response, form });
+              if (response.read === false) markFormResponseRead(response.id);
+            } else {
+              onNavigate("clients");
+            }
+          }}
+        />
         <StatCard icon={MessageCircle} label="MESSAGES TO REPLY TO" value={awaitingReply} onClick={() => onNavigate("messages")} />
       </div>
 
@@ -264,7 +347,14 @@ export default function CoachDashboard({ onNavigate }) {
               <p className="text-black/30 text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
             ) : (
               recentActivity.map((item, i) => (
-                <ActivityItem key={i} item={item} onClick={() => setViewingActivity({ clientName: item.clientName, log: item.log })} />
+                <ActivityItem
+                  key={i}
+                  item={item}
+                  onClick={() => {
+                    setViewingActivity(item);
+                    if (item.type === "checkin" && item.response?.read === false) markFormResponseRead(item.response.id);
+                  }}
+                />
               ))
             )}
           </div>
@@ -314,8 +404,23 @@ export default function CoachDashboard({ onNavigate }) {
         </Card>
       </div>
 
-      <BottomSheet open={!!viewingActivity} onClose={() => setViewingActivity(null)} title={viewingActivity?.clientName}>
-        {viewingActivity && <WorkoutLogCard log={viewingActivity.log} exercisesById={exercisesById} defaultOpen />}
+      <BottomSheet
+        open={!!viewingActivity}
+        onClose={() => setViewingActivity(null)}
+        title={viewingActivity?.type === "checkin" ? viewingActivity.subject : viewingActivity?.clientName}
+      >
+        {viewingActivity?.type === "checkin" ? (
+          <CheckInReviewCard
+            clientId={viewingActivity.clientId}
+            clientName={viewingActivity.clientName}
+            form={viewingActivity.form}
+            response={viewingActivity.response}
+            sendMessage={sendMessage}
+            showToast={showToast}
+          />
+        ) : (
+          viewingActivity && <WorkoutLogCard log={viewingActivity.log} exercisesById={exercisesById} defaultOpen />
+        )}
       </BottomSheet>
     </div>
   );

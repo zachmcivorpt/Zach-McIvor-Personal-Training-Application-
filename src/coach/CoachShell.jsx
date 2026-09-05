@@ -183,7 +183,7 @@ export default function CoachShell() {
 
       {/* main content */}
       <div className="flex-1 min-w-0 pt-14 pb-16 md:pt-0 md:pb-0">
-        {tab === "dashboard" && <CoachDashboard onNavigate={setTab} />}
+        {tab === "dashboard" && <CoachDashboard onNavigate={setTab} showToast={showToast} />}
         {tab === "clients" && <CoachClients showToast={showToast} search={clientSearch} setSearch={setClientSearch} />}
         {tab === "programs" && <CoachPrograms showToast={showToast} />}
         {tab === "library" && <CoachLibrary showToast={showToast} />}
