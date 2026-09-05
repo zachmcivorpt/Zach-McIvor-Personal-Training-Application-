@@ -4890,8 +4890,10 @@ export default function ClientApp() {
   // workout or body stats check-in from one day to another right from
   // inside the client's own calendar, while browsing as them — the same
   // "reschedule on the fly" the coach already has on their own calendar
-  // view of a client. Dropping onto an occupied day just replaces
-  // whatever's already there.
+  // view of a client. Dropping a workout onto a day that already has a
+  // different one swaps the two instead of overwriting — both docs share
+  // a clientId__date id, so a plain re-schedule on an occupied day used
+  // to silently destroy whatever was there.
   function moveScheduledItem(type, fromDate, toDate) {
     if (!viewingAsClient || fromDate === toDate) return;
     if (type === "bodystats") {
@@ -4903,9 +4905,15 @@ export default function ClientApp() {
     }
     const workout = scheduledWorkoutsByDate[fromDate];
     if (!workout) return;
+    const destWorkout = scheduledWorkoutsByDate[toDate];
     scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
-    unscheduleWorkout(currentUser.id, fromDate);
-    showToast("Workout rescheduled");
+    if (destWorkout) {
+      scheduleWorkout(currentUser.id, { date: fromDate, label: destWorkout.label, muscleGroups: destWorkout.muscleGroups, exercises: destWorkout.exercises });
+      showToast("Workouts swapped");
+    } else {
+      unscheduleWorkout(currentUser.id, fromDate);
+      showToast("Workout rescheduled");
+    }
   }
 
   return (

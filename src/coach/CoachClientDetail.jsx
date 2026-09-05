@@ -1093,16 +1093,25 @@ function CalendarPanel({ client, showToast }) {
 
   // Drag a not-yet-completed scheduled workout onto a different day to
   // move it there — e.g. the client asks to swap Monday's session to
-  // Wednesday. Dropping onto a day that already has one replaces it —
-  // the coach dragged it there on purpose, so just do it.
+  // Wednesday. Dropping onto a day that already has a different workout
+  // used to just overwrite it (both docs share the same clientId__date
+  // id, so scheduling on an occupied day silently destroyed whatever was
+  // there) — now the two swap places instead, so nothing is lost.
   async function moveWorkout(fromDate, toDate) {
     if (fromDate === toDate) return;
     const entry = workoutsByDate[fromDate];
     if (!entry) return;
+    const destEntry = workoutsByDate[toDate];
+    const label = (d) => new Date(d + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
     try {
       await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises });
-      unscheduleWorkout(client.id, fromDate);
-      showToast(`Moved ${entry.label} to ${new Date(toDate + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}`);
+      if (destEntry) {
+        await scheduleWorkout(client.id, { date: fromDate, label: destEntry.label, muscleGroups: destEntry.muscleGroups, exercises: destEntry.exercises });
+        showToast(`Swapped ${entry.label} (${label(fromDate)}) with ${destEntry.label} (${label(toDate)})`);
+      } else {
+        unscheduleWorkout(client.id, fromDate);
+        showToast(`Moved ${entry.label} to ${label(toDate)}`);
+      }
     } catch (err) {
       showToast(err.message || "Couldn't move that workout — check your connection and try again");
     }
