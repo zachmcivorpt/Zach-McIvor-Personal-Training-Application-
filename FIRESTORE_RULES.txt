@@ -78,17 +78,25 @@ service cloud.firestore {
       allow read: if isCoach() || (isSignedIn() && request.auth.uid == userId);
 
       // Every account (coach or client) creates its OWN doc, right after
-      // Firebase Auth confirms the credential.
-      allow create: if isSignedIn() && request.auth.uid == userId &&
-        (
-          // Creating the coach account: only ever allowed once, ever.
-          (request.resource.data.role == "coach" &&
-            (!exists(/databases/$(database)/documents/settings/appMeta) ||
-             get(/databases/$(database)/documents/settings/appMeta).data.hasCoach != true))
-          ||
-          // Creating a client account: only if a matching invite exists.
-          (request.resource.data.role == "client" &&
-            exists(/databases/$(database)/documents/invites/$(request.resource.data.email)))
+      // Firebase Auth confirms the credential. The coach can ALSO create
+      // a doc for any userId directly — this is what lets a coach save
+      // Personal Details/tags/nutrition targets for a client who hasn't
+      // activated yet: that first save is a Firestore "create" (there's
+      // no existing users/{email} doc for a still-pending invite), and
+      // without this the coach's own write was rejected outright with
+      // "Missing or insufficient permissions."
+      allow create: if isCoach() ||
+        (isSignedIn() && request.auth.uid == userId &&
+          (
+            // Creating the coach account: only ever allowed once, ever.
+            (request.resource.data.role == "coach" &&
+              (!exists(/databases/$(database)/documents/settings/appMeta) ||
+               get(/databases/$(database)/documents/settings/appMeta).data.hasCoach != true))
+            ||
+            // Creating a client account: only if a matching invite exists.
+            (request.resource.data.role == "client" &&
+              exists(/databases/$(database)/documents/invites/$(request.resource.data.email)))
+          )
         );
 
       // Coach can edit anyone. A client can edit their own profile fields
