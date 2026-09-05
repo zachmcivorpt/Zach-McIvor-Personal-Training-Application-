@@ -581,4 +581,78 @@ export const STARTER_PROGRAMS = [
       },
     ],
   },
+  {
+    // Zach's actual "Sculpt & Strengthen Women" program. Phase 1
+    // (Stabilisation) has 5 workouts total; only 3 were provided in enough
+    // detail to build accurately — Back & Shoulders & Core, Lower Body
+    // (Glute & Hamstring Focused Day I), and Lower Body (Quad & Glute
+    // Focused Day II). Lower Body Mobility Session (Performance Based) and
+    // Shoulders & Arms & Core still need their exercise lists — do NOT
+    // assume the mobility session here is the same one built for the
+    // Intermediate PPL Upper program; the durations differ (40 vs 43 min)
+    // so treat it as unconfirmed until its own screenshot arrives.
+    name: "Sculpt & Strengthen Women",
+    level: "Intermediate",
+    description:
+      "4-week Stabilisation block built around glute/hamstring and quad/glute focused lower-body days, plus upper-body pull and shoulder/core work, each with full warm-up and cool-down routines.",
+    phases: [
+      {
+        id: "ph1",
+        name: "Stabilisation Phase",
+        durationWeeks: 4,
+        days: [
+          d("Back & Shoulders & Core", ["Back", "Shoulders", "Core"], [
+            ex("ex_static-rear-delt-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_suspension-neck-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-frog-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_suspension-low-back-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_superband-standing-row", 2, 12, 2, "Activation."),
+            ex("ex_dumbbell-single-arm-row", 2, 10, 2, "2-1-3 tempo."),
+            ex("ex_close-grip-lat-pulldown", 2, 12, 2, "2-2-3 tempo."),
+            ex("ex_cable-seated-wide-grip-row", 3, 10, 2, "2-1-3 tempo."),
+            ex("ex_standing-lat-push-down", 3, 10, 2, "2-1-3 tempo."),
+            ex("ex_kneeling-face-pull", 4, 10, 2, "2-2-3 tempo."),
+            ex("ex_dumbbell-alternating-bicep-curl", 3, 12, 1, "2-2-3 tempo."),
+            ex("ex_foam-roller-lower-back", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_suspension-low-back-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_static-oblique-lat-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_runner-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_forward-fold-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+          ]),
+          d("Lower Body (Glute & Hamstring Focused Day I)", ["Legs", "Glutes"], [
+            ex("ex_dynamic-frog-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_piriformis-stretch-seated", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_dynamic-side-lunge-stretch", 1, 1, 1, "", "warmup"),
+            ex("ex_static-distal-hamstring-stretch", 1, 1, 1, "", "warmup"),
+            ex("ex_banded-bodyweight-squat", 1, 15, 1, "For glute activation."),
+            ex("ex_banded-seated-hip-abduction", 1, 15, 1, "For glute activation."),
+            ex("ex_kas-glute-bridge-barbell", 2, 10, 2, "2-2-2 tempo."),
+            ex("ex_elevated-smith-machine-rdl", 3, 8, 2, "2-2-2 tempo."),
+            ex("ex_glute-medius-kickback", 3, 10, 2, "2-2-3 tempo."),
+            { exerciseId: "ex_machine-seated-abduction", section: "main", targetSets: 2, targetReps: 10, targetRIR: 0, notes: "3-2-3 tempo.", groupId: "glute-superset", groupType: "superset" },
+            { exerciseId: "ex_machine-hip-abduction-leaning", section: "main", targetSets: 2, targetReps: 10, targetRIR: 0, notes: "3-2-3 tempo.", groupId: "glute-superset", groupType: "superset" },
+            ex("ex_foam-roller-lower-back", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-hamstring", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-glute", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-adductor", 1, 1, 1, "20 seconds each side.", "cooldown"),
+          ]),
+          d("Lower Body (Quad & Glute Focused Day II)", ["Legs", "Glutes"], [
+            ex("ex_dynamic-frog-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_piriformis-stretch-seated", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_dynamic-side-lunge-stretch", 1, 1, 1, "", "warmup"),
+            ex("ex_static-distal-hamstring-stretch", 1, 1, 1, "", "warmup"),
+            ex("ex_smith-machine-back-squat", 2, 8, 2, "3-2-2 tempo."),
+            ex("ex_angled-machine-sumo-leg-press", 3, 10, 2, "3-P(2)-2 tempo."),
+            ex("ex_hyperextension-roman-chair-back-extension", 2, 10, 2, "Slow and controlled."),
+            ex("ex_lying-hamstring-curl", 3, 12, 1, "3-P(2)-2 tempo."),
+            ex("ex_machine-seated-leg-extension", 3, 10, 1, "3-P(2)-2 tempo."),
+            ex("ex_foam-roller-lower-back", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-hamstring", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-glute", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-adductor", 1, 1, 1, "20 seconds each side.", "cooldown"),
+          ]),
+        ],
+      },
+    ],
+  },
 ];

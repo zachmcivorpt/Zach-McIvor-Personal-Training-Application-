@@ -1096,6 +1096,33 @@ const EXTRA_EXERCISES_9 = [
   mkEx("cross-leg-stretch", "Cross Leg Stretch", "Bodyweight", "Warm-up", ["Glutes", "Hips"], [], "Beginner"),
 ];
 
+// Added for Zach's "Sculpt & Strengthen Women" program (Back & Shoulders &
+// Core, Lower Body Glute & Hamstring Day I, Lower Body Quad & Glute Day II
+// — the three workouts with a fully readable exercise list so far).
+const EXTRA_EXERCISES_11 = [
+  mkEx("static-rear-delt-stretch", "Static Rear Delt Stretch", "Bodyweight", "Warm-up", ["Shoulders"], [], "Beginner"),
+  mkEx("suspension-neck-stretch", "Suspension Neck Stretch", "Suspension", "Warm-up", ["Neck"], [], "Beginner"),
+  mkEx("superband-standing-row", "SuperBand Standing Row", "Band", "Back", ["Back"], ["Biceps"], "Beginner"),
+  mkEx("dumbbell-single-arm-row", "Dumbbell Single Arm Row", "Dumbbell", "Back", ["Back"], ["Biceps"]),
+  mkEx("cable-seated-wide-grip-row", "Cable Seated Wide Grip Row", "Cable", "Back", ["Back"], ["Biceps"]),
+  mkEx("standing-lat-push-down", "Standing Lat Push Down", "Cable", "Back", ["Back"]),
+  mkEx("kneeling-face-pull", "Kneeling Face Pull", "Cable", "Shoulders", ["Shoulders"], ["Back"]),
+  mkEx("dumbbell-alternating-bicep-curl", "Dumbbell Alternating Bicep Curl", "Dumbbell", "Biceps", ["Biceps"]),
+  mkEx("static-oblique-lat-stretch", "Static Oblique and Lat Stretch", "Bodyweight", "Cool-down", ["Core", "Back"], [], "Beginner"),
+  mkEx("runner-stretch", "Runner Stretch", "Bodyweight", "Cool-down", ["Calves", "Hamstrings"], [], "Beginner"),
+  mkEx("static-distal-hamstring-stretch", "Static Distal Hamstring Stretch", "Bodyweight", "Warm-up", ["Hamstrings"], [], "Beginner"),
+  mkEx("banded-bodyweight-squat", "Banded Bodyweight Squat", "Band", "Legs", ["Quads", "Glutes"], [], "Beginner"),
+  mkEx("banded-seated-hip-abduction", "Banded Seated Hip Abduction", "Band", "Legs", ["Glutes"], [], "Beginner"),
+  mkEx("kas-glute-bridge-barbell", "Kas Glute Bridge Barbell", "Barbell", "Legs", ["Glutes"]),
+  mkEx("elevated-smith-machine-rdl", "Elevated Smith Machine RDL", "Smith Machine", "Legs", ["Hamstrings", "Glutes"]),
+  mkEx("glute-medius-kickback", "Glute Medius Kickback", "Cable", "Legs", ["Glutes"]),
+  mkEx("machine-seated-abduction", "Machine Seated Abduction", "Machine", "Legs", ["Glutes"]),
+  mkEx("machine-hip-abduction-leaning", "Machine Hip Abduction (Leaning)", "Machine", "Legs", ["Glutes"]),
+  mkEx("foam-roller-adductor", "Foam Roller Adductor", "Foam Roller", "Cool-down", ["Adductors"], [], "Beginner"),
+  mkEx("angled-machine-sumo-leg-press", "Angled Machine Sumo Leg Press", "Machine", "Legs", ["Quads", "Glutes"]),
+  mkEx("hyperextension-roman-chair-back-extension", "Hyperextension Roman Chair Back Extension", "Machine", "Legs", ["Lower Back", "Glutes"]),
+];
+
 SEED_EXERCISES.push(
   ...EXTRA_EXERCISES,
   ...EXTRA_EXERCISES_2,
@@ -1103,7 +1130,8 @@ SEED_EXERCISES.push(
   ...EXTRA_EXERCISES_4,
   ...EXTRA_EXERCISES_6,
   ...EXTRA_EXERCISES_7,
-  ...EXTRA_EXERCISES_9
+  ...EXTRA_EXERCISES_9,
+  ...EXTRA_EXERCISES_11
 );
 
 // Movement-pattern cue library — keyed by keywords matched against an
