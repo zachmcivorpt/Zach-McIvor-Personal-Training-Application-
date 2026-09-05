@@ -34,6 +34,7 @@ function newRow(exerciseId, section = "main") {
     targetRIR: 2,
     restSeconds: 90,
     notes: "",
+    dropSet: false,
     groupId: null,
     groupType: null,
     // When this exercise entered the program — used to flag exercises
@@ -426,7 +427,14 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     </div>
                                     <ExerciseThumb exercise={ex} size={32} rounded="rounded-lg" />
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-black font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
+                                      <div className="flex items-center gap-1.5">
+                                        <p className="text-black font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
+                                        {row.dropSet && (
+                                          <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                                            DROPSET
+                                          </span>
+                                        )}
+                                      </div>
                                       {ex && <p className="text-black/35 text-[11px] truncate md:hidden">{ex.equipment} · {ex.category}</p>}
                                     </div>
                                     <button
@@ -465,6 +473,15 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                           className="text-[9px] font-bold px-1.5 rounded bg-black/8 text-black/40"
                                         >
                                           {row.targetType === "time" ? "REPS" : "TIME"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => updateRow(i, { dropSet: !row.dropSet })}
+                                          className={`text-[9px] font-bold px-1.5 rounded ${
+                                            row.dropSet ? "bg-orange-500 text-white" : "bg-black/8 text-black/40"
+                                          }`}
+                                        >
+                                          DROPSET
                                         </button>
                                         {row.targetType !== "time" && (
                                           <button

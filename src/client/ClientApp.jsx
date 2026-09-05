@@ -911,7 +911,14 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                     <div key={i} className="flex items-center gap-3 py-3.5 border-b border-black/5">
                       <ExerciseThumb exercise={ex} size={56} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                          {e.dropSet && (
+                            <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                              DROPSET
+                            </span>
+                          )}
+                        </div>
                         <p className="text-black/45 text-[13px] mt-0.5">
                           {e.targetSets} sets × {formatTargetReps(e)}, {formatRest(e.restSeconds ?? 90)} rest
                           between sets
@@ -1187,6 +1194,11 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             {exMeta.groupType && (
               <span className="bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                 {exMeta.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
+              </span>
+            )}
+            {exMeta.dropSet && (
+              <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                DROPSET
               </span>
             )}
           </div>
@@ -1946,6 +1958,11 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
                           {e.groupType && (
                             <span className="bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded">
                               {e.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
+                            </span>
+                          )}
+                          {e.dropSet && (
+                            <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded">
+                              DROPSET
                             </span>
                           )}
                         </div>

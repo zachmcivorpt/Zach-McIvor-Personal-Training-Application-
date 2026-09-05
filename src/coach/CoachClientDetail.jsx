@@ -1297,7 +1297,14 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
                 <div key={i} className="py-3.5 border-b border-black/5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                        {e.dropSet && (
+                          <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                            DROPSET
+                          </span>
+                        )}
+                      </div>
                       <p className="text-black/45 text-[13px] mt-0.5">
                         {e.targetSets} sets ×{" "}
                         {e.targetType === "time" ? `${e.targetReps || 30}s` : e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR{" "}
