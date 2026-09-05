@@ -4130,10 +4130,38 @@ function CheckInsScreen({ userId, showToast }) {
   );
 }
 
-// A continuously scrollable agenda — every day, past and upcoming, one row
-// each — rather than a paged month grid, matching how Trainerize's own
-// client calendar scrolls. Starts centered on today and grows further back
-// or forward as the client scrolls near either edge.
+// One event on a given day — a big tappable (if applicable) card: a status
+// dot on the left, title + a plain-English one-liner, a chevron if there's
+// somewhere to go. Matches the density of a real day-planner app instead of
+// a cramped multi-item row.
+function CalendarEventCard({ dot, done, title, subtitle, onClick }) {
+  const Wrapper = onClick ? "button" : "div";
+  return (
+    <Wrapper
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left ${
+        onClick ? "hover:bg-black/[0.02] transition-colors" : ""
+      }`}
+    >
+      <span
+        className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-white"}`}
+      >
+        {done && <Check size={11} className="text-white" strokeWidth={3} />}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-black font-semibold text-[15px] truncate">{title}</p>
+        {subtitle && <p className="text-black/40 text-[13px] mt-0.5 truncate">{subtitle}</p>}
+      </div>
+      {onClick && <ChevronRight size={18} className="text-black/25 shrink-0" />}
+    </Wrapper>
+  );
+}
+
+// A continuously scrollable agenda — only days with something on them get a
+// card (an empty stretch just doesn't take up space), grouped under a bold
+// date header with a divider, closer to a real day-planner than a packed
+// month grid. Opens centered on today and grows further back/forward as the
+// client scrolls near either edge; a "Today" button jumps straight back.
 function ClientCalendarScreen({
   scheduledWorkoutsByDate,
   logsForClient,
@@ -4147,6 +4175,7 @@ function ClientCalendarScreen({
 }) {
   const [daysBack, setDaysBack] = useState(30);
   const [daysForward, setDaysForward] = useState(60);
+  const scrollRef = useRef(null);
   const todayRef = useRef(null);
   const scrolledToToday = useRef(false);
 
@@ -4162,6 +4191,8 @@ function ClientCalendarScreen({
   const activeFormSchedules = useMemo(() => (formSchedules || []).filter((s) => s.active), [formSchedules]);
   const formsById = useMemo(() => Object.fromEntries((forms || []).map((f) => [f.id, f])), [forms]);
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const days = useMemo(() => {
     const start = new Date();
     start.setHours(0, 0, 0, 0);
@@ -4170,15 +4201,28 @@ function ClientCalendarScreen({
     for (let i = 0; i <= daysBack + daysForward; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
-      list.push(d);
+      const dateStr = d.toISOString().slice(0, 10);
+      const scheduled = scheduledWorkoutsByDate[dateStr];
+      const log = logsByDate[dateStr];
+      const dayHabits = habits.filter((h) => {
+        const createdKey = new Date(h.createdAt).toISOString().slice(0, 10);
+        if (dateStr < createdKey) return false;
+        if (h.endsAt && dateStr > new Date(h.endsAt).toISOString().slice(0, 10)) return false;
+        return true;
+      });
+      const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
+      const bodyStatsToday = (bodyStatsSchedules || []).some((b) => b.date === dateStr);
+      const hasContent = !!scheduled || !!log || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
+      if (!hasContent && dateStr !== todayStr) continue;
+      list.push({ date: d, dateStr, scheduled, log, dayHabits, checkinsToday, bodyStatsToday, hasContent });
     }
     return list;
-  }, [daysBack, daysForward]);
+  }, [daysBack, daysForward, scheduledWorkoutsByDate, logsByDate, habits, activeFormSchedules, bodyStatsSchedules, todayStr]);
 
   useEffect(() => {
     if (scrolledToToday.current) return;
     const t = setTimeout(() => {
-      todayRef.current?.scrollIntoView({ block: "center" });
+      todayRef.current?.scrollIntoView({ block: "start" });
       scrolledToToday.current = true;
     }, 50);
     return () => clearTimeout(t);
@@ -4190,80 +4234,79 @@ function ClientCalendarScreen({
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 400) setDaysForward((d) => Math.min(d + 30, 365));
   }
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  function jumpToToday() {
+    todayRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 pt-6 pb-3 shrink-0">
-        <h1 className="text-black text-2xl font-bold">Calendar</h1>
-        <p className="text-black/40 text-sm mt-0.5">Scroll to see anything past or upcoming.</p>
+      <div className="px-3 pt-6 pb-3 shrink-0 flex items-center justify-between">
+        <div>
+          <h1 className="text-black text-2xl font-bold">Calendar</h1>
+          <p className="text-black/40 text-sm mt-0.5">Scroll to see anything past or upcoming.</p>
+        </div>
+        <button onClick={jumpToToday} className="text-black/50 hover:text-black text-sm font-semibold shrink-0">
+          Today
+        </button>
       </div>
-      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-3 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
-        {days.map((d, i) => {
-          const dateStr = d.toISOString().slice(0, 10);
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-3 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
+        {days.map(({ date: d, dateStr, scheduled, log, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
           const isToday = dateStr === todayStr;
-          const showMonthHeader = i === 0 || d.getMonth() !== days[i - 1].getMonth();
-          const scheduled = scheduledWorkoutsByDate[dateStr];
-          const log = logsByDate[dateStr];
-          const dayHabits = habits.filter((h) => {
-            const createdKey = new Date(h.createdAt).toISOString().slice(0, 10);
-            if (dateStr < createdKey) return false;
-            if (h.endsAt && dateStr > new Date(h.endsAt).toISOString().slice(0, 10)) return false;
-            return true;
-          });
           const doneHabitIds = habitLogForClient[dateStr] || [];
-          const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
-          const bodyStatsToday = (bodyStatsSchedules || []).some((b) => b.date === dateStr);
+          const habitsDone = dayHabits.filter((h) => doneHabitIds.includes(h.id)).length;
           const bodyStatsDone = weighInDates.has(dateStr);
-          const nothingHere = !scheduled && !log && dayHabits.length === 0 && checkinsToday.length === 0 && !bodyStatsToday;
 
           return (
-            <div key={dateStr}>
-              {showMonthHeader && (
-                <p className="text-black/30 text-[11px] font-bold tracking-wide uppercase mt-5 mb-1.5 first:mt-0">
-                  {d.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-                </p>
-              )}
-              <div
-                ref={isToday ? todayRef : null}
-                className={`flex items-start gap-3 py-2.5 border-b border-black/5 ${isToday ? "-mx-3 px-3 bg-blue-50/60 rounded-lg" : ""}`}
-              >
-                <div className="w-11 shrink-0 text-center pt-0.5">
-                  <p className={`text-[10px] font-semibold ${isToday ? "text-blue-600" : "text-black/35"}`}>{DAY_LABELS[d.getDay()]}</p>
-                  <p className={`text-base font-bold ${isToday ? "text-blue-600" : "text-black"}`}>{d.getDate()}</p>
-                </div>
-                <div className="flex-1 min-w-0 space-y-1 pt-0.5">
-                  {scheduled ? (
-                    <button
-                      onClick={() => onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })}
-                      className="w-full text-left flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.07] rounded-lg px-2.5 py-1.5 transition-colors"
-                    >
-                      {log ? <Check size={13} className="text-emerald-600 shrink-0" /> : <Dumbbell size={13} className="text-black/40 shrink-0" />}
-                      <span className="text-black text-xs font-semibold truncate">{scheduled.label}</span>
-                    </button>
-                  ) : log ? (
-                    <div className="flex items-center gap-2 bg-black/[0.04] rounded-lg px-2.5 py-1.5">
-                      <Check size={13} className="text-emerald-600 shrink-0" />
-                      <span className="text-black text-xs font-semibold truncate">{log.dayLabel}</span>
-                    </div>
-                  ) : null}
-                  {dayHabits.length > 0 && (
-                    <p className="text-black/40 text-[11px]">
-                      {dayHabits.filter((h) => doneHabitIds.includes(h.id)).length}/{dayHabits.length} habits
-                    </p>
-                  )}
-                  {checkinsToday.map((s) => (
-                    <p key={s.id} className="text-purple-600 text-[11px] font-medium">
-                      {formsById[s.formId]?.name || "Check-in"} due
-                    </p>
-                  ))}
-                  {bodyStatsToday && (
-                    <p className={`text-[11px] font-medium ${bodyStatsDone ? "text-emerald-600" : "text-amber-600"}`}>
-                      {bodyStatsDone ? "Body stats logged" : "Body stats due"}
-                    </p>
-                  )}
-                  {nothingHere && <p className="text-black/20 text-[11px]">Nothing scheduled</p>}
-                </div>
+            <div key={dateStr} ref={isToday ? todayRef : null} className={i > 0 ? "mt-5" : ""}>
+              <p className={`font-bold text-base mb-2 ${isToday ? "text-blue-600" : "text-black"}`}>
+                {isToday ? "Today, " : ""}
+                {d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+              </p>
+              <div className="border-b border-black/10 mb-3" />
+              <div className="space-y-2.5">
+                {scheduled && (
+                  <CalendarEventCard
+                    dot={{ border: "border-blue-500", bg: "bg-blue-500" }}
+                    done={!!log}
+                    title={scheduled.label}
+                    subtitle={log ? "Workout completed." : "Complete your scheduled workout."}
+                    onClick={() =>
+                      onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })
+                    }
+                  />
+                )}
+                {!scheduled && log && (
+                  <CalendarEventCard dot={{ border: "border-emerald-500", bg: "bg-emerald-500" }} done title={log.dayLabel} subtitle="Completed." />
+                )}
+                {dayHabits.map((h) => (
+                  <CalendarEventCard
+                    key={h.id}
+                    dot={{ border: "border-amber-500", bg: "bg-amber-500" }}
+                    done={doneHabitIds.includes(h.id)}
+                    title={h.label}
+                    subtitle={doneHabitIds.includes(h.id) ? "Done." : "Daily habit."}
+                  />
+                ))}
+                {checkinsToday.map((s) => (
+                  <CalendarEventCard
+                    key={s.id}
+                    dot={{ border: "border-purple-500", bg: "bg-purple-500" }}
+                    done={false}
+                    title={formsById[s.formId]?.name || "Check-in"}
+                    subtitle="Check-in due."
+                  />
+                ))}
+                {bodyStatsToday && (
+                  <CalendarEventCard
+                    dot={{ border: "border-orange-500", bg: "bg-orange-500" }}
+                    done={bodyStatsDone}
+                    title="Body Stats Check-in"
+                    subtitle={bodyStatsDone ? "Logged." : "Log your weight & stats today."}
+                  />
+                )}
+                {!hasContent && (
+                  <p className="text-black/25 text-sm px-1">Nothing scheduled.</p>
+                )}
               </div>
             </div>
           );
