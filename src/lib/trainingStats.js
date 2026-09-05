@@ -88,11 +88,17 @@ export function computeE1RMHistory(logs, exerciseId) {
 
 const KEY_LIFTS = [
   { label: "Bench Press", match: (n) => n.includes("bench press") },
-  { label: "Back Squat", match: (n) => n.includes("squat") && !n.includes("front") && !n.includes("split") },
+  { label: "Barbell Back Squat", match: (n) => n.includes("squat") && !n.includes("front") && !n.includes("split") },
   { label: "Deadlift", match: (n) => n.includes("deadlift") },
   { label: "Pull-ups", match: (n) => n.includes("pull-up") || n.includes("pull up") || n.includes("pullup") },
   { label: "Overhead Press", match: (n) => n.includes("overhead press") || n.includes("shoulder press") },
 ];
+
+// The three big compound lifts always show on the Strength Personal Bests
+// card, even with nothing logged yet — a coach/client both expect to see
+// these tracked from day one, updating in place the moment a set is
+// logged, rather than the card looking empty until then.
+const ALWAYS_SHOW_LIFTS = new Set(["Barbell Back Squat", "Deadlift", "Bench Press"]);
 
 export function findExerciseByKeyword(exercises, label) {
   const lift = KEY_LIFTS.find((k) => k.label === label);
@@ -121,7 +127,7 @@ export function computePersonalBests(logs, exercisesById) {
   });
   return KEY_LIFTS.map((k) => {
     const b = best[k.label];
-    if (!b) return null;
+    if (!b) return ALWAYS_SHOW_LIFTS.has(k.label) ? { name: k.label, value: null } : null;
     return { name: k.label, value: b.weight > 0 ? `${b.weight} kg × ${b.reps}` : `${b.reps} Repetitions` };
   }).filter(Boolean);
 }

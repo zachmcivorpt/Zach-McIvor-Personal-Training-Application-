@@ -100,7 +100,6 @@ import {
   computePersonalBests,
   computePRsInLastNDays,
   computeSessionsThisWeek,
-  computeWeeklyStreak,
   computeWorkoutStreak,
   computeAchievements,
   computePerformanceTimeline,
@@ -3218,9 +3217,10 @@ function ConsistencyHeatmap({ logs }) {
                 <div
                   key={day.date}
                   title={day.date}
-                  className={`w-3 h-3 rounded-[3px] ${
-                    day.future ? "bg-transparent" : day.pr ? "bg-amber-500" : day.done ? "bg-black" : "bg-black/8"
-                  }`}
+                  className="w-3 h-3 rounded-[3px]"
+                  style={{
+                    backgroundColor: day.future ? "transparent" : day.pr ? MEASURE_BLUE : day.done ? GOAL_GREEN : "rgba(10,10,11,0.08)",
+                  }}
                 />
               ))}
             </div>
@@ -3232,10 +3232,10 @@ function ConsistencyHeatmap({ logs }) {
           <span className="w-2.5 h-2.5 rounded-[2px] bg-black/8 inline-block" /> None
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-[2px] bg-black inline-block" /> Trained
+          <span className="w-2.5 h-2.5 rounded-[2px] inline-block" style={{ backgroundColor: GOAL_GREEN }} /> Trained
         </span>
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-[2px] bg-amber-500 inline-block" /> PR
+          <span className="w-2.5 h-2.5 rounded-[2px] inline-block" style={{ backgroundColor: MEASURE_BLUE }} /> PR
         </span>
       </div>
     </Card>
@@ -3261,17 +3261,39 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
     return out;
   }, [bodyMetrics]);
 
+  const weeklyVolume = useMemo(() => computeWeeklyVolume(logsForClient), [logsForClient]);
+  // Trailing 7 days, same window as the "This Week" sessions tile — a
+  // concrete kg-lifted number is a more useful glance-stat than a streak
+  // count, which says nothing about how hard the training actually was.
+  const volumeThisWeek = useMemo(() => {
+    const cutoff = Date.now() - 7 * 86400000;
+    return Math.round(
+      logsForClient
+        .filter((l) => l.date >= cutoff)
+        .reduce(
+          (a, log) => a + (log.entries || []).reduce((b, e) => b + (e.sets || []).reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0),
+          0
+        )
+    );
+  }, [logsForClient]);
+
   const tiles = useMemo(() => {
     const workoutsSeries = computeWorkoutsSeries(logsForClient);
     return [
       { key: "total", label: "Total Workouts", unit: "", decimals: 0, series: workoutsSeries, latest: logsForClient.length, date: "all-time" },
       { key: "week", label: "This Week", unit: "", decimals: 0, series: null, latest: computeSessionsThisWeek(logsForClient), date: "sessions" },
       { key: "prs", label: "PRs This Month", unit: "", decimals: 0, series: null, latest: computePRsInLastNDays(logsForClient, 30), date: "last 30 days" },
-      { key: "streak", label: "Weekly Streak", unit: "", decimals: 0, series: null, latest: computeWeeklyStreak(logsForClient), date: "weeks in a row" },
+      {
+        key: "volume",
+        label: "Volume This Week",
+        unit: " kg",
+        decimals: 0,
+        series: weeklyVolume.map((w) => ({ value: w.volume })),
+        latest: volumeThisWeek,
+        date: "kg lifted",
+      },
     ];
-  }, [logsForClient]);
-
-  const weeklyVolume = useMemo(() => computeWeeklyVolume(logsForClient), [logsForClient]);
+  }, [logsForClient, weeklyVolume, volumeThisWeek]);
   const benchExercise = useMemo(() => findExerciseByKeyword(Object.values(exercisesById), "Bench Press"), [exercisesById]);
   const benchHistory = useMemo(
     () => (benchExercise ? computeE1RMHistory(logsForClient, benchExercise.id) : []),
@@ -3316,6 +3338,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
       </div>
 
       <div className="px-3 space-y-4">
+        <PerformanceTimelineCard timeline={timeline} weekly={weekly} />
+
         <div>
           <p className="text-black font-semibold mb-3">My Progress</p>
           <div className="grid grid-cols-2 gap-3">
@@ -3331,12 +3355,30 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             ))}
           </div>
         </div>
+      </div>
 
+      <div className="-mx-3">
         <ConsistencyHeatmap logs={logsForClient} />
+      </div>
 
-        <PerformanceTimelineCard timeline={timeline} weekly={weekly} />
-
+      <div className="px-3 space-y-4 mt-4">
         <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
+
+        <Card>
+          <p className="text-black font-semibold mb-3">Strength Personal Bests</p>
+          <div className="space-y-2.5">
+            {personalBests.map((s) => (
+              <div key={s.name} className="flex items-center justify-between">
+                <span className="text-black/70 text-sm flex items-center gap-2">
+                  <Trophy size={14} className={s.value ? "text-black" : "text-black/25"} /> {s.name}
+                </span>
+                <span className={s.value ? "text-black text-sm font-semibold" : "text-black/30 text-xs"}>
+                  {s.value || "Not yet logged"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
 
         <Card>
           <div className="flex items-center justify-between">
@@ -3439,24 +3481,6 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             <p className="text-black/30 text-sm mt-2">Complete a few more weeks of logged workouts to see your volume trend.</p>
           </Card>
         )}
-
-        <Card>
-          <p className="text-black font-semibold mb-3">Strength Personal Bests</p>
-          {personalBests.length === 0 ? (
-            <p className="text-black/30 text-sm">Log a set of Bench Press, Squat, Deadlift, Pull-ups or Overhead Press to see your bests here.</p>
-          ) : (
-            <div className="space-y-2.5">
-              {personalBests.map((s) => (
-                <div key={s.name} className="flex items-center justify-between">
-                  <span className="text-black/70 text-sm flex items-center gap-2">
-                    <Trophy size={14} className="text-black" /> {s.name}
-                  </span>
-                  <span className="text-black text-sm font-semibold">{s.value}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
 
         <Card>
           <p className="text-black font-semibold mb-3">Achievements</p>
