@@ -3207,7 +3207,7 @@ function ConsistencyHeatmap({ logs }) {
 
   return (
     <Card>
-      <p className="text-black font-semibold">Consistency</p>
+      <p className="text-black font-semibold">Consistency Heat Map</p>
       <p className="text-black/40 text-xs mt-0.5 mb-3">Every day trained, last {WEEKS} weeks</p>
       <div className="overflow-x-auto no-scrollbar">
         <div className="flex gap-[3px] w-max">
@@ -3355,13 +3355,9 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             ))}
           </div>
         </div>
-      </div>
 
-      <div className="-mx-3">
         <ConsistencyHeatmap logs={logsForClient} />
-      </div>
 
-      <div className="px-3 space-y-4 mt-4">
         <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
 
         <Card>
