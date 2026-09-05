@@ -83,8 +83,12 @@ const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 // Date#getDay()) is a fixed weekday each week; "24 hours before" that day
 // means firing on the day before it, so this checks whichever schedules
 // are due tomorrow.
+// Cloud Scheduler doesn't support every Cloud Functions region (notably not
+// australia-southeast2, unlike the other two functions here) — left at the
+// default us-central1 since this is a once-a-day background job with no
+// latency requirement, so the region genuinely doesn't matter for it.
 exports.checkInReminders = onSchedule(
-  { schedule: "0 9 * * *", timeZone: "Australia/Sydney", region: "australia-southeast2" },
+  { schedule: "0 9 * * *", timeZone: "Australia/Sydney" },
   async () => {
     const todayName = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", weekday: "short" }).format(new Date());
     const tomorrowDow = (WEEKDAY_NAMES.indexOf(todayName) + 1) % 7;
