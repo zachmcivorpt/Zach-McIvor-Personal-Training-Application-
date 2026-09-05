@@ -3177,58 +3177,42 @@ function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
 // actually show up" that a bare streak number can't communicate — a single
 // missed day barely registers, but a pattern of gaps jumps out immediately.
 function ConsistencyHeatmap({ logs }) {
-  const WEEKS = 12;
-  const weeks = useMemo(() => {
+  const DAYS = 30;
+  const days = useMemo(() => {
     const doneDates = new Set(logs.map((l) => new Date(l.date).toISOString().slice(0, 10)));
     const prDates = new Set(
       logs.filter((l) => !l.cardio && (l.entries || []).some((e) => (e.sets || []).some((s) => s.isPR))).map((l) => new Date(l.date).toISOString().slice(0, 10))
     );
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const totalDays = WEEKS * 7;
     const start = new Date(today);
-    start.setDate(start.getDate() - totalDays + 1);
-    const startDow = (start.getDay() + 6) % 7; // 0 = Monday
-    start.setDate(start.getDate() - startDow);
+    start.setDate(start.getDate() - DAYS + 1);
 
-    // start was rounded back to a Monday, which can add up to 6 extra days
-    // on top of WEEKS*7 — one more column comfortably covers that plus the
-    // current (likely partial) week through today.
-    const cols = [];
+    const out = [];
     const cursor = new Date(start);
-    for (let w = 0; w < WEEKS + 1; w++) {
-      const col = [];
-      for (let d = 0; d < 7; d++) {
-        const dateStr = cursor.toISOString().slice(0, 10);
-        col.push({ date: dateStr, done: doneDates.has(dateStr), pr: prDates.has(dateStr), future: cursor > today });
-        cursor.setDate(cursor.getDate() + 1);
-      }
-      cols.push(col);
+    for (let i = 0; i < DAYS; i++) {
+      const dateStr = cursor.toISOString().slice(0, 10);
+      out.push({ date: dateStr, done: doneDates.has(dateStr), pr: prDates.has(dateStr) });
+      cursor.setDate(cursor.getDate() + 1);
     }
-    return cols;
+    return out;
   }, [logs]);
 
   return (
     <Card>
       <p className="text-black font-semibold">Consistency Heat Map</p>
-      <p className="text-black/40 text-xs mt-0.5 mb-3">Every day trained, last {WEEKS} weeks</p>
-      <div className="overflow-x-auto no-scrollbar">
-        <div className="flex gap-[3px] w-max">
-          {weeks.map((col, wi) => (
-            <div key={wi} className="flex flex-col gap-[3px]">
-              {col.map((day) => (
-                <div
-                  key={day.date}
-                  title={day.date}
-                  className="w-3 h-3 rounded-[3px]"
-                  style={{
-                    backgroundColor: day.future ? "transparent" : day.pr ? MEASURE_BLUE : day.done ? GOAL_GREEN : "rgba(10,10,11,0.08)",
-                  }}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
+      <p className="text-black/40 text-xs mt-0.5 mb-3">Every day trained, last {DAYS} days</p>
+      <div className="flex gap-[3px]">
+        {days.map((day) => (
+          <div
+            key={day.date}
+            title={day.date}
+            className="flex-1 aspect-square rounded-[3px]"
+            style={{
+              backgroundColor: day.pr ? MEASURE_BLUE : day.done ? GOAL_GREEN : "rgba(10,10,11,0.08)",
+            }}
+          />
+        ))}
       </div>
       <div className="flex items-center gap-3 mt-3 text-black/35 text-[11px]">
         <span className="flex items-center gap-1">
