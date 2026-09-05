@@ -815,8 +815,61 @@ const DELETE_CATEGORIES = [
 
 function CalendarPanel({ client, showToast }) {
   const { db, scheduleWorkout, unscheduleWorkout, scheduleBodyStatsCheckin, unscheduleBodyStatsCheckin, deleteWorkoutLog, removeHabit } = useApp();
+  // Built on Pointer Events rather than the HTML5 drag-and-drop API — that
+  // API is mouse-only and never fires from a touch gesture, which is why
+  // this didn't work at all on a phone. Pointer Events cover mouse and
+  // touch identically: press and hold briefly (so an ordinary tap/scroll
+  // isn't mistaken for a drag), then move to the target day and release.
   const [dragItem, setDragItem] = useState(null); // { date, type } — the item's own date + which kind, while dragging it
   const [dragOverDate, setDragOverDate] = useState(null);
+  const pressRef = useRef(null); // { timer, startX, startY, date, type, fired }
+
+  function itemPointerDown(e, dateStr, type) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const el = e.currentTarget;
+    const pointerId = e.pointerId;
+    const timer = setTimeout(() => {
+      if (!pressRef.current) return;
+      pressRef.current.fired = true;
+      setDragItem({ date: dateStr, type });
+      try {
+        el.setPointerCapture(pointerId);
+      } catch {}
+      if (navigator.vibrate) navigator.vibrate(10);
+    }, 350);
+    pressRef.current = { timer, startX, startY, date: dateStr, type, fired: false };
+  }
+
+  function itemPointerMove(e) {
+    const p = pressRef.current;
+    if (!p) return;
+    if (!p.fired) {
+      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 10) {
+        clearTimeout(p.timer);
+        pressRef.current = null;
+      }
+      return;
+    }
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const dayEl = target?.closest("[data-date]");
+    const overDate = dayEl?.getAttribute("data-date") || null;
+    setDragOverDate(overDate && overDate !== p.date ? overDate : null);
+  }
+
+  function itemPointerUp() {
+    const p = pressRef.current;
+    if (p?.fired && dragOverDate && dragOverDate !== p.date) {
+      if (p.type === "workout") moveWorkout(p.date, dragOverDate);
+      else if (p.type === "bodystats") moveBodyStats(p.date, dragOverDate);
+    }
+    if (p?.timer) clearTimeout(p.timer);
+    pressRef.current = null;
+    setDragItem(null);
+    setDragOverDate(null);
+  }
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getUTCFullYear());
   const [viewMonth, setViewMonth] = useState(now.getUTCMonth());
@@ -1186,27 +1239,8 @@ function CalendarPanel({ client, showToast }) {
                 return (
                   <div
                     key={dateStr}
+                    data-date={dateStr}
                     onClick={!selectMode ? () => setSelectedDate(dateStr) : undefined}
-                    onDragOver={
-                      !selectMode && dragItem
-                        ? (e) => {
-                            e.preventDefault();
-                            if (dragOverDate !== dateStr) setDragOverDate(dateStr);
-                          }
-                        : undefined
-                    }
-                    onDragLeave={!selectMode && dragItem ? () => setDragOverDate((d) => (d === dateStr ? null : d)) : undefined}
-                    onDrop={
-                      !selectMode && dragItem
-                        ? (e) => {
-                            e.preventDefault();
-                            if (dragItem.type === "workout") moveWorkout(dragItem.date, dateStr);
-                            else if (dragItem.type === "bodystats") moveBodyStats(dragItem.date, dateStr);
-                            setDragItem(null);
-                            setDragOverDate(null);
-                          }
-                        : undefined
-                    }
                     className={`min-h-[104px] md:min-h-[130px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors font-sans ${
                       inMonth ? "bg-white" : "bg-black/[0.015]"
                     } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""} ${
@@ -1238,19 +1272,14 @@ function CalendarPanel({ client, showToast }) {
                         const draggableItem =
                           !selectMode &&
                           ((it.type === "workout" && it.key === `sched:${dateStr}`) || (it.type === "bodystats" && !it.done));
+                        const dragging = dragItem?.date === dateStr && dragItem?.type === it.type;
                         return (
                           <div
                             key={i}
-                            draggable={draggableItem}
-                            onDragStart={
-                              draggableItem
-                                ? (e) => {
-                                    e.stopPropagation();
-                                    setDragItem({ date: dateStr, type: it.type });
-                                  }
-                                : undefined
-                            }
-                            onDragEnd={draggableItem ? () => setDragItem(null) : undefined}
+                            onPointerDown={draggableItem ? (e) => itemPointerDown(e, dateStr, it.type) : undefined}
+                            onPointerMove={draggableItem ? itemPointerMove : undefined}
+                            onPointerUp={draggableItem ? itemPointerUp : undefined}
+                            onPointerCancel={draggableItem ? itemPointerUp : undefined}
                             onClick={
                               selectable
                                 ? (e) => {
@@ -1259,9 +1288,10 @@ function CalendarPanel({ client, showToast }) {
                                   }
                                 : undefined
                             }
+                            style={draggableItem ? { touchAction: "none" } : undefined}
                             className={`flex items-center gap-1.5 text-[11px] truncate ${
                               selectable ? "cursor-pointer" : ""
-                            } ${draggableItem ? "cursor-grab active:cursor-grabbing" : ""} ${
+                            } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${dragging ? "opacity-40" : ""} ${
                               checked ? "text-red-600 font-semibold" : selectMode && !selectable ? "text-black/25" : "text-black/70"
                             }`}
                           >

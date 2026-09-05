@@ -4189,17 +4189,19 @@ function CheckInsScreen({ userId, showToast }) {
 // dot on the left, title + a plain-English one-liner, a chevron if there's
 // somewhere to go. Matches the density of a real day-planner app instead of
 // a cramped multi-item row.
-function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onDragStart, onDragEnd }) {
+function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onPointerDown, onPointerMove, onPointerUp, dragging }) {
   const Wrapper = onClick ? "button" : "div";
   return (
     <Wrapper
       onClick={onClick}
-      draggable={draggable}
-      onDragStart={draggable ? onDragStart : undefined}
-      onDragEnd={draggable ? onDragEnd : undefined}
+      onPointerDown={draggable ? onPointerDown : undefined}
+      onPointerMove={draggable ? onPointerMove : undefined}
+      onPointerUp={draggable ? onPointerUp : undefined}
+      onPointerCancel={draggable ? onPointerUp : undefined}
       className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left ${
         onClick ? "hover:bg-black/[0.02] transition-colors" : ""
-      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
+      } ${draggable ? "cursor-grab active:cursor-grabbing select-none" : ""} ${dragging ? "opacity-40" : ""}`}
+      style={draggable ? { touchAction: "none" } : undefined}
     >
       <span
         className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-white"}`}
@@ -4265,8 +4267,61 @@ function ClientCalendarScreen({
   const scrolledToToday = useRef(false);
   // Drag-to-reschedule — only ever active for the coach browsing as this
   // client (see `canEdit`); a real client can't drag their own calendar.
+  // Built on Pointer Events (not the HTML5 drag-and-drop API) because that
+  // API is mouse-only — it never fires from a touch gesture at all, which
+  // is exactly why this didn't work on a phone. Pointer Events cover mouse
+  // and touch identically, so the same code drives both: press and hold
+  // briefly (so an ordinary tap/scroll isn't mistaken for a drag), then
+  // move to the target day and release.
   const [dragItem, setDragItem] = useState(null); // { date, type: "workout" | "bodystats" }
   const [dragOverDate, setDragOverDate] = useState(null);
+  const pressRef = useRef(null); // { timer, startX, startY, date, type, fired }
+
+  function cardPointerDown(e, date, type) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const el = e.currentTarget;
+    const pointerId = e.pointerId;
+    const timer = setTimeout(() => {
+      if (!pressRef.current) return;
+      pressRef.current.fired = true;
+      setDragItem({ date, type });
+      try {
+        el.setPointerCapture(pointerId);
+      } catch {}
+      if (navigator.vibrate) navigator.vibrate(10);
+    }, 350);
+    pressRef.current = { timer, startX, startY, date, type, fired: false };
+  }
+
+  function cardPointerMove(e) {
+    const p = pressRef.current;
+    if (!p) return;
+    if (!p.fired) {
+      // Moved before the long-press fired — this is a scroll, not a drag.
+      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 10) {
+        clearTimeout(p.timer);
+        pressRef.current = null;
+      }
+      return;
+    }
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const dayEl = target?.closest("[data-date]");
+    const overDate = dayEl?.getAttribute("data-date") || null;
+    setDragOverDate(overDate && overDate !== p.date ? overDate : null);
+  }
+
+  function cardPointerUp() {
+    const p = pressRef.current;
+    if (p?.fired && dragOverDate && dragOverDate !== p.date) {
+      onMoveItem(p.type, p.date, dragOverDate);
+    }
+    if (p?.timer) clearTimeout(p.timer);
+    pressRef.current = null;
+    setDragItem(null);
+    setDragOverDate(null);
+  }
 
   const logsByDate = useMemo(() => {
     const map = {};
@@ -4352,29 +4407,11 @@ function ClientCalendarScreen({
           return (
             <div
               key={dateStr}
+              data-date={dateStr}
               ref={isToday ? todayRef : null}
               className={`${i > 0 ? "mt-5" : ""} ${
                 isDropTarget && dragOverDate === dateStr ? "bg-blue-50 rounded-2xl ring-2 ring-blue-300" : ""
               }`}
-              onDragOver={
-                isDropTarget
-                  ? (e) => {
-                      e.preventDefault();
-                      setDragOverDate(dateStr);
-                    }
-                  : undefined
-              }
-              onDragLeave={isDropTarget ? () => setDragOverDate((d) => (d === dateStr ? null : d)) : undefined}
-              onDrop={
-                isDropTarget
-                  ? (e) => {
-                      e.preventDefault();
-                      onMoveItem(dragItem.type, dragItem.date, dateStr);
-                      setDragItem(null);
-                      setDragOverDate(null);
-                    }
-                  : undefined
-              }
             >
               <p className={`font-bold text-base mb-2 ${isToday ? "text-blue-600" : "text-black"}`}>
                 {isToday ? "Today, " : ""}
@@ -4398,11 +4435,10 @@ function ClientCalendarScreen({
                       onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })
                     }
                     draggable={canDragWorkout}
-                    onDragStart={() => setDragItem({ date: dateStr, type: "workout" })}
-                    onDragEnd={() => {
-                      setDragItem(null);
-                      setDragOverDate(null);
-                    }}
+                    dragging={dragItem?.date === dateStr && dragItem?.type === "workout"}
+                    onPointerDown={(e) => cardPointerDown(e, dateStr, "workout")}
+                    onPointerMove={cardPointerMove}
+                    onPointerUp={cardPointerUp}
                   />
                 )}
                 {!scheduled && log && (
@@ -4439,11 +4475,10 @@ function ClientCalendarScreen({
                         : "Log your weight & stats today."
                     }
                     draggable={canDragBodyStats}
-                    onDragStart={() => setDragItem({ date: dateStr, type: "bodystats" })}
-                    onDragEnd={() => {
-                      setDragItem(null);
-                      setDragOverDate(null);
-                    }}
+                    dragging={dragItem?.date === dateStr && dragItem?.type === "bodystats"}
+                    onPointerDown={(e) => cardPointerDown(e, dateStr, "bodystats")}
+                    onPointerMove={cardPointerMove}
+                    onPointerUp={cardPointerUp}
                   />
                 )}
                 {!hasContent && (
