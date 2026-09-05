@@ -1,395 +1,13 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useApp, programPhases } from "../lib/AppContext";
 import { newId } from "../lib/id";
-import {
-  Field,
-  TextInput,
-  TextArea,
-  Select,
-  PrimaryButton,
-  SecondaryButton,
-  FullScreenOverlay,
-  BottomSheet,
-} from "../components/ui";
-import {
-  ClipboardList,
-  Plus,
-  ChevronDown,
-  X,
-  Trash2,
-  GripVertical,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  Copy,
-  Edit3,
-  Link2,
-  RefreshCw,
-  Ungroup,
-} from "lucide-react";
+import { Field, TextInput, TextArea, Select, PrimaryButton, BottomSheet, ExerciseThumb } from "../components/ui";
+import { ClipboardList, Plus, X, Trash2, Download, Copy, Edit3, Library } from "lucide-react";
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
-import { ExerciseSheet } from "./CoachExercises";
+import WorkoutEditor from "./WorkoutEditor";
 
-const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
-const SECTIONS = [
-  { key: "warmup", label: "Warm-up" },
-  { key: "main", label: "Main Session" },
-  { key: "cooldown", label: "Cool-down" },
-];
-const GROUP_LABELS = { superset: "SUPERSET", circuit: "CIRCUIT" };
-const GROUP_ICONS = { superset: Link2, circuit: RefreshCw };
-
-function ExerciseRow({ row, exercises, onChange, onRemove, showToast, selectMode, selected, onToggleSelect, onUngroup }) {
-  const ex = exercises.find((e) => e.id === row.exerciseId);
-  const rir = row.targetRIR ?? 2;
-  const isAmrap = row.targetReps === "AMRAP";
-  const isTime = row.targetType === "time";
-  const [editingExercise, setEditingExercise] = useState(false);
-  const GroupIcon = row.groupType ? GROUP_ICONS[row.groupType] : null;
-
-  return (
-    <div className="bg-black/5 rounded-xl p-3">
-      {row.groupType && (
-        <div className="flex items-center gap-1.5 mb-2">
-          <GroupIcon size={11} className="text-black/50" />
-          <span className="text-black/50 text-[10px] font-bold tracking-wide">{GROUP_LABELS[row.groupType]}</span>
-          <button onClick={onUngroup} className="text-black/30 hover:text-black/60 flex items-center gap-0.5 text-[10px]">
-            <Ungroup size={11} /> Ungroup
-          </button>
-        </div>
-      )}
-      <div className="flex items-center gap-2">
-        {selectMode && (
-          <input type="checkbox" checked={selected} onChange={onToggleSelect} className="w-4 h-4 shrink-0 accent-black" />
-        )}
-        <Select value={row.exerciseId} onChange={(e) => onChange({ ...row, exerciseId: e.target.value })} className="flex-1 !py-2 text-xs">
-          {exercises.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.name}
-            </option>
-          ))}
-        </Select>
-        <button
-          type="button"
-          onClick={() => setEditingExercise(true)}
-          disabled={!ex}
-          className="w-8 h-8 shrink-0 rounded-lg bg-black/5 flex items-center justify-center text-black/40 disabled:opacity-30"
-          aria-label="Edit this exercise"
-        >
-          <Edit3 size={13} />
-        </button>
-        <button onClick={onRemove} className="w-8 h-8 shrink-0 rounded-lg bg-black/5 flex items-center justify-center text-black/40">
-          <X size={14} />
-        </button>
-      </div>
-      <div className="flex gap-1.5 mt-2">
-        {SECTIONS.map((s) => (
-          <button
-            key={s.key}
-            type="button"
-            onClick={() => onChange({ ...row, section: s.key })}
-            className={`flex-1 py-1 rounded-lg text-[10px] font-bold ${
-              (row.section || "main") === s.key ? "bg-black text-white" : "bg-black/8 text-black/40"
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-2 mt-2">
-        <div>
-          <p className="text-black/30 text-[10px] mb-1">SETS</p>
-          <TextInput
-            type="number"
-            min={1}
-            value={row.targetSets}
-            onChange={(e) => onChange({ ...row, targetSets: +e.target.value })}
-            className="!py-1.5 text-center text-xs"
-          />
-        </div>
-        <div>
-          <div className="flex items-center justify-between mb-1 gap-1">
-            <p className="text-black/30 text-[10px] shrink-0">{isTime ? "TIME" : "REPETITIONS"}</p>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => onChange({ ...row, targetType: isTime ? "reps" : "time", targetReps: isTime ? 10 : 30 })}
-                className="text-[9px] font-bold px-1.5 rounded bg-black/8 text-black/40"
-              >
-                {isTime ? "REPS" : "TIME"}
-              </button>
-              {!isTime && (
-                <button
-                  type="button"
-                  onClick={() => onChange({ ...row, targetReps: isAmrap ? 10 : "AMRAP" })}
-                  className={`text-[9px] font-bold px-1.5 rounded ${isAmrap ? "bg-black text-white" : "bg-black/8 text-black/40"}`}
-                >
-                  AMRAP
-                </button>
-              )}
-            </div>
-          </div>
-          {isTime ? (
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => onChange({ ...row, targetReps: Math.max(10, (Number(row.targetReps) || 30) - 10) })}
-                className="w-7 h-7 shrink-0 rounded-lg bg-white border border-black/10 text-black/50 text-sm font-bold"
-              >
-                −
-              </button>
-              <div className="flex-1 !py-1.5 text-center text-xs rounded-lg bg-white border border-black/10 text-black font-semibold">
-                {row.targetReps || 30}s
-              </div>
-              <button
-                type="button"
-                onClick={() => onChange({ ...row, targetReps: (Number(row.targetReps) || 30) + 10 })}
-                className="w-7 h-7 shrink-0 rounded-lg bg-white border border-black/10 text-black/50 text-sm font-bold"
-              >
-                +
-              </button>
-            </div>
-          ) : isAmrap ? (
-            <div className="w-full !py-1.5 text-center text-xs rounded-lg bg-white border border-black/10 text-black font-semibold">AMRAP</div>
-          ) : (
-            <TextInput
-              type="number"
-              min={1}
-              value={row.targetReps}
-              onChange={(e) => onChange({ ...row, targetReps: +e.target.value })}
-              className="!py-1.5 text-center text-xs"
-            />
-          )}
-        </div>
-      </div>
-      <div className="mt-2">
-        <p className="text-black/30 text-[10px] mb-1">TARGET RIR (REPS IN RESERVE)</p>
-        <div className="flex gap-1.5">
-          {RIR_OPTIONS.map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => onChange({ ...row, targetRIR: v })}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-semibold ${
-                rir === v ? "bg-black text-white" : "bg-black/8 text-black/50"
-              }`}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="mt-2">
-        <p className="text-black/30 text-[10px] mb-1">NOTES (CUES, TEMPO, ETC.)</p>
-        <TextArea
-          rows={2}
-          value={row.notes || ""}
-          onChange={(e) => onChange({ ...row, notes: e.target.value })}
-          placeholder="e.g. Controlled eccentric, pause at the bottom"
-          className="!py-1.5 text-xs"
-        />
-      </div>
-      {ex && <p className="text-black/25 text-[11px] mt-2">{ex.equipment} · {ex.primaryMuscles.join(", ")}</p>}
-
-      {ex && (
-        <ExerciseSheet exercise={ex} open={editingExercise} onClose={() => setEditingExercise(false)} showToast={showToast} />
-      )}
-    </div>
-  );
-}
-
-function DayEditor({ day, exercises, onChange, onRemove, showToast }) {
-  const [open, setOpen] = useState(true);
-  const [selectMode, setSelectMode] = useState(false);
-  const [selected, setSelected] = useState(() => new Set());
-
-  function updateExercise(i, row) {
-    const exs = day.exercises.map((r, idx) => (idx === i ? row : r));
-    onChange({ ...day, exercises: exs });
-  }
-  function removeExercise(i) {
-    onChange({ ...day, exercises: day.exercises.filter((_, idx) => idx !== i) });
-  }
-  function addExercise(section) {
-    if (exercises.length === 0) return;
-    onChange({
-      ...day,
-      exercises: [
-        ...day.exercises,
-        { exerciseId: exercises[0].id, section, targetSets: 3, targetReps: 10, targetType: "reps", targetRIR: 2, notes: "" },
-      ],
-    });
-  }
-  function toggleSelected(i) {
-    setSelected((s) => {
-      const next = new Set(s);
-      if (next.has(i)) next.delete(i);
-      else next.add(i);
-      return next;
-    });
-  }
-  function groupSelected(type) {
-    if (selected.size < 2) return;
-    const groupId = newId("grp");
-    const indices = [...selected].sort((a, b) => a - b);
-    const chosen = indices.map((i) => day.exercises[i]);
-    const rest = day.exercises.filter((_, i) => !selected.has(i));
-    const insertAt = indices[0];
-    const next = [...rest.slice(0, insertAt), ...chosen.map((row) => ({ ...row, groupId, groupType: type })), ...rest.slice(insertAt)];
-    onChange({ ...day, exercises: next });
-    setSelected(new Set());
-    setSelectMode(false);
-  }
-  function ungroup(groupId) {
-    onChange({ ...day, exercises: day.exercises.map((row) => (row.groupId === groupId ? { ...row, groupId: null, groupType: null } : row)) });
-  }
-
-  return (
-    <div className="border border-black/10 rounded-2xl overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-black/[0.03]">
-        <GripVertical size={14} className="text-black/20 shrink-0" />
-        <TextInput
-          value={day.label}
-          onChange={(e) => onChange({ ...day, label: e.target.value })}
-          placeholder="Day label, e.g. Push Day"
-          className="!py-1.5 !bg-transparent !border-0 !px-1 font-semibold flex-1"
-        />
-        <button onClick={() => setOpen((o) => !o)} className="w-7 h-7 flex items-center justify-center text-black/40">
-          <ChevronDown size={16} className={`transition-transform ${open ? "rotate-180" : ""}`} />
-        </button>
-        <button onClick={onRemove} className="w-7 h-7 flex items-center justify-center text-black/40">
-          <Trash2 size={14} />
-        </button>
-      </div>
-      {open && (
-        <div className="p-3 space-y-2">
-          <TextInput
-            value={(day.muscleGroups || []).join(", ")}
-            onChange={(e) => onChange({ ...day, muscleGroups: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
-            placeholder="Muscle groups (comma separated)"
-            className="text-xs !py-2"
-          />
-
-          {day.exercises.length >= 2 && (
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => {
-                  setSelectMode((m) => !m);
-                  setSelected(new Set());
-                }}
-                className="text-black/50 hover:text-black text-xs font-semibold"
-              >
-                {selectMode ? "Cancel" : "Select exercises to group"}
-              </button>
-              {selectMode && (
-                <div className="flex items-center gap-2">
-                  <span className="text-black/40 text-[11px]">{selected.size} selected</span>
-                  <button
-                    onClick={() => groupSelected("superset")}
-                    disabled={selected.size < 2}
-                    className="flex items-center gap-1 bg-black text-white text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-30"
-                  >
-                    <Link2 size={11} /> Superset
-                  </button>
-                  <button
-                    onClick={() => groupSelected("circuit")}
-                    disabled={selected.size < 2}
-                    className="flex items-center gap-1 bg-black text-white text-[10px] font-bold px-2 py-1.5 rounded-lg disabled:opacity-30"
-                  >
-                    <RefreshCw size={11} /> Circuit
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {SECTIONS.map((section) => {
-            const sectionRows = day.exercises.map((row, i) => ({ row, i })).filter(({ row }) => (row.section || "main") === section.key);
-            return (
-              <div key={section.key} className="pt-1">
-                <p className="text-black/35 text-[10px] font-bold tracking-wide mb-1.5">
-                  {section.label.toUpperCase()} {sectionRows.length > 0 && `(${sectionRows.length})`}
-                </p>
-                <div className="space-y-2">
-                  {sectionRows.map(({ row, i }) => (
-                    <ExerciseRow
-                      key={i}
-                      row={row}
-                      exercises={exercises}
-                      onChange={(r) => updateExercise(i, r)}
-                      onRemove={() => removeExercise(i)}
-                      showToast={showToast}
-                      selectMode={selectMode}
-                      selected={selected.has(i)}
-                      onToggleSelect={() => toggleSelected(i)}
-                      onUngroup={() => ungroup(row.groupId)}
-                    />
-                  ))}
-                </div>
-                <button
-                  onClick={() => addExercise(section.key)}
-                  disabled={exercises.length === 0}
-                  className="w-full flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2 mt-2 rounded-xl bg-black/[0.03] disabled:opacity-30"
-                >
-                  <Plus size={13} /> Add to {section.label}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Full-screen editor for one phase's days/exercises — opened by tapping a
-// phase row. Everything else about a phase (name, duration, duplicate,
-// delete) is edited right on its row, same as the client-side phase list.
-function PhaseDaysEditor({ phase, exercises, onClose, onSave, showToast }) {
-  const [days, setDays] = useState(() => JSON.parse(JSON.stringify(phase.days || [])));
-
-  function updateDay(i, day) {
-    setDays((ds) => ds.map((d, idx) => (idx === i ? day : d)));
-  }
-  function removeDay(i) {
-    setDays((ds) => ds.filter((_, idx) => idx !== i));
-  }
-  function addDay() {
-    setDays((ds) => [...ds, { id: newId("d"), label: `Day ${ds.length + 1}`, muscleGroups: [], exercises: [] }]);
-  }
-
-  return (
-    <FullScreenOverlay>
-      <div className="fixed inset-0 z-[92] bg-white flex flex-col overflow-y-auto">
-        <div className="flex items-center justify-between px-5 pt-6 pb-3 sticky top-0 bg-white z-10 border-b border-black/5">
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-black/60 -ml-2">
-            <ChevronLeft size={20} />
-          </button>
-          <span className="text-black font-semibold truncate px-2">{phase.name}</span>
-          <button onClick={() => onSave(days)} className="text-sm font-bold text-black shrink-0">
-            Save
-          </button>
-        </div>
-
-        <div className="px-5 py-5 space-y-2.5">
-          {days.length === 0 && <p className="text-black/30 text-sm text-center py-6">No days in this phase yet.</p>}
-          {days.map((d, i) => (
-            <DayEditor
-              key={d.id}
-              day={d}
-              exercises={exercises}
-              onChange={(day) => updateDay(i, day)}
-              onRemove={() => removeDay(i)}
-              showToast={showToast}
-            />
-          ))}
-          <SecondaryButton onClick={addDay} className="w-full">
-            <Plus size={16} /> Add day
-          </SecondaryButton>
-        </div>
-      </div>
-    </FullScreenOverlay>
-  );
+function estimateWorkoutMinutes(exercises) {
+  return Math.max(5, Math.round((exercises || []).reduce((a, e) => a + e.targetSets * (45 + (e.restSeconds ?? 90)), 0) / 60));
 }
 
 function NewProgramSheet({ open, onClose, onCreate }) {
@@ -441,60 +59,194 @@ function NewProgramSheet({ open, onClose, onCreate }) {
   );
 }
 
-// One training phase within a program — rename inline, adjust its duration
-// with a stepper, duplicate or delete it, or tap through to edit its days.
-function PhaseRow({ phase, onOpen, onRename, onDuration, onDuplicate, onDelete }) {
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const sessions = phase.days.length;
+// Pick a destination program + phase to copy one or more workouts into —
+// the toolbar's "Copy to..." action.
+function CopyWorkoutSheet({ open, onClose, programs, onCopy }) {
+  const [targetProgramId, setTargetProgramId] = useState("");
+  const [targetPhaseId, setTargetPhaseId] = useState("");
+  const targetProgram = programs.find((p) => p.id === targetProgramId);
+  const targetPhases = targetProgram ? programPhases(targetProgram) : [];
+
+  function submit() {
+    if (!targetProgramId || !targetPhaseId) return;
+    onCopy(targetProgramId, targetPhaseId);
+    setTargetProgramId("");
+    setTargetPhaseId("");
+  }
 
   return (
-    <div className="border border-black/8 rounded-xl px-3.5 py-3 bg-black/[0.02] flex items-center gap-2 flex-wrap md:flex-nowrap">
-      <div className="flex-1 min-w-[140px]">
-        <input
-          value={phase.name}
-          onChange={(e) => onRename(e.target.value)}
-          className="bg-transparent outline-none text-black font-semibold text-sm w-full"
-        />
-        <p className="text-black/35 text-xs mt-0.5">
-          {sessions} session{sessions === 1 ? "" : "s"}
-        </p>
+    <BottomSheet
+      open={open}
+      onClose={() => {
+        setTargetProgramId("");
+        setTargetPhaseId("");
+        onClose();
+      }}
+      title="Copy to..."
+    >
+      <div className="space-y-4">
+        <Field label="PROGRAM">
+          <Select
+            value={targetProgramId}
+            onChange={(e) => {
+              setTargetProgramId(e.target.value);
+              setTargetPhaseId("");
+            }}
+          >
+            <option value="">Choose a program...</option>
+            {programs.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {targetProgram && (
+          <Field label="PHASE">
+            <Select value={targetPhaseId} onChange={(e) => setTargetPhaseId(e.target.value)}>
+              <option value="">Choose a phase...</option>
+              {targetPhases.map((ph) => (
+                <option key={ph.id} value={ph.id}>
+                  {ph.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+        <PrimaryButton className="w-full" disabled={!targetProgramId || !targetPhaseId} onClick={submit}>
+          Copy here
+        </PrimaryButton>
       </div>
-      <div className="flex items-center bg-black/5 rounded-lg shrink-0">
-        <button
-          type="button"
-          onClick={() => onDuration(Math.max(1, phase.durationWeeks - 1))}
-          className="w-7 h-7 flex items-center justify-center text-black/50"
-          aria-label="Decrease duration"
-        >
-          −
-        </button>
-        <span className="text-black text-xs font-semibold w-16 text-center">
-          {phase.durationWeeks} wk{phase.durationWeeks === 1 ? "" : "s"}
-        </span>
-        <button
-          type="button"
-          onClick={() => onDuration(phase.durationWeeks + 1)}
-          className="w-7 h-7 flex items-center justify-center text-black/50"
-          aria-label="Increase duration"
-        >
-          +
-        </button>
-      </div>
-      <button onClick={onDuplicate} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/40 hover:text-black/70" aria-label="Duplicate phase">
-        <Copy size={13} />
-      </button>
-      {!confirmDelete ? (
-        <button onClick={() => setConfirmDelete(true)} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/40 hover:text-red-500" aria-label="Delete phase">
-          <Trash2 size={13} />
-        </button>
-      ) : (
-        <button onClick={onDelete} className="shrink-0 text-red-600 text-[10px] font-bold px-2.5 py-1.5 bg-red-50 rounded-lg">
-          CONFIRM
-        </button>
+    </BottomSheet>
+  );
+}
+
+// One row in the Workouts table — thumbnail, name (click to edit), a quick
+// duration/exercise-count/muscle-group summary, and per-row actions.
+function WorkoutRow({ day, exercisesById, selectMode, selected, onToggleSelect, onOpen, onDuplicate, onDelete }) {
+  const exs = day.exercises || [];
+  const firstEx = exs[0] ? exercisesById[exs[0].exerciseId] : null;
+
+  return (
+    <div className="flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 transition-colors">
+      {selectMode && (
+        <input type="checkbox" checked={selected} onChange={onToggleSelect} className="w-4 h-4 shrink-0 accent-black" />
       )}
-      <button onClick={onOpen} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/40" aria-label="Edit phase days">
-        <ChevronRight size={15} />
+      <button onClick={onOpen} className="shrink-0" aria-label={`Open ${day.label}`}>
+        <ExerciseThumb exercise={firstEx} size={44} rounded="rounded-lg" />
       </button>
+      <button onClick={onOpen} className="flex-1 min-w-0 text-left">
+        <p className="text-black font-semibold text-sm truncate">{day.label}</p>
+        <p className="text-black/40 text-xs truncate mt-0.5">
+          est. {estimateWorkoutMinutes(exs)} min · {exs.length} exercise{exs.length === 1 ? "" : "s"}
+        </p>
+        {day.muscleGroups?.length > 0 && <p className="text-black/30 text-[11px] truncate mt-0.5">{day.muscleGroups.join(", ")}</p>}
+      </button>
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          onClick={onOpen}
+          className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors"
+        >
+          <Edit3 size={13} /> <span className="hidden sm:inline">Edit</span>
+        </button>
+        <button
+          onClick={onDuplicate}
+          className="flex items-center gap-1.5 text-black/50 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors"
+        >
+          <Copy size={13} /> <span className="hidden sm:inline">Duplicate</span>
+        </button>
+        <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-red-500 shrink-0" aria-label={`Delete ${day.label}`}>
+          <X size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// The selected phase's session list — toolbar (new/from-library/select →
+// copy-to/delete) above a table of WorkoutRows. This is the piece that
+// replaces the old flat stack of every day's full exercise cards.
+function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEditDay, onDuplicateDay, onDeleteDays, onCopyDays }) {
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState(() => new Set());
+
+  function toggle(i) {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  }
+  function cancelSelect() {
+    setSelectMode(false);
+    setSelected(new Set());
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <p className="text-black font-semibold text-sm">Workouts {days.length > 0 && `(${days.length})`}</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          {days.length >= 1 && (
+            <button onClick={() => (selectMode ? cancelSelect() : setSelectMode(true))} className="text-black/50 hover:text-black text-xs font-semibold">
+              {selectMode ? "Cancel" : "Select"}
+            </button>
+          )}
+          {selectMode ? (
+            <>
+              <button
+                onClick={() => onCopyDays([...selected])}
+                disabled={selected.size === 0}
+                className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-30"
+              >
+                <Copy size={13} /> Copy to...
+              </button>
+              <button
+                onClick={() => {
+                  onDeleteDays([...selected]);
+                  cancelSelect();
+                }}
+                disabled={selected.size === 0}
+                className="flex items-center gap-1.5 text-red-500 hover:text-red-600 text-xs font-semibold disabled:opacity-30"
+              >
+                <Trash2 size={13} /> Delete{selected.size > 0 ? ` (${selected.size})` : ""}
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={onOpenFromLibrary} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+                <Library size={13} /> From library
+              </button>
+              <button onClick={onOpenNew} className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold">
+                <Plus size={13} /> New workout
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {days.length === 0 ? (
+        <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
+          <p className="text-black/30 text-sm">No workouts in this phase yet.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {days.map((d, i) => (
+            <WorkoutRow
+              key={d.id || i}
+              day={d}
+              exercisesById={exercisesById}
+              selectMode={selectMode}
+              selected={selected.has(i)}
+              onToggleSelect={() => toggle(i)}
+              onOpen={() => onEditDay(i)}
+              onDuplicate={() => onDuplicateDay(i)}
+              onDelete={() => onDeleteDays([i])}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -502,16 +254,35 @@ function PhaseRow({ phase, onOpen, onRename, onDuration, onDuplicate, onDelete }
 export default function CoachPrograms({ showToast }) {
   const { db, createProgram, updateProgram, deleteProgram } = useApp();
   const [selectedId, setSelectedId] = useState(null);
+  const [selectedPhaseId, setSelectedPhaseId] = useState(null);
   const [newProgramOpen, setNewProgramOpen] = useState(false);
-  const [editingPhase, setEditingPhase] = useState(null); // { index, phase } | null
   const [confirmDeleteProgram, setConfirmDeleteProgram] = useState(false);
+  const [confirmDeletePhase, setConfirmDeletePhase] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState(null); // { phaseIndex, dayIndex, day } | null
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
+  const [copyIndices, setCopyIndices] = useState(null); // array of day indices being copied, or null
+
   const exercises = db.exercises;
+  const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
+  const masterWorkouts = db.masterWorkouts || [];
 
   const programs = db.programs;
   const selected = programs.find((p) => p.id === selectedId) || programs[0] || null;
   const phases = programPhases(selected);
+  const selectedPhase = phases.find((p) => p.id === selectedPhaseId) || phases[0] || null;
+  const phaseIndex = selectedPhase ? phases.findIndex((p) => p.id === selectedPhase.id) : -1;
+
+  function selectProgram(id) {
+    setSelectedId(id);
+    setSelectedPhaseId(null);
+    setConfirmDeletePhase(false);
+  }
+  function selectPhase(id) {
+    setSelectedPhaseId(id);
+    setConfirmDeletePhase(false);
+  }
 
   function savePhases(next) {
     if (!selected) return;
@@ -520,37 +291,106 @@ export default function CoachPrograms({ showToast }) {
 
   function addPhase() {
     if (!selected) return;
-    savePhases([...phases, { id: newId("ph"), name: `Phase ${phases.length + 1}`, durationWeeks: 4, days: [] }]);
+    const newPhase = { id: newId("ph"), name: `Phase ${phases.length + 1}`, durationWeeks: 4, days: [] };
+    savePhases([...phases, newPhase]);
+    setSelectedPhaseId(newPhase.id);
     showToast("Phase added");
   }
-  function renamePhase(i, name) {
-    savePhases(phases.map((p, idx) => (idx === i ? { ...p, name } : p)));
+  function renamePhase(name) {
+    if (phaseIndex < 0) return;
+    savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, name } : p)));
   }
-  function setDuration(i, weeks) {
-    savePhases(phases.map((p, idx) => (idx === i ? { ...p, durationWeeks: weeks } : p)));
+  function setDuration(weeks) {
+    if (phaseIndex < 0) return;
+    savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, durationWeeks: weeks } : p)));
   }
-  function duplicatePhase(i) {
-    const copy = { ...JSON.parse(JSON.stringify(phases[i])), id: newId("ph"), name: `${phases[i].name} (copy)` };
+  function duplicatePhase() {
+    if (phaseIndex < 0) return;
+    const copy = { ...JSON.parse(JSON.stringify(phases[phaseIndex])), id: newId("ph"), name: `${phases[phaseIndex].name} (copy)` };
     const next = [...phases];
-    next.splice(i + 1, 0, copy);
+    next.splice(phaseIndex + 1, 0, copy);
     savePhases(next);
+    setSelectedPhaseId(copy.id);
     showToast("Phase duplicated");
   }
-  function deletePhase(i) {
-    savePhases(phases.filter((_, idx) => idx !== i));
+  function deletePhase() {
+    if (phaseIndex < 0) return;
+    savePhases(phases.filter((_, idx) => idx !== phaseIndex));
+    setSelectedPhaseId(null);
+    setConfirmDeletePhase(false);
     showToast("Phase deleted");
   }
-  function savePhaseDays(days) {
-    savePhases(phases.map((p, idx) => (idx === editingPhase.index ? { ...p, days } : p)));
-    setEditingPhase(null);
-    showToast("Phase saved");
+
+  function openNewWorkout() {
+    if (!selectedPhase) return;
+    const days = selectedPhase.days || [];
+    const newDay = { id: newId("d"), label: `Workout ${days.length + 1}`, muscleGroups: [], exercises: [] };
+    setEditingWorkout({ phaseIndex, dayIndex: days.length, day: newDay });
+  }
+  function openWorkoutFromLibrary(masterWorkout) {
+    if (!selectedPhase) return;
+    const copiedExercises = JSON.parse(JSON.stringify(masterWorkout.exercises || [])).map((ex) => ({ ...ex, addedAt: Date.now() }));
+    const newDay = {
+      id: newId("d"),
+      label: masterWorkout.label,
+      muscleGroups: masterWorkout.muscleGroups || [],
+      exercises: copiedExercises,
+      instructions: masterWorkout.instructions || "",
+    };
+    setEditingWorkout({ phaseIndex, dayIndex: (selectedPhase.days || []).length, day: newDay });
+    setLibraryPickerOpen(false);
+  }
+  function editDay(i) {
+    if (!selectedPhase) return;
+    setEditingWorkout({ phaseIndex, dayIndex: i, day: selectedPhase.days[i] });
+  }
+  function saveWorkout(day) {
+    if (!editingWorkout) return;
+    const { phaseIndex: pi, dayIndex: di } = editingWorkout;
+    const nextPhases = phases.map((p, idx) => {
+      if (idx !== pi) return p;
+      const days = [...(p.days || [])];
+      if (di < days.length) days[di] = day;
+      else days.push(day);
+      return { ...p, days };
+    });
+    savePhases(nextPhases);
+    setEditingWorkout(null);
+    showToast("Workout saved");
+  }
+  function duplicateDay(i) {
+    if (!selectedPhase) return;
+    const clone = { ...JSON.parse(JSON.stringify(selectedPhase.days[i])), id: newId("d"), label: `${selectedPhase.days[i].label} (copy)` };
+    const days = [...selectedPhase.days];
+    days.splice(i + 1, 0, clone);
+    savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, days } : p)));
+    showToast("Workout duplicated");
+  }
+  function deleteDays(indices) {
+    if (!selectedPhase) return;
+    const toDelete = new Set(indices);
+    const days = selectedPhase.days.filter((_, idx) => !toDelete.has(idx));
+    savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, days } : p)));
+    showToast(indices.length === 1 ? "Workout deleted" : `${indices.length} workouts deleted`);
+  }
+  function copyDaysTo(indices, targetProgramId, targetPhaseId) {
+    if (!selectedPhase) return;
+    const daysToCopy = indices
+      .map((i) => JSON.parse(JSON.stringify(selectedPhase.days[i])))
+      .map((d) => ({ ...d, id: newId("d") }));
+    const targetProgram = programs.find((p) => p.id === targetProgramId);
+    if (!targetProgram) return;
+    const targetPhases = programPhases(targetProgram);
+    const nextTargetPhases = targetPhases.map((p) => (p.id === targetPhaseId ? { ...p, days: [...(p.days || []), ...daysToCopy] } : p));
+    updateProgram(targetProgramId, { phases: nextTargetPhases });
+    showToast(`Copied to ${targetProgram.name}`);
   }
 
   async function handleCreateProgram(data) {
     setNewProgramOpen(false);
     try {
       const created = await createProgram(data);
-      setSelectedId(created.id);
+      selectProgram(created.id);
       showToast("Program created");
     } catch (err) {
       showToast(err.message || "Couldn't create that program");
@@ -560,14 +400,14 @@ export default function CoachPrograms({ showToast }) {
   function handleDeleteProgram() {
     if (!selected) return;
     deleteProgram(selected.id);
-    setSelectedId(null);
+    selectProgram(null);
     setConfirmDeleteProgram(false);
     showToast("Program deleted");
   }
 
   function deleteAllPrograms() {
     programs.forEach((p) => deleteProgram(p.id));
-    setSelectedId(null);
+    selectProgram(null);
     setConfirmDeleteAll(false);
     showToast(`Deleted ${programs.length} program${programs.length === 1 ? "" : "s"}`);
   }
@@ -645,7 +485,7 @@ export default function CoachPrograms({ showToast }) {
               return (
                 <button
                   key={p.id}
-                  onClick={() => setSelectedId(p.id)}
+                  onClick={() => selectProgram(p.id)}
                   className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
                     active ? "bg-black text-white" : "hover:bg-black/5 text-black"
                   }`}
@@ -697,7 +537,7 @@ export default function CoachPrograms({ showToast }) {
               {programs.map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => setSelectedId(p.id)}
+                  onClick={() => selectProgram(p.id)}
                   className={`shrink-0 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap ${
                     p.id === selected?.id ? "bg-black text-white" : "bg-black/8 text-black/60"
                   }`}
@@ -709,7 +549,7 @@ export default function CoachPrograms({ showToast }) {
           )}
         </div>
 
-        {/* right: selected program's phases */}
+        {/* right: selected program → phase tabs → workouts table */}
         <div className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6">
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
@@ -766,49 +606,156 @@ export default function CoachPrograms({ showToast }) {
                 className="mb-5"
               />
 
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-black font-semibold text-sm">Training Phases</p>
-                <span className="text-black/30 text-xs">{phases.length}</span>
+              {/* phase sub-nav */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
+                {phases.map((p) => {
+                  const active = p.id === selectedPhase?.id;
+                  const count = (p.days || []).length;
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => selectPhase(p.id)}
+                      className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                        active ? "bg-black text-white" : "bg-black/8 text-black/60 hover:bg-black/12"
+                      }`}
+                    >
+                      {p.name} <span className={active ? "text-white/50" : "text-black/35"}>· {count}</span>
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={addPhase}
+                  className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-black/[0.03] border border-dashed border-black/15 text-black/50 hover:bg-black/8"
+                >
+                  <Plus size={13} /> Phase
+                </button>
               </div>
 
-              {phases.length === 0 ? (
+              {!selectedPhase ? (
                 <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
                   <p className="text-black/30 text-sm">No phases in this program yet.</p>
+                  <button onClick={addPhase} className="mt-4 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl">
+                    + Add phase
+                  </button>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {phases.map((p, i) => (
-                    <PhaseRow
-                      key={p.id}
-                      phase={p}
-                      onOpen={() => setEditingPhase({ index: i, phase: p })}
-                      onRename={(name) => renamePhase(i, name)}
-                      onDuration={(w) => setDuration(i, w)}
-                      onDuplicate={() => duplicatePhase(i)}
-                      onDelete={() => deletePhase(i)}
+                <>
+                  <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
+                    <input
+                      value={selectedPhase.name}
+                      onChange={(e) => renamePhase(e.target.value)}
+                      className="bg-transparent outline-none text-black font-bold text-base flex-1 min-w-[120px]"
                     />
-                  ))}
-                </div>
-              )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center bg-black/5 rounded-lg">
+                        <button
+                          type="button"
+                          onClick={() => setDuration(Math.max(1, selectedPhase.durationWeeks - 1))}
+                          className="w-7 h-7 flex items-center justify-center text-black/50"
+                          aria-label="Decrease duration"
+                        >
+                          −
+                        </button>
+                        <span className="text-black text-xs font-semibold w-14 text-center">
+                          {selectedPhase.durationWeeks} wk{selectedPhase.durationWeeks === 1 ? "" : "s"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setDuration(selectedPhase.durationWeeks + 1)}
+                          className="w-7 h-7 flex items-center justify-center text-black/50"
+                          aria-label="Increase duration"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <button onClick={duplicatePhase} className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-black/70" aria-label="Duplicate phase">
+                        <Copy size={13} />
+                      </button>
+                      {!confirmDeletePhase ? (
+                        <button
+                          onClick={() => setConfirmDeletePhase(true)}
+                          className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-red-500"
+                          aria-label="Delete phase"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      ) : (
+                        <div className="flex gap-1.5">
+                          <button onClick={() => setConfirmDeletePhase(false)} className="bg-black/8 text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg">
+                            Cancel
+                          </button>
+                          <button onClick={deletePhase} className="bg-red-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg">
+                            Confirm
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-black/35 text-xs mb-5">
+                    {(selectedPhase.days || []).length} session{(selectedPhase.days || []).length === 1 ? "" : "s"}
+                  </p>
 
-              <button
-                onClick={addPhase}
-                className="w-full flex items-center justify-center gap-1.5 text-black/50 text-xs font-medium py-2.5 mt-3 rounded-xl bg-black/[0.03]"
-              >
-                <Plus size={13} /> Add phase
-              </button>
+                  <PhaseWorkouts
+                    days={selectedPhase.days || []}
+                    exercisesById={exercisesById}
+                    onOpenNew={openNewWorkout}
+                    onOpenFromLibrary={() => setLibraryPickerOpen(true)}
+                    onEditDay={editDay}
+                    onDuplicateDay={duplicateDay}
+                    onDeleteDays={deleteDays}
+                    onCopyDays={(indices) => setCopyIndices(indices)}
+                  />
+                </>
+              )}
             </>
           )}
         </div>
       </div>
 
       <NewProgramSheet open={newProgramOpen} onClose={() => setNewProgramOpen(false)} onCreate={handleCreateProgram} />
-      {editingPhase && (
-        <PhaseDaysEditor
-          phase={editingPhase.phase}
+
+      <BottomSheet open={libraryPickerOpen} onClose={() => setLibraryPickerOpen(false)} title="Add from Workout Library">
+        {masterWorkouts.length === 0 ? (
+          <p className="text-black/30 text-sm text-center py-6">No workout templates yet — build some in Library → Workouts.</p>
+        ) : (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {masterWorkouts.map((w) => (
+              <button
+                key={w.id}
+                onClick={() => openWorkoutFromLibrary(w)}
+                className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 text-left transition-colors"
+              >
+                <ExerciseThumb exercise={exercisesById[w.exercises?.[0]?.exerciseId]} size={36} rounded="rounded-lg" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-black font-semibold text-sm truncate">{w.label}</p>
+                  <p className="text-black/35 text-xs truncate">
+                    {w.exercises.length} exercise{w.exercises.length === 1 ? "" : "s"}
+                    {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </BottomSheet>
+
+      <CopyWorkoutSheet
+        open={!!copyIndices}
+        onClose={() => setCopyIndices(null)}
+        programs={programs}
+        onCopy={(targetProgramId, targetPhaseId) => {
+          copyDaysTo(copyIndices, targetProgramId, targetPhaseId);
+          setCopyIndices(null);
+        }}
+      />
+
+      {editingWorkout && (
+        <WorkoutEditor
+          open={!!editingWorkout}
+          day={editingWorkout.day}
           exercises={exercises}
-          onClose={() => setEditingPhase(null)}
-          onSave={savePhaseDays}
+          onClose={() => setEditingWorkout(null)}
+          onSave={saveWorkout}
           showToast={showToast}
         />
       )}
