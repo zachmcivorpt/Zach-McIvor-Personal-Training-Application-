@@ -3,7 +3,21 @@ import { useApp } from "../lib/AppContext";
 import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput } from "../components/ui";
 import { fileToDataUrl } from "../lib/image";
 import { enablePush, disablePush } from "../lib/push";
-import { Video, LogOut, ChevronRight, MessageSquareText, Paperclip, X, Upload, BellRing, Download, User } from "lucide-react";
+import { uploadDesignImage } from "../lib/storage";
+import {
+  Video,
+  LogOut,
+  ChevronRight,
+  MessageSquareText,
+  Paperclip,
+  X,
+  Upload,
+  BellRing,
+  Download,
+  User,
+  Palette,
+  Image as ImageIcon,
+} from "lucide-react";
 
 // Small on/off row shared by the two per-type notification toggles — same
 // visual switch as the master toggle above it, just smaller and inline.
@@ -184,6 +198,172 @@ function AccountCard({ currentUser, updateUser, updateCoachEmail, showToast }) {
           </button>
         )}
       </form>
+    </Card>
+  );
+}
+
+// One upload/preview/remove row shared by the two real-image assets (login
+// background, app logo) — the profile picture keeps using the existing
+// AvatarPicker instead, since it already has its own instant-save circular
+// upload control used the same way elsewhere in the app.
+function DesignAssetRow({ label, description, previewUrl, previewClassName, aspectClassName, uploading, progress, onUpload, onRemove }) {
+  const fileRef = useRef(null);
+
+  return (
+    <div>
+      <p className="text-black/30 text-[11px] mb-1.5">{label.toUpperCase()}</p>
+      {description && <p className="text-black/40 text-xs mb-2">{description}</p>}
+      <div
+        className={`relative rounded-xl overflow-hidden border border-black/10 bg-black/[0.03] flex items-center justify-center ${aspectClassName}`}
+      >
+        {previewUrl ? (
+          <img src={previewUrl} alt={label} className={previewClassName || "w-full h-full object-cover"} />
+        ) : (
+          <ImageIcon size={22} className="text-black/20" />
+        )}
+        {uploading && (
+          <div className="absolute inset-0 bg-white/75 flex items-center justify-center">
+            <span className="text-black/60 text-xs font-bold">{Math.round((progress || 0) * 100)}%</span>
+          </div>
+        )}
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) onUpload(file);
+        }}
+      />
+      <div className="flex gap-2 mt-2">
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="flex-1 flex items-center justify-center gap-1.5 bg-black/5 border border-black/10 text-black text-xs font-semibold py-2 rounded-lg disabled:opacity-50"
+        >
+          <Upload size={12} /> {previewUrl ? "Replace" : "Upload"}
+        </button>
+        {previewUrl && (
+          <button
+            onClick={onRemove}
+            disabled={uploading}
+            className="px-3.5 bg-red-50 border border-red-100 text-red-600 text-xs font-semibold py-2 rounded-lg disabled:opacity-50"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Lets the coach customize the app's branding: the login screen's
+// background photo, their own profile picture, and the logo shown at the
+// top of every page. Login background + logo are real uploads to Firebase
+// Storage (see src/lib/storage.js's uploadDesignImage) with just the
+// resulting URL saved to the public settings/appDesign doc via
+// updateAppDesign — read by src/components/ui.jsx's Logo component and
+// src/auth/LoginScreen.jsx, so a change here is reflected everywhere
+// immediately with no other wiring needed. The profile picture reuses the
+// existing AvatarPicker/avatarUrl flow already used on this same page.
+function DesignSettingsCard() {
+  const { db, updateAppDesign, currentUser, updateUser } = useApp();
+  const design = db.appDesign || {};
+  const [uploadingBg, setUploadingBg] = useState(false);
+  const [bgProgress, setBgProgress] = useState(0);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoProgress, setLogoProgress] = useState(0);
+  const [error, setError] = useState("");
+
+  async function handleUpload(kind, file, setUploading, setProgress, field) {
+    setError("");
+    setUploading(true);
+    setProgress(0);
+    try {
+      const { url } = await uploadDesignImage(kind, file, setProgress);
+      await updateAppDesign({ [field]: url });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleRemove(field) {
+    setError("");
+    try {
+      await updateAppDesign({ [field]: null });
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+          <Palette size={18} className="text-blue-500" />
+        </div>
+        <div>
+          <p className="text-black font-semibold text-sm">Design Settings</p>
+          <p className="text-black/40 text-xs mt-0.5">Customize how the app looks for you and your clients</p>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        <DesignAssetRow
+          label="Login Background"
+          description="The photo shown behind the sign-in screen"
+          previewUrl={design.loginBackgroundUrl}
+          aspectClassName="aspect-[16/9]"
+          uploading={uploadingBg}
+          progress={bgProgress}
+          onUpload={(file) => handleUpload("login-bg", file, setUploadingBg, setBgProgress, "loginBackgroundUrl")}
+          onRemove={() => handleRemove("loginBackgroundUrl")}
+        />
+
+        <div className="border-t border-black/8" />
+
+        <div>
+          <p className="text-black/30 text-[11px] mb-1.5">PROFILE PICTURE</p>
+          <p className="text-black/40 text-xs mb-2">Shown wherever your trainer profile appears</p>
+          <div className="flex items-center gap-3">
+            <AvatarPicker
+              name={currentUser?.name}
+              url={currentUser?.avatarUrl}
+              size={56}
+              onChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
+            />
+            {currentUser?.avatarUrl && (
+              <button
+                onClick={() => updateUser(currentUser.id, { avatarUrl: null })}
+                className="bg-red-50 border border-red-100 text-red-600 text-xs font-semibold px-3.5 py-2 rounded-lg"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-black/8" />
+
+        <DesignAssetRow
+          label="App Logo"
+          description="Shown at the top of every page, in place of the default logo"
+          previewUrl={design.appLogoUrl}
+          previewClassName="max-w-[65%] max-h-[65%] object-contain"
+          aspectClassName="h-24"
+          uploading={uploadingLogo}
+          progress={logoProgress}
+          onUpload={(file) => handleUpload("logo", file, setUploadingLogo, setLogoProgress, "appLogoUrl")}
+          onRemove={() => handleRemove("appLogoUrl")}
+        />
+      </div>
+
+      {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-4">{error}</p>}
     </Card>
   );
 }
@@ -406,6 +586,8 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
       </Card>
 
       <AccountCard currentUser={currentUser} updateUser={updateUser} updateCoachEmail={updateCoachEmail} showToast={showToast} />
+
+      <DesignSettingsCard />
 
       <Card onClick={() => onNavigate("library")}>
         <div className="flex items-center gap-3">

@@ -5,6 +5,7 @@ import { X, Check, Camera, Dumbbell, Video, Play } from "lucide-react";
 import { SURFACE, SURFACE_RAISED, BORDER, ACCENT, MEASURE_BLUE } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE, TAGLINE_LOGO, TAGLINE_LOGO_BLACK } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
+import { useApp } from "../lib/AppContext";
 import { parseVideoUrl } from "../lib/video";
 
 // Full-screen video player — opened by tapping an ExerciseThumb that has a
@@ -112,10 +113,17 @@ const BRAND_SOURCES = {
 
 // variant: "wordmark" (mark + "PERSONAL TRAINING") | "mark" (icon only)
 // tone: "white" (for dark surfaces) | "black" (for light surfaces)
+//
+// A coach-uploaded logo (Settings -> Design Settings) overrides the default
+// brand mark everywhere this component is used — there's only one uploaded
+// logo, not separate mark/wordmark/black/white variants of it, so it takes
+// over regardless of the variant/tone props requested by the call site.
 export function Logo({ variant = "wordmark", tone = "white", className = "", style }) {
+  const { db } = useApp();
+  const customUrl = db?.appDesign?.appLogoUrl;
   return (
     <img
-      src={BRAND_SOURCES[`${variant}-${tone}`]}
+      src={customUrl || BRAND_SOURCES[`${variant}-${tone}`]}
       alt="Zach McIvor Personal Training"
       className={className}
       style={style}

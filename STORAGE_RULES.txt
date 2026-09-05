@@ -5,8 +5,9 @@ WHAT THIS IS
 ------------
 This unlocks video and PDF attachments in Messages (a client sending a
 form-check video, either side sending a PDF — a program, invoice, form,
-etc.). Everything else in the app still works without this — it only
-gates the "attach a video" / "attach a PDF" buttons in Messages.
+etc.), and image uploads in Settings -> Design Settings (login
+background photo, app logo). Everything else in the app still works
+without this — it only gates those specific upload buttons.
 
 Firebase Storage was created in "production mode" (same as Firestore),
 which denies every read and write until you paste rules in. If Storage
@@ -78,6 +79,16 @@ service firebase.storage {
          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "coach") &&
         request.resource.size < 20 * 1024 * 1024 &&
         request.resource.contentType == 'application/pdf';
+    }
+    match /design/{fileName} {
+      // The login background photo and the app logo — anyone can READ
+      // (the login screen loads the background before anyone signs in),
+      // only the coach can write.
+      allow read: if true;
+      allow write: if request.auth != null &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "coach" &&
+        request.resource.size < 8 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
     }
   }
 }

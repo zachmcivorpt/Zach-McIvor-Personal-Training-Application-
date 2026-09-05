@@ -148,6 +148,14 @@ service cloud.firestore {
       allow write: if isCoach();
     }
 
+    match /settings/appDesign {
+      // Coach-customizable branding (login background photo, app logo).
+      // Public so the login screen can load the background before anyone
+      // signs in.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
     // --- shared library data: any signed-in user reads, coach writes ---
     match /exercises/{id} {
       allow read: if isSignedIn();

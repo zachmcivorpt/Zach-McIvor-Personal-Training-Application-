@@ -242,6 +242,10 @@ export function AppProvider({ children }) {
     // coach's name/avatar for things like the client-app chat bubble. This
     // small public mirror doc is the workaround.
     watchDoc("settings", "coachProfile", "coachProfile", { name: "", avatarUrl: null });
+    // Coach-customizable branding (login background photo + app logo) —
+    // public/pre-auth for the same reason as the two docs above: the login
+    // screen itself needs the background image before anyone signs in.
+    watchDoc("settings", "appDesign", "appDesign", { loginBackgroundUrl: null, appLogoUrl: null });
 
     if (!authUser || !role) return () => unsubs.forEach((u) => u());
 
@@ -394,6 +398,7 @@ export function AppProvider({ children }) {
       notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       challenges: (raw.challenges || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
+      appDesign: raw.appDesign || { loginBackgroundUrl: null, appLogoUrl: null },
       bodyMetrics: bucket(raw.bodyMetrics, (a, b) => a.date.localeCompare(b.date)),
     };
   }, [raw, role, profile]);
@@ -1160,6 +1165,17 @@ export function AppProvider({ children }) {
         const next = { ...(db.welcomeMessage || DEFAULT_WELCOME_MESSAGE), ...patch };
         try {
           await setDoc(doc(firestore, "settings", "welcomeMessage"), next);
+        } catch (err) {
+          throw new Error("Couldn't save — " + (err.message || "please try again."));
+        }
+      },
+
+      // Coach-customizable branding — login background photo + app logo.
+      // Public/pre-auth read (see the watchDoc above), coach-only write.
+      async updateAppDesign(patch) {
+        const next = { ...(db.appDesign || { loginBackgroundUrl: null, appLogoUrl: null }), ...patch };
+        try {
+          await setDoc(doc(firestore, "settings", "appDesign"), next);
         } catch (err) {
           throw new Error("Couldn't save — " + (err.message || "please try again."));
         }

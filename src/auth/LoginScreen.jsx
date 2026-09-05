@@ -90,7 +90,7 @@ function CoachSignupForm() {
 }
 
 export default function LoginScreen() {
-  const { login, hasCoach, currentUser } = useApp();
+  const { login, hasCoach, currentUser, db } = useApp();
   const navigate = useNavigate();
   const [role, setRole] = useState("client");
   const [username, setUsername] = useState("");
@@ -124,11 +124,14 @@ export default function LoginScreen() {
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0A0A0B]">
-      {/* Background photo — drop a file at public/brand/login-bg.jpg and it
-          appears automatically; until then this quietly stays hidden and the
-          dark background above shows instead. */}
+      {/* Background photo — coach-customizable via Settings -> Design
+          Settings (db.appDesign.loginBackgroundUrl). Falls back to
+          public/brand/login-bg.jpg if a file's been dropped there; until
+          either exists this quietly stays hidden and the dark background
+          above shows instead. */}
       <img
-        src="/brand/login-bg.jpg"
+        key={db.appDesign?.loginBackgroundUrl || "default"}
+        src={db.appDesign?.loginBackgroundUrl || "/brand/login-bg.jpg"}
         alt=""
         onLoad={() => setBgLoaded(true)}
         onError={(e) => {

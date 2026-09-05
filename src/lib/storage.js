@@ -8,6 +8,7 @@ import { storage } from "./firebase";
 
 const MAX_VIDEO_BYTES = 75 * 1024 * 1024; // 75MB
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
+const MAX_DESIGN_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
 
 // Firebase's own error text for the two most common setup gaps ("storage/
 // unknown" and "storage/unauthorized") is a cryptic server-response dump
@@ -80,4 +81,21 @@ export function uploadMessagePdf(clientId, file, onProgress) {
     );
   }
   return uploadToPath(`messageDocs/${clientId}/${Date.now()}_${file.name}`, file, "pdf", "PDF", onProgress);
+}
+
+// Coach-only branding images (login background photo, app logo) — a real
+// object upload rather than base64 in Firestore, since a photographic
+// background in particular is routinely well over what fits comfortably in
+// a Firestore document. `kind` is just a filename prefix ("login-bg" /
+// "logo") so the two don't collide in the design/ folder.
+export function uploadDesignImage(kind, file, onProgress) {
+  if (!file.type.startsWith("image/")) {
+    return Promise.reject(new Error("Please choose an image file."));
+  }
+  if (file.size > MAX_DESIGN_IMAGE_BYTES) {
+    return Promise.reject(
+      new Error(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB — please keep it under ${MAX_DESIGN_IMAGE_BYTES / 1024 / 1024}MB.`)
+    );
+  }
+  return uploadToPath(`design/${kind}_${Date.now()}_${file.name}`, file, "image", "Image", onProgress);
 }
