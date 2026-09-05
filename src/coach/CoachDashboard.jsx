@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Send,
   Check,
+  StickyNote,
 } from "lucide-react";
 
 // The check-in's own Q&A, plus a reply box right there — so reviewing one
@@ -180,8 +181,65 @@ function ActivityItem({ item, onClick }) {
   );
 }
 
+// A running note only the coach sees — separate from the per-client "Focus
+// for next week" note on each client's own Weekly Coach Review, this is
+// general/business-level scratch space (this week's plan, reminders,
+// things to follow up on) that isn't tied to any one client.
+function WeeklyNotesCard({ currentUser, updateUser, showToast }) {
+  const [notes, setNotes] = useState(currentUser?.coachWeeklyNotes || "");
+  const [saving, setSaving] = useState(false);
+  const hydratedRef = useRef(false);
+  if (!hydratedRef.current && currentUser?.coachWeeklyNotes) {
+    hydratedRef.current = true;
+    setNotes(currentUser.coachWeeklyNotes);
+  }
+  const dirty = notes !== (currentUser?.coachWeeklyNotes || "");
+
+  async function save() {
+    setSaving(true);
+    try {
+      await updateUser(currentUser.id, { coachWeeklyNotes: notes });
+      showToast?.("Notes saved");
+    } catch (err) {
+      showToast?.(err.message || "Couldn't save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
+            <StickyNote size={15} className="text-amber-600" />
+          </div>
+          <p className="text-black font-semibold">Weekly Notes</p>
+        </div>
+        {dirty && (
+          <button
+            onClick={save}
+            disabled={saving}
+            className="text-xs font-bold text-white bg-black px-3 py-1.5 rounded-lg disabled:opacity-40 transition-opacity"
+          >
+            {saving ? "SAVING…" : "SAVE"}
+          </button>
+        )}
+      </div>
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        onBlur={() => dirty && save()}
+        placeholder="Anything to remember this week — plans, reminders, things to follow up on. Only you can see this."
+        rows={4}
+        className="w-full bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-3 text-sm text-black outline-none placeholder:text-black/30 resize-none"
+      />
+    </Card>
+  );
+}
+
 export default function CoachDashboard({ onNavigate, showToast }) {
-  const { db, sendMessage, markFormResponseRead } = useApp();
+  const { db, sendMessage, markFormResponseRead, currentUser, updateUser } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = new Date().toISOString().slice(0, 10);
@@ -356,6 +414,10 @@ export default function CoachDashboard({ onNavigate, showToast }) {
             )}
           </div>
         </Card>
+      </div>
+
+      <div className="mb-4">
+        <WeeklyNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
