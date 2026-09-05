@@ -4779,10 +4779,9 @@ export default function ClientApp() {
     if (!viewingAsClient || fromDate === toDate) return;
     const workout = scheduledWorkoutsByDate[fromDate];
     if (!workout) return;
-    if (scheduledWorkoutsByDate[toDate]) {
-      showToast("That day already has a workout scheduled");
-      return;
-    }
+    // Dropping onto a day that already has a workout replaces it —
+    // scheduleWorkout's deterministic doc id means this is just an
+    // overwrite, no separate delete needed.
     scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
     unscheduleWorkout(currentUser.id, fromDate);
     showToast("Workout rescheduled");

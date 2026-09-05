@@ -1028,15 +1028,12 @@ function CalendarPanel({ client, showToast }) {
 
   // Drag a not-yet-completed scheduled workout onto a different day to
   // move it there — e.g. the client asks to swap Monday's session to
-  // Wednesday. Won't clobber a workout the target day already has.
+  // Wednesday. Dropping onto a day that already has one replaces it —
+  // the coach dragged it there on purpose, so just do it.
   async function moveWorkout(fromDate, toDate) {
     if (fromDate === toDate) return;
     const entry = workoutsByDate[fromDate];
     if (!entry) return;
-    if (workoutsByDate[toDate]) {
-      showToast("That day already has a workout scheduled — move or delete it first");
-      return;
-    }
     try {
       await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises });
       unscheduleWorkout(client.id, fromDate);
