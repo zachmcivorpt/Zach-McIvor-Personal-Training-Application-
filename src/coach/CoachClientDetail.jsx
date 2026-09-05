@@ -2985,9 +2985,17 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   const nutritionLogs = (db.nutritionLogs || {})[client.id] || [];
   const habits = (db.habits || {})[client.id] || [];
   const habitLog = ((db.habitLog || {})[client.id]) || {};
+  const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const weekAgo = Date.now() - 7 * 86400000;
 
   const sessionsThisWeek = logs.filter((l) => l.date >= weekAgo).length;
+  // "4 of 7" against what was actually scheduled this calendar week (Mon-Sun),
+  // not just a raw count of logs — a plain count told you nothing about
+  // whether that was a good week without knowing how much was planned.
+  const weeklyCompletion = useMemo(
+    () => computeWeeklySessionCompletion(logs, scheduledWorkouts),
+    [logs, scheduledWorkouts]
+  );
   const volumeThisWeek = Math.round(
     logs
       .filter((l) => l.date >= weekAgo)
@@ -3046,7 +3054,11 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   }
 
   const stats = [
-    { label: "Sessions", sub: "this week", value: sessionsThisWeek },
+    {
+      label: "Sessions",
+      sub: weeklyCompletion.expected > 0 ? "completed" : "this week",
+      value: weeklyCompletion.expected > 0 ? `${weeklyCompletion.completed}/${weeklyCompletion.expected}` : sessionsThisWeek,
+    },
     { label: "Volume", sub: "kg lifted", value: volumeThisWeek.toLocaleString() },
     { label: "Nutrition", sub: "days logged", value: `${nutritionAdherencePct}%` },
     { label: "Habits", sub: "completion", value: consistencyPct != null ? `${consistencyPct}%` : "—" },
