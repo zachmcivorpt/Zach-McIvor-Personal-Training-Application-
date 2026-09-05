@@ -1190,51 +1190,56 @@ function CalendarPanel({ client, showToast }) {
         </div>
 
         {selectMode && (
-          <div className="bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-2.5 mb-4 space-y-2.5">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {DELETE_CATEGORIES.map((c) => (
-                  <button
-                    key={c.key}
-                    onClick={() => toggleCategory(c.key)}
-                    className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors ${
-                      activeCategories.has(c.key) ? "bg-black text-white" : "bg-white border border-black/10 text-black/50"
-                    }`}
-                  >
-                    {c.label}
-                  </button>
-                ))}
+          <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mb-4 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-black font-semibold text-sm">Bulk delete</p>
+                <p className="text-black/40 text-xs mt-0.5">Filter by type, pick a range, or tap items on the calendar below.</p>
               </div>
               <button
                 onClick={deleteSelected}
                 disabled={selectedKeys.size === 0}
-                className="flex items-center gap-1.5 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg disabled:opacity-30"
+                className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shrink-0 active:scale-[0.98] transition-all disabled:opacity-30 disabled:active:scale-100"
               >
-                <Trash2 size={13} /> Delete {selectedKeys.size > 0 ? `(${selectedKeys.size})` : ""}
+                <Trash2 size={13} /> Delete{selectedKeys.size > 0 ? ` (${selectedKeys.size})` : ""}
               </button>
             </div>
-            <div className="flex items-center gap-2 flex-wrap border-t border-black/8 pt-2.5">
-              <span className="text-black/40 text-[11px] font-semibold shrink-0">SELECT A DATE RANGE</span>
-              <input
-                type="date"
-                value={rangeStart}
-                onChange={(e) => setRangeStart(e.target.value)}
-                className="bg-white border border-black/10 rounded-lg text-xs text-black px-2 py-1.5 outline-none"
-              />
-              <span className="text-black/30 text-xs">to</span>
-              <input
-                type="date"
-                value={rangeEnd}
-                onChange={(e) => setRangeEnd(e.target.value)}
-                className="bg-white border border-black/10 rounded-lg text-xs text-black px-2 py-1.5 outline-none"
-              />
-              <button
-                onClick={selectDateRange}
-                disabled={!rangeStart || !rangeEnd}
-                className="bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-30"
-              >
-                Select range
-              </button>
+
+            <div>
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">FILTER BY TYPE</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                {DELETE_CATEGORIES.map((c) => {
+                  const active = activeCategories.has(c.key);
+                  return (
+                    <button
+                      key={c.key}
+                      onClick={() => toggleCategory(c.key)}
+                      className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
+                        active ? "bg-black text-white" : "bg-black/5 text-black/50 hover:bg-black/8"
+                      }`}
+                    >
+                      {active && <Check size={11} strokeWidth={3} />}
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="border-t border-black/8 pt-4">
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">DATE RANGE</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <TextInput type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} className="!w-auto text-sm py-2" />
+                <ChevronRight size={14} className="text-black/25 shrink-0" />
+                <TextInput type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} className="!w-auto text-sm py-2" />
+                <button
+                  onClick={selectDateRange}
+                  disabled={!rangeStart || !rangeEnd}
+                  className="bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 active:scale-[0.98] transition-all disabled:opacity-25 disabled:active:scale-100"
+                >
+                  Select range
+                </button>
+              </div>
             </div>
           </div>
         )}
