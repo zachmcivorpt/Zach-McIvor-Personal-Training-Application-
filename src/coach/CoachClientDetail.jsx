@@ -36,6 +36,8 @@ import {
   Clock,
   CheckCircle2,
   Check,
+  Lock,
+  Unlock,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -3389,7 +3391,7 @@ const CLIENT_NAV = [
 ];
 
 export default function CoachClientDetail({ clientId, onClose, showToast }) {
-  const { db, removeClient, startViewAsClient } = useApp();
+  const { db, removeClient, startViewAsClient, setClientAccessPaused } = useApp();
   const [clientTab, setClientTab] = useState("summary");
   const [messaging, setMessaging] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
@@ -3407,7 +3409,10 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
             <Avatar name={client.name} url={client.avatarUrl} size={48} />
             <div className="min-w-0">
               <p className="text-black font-bold text-sm truncate">{client.name}</p>
-              <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
+              <div className="flex items-center gap-1.5">
+                <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
+                {client.accessPaused && <Pill tone="warning">Paused</Pill>}
+              </div>
             </div>
           </div>
           {client.status === "active" ? (
@@ -3432,6 +3437,25 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
               title="Browse and act in the app exactly as this client"
             >
               <Repeat size={15} /> View as Client
+            </button>
+          )}
+          {client.status === "active" && (
+            <button
+              onClick={() => setClientAccessPaused(client.id, !client.accessPaused)}
+              className={`w-full mt-2 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors ${
+                client.accessPaused ? "bg-amber-50 hover:bg-amber-100 text-amber-700" : "bg-black/5 hover:bg-black/10 text-black/60"
+              }`}
+              title="Restrict this client's access to their program/profile — e.g. for insufficient payment"
+            >
+              {client.accessPaused ? (
+                <>
+                  <Unlock size={15} /> Resume Access
+                </>
+              ) : (
+                <>
+                  <Lock size={15} /> Pause Access
+                </>
+              )}
             </button>
           )}
         </div>
@@ -3495,7 +3519,10 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
           <Avatar name={client.name} url={client.avatarUrl} size={38} />
           <div className="min-w-0 flex-1">
             <p className="text-black font-bold text-sm truncate">{client.name}</p>
-            <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
+            <div className="flex items-center gap-1.5">
+              <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
+              {client.accessPaused && <Pill tone="warning">Paused</Pill>}
+            </div>
           </div>
           {client.status === "active" ? (
             <>
@@ -3506,6 +3533,14 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
                 className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0"
               >
                 <Repeat size={15} className="text-blue-700" />
+              </button>
+              <button
+                onClick={() => setClientAccessPaused(client.id, !client.accessPaused)}
+                aria-label={client.accessPaused ? "Resume access" : "Pause access"}
+                title={client.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${client.accessPaused ? "bg-amber-50" : "bg-black/8"}`}
+              >
+                {client.accessPaused ? <Unlock size={15} className="text-amber-700" /> : <Lock size={15} className="text-black/50" />}
               </button>
               <button
                 onClick={() => setMessaging(true)}

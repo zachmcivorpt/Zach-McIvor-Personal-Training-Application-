@@ -3,7 +3,7 @@ import { useApp, getCurrentPhase, getNextPhase } from "../lib/AppContext";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
 import { MEASURE_BLUE } from "../theme";
-import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat } from "lucide-react";
+import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat, Lock, Unlock } from "lucide-react";
 
 export function inviteMailto({ email, name, username, code, coachName }) {
   const activateUrl = `${window.location.origin}/activate`;
@@ -210,7 +210,7 @@ function EngagementBadges({ awaitingReply, pendingCheckins }) {
 
 // OPEN ▾ row action — the primary "open" action plus a small dropdown for
 // the one other thing you'd do from the roster itself: remove a client.
-function RowActions({ onOpen, onRemove }) {
+function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative flex justify-end" onClick={(e) => e.stopPropagation()}>
@@ -228,7 +228,26 @@ function RowActions({ onOpen, onRemove }) {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-black/10 rounded-xl shadow-lg overflow-hidden w-40">
+          <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-black/10 rounded-xl shadow-lg overflow-hidden w-48">
+            {onTogglePause && (
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onTogglePause();
+                }}
+                className="w-full flex items-center gap-2 px-3.5 py-2.5 text-amber-600 text-sm font-medium hover:bg-amber-50 transition-colors"
+              >
+                {paused ? (
+                  <>
+                    <Unlock size={13} /> Resume access
+                  </>
+                ) : (
+                  <>
+                    <Lock size={13} /> Pause access
+                  </>
+                )}
+              </button>
+            )}
             <button
               onClick={() => {
                 setOpen(false);
@@ -246,7 +265,7 @@ function RowActions({ onOpen, onRemove }) {
 }
 
 export default function CoachClients({ showToast, search, setSearch }) {
-  const { db, removeClient, startViewAsClient } = useApp();
+  const { db, removeClient, startViewAsClient, setClientAccessPaused, dbReady } = useApp();
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [checkedIds, setCheckedIds] = useState(() => new Set());
@@ -344,7 +363,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
             {clients.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-5 py-10 text-center text-black/40 text-sm">
-                  No clients yet — add your first one to get started.
+                  {dbReady ? "No clients yet — add your first one to get started." : "Loading your clients…"}
                 </td>
               </tr>
             )}
@@ -388,7 +407,10 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     <EngagementBadges awaitingReply={awaitingReply} pendingCheckins={pendingCheckins} />
                   </td>
                   <td className="px-5 py-3.5">
-                    <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
+                    <div className="flex items-center gap-1.5">
+                      <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
+                      {c.accessPaused && <Pill tone="warning">Paused</Pill>}
+                    </div>
                   </td>
                   <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
@@ -402,7 +424,14 @@ export default function CoachClients({ showToast, search, setSearch }) {
                           <Repeat size={14} />
                         </button>
                       )}
-                      <RowActions onOpen={() => setSelectedId(c.id)} onRemove={() => removeClient(c.id)} />
+                      <RowActions
+                        onOpen={() => setSelectedId(c.id)}
+                        onRemove={() => removeClient(c.id)}
+                        paused={!!c.accessPaused}
+                        onTogglePause={
+                          c.status === "active" ? () => setClientAccessPaused(c.id, !c.accessPaused) : undefined
+                        }
+                      />
                     </div>
                   </td>
                 </tr>
@@ -416,7 +445,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
       <div className="md:hidden space-y-2.5">
         {clients.length === 0 && (
           <div className="border border-black/8 rounded-2xl px-5 py-10 text-center text-black/40 text-sm">
-            No clients yet — add your first one to get started.
+            {dbReady ? "No clients yet — add your first one to get started." : "Loading your clients…"}
           </div>
         )}
         {clients.map((c) => {
@@ -456,8 +485,28 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     <Repeat size={14} />
                   </button>
                 )}
+                {c.status === "active" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setClientAccessPaused(c.id, !c.accessPaused);
+                    }}
+                    title={c.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
+                    aria-label={c.accessPaused ? `Resume access for ${c.name}` : `Pause access for ${c.name}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 ${
+                      c.accessPaused ? "bg-amber-50 text-amber-700" : "bg-black/5 text-black/40"
+                    }`}
+                  >
+                    {c.accessPaused ? <Unlock size={14} /> : <Lock size={14} />}
+                  </button>
+                )}
                 <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
               </div>
+              {c.accessPaused && (
+                <p className="flex items-center gap-1 text-amber-700 text-xs font-medium mb-2.5">
+                  <Lock size={11} /> Access paused
+                </p>
+              )}
               <div className="flex items-center justify-between gap-3">
                 <PhaseCell phase={currentPhase} />
                 <EngagementBadges awaitingReply={awaitingReply} pendingCheckins={pendingCheckins} />

@@ -702,6 +702,7 @@ export default function CoachPrograms({ showToast }) {
             </div>
           ) : (
             <>
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">PROGRAM</p>
               <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
                 <input
                   value={programDraft.name}
@@ -773,69 +774,76 @@ export default function CoachPrograms({ showToast }) {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-start justify-between gap-3 mb-1 flex-wrap border-t border-black/8 pt-4">
-                    <input
-                      value={phaseNameDraft}
-                      onChange={(e) => setPhaseNameDraft(e.target.value)}
-                      className="bg-transparent outline-none text-black font-bold text-base flex-1 min-w-[120px]"
-                    />
-                    <div className="flex items-center gap-2 shrink-0">
-                      {phaseNameDirty && (
-                        <button
-                          onClick={savePhaseName}
-                          disabled={savingPhaseName}
-                          className="bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg"
-                        >
-                          {savingPhaseName ? "SAVING…" : "SAVE"}
-                        </button>
-                      )}
-                      <div className="flex items-center bg-black/5 rounded-lg">
-                        <button
-                          type="button"
-                          onClick={() => setDuration(Math.max(1, selectedPhase.durationWeeks - 1))}
-                          className="w-7 h-7 flex items-center justify-center text-black/50"
-                          aria-label="Decrease duration"
-                        >
-                          −
-                        </button>
-                        <span className="text-black text-xs font-semibold w-14 text-center">
-                          {selectedPhase.durationWeeks} wk{selectedPhase.durationWeeks === 1 ? "" : "s"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setDuration(selectedPhase.durationWeeks + 1)}
-                          className="w-7 h-7 flex items-center justify-center text-black/50"
-                          aria-label="Increase duration"
-                        >
-                          +
-                        </button>
+                  <div className="border-t border-black/8 pt-4 mb-5">
+                    <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">PHASE</p>
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={phaseNameDraft}
+                            onChange={(e) => setPhaseNameDraft(e.target.value)}
+                            className="bg-transparent outline-none text-black font-bold text-base min-w-[120px]"
+                          />
+                          {phaseNameDirty && (
+                            <button
+                              onClick={savePhaseName}
+                              disabled={savingPhaseName}
+                              className="bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shrink-0"
+                            >
+                              {savingPhaseName ? "SAVING…" : "SAVE"}
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-black/35 text-xs mt-0.5">
+                          {(selectedPhase.days || []).length} session{(selectedPhase.days || []).length === 1 ? "" : "s"}
+                        </p>
                       </div>
-                      <button onClick={duplicatePhase} className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-black/70" aria-label="Duplicate phase">
-                        <Copy size={13} />
-                      </button>
-                      {!confirmDeletePhase ? (
-                        <button
-                          onClick={() => setConfirmDeletePhase(true)}
-                          className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-red-500"
-                          aria-label="Delete phase"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      ) : (
-                        <div className="flex gap-1.5">
-                          <button onClick={() => setConfirmDeletePhase(false)} className="bg-black/8 text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg">
-                            Cancel
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center bg-black/5 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setDuration(Math.max(1, selectedPhase.durationWeeks - 1))}
+                            className="w-7 h-7 flex items-center justify-center text-black/50"
+                            aria-label="Decrease duration"
+                          >
+                            −
                           </button>
-                          <button onClick={deletePhase} className="bg-red-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg">
-                            Confirm
+                          <span className="text-black text-xs font-semibold w-14 text-center">
+                            {selectedPhase.durationWeeks} wk{selectedPhase.durationWeeks === 1 ? "" : "s"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setDuration(selectedPhase.durationWeeks + 1)}
+                            className="w-7 h-7 flex items-center justify-center text-black/50"
+                            aria-label="Increase duration"
+                          >
+                            +
                           </button>
                         </div>
-                      )}
+                        <button onClick={duplicatePhase} className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-black/70" aria-label="Duplicate phase">
+                          <Copy size={13} />
+                        </button>
+                        {!confirmDeletePhase ? (
+                          <button
+                            onClick={() => setConfirmDeletePhase(true)}
+                            className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-red-500"
+                            aria-label="Delete phase"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        ) : (
+                          <div className="flex gap-1.5">
+                            <button onClick={() => setConfirmDeletePhase(false)} className="bg-black/8 text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg">
+                              Cancel
+                            </button>
+                            <button onClick={deletePhase} className="bg-red-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg">
+                              Confirm
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <p className="text-black/35 text-xs mb-5">
-                    {(selectedPhase.days || []).length} session{(selectedPhase.days || []).length === 1 ? "" : "s"}
-                  </p>
 
                   <PhaseWorkouts
                     days={selectedPhase.days || []}

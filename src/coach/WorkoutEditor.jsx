@@ -463,17 +463,32 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                   {/* target: reps/time toggle + value + notes */}
                                   <div className="mt-2.5 md:mt-0">
                                     <div className="flex items-center justify-between mb-1 gap-1 md:mb-1">
-                                      <p className="text-black/30 text-[10px] shrink-0 md:hidden">{row.targetType === "time" ? "TIME" : "REPETITIONS"}</p>
-                                      <div className="flex items-center gap-1">
+                                      {/* Segmented REPS/TIME control — both options always shown with
+                                          the active one highlighted, rather than a single button whose
+                                          label named the OTHER mode (read by more than one coach as the
+                                          app having reps/time backwards, since the highlighted-looking
+                                          label was actually what you'd switch to, not the current mode). */}
+                                      <div className="flex items-center rounded overflow-hidden shrink-0 border border-black/8">
                                         <button
                                           type="button"
-                                          onClick={() =>
-                                            updateRow(i, row.targetType === "time" ? { targetType: "reps", targetReps: 10 } : { targetType: "time", targetReps: 30 })
-                                          }
-                                          className="text-[9px] font-bold px-1.5 rounded bg-black/8 text-black/40"
+                                          onClick={() => updateRow(i, { targetType: "reps", targetReps: 10 })}
+                                          className={`text-[9px] font-bold px-1.5 py-0.5 ${
+                                            row.targetType === "time" ? "bg-black/8 text-black/40" : "bg-black text-white"
+                                          }`}
                                         >
-                                          {row.targetType === "time" ? "REPS" : "TIME"}
+                                          REPS
                                         </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => updateRow(i, { targetType: "time", targetReps: 30 })}
+                                          className={`text-[9px] font-bold px-1.5 py-0.5 ${
+                                            row.targetType === "time" ? "bg-black text-white" : "bg-black/8 text-black/40"
+                                          }`}
+                                        >
+                                          TIME
+                                        </button>
+                                      </div>
+                                      <div className="flex items-center gap-1">
                                         <button
                                           type="button"
                                           onClick={() => updateRow(i, { dropSet: !row.dropSet })}

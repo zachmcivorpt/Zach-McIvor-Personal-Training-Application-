@@ -49,6 +49,7 @@ import {
   ThermometerSun,
   Video,
   Percent,
+  Lock,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo } from "../lib/storage";
@@ -389,15 +390,17 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   );
 }
 
-function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById }) {
+function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById, dbReady = true }) {
   if (!todaySession) {
     return (
       <Card className="mx-3 text-center py-10">
         <Dumbbell size={26} className="text-black/25 mx-auto mb-3" />
-        <p className="text-black font-semibold">No workout scheduled</p>
-        <p className="text-black/40 text-sm mt-1">
-          {isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}
-        </p>
+        <p className="text-black font-semibold">{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
+        {dbReady && (
+          <p className="text-black/40 text-sm mt-1">
+            {isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}
+          </p>
+        )}
       </Card>
     );
   }
@@ -869,6 +872,7 @@ function HomeScreen({
   challenges,
   userId,
   cardioLogs,
+  dbReady,
 }) {
   return (
     <div className="pb-6 space-y-4">
@@ -895,6 +899,7 @@ function HomeScreen({
         completedOnDate={completedOnDate}
         isPastDate={dayOffset < 0}
         exercisesById={exercisesById}
+        dbReady={dbReady}
       />
       <CardioLogCard logs={cardioLogs} />
       <DailyHabitsCard
@@ -1969,7 +1974,7 @@ function ClientProgramTab({ onPreviewDay }) {
   );
 }
 
-function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio }) {
+function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady }) {
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -2002,6 +2007,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             onView={onViewWorkout}
             isToday
             completedOnDate={completedOnDate}
+            dbReady={dbReady}
           />
           <button
             onClick={() => setCardioOpen(true)}
@@ -2104,7 +2110,9 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
         <div className="px-3 space-y-2">
           {upcoming.length === 0 && (
             <Card>
-              <p className="text-black/40 text-sm text-center py-6">Nothing scheduled yet — your coach will set up your upcoming workouts.</p>
+              <p className="text-black/40 text-sm text-center py-6">
+                {dbReady ? "Nothing scheduled yet — your coach will set up your upcoming workouts." : "Loading your schedule…"}
+              </p>
             </Card>
           )}
           {upcoming.map((w) => (
@@ -4181,14 +4189,17 @@ function CheckInsScreen({ userId, showToast }) {
 // dot on the left, title + a plain-English one-liner, a chevron if there's
 // somewhere to go. Matches the density of a real day-planner app instead of
 // a cramped multi-item row.
-function CalendarEventCard({ dot, done, title, subtitle, onClick }) {
+function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onDragStart, onDragEnd }) {
   const Wrapper = onClick ? "button" : "div";
   return (
     <Wrapper
       onClick={onClick}
+      draggable={draggable}
+      onDragStart={draggable ? onDragStart : undefined}
+      onDragEnd={draggable ? onDragEnd : undefined}
       className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left ${
         onClick ? "hover:bg-black/[0.02] transition-colors" : ""
-      }`}
+      } ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
     >
       <span
         className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-white"}`}
@@ -4201,6 +4212,31 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick }) {
       </div>
       {onClick && <ChevronRight size={18} className="text-black/25 shrink-0" />}
     </Wrapper>
+  );
+}
+
+// Shown instead of the whole app when the coach has paused this client's
+// access (e.g. an unresolved payment) — everything about their program,
+// history and progress stays intact server-side, they just can't browse it
+// until the coach lifts the pause. Messaging stays open so they can sort it
+// out directly rather than being locked out with no way to reach the coach.
+function AccessPausedScreen({ onMessageCoach, onLogout }) {
+  return (
+    <div className="flex flex-col items-center justify-center text-center px-6" style={{ minHeight: "70vh" }}>
+      <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mb-4">
+        <Lock size={24} className="text-amber-600" />
+      </div>
+      <p className="text-black font-bold text-lg mb-1.5">Access paused</p>
+      <p className="text-black/50 text-sm max-w-xs mb-6">
+        Your coach has temporarily paused your access to your program and profile. Message them to sort it out.
+      </p>
+      <button onClick={onMessageCoach} className="bg-black text-white text-sm font-bold px-5 py-3 rounded-xl w-full max-w-xs mb-2.5">
+        Message your coach
+      </button>
+      <button onClick={onLogout} className="text-black/40 hover:text-black/60 text-sm font-medium py-2">
+        Log out
+      </button>
+    </div>
   );
 }
 
@@ -4219,12 +4255,18 @@ function ClientCalendarScreen({
   formSchedules,
   forms,
   onPreviewWorkout,
+  canEdit,
+  onMoveWorkout,
 }) {
   const [daysBack, setDaysBack] = useState(30);
   const [daysForward, setDaysForward] = useState(60);
   const scrollRef = useRef(null);
   const todayRef = useRef(null);
   const scrolledToToday = useRef(false);
+  // Drag-to-reschedule — only ever active for the coach browsing as this
+  // client (see `canEdit`); a real client can't drag their own calendar.
+  const [dragFromDate, setDragFromDate] = useState(null);
+  const [dragOverDate, setDragOverDate] = useState(null);
 
   const logsByDate = useMemo(() => {
     const map = {};
@@ -4303,8 +4345,36 @@ function ClientCalendarScreen({
           const habitsDone = dayHabits.filter((h) => doneHabitIds.includes(h.id)).length;
           const bodyStatsDone = weighInDates.has(dateStr);
 
+          const canDragThis = canEdit && !!scheduled && !log;
+          const isDropTarget = canEdit && dragFromDate && dragFromDate !== dateStr;
+
           return (
-            <div key={dateStr} ref={isToday ? todayRef : null} className={i > 0 ? "mt-5" : ""}>
+            <div
+              key={dateStr}
+              ref={isToday ? todayRef : null}
+              className={`${i > 0 ? "mt-5" : ""} ${
+                isDropTarget && dragOverDate === dateStr ? "bg-blue-50 rounded-2xl ring-2 ring-blue-300" : ""
+              }`}
+              onDragOver={
+                isDropTarget
+                  ? (e) => {
+                      e.preventDefault();
+                      setDragOverDate(dateStr);
+                    }
+                  : undefined
+              }
+              onDragLeave={isDropTarget ? () => setDragOverDate((d) => (d === dateStr ? null : d)) : undefined}
+              onDrop={
+                isDropTarget
+                  ? (e) => {
+                      e.preventDefault();
+                      onMoveWorkout(dragFromDate, dateStr);
+                      setDragFromDate(null);
+                      setDragOverDate(null);
+                    }
+                  : undefined
+              }
+            >
               <p className={`font-bold text-base mb-2 ${isToday ? "text-blue-600" : "text-black"}`}>
                 {isToday ? "Today, " : ""}
                 {d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
@@ -4316,10 +4386,22 @@ function ClientCalendarScreen({
                     dot={{ border: "border-blue-500", bg: "bg-blue-500" }}
                     done={!!log}
                     title={scheduled.label}
-                    subtitle={log ? "Workout completed." : "Complete your scheduled workout."}
+                    subtitle={
+                      canDragThis
+                        ? "Drag to a different day to reschedule."
+                        : log
+                        ? "Workout completed."
+                        : "Complete your scheduled workout."
+                    }
                     onClick={() =>
                       onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })
                     }
+                    draggable={canDragThis}
+                    onDragStart={() => setDragFromDate(dateStr)}
+                    onDragEnd={() => {
+                      setDragFromDate(null);
+                      setDragOverDate(null);
+                    }}
                   />
                 )}
                 {!scheduled && log && (
@@ -4413,6 +4495,9 @@ export default function ClientApp() {
     saveExerciseNote,
     viewingAsClient,
     stopViewAsClient,
+    scheduleWorkout,
+    unscheduleWorkout,
+    dbReady,
   } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
@@ -4686,6 +4771,23 @@ export default function ClientApp() {
     setMessagesOpen(true);
   }
 
+  // Coach-only (see `canEdit` on ClientCalendarScreen): drag a scheduled
+  // workout from one day to another right from inside the client's own
+  // calendar, while browsing as them — the same "reschedule on the fly"
+  // the coach already has on their own calendar view of a client.
+  function moveScheduledWorkout(fromDate, toDate) {
+    if (!viewingAsClient || fromDate === toDate) return;
+    const workout = scheduledWorkoutsByDate[fromDate];
+    if (!workout) return;
+    if (scheduledWorkoutsByDate[toDate]) {
+      showToast("That day already has a workout scheduled");
+      return;
+    }
+    scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
+    unscheduleWorkout(currentUser.id, fromDate);
+    showToast("Workout rescheduled");
+  }
+
   return (
     <div className="w-full h-full min-h-screen bg-white font-sans flex justify-center">
       <div className="w-full max-w-md relative">
@@ -4698,6 +4800,10 @@ export default function ClientApp() {
           </div>
         )}
         <BrandBar />
+        {currentUser.accessPaused && !viewingAsClient ? (
+          <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
+        ) : (
+        <>
         <TabFade tabKey={tab}>
         {tab === "home" && (
           <HomeScreen
@@ -4729,6 +4835,7 @@ export default function ClientApp() {
             challenges={db.challenges || []}
             userId={currentUser.id}
             cardioLogs={cardioLogsForSelectedDate}
+            dbReady={dbReady}
           />
         )}
         {tab === "workouts" && (
@@ -4746,6 +4853,7 @@ export default function ClientApp() {
               logWorkout(currentUser.id, { dayLabel: `${cardio.activityLabel} (Cardio)`, entries: [], cardio });
               showToast(`${cardio.activityLabel} logged`);
             }}
+            dbReady={dbReady}
           />
         )}
         {tab === "nutrition" && (
@@ -4773,6 +4881,8 @@ export default function ClientApp() {
             formSchedules={(db.formSchedules || {})[currentUser.id] || []}
             forms={db.forms || []}
             onPreviewWorkout={(day) => openPreview(day, false)}
+            canEdit={viewingAsClient}
+            onMoveWorkout={moveScheduledWorkout}
           />
         )}
         {tab === "progress" && (
@@ -4831,6 +4941,8 @@ export default function ClientApp() {
             })}
           </div>
         </div>
+        </>
+        )}
 
         {sessionOpen && activeLog && todaySession && (
           <WorkoutSession

@@ -142,23 +142,88 @@ export function AppProvider({ children }) {
     );
   }, [role, profile]);
 
+  const [dbReady, setDbReady] = useState(false);
+
   useEffect(() => {
     const unsubs = [];
+    let cancelled = false;
+    setDbReady(false);
+    // Tracks every collection/doc this run of the effect subscribed to, so
+    // the rest of the app can tell "still loading" apart from "genuinely
+    // empty" — without this, a page refresh that catches a listener before
+    // its first snapshot arrives (or an ID-token refresh that makes one
+    // error out for a moment) rendered exactly like a real empty result:
+    // "No clients yet" on the coach's roster, "Nothing scheduled" on a
+    // client's calendar — even though the data was never actually lost.
+    const pendingKeys = new Set();
+    function markReceived(key) {
+      if (pendingKeys.delete(key) && pendingKeys.size === 0) setDbReady(true);
+    }
+
+    // A snapshot listener that errors (most commonly a token refresh
+    // racing the very first permission check right after sign-in) used to
+    // just log and give up for good, silently freezing that collection at
+    // whatever it last had — which for a fresh reload is nothing. Retrying
+    // with backoff instead of leaving it dead means a transient error
+    // recovers on its own instead of needing a second manual reload.
+    function subscribeWithRetry(subscribe) {
+      let delay = 1000;
+      let unsub = null;
+      function attempt() {
+        unsub = subscribe(
+          () => {
+            delay = 1000;
+          },
+          () => {
+            if (cancelled) return;
+            setTimeout(() => {
+              if (cancelled) return;
+              unsub?.();
+              attempt();
+            }, delay);
+            delay = Math.min(delay * 2, 16000);
+          }
+        );
+      }
+      attempt();
+      unsubs.push(() => unsub?.());
+    }
+
     function watch(name, key, constraints) {
+      pendingKeys.add(key);
       const colRef = collection(firestore, name);
       const q = constraints?.length ? query(colRef, ...constraints) : colRef;
-      unsubs.push(
+      subscribeWithRetry((onOk, onErr) =>
         onSnapshot(
           q,
-          (snap) => setRaw((r) => ({ ...r, [key]: snap.docs.map((d) => ({ id: d.id, ...d.data() })) })),
-          (err) => console.error(`listener ${name} failed:`, err)
+          (snap) => {
+            onOk();
+            setRaw((r) => ({ ...r, [key]: snap.docs.map((d) => ({ id: d.id, ...d.data() })) }));
+            markReceived(key);
+          },
+          (err) => {
+            console.error(`listener ${name} failed, retrying:`, err);
+            markReceived(key);
+            onErr();
+          }
         )
       );
     }
     function watchDoc(collectionName, docId, key, fallback) {
-      unsubs.push(
-        onSnapshot(doc(firestore, collectionName, docId), (snap) =>
-          setRaw((r) => ({ ...r, [key]: snap.exists() ? snap.data() : fallback }))
+      pendingKeys.add(key);
+      subscribeWithRetry((onOk, onErr) =>
+        onSnapshot(
+          doc(firestore, collectionName, docId),
+          (snap) => {
+            onOk();
+            setRaw((r) => ({ ...r, [key]: snap.exists() ? snap.data() : fallback }));
+            markReceived(key);
+          },
+          (err) => {
+            console.error(`listener ${collectionName}/${docId} failed, retrying:`, err);
+            markReceived(key);
+            onErr();
+          }
         )
       );
     }
@@ -224,9 +289,20 @@ export function AppProvider({ children }) {
       watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
       // clientNotes intentionally NOT synced here — they're the coach's
       // private notes about the client, never shown in the client app.
-      unsubs.push(
-        onSnapshot(doc(firestore, "habitLog", uid), (snap) =>
-          setRaw((r) => ({ ...r, habitLog: snap.exists() ? [{ id: uid, ...snap.data() }] : [{ id: uid }] }))
+      pendingKeys.add("habitLog");
+      subscribeWithRetry((onOk, onErr) =>
+        onSnapshot(
+          doc(firestore, "habitLog", uid),
+          (snap) => {
+            onOk();
+            setRaw((r) => ({ ...r, habitLog: snap.exists() ? [{ id: uid, ...snap.data() }] : [{ id: uid }] }));
+            markReceived("habitLog");
+          },
+          (err) => {
+            console.error("listener habitLog failed, retrying:", err);
+            markReceived("habitLog");
+            onErr();
+          }
         )
       );
     }
@@ -499,6 +575,17 @@ export function AppProvider({ children }) {
           "bodyStatsSchedules",
           "notifications",
         ].forEach((name) => deleteWhereClientId(name, clientId));
+      },
+
+      // A softer alternative to removeClient: the client's account, program,
+      // history and messages all stay intact, but their own app is locked
+      // down to a "contact your coach" screen — for chasing up a missed
+      // payment without wiping anything out. Doesn't touch `status`, which
+      // means "has this invite been activated" and is relied on elsewhere
+      // (messaging lists, challenge rosters, dashboard counts) to still mean
+      // exactly that.
+      setClientAccessPaused(clientId, paused) {
+        updateDoc(doc(firestore, "users", clientId), { accessPaused: !!paused }).catch(console.error);
       },
 
       assignProgram(clientId, programId) {
@@ -1019,6 +1106,7 @@ export function AppProvider({ children }) {
     hasCoach,
     authReady,
     sessionLoading,
+    dbReady,
     ...actions,
   };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

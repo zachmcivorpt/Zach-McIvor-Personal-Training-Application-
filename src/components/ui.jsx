@@ -360,6 +360,7 @@ export function Pill({ children, tone = "default" }) {
     outline: "border border-black/20 text-black/80",
     solid: "bg-black text-white",
     muted: "bg-black/[0.04] text-black/40",
+    warning: "bg-amber-50 text-amber-700",
   };
   return <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${tones[tone]}`}>{children}</span>;
 }
