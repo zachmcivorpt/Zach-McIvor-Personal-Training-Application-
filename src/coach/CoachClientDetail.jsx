@@ -3488,7 +3488,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
             <button
               onClick={() => setClientAccessPaused(client.id, !client.accessPaused)}
               className={`w-full mt-2 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors ${
-                client.accessPaused ? "bg-amber-50 hover:bg-amber-100 text-amber-700" : "bg-black/5 hover:bg-black/10 text-black/60"
+                client.accessPaused ? "bg-red-50 hover:bg-red-100 text-red-700" : "bg-black/5 hover:bg-black/10 text-black/60"
               }`}
               title="Restrict this client's access to their program/profile — e.g. for insufficient payment"
             >
@@ -3583,9 +3583,9 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
                 onClick={() => setClientAccessPaused(client.id, !client.accessPaused)}
                 aria-label={client.accessPaused ? "Resume access" : "Pause access"}
                 title={client.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${client.accessPaused ? "bg-amber-50" : "bg-black/8"}`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${client.accessPaused ? "bg-red-50" : "bg-black/8"}`}
               >
-                {client.accessPaused ? <Unlock size={15} className="text-amber-700" /> : <Lock size={15} className="text-black/50" />}
+                {client.accessPaused ? <Unlock size={15} className="text-red-700" /> : <Lock size={15} className="text-black/50" />}
               </button>
               <button
                 onClick={() => setMessaging(true)}

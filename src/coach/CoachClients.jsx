@@ -235,7 +235,7 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
                   setOpen(false);
                   onTogglePause();
                 }}
-                className="w-full flex items-center gap-2 px-3.5 py-2.5 text-amber-600 text-sm font-medium hover:bg-amber-50 transition-colors"
+                className="w-full flex items-center gap-2 px-3.5 py-2.5 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
               >
                 {paused ? (
                   <>
@@ -494,7 +494,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     title={c.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
                     aria-label={c.accessPaused ? `Resume access for ${c.name}` : `Pause access for ${c.name}`}
                     className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 ${
-                      c.accessPaused ? "bg-amber-50 text-amber-700" : "bg-black/5 text-black/40"
+                      c.accessPaused ? "bg-red-50 text-red-700" : "bg-black/5 text-black/40"
                     }`}
                   >
                     {c.accessPaused ? <Unlock size={14} /> : <Lock size={14} />}
@@ -503,7 +503,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                 <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
               </div>
               {c.accessPaused && (
-                <p className="flex items-center gap-1 text-amber-700 text-xs font-medium mb-2.5">
+                <p className="flex items-center gap-1 text-red-700 text-xs font-medium mb-2.5">
                   <Lock size={11} /> Access paused
                 </p>
               )}

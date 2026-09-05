@@ -4225,8 +4225,8 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
 function AccessPausedScreen({ onMessageCoach, onLogout }) {
   return (
     <div className="flex flex-col items-center justify-center text-center px-6" style={{ minHeight: "70vh" }}>
-      <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mb-4">
-        <Lock size={24} className="text-amber-600" />
+      <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
+        <Lock size={24} className="text-red-600" />
       </div>
       <p className="text-black font-bold text-lg mb-1.5">Access paused</p>
       <p className="text-black/50 text-sm max-w-xs mb-6">
