@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApp, programPhases } from "../lib/AppContext";
 import { newId } from "../lib/id";
 import { Field, TextInput, TextArea, Select, PrimaryButton, BottomSheet, ExerciseThumb } from "../components/ui";
-import { ClipboardList, Plus, X, Trash2, Download, Copy, Edit3, Library } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVertical } from "lucide-react";
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import WorkoutEditor from "./WorkoutEditor";
 
@@ -60,7 +60,7 @@ function NewProgramSheet({ open, onClose, onCreate }) {
 }
 
 // Pick a destination program + phase to copy one or more workouts into —
-// the toolbar's "Copy to..." action.
+// the toolbar's / row's "Copy to..." action.
 function CopyWorkoutSheet({ open, onClose, programs, onCopy }) {
   const [targetProgramId, setTargetProgramId] = useState("");
   const [targetPhaseId, setTargetPhaseId] = useState("");
@@ -121,54 +121,94 @@ function CopyWorkoutSheet({ open, onClose, programs, onCopy }) {
   );
 }
 
-// One row in the Workouts table — thumbnail, name (click to edit), a quick
-// duration/exercise-count/muscle-group summary, and per-row actions.
-function WorkoutRow({ day, exercisesById, selectMode, selected, onToggleSelect, onOpen, onDuplicate, onDelete }) {
+// Small "..." popover for a row's less-common actions.
+function RowMenu({ onDuplicate, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDocClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-black rounded-lg hover:bg-black/8"
+        aria-label="More actions"
+      >
+        <MoreVertical size={15} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-10 bg-white border border-black/10 rounded-xl shadow-lg py-1 w-36">
+          <button
+            onClick={() => {
+              setOpen(false);
+              onDuplicate();
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-black/70 hover:bg-black/5 text-left"
+          >
+            <Copy size={13} /> Duplicate
+          </button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              onDelete();
+            }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:bg-red-50 text-left"
+          >
+            <Trash2 size={13} /> Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One row in the Workouts table — checkbox, thumbnail, name (click to
+// edit), a quick duration/exercise-count/muscle-group summary, and
+// Edit / Copy to / ⋯ actions, mirroring Trainerize's workout row.
+function WorkoutRow({ day, exercisesById, selected, onToggleSelect, onOpen, onCopy, onDuplicate, onDelete }) {
   const exs = day.exercises || [];
   const firstEx = exs[0] ? exercisesById[exs[0].exerciseId] : null;
 
   return (
     <div className="flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 transition-colors">
-      {selectMode && (
-        <input type="checkbox" checked={selected} onChange={onToggleSelect} className="w-4 h-4 shrink-0 accent-black" />
-      )}
+      <input type="checkbox" checked={selected} onChange={onToggleSelect} className="w-4 h-4 shrink-0 accent-black" aria-label={`Select ${day.label}`} />
       <button onClick={onOpen} className="shrink-0" aria-label={`Open ${day.label}`}>
         <ExerciseThumb exercise={firstEx} size={44} rounded="rounded-lg" />
       </button>
       <button onClick={onOpen} className="flex-1 min-w-0 text-left">
-        <p className="text-black font-semibold text-sm truncate">{day.label}</p>
+        <p className="text-blue-700 font-semibold text-sm truncate hover:underline">{day.label}</p>
         <p className="text-black/40 text-xs truncate mt-0.5">
           est. {estimateWorkoutMinutes(exs)} min · {exs.length} exercise{exs.length === 1 ? "" : "s"}
         </p>
         {day.muscleGroups?.length > 0 && <p className="text-black/30 text-[11px] truncate mt-0.5">{day.muscleGroups.join(", ")}</p>}
       </button>
-      <div className="flex items-center gap-1 shrink-0">
-        <button
-          onClick={onOpen}
-          className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors"
-        >
-          <Edit3 size={13} /> <span className="hidden sm:inline">Edit</span>
+      <div className="hidden sm:flex items-center gap-3 shrink-0 text-xs font-semibold">
+        <button onClick={onOpen} className="text-black/55 hover:text-black">
+          Edit
         </button>
-        <button
-          onClick={onDuplicate}
-          className="flex items-center gap-1.5 text-black/50 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors"
-        >
-          <Copy size={13} /> <span className="hidden sm:inline">Duplicate</span>
-        </button>
-        <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-red-500 shrink-0" aria-label={`Delete ${day.label}`}>
-          <X size={14} />
+        <button onClick={onCopy} className="text-black/55 hover:text-black">
+          Copy to
         </button>
       </div>
+      <RowMenu onDuplicate={onDuplicate} onDelete={onDelete} />
     </div>
   );
 }
 
-// The selected phase's session list — toolbar (new/from-library/select →
-// copy-to/delete) above a table of WorkoutRows. This is the piece that
-// replaces the old flat stack of every day's full exercise cards.
+// The selected phase's session list — toolbar (New / Import / Copy to /
+// Delete, a select-all checkbox, and a search box) above a table of
+// WorkoutRows, matching Trainerize's own Workouts table.
 function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEditDay, onDuplicateDay, onDeleteDays, onCopyDays }) {
-  const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
+  const [search, setSearch] = useState("");
 
   function toggle(i) {
     setSelected((s) => {
@@ -178,69 +218,83 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
       return next;
     });
   }
-  function cancelSelect() {
-    setSelectMode(false);
-    setSelected(new Set());
+  function toggleAll(indices) {
+    setSelected((s) => (indices.length > 0 && indices.every((i) => s.has(i)) ? new Set() : new Set(indices)));
   }
+
+  const filtered = days.map((d, i) => ({ d, i })).filter(({ d }) => d.label.toLowerCase().includes(search.toLowerCase()));
+  const filteredIndices = filtered.map(({ i }) => i);
+  const allChecked = filteredIndices.length > 0 && filteredIndices.every((i) => selected.has(i));
 
   return (
     <div>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <p className="text-black font-semibold text-sm">Workouts {days.length > 0 && `(${days.length})`}</p>
-        <div className="flex items-center gap-3 flex-wrap">
-          {days.length >= 1 && (
-            <button onClick={() => (selectMode ? cancelSelect() : setSelectMode(true))} className="text-black/50 hover:text-black text-xs font-semibold">
-              {selectMode ? "Cancel" : "Select"}
-            </button>
-          )}
-          {selectMode ? (
-            <>
-              <button
-                onClick={() => onCopyDays([...selected])}
-                disabled={selected.size === 0}
-                className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-30"
-              >
-                <Copy size={13} /> Copy to...
-              </button>
-              <button
-                onClick={() => {
-                  onDeleteDays([...selected]);
-                  cancelSelect();
-                }}
-                disabled={selected.size === 0}
-                className="flex items-center gap-1.5 text-red-500 hover:text-red-600 text-xs font-semibold disabled:opacity-30"
-              >
-                <Trash2 size={13} /> Delete{selected.size > 0 ? ` (${selected.size})` : ""}
-              </button>
-            </>
-          ) : (
-            <>
-              <button onClick={onOpenFromLibrary} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
-                <Library size={13} /> From library
-              </button>
-              <button onClick={onOpenNew} className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold">
-                <Plus size={13} /> New workout
-              </button>
-            </>
-          )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={onOpenNew} className="flex items-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+            <Plus size={13} /> New
+          </button>
+          <button onClick={onOpenFromLibrary} className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-1.5 rounded-lg">
+            <Library size={13} /> Import
+          </button>
+          <button
+            onClick={() => onCopyDays([...selected])}
+            disabled={selected.size === 0}
+            className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-30"
+          >
+            <Copy size={13} /> Copy to
+          </button>
+          <button
+            onClick={() => {
+              onDeleteDays([...selected]);
+              setSelected(new Set());
+            }}
+            disabled={selected.size === 0}
+            className="flex items-center gap-1.5 bg-black/8 hover:bg-red-50 hover:text-red-600 text-black/60 text-xs font-semibold px-3 py-1.5 rounded-lg disabled:opacity-30"
+          >
+            <Trash2 size={13} /> Delete{selected.size > 0 ? ` (${selected.size})` : ""}
+          </button>
         </div>
       </div>
+
+      {days.length > 0 && (
+        <div className="flex items-center gap-2.5 mb-3">
+          <input
+            type="checkbox"
+            checked={allChecked}
+            onChange={() => toggleAll(filteredIndices)}
+            className="w-4 h-4 accent-black shrink-0"
+            aria-label="Select all workouts"
+          />
+          <div className="flex items-center gap-2 bg-black/5 rounded-lg px-2.5 py-1.5 flex-1 max-w-xs">
+            <Search size={13} className="text-black/40 shrink-0" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search workouts"
+              className="bg-transparent outline-none text-black text-xs flex-1 placeholder:text-black/30"
+            />
+          </div>
+        </div>
+      )}
 
       {days.length === 0 ? (
         <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
           <p className="text-black/30 text-sm">No workouts in this phase yet.</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <p className="text-black/30 text-sm text-center py-6">No workouts match "{search}".</p>
       ) : (
         <div className="space-y-2">
-          {days.map((d, i) => (
+          {filtered.map(({ d, i }) => (
             <WorkoutRow
               key={d.id || i}
               day={d}
               exercisesById={exercisesById}
-              selectMode={selectMode}
               selected={selected.has(i)}
               onToggleSelect={() => toggle(i)}
               onOpen={() => onEditDay(i)}
+              onCopy={() => onCopyDays([i])}
               onDuplicate={() => onDuplicateDay(i)}
               onDelete={() => onDeleteDays([i])}
             />
@@ -367,7 +421,7 @@ export default function CoachPrograms({ showToast }) {
     showToast("Workout duplicated");
   }
   function deleteDays(indices) {
-    if (!selectedPhase) return;
+    if (!selectedPhase || indices.length === 0) return;
     const toDelete = new Set(indices);
     const days = selectedPhase.days.filter((_, idx) => !toDelete.has(idx));
     savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, days } : p)));
@@ -442,8 +496,8 @@ export default function CoachPrograms({ showToast }) {
       </div>
 
       <div className="flex flex-col md:flex-row md:h-[calc(100vh-230px)] md:min-h-[520px] border border-black/8 rounded-2xl overflow-hidden">
-        {/* left: program list (desktop sidebar) */}
-        <div className="hidden md:flex w-64 shrink-0 border-r border-black/8 flex-col bg-[#F7F7F8]">
+        {/* left: program list, with the active program's phases nested right below it */}
+        <div className="hidden md:flex w-72 shrink-0 border-r border-black/8 flex-col bg-[#F7F7F8]">
           <div className="p-3 border-b border-black/8 space-y-1.5">
             <button
               onClick={() => setNewProgramOpen(true)}
@@ -477,30 +531,53 @@ export default function CoachPrograms({ showToast }) {
                 </div>
               ))}
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
             {programs.length === 0 && <p className="text-black/30 text-xs px-2 py-4 text-center">No programs yet.</p>}
             {programs.map((p) => {
               const active = p.id === selected?.id;
-              const phaseCount = programPhases(p).length;
+              const progPhases = active ? phases : programPhases(p);
               return (
-                <button
-                  key={p.id}
-                  onClick={() => selectProgram(p.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
-                    active ? "bg-black text-white" : "hover:bg-black/5 text-black"
-                  }`}
-                >
-                  <p className="text-sm font-semibold truncate">{p.name}</p>
-                  <p className={`text-xs mt-0.5 ${active ? "text-white/50" : "text-black/35"}`}>
-                    {phaseCount} phase{phaseCount === 1 ? "" : "s"}
-                  </p>
-                </button>
+                <div key={p.id}>
+                  <button
+                    onClick={() => selectProgram(p.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
+                      active ? "bg-black text-white" : "hover:bg-black/5 text-black"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold truncate">{p.name}</p>
+                    <p className={`text-xs mt-0.5 ${active ? "text-white/50" : "text-black/35"}`}>
+                      {progPhases.length} phase{progPhases.length === 1 ? "" : "s"}
+                    </p>
+                  </button>
+                  {active && (
+                    <div className="ml-3 mt-1 mb-2 pl-2.5 border-l border-black/10 space-y-0.5">
+                      <p className="text-black/30 text-[10px] font-bold tracking-wide px-2 pt-1 pb-0.5">TRAINING PHASES</p>
+                      {phases.map((ph) => {
+                        const phActive = ph.id === selectedPhase?.id;
+                        return (
+                          <button
+                            key={ph.id}
+                            onClick={() => selectPhase(ph.id)}
+                            className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
+                              phActive ? "bg-black/10 text-black font-semibold" : "text-black/55 hover:bg-black/5"
+                            }`}
+                          >
+                            {ph.name} <span className="text-black/30">· {(ph.days || []).length}</span>
+                          </button>
+                        );
+                      })}
+                      <button onClick={addPhase} className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-blue-600 hover:bg-blue-50 font-semibold">
+                        + Add phase
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
         </div>
 
-        {/* mobile: chip row */}
+        {/* mobile: program chips, then the active program's phase chips */}
         <div className="md:hidden border-b border-black/8 p-3">
           <div className="flex items-center gap-2 mb-2.5">
             <button onClick={() => setNewProgramOpen(true)} className="flex items-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0">
@@ -547,9 +624,27 @@ export default function CoachPrograms({ showToast }) {
               ))}
             </div>
           )}
+          {selected && (
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar mt-2">
+              {phases.map((ph) => (
+                <button
+                  key={ph.id}
+                  onClick={() => selectPhase(ph.id)}
+                  className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap ${
+                    ph.id === selectedPhase?.id ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-700"
+                  }`}
+                >
+                  {ph.name}
+                </button>
+              ))}
+              <button onClick={addPhase} className="shrink-0 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-black/50 bg-black/5">
+                + Phase
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* right: selected program → phase tabs → workouts table */}
+        {/* right: selected phase's summary + workouts table */}
         <div className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6">
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
@@ -606,31 +701,6 @@ export default function CoachPrograms({ showToast }) {
                 className="mb-5"
               />
 
-              {/* phase sub-nav */}
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar mb-4 pb-1">
-                {phases.map((p) => {
-                  const active = p.id === selectedPhase?.id;
-                  const count = (p.days || []).length;
-                  return (
-                    <button
-                      key={p.id}
-                      onClick={() => selectPhase(p.id)}
-                      className={`shrink-0 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                        active ? "bg-black text-white" : "bg-black/8 text-black/60 hover:bg-black/12"
-                      }`}
-                    >
-                      {p.name} <span className={active ? "text-white/50" : "text-black/35"}>· {count}</span>
-                    </button>
-                  );
-                })}
-                <button
-                  onClick={addPhase}
-                  className="shrink-0 flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold bg-black/[0.03] border border-dashed border-black/15 text-black/50 hover:bg-black/8"
-                >
-                  <Plus size={13} /> Phase
-                </button>
-              </div>
-
               {!selectedPhase ? (
                 <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
                   <p className="text-black/30 text-sm">No phases in this program yet.</p>
@@ -640,7 +710,7 @@ export default function CoachPrograms({ showToast }) {
                 </div>
               ) : (
                 <>
-                  <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
+                  <div className="flex items-start justify-between gap-3 mb-1 flex-wrap border-t border-black/8 pt-4">
                     <input
                       value={selectedPhase.name}
                       onChange={(e) => renamePhase(e.target.value)}
