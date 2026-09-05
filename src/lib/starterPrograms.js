@@ -15,8 +15,8 @@ function d(label, muscleGroups, exercises) {
   return { id: `d_${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, label, muscleGroups, exercises };
 }
 
-function ex(exerciseId, targetSets, targetReps, targetRIR = 2, notes = "") {
-  return { exerciseId, targetSets, targetReps, targetRIR, notes };
+function ex(exerciseId, targetSets, targetReps, targetRIR = 2, notes = "", section = "main") {
+  return { exerciseId, targetSets, targetReps, targetRIR, notes, section };
 }
 
 const PHASES = [
@@ -433,5 +433,80 @@ export const STARTER_PROGRAMS = [
         ex("ex_cable-crunch", 3, 15, 1),
       ]),
     ]),
+  },
+  {
+    // Zach's actual "Beginner Push Pull Legs" program, imported from his
+    // Trainerize library. Only the first 4-week phase (Stabilisation &
+    // Hypertrophy) is built out — his weeks 5-8 and 8-12 phases weren't
+    // provided, so this ships as a single-phase program for now rather
+    // than guessing at what those two phases contain. Add them the same
+    // way once you've got that content ready.
+    name: "Beginner Push Pull Legs",
+    level: "Beginner",
+    description:
+      "12-Week Push-Pull-Legs (PPL) Beginner Program. Designed for beginners to build a strong training foundation with a focus on form and technique, eccentric control, and full warm-up/cool-down routines each session.",
+    phases: [
+      {
+        id: "ph1",
+        name: "Stabilisation & Hypertrophy Phase",
+        durationWeeks: 4,
+        days: [
+          d("Leg Day Beginner", ["Legs"], [
+            ex("ex_dynamic-frog-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_dynamic-hip-flexor-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_lower-calf-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-pigeon-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_dynamic-side-lunge-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_smith-machine-back-squat", 3, 10, 2, "3-1-2 tempo."),
+            ex("ex_hack-squat-machine", 3, 12, 2, "3-1-2 tempo."),
+            ex("ex_lying-hamstring-curl", 3, 12, 2, "3-1-2 tempo."),
+            ex("ex_machine-seated-leg-extension", 2, 10, 2, "2-1-2 tempo, ~70% of your 1RM."),
+            ex("ex_machine-seated-hip-adduction", 3, 10, 2, "2-1-2 tempo, ~70% of your 1RM."),
+            ex("ex_foam-roller-calf", 2, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-hamstring", 2, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-glute", 2, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_dynamic-hamstring-stretch", 2, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_lying-piriformis-stretch", 2, 1, 1, "20 seconds each side.", "cooldown"),
+          ]),
+          d("Pull Day Beginner", ["Back", "Biceps"], [
+            ex("ex_suspension-standing-figure-four-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_dynamic-hip-flexor-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-pigeon-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_suspension-low-back-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-frog-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_dumbbell-incline-bench-row", 3, 12, 2, "2-1-3 tempo."),
+            ex("ex_lat-pulldown-supinated-grip", 3, 10, 2, "2-1-3 tempo."),
+            ex("ex_cable-seated-close-grip-row", 2, 10, 2, "2-1-3 tempo."),
+            ex("ex_kneeling-single-arm-lat-pulldown", 3, 10, 2, "2-1-3 tempo."),
+            ex("ex_dumbbell-incline-alternating-curl", 2, 10, 2, "2-1-3 tempo."),
+            ex("ex_preacher-curl-machine", 3, 10, 2, "2-1-3 tempo."),
+            ex("ex_stairmaster", 1, 1, 1, "10 minutes — monitor heart rate on the machine."),
+            ex("ex_foam-roller-lower-back", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_foam-roller-back", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_suspension-low-back-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_forward-fold-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+          ]),
+          d("Push Day Beginner", ["Chest", "Shoulders", "Triceps"], [
+            ex("ex_arm-circles", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_dynamic-frog-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-lat-tricep-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_suspension-low-back-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_suspension-chest-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_smith-machine-bench-press", 3, 10, 2, "3-1-1 tempo."),
+            ex("ex_machine-seated-chest-fly", 3, 10, 2, "2-1-2 tempo, ~70% of your 1RM."),
+            ex("ex_machine-lateral-raise", 2, 10, 1, "2-1-2 tempo, ~70% of your 1RM."),
+            ex("ex_machine-seated-chest-fly", 3, 10, 2, "2-1-2 tempo, ~70% of your 1RM."),
+            ex("ex_machine-seated-shoulder-press", 3, 10, 2, "Drop set on the last set. 2-1-2 tempo, ~70% of your 1RM."),
+            ex("ex_cable-v-bar-tricep-pushdown", 3, 10, 2, "2-1-2 tempo, ~70% of your 1RM."),
+            ex("ex_treadmill", 1, 1, 1, "15 minutes — monitor heart rate on the machine."),
+            ex("ex_suspension-standing-figure-four-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_static-lat-tricep-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_foam-roller-chest", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_neck-stretch-lateral", 2, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_dynamic-frog-stretch", 2, 1, 1, "20 seconds.", "cooldown"),
+          ]),
+        ],
+      },
+    ],
   },
 ];

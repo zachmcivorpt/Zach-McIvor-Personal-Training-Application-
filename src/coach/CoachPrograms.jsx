@@ -505,6 +505,7 @@ export default function CoachPrograms({ showToast }) {
   const [newProgramOpen, setNewProgramOpen] = useState(false);
   const [editingPhase, setEditingPhase] = useState(null); // { index, phase } | null
   const [confirmDeleteProgram, setConfirmDeleteProgram] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [importing, setImporting] = useState(false);
   const exercises = db.exercises;
 
@@ -564,6 +565,13 @@ export default function CoachPrograms({ showToast }) {
     showToast("Program deleted");
   }
 
+  function deleteAllPrograms() {
+    programs.forEach((p) => deleteProgram(p.id));
+    setSelectedId(null);
+    setConfirmDeleteAll(false);
+    showToast(`Deleted ${programs.length} program${programs.length === 1 ? "" : "s"}`);
+  }
+
   async function importStarterTemplates() {
     setImporting(true);
     const existingNames = new Set(programs.map((p) => p.name));
@@ -610,6 +618,24 @@ export default function CoachPrograms({ showToast }) {
             >
               <Download size={13} /> {importing ? "IMPORTING…" : "IMPORT STARTERS"}
             </button>
+            {programs.length > 0 &&
+              (!confirmDeleteAll ? (
+                <button
+                  onClick={() => setConfirmDeleteAll(true)}
+                  className="w-full flex items-center justify-center gap-1.5 bg-black/8 hover:bg-red-50 hover:text-red-600 text-black/50 text-xs font-semibold px-3 py-2.5 rounded-xl"
+                >
+                  <Trash2 size={13} /> DELETE ALL
+                </button>
+              ) : (
+                <div className="flex gap-1.5">
+                  <button onClick={() => setConfirmDeleteAll(false)} className="flex-1 bg-black/8 text-black text-xs font-semibold px-3 py-2.5 rounded-xl">
+                    Cancel
+                  </button>
+                  <button onClick={deleteAllPrograms} className="flex-1 bg-red-500 text-white text-xs font-semibold px-3 py-2.5 rounded-xl">
+                    Confirm
+                  </button>
+                </div>
+              ))}
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {programs.length === 0 && <p className="text-black/30 text-xs px-2 py-4 text-center">No programs yet.</p>}
@@ -647,6 +673,24 @@ export default function CoachPrograms({ showToast }) {
             >
               <Download size={13} /> {importing ? "IMPORTING…" : "IMPORT"}
             </button>
+            {programs.length > 0 &&
+              (!confirmDeleteAll ? (
+                <button
+                  onClick={() => setConfirmDeleteAll(true)}
+                  className="flex items-center gap-1.5 bg-black/8 text-black/50 text-xs font-semibold px-3 py-2 rounded-lg shrink-0"
+                >
+                  <Trash2 size={13} />
+                </button>
+              ) : (
+                <>
+                  <button onClick={() => setConfirmDeleteAll(false)} className="bg-black/8 text-black text-xs font-semibold px-3 py-2 rounded-lg shrink-0">
+                    Cancel
+                  </button>
+                  <button onClick={deleteAllPrograms} className="bg-red-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shrink-0">
+                    Delete all
+                  </button>
+                </>
+              ))}
           </div>
           {programs.length > 0 && (
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar">

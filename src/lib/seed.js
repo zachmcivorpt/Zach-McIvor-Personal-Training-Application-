@@ -1026,7 +1026,56 @@ const EXTRA_EXERCISES_6 = [
   { id: "ex_box-breathing-cooldown", name: "Box Breathing Cooldown", equipment: "Bodyweight", category: "Cool-down", primaryMuscles: ["Full Body"], secondaryMuscles: [], difficulty: "Beginner", videoUrl: "", instructions: ["Inhale for 4 counts, hold for 4, exhale for 4, hold for 4.", "Repeat the cycle for 1-2 minutes to fully settle your heart rate."], formCues: ["Keep the counts even and unforced", "Relax your shoulders and jaw throughout"] },
 ];
 
-SEED_EXERCISES.push(...EXTRA_EXERCISES, ...EXTRA_EXERCISES_2, ...EXTRA_EXERCISES_3, ...EXTRA_EXERCISES_4, ...EXTRA_EXERCISES_6);
+// Added for Zach's real "Beginner Push/Pull/Legs" and "Beginner Full Body"
+// programs (imported from his existing Trainerize library) — movements his
+// gym's equipment supports that weren't in the generic seed library yet.
+const EXTRA_EXERCISES_7 = [
+  mkEx("dynamic-frog-stretch", "Dynamic Frog Stretch", "Bodyweight", "Warm-up", ["Groin", "Hips"], [], "Beginner"),
+  mkEx("dynamic-hip-flexor-stretch", "Dynamic Hip Flexor Stretch", "Bodyweight", "Warm-up", ["Hips"], [], "Beginner"),
+  mkEx("lower-calf-stretch", "Lower Calf Stretch", "Bodyweight", "Warm-up", ["Calves"], [], "Beginner"),
+  mkEx("static-pigeon-stretch", "Static Pigeon Stretch", "Bodyweight", "Cool-down", ["Glutes", "Hips"], [], "Beginner"),
+  mkEx("dynamic-side-lunge-stretch", "Dynamic Side Lunge Stretch", "Bodyweight", "Warm-up", ["Legs", "Groin"], [], "Beginner"),
+  mkEx("smith-machine-back-squat", "Smith Machine Back Squat", "Smith Machine", "Legs", ["Quads", "Glutes"], ["Hamstrings"]),
+  mkEx("hack-squat-machine", "Hack Squat Machine", "Machine", "Legs", ["Quads"], ["Glutes"]),
+  mkEx("lying-hamstring-curl", "Lying Hamstring Curl", "Machine", "Legs", ["Hamstrings"]),
+  mkEx("machine-seated-leg-extension", "Machine Seated Leg Extension", "Machine", "Legs", ["Quads"]),
+  mkEx("machine-seated-hip-adduction", "Machine Seated Hip Adduction", "Machine", "Legs", ["Adductors"], ["Hips"]),
+  mkEx("foam-roller-calf", "Foam Roller Calf", "Foam Roller", "Cool-down", ["Calves"], [], "Beginner"),
+  mkEx("foam-roller-hamstring", "Foam Roller Hamstring", "Foam Roller", "Cool-down", ["Hamstrings"], [], "Beginner"),
+  mkEx("foam-roller-glute", "Foam Roller Glute", "Foam Roller", "Cool-down", ["Glutes"], [], "Beginner"),
+  mkEx("dynamic-hamstring-stretch", "Dynamic Hamstring Stretch", "Bodyweight", "Warm-up", ["Hamstrings"], [], "Beginner"),
+  mkEx("lying-piriformis-stretch", "Lying Piriformis Stretch", "Bodyweight", "Cool-down", ["Glutes"], ["Hips"], "Beginner"),
+  mkEx("suspension-standing-figure-four-stretch", "Suspension Standing Figure Four Stretch", "Suspension", "Warm-up", ["Glutes", "Hips"], [], "Beginner"),
+  mkEx("suspension-low-back-stretch", "Suspension Low Back Stretch", "Suspension", "Warm-up", ["Lower Back"], [], "Beginner"),
+  mkEx("static-frog-stretch", "Static Frog Stretch", "Bodyweight", "Warm-up", ["Groin", "Hips"], [], "Beginner"),
+  mkEx("dumbbell-incline-bench-row", "Dumbbell Incline Bench Row", "Dumbbell", "Back", ["Back"], ["Biceps"]),
+  mkEx("lat-pulldown-supinated-grip", "Lat Pulldown With Supinated Grip", "Cable", "Back", ["Back"], ["Biceps"]),
+  mkEx("cable-seated-close-grip-row", "Cable Seated Close Grip Row", "Cable", "Back", ["Back"], ["Biceps"]),
+  mkEx("kneeling-single-arm-lat-pulldown", "Kneeling Single Arm Lat Pulldown", "Cable", "Back", ["Back"]),
+  mkEx("dumbbell-incline-alternating-curl", "Dumbbell Incline Alternating Curl", "Dumbbell", "Biceps", ["Biceps"]),
+  mkEx("preacher-curl-machine", "Preacher Curl Machine", "Machine", "Biceps", ["Biceps"]),
+  mkEx("stairmaster", "Stairmaster", "Machine", "Cardio", ["Legs"], ["Cardio"]),
+  mkEx("foam-roller-lower-back", "Foam Roller Lower Back", "Foam Roller", "Cool-down", ["Lower Back"], [], "Beginner"),
+  mkEx("foam-roller-back", "Foam Roller Back", "Foam Roller", "Cool-down", ["Back"], [], "Beginner"),
+  mkEx("forward-fold-stretch", "Forward Fold Stretch", "Bodyweight", "Cool-down", ["Hamstrings", "Lower Back"], [], "Beginner"),
+  mkEx("static-lat-tricep-stretch", "Static Lat and Tricep Stretch", "Bodyweight", "Warm-up", ["Back", "Triceps"], [], "Beginner"),
+  mkEx("suspension-chest-stretch", "Suspension Chest Stretch", "Suspension", "Warm-up", ["Chest"], [], "Beginner"),
+  mkEx("smith-machine-bench-press", "Smith Machine Bench Press", "Smith Machine", "Chest", ["Chest"], ["Triceps", "Shoulders"]),
+  mkEx("machine-seated-chest-fly", "Machine Seated Chest Fly", "Machine", "Chest", ["Chest"]),
+  mkEx("machine-seated-shoulder-press", "Machine Seated Shoulder Press", "Machine", "Shoulders", ["Shoulders"], ["Triceps"]),
+  mkEx("cable-v-bar-tricep-pushdown", "Cable V Bar Tricep Pushdown", "Cable", "Triceps", ["Triceps"]),
+  mkEx("treadmill", "Treadmill", "Machine", "Cardio", ["Legs"], ["Cardio"]),
+  mkEx("foam-roller-chest", "Foam Roller Chest", "Foam Roller", "Cool-down", ["Chest"], [], "Beginner"),
+];
+
+SEED_EXERCISES.push(
+  ...EXTRA_EXERCISES,
+  ...EXTRA_EXERCISES_2,
+  ...EXTRA_EXERCISES_3,
+  ...EXTRA_EXERCISES_4,
+  ...EXTRA_EXERCISES_6,
+  ...EXTRA_EXERCISES_7
+);
 
 // Movement-pattern cue library — keyed by keywords matched against an
 // exercise's name, with a per-category fallback for anything that doesn't
@@ -1041,6 +1090,7 @@ const MOVEMENT_PATTERNS = [
   { test: /row|pull.?up|pull.?down|pulldown|face pull/i, instructions: ["Set up with a flat back and arms extended.", "Pull your elbows back, driving them toward your body.", "Squeeze at the top, then return with control."], formCues: ["Lead with your elbows, not your hands", "Keep your chest up, avoid rounding your back", "Squeeze your shoulder blades together at the top"] },
   { test: /press|push.?up|dip\b/i, instructions: ["Set up with the weight at chest or shoulder level (or your body in position for push-ups/dips).", "Press until your arms are extended, keeping control.", "Lower back down with control to the starting position."], formCues: ["Keep your shoulder blades pinched and stable", "Control the eccentric on the way down", "Don't lock out aggressively at the top"] },
   { test: /fly|flye|pec deck/i, instructions: ["Start with arms extended and a slight bend in the elbows.", "Bring your arms together in a wide arc, feeling the stretch.", "Return to the start with the same controlled arc."], formCues: ["Keep a soft bend in your elbows throughout", "Focus on squeezing rather than pressing", "Control the stretch at the bottom, don't overextend"] },
+  { test: /hamstring curl|leg curl/i, instructions: ["Set up on the machine with the pad positioned as prescribed.", "Curl through your knees, bringing your heels toward your glutes.", "Lower back down with control to full extension."], formCues: ["Keep your hips pressed into the pad", "Squeeze your hamstrings at the top", "Control the negative rather than letting it snap back"] },
   { test: /curl/i, instructions: ["Start with arms extended and elbows at your sides.", "Curl the weight up, keeping your elbows still.", "Lower back down with control to full extension."], formCues: ["Keep your elbows pinned to your sides", "No swinging or using momentum", "Squeeze at the top of the movement"] },
   { test: /extension|pushdown|kickback/i, instructions: ["Start in the stretched position with control.", "Extend through the target joint until fully extended.", "Return to the start with a controlled negative."], formCues: ["Keep the movement isolated to the target joint", "Control the negative rather than dropping the weight", "Avoid locking out aggressively"] },
   { test: /raise|abduction/i, instructions: ["Start with the weight at your sides or in the stretched position.", "Raise with control until you feel the target muscle working.", "Lower back down slowly to the start."], formCues: ["Lead with momentum-free, controlled movement", "Keep a slight bend where relevant to protect the joint", "Control the descent — don't just drop it"] },

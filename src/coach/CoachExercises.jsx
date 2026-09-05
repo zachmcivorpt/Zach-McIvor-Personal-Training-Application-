@@ -91,7 +91,7 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
           </Field>
           <Field label="EQUIPMENT">
             <Select value={form.equipment} onChange={(e) => set("equipment", e.target.value)}>
-              {["Barbell", "Dumbbell", "Cable", "Machine", "Bodyweight", "Kettlebell", "Band"].map((eq) => (
+              {["Barbell", "Dumbbell", "Cable", "Machine", "Smith Machine", "Bodyweight", "Suspension", "Foam Roller", "Kettlebell", "Band"].map((eq) => (
                 <option key={eq}>{eq}</option>
               ))}
             </Select>
