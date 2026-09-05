@@ -1512,6 +1512,44 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
   );
 }
 
+const CONFETTI_COLORS = ["#FBBF24", "#3B82F6", "#EF4444", "#10B981", "#8B5CF6", "#EC4899"];
+
+// A one-shot burst of falling confetti pieces, computed once per mount (not
+// per render) so the pieces don't jump to new random positions if the
+// parent re-renders while the burst is still playing out.
+function ConfettiBurst() {
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 28 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        delay: Math.random() * 0.2,
+        duration: 1.4 + Math.random() * 0.7,
+        rotate: 180 + Math.random() * 540,
+        drift: (Math.random() - 0.5) * 120,
+      })),
+    []
+  );
+  return (
+    <div className="fixed inset-0 z-[100] pointer-events-none overflow-hidden">
+      {pieces.map((p) => (
+        <span
+          key={p.id}
+          className="absolute top-0 w-2 h-2.5 rounded-sm"
+          style={{
+            left: `${p.left}%`,
+            backgroundColor: p.color,
+            animation: `confettiFall ${p.duration}s cubic-bezier(0.25,0.46,0.45,0.94) ${p.delay}s forwards`,
+            "--drift": `${p.drift}px`,
+            "--rotate": `${p.rotate}deg`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function WorkoutSession({
   session: daySession,
   activeLog,
@@ -1711,17 +1749,24 @@ function WorkoutSession({
         )}
 
         {prToast && (
-          <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[100] w-[88%] max-w-sm animate-[fadeIn_0.3s_ease-out]">
-            <div className="bg-black rounded-2xl p-4 shadow-2xl text-center">
-              <p className="text-white font-bold text-sm tracking-wide">🔥 NEW PERSONAL RECORD</p>
-              <p className="text-white text-lg font-bold mt-1">{prToast.exerciseName}</p>
-              <p className="text-white/70 text-sm mt-0.5">
-                {prToast.weight}kg × {prToast.reps} · Best previous: {prToast.prevWeight}kg × {prToast.prevReps}
-              </p>
+          <>
+            <ConfettiBurst />
+            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[101] w-[88%] max-w-sm animate-[prPop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
+              <div className="bg-black rounded-2xl p-5 shadow-2xl text-center">
+                <p className="text-3xl leading-none mb-1.5">🏆</p>
+                <p className="text-white font-bold text-sm tracking-wide">NEW PERSONAL RECORD</p>
+                <p className="text-white text-xl font-bold mt-1">{prToast.exerciseName}</p>
+                <p className="text-white/70 text-sm mt-0.5">
+                  {prToast.weight}kg × {prToast.reps} · Best previous: {prToast.prevWeight}kg × {prToast.prevReps}
+                </p>
+              </div>
             </div>
-          </div>
+          </>
         )}
-        <style>{`@keyframes fadeIn{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}`}</style>
+        <style>{`
+          @keyframes prPop{0%{opacity:0;transform:translate(-50%,-10px) scale(0.85)}60%{opacity:1;transform:translate(-50%,2px) scale(1.03)}100%{opacity:1;transform:translate(-50%,0) scale(1)}}
+          @keyframes confettiFall{0%{transform:translate(0,-10px) rotate(0deg);opacity:1}100%{transform:translate(var(--drift),100vh) rotate(var(--rotate));opacity:0}}
+        `}</style>
       </div>
     </FullScreenOverlay>
   );
@@ -3115,6 +3160,80 @@ function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
   );
 }
 
+// GitHub-style contribution grid — one column per week (oldest to newest,
+// left to right), one cell per weekday (Mon top, Sun bottom). Solid black
+// for a day with a completed workout, amber for a day that included a PR,
+// light gray for nothing logged. A quiet, glanceable way to see "did I
+// actually show up" that a bare streak number can't communicate — a single
+// missed day barely registers, but a pattern of gaps jumps out immediately.
+function ConsistencyHeatmap({ logs }) {
+  const WEEKS = 12;
+  const weeks = useMemo(() => {
+    const doneDates = new Set(logs.map((l) => new Date(l.date).toISOString().slice(0, 10)));
+    const prDates = new Set(
+      logs.filter((l) => !l.cardio && (l.entries || []).some((e) => (e.sets || []).some((s) => s.isPR))).map((l) => new Date(l.date).toISOString().slice(0, 10))
+    );
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const totalDays = WEEKS * 7;
+    const start = new Date(today);
+    start.setDate(start.getDate() - totalDays + 1);
+    const startDow = (start.getDay() + 6) % 7; // 0 = Monday
+    start.setDate(start.getDate() - startDow);
+
+    // start was rounded back to a Monday, which can add up to 6 extra days
+    // on top of WEEKS*7 — one more column comfortably covers that plus the
+    // current (likely partial) week through today.
+    const cols = [];
+    const cursor = new Date(start);
+    for (let w = 0; w < WEEKS + 1; w++) {
+      const col = [];
+      for (let d = 0; d < 7; d++) {
+        const dateStr = cursor.toISOString().slice(0, 10);
+        col.push({ date: dateStr, done: doneDates.has(dateStr), pr: prDates.has(dateStr), future: cursor > today });
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      cols.push(col);
+    }
+    return cols;
+  }, [logs]);
+
+  return (
+    <Card>
+      <p className="text-black font-semibold">Consistency</p>
+      <p className="text-black/40 text-xs mt-0.5 mb-3">Every day trained, last {WEEKS} weeks</p>
+      <div className="overflow-x-auto no-scrollbar">
+        <div className="flex gap-[3px] w-max">
+          {weeks.map((col, wi) => (
+            <div key={wi} className="flex flex-col gap-[3px]">
+              {col.map((day) => (
+                <div
+                  key={day.date}
+                  title={day.date}
+                  className={`w-3 h-3 rounded-[3px] ${
+                    day.future ? "bg-transparent" : day.pr ? "bg-amber-500" : day.done ? "bg-black" : "bg-black/8"
+                  }`}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex items-center gap-3 mt-3 text-black/35 text-[11px]">
+        <span className="flex items-center gap-1">
+          <span className="w-2.5 h-2.5 rounded-[2px] bg-black/8 inline-block" /> None
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2.5 h-2.5 rounded-[2px] bg-black inline-block" /> Trained
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-2.5 h-2.5 rounded-[2px] bg-amber-500 inline-block" /> PR
+        </span>
+      </div>
+    </Card>
+  );
+}
+
 function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts }) {
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
@@ -3204,6 +3323,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             ))}
           </div>
         </div>
+
+        <ConsistencyHeatmap logs={logsForClient} />
 
         <PerformanceTimelineCard timeline={timeline} weekly={weekly} />
 

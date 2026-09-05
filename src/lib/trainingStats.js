@@ -274,6 +274,52 @@ export function computeWorkoutStreak(logs, scheduledWorkouts) {
   return streak;
 }
 
+const PLATEAU_WINDOW_MS = 21 * DAY_MS;
+const PLATEAU_MIN_SESSIONS = 3;
+
+// Exercises trained at least PLATEAU_MIN_SESSIONS times in the last 3 weeks
+// whose best e1RM in that window hasn't beaten whatever they were already
+// hitting before it (a couple percent of noise allowed) — i.e. genuinely
+// stuck, not just "haven't trained it enough to tell." An exercise with no
+// sessions before the window (brand new to the program) can't plateau yet,
+// so it's skipped rather than flagged on zero data.
+export function computePlateaus(logs, exercisesById) {
+  const now = Date.now();
+  const windowStart = now - PLATEAU_WINDOW_MS;
+  const byExercise = {};
+  (logs || []).forEach((log) => {
+    if (log.cardio) return;
+    (log.entries || []).forEach((entry) => {
+      let best = 0;
+      (entry.sets || []).forEach((s) => {
+        const e1 = epley1RM(s.weight, s.reps);
+        if (e1 > best) best = e1;
+      });
+      if (best <= 0) return;
+      if (!byExercise[entry.exerciseId]) byExercise[entry.exerciseId] = [];
+      byExercise[entry.exerciseId].push({ date: log.date, e1rm: best });
+    });
+  });
+
+  const plateaus = [];
+  Object.entries(byExercise).forEach(([exerciseId, entries]) => {
+    const inWindow = entries.filter((e) => e.date >= windowStart);
+    const before = entries.filter((e) => e.date < windowStart);
+    if (inWindow.length < PLATEAU_MIN_SESSIONS || before.length === 0) return;
+    const bestInWindow = Math.max(...inWindow.map((e) => e.e1rm));
+    const bestBefore = Math.max(...before.map((e) => e.e1rm));
+    if (bestInWindow <= bestBefore * 1.02) {
+      plateaus.push({
+        exerciseId,
+        exerciseName: exercisesById[exerciseId]?.name || "Exercise",
+        sessions: inWindow.length,
+        currentBest: Math.round(bestInWindow),
+      });
+    }
+  });
+  return plateaus.sort((a, b) => b.sessions - a.sessions);
+}
+
 // Milestone badges — only ones actually earned show up.
 export function computeAchievements(logs) {
   const badges = [];

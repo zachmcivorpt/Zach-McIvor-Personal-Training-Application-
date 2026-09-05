@@ -3,7 +3,7 @@ import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
-import { computePerformanceTimeline, computePRsInLastNDays, computeWeeklySessionCompletion, closestWeighIn } from "../lib/trainingStats";
+import { computePerformanceTimeline, computePRsInLastNDays, computeWeeklySessionCompletion, closestWeighIn, computePlateaus } from "../lib/trainingStats";
 import { ThreadView } from "./CoachMessages";
 import { SendLoginSheet } from "./CoachClients";
 import WorkoutEditor from "./WorkoutEditor";
@@ -38,6 +38,7 @@ import {
   Check,
   Lock,
   Unlock,
+  TrendingDown,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -2870,6 +2871,43 @@ function UnderlineField({ label, children }) {
 // separate from TAGS/NOTES (which are freeform) so age/height/sex are
 // structured enough for the TDEE calculator in the Nutrition tab to read
 // directly off the client doc.
+// Surfaces exercises the client has trained consistently (3+ sessions in
+// the last 3 weeks) without their best e1RM actually improving — the kind
+// of thing that's easy to miss scrolling through individual session logs
+// but jumps out immediately here, prompting a program change (new rep
+// range, a swap, a deload) before the client gets discouraged on their own.
+// Renders nothing at all when there's nothing to flag.
+function PlateauAlertCard({ client }) {
+  const { db } = useApp();
+  const logs = db.workoutLogs[client.id] || [];
+  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
+  const plateaus = useMemo(() => computePlateaus(logs, exercisesById), [logs, exercisesById]);
+
+  if (plateaus.length === 0) return null;
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+          <TrendingDown size={15} className="text-amber-700" />
+        </div>
+        <div>
+          <p className="text-amber-900 font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
+          <p className="text-amber-700/70 text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        {plateaus.map((p) => (
+          <div key={p.exerciseId} className="flex items-center justify-between bg-white/60 rounded-xl px-3.5 py-2">
+            <span className="text-amber-900 text-sm font-medium">{p.exerciseName}</span>
+            <span className="text-amber-700/70 text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Same 30-day snapshot the client sees on their own Progress tab —
 // strength trend, bodyweight change, consistency, PRs — surfaced here so
 // the coach doesn't have to go dig for it separately.
@@ -3226,6 +3264,8 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
       <PersonalDetailsCard client={client} showToast={showToast} />
 
       <PerformanceTimelineCard client={client} />
+
+      <PlateauAlertCard client={client} />
 
       <WeeklyCoachReviewCard client={client} showToast={showToast} />
 
