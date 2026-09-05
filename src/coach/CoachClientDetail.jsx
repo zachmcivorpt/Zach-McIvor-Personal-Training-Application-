@@ -2009,60 +2009,92 @@ function HabitsPanel({ client }) {
     setDurationWeeks(null);
   }
 
+  const availablePresets = presets.filter((p) => !existingLabels.has(p.toLowerCase()));
+
   return (
     <div className="max-w-xl px-4 py-5 md:px-6 md:py-6">
-      <p className="text-black font-semibold mb-4">Daily Habits</p>
-      {habits.length > 0 && (
-        <div className="space-y-1.5 mb-4">
-          {habits.map((h) => {
-            const expired = h.endsAt && h.endsAt < now;
-            const daysLeft = h.endsAt ? Math.max(0, Math.ceil((h.endsAt - now) / 86400000)) : null;
-            return (
-              <div key={h.id} className="flex items-center justify-between bg-black/5 rounded-xl px-3.5 py-2.5">
-                <div className="min-w-0">
-                  <span className="text-black text-sm">{h.label}</span>
-                  {h.endsAt && (
-                    <p className={`text-[11px] mt-0.5 ${expired ? "text-red-500 font-medium" : "text-black/35"}`}>
-                      {expired ? "Ended" : `${daysLeft} day${daysLeft === 1 ? "" : "s"} left`}
-                    </p>
-                  )}
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
+              <ListChecks size={15} className="text-amber-600" />
+            </div>
+            <p className="text-black font-semibold text-sm">Daily Habits</p>
+          </div>
+          {habits.length > 0 && <Pill tone="muted">{habits.length}</Pill>}
+        </div>
+
+        {habits.length === 0 ? (
+          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center mb-4">
+            <p className="text-black/30 text-sm">No habits assigned yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-2 mb-4">
+            {habits.map((h) => {
+              const expired = h.endsAt && h.endsAt < now;
+              const daysLeft = h.endsAt ? Math.max(0, Math.ceil((h.endsAt - now) / 86400000)) : null;
+              return (
+                <div key={h.id} className="flex items-center gap-3 bg-black/[0.02] border border-black/8 rounded-xl px-3.5 py-2.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-black text-sm font-medium min-w-0 flex-1 truncate">{h.label}</span>
+                  {h.endsAt && <Pill tone={expired ? "warning" : "default"}>{expired ? "Ended" : `${daysLeft}d left`}</Pill>}
+                  <button
+                    onClick={() => removeHabit(client.id, h.id)}
+                    className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    aria-label="Remove habit"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <button onClick={() => removeHabit(client.id, h.id)} className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30">
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      <form onSubmit={submit} className="space-y-2 mb-3">
-        <div className="flex gap-2">
-          <TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Stretch for 10 minutes" className="flex-1" />
-          <button type="submit" className="w-11 h-11 shrink-0 rounded-xl bg-black text-white flex items-center justify-center">
-            <Plus size={18} />
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {HABIT_DURATION_OPTIONS.map((opt) => (
+              );
+            })}
+          </div>
+        )}
+
+        <form onSubmit={submit} className="border-t border-black/8 pt-4 space-y-2.5">
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide">ADD A HABIT</p>
+          <div className="flex gap-2">
+            <TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Stretch for 10 minutes" className="flex-1" />
             <button
-              key={opt.label}
-              type="button"
-              onClick={() => setDurationWeeks(opt.weeks)}
-              className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-full ${
-                durationWeeks === opt.weeks ? "bg-black text-white" : "bg-black/8 text-black/50"
-              }`}
+              type="submit"
+              disabled={!label.trim()}
+              className="w-11 h-11 shrink-0 rounded-xl bg-black hover:bg-black/85 text-white flex items-center justify-center active:scale-[0.96] transition-all disabled:opacity-30"
             >
-              {opt.label}
+              <Plus size={18} />
             </button>
-          ))}
-        </div>
-      </form>
-      <div className="flex flex-wrap gap-1.5">
-        {presets.filter((p) => !existingLabels.has(p.toLowerCase())).map((preset) => (
-          <button key={preset} onClick={() => addHabit(client.id, preset)} className="text-xs bg-black/8 text-black/60 px-3 py-1.5 rounded-full">
-            + {preset}
-          </button>
-        ))}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {HABIT_DURATION_OPTIONS.map((opt) => (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => setDurationWeeks(opt.weeks)}
+                className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-colors ${
+                  durationWeeks === opt.weeks ? "bg-black text-white" : "bg-black/5 text-black/50 hover:bg-black/8"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </form>
+
+        {availablePresets.length > 0 && (
+          <div className="border-t border-black/8 mt-4 pt-4">
+            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">QUICK ADD</p>
+            <div className="flex flex-wrap gap-1.5">
+              {availablePresets.map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => addHabit(client.id, preset)}
+                  className="text-xs font-medium bg-white border border-dashed border-black/15 text-black/60 hover:border-black/30 hover:text-black px-3 py-1.5 rounded-full transition-colors"
+                >
+                  + {preset}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2142,78 +2174,100 @@ function CheckInsPanel({ client, showToast }) {
   const formsById = Object.fromEntries(forms.map((f) => [f.id, f]));
 
   return (
-    <div className="max-w-2xl px-4 py-5 md:px-6 md:py-6">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-black font-semibold">Scheduled Check-ins</p>
-        <button onClick={() => setScheduleOpen(true)} className="flex items-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2 rounded-lg">
-          <Plus size={13} /> Schedule
-        </button>
+    <div className="max-w-2xl px-4 py-5 md:px-6 md:py-6 space-y-5">
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+              <NotebookPen size={15} className="text-blue-500" />
+            </div>
+            <p className="text-black font-semibold text-sm">Scheduled Check-ins</p>
+          </div>
+          <button
+            onClick={() => setScheduleOpen(true)}
+            className="flex items-center gap-1.5 bg-black hover:bg-black/85 text-white text-xs font-bold px-3.5 py-2 rounded-xl active:scale-[0.98] transition-all"
+          >
+            <Plus size={13} /> Schedule
+          </button>
+        </div>
+
+        {schedules.length === 0 ? (
+          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
+            <p className="text-black/30 text-sm">No check-ins scheduled yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {schedules.map((s) => {
+              const form = formsById[s.formId];
+              return (
+                <div key={s.id} className="flex items-center gap-3 bg-black/[0.02] border border-black/8 rounded-xl px-4 py-3">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                    <NotebookPen size={15} className="text-blue-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
+                    <p className="text-black/35 text-xs">Every {DAY_LABELS[s.dayOfWeek]}</p>
+                  </div>
+                  <button
+                    onClick={() => toggleFormSchedule(client.id, s.id)}
+                    className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${s.active ? "bg-blue-500" : "bg-black/15"}`}
+                    aria-label={s.active ? "Pause schedule" : "Resume schedule"}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${s.active ? "left-[18px]" : "left-0.5"}`} />
+                  </button>
+                  <button
+                    onClick={() => unscheduleForm(client.id, s.id)}
+                    className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60"
+                    aria-label="Remove schedule"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {schedules.length === 0 ? (
-        <div className="border border-dashed border-black/12 rounded-2xl py-8 text-center mb-6">
-          <p className="text-black/30 text-sm">No check-ins scheduled yet.</p>
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
+              <ClipboardList size={15} className="text-purple-500" />
+            </div>
+            <p className="text-black font-semibold text-sm">Responses</p>
+          </div>
+          {responses.length > 0 && <Pill tone="muted">{responses.length}</Pill>}
         </div>
-      ) : (
-        <div className="space-y-2 mb-6">
-          {schedules.map((s) => {
-            const form = formsById[s.formId];
-            return (
-              <div key={s.id} className="flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                  <NotebookPen size={15} className="text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
-                  <p className="text-black/35 text-xs">Every {DAY_LABELS[s.dayOfWeek]}</p>
-                </div>
+        {responses.length === 0 ? (
+          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
+            <p className="text-black/30 text-sm">No check-ins submitted yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {responses.map((r) => {
+              const form = formsById[r.formId];
+              return (
                 <button
-                  onClick={() => toggleFormSchedule(client.id, s.id)}
-                  className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${s.active ? "bg-blue-500" : "bg-black/15"}`}
-                  aria-label={s.active ? "Pause schedule" : "Resume schedule"}
+                  key={r.id}
+                  onClick={() => {
+                    setViewingResponse(r);
+                    if (r.read === false) markFormResponseRead(r.id);
+                  }}
+                  className="w-full flex items-center gap-3 bg-black/[0.02] border border-black/8 rounded-xl px-4 py-3 text-left hover:bg-black/[0.05] transition-colors"
                 >
-                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${s.active ? "left-[18px]" : "left-0.5"}`} />
+                  {r.read === false && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
+                    <p className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-black/25 shrink-0" />
                 </button>
-                <button
-                  onClick={() => unscheduleForm(client.id, s.id)}
-                  className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60"
-                  aria-label="Remove schedule"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <p className="text-black font-semibold mb-3">Responses</p>
-      {responses.length === 0 ? (
-        <p className="text-black/30 text-sm">No check-ins submitted yet.</p>
-      ) : (
-        <div className="space-y-2">
-          {responses.map((r) => {
-            const form = formsById[r.formId];
-            return (
-              <button
-                key={r.id}
-                onClick={() => {
-                  setViewingResponse(r);
-                  if (r.read === false) markFormResponseRead(r.id);
-                }}
-                className="w-full flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3 text-left hover:bg-black/[0.06] transition-colors"
-              >
-                {r.read === false && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
-                <div className="flex-1 min-w-0">
-                  <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
-                  <p className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
-                </div>
-                <ChevronRight size={16} className="text-black/25 shrink-0" />
-              </button>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <ScheduleFormSheet open={scheduleOpen} onClose={() => setScheduleOpen(false)} client={client} showToast={showToast} />
 
@@ -2734,17 +2788,27 @@ function ProgressPanel({ client }) {
   const exercisesById = Object.fromEntries(db.exercises.map((e) => [e.id, e]));
 
   return (
-    <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6 space-y-6">
-      <div>
-        <p className="text-black font-semibold mb-4">Progress Photos</p>
+    <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6 space-y-5">
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+              <ImageIcon size={15} className="text-blue-500" />
+            </div>
+            <p className="text-black font-semibold text-sm">Progress Photos</p>
+          </div>
+          {photos.length > 0 && <Pill tone="muted">{photos.length}</Pill>}
+        </div>
         {photos.length === 0 ? (
-          <p className="text-black/30 text-sm">No photos uploaded by this client yet.</p>
+          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
+            <p className="text-black/30 text-sm">No photos uploaded by this client yet.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {photos.map((p) => {
               const w = closestWeighIn(weighIns, p.date);
               return (
-                <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden bg-black/5">
+                <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden bg-black/5 shadow-sm">
                   <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
                   <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] font-medium px-1.5 py-1 text-center">
                     {new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -2757,13 +2821,20 @@ function ProgressPanel({ client }) {
         )}
       </div>
 
-      <div>
-        <p className="text-black font-semibold mb-2">Training Log</p>
-        <p className="text-black/40 text-xs mb-4">
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="flex items-center gap-2.5 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+            <ClipboardList size={15} className="text-emerald-600" />
+          </div>
+          <p className="text-black font-semibold text-sm">Training Log</p>
+        </div>
+        <p className="text-black/40 text-xs mb-4 ml-[42px]">
           Recent completed sessions — includes any exercise the client swapped mid-session and their note explaining why.
         </p>
         {logs.length === 0 ? (
-          <p className="text-black/30 text-sm">No completed workouts yet.</p>
+          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
+            <p className="text-black/30 text-sm">No completed workouts yet.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {logs.slice(0, 12).map((log) => (
@@ -3331,7 +3402,7 @@ function ProfileChip({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${active ? "bg-black text-white" : "bg-black/8 text-black/50 hover:bg-black/12"}`}
+      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${active ? "bg-black text-white" : "bg-black/5 text-black/50 hover:bg-black/10"}`}
     >
       {children}
     </button>
@@ -3393,16 +3464,16 @@ function ProfilePanel({ client, showToast }) {
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div>
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+      <div className="space-y-5">
+        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3 flex items-center gap-1.5">
             <Target size={12} /> GOALS
           </p>
           <TextArea rows={3} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on main lifts..." />
         </div>
 
-        <div>
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3 flex items-center gap-1.5">
             <Dumbbell size={12} /> EQUIPMENT ACCESS
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -3414,9 +3485,9 @@ function ProfilePanel({ client, showToast }) {
           </div>
         </div>
 
-        <div>
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINING PREFERENCES</p>
-          <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 space-y-3">
+        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3">TRAINING PREFERENCES</p>
+          <div className="space-y-3">
             <div>
               <p className="text-black/40 text-xs mb-1.5">Preferred training days</p>
               <div className="flex flex-wrap gap-1.5">
@@ -3446,9 +3517,9 @@ function ProfilePanel({ client, showToast }) {
           </div>
         </div>
 
-        <div>
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">NUTRITION PREFERENCES</p>
-          <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 space-y-3">
+        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3">NUTRITION PREFERENCES</p>
+          <div className="space-y-3">
             <div>
               <p className="text-black/40 text-xs mb-1.5">Diet type</p>
               <div className="flex flex-wrap gap-1.5">
