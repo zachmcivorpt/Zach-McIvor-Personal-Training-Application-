@@ -4617,6 +4617,12 @@ export default function ClientApp() {
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
   const [activeLog, setActiveLog] = useState(null); // {exerciseId: [sets]} while a session is open
+  // Which session is actually being run right now — defaults to todaySession
+  // (the Home/Training-tab "Start" flow never passes one explicitly) but lets
+  // the calendar hand in a DIFFERENT day's workout (e.g. running Friday's
+  // plan on a Saturday), so starting isn't locked to whatever's scheduled
+  // for today specifically.
+  const [runningSession, setRunningSession] = useState(null);
   // {exerciseId: note} — the client's own notes, separate from the coach's.
   // Seeded from any notes saved (and not yet cleared by a finished workout)
   // from a previous session, so a note isn't lost if the app is closed
@@ -4768,8 +4774,15 @@ export default function ClientApp() {
     setTimeout(() => setToast({ show: false, message: "" }), 1800);
   }
 
-  function startWorkout() {
-    if (!todaySession) return;
+  function startWorkout(session = todaySession) {
+    if (!session) return;
+    // Starting a different day's workout than whatever's currently tracked
+    // (e.g. picking Friday's plan from the calendar while today's session
+    // is still sitting half-logged) must not inherit those leftover sets —
+    // they're keyed by exerciseId, and the two days can easily share
+    // exercises, so stale numbers would silently show up as already logged.
+    if (session !== todaySession) setActiveLog(null);
+    setRunningSession(session);
     setPreStartOpen(true);
   }
 
@@ -4782,6 +4795,7 @@ export default function ClientApp() {
   }
 
   function finishWorkout() {
+    const session = runningSession || todaySession;
     const elapsedMs = Date.now() - (sessionStartedAtRef.current || Date.now());
     const durationMin = Math.floor(elapsedMs / 60000);
     const durationSec = Math.floor((elapsedMs % 60000) / 1000);
@@ -4806,7 +4820,7 @@ export default function ClientApp() {
     const notedExerciseIds = Object.keys(exerciseNotes).filter((id) => (exerciseNotes[id] || "").trim());
     const allExerciseIds = new Set([...Object.keys(cleanedLog), ...notedExerciseIds]);
     logWorkout(currentUser.id, {
-      dayLabel: todaySession.label,
+      dayLabel: session.label,
       entries: Array.from(allExerciseIds).map((exerciseId) => ({
         exerciseId,
         sets: cleanedLog[exerciseId] || [],
@@ -4814,12 +4828,13 @@ export default function ClientApp() {
         ...(swapByToId[exerciseId] || {}),
       })),
     });
-    setSummaryData({ daySession: todaySession, activeLog: cleanedLog, durationMin, durationSec });
+    setSummaryData({ daySession: session, activeLog: cleanedLog, durationMin, durationSec });
     setActiveLog(null);
     setExerciseNotes({});
     setExerciseSwaps({});
     setSessionOpen(false);
     setSummaryOpen(true);
+    setRunningSession(null);
   }
 
   function openPreview(session, canStart) {
@@ -5008,7 +5023,7 @@ export default function ClientApp() {
             weighIns={weighIns}
             formSchedules={(db.formSchedules || {})[currentUser.id] || []}
             forms={db.forms || []}
-            onPreviewWorkout={(day) => openPreview(day, false)}
+            onPreviewWorkout={(day) => openPreview(day, true)}
             canEdit={viewingAsClient}
             onMoveItem={moveScheduledItem}
           />
@@ -5072,9 +5087,9 @@ export default function ClientApp() {
         </>
         )}
 
-        {sessionOpen && activeLog && todaySession && (
+        {sessionOpen && activeLog && (runningSession || todaySession) && (
           <WorkoutSession
-            session={todaySession}
+            session={runningSession || todaySession}
             activeLog={activeLog}
             setActiveLog={setActiveLog}
             logsForClient={logsForClient}
@@ -5113,8 +5128,9 @@ export default function ClientApp() {
             canStart={previewCanStart}
             onClose={() => setPreviewSession(null)}
             onStart={() => {
+              const session = previewSession;
               setPreviewSession(null);
-              startWorkout();
+              startWorkout(session);
             }}
           />
         )}
