@@ -511,12 +511,9 @@ export const STARTER_PROGRAMS = [
   },
   {
     // Zach's actual "Intermediate Push Pull Legs Upper" program. His phase 1
-    // (Stabilisation & Hypertrophy) has 7 workouts total; only 3 were
-    // provided in enough detail to build accurately — HIIT Session, Lower
-    // Body Intermediate, and Lower Body Mobility Session. Pull Day
-    // Intermediate, Push Day Intermediate, Steady State Cardiovascular, and
-    // Upper Body Day still need their exercise lists before they can be
-    // added here — do NOT guess at their content.
+    // (Stabilisation & Hypertrophy) has 7 workouts total; 6 are now built —
+    // only Steady State Cardiovascular still needs its exercise list (and
+    // its full title, which was cut off in every screenshot so far).
     name: "Intermediate Push Pull Legs Upper",
     level: "Intermediate",
     description:
@@ -576,6 +573,61 @@ export const STARTER_PROGRAMS = [
             ex("ex_static-pigeon-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
             ex("ex_static-hip-flexor-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
             ex("ex_static-frog-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
+          ]),
+          d("Upper Body Day", ["Chest", "Back", "Shoulders"], [
+            ex("ex_cross-leg-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_dynamic-side-lunge-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_dynamic-frog-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_dynamic-hamstring-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_dynamic-hip-flexor-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_plate-weighted-dip", 2, 10, 1, "2-2-3 tempo."),
+            ex("ex_seated-db-press", 2, 12, 1, "Heavy — explode 4s eccentric. 2-2-3 tempo."),
+            ex("ex_wide-grip-lat-pulldown", 3, 10, 1, "2-2-3 tempo."),
+            ex("ex_high-to-low-cable-fly", 2, 10, 1, "2-2-3 tempo."),
+            ex("ex_towel-grip-standing-cable-row", 2, 10, 1, "2-2-3 tempo."),
+            ex("ex_kettlebell-turnover", 3, 14, 1, "Each side. 2-2-3 tempo."),
+            ex("ex_foam-roller-side-glute", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-lower-back", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-calf", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-hamstring", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-glute", 1, 1, 1, "20 seconds each side.", "cooldown"),
+          ]),
+          d("Push Day Intermediate", ["Chest", "Shoulders", "Triceps"], [
+            ex("ex_suspension-low-back-stretch-rotation", 1, 1, 1, "", "warmup"),
+            ex("ex_banded-external-rotator-cuff-stretch", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_shoulder-flexion-pvc-stick", 2, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_bench-press", 2, 8, 1, "Warm-up set first at 30kg. 3-1-1 tempo."),
+            ex("ex_barbell-clean-and-press", 2, 8, 1, "3-1-1 tempo."),
+            ex("ex_incline-dumbbell-press", 2, 8, 1, "3-1-1 tempo."),
+            ex("ex_plate-loaded-shoulder-press", 2, 10, 1, "3-1-1 tempo."),
+            ex("ex_lateral-raise", 3, 10, 1, "3-1-1 tempo."),
+            ex("ex_dumbbell-seated-overhead-tricep-extension", 2, 10, 1, "3-1-1 tempo."),
+            ex("ex_straight-bar-tricep-extension", 3, 10, 1, "3-1-1 tempo."),
+            ex("ex_suspension-long-torso-twist", 1, 1, 1, "", "cooldown"),
+            ex("ex_suspension-chest-stretch", 1, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_static-lat-tricep-stretch", 1, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_suspension-low-back-stretch", 1, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_suspension-standing-figure-four-stretch", 1, 1, 1, "20 seconds.", "cooldown"),
+          ]),
+          d("Pull Day Intermediate", ["Back", "Biceps"], [
+            ex("ex_suspension-low-back-stretch-rotation", 1, 1, 1, "", "warmup"),
+            ex("ex_suspension-standing-figure-four-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-rear-delt-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-oblique-lat-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-lat-tricep-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_banded-sa-row", 2, 10, 1, "90 sec rest between sets."),
+            ex("ex_plate-weighted-wide-grip-pullup", 2, 1, 1, "AMRAP. 2 min rest between sets."),
+            ex("ex_t-bar-row", 2, 8, 1, "2 min rest between sets."),
+            ex("ex_lat-pullover", 3, 10, 1, "1RIR, 2-2-4 tempo."),
+            ex("ex_dumbbell-single-arm-row", 2, 10, 1, "1RIR, 2-2-3 tempo. 2 min rest between sets."),
+            ex("ex_dumbbell-incline-bench-row", 2, 10, 1, "1RIR, 2-2-4 tempo."),
+            ex("ex_cable-forearm-curl", 3, 12, 1, "1RIR, 2-2-4 tempo."),
+            ex("ex_barbell-close-grip-preacher-curl", 2, 12, 1, "1RIR, 2-2-4 tempo."),
+            ex("ex_suspension-long-torso-twist", 1, 1, 1, "", "cooldown"),
+            ex("ex_suspension-chest-stretch", 1, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_static-lat-tricep-stretch", 1, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_suspension-low-back-stretch", 1, 1, 1, "20 seconds.", "cooldown"),
+            ex("ex_suspension-standing-figure-four-stretch", 1, 1, 1, "20 seconds.", "cooldown"),
           ]),
         ],
       },

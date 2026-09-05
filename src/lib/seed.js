@@ -1135,6 +1135,29 @@ const EXTRA_EXERCISES_11 = [
   mkEx("static-neck-flexion-stretch", "Static Neck Flexion Stretch", "Bodyweight", "Cool-down", ["Neck"], [], "Beginner"),
 ];
 
+// Added for Zach's "Intermediate Push Pull Legs Upper" program — Upper
+// Body Day, Push Day Intermediate, Pull Day Intermediate (the remaining 3
+// of its 7 phase-1 workouts). Steady State Cardiovascular still pending.
+const EXTRA_EXERCISES_12 = [
+  mkEx("plate-weighted-dip", "Plate Weighted Dip", "Plate", "Chest", ["Chest"], ["Triceps"], "Advanced"),
+  mkEx("high-to-low-cable-fly", "High to Low Cable Fly", "Cable", "Chest", ["Chest"]),
+  mkEx("towel-grip-standing-cable-row", "Towel Grip Standing Cable Row", "Cable", "Back", ["Back"], ["Forearms"]),
+  mkEx("kettlebell-turnover", "Kettlebell Turnover", "Kettlebell", "Full Body", ["Shoulders", "Core"], [], "Advanced"),
+  mkEx("foam-roller-side-glute", "Foam Roller Side Glute", "Foam Roller", "Cool-down", ["Glutes"], [], "Beginner"),
+  mkEx("banded-external-rotator-cuff-stretch", "Banded External Rotator Cuff Stretch", "Band", "Warm-up", ["Shoulders"], [], "Beginner"),
+  mkEx("shoulder-flexion-pvc-stick", "Shoulder Flexion (PVC Stick)", "Bodyweight", "Warm-up", ["Shoulders"], [], "Beginner"),
+  mkEx("barbell-clean-and-press", "Barbell Clean and Press", "Barbell", "Shoulders", ["Shoulders"], ["Legs", "Back"], "Advanced"),
+  mkEx("plate-loaded-shoulder-press", "Plate Loaded Shoulder Press", "Plate", "Shoulders", ["Shoulders"], ["Triceps"]),
+  mkEx("dumbbell-seated-overhead-tricep-extension", "Dumbbell Seated Overhead Tricep Extension", "Dumbbell", "Triceps", ["Triceps"]),
+  mkEx("suspension-low-back-stretch-rotation", "Suspension Low Back Stretch With Rotation", "Suspension", "Warm-up", ["Lower Back", "Core"], [], "Beginner"),
+  mkEx("banded-sa-row", "Banded SA Row", "Band", "Back", ["Back"], ["Biceps"], "Beginner"),
+  mkEx("plate-weighted-wide-grip-pullup", "Plate Weighted Wide Grip Pull-up", "Plate", "Back", ["Back"], ["Biceps"], "Advanced"),
+  mkEx("lat-pullover", "Lat Pullover", "Dumbbell", "Back", ["Back"], ["Chest"]),
+  mkEx("cable-forearm-curl", "Cable Forearm Curl", "Cable", "Forearms", ["Forearms"]),
+  mkEx("barbell-close-grip-preacher-curl", "Barbell Close Grip Preacher Curl", "Barbell", "Biceps", ["Biceps"]),
+  mkEx("suspension-long-torso-twist", "Suspension Long Torso Twist", "Suspension", "Cool-down", ["Core", "Back"], [], "Beginner"),
+];
+
 SEED_EXERCISES.push(
   ...EXTRA_EXERCISES,
   ...EXTRA_EXERCISES_2,
@@ -1143,7 +1166,8 @@ SEED_EXERCISES.push(
   ...EXTRA_EXERCISES_6,
   ...EXTRA_EXERCISES_7,
   ...EXTRA_EXERCISES_9,
-  ...EXTRA_EXERCISES_11
+  ...EXTRA_EXERCISES_11,
+  ...EXTRA_EXERCISES_12
 );
 
 // Movement-pattern cue library — keyed by keywords matched against an
