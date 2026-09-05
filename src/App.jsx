@@ -6,6 +6,7 @@ import LoginScreen from "./auth/LoginScreen";
 import ActivateScreen from "./auth/ActivateScreen";
 import CoachShell from "./coach/CoachShell";
 import ClientApp from "./client/ClientApp";
+import PrivacyPolicy from "./PrivacyPolicy";
 
 // Firebase Auth restores a persisted session asynchronously — on a cold
 // launch (most visible tapping an installed PWA icon) there's a brief
@@ -42,6 +43,7 @@ function Routed() {
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
       <Route path="/activate" element={<ActivateScreen />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route
         path="/coach/*"
         element={
