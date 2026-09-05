@@ -4304,6 +4304,11 @@ function ClientCalendarScreen({
   const [dragOverDate, setDragOverDate] = useState(null);
   const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while actively dragging, drives the floating ghost
   const pressRef = useRef(null); // { timer, startX, startY, date, type, label, fired }
+  // A completed drag still ends in a native "click" on the same element
+  // (pointer capture keeps the up-event's target pinned to it regardless of
+  // where the finger ended up) — without this flag that click immediately
+  // re-opened the workout/day right after dropping it.
+  const suppressClickRef = useRef(false);
 
   function cardPointerDown(e, date, type, label) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -4344,14 +4349,30 @@ function ClientCalendarScreen({
 
   function cardPointerUp() {
     const p = pressRef.current;
-    if (p?.fired && dragOverDate && dragOverDate !== p.date) {
-      onMoveItem(p.type, p.date, dragOverDate);
+    if (p?.fired) {
+      suppressClickRef.current = true;
+      if (dragOverDate && dragOverDate !== p.date) {
+        onMoveItem(p.type, p.date, dragOverDate);
+      }
     }
     if (p?.timer) clearTimeout(p.timer);
     pressRef.current = null;
     setDragItem(null);
     setDragOverDate(null);
     setDragPos(null);
+  }
+
+  // Wrap a card's real onClick so the click the browser fires right after a
+  // completed drag gets swallowed once instead of opening whatever's under
+  // the pointer at drop time.
+  function guardedClick(fn) {
+    return () => {
+      if (suppressClickRef.current) {
+        suppressClickRef.current = false;
+        return;
+      }
+      fn();
+    };
   }
 
   const logsByDate = useMemo(() => {
@@ -4462,9 +4483,9 @@ function ClientCalendarScreen({
                         ? "Workout completed."
                         : "Complete your scheduled workout."
                     }
-                    onClick={() =>
+                    onClick={guardedClick(() =>
                       onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })
-                    }
+                    )}
                     draggable={canDragWorkout}
                     dragging={dragItem?.date === dateStr && dragItem?.type === "workout"}
                     onPointerDown={(e) => cardPointerDown(e, dateStr, "workout", scheduled.label)}

@@ -824,6 +824,11 @@ function CalendarPanel({ client, showToast }) {
   const [dragOverDate, setDragOverDate] = useState(null);
   const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while actively dragging, drives the floating ghost
   const pressRef = useRef(null); // { timer, startX, startY, date, type, label, fired }
+  // A completed drag still ends in a native "click" on the same element
+  // (pointer capture keeps the up-event's target pinned to it regardless of
+  // where the finger ended up) — without this flag that click immediately
+  // reopened the day detail sheet right after dropping the item.
+  const suppressClickRef = useRef(false);
 
   function itemPointerDown(e, dateStr, type, label) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -864,9 +869,12 @@ function CalendarPanel({ client, showToast }) {
 
   function itemPointerUp() {
     const p = pressRef.current;
-    if (p?.fired && dragOverDate && dragOverDate !== p.date) {
-      if (p.type === "workout") moveWorkout(p.date, dragOverDate);
-      else if (p.type === "bodystats") moveBodyStats(p.date, dragOverDate);
+    if (p?.fired) {
+      suppressClickRef.current = true;
+      if (dragOverDate && dragOverDate !== p.date) {
+        if (p.type === "workout") moveWorkout(p.date, dragOverDate);
+        else if (p.type === "bodystats") moveBodyStats(p.date, dragOverDate);
+      }
     }
     if (p?.timer) clearTimeout(p.timer);
     pressRef.current = null;
@@ -1244,7 +1252,17 @@ function CalendarPanel({ client, showToast }) {
                   <div
                     key={dateStr}
                     data-date={dateStr}
-                    onClick={!selectMode ? () => setSelectedDate(dateStr) : undefined}
+                    onClick={
+                      !selectMode
+                        ? () => {
+                            if (suppressClickRef.current) {
+                              suppressClickRef.current = false;
+                              return;
+                            }
+                            setSelectedDate(dateStr);
+                          }
+                        : undefined
+                    }
                     className={`min-h-[104px] md:min-h-[130px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors duration-150 font-sans ${
                       inMonth ? "bg-white" : "bg-black/[0.015]"
                     } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""} ${
