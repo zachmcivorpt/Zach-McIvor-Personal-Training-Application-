@@ -1121,6 +1121,11 @@ const EXTRA_EXERCISES_11 = [
   mkEx("foam-roller-adductor", "Foam Roller Adductor", "Foam Roller", "Cool-down", ["Adductors"], [], "Beginner"),
   mkEx("angled-machine-sumo-leg-press", "Angled Machine Sumo Leg Press", "Machine", "Legs", ["Quads", "Glutes"]),
   mkEx("hyperextension-roman-chair-back-extension", "Hyperextension Roman Chair Back Extension", "Machine", "Legs", ["Lower Back", "Glutes"]),
+  mkEx("doorway-stretch", "Doorway Stretch", "Bodyweight", "Warm-up", ["Chest", "Shoulders"], [], "Beginner"),
+  mkEx("machine-seated-chest-press", "Machine Seated Chest Press", "Machine", "Chest", ["Chest"], ["Triceps"]),
+  mkEx("static-neck-extension-stretch", "Static Neck Extension Stretch", "Bodyweight", "Warm-up", ["Neck"], [], "Beginner"),
+  mkEx("single-arm-cable-lateral-raise", "Single Arm Cable Lateral Raise", "Cable", "Shoulders", ["Shoulders"]),
+  mkEx("static-forearm-stretch", "Static Forearm Stretch", "Bodyweight", "Cool-down", ["Forearms"], [], "Beginner"),
 ];
 
 SEED_EXERCISES.push(

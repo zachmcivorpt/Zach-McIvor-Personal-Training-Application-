@@ -582,15 +582,12 @@ export const STARTER_PROGRAMS = [
     ],
   },
   {
-    // Zach's actual "Sculpt & Strengthen Women" program. Phase 1
-    // (Stabilisation) has 5 workouts total; only 3 were provided in enough
-    // detail to build accurately — Back & Shoulders & Core, Lower Body
-    // (Glute & Hamstring Focused Day I), and Lower Body (Quad & Glute
-    // Focused Day II). Lower Body Mobility Session (Performance Based) and
-    // Shoulders & Arms & Core still need their exercise lists — do NOT
-    // assume the mobility session here is the same one built for the
-    // Intermediate PPL Upper program; the durations differ (40 vs 43 min)
-    // so treat it as unconfirmed until its own screenshot arrives.
+    // Zach's actual "Sculpt & Strengthen Women" program — all 5 phase-1
+    // workouts now built. Its own Lower Body Mobility Session (Performance
+    // Based) turned out genuinely different from the one built for the
+    // Intermediate PPL Upper program (fewer sets on several exercises,
+    // shorter hold on the kettlebell butterfly) — good thing that wasn't
+    // assumed to be identical.
     name: "Sculpt & Strengthen Women",
     level: "Intermediate",
     description:
@@ -650,6 +647,36 @@ export const STARTER_PROGRAMS = [
             ex("ex_foam-roller-hamstring", 1, 1, 1, "20 seconds each side.", "cooldown"),
             ex("ex_foam-roller-glute", 1, 1, 1, "20 seconds each side.", "cooldown"),
             ex("ex_foam-roller-adductor", 1, 1, 1, "20 seconds each side.", "cooldown"),
+          ]),
+          d("Lower Body Mobility Session (Performance Based)", ["Legs", "Hips"], [
+            ex("ex_hip-car", 2, 15, 1, "Each side.", "warmup"),
+            ex("ex_runners-lunge-hip-flexor-stretch", 2, 15, 1, "Each side.", "warmup"),
+            ex("ex_dynamic-pigeon", 2, 10, 1, "Each side.", "warmup"),
+            ex("ex_hip-90-90-switch", 2, 1, 1, "", "warmup"),
+            ex("ex_mini-band-clamshell", 2, 12, 1, "Each side."),
+            ex("ex_kettlebell-hip-flexion", 3, 12, 1, "Each side — 4kg kettlebell."),
+            ex("ex_kettlebell-loaded-butterfly", 2, 1, 1, "30 seconds each."),
+            ex("ex_straight-leg-raise-hip-flexor", 2, 12, 1, "Each side."),
+            ex("ex_static-pigeon-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
+            ex("ex_static-hip-flexor-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
+            ex("ex_static-frog-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
+          ]),
+          d("Shoulders & Arms & Core", ["Shoulders", "Biceps", "Triceps", "Core"], [
+            ex("ex_forward-fold-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_doorway-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-neck-extension-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-oblique-lat-stretch", 1, 1, 1, "20 seconds.", "warmup"),
+            ex("ex_static-lat-tricep-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_bench-press", 3, 10, 2, "2-1-2 tempo."),
+            ex("ex_lateral-raise", 3, 12, 2, "2-2-3 tempo."),
+            ex("ex_machine-seated-chest-press", 2, 10, 1, "2-1-3 tempo."),
+            ex("ex_machine-seated-shoulder-press", 3, 12, 1, "2-2-2 tempo."),
+            ex("ex_machine-seated-chest-fly", 2, 10, 1, "Optional added exercise for chest."),
+            ex("ex_single-arm-cable-lateral-raise", 3, 12, 1, "2-2-2 tempo."),
+            ex("ex_static-forearm-stretch", 1, 1, 1, "", "cooldown"),
+            ex("ex_static-lat-tricep-stretch", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_static-oblique-lat-stretch", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_suspension-chest-stretch", 1, 1, 1, "20 seconds each side.", "cooldown"),
           ]),
         ],
       },
