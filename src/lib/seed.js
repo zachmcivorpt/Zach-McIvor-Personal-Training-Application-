@@ -1068,13 +1068,42 @@ const EXTRA_EXERCISES_7 = [
   mkEx("foam-roller-chest", "Foam Roller Chest", "Foam Roller", "Cool-down", ["Chest"], [], "Beginner"),
 ];
 
+// Added for Zach's "Intermediate Push Pull Legs Upper" program (HIIT
+// Session, Lower Body Intermediate, Lower Body Mobility Session — the
+// three workouts he's provided full detail on so far).
+const EXTRA_EXERCISES_9 = [
+  mkEx("battle-rope-high-plank-alt-slams", "Battle Rope High Plank Alternating Slams", "Battle Ropes", "Core", ["Core", "Shoulders"], [], "Advanced"),
+  mkEx("cross-body-mountain-climber", "Cross Body Mountain Climber", "Bodyweight", "Core", ["Core"], [], "Intermediate"),
+  mkEx("dumbbell-alternating-shoulder-press", "Dumbbell Alternating Shoulder Press", "Dumbbell", "Shoulders", ["Shoulders"], ["Triceps"]),
+  mkEx("hollow-body-hold-flutter-kicks", "Hollow Body Hold Flutter Kicks", "Bodyweight", "Core", ["Core"], [], "Advanced"),
+  mkEx("medicine-ball-hollow-hold-press", "Medicine Ball Hollow Hold Press", "Medicine Ball", "Core", ["Core"], ["Shoulders"], "Advanced"),
+  mkEx("farmer-walk", "Farmer Walk", "Dumbbell", "Full Body", ["Core", "Forearms"], [], "Intermediate"),
+  mkEx("nasal-breathing", "Nasal Breathing", "Bodyweight", "Warm-up", ["Full Body"], [], "Beginner"),
+  mkEx("banded-spanish-squat-isometric", "Banded Spanish Squats (Isometric)", "Band", "Legs", ["Quads"], [], "Intermediate"),
+  mkEx("banded-leg-extension-isometric", "Banded Leg Extension Isometric Hold", "Band", "Legs", ["Quads"]),
+  mkEx("dumbbell-walking-lunge", "Dumbbell Walking Lunge", "Dumbbell", "Legs", ["Quads", "Glutes"]),
+  mkEx("kettlebell-racked-carry", "Kettlebell Racked Carry", "Kettlebell", "Full Body", ["Core", "Forearms"]),
+  mkEx("lying-knee-hugs", "Lying Knee Hugs", "Bodyweight", "Cool-down", ["Glutes", "Hips"], [], "Beginner"),
+  mkEx("hip-90-90-switch", "90/90 Hip Switch", "Bodyweight", "Warm-up", ["Hips"], [], "Beginner"),
+  mkEx("dynamic-rfe-split-squat-stretch", "Dynamic Rear Foot Elevated Split Squat Stretch", "Bodyweight", "Warm-up", ["Hips", "Quads"], [], "Beginner"),
+  mkEx("hip-car", "Hip CAR (Controlled Articular Rotations)", "Bodyweight", "Warm-up", ["Hips"], [], "Beginner"),
+  mkEx("runners-lunge-hip-flexor-stretch", "Runners Lunge (Hip Flexor Stretch)", "Bodyweight", "Warm-up", ["Hips"], [], "Beginner"),
+  mkEx("mini-band-clamshell", "Mini Band Clamshell", "Band", "Legs", ["Glutes"], [], "Beginner"),
+  mkEx("kettlebell-hip-flexion", "Kettlebell Hip Flexion", "Kettlebell", "Warm-up", ["Hips"], [], "Beginner"),
+  mkEx("kettlebell-loaded-butterfly", "Kettlebell Loaded Butterfly", "Kettlebell", "Warm-up", ["Groin", "Hips"], [], "Beginner"),
+  mkEx("straight-leg-raise-hip-flexor", "Straight Leg Raise Hip Flexor", "Bodyweight", "Warm-up", ["Hips"], [], "Beginner"),
+  mkEx("static-hip-flexor-stretch", "Static Hip Flexor Stretch", "Bodyweight", "Cool-down", ["Hips"], [], "Beginner"),
+  mkEx("cross-leg-stretch", "Cross Leg Stretch", "Bodyweight", "Warm-up", ["Glutes", "Hips"], [], "Beginner"),
+];
+
 SEED_EXERCISES.push(
   ...EXTRA_EXERCISES,
   ...EXTRA_EXERCISES_2,
   ...EXTRA_EXERCISES_3,
   ...EXTRA_EXERCISES_4,
   ...EXTRA_EXERCISES_6,
-  ...EXTRA_EXERCISES_7
+  ...EXTRA_EXERCISES_7,
+  ...EXTRA_EXERCISES_9
 );
 
 // Movement-pattern cue library — keyed by keywords matched against an

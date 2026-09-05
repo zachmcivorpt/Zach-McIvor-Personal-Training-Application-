@@ -509,4 +509,76 @@ export const STARTER_PROGRAMS = [
       },
     ],
   },
+  {
+    // Zach's actual "Intermediate Push Pull Legs Upper" program. His phase 1
+    // (Stabilisation & Hypertrophy) has 7 workouts total; only 3 were
+    // provided in enough detail to build accurately — HIIT Session, Lower
+    // Body Intermediate, and Lower Body Mobility Session. Pull Day
+    // Intermediate, Push Day Intermediate, Steady State Cardiovascular, and
+    // Upper Body Day still need their exercise lists before they can be
+    // added here — do NOT guess at their content.
+    name: "Intermediate Push Pull Legs Upper",
+    level: "Intermediate",
+    description:
+      "12-Week Bulking Program for Men (Push-Pull Upper-Lower Split). This 12-week training block combines heavy compound lifts with dedicated mobility and conditioning sessions.",
+    phases: [
+      {
+        id: "ph1",
+        name: "Stabilisation & Hypertrophy Phase",
+        durationWeeks: 4,
+        days: [
+          {
+            id: "d_hiit-session",
+            label: "HIIT Session",
+            muscleGroups: ["Cardio", "Core"],
+            exercises: [
+              { exerciseId: "ex_battle-rope-high-plank-alt-slams", section: "main", targetSets: 3, targetType: "time", targetReps: 40, targetRIR: 1, notes: "AMRAP.", groupId: "hiit-circuit", groupType: "circuit" },
+              { exerciseId: "ex_plyo-push-up", section: "main", targetSets: 3, targetType: "time", targetReps: 40, targetRIR: 1, notes: "AMRAP.", groupId: "hiit-circuit", groupType: "circuit" },
+              { exerciseId: "ex_cross-body-mountain-climber", section: "main", targetSets: 3, targetType: "time", targetReps: 40, targetRIR: 1, notes: "AMRAP.", groupId: "hiit-circuit", groupType: "circuit" },
+              { exerciseId: "ex_dumbbell-alternating-shoulder-press", section: "main", targetSets: 3, targetType: "time", targetReps: 40, targetRIR: 1, notes: "AMRAP.", groupId: "hiit-circuit", groupType: "circuit" },
+              { exerciseId: "ex_hollow-body-hold-flutter-kicks", section: "main", targetSets: 3, targetType: "time", targetReps: 40, targetRIR: 1, notes: "AMRAP.", groupId: "hiit-circuit", groupType: "circuit" },
+              { exerciseId: "ex_medicine-ball-hollow-hold-press", section: "main", targetSets: 3, targetType: "time", targetReps: 40, targetRIR: 1, notes: "AMRAP.", groupId: "hiit-circuit", groupType: "circuit" },
+              { exerciseId: "ex_rowing-machine", section: "main", targetSets: 3, targetType: "time", targetReps: 60, targetRIR: 1, notes: "Strong finish — target the anaerobic system.", groupId: "hiit-circuit", groupType: "circuit" },
+              { exerciseId: "ex_farmer-walk", section: "main", targetSets: 3, targetType: "time", targetReps: 40, targetRIR: 1, notes: "Heavy load — use kettlebells.", groupId: "hiit-circuit", groupType: "circuit" },
+              { exerciseId: "ex_nasal-breathing", section: "main", targetSets: 3, targetType: "time", targetReps: 30, targetRIR: 1, notes: "Focus on nasal breathing only.", groupId: "hiit-circuit", groupType: "circuit" },
+            ],
+          },
+          d("Lower Body Intermediate", ["Legs"], [
+            ex("ex_cross-leg-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_dynamic-hip-flexor-stretch", 1, 1, 1, "20 seconds each side.", "warmup"),
+            ex("ex_banded-spanish-squat-isometric", 3, 10, 2, "Pause at the bottom for 2 seconds."),
+            ex("ex_banded-leg-extension-isometric", 2, 6, 2, "On the injured leg — 30 seconds each rep."),
+            ex("ex_machine-seated-leg-extension", 2, 10, 2, "Quad activation focus. 1-2-4 tempo, slow eccentric."),
+            ex("ex_dumbbell-walking-lunge", 3, 1, 1, "15 meters — ~70% of your 1RM."),
+            ex("ex_zercher-squat", 2, 10, 2, "Focus on form first — 50% of your 1RM."),
+            ex("ex_trap-bar-deadlift", 2, 10, 2, "Feet shoulder-width apart."),
+            ex("ex_front-squat", 3, 10, 2, "Controlled — start at ~70% of your 1RM."),
+            ex("ex_kettlebell-racked-carry", 3, 1, 1, "15 meters — shoulders back, squeeze your lats, elbows in."),
+            ex("ex_lying-piriformis-stretch", 1, 1, 1, "30 seconds.", "cooldown"),
+            ex("ex_lying-knee-hugs", 1, 1, 1, "30 seconds each.", "cooldown"),
+            ex("ex_childs-pose", 1, 1, 1, "30 seconds.", "cooldown"),
+            ex("ex_foam-roller-lower-back", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-calf", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-hamstring", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_foam-roller-glute", 1, 1, 1, "20 seconds each side.", "cooldown"),
+            ex("ex_hip-90-90-switch", 3, 1, 1, "", "cooldown"),
+            ex("ex_dynamic-rfe-split-squat-stretch", 3, 1, 1, "", "cooldown"),
+          ]),
+          d("Lower Body Mobility Session (Performance Based)", ["Legs", "Hips"], [
+            ex("ex_hip-car", 2, 15, 1, "Each side.", "warmup"),
+            ex("ex_runners-lunge-hip-flexor-stretch", 2, 15, 1, "Each side.", "warmup"),
+            ex("ex_dynamic-pigeon", 2, 10, 1, "Each side.", "warmup"),
+            ex("ex_hip-90-90-switch", 2, 1, 1, "", "warmup"),
+            ex("ex_mini-band-clamshell", 3, 12, 1, "Each side."),
+            ex("ex_kettlebell-hip-flexion", 3, 12, 1, "Each side — 4kg kettlebell."),
+            ex("ex_kettlebell-loaded-butterfly", 2, 1, 1, "45 seconds each."),
+            ex("ex_straight-leg-raise-hip-flexor", 3, 15, 1, "Each side."),
+            ex("ex_static-pigeon-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
+            ex("ex_static-hip-flexor-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
+            ex("ex_static-frog-stretch", 1, 1, 1, "60 seconds.", "cooldown"),
+          ]),
+        ],
+      },
+    ],
+  },
 ];
