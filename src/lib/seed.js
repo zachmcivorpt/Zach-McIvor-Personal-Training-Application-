@@ -1126,6 +1126,13 @@ const EXTRA_EXERCISES_11 = [
   mkEx("static-neck-extension-stretch", "Static Neck Extension Stretch", "Bodyweight", "Warm-up", ["Neck"], [], "Beginner"),
   mkEx("single-arm-cable-lateral-raise", "Single Arm Cable Lateral Raise", "Cable", "Shoulders", ["Shoulders"]),
   mkEx("static-forearm-stretch", "Static Forearm Stretch", "Bodyweight", "Cool-down", ["Forearms"], [], "Beginner"),
+  mkEx("elevated-goblet-squat", "Elevated Goblet Squat", "Dumbbell", "Legs", ["Quads"], ["Glutes"], "Beginner"),
+  mkEx("thread-the-needle-alternating", "Thread the Needle Alternating", "Bodyweight", "Cool-down", ["Upper Back", "Shoulders"], ["Spine"], "Beginner"),
+  mkEx("close-grip-strict-lat-pulldown", "Close Grip Strict Lat Pulldown", "Cable", "Back", ["Back"], ["Biceps"]),
+  mkEx("machine-seated-parallel-grip-press", "Machine Seated Parallel Grip Press", "Machine", "Chest", ["Chest"], ["Triceps"]),
+  mkEx("machine-incline-chest-press", "Machine Incline Chest Press", "Machine", "Chest", ["Chest"], ["Triceps", "Shoulders"]),
+  mkEx("straight-bar-tricep-extension", "Straight Bar Tricep Extension", "Cable", "Triceps", ["Triceps"]),
+  mkEx("static-neck-flexion-stretch", "Static Neck Flexion Stretch", "Bodyweight", "Cool-down", ["Neck"], [], "Beginner"),
 ];
 
 SEED_EXERCISES.push(
