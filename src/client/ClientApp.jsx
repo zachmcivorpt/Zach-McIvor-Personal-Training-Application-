@@ -4256,7 +4256,7 @@ function ClientCalendarScreen({
   forms,
   onPreviewWorkout,
   canEdit,
-  onMoveWorkout,
+  onMoveItem,
 }) {
   const [daysBack, setDaysBack] = useState(30);
   const [daysForward, setDaysForward] = useState(60);
@@ -4265,7 +4265,7 @@ function ClientCalendarScreen({
   const scrolledToToday = useRef(false);
   // Drag-to-reschedule — only ever active for the coach browsing as this
   // client (see `canEdit`); a real client can't drag their own calendar.
-  const [dragFromDate, setDragFromDate] = useState(null);
+  const [dragItem, setDragItem] = useState(null); // { date, type: "workout" | "bodystats" }
   const [dragOverDate, setDragOverDate] = useState(null);
 
   const logsByDate = useMemo(() => {
@@ -4345,8 +4345,9 @@ function ClientCalendarScreen({
           const habitsDone = dayHabits.filter((h) => doneHabitIds.includes(h.id)).length;
           const bodyStatsDone = weighInDates.has(dateStr);
 
-          const canDragThis = canEdit && !!scheduled && !log;
-          const isDropTarget = canEdit && dragFromDate && dragFromDate !== dateStr;
+          const canDragWorkout = canEdit && !!scheduled && !log;
+          const canDragBodyStats = canEdit && !!bodyStatsToday && !bodyStatsDone;
+          const isDropTarget = canEdit && dragItem && dragItem.date !== dateStr;
 
           return (
             <div
@@ -4368,8 +4369,8 @@ function ClientCalendarScreen({
                 isDropTarget
                   ? (e) => {
                       e.preventDefault();
-                      onMoveWorkout(dragFromDate, dateStr);
-                      setDragFromDate(null);
+                      onMoveItem(dragItem.type, dragItem.date, dateStr);
+                      setDragItem(null);
                       setDragOverDate(null);
                     }
                   : undefined
@@ -4387,7 +4388,7 @@ function ClientCalendarScreen({
                     done={!!log}
                     title={scheduled.label}
                     subtitle={
-                      canDragThis
+                      canDragWorkout
                         ? "Drag to a different day to reschedule."
                         : log
                         ? "Workout completed."
@@ -4396,10 +4397,10 @@ function ClientCalendarScreen({
                     onClick={() =>
                       onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })
                     }
-                    draggable={canDragThis}
-                    onDragStart={() => setDragFromDate(dateStr)}
+                    draggable={canDragWorkout}
+                    onDragStart={() => setDragItem({ date: dateStr, type: "workout" })}
                     onDragEnd={() => {
-                      setDragFromDate(null);
+                      setDragItem(null);
                       setDragOverDate(null);
                     }}
                   />
@@ -4430,7 +4431,19 @@ function ClientCalendarScreen({
                     dot={{ border: "border-orange-500", bg: "bg-orange-500" }}
                     done={bodyStatsDone}
                     title="Body Stats Check-in"
-                    subtitle={bodyStatsDone ? "Logged." : "Log your weight & stats today."}
+                    subtitle={
+                      canDragBodyStats
+                        ? "Drag to a different day to reschedule."
+                        : bodyStatsDone
+                        ? "Logged."
+                        : "Log your weight & stats today."
+                    }
+                    draggable={canDragBodyStats}
+                    onDragStart={() => setDragItem({ date: dateStr, type: "bodystats" })}
+                    onDragEnd={() => {
+                      setDragItem(null);
+                      setDragOverDate(null);
+                    }}
                   />
                 )}
                 {!hasContent && (
@@ -4497,6 +4510,8 @@ export default function ClientApp() {
     stopViewAsClient,
     scheduleWorkout,
     unscheduleWorkout,
+    scheduleBodyStatsCheckin,
+    unscheduleBodyStatsCheckin,
     dbReady,
   } = useApp();
   const navigate = useNavigate();
@@ -4772,16 +4787,22 @@ export default function ClientApp() {
   }
 
   // Coach-only (see `canEdit` on ClientCalendarScreen): drag a scheduled
-  // workout from one day to another right from inside the client's own
-  // calendar, while browsing as them — the same "reschedule on the fly"
-  // the coach already has on their own calendar view of a client.
-  function moveScheduledWorkout(fromDate, toDate) {
+  // workout or body stats check-in from one day to another right from
+  // inside the client's own calendar, while browsing as them — the same
+  // "reschedule on the fly" the coach already has on their own calendar
+  // view of a client. Dropping onto an occupied day just replaces
+  // whatever's already there.
+  function moveScheduledItem(type, fromDate, toDate) {
     if (!viewingAsClient || fromDate === toDate) return;
+    if (type === "bodystats") {
+      if (!bodyStatsSchedulesForClient.some((s) => s.date === fromDate)) return;
+      scheduleBodyStatsCheckin(currentUser.id, { startDate: toDate, weeks: 1 });
+      unscheduleBodyStatsCheckin(currentUser.id, fromDate);
+      showToast("Check-in rescheduled");
+      return;
+    }
     const workout = scheduledWorkoutsByDate[fromDate];
     if (!workout) return;
-    // Dropping onto a day that already has a workout replaces it —
-    // scheduleWorkout's deterministic doc id means this is just an
-    // overwrite, no separate delete needed.
     scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
     unscheduleWorkout(currentUser.id, fromDate);
     showToast("Workout rescheduled");
@@ -4881,7 +4902,7 @@ export default function ClientApp() {
             forms={db.forms || []}
             onPreviewWorkout={(day) => openPreview(day, false)}
             canEdit={viewingAsClient}
-            onMoveWorkout={moveScheduledWorkout}
+            onMoveItem={moveScheduledItem}
           />
         )}
         {tab === "progress" && (

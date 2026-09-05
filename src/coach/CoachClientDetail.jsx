@@ -814,8 +814,8 @@ const DELETE_CATEGORIES = [
 ];
 
 function CalendarPanel({ client, showToast }) {
-  const { db, scheduleWorkout, unscheduleWorkout, unscheduleBodyStatsCheckin, deleteWorkoutLog, removeHabit } = useApp();
-  const [dragFrom, setDragFrom] = useState(null); // the scheduled workout's own date string, while dragging it
+  const { db, scheduleWorkout, unscheduleWorkout, scheduleBodyStatsCheckin, unscheduleBodyStatsCheckin, deleteWorkoutLog, removeHabit } = useApp();
+  const [dragItem, setDragItem] = useState(null); // { date, type } — the item's own date + which kind, while dragging it
   const [dragOverDate, setDragOverDate] = useState(null);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getUTCFullYear());
@@ -911,7 +911,7 @@ function CalendarPanel({ client, showToast }) {
       });
     }
     const b = bodyStatsByDate[dateStr];
-    if (b) items.push({ type: "bodystats", label: "Track Body Stats", done: weighInDates.has(dateStr) });
+    if (b) items.push({ type: "bodystats", label: "Track Body Stats", done: weighInDates.has(dateStr), key: `bodystats:${dateStr}` });
     activeFormSchedules
       .filter((s) => s.dayOfWeek === date.getUTCDay())
       .forEach((s) => items.push({ type: "form", label: formsById[s.formId]?.name || "Check-in" }));
@@ -1040,6 +1040,20 @@ function CalendarPanel({ client, showToast }) {
       showToast(`Moved ${entry.label} to ${new Date(toDate + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}`);
     } catch (err) {
       showToast(err.message || "Couldn't move that workout — check your connection and try again");
+    }
+  }
+
+  // Same drag-to-reschedule for a not-yet-completed body stats check-in
+  // reminder — dropping onto an occupied day just replaces it, same as workouts.
+  async function moveBodyStats(fromDate, toDate) {
+    if (fromDate === toDate) return;
+    if (!bodyStatsByDate[fromDate]) return;
+    try {
+      await scheduleBodyStatsCheckin(client.id, { startDate: toDate, weeks: 1 });
+      unscheduleBodyStatsCheckin(client.id, fromDate);
+      showToast(`Moved body stats check-in to ${new Date(toDate + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}`);
+    } catch (err) {
+      showToast(err.message || "Couldn't move that check-in — check your connection and try again");
     }
   }
 
@@ -1174,20 +1188,21 @@ function CalendarPanel({ client, showToast }) {
                     key={dateStr}
                     onClick={!selectMode ? () => setSelectedDate(dateStr) : undefined}
                     onDragOver={
-                      !selectMode && dragFrom
+                      !selectMode && dragItem
                         ? (e) => {
                             e.preventDefault();
                             if (dragOverDate !== dateStr) setDragOverDate(dateStr);
                           }
                         : undefined
                     }
-                    onDragLeave={!selectMode && dragFrom ? () => setDragOverDate((d) => (d === dateStr ? null : d)) : undefined}
+                    onDragLeave={!selectMode && dragItem ? () => setDragOverDate((d) => (d === dateStr ? null : d)) : undefined}
                     onDrop={
-                      !selectMode && dragFrom
+                      !selectMode && dragItem
                         ? (e) => {
                             e.preventDefault();
-                            moveWorkout(dragFrom, dateStr);
-                            setDragFrom(null);
+                            if (dragItem.type === "workout") moveWorkout(dragItem.date, dateStr);
+                            else if (dragItem.type === "bodystats") moveBodyStats(dragItem.date, dateStr);
+                            setDragItem(null);
                             setDragOverDate(null);
                           }
                         : undefined
@@ -1217,22 +1232,25 @@ function CalendarPanel({ client, showToast }) {
                             : { border: "border-emerald-500", bg: "bg-emerald-500" };
                         const selectable = selectMode && it.category && activeCategories.has(it.category);
                         const checked = selectable && selectedKeys.has(it.key);
-                        // Only a not-yet-completed scheduled workout can be dragged to a
-                        // different day — a completed log is history, not a plan to move.
-                        const draggableWorkout = !selectMode && it.type === "workout" && it.key === `sched:${dateStr}`;
+                        // Only a not-yet-completed scheduled workout or body stats
+                        // check-in can be dragged to a different day — a completed
+                        // one is history, not a plan to move.
+                        const draggableItem =
+                          !selectMode &&
+                          ((it.type === "workout" && it.key === `sched:${dateStr}`) || (it.type === "bodystats" && !it.done));
                         return (
                           <div
                             key={i}
-                            draggable={draggableWorkout}
+                            draggable={draggableItem}
                             onDragStart={
-                              draggableWorkout
+                              draggableItem
                                 ? (e) => {
                                     e.stopPropagation();
-                                    setDragFrom(dateStr);
+                                    setDragItem({ date: dateStr, type: it.type });
                                   }
                                 : undefined
                             }
-                            onDragEnd={draggableWorkout ? () => setDragFrom(null) : undefined}
+                            onDragEnd={draggableItem ? () => setDragItem(null) : undefined}
                             onClick={
                               selectable
                                 ? (e) => {
@@ -1243,7 +1261,7 @@ function CalendarPanel({ client, showToast }) {
                             }
                             className={`flex items-center gap-1.5 text-[11px] truncate ${
                               selectable ? "cursor-pointer" : ""
-                            } ${draggableWorkout ? "cursor-grab active:cursor-grabbing" : ""} ${
+                            } ${draggableItem ? "cursor-grab active:cursor-grabbing" : ""} ${
                               checked ? "text-red-600 font-semibold" : selectMode && !selectable ? "text-black/25" : "text-black/70"
                             }`}
                           >
