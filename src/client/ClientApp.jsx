@@ -96,7 +96,6 @@ import {
   computeWeeklyVolume,
   computeWorkoutsSeries,
   computeE1RMHistory,
-  findExerciseByKeyword,
   computePersonalBests,
   computePRsInLastNDays,
   computeSessionsThisWeek,
@@ -2948,11 +2947,15 @@ function PerformanceTimelineCard({ timeline, weekly }) {
 // doc per client per calendar day (bodyMetrics/{clientId}_{date}), each
 // field filled in independently. Same card/chart/history treatment as Body
 // Weight above, just generalized instead of duplicated five times.
+// Body Fat % and Lean Body Mass are rendered as their own compact row right
+// next to Body Weight (same body-composition group) rather than mixed in
+// with Steps/Sleep/Resting HR below, so they're broken out of the list.
+const BODY_FAT_CONFIG = { key: "bodyFatPct", label: "Body Fat", unit: "%", icon: Percent, placeholder: "e.g. 18.5" };
+const LEAN_MASS_CONFIG = { key: "leanMassKg", label: "Lean Body Mass", unit: "kg", icon: Activity, placeholder: "e.g. 65.2" };
+
 const BODY_METRICS_CONFIG = [
   { key: "steps", label: "Steps", unit: "", icon: Footprints, placeholder: "e.g. 8500" },
   { key: "sleepHours", label: "Sleep", unit: "hrs", icon: Moon, placeholder: "e.g. 7.5" },
-  { key: "bodyFatPct", label: "Body Fat", unit: "%", icon: Percent, placeholder: "e.g. 18.5" },
-  { key: "leanMassKg", label: "Lean Body Mass", unit: "kg", icon: Activity, placeholder: "e.g. 65.2" },
   { key: "restingHeartRate", label: "Resting Heart Rate", unit: "bpm", icon: Heart, placeholder: "e.g. 58" },
 ];
 
@@ -3252,7 +3255,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
   const bodyMetricEntries = useMemo(() => {
     const out = {};
-    BODY_METRICS_CONFIG.forEach((cfg) => {
+    [...BODY_METRICS_CONFIG, BODY_FAT_CONFIG, LEAN_MASS_CONFIG].forEach((cfg) => {
       out[cfg.key] = (bodyMetrics || [])
         .filter((m) => m[cfg.key] != null)
         .map((m) => ({ id: m.id, date: m.date, value: m[cfg.key] }))
@@ -3294,11 +3297,6 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
       },
     ];
   }, [logsForClient, weeklyVolume, volumeThisWeek]);
-  const benchExercise = useMemo(() => findExerciseByKeyword(Object.values(exercisesById), "Bench Press"), [exercisesById]);
-  const benchHistory = useMemo(
-    () => (benchExercise ? computeE1RMHistory(logsForClient, benchExercise.id) : []),
-    [logsForClient, benchExercise]
-  );
   const personalBests = useMemo(() => computePersonalBests(logsForClient, exercisesById), [logsForClient, exercisesById]);
   const achievements = useMemo(() => computeAchievements(logsForClient), [logsForClient]);
   const timeline = useMemo(
@@ -3356,10 +3354,6 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           </div>
         </div>
 
-        <ConsistencyHeatmap logs={logsForClient} />
-
-        <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
-
         <Card>
           <p className="text-black font-semibold mb-3">Strength Personal Bests</p>
           <div className="space-y-2.5">
@@ -3375,6 +3369,10 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             ))}
           </div>
         </Card>
+
+        <ConsistencyHeatmap logs={logsForClient} />
+
+        <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
 
         <Card>
           <div className="flex items-center justify-between">
@@ -3424,6 +3422,21 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           )}
         </Card>
 
+        <div className="grid grid-cols-2 gap-3">
+          <BodyMetricCard
+            config={BODY_FAT_CONFIG}
+            entries={bodyMetricEntries.bodyFatPct}
+            onLog={setLogMetricConfig}
+            onOpenHistory={setHistoryMetricConfig}
+          />
+          <BodyMetricCard
+            config={LEAN_MASS_CONFIG}
+            entries={bodyMetricEntries.leanMassKg}
+            onLog={setLogMetricConfig}
+            onOpenHistory={setHistoryMetricConfig}
+          />
+        </div>
+
         {BODY_METRICS_CONFIG.map((cfg) => (
           <BodyMetricCard
             key={cfg.key}
@@ -3433,29 +3446,6 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             onOpenHistory={setHistoryMetricConfig}
           />
         ))}
-
-        {benchExercise && benchHistory.length >= 2 ? (
-          <ChartCard
-            title="Bench Press e1RM"
-            subtitle={`${benchHistory[benchHistory.length - 1].value} kg estimated · from your logged sets`}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={benchHistory}>
-                <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-                <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-                <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
-                <Line type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: MEASURE_BLUE }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        ) : (
-          <Card>
-            <p className="text-black font-semibold">Bench Press e1RM</p>
-            <p className="text-black/30 text-sm mt-2">
-              Log a couple of Bench Press sessions and we'll estimate your one-rep max progress here.
-            </p>
-          </Card>
-        )}
 
         {weeklyVolume.length >= 2 ? (
           <ChartCard
