@@ -812,7 +812,9 @@ const DELETE_CATEGORIES = [
 ];
 
 function CalendarPanel({ client, showToast }) {
-  const { db, unscheduleWorkout, unscheduleBodyStatsCheckin, deleteWorkoutLog, removeHabit } = useApp();
+  const { db, scheduleWorkout, unscheduleWorkout, unscheduleBodyStatsCheckin, deleteWorkoutLog, removeHabit } = useApp();
+  const [dragFrom, setDragFrom] = useState(null); // the scheduled workout's own date string, while dragging it
+  const [dragOverDate, setDragOverDate] = useState(null);
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getUTCFullYear());
   const [viewMonth, setViewMonth] = useState(now.getUTCMonth());
@@ -1022,6 +1024,26 @@ function CalendarPanel({ client, showToast }) {
     exitSelectMode();
   }
 
+  // Drag a not-yet-completed scheduled workout onto a different day to
+  // move it there — e.g. the client asks to swap Monday's session to
+  // Wednesday. Won't clobber a workout the target day already has.
+  async function moveWorkout(fromDate, toDate) {
+    if (fromDate === toDate) return;
+    const entry = workoutsByDate[fromDate];
+    if (!entry) return;
+    if (workoutsByDate[toDate]) {
+      showToast("That day already has a workout scheduled — move or delete it first");
+      return;
+    }
+    try {
+      await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises });
+      unscheduleWorkout(client.id, fromDate);
+      showToast(`Moved ${entry.label} to ${new Date(toDate + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" })}`);
+    } catch (err) {
+      showToast(err.message || "Couldn't move that workout — check your connection and try again");
+    }
+  }
+
   const selectedItems = selectedDate ? itemsForDate(new Date(selectedDate + "T00:00:00Z")) : [];
   const monthLabel = new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" });
 
@@ -1152,9 +1174,30 @@ function CalendarPanel({ client, showToast }) {
                   <div
                     key={dateStr}
                     onClick={!selectMode ? () => setSelectedDate(dateStr) : undefined}
+                    onDragOver={
+                      !selectMode && dragFrom
+                        ? (e) => {
+                            e.preventDefault();
+                            if (dragOverDate !== dateStr) setDragOverDate(dateStr);
+                          }
+                        : undefined
+                    }
+                    onDragLeave={!selectMode && dragFrom ? () => setDragOverDate((d) => (d === dateStr ? null : d)) : undefined}
+                    onDrop={
+                      !selectMode && dragFrom
+                        ? (e) => {
+                            e.preventDefault();
+                            moveWorkout(dragFrom, dateStr);
+                            setDragFrom(null);
+                            setDragOverDate(null);
+                          }
+                        : undefined
+                    }
                     className={`min-h-[104px] md:min-h-[130px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors font-sans ${
                       inMonth ? "bg-white" : "bg-black/[0.015]"
-                    } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""}`}
+                    } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""} ${
+                      dragOverDate === dateStr ? "bg-blue-50 ring-2 ring-inset ring-blue-400" : ""
+                    }`}
                   >
                     <div className="flex justify-end">
                       <span className={`text-xs font-semibold ${isToday ? "text-blue-600" : inMonth ? "text-black/60" : "text-black/25"}`}>
@@ -1175,9 +1218,22 @@ function CalendarPanel({ client, showToast }) {
                             : { border: "border-emerald-500", bg: "bg-emerald-500" };
                         const selectable = selectMode && it.category && activeCategories.has(it.category);
                         const checked = selectable && selectedKeys.has(it.key);
+                        // Only a not-yet-completed scheduled workout can be dragged to a
+                        // different day — a completed log is history, not a plan to move.
+                        const draggableWorkout = !selectMode && it.type === "workout" && it.key === `sched:${dateStr}`;
                         return (
                           <div
                             key={i}
+                            draggable={draggableWorkout}
+                            onDragStart={
+                              draggableWorkout
+                                ? (e) => {
+                                    e.stopPropagation();
+                                    setDragFrom(dateStr);
+                                  }
+                                : undefined
+                            }
+                            onDragEnd={draggableWorkout ? () => setDragFrom(null) : undefined}
                             onClick={
                               selectable
                                 ? (e) => {
@@ -1188,7 +1244,9 @@ function CalendarPanel({ client, showToast }) {
                             }
                             className={`flex items-center gap-1.5 text-[11px] truncate ${
                               selectable ? "cursor-pointer" : ""
-                            } ${checked ? "text-red-600 font-semibold" : selectMode && !selectable ? "text-black/25" : "text-black/70"}`}
+                            } ${draggableWorkout ? "cursor-grab active:cursor-grabbing" : ""} ${
+                              checked ? "text-red-600 font-semibold" : selectMode && !selectable ? "text-black/25" : "text-black/70"
+                            }`}
                           >
                             {selectable ? (
                               <span
@@ -2675,8 +2733,23 @@ function PerformanceTimelineCard({ client }) {
 
   return (
     <div className="bg-black rounded-2xl p-5 mb-6">
-      <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last 30 Days</p>
-      <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last 30 Days</p>
+          <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
+        </div>
+        <p className="text-white text-xs text-right shrink-0 mt-0.5">
+          {client.lastLoginAt
+            ? new Date(client.lastLoginAt).toLocaleString(undefined, {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              })
+            : "Never logged in"}
+          <span className="block text-white/40 text-[10px] font-medium mt-0.5">Last active</span>
+        </p>
+      </div>
       <p className="text-white/35 text-xs mt-1 mb-4">
         A quick read on how {client.name?.split(" ")[0] || "they"}'ve been trending: getting stronger, showing up, hitting new bests.
       </p>

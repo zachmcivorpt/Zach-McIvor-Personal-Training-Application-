@@ -3597,6 +3597,8 @@ function ProfileScreen({
   onOpenNotifications,
   notifCount,
   showToast,
+  dueCheckInsCount,
+  onOpenCheckIns,
 }) {
   const weekStreak = computeWeeklyStreak(logsForClient);
   const prsThisMonth = computePRsInLastNDays(logsForClient, 30);
@@ -3659,6 +3661,24 @@ function ProfileScreen({
             <div className="flex-1">
               <p className="text-black font-semibold">Messages</p>
               <p className="text-black/40 text-xs">Chat directly with your coach</p>
+            </div>
+            <ChevronRight size={18} className="text-black/30" />
+          </div>
+        </Card>
+
+        <Card onClick={onOpenCheckIns}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative">
+              <CalendarCheck size={18} className="text-black" />
+              {dueCheckInsCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
+                  {dueCheckInsCount}
+                </span>
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-black font-semibold">Check-ins</p>
+              <p className="text-black/40 text-xs">{dueCheckInsCount > 0 ? `${dueCheckInsCount} due now` : "Fill out forms from your coach"}</p>
             </div>
             <ChevronRight size={18} className="text-black/30" />
           </div>
@@ -4110,6 +4130,149 @@ function CheckInsScreen({ userId, showToast }) {
   );
 }
 
+// A continuously scrollable agenda — every day, past and upcoming, one row
+// each — rather than a paged month grid, matching how Trainerize's own
+// client calendar scrolls. Starts centered on today and grows further back
+// or forward as the client scrolls near either edge.
+function ClientCalendarScreen({
+  scheduledWorkoutsByDate,
+  logsForClient,
+  habits,
+  habitLogForClient,
+  bodyStatsSchedules,
+  weighIns,
+  formSchedules,
+  forms,
+  onPreviewWorkout,
+}) {
+  const [daysBack, setDaysBack] = useState(30);
+  const [daysForward, setDaysForward] = useState(60);
+  const todayRef = useRef(null);
+  const scrolledToToday = useRef(false);
+
+  const logsByDate = useMemo(() => {
+    const map = {};
+    logsForClient.forEach((l) => {
+      const key = new Date(l.date).toISOString().slice(0, 10);
+      if (!map[key]) map[key] = l;
+    });
+    return map;
+  }, [logsForClient]);
+  const weighInDates = useMemo(() => new Set(weighIns.map((w) => new Date(w.date).toISOString().slice(0, 10))), [weighIns]);
+  const activeFormSchedules = useMemo(() => (formSchedules || []).filter((s) => s.active), [formSchedules]);
+  const formsById = useMemo(() => Object.fromEntries((forms || []).map((f) => [f.id, f])), [forms]);
+
+  const days = useMemo(() => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - daysBack);
+    const list = [];
+    for (let i = 0; i <= daysBack + daysForward; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      list.push(d);
+    }
+    return list;
+  }, [daysBack, daysForward]);
+
+  useEffect(() => {
+    if (scrolledToToday.current) return;
+    const t = setTimeout(() => {
+      todayRef.current?.scrollIntoView({ block: "center" });
+      scrolledToToday.current = true;
+    }, 50);
+    return () => clearTimeout(t);
+  }, [days]);
+
+  function handleScroll(e) {
+    const el = e.target;
+    if (el.scrollTop < 400) setDaysBack((d) => Math.min(d + 30, 365));
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 400) setDaysForward((d) => Math.min(d + 30, 365));
+  }
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-3 pt-6 pb-3 shrink-0">
+        <h1 className="text-black text-2xl font-bold">Calendar</h1>
+        <p className="text-black/40 text-sm mt-0.5">Scroll to see anything past or upcoming.</p>
+      </div>
+      <div onScroll={handleScroll} className="flex-1 overflow-y-auto px-3 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
+        {days.map((d, i) => {
+          const dateStr = d.toISOString().slice(0, 10);
+          const isToday = dateStr === todayStr;
+          const showMonthHeader = i === 0 || d.getMonth() !== days[i - 1].getMonth();
+          const scheduled = scheduledWorkoutsByDate[dateStr];
+          const log = logsByDate[dateStr];
+          const dayHabits = habits.filter((h) => {
+            const createdKey = new Date(h.createdAt).toISOString().slice(0, 10);
+            if (dateStr < createdKey) return false;
+            if (h.endsAt && dateStr > new Date(h.endsAt).toISOString().slice(0, 10)) return false;
+            return true;
+          });
+          const doneHabitIds = habitLogForClient[dateStr] || [];
+          const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
+          const bodyStatsToday = (bodyStatsSchedules || []).some((b) => b.date === dateStr);
+          const bodyStatsDone = weighInDates.has(dateStr);
+          const nothingHere = !scheduled && !log && dayHabits.length === 0 && checkinsToday.length === 0 && !bodyStatsToday;
+
+          return (
+            <div key={dateStr}>
+              {showMonthHeader && (
+                <p className="text-black/30 text-[11px] font-bold tracking-wide uppercase mt-5 mb-1.5 first:mt-0">
+                  {d.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+                </p>
+              )}
+              <div
+                ref={isToday ? todayRef : null}
+                className={`flex items-start gap-3 py-2.5 border-b border-black/5 ${isToday ? "-mx-3 px-3 bg-blue-50/60 rounded-lg" : ""}`}
+              >
+                <div className="w-11 shrink-0 text-center pt-0.5">
+                  <p className={`text-[10px] font-semibold ${isToday ? "text-blue-600" : "text-black/35"}`}>{DAY_LABELS[d.getDay()]}</p>
+                  <p className={`text-base font-bold ${isToday ? "text-blue-600" : "text-black"}`}>{d.getDate()}</p>
+                </div>
+                <div className="flex-1 min-w-0 space-y-1 pt-0.5">
+                  {scheduled ? (
+                    <button
+                      onClick={() => onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })}
+                      className="w-full text-left flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.07] rounded-lg px-2.5 py-1.5 transition-colors"
+                    >
+                      {log ? <Check size={13} className="text-emerald-600 shrink-0" /> : <Dumbbell size={13} className="text-black/40 shrink-0" />}
+                      <span className="text-black text-xs font-semibold truncate">{scheduled.label}</span>
+                    </button>
+                  ) : log ? (
+                    <div className="flex items-center gap-2 bg-black/[0.04] rounded-lg px-2.5 py-1.5">
+                      <Check size={13} className="text-emerald-600 shrink-0" />
+                      <span className="text-black text-xs font-semibold truncate">{log.dayLabel}</span>
+                    </div>
+                  ) : null}
+                  {dayHabits.length > 0 && (
+                    <p className="text-black/40 text-[11px]">
+                      {dayHabits.filter((h) => doneHabitIds.includes(h.id)).length}/{dayHabits.length} habits
+                    </p>
+                  )}
+                  {checkinsToday.map((s) => (
+                    <p key={s.id} className="text-purple-600 text-[11px] font-medium">
+                      {formsById[s.formId]?.name || "Check-in"} due
+                    </p>
+                  ))}
+                  {bodyStatsToday && (
+                    <p className={`text-[11px] font-medium ${bodyStatsDone ? "text-emerald-600" : "text-amber-600"}`}>
+                      {bodyStatsDone ? "Body stats logged" : "Body stats due"}
+                    </p>
+                  )}
+                  {nothingHere && <p className="text-black/20 text-[11px]">Nothing scheduled</p>}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ============================================================================
    APP SHELL
 ============================================================================ */
@@ -4132,7 +4295,7 @@ const TABS = [
   { id: "home", label: "Home", icon: HomeIcon },
   { id: "workouts", label: "Training", icon: Dumbbell },
   { id: "nutrition", label: "Nutrition", icon: Utensils },
-  { id: "checkins", label: "Check-ins", icon: CalendarCheck },
+  { id: "calendar", label: "Calendar", icon: Calendar },
   { id: "progress", label: "Progress", icon: TrendingUp },
   { id: "profile", label: "Profile", icon: User },
 ];
@@ -4507,6 +4670,19 @@ export default function ClientApp() {
           />
         )}
         {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} />}
+        {tab === "calendar" && (
+          <ClientCalendarScreen
+            scheduledWorkoutsByDate={scheduledWorkoutsByDate}
+            logsForClient={logsForClient}
+            habits={habits}
+            habitLogForClient={(db.habitLog || {})[currentUser.id] || {}}
+            bodyStatsSchedules={bodyStatsSchedulesForClient}
+            weighIns={weighIns}
+            formSchedules={(db.formSchedules || {})[currentUser.id] || []}
+            forms={db.forms || []}
+            onPreviewWorkout={(day) => openPreview(day, false)}
+          />
+        )}
         {tab === "progress" && (
           <ProgressScreen
             userId={currentUser.id}
@@ -4536,6 +4712,8 @@ export default function ClientApp() {
             onOpenNotifications={() => setNotifOpen(true)}
             notifCount={notificationItems.length}
             showToast={showToast}
+            dueCheckInsCount={dueCheckInsCount}
+            onOpenCheckIns={() => setTab("checkins")}
           />
         )}
         </TabFade>
@@ -4551,7 +4729,7 @@ export default function ClientApp() {
                 <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3 relative">
                   <Icon size={21} className={active ? "text-black" : "text-black/35"} strokeWidth={active ? 2.4 : 2} />
                   <span className={`text-[10px] font-medium ${active ? "text-black" : "text-black/35"}`}>{t.label}</span>
-                  {t.id === "checkins" && dueCheckInsCount > 0 && (
+                  {t.id === "profile" && dueCheckInsCount > 0 && (
                     <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-black" />
                   )}
                 </button>
