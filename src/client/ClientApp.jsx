@@ -4216,19 +4216,62 @@ function CheckInsScreen({ userId, showToast }) {
 // dot on the left, title + a plain-English one-liner, a chevron if there's
 // somewhere to go. Matches the density of a real day-planner app instead of
 // a cramped multi-item row.
-function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onPointerDown, onPointerMove, onPointerUp, dragging }) {
+// `onDelete` gets ignored whenever `draggable` is true — a still-pending
+// item being drag-rescheduled (coach browsing "as client") already owns the
+// pointer gesture on this exact card, and layering a second, competing
+// swipe-to-delete gesture on the same element would fight it. Every other
+// card (which for a real client is *every* card, since dragging is coach-only)
+// gets the swipe.
+function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onPointerDown, onPointerMove, onPointerUp, dragging, onDelete }) {
+  const [swipeX, setSwipeX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const swipeStartRef = useRef(0);
+  const widthRef = useRef(0);
+  const rowRef = useRef(null);
+  const canSwipe = !!onDelete && !draggable;
+
+  function swipePointerDown(e) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    swipeStartRef.current = e.clientX;
+    widthRef.current = rowRef.current?.offsetWidth || 300;
+    setSwiping(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+  function swipePointerMove(e) {
+    if (!swiping) return;
+    const dx = e.clientX - swipeStartRef.current;
+    setSwipeX(Math.min(0, Math.max(dx, -widthRef.current)));
+  }
+  function swipePointerUp(e) {
+    if (!swiping) return;
+    setSwiping(false);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    if (swipeX < -(widthRef.current * 0.35)) {
+      setSwipeX(-widthRef.current);
+      setTimeout(onDelete, 150);
+    } else {
+      setSwipeX(0);
+    }
+  }
+
   const Wrapper = onClick ? "button" : "div";
-  return (
+  const card = (
     <Wrapper
       onClick={onClick}
-      onPointerDown={draggable ? onPointerDown : undefined}
-      onPointerMove={draggable ? onPointerMove : undefined}
-      onPointerUp={draggable ? onPointerUp : undefined}
-      onPointerCancel={draggable ? onPointerUp : undefined}
+      onPointerDown={draggable ? onPointerDown : canSwipe ? swipePointerDown : undefined}
+      onPointerMove={draggable ? onPointerMove : canSwipe ? swipePointerMove : undefined}
+      onPointerUp={draggable ? onPointerUp : canSwipe ? swipePointerUp : undefined}
+      onPointerCancel={draggable ? onPointerUp : canSwipe ? swipePointerUp : undefined}
       className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
         onClick ? "hover:bg-black/[0.02]" : ""
       } ${draggable ? "cursor-grab active:cursor-grabbing select-none" : ""} ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
-      style={draggable ? { touchAction: "none" } : undefined}
+      style={
+        draggable
+          ? { touchAction: "none" }
+          : canSwipe
+          ? { touchAction: "pan-y", transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 200ms ease" }
+          : undefined
+      }
     >
       <span
         className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-white"}`}
@@ -4241,6 +4284,17 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       </div>
       {onClick && <ChevronRight size={18} className="text-black/25 shrink-0" />}
     </Wrapper>
+  );
+
+  if (!canSwipe) return card;
+
+  return (
+    <div ref={rowRef} className="relative overflow-hidden rounded-2xl">
+      <div className="absolute inset-0 bg-red-500 rounded-2xl flex items-center justify-end pr-4">
+        <Trash2 size={16} className="text-white" />
+      </div>
+      {card}
+    </div>
   );
 }
 
@@ -4286,6 +4340,10 @@ function ClientCalendarScreen({
   onPreviewWorkout,
   canEdit,
   onMoveItem,
+  onDeleteScheduledWorkout,
+  onDeleteWorkoutLog,
+  onDeleteBodyStatsSchedule,
+  onDeleteWeighIn,
 }) {
   const [daysBack, setDaysBack] = useState(30);
   const [daysForward, setDaysForward] = useState(60);
@@ -4384,6 +4442,14 @@ function ClientCalendarScreen({
     return map;
   }, [logsForClient]);
   const weighInDates = useMemo(() => new Set(weighIns.map((w) => new Date(w.date).toISOString().slice(0, 10))), [weighIns]);
+  const weighInsByDate = useMemo(() => {
+    const map = {};
+    weighIns.forEach((w) => {
+      const key = new Date(w.date).toISOString().slice(0, 10);
+      if (!map[key]) map[key] = w;
+    });
+    return map;
+  }, [weighIns]);
   const activeFormSchedules = useMemo(() => (formSchedules || []).filter((s) => s.active), [formSchedules]);
   const formsById = useMemo(() => Object.fromEntries((forms || []).map((f) => [f.id, f])), [forms]);
 
@@ -4491,10 +4557,17 @@ function ClientCalendarScreen({
                     onPointerDown={(e) => cardPointerDown(e, dateStr, "workout", scheduled.label)}
                     onPointerMove={cardPointerMove}
                     onPointerUp={cardPointerUp}
+                    onDelete={() => onDeleteScheduledWorkout(dateStr)}
                   />
                 )}
                 {!scheduled && log && (
-                  <CalendarEventCard dot={{ border: "border-emerald-500", bg: "bg-emerald-500" }} done title={log.dayLabel} subtitle="Completed." />
+                  <CalendarEventCard
+                    dot={{ border: "border-emerald-500", bg: "bg-emerald-500" }}
+                    done
+                    title={log.dayLabel}
+                    subtitle="Completed."
+                    onDelete={() => onDeleteWorkoutLog(log.id)}
+                  />
                 )}
                 {dayHabits.map((h) => (
                   <CalendarEventCard
@@ -4531,6 +4604,9 @@ function ClientCalendarScreen({
                     onPointerDown={(e) => cardPointerDown(e, dateStr, "bodystats", "Body Stats Check-in")}
                     onPointerMove={cardPointerMove}
                     onPointerUp={cardPointerUp}
+                    onDelete={() =>
+                      bodyStatsDone ? onDeleteWeighIn(weighInsByDate[dateStr]?.id) : onDeleteBodyStatsSchedule(dateStr)
+                    }
                   />
                 )}
                 {!hasContent && (
@@ -4603,6 +4679,7 @@ export default function ClientApp() {
     updateUser,
     logWeight,
     deleteWeighIn,
+    deleteWorkoutLog,
     logBodyMetric,
     deleteBodyMetric,
     saveExerciseNote,
@@ -5026,6 +5103,23 @@ export default function ClientApp() {
             onPreviewWorkout={(day) => openPreview(day, true)}
             canEdit={viewingAsClient}
             onMoveItem={moveScheduledItem}
+            onDeleteScheduledWorkout={(dateStr) => {
+              unscheduleWorkout(currentUser.id, dateStr);
+              showToast("Workout removed");
+            }}
+            onDeleteWorkoutLog={(logId) => {
+              deleteWorkoutLog(logId);
+              showToast("Removed from history");
+            }}
+            onDeleteBodyStatsSchedule={(dateStr) => {
+              unscheduleBodyStatsCheckin(currentUser.id, dateStr);
+              showToast("Check-in removed");
+            }}
+            onDeleteWeighIn={(weighInId) => {
+              if (!weighInId) return;
+              deleteWeighIn(currentUser.id, weighInId);
+              showToast("Weigh-in removed");
+            }}
           />
         )}
         {tab === "progress" && (
