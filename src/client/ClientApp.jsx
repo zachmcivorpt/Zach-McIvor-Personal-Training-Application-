@@ -98,7 +98,6 @@ import {
   computeE1RMHistory,
   computePersonalBests,
   computePRsInLastNDays,
-  computeSessionsThisWeek,
   computeWorkoutStreak,
   computeAchievements,
   computePerformanceTimeline,
@@ -3265,38 +3264,6 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
   }, [bodyMetrics]);
 
   const weeklyVolume = useMemo(() => computeWeeklyVolume(logsForClient), [logsForClient]);
-  // Trailing 7 days, same window as the "This Week" sessions tile — a
-  // concrete kg-lifted number is a more useful glance-stat than a streak
-  // count, which says nothing about how hard the training actually was.
-  const volumeThisWeek = useMemo(() => {
-    const cutoff = Date.now() - 7 * 86400000;
-    return Math.round(
-      logsForClient
-        .filter((l) => l.date >= cutoff)
-        .reduce(
-          (a, log) => a + (log.entries || []).reduce((b, e) => b + (e.sets || []).reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0),
-          0
-        )
-    );
-  }, [logsForClient]);
-
-  const tiles = useMemo(() => {
-    const workoutsSeries = computeWorkoutsSeries(logsForClient);
-    return [
-      { key: "total", label: "Total Workouts", unit: "", decimals: 0, series: workoutsSeries, latest: logsForClient.length, date: "all-time" },
-      { key: "week", label: "This Week", unit: "", decimals: 0, series: null, latest: computeSessionsThisWeek(logsForClient), date: "sessions" },
-      { key: "prs", label: "PRs This Month", unit: "", decimals: 0, series: null, latest: computePRsInLastNDays(logsForClient, 30), date: "last 30 days" },
-      {
-        key: "volume",
-        label: "Volume This Week",
-        unit: " kg",
-        decimals: 0,
-        series: weeklyVolume.map((w) => ({ value: w.volume })),
-        latest: volumeThisWeek,
-        date: "kg lifted",
-      },
-    ];
-  }, [logsForClient, weeklyVolume, volumeThisWeek]);
   const personalBests = useMemo(() => computePersonalBests(logsForClient, exercisesById), [logsForClient, exercisesById]);
   const achievements = useMemo(() => computeAchievements(logsForClient), [logsForClient]);
   const timeline = useMemo(
@@ -3307,6 +3274,42 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
     () => computeWeeklySessionCompletion(logsForClient, scheduledWorkouts),
     [logsForClient, scheduledWorkouts]
   );
+
+  const tiles = useMemo(() => {
+    const workoutsSeries = computeWorkoutsSeries(logsForClient);
+    const streak = computeWorkoutStreak(logsForClient, scheduledWorkouts);
+    return [
+      { key: "workouts", label: "Workouts Completed", unit: "", decimals: 0, series: workoutsSeries, latest: logsForClient.length, date: "all-time" },
+      {
+        key: "streak",
+        label: "Current Streak",
+        unit: "",
+        decimals: 0,
+        series: null,
+        latest: streak,
+        date: streak === 1 ? "session in a row" : "sessions in a row",
+      },
+      {
+        key: "prs",
+        label: "Personal Bests",
+        unit: "",
+        decimals: 0,
+        series: null,
+        latest: computePRsInLastNDays(logsForClient, 30),
+        date: "this month",
+      },
+      {
+        key: "strength",
+        label: "Strength Progress",
+        unit: "",
+        decimals: 0,
+        series: null,
+        latest:
+          timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
+        date: "avg. across main lifts",
+      },
+    ];
+  }, [logsForClient, scheduledWorkouts, timeline]);
 
   const latestWeighIn = weighIns[weighIns.length - 1];
   const firstWeighIn = weighIns[0];
