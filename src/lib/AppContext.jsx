@@ -1248,13 +1248,20 @@ export function getCurrentPhase(phases, todayKey) {
   return sorted[sorted.length - 1] || null;
 }
 
-// The phase immediately after whichever one getCurrentPhase() picked —
-// the earliest phase starting after the current one ends, if any.
+// Whichever phase comes right after the current one on the timeline —
+// positional (by sorted startDate), not gated on it starting strictly
+// after the current phase's end date. A newly-added phase defaults its
+// start date to today (see NewPhaseSheet), which is routinely still
+// inside the current phase's date range; gating on "starts after current
+// ends" made that common case invisible here even though it's clearly
+// the next phase.
 export function getNextPhase(phases, todayKey) {
   const current = getCurrentPhase(phases, todayKey);
   if (!current) return null;
   const sorted = [...(phases || [])].sort((a, b) => a.startDate.localeCompare(b.startDate));
-  return sorted.find((p) => p.startDate > (current.endDate || current.startDate) && p !== current) || null;
+  const idx = sorted.findIndex((p) => p.id === current.id);
+  if (idx === -1) return null;
+  return sorted[idx + 1] || null;
 }
 
 export function estimate1RM(weight, reps) {

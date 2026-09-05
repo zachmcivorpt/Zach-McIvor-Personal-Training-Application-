@@ -155,13 +155,13 @@ function PhaseCell({ phase }) {
     return Math.max(0, Math.min(100, Math.round(((now - start) / (end - start)) * 100)));
   })();
   return (
-    <div className="min-w-[160px]">
+    <div className="min-w-[135px]">
       <p className="text-black text-sm font-medium truncate">{phase.name}</p>
       <p className="text-black/35 text-xs mt-0.5">
         {phase.endDate ? `Ends ${new Date(phase.endDate).toLocaleDateString()}` : "No end date"}
       </p>
       {pct !== null && (
-        <div className="mt-1.5 w-32">
+        <div className="mt-1.5 w-28">
           <ProgressBar value={pct} max={100} height={5} color={MEASURE_BLUE} />
         </div>
       )}
@@ -172,7 +172,7 @@ function PhaseCell({ phase }) {
 function NextPhaseCell({ phase }) {
   if (!phase) return <span className="text-black/25 text-sm">—</span>;
   return (
-    <div className="min-w-[140px]">
+    <div className="min-w-[115px]">
       <p className="text-black/70 text-sm font-medium truncate">{phase.name}</p>
       <p className="text-black/35 text-xs mt-0.5">Starts {new Date(phase.startDate).toLocaleDateString()}</p>
     </div>
@@ -303,7 +303,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8">
+    <div className="max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8">
       {checkedIds.size > 0 ? (
         <div className="flex items-center justify-between gap-3 mb-6 bg-black text-white rounded-xl px-4 py-3">
           <div className="flex items-center gap-3">
@@ -346,18 +346,18 @@ export default function CoachClients({ showToast, search, setSearch }) {
       </div>
 
       {/* desktop table */}
-      <div className="hidden md:block border border-black/8 rounded-2xl overflow-hidden">
-        <table className="w-full text-left border-collapse">
+      <div className="hidden md:block border border-black/8 rounded-2xl overflow-x-auto">
+        <table className="w-full min-w-[1080px] text-left border-collapse">
           <thead>
             <tr className="bg-black/[0.03] border-b border-black/8">
-              <th className="w-10 px-4 py-3" />
+              <th className="w-10 px-3 py-3" />
               <th className="px-2 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NAME</th>
-              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">MAIN PROGRAM</th>
-              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
-              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NEXT PHASE</th>
-              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">ENGAGEMENT</th>
-              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide">STATUS</th>
-              <th className="px-5 py-3 text-black/40 text-[11px] font-semibold tracking-wide text-right">ACTION</th>
+              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">MAIN PROGRAM</th>
+              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
+              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NEXT PHASE</th>
+              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">ENGAGEMENT</th>
+              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">STATUS</th>
+              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide text-right">ACTION</th>
             </tr>
           </thead>
           <tbody>
@@ -378,7 +378,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     checkedIds.has(c.id) ? "bg-blue-50/50" : ""
                   }`}
                 >
-                  <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={checkedIds.has(c.id)}
@@ -387,33 +387,33 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     />
                   </td>
                   <td className="px-2 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={c.name} url={c.avatarUrl} size={38} />
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={c.name} url={c.avatarUrl} size={36} />
                       <div className="min-w-0">
                         <p className="text-black font-semibold text-sm truncate">{c.name}</p>
                         <p className="text-black/35 text-xs truncate">{c.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-3 py-3.5">
                     <span className="text-black/60 text-sm">{mainProgramLabel(c)}</span>
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-3 py-3.5">
                     <PhaseCell phase={currentPhase} />
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-3 py-3.5">
                     <NextPhaseCell phase={nextPhase} />
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-3 py-3.5">
                     <EngagementBadges awaitingReply={awaitingReply} pendingCheckins={pendingCheckins} />
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="px-3 py-3.5">
                     <div className="flex items-center gap-1.5">
                       <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
                       {c.accessPaused && <Pill tone="warning">Paused</Pill>}
                     </div>
                   </td>
-                  <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
                       {c.status === "active" && (
                         <button
