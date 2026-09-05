@@ -345,8 +345,10 @@ export default function CoachClients({ showToast, search, setSearch }) {
         />
       </div>
 
-      {/* desktop table */}
-      <div className="hidden md:block border border-black/8 rounded-2xl overflow-x-auto">
+      {/* desktop table — horizontally scrollable on any viewport narrower than
+          its min-width, with momentum scrolling on iOS Safari so a swipe
+          actually glides instead of just nudging a pixel at a time */}
+      <div className="hidden md:block border border-black/8 rounded-2xl overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
         <table className="w-full min-w-[1080px] text-left border-collapse">
           <thead>
             <tr className="bg-black/[0.03] border-b border-black/8">
