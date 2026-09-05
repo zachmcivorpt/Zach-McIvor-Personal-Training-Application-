@@ -88,7 +88,10 @@ export default function PrivacyPolicy() {
             <h2 className="text-black font-semibold text-base mb-2">Contact</h2>
             <p>
               Questions about your data or this policy can be sent directly to your coach, Zach McIvor, at{" "}
-              <span className="font-semibold">[ADD CONTACT EMAIL HERE]</span>.
+              <a href="mailto:zachmcivorpt@outlook.com" className="font-semibold text-black underline">
+                zachmcivorpt@outlook.com
+              </a>
+              .
             </p>
           </section>
         </div>
