@@ -50,9 +50,10 @@ import {
   Video,
   Percent,
   Lock,
+  Paperclip,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
-import { uploadMessageVideo } from "../lib/storage";
+import { uploadMessageVideo, uploadMessagePdf } from "../lib/storage";
 import {
   LineChart,
   Line,
@@ -3864,6 +3865,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const [uploadPct, setUploadPct] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const videoInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -3884,6 +3886,22 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
     setUploadPct(0);
     try {
       const attachment = await uploadMessageVideo(user.id, file, setUploadPct);
+      onSend("", attachment);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadPct(null);
+    }
+  }
+
+  async function handlePdfFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError("");
+    setUploadPct(0);
+    try {
+      const attachment = await uploadMessagePdf(user.id, file, setUploadPct);
       onSend("", attachment);
     } catch (err) {
       setUploadError(err.message);
@@ -3948,6 +3966,15 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
         >
           {uploadPct !== null ? <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span> : <Video size={17} />}
+        </button>
+        <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
+        <button
+          onClick={() => pdfInputRef.current?.click()}
+          disabled={uploadPct !== null}
+          aria-label="Attach a PDF"
+          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+        >
+          <Paperclip size={17} />
         </button>
         <input
           value={input}

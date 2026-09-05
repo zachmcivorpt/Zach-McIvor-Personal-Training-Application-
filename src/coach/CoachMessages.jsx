@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { FullScreenOverlay, Avatar } from "../components/ui";
-import { Search, Send, ChevronLeft, MessageCircle, FileText, Video, X } from "lucide-react";
-import { uploadMessageVideo } from "../lib/storage";
+import { Search, Send, ChevronLeft, MessageCircle, FileText, Video, Paperclip, X } from "lucide-react";
+import { uploadMessageVideo, uploadMessagePdf } from "../lib/storage";
 
 function AttachmentPill({ attachment, tone = "light" }) {
   if (!attachment) return null;
@@ -33,6 +33,7 @@ function ThreadMessages({ client }) {
   const [uploadPct, setUploadPct] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const videoInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
   const endRef = useRef(null);
   const thread = db.messages[client.id] || [];
 
@@ -54,6 +55,22 @@ function ThreadMessages({ client }) {
     setUploadPct(0);
     try {
       const attachment = await uploadMessageVideo(client.id, file, setUploadPct);
+      sendMessage(client.id, "coach", "", attachment);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadPct(null);
+    }
+  }
+
+  async function handlePdfFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError("");
+    setUploadPct(0);
+    try {
+      const attachment = await uploadMessagePdf(client.id, file, setUploadPct);
       sendMessage(client.id, "coach", "", attachment);
     } catch (err) {
       setUploadError(err.message);
@@ -101,6 +118,15 @@ function ThreadMessages({ client }) {
           ) : (
             <Video size={17} />
           )}
+        </button>
+        <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
+        <button
+          onClick={() => pdfInputRef.current?.click()}
+          disabled={uploadPct !== null}
+          aria-label="Attach a PDF"
+          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+        >
+          <Paperclip size={17} />
         </button>
         <input
           value={input}

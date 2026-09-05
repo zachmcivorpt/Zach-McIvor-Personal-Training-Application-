@@ -3,9 +3,10 @@ Firebase Storage Security Rules — Zach McIvor Personal Training app
 
 WHAT THIS IS
 ------------
-This unlocks video messages (e.g. a client sending a form-check video to
-you). Everything else in the app still works without this — it only
-gates the new "attach a video" button in Messages.
+This unlocks video and PDF attachments in Messages (a client sending a
+form-check video, either side sending a PDF — a program, invoice, form,
+etc.). Everything else in the app still works without this — it only
+gates the "attach a video" / "attach a PDF" buttons in Messages.
 
 Firebase Storage was created in "production mode" (same as Firestore),
 which denies every read and write until you paste rules in. If Storage
@@ -33,21 +34,26 @@ STEP 1 — APPLY THE RULES
    to the final closing brace) and paste it in.
 4. Click "Publish".
 
-Changes take effect within about a minute.
+Changes take effect within about a minute. If you already published the
+video-only version of these rules before, just repeat this step with the
+updated rules below — it replaces the old ones with the same video
+permissions plus the new PDF ones.
 
 
 HOW THIS IS DESIGNED
 ---------------------
 - A client can only upload into their own folder (messageVideos/{their
-  own uid}/...) — never another client's.
-- You (the coach) can upload into any client's folder.
-- Any signed-in user (you or any client) can READ any video under
-  messageVideos/ — needed so the video actually plays back in the
-  message thread. Nobody signed out, and nobody outside your two-person
-  app, can access these.
-- Every upload is capped at 75MB and must actually be a video file
-  (checked by its content type) — rejects anything else before it's
-  even stored.
+  own uid}/... or messageDocs/{their own uid}/...) — never another
+  client's.
+- You (the coach) can upload into any client's folder, of either kind.
+- Any signed-in user (you or any client) can READ any video or PDF
+  under messageVideos/ or messageDocs/ — needed so it actually plays
+  back / opens in the message thread. Nobody signed out, and nobody
+  outside your two-person app, can access these.
+- Every video upload is capped at 75MB and must actually be a video
+  file (checked by its content type); every PDF upload is capped at
+  20MB and must actually be a PDF — both reject anything else before
+  it's even stored.
 
 
 RULES
@@ -64,6 +70,14 @@ service firebase.storage {
          firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "coach") &&
         request.resource.size < 75 * 1024 * 1024 &&
         request.resource.contentType.matches('video/.*');
+    }
+    match /messageDocs/{clientId}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null &&
+        (request.auth.uid == clientId ||
+         firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == "coach") &&
+        request.resource.size < 20 * 1024 * 1024 &&
+        request.resource.contentType == 'application/pdf';
     }
   }
 }
