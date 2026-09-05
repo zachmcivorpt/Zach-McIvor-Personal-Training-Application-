@@ -3,7 +3,7 @@ import { useApp, getCurrentPhase, getNextPhase } from "../lib/AppContext";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
 import { MEASURE_BLUE } from "../theme";
-import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X } from "lucide-react";
+import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat } from "lucide-react";
 
 export function inviteMailto({ email, name, username, code, coachName }) {
   const activateUrl = `${window.location.origin}/activate`;
@@ -246,7 +246,7 @@ function RowActions({ onOpen, onRemove }) {
 }
 
 export default function CoachClients({ showToast, search, setSearch }) {
-  const { db, removeClient } = useApp();
+  const { db, removeClient, startViewAsClient } = useApp();
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [checkedIds, setCheckedIds] = useState(() => new Set());
@@ -390,8 +390,20 @@ export default function CoachClients({ showToast, search, setSearch }) {
                   <td className="px-5 py-3.5">
                     <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
                   </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <RowActions onOpen={() => setSelectedId(c.id)} onRemove={() => removeClient(c.id)} />
+                  <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {c.status === "active" && (
+                        <button
+                          onClick={() => startViewAsClient(c.id)}
+                          title="Browse and act in the app exactly as this client"
+                          aria-label={`View as ${c.name}`}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors shrink-0"
+                        >
+                          <Repeat size={14} />
+                        </button>
+                      )}
+                      <RowActions onOpen={() => setSelectedId(c.id)} onRemove={() => removeClient(c.id)} />
+                    </div>
                   </td>
                 </tr>
               );
@@ -431,6 +443,19 @@ export default function CoachClients({ showToast, search, setSearch }) {
                   <p className="text-black font-semibold text-sm truncate">{c.name}</p>
                   <p className="text-black/35 text-xs truncate">{mainProgramLabel(c)}</p>
                 </div>
+                {c.status === "active" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startViewAsClient(c.id);
+                    }}
+                    title="Browse and act in the app exactly as this client"
+                    aria-label={`View as ${c.name}`}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-700 shrink-0"
+                  >
+                    <Repeat size={14} />
+                  </button>
+                )}
                 <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
               </div>
               <div className="flex items-center justify-between gap-3">
