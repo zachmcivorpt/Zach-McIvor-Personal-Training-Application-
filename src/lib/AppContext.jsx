@@ -588,6 +588,21 @@ export function AppProvider({ children }) {
         updateDoc(doc(firestore, "exercises", id), data).catch(console.error);
       },
 
+      // Bulk-imports library exercises (e.g. from the seed list) keeping
+      // each one's fixed id, unlike createExercise which always mints a
+      // fresh random id. Starter program templates reference exercises by
+      // that fixed id, so importing them any other way silently breaks
+      // every exercise lookup in an imported program.
+      async importSeedExercises(list) {
+        try {
+          const batch = writeBatch(firestore);
+          list.forEach((ex) => batch.set(doc(firestore, "exercises", ex.id), ex));
+          await batch.commit();
+        } catch (err) {
+          throw new Error("Couldn't import exercises — " + (err.message || "please try again."));
+        }
+      },
+
       deleteExercise(id) {
         deleteDoc(doc(firestore, "exercises", id)).catch(console.error);
       },

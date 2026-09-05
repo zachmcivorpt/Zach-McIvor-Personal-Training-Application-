@@ -196,7 +196,7 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
 }
 
 export default function CoachExercises({ showToast, compact = false }) {
-  const { db, createExercise } = useApp();
+  const { db, importSeedExercises: bulkImportExercises } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | exercise | null
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState(false);
@@ -205,19 +205,17 @@ export default function CoachExercises({ showToast, compact = false }) {
 
   async function importSeedExercises() {
     setImporting(true);
-    const existingNames = new Set(db.exercises.map((e) => e.name));
-    const toImport = SEED_EXERCISES.filter((e) => !existingNames.has(e.name));
-    let created = 0;
+    // Dedupe by the seed's fixed id, not by name — a name-only check let a
+    // past import mint a random id for a same-named exercise, which then
+    // silently broke every starter-program reference to that fixed id.
+    const existingIds = new Set(db.exercises.map((e) => e.id));
+    const toImport = SEED_EXERCISES.filter((e) => !existingIds.has(e.id));
     try {
-      for (const ex of toImport) {
-        const { id: _id, ...data } = ex;
-        await createExercise(data);
-        created++;
-      }
-      if (created === 0) {
+      if (toImport.length === 0) {
         showToast("Your library already has every exercise in the seed list");
       } else {
-        showToast(`Imported ${created} exercise${created === 1 ? "" : "s"}`);
+        await bulkImportExercises(toImport);
+        showToast(`Imported ${toImport.length} exercise${toImport.length === 1 ? "" : "s"}`);
       }
     } catch (err) {
       showToast(err.message || "Import stopped — something went wrong");

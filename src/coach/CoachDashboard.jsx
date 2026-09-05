@@ -20,7 +20,7 @@ import {
 
 // The check-in's own Q&A, plus a reply box right there — so reviewing one
 // from the dashboard doesn't require a separate trip into Messages first.
-function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, showToast }) {
+function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, markFormResponseRead, showToast }) {
   const [reply, setReply] = useState("");
   const [sent, setSent] = useState(false);
 
@@ -28,6 +28,7 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
     const text = reply.trim();
     if (!text) return;
     sendMessage(clientId, "coach", text);
+    if (response.read === false) markFormResponseRead(response.id);
     setReply("");
     setSent(true);
     showToast?.(`Message sent to ${clientName.split(" ")[0]}`);
@@ -316,7 +317,6 @@ export default function CoachDashboard({ onNavigate, showToast }) {
               const { client, response } = pendingCheckinList[0];
               const form = (db.forms || []).find((f) => f.id === response.formId);
               setViewingActivity({ type: "checkin", clientId: client.id, clientName: client.name, subject: form?.name || "a check-in", response, form });
-              if (response.read === false) markFormResponseRead(response.id);
             } else {
               onNavigate("clients");
             }
@@ -350,10 +350,7 @@ export default function CoachDashboard({ onNavigate, showToast }) {
                 <ActivityItem
                   key={i}
                   item={item}
-                  onClick={() => {
-                    setViewingActivity(item);
-                    if (item.type === "checkin" && item.response?.read === false) markFormResponseRead(item.response.id);
-                  }}
+                  onClick={() => setViewingActivity(item)}
                 />
               ))
             )}
@@ -416,6 +413,7 @@ export default function CoachDashboard({ onNavigate, showToast }) {
             form={viewingActivity.form}
             response={viewingActivity.response}
             sendMessage={sendMessage}
+            markFormResponseRead={markFormResponseRead}
             showToast={showToast}
           />
         ) : (
