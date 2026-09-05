@@ -99,6 +99,7 @@ import {
   computePersonalBests,
   computePRsInLastNDays,
   computeWorkoutStreak,
+  computeMonthlyConsistency,
   computeAchievements,
   computePerformanceTimeline,
   computeWeeklySessionCompletion,
@@ -3274,6 +3275,10 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
     () => computeWeeklySessionCompletion(logsForClient, scheduledWorkouts),
     [logsForClient, scheduledWorkouts]
   );
+  const monthlyConsistency = useMemo(
+    () => computeMonthlyConsistency(logsForClient, scheduledWorkouts),
+    [logsForClient, scheduledWorkouts]
+  );
 
   const tiles = useMemo(() => {
     const workoutsSeries = computeWorkoutsSeries(logsForClient);
@@ -3299,17 +3304,17 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         date: "this month",
       },
       {
-        key: "strength",
-        label: "Strength Progress",
+        key: "consistency",
+        label: "Training Consistency",
         unit: "",
         decimals: 0,
         series: null,
-        latest:
-          timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
-        date: "avg. across main lifts",
+        latest: monthlyConsistency.pct != null ? `${monthlyConsistency.pct}%` : "—",
+        date:
+          monthlyConsistency.pct != null ? `${monthlyConsistency.completed} of ${monthlyConsistency.expected} this month` : "this month",
       },
     ];
-  }, [logsForClient, scheduledWorkouts, timeline]);
+  }, [logsForClient, scheduledWorkouts, monthlyConsistency]);
 
   const latestWeighIn = weighIns[weighIns.length - 1];
   const firstWeighIn = weighIns[0];

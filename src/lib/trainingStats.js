@@ -237,6 +237,19 @@ export function computeWeeklySessionCompletion(logs, scheduledWorkouts) {
   return { completed, expected: scheduledThisWeek.length, pct: Math.round((completed / scheduledThisWeek.length) * 100) };
 }
 
+// Same idea as computeWeeklySessionCompletion but for the current calendar
+// month — completed scheduled sessions / planned scheduled sessions * 100.
+// Comes back with pct: null (not 0%) when nothing's scheduled this month.
+export function computeMonthlyConsistency(logs, scheduledWorkouts) {
+  const now = new Date();
+  const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const scheduledThisMonth = (scheduledWorkouts || []).filter((w) => w.date.startsWith(monthPrefix));
+  if (scheduledThisMonth.length === 0) return { completed: 0, expected: 0, pct: null };
+  const loggedDates = new Set((logs || []).map((l) => new Date(l.date).toISOString().slice(0, 10)));
+  const completed = scheduledThisMonth.filter((w) => loggedDates.has(w.date)).length;
+  return { completed, expected: scheduledThisMonth.length, pct: Math.round((completed / scheduledThisMonth.length) * 100) };
+}
+
 // Consecutive weeks (most recent first) with at least one logged workout.
 // A week that's still in progress (this week) doesn't break the streak if
 // it simply has no logs yet.
