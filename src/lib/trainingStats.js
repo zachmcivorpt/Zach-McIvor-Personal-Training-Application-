@@ -237,6 +237,23 @@ export function computeWeeklySessionCompletion(logs, scheduledWorkouts) {
   return { completed, expected: scheduledThisWeek.length, pct: Math.round((completed / scheduledThisWeek.length) * 100) };
 }
 
+// Kg lifted so far this calendar month — sits on the Performance Timeline
+// alongside Strength/Bodyweight/PRs so training volume gets equal billing
+// without needing to dig into the full Weekly Training Volume chart.
+export function computeMonthlyVolume(logs) {
+  const now = new Date();
+  const total = (logs || [])
+    .filter((l) => {
+      const d = new Date(l.date);
+      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+    })
+    .reduce(
+      (a, log) => a + (log.entries || []).reduce((b, e) => b + (e.sets || []).reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0),
+      0
+    );
+  return Math.round(total);
+}
+
 // Same idea as computeWeeklySessionCompletion but for the current calendar
 // month — completed scheduled sessions / planned scheduled sessions * 100.
 // Comes back with pct: null (not 0%) when nothing's scheduled this month.

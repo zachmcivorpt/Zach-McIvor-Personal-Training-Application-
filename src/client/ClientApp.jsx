@@ -100,9 +100,9 @@ import {
   computePRsInLastNDays,
   computeWorkoutStreak,
   computeMonthlyConsistency,
+  computeMonthlyVolume,
   computeAchievements,
   computePerformanceTimeline,
-  computeWeeklySessionCompletion,
   closestWeighIn,
   suggestNextSet,
 } from "../lib/trainingStats";
@@ -2905,7 +2905,7 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
 // Clean 30-day snapshot — strength trend, bodyweight change, consistency,
 // PRs — the "how's the last month actually gone" view, distinct from the
 // tiles above it which are lifetime/this-week counters.
-function PerformanceTimelineCard({ timeline, weekly }) {
+function PerformanceTimelineCard({ timeline, monthlyVolume }) {
   const items = [
     {
       label: "Strength",
@@ -2918,9 +2918,9 @@ function PerformanceTimelineCard({ timeline, weekly }) {
       value: timeline.bodyweightChange != null ? `${timeline.bodyweightChange > 0 ? "+" : ""}${timeline.bodyweightChange} kg` : "—",
     },
     {
-      label: "Consistency",
-      sub: weekly.pct != null ? `${weekly.completed} of ${weekly.expected} sessions` : "nothing scheduled this week",
-      value: weekly.pct != null ? `${weekly.pct}%` : "—",
+      label: "Volume Lifted",
+      sub: "this month",
+      value: `${monthlyVolume.toLocaleString()} kg`,
     },
     { label: "PRs set", sub: "new heaviest lifts", value: `${timeline.prCount}` },
   ];
@@ -3271,10 +3271,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
     () => computePerformanceTimeline(logsForClient, weighIns, exercisesById, 30),
     [logsForClient, weighIns, exercisesById]
   );
-  const weekly = useMemo(
-    () => computeWeeklySessionCompletion(logsForClient, scheduledWorkouts),
-    [logsForClient, scheduledWorkouts]
-  );
+  const monthlyVolume = useMemo(() => computeMonthlyVolume(logsForClient), [logsForClient]);
   const monthlyConsistency = useMemo(
     () => computeMonthlyConsistency(logsForClient, scheduledWorkouts),
     [logsForClient, scheduledWorkouts]
@@ -3344,7 +3341,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
       </div>
 
       <div className="px-3 space-y-4">
-        <PerformanceTimelineCard timeline={timeline} weekly={weekly} />
+        <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} />
 
         <div>
           <p className="text-black font-semibold mb-3">My Progress</p>
