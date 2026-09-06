@@ -174,7 +174,7 @@ export default function LoginScreen() {
             e.currentTarget.style.display = "none";
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
+          style={{ filter: "brightness(0.9) contrast(1.25) saturate(0.85)" }}
         />
       ) : (
         <img
@@ -186,17 +186,16 @@ export default function LoginScreen() {
             e.currentTarget.style.display = "none";
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
+          style={{ filter: "brightness(0.9) contrast(1.25) saturate(0.85)" }}
           draggable={false}
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/75" />
 
       <div className="relative min-h-screen w-full flex flex-col px-6 py-10">
-        {/* Top: brand mark + wordmark */}
-        <div className="flex flex-col items-center gap-2 shrink-0">
-          <Logo variant="wordmark" tone="white" className="h-14 w-auto" />
-          <p className="text-white/60 text-[10px] font-semibold tracking-[0.5em]">COACHING PLATFORM</p>
+        {/* Top: brand mark */}
+        <div className="flex flex-col items-center shrink-0">
+          <Logo variant="mark" tone="white" className="h-20 w-auto" />
         </div>
 
         {/* Middle: login / signup */}
