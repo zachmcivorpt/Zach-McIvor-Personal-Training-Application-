@@ -1,0 +1,104 @@
+APEX Coaching Platform — App Store Submission Guide (iOS, on your Mac)
+========================================================================
+
+WHAT THIS IS
+------------
+Step-by-step instructions for packaging APEX as a native iOS app and
+submitting it to the Apple App Store. This has to be done on a Mac —
+Apple requires the final build to be compiled and signed with Xcode,
+which only runs on macOS. Nothing here can be done from a Claude Code
+cloud session; these are manual steps for you to follow yourself.
+
+Your live app URL:      https://zach-mc-ivor-personal-training-appl.vercel.app
+Your privacy policy URL: https://zach-mc-ivor-personal-training-appl.vercel.app/legal/privacy-policy
+
+
+STEP 1 — Enroll in the Apple Developer Program
+------------------------------------------------
+1. Go to https://developer.apple.com/programs
+2. Click "Enroll", sign in with your Apple ID.
+3. Choose "Individual" (not "Organization" — that requires a D-U-N-S
+   business number and a lot more paperwork; Individual is fine for
+   publishing solo).
+4. Pay the $99/year fee.
+5. Approval usually takes a few hours to a day.
+
+
+STEP 2 — Generate the iOS package with PWABuilder
+----------------------------------------------------
+1. On your Mac, open pwabuilder.com in Safari or Chrome.
+2. Paste in your live app URL (above) and click "Start".
+3. It scans the app and shows a readiness report — the manifest and
+   icons are already set up correctly, so this should score well.
+4. Click "Package for Stores" -> choose "iOS".
+5. Fill in the fields it asks for:
+   - Bundle ID: something like com.apexcoaching.app
+   - Apple Developer Team ID: found at developer.apple.com under
+     "Membership" once Step 1 is approved
+6. Download the generated .zip file.
+
+
+STEP 3 — Open it in Xcode
+----------------------------
+1. Unzip the download.
+2. Open the .xcodeproj (or .xcworkspace) file inside — this launches
+   Xcode automatically.
+3. In Xcode's left sidebar, click the project name at the very top.
+4. Go to the "Signing & Capabilities" tab.
+5. Under "Team", select your Apple Developer account. Xcode will
+   auto-generate the signing certificate for you.
+
+
+STEP 4 — Test it
+-------------------
+1. At the top of the Xcode window, pick a simulator (e.g. "iPhone 15")
+   from the device dropdown.
+2. Click the Run button (the triangle/play icon).
+3. Confirm the app opens and loads your real app content — try
+   signing in, check the login screen looks right.
+
+
+STEP 5 — Create the App Store listing
+-----------------------------------------
+1. Go to https://appstoreconnect.apple.com
+2. My Apps -> the "+" button -> New App.
+3. Fill in:
+   - Name: APEX Coaching Platform
+   - Category: Health & Fitness
+   - Privacy Policy URL: (see top of this file)
+4. You'll need a few screenshots — take them from the Xcode simulator
+   (Simulator app -> File -> Save Screen, or Cmd+S while it's focused).
+5. Write a short app description. Ask your Claude Code session to
+   draft this for you if you want a hand with the wording.
+6. Under "App Privacy", fill in the data-collection questionnaire —
+   this should match what's disclosed in the Privacy Policy (health
+   and fitness data, account info, messages/photos between coach and
+   client).
+
+
+STEP 6 — Archive and submit
+-------------------------------
+1. Back in Xcode: Product menu -> Archive. This packages the final
+   release build (takes a minute or two).
+2. When the Organizer window opens showing your archive, click
+   "Distribute App".
+3. Choose "App Store Connect" -> follow the prompts -> Upload.
+4. Back in App Store Connect, go to your app listing, attach the
+   build you just uploaded (may take 10-30 min to finish processing
+   on Apple's end before it's selectable).
+5. Click "Submit for Review".
+
+Apple's review typically takes 1-3 days. You'll get an email either
+approving it or asking for changes.
+
+
+ANDROID (BONUS — doesn't need a Mac at all)
+-----------------------------------------------
+Same starting point, done entirely in your browser:
+1. pwabuilder.com -> paste your URL -> "Package for Stores" -> Android.
+2. It builds a signed .aab package for you in the cloud — no Android
+   Studio needed.
+3. Download it and upload directly to Google Play Console
+   (play.google.com/console), $25 one-time developer fee.
+4. Fill in the same kind of store listing (name, description,
+   screenshots, privacy policy URL, data safety questionnaire).
