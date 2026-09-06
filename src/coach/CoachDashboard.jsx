@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
@@ -186,20 +186,37 @@ function ActivityItem({ item, onClick }) {
 // general/business-level scratch space (plans, reminders, things to
 // follow up on) that isn't tied to any one client.
 function CoachNotesCard({ currentUser, updateUser, showToast }) {
-  // Local state is only ever seeded from currentUser once, on mount — it
-  // deliberately does NOT resync if currentUser.coachNotes changes later
-  // (e.g. this same write echoing back through the realtime listener),
-  // since that previously could clobber keystrokes typed after a save was
-  // already in flight.
-  const [notes, setNotes] = useState(currentUser?.coachNotes || "");
+  const serverValue = currentUser?.coachNotes || "";
+  const [notes, setNotes] = useState(serverValue);
   const [saving, setSaving] = useState(false);
-  const dirty = notes !== (currentUser?.coachNotes || "");
+  // Explicit dirty flag rather than deriving it from notes !== serverValue:
+  // deriving it meant this only ever seeded from the server ONCE, at
+  // mount, to avoid a save's own echo (arriving back through the realtime
+  // listener) clobbering keystrokes typed after that save started. But
+  // that also meant if currentUser.coachNotes was still empty/stale at
+  // this component's very first render (e.g. right after sign-in, before
+  // Firestore's first snapshot lands), it stayed stuck blank forever —
+  // typing "into" it from there just overwrote whatever was actually
+  // saved, which is exactly what looked like "notes aren't saving."
+  // Tracking dirty explicitly lets a not-yet-edited textarea keep picking
+  // up the real server value whenever it arrives, while still protecting
+  // in-progress edits once the coach actually starts typing.
+  const [dirty, setDirty] = useState(false);
+  const lastServerValueRef = useRef(serverValue);
+
+  useEffect(() => {
+    if (serverValue === lastServerValueRef.current) return;
+    lastServerValueRef.current = serverValue;
+    if (!dirty) setNotes(serverValue);
+  }, [serverValue, dirty]);
 
   async function save() {
     if (saving) return;
     setSaving(true);
     try {
       await updateUser(currentUser.id, { coachNotes: notes });
+      lastServerValueRef.current = notes;
+      setDirty(false);
       showToast?.("Notes saved");
     } catch (err) {
       showToast?.(err.message || "Couldn't save");
@@ -227,7 +244,10 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
       </div>
       <textarea
         value={notes}
-        onChange={(e) => setNotes(e.target.value)}
+        onChange={(e) => {
+          setNotes(e.target.value);
+          setDirty(true);
+        }}
         placeholder="Anything to remember — plans, reminders, things to follow up on. Only you can see this."
         rows={4}
         className="w-full bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-3 text-sm text-black outline-none placeholder:text-black/30 resize-none"
