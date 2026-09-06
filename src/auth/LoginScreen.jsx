@@ -126,9 +126,10 @@ export default function LoginScreen() {
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0A0A0B]">
       {/* Background — coach-customizable via Settings -> Design Settings
           (db.appDesign.loginBackgroundUrl), a photo OR a short looping
-          video. Falls back to public/brand/login-bg.jpg (always a still
-          image) if a file's been dropped there; until either exists this
-          quietly stays hidden and the dark background above shows instead. */}
+          video. Falls back to public/brand/login-bg.jpg (the default
+          mountain photo) otherwise. objectPosition keeps the mountain's
+          peak visually centered even when a narrow phone screen crops the
+          wide source photo down to a tall sliver. */}
       {db.appDesign?.loginBackgroundUrl && db.appDesign?.loginBackgroundType === "video" ? (
         <video
           key={db.appDesign.loginBackgroundUrl}
@@ -154,7 +155,10 @@ export default function LoginScreen() {
             e.currentTarget.style.display = "none";
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
+          style={{
+            filter: "brightness(0.95) contrast(1.05) saturate(0.95)",
+            objectPosition: db.appDesign?.loginBackgroundUrl ? "center" : "66% center",
+          }}
           draggable={false}
         />
       )}
