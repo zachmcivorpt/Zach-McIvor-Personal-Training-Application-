@@ -1,13 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { FullScreenOverlay, Avatar } from "../components/ui";
-import { Search, Send, ChevronLeft, MessageCircle, FileText, Video, Paperclip, X } from "lucide-react";
-import { uploadMessageVideo, uploadMessagePdf } from "../lib/storage";
+import { Search, Send, ChevronLeft, MessageCircle, FileText, Video, Paperclip, Image as ImageIcon, X } from "lucide-react";
+import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
 
 function AttachmentPill({ attachment, tone = "light" }) {
   if (!attachment) return null;
   if (attachment.type === "video") {
     return <video src={attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />;
+  }
+  if (attachment.type === "image") {
+    return (
+      <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+        <img src={attachment.url} alt={attachment.name || "Photo"} className="w-full max-w-[220px] rounded-lg object-cover" />
+      </a>
+    );
   }
   return (
     <a
@@ -34,6 +41,7 @@ function ThreadMessages({ client }) {
   const [uploadError, setUploadError] = useState("");
   const videoInputRef = useRef(null);
   const pdfInputRef = useRef(null);
+  const imageInputRef = useRef(null);
   const endRef = useRef(null);
   const thread = db.messages[client.id] || [];
 
@@ -71,6 +79,22 @@ function ThreadMessages({ client }) {
     setUploadPct(0);
     try {
       const attachment = await uploadMessagePdf(client.id, file, setUploadPct);
+      sendMessage(client.id, "coach", "", attachment);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadPct(null);
+    }
+  }
+
+  async function handleImageFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError("");
+    setUploadPct(0);
+    try {
+      const attachment = await uploadMessageImage(client.id, file, setUploadPct);
       sendMessage(client.id, "coach", "", attachment);
     } catch (err) {
       setUploadError(err.message);
@@ -127,6 +151,15 @@ function ThreadMessages({ client }) {
           className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
         >
           <Paperclip size={17} />
+        </button>
+        <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
+        <button
+          onClick={() => imageInputRef.current?.click()}
+          disabled={uploadPct !== null}
+          aria-label="Attach a photo"
+          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+        >
+          <ImageIcon size={17} />
         </button>
         <input
           value={input}

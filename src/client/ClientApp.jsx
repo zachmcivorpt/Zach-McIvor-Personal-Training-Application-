@@ -54,7 +54,7 @@ import {
   Paperclip,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
-import { uploadMessageVideo, uploadMessagePdf } from "../lib/storage";
+import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
 import {
   LineChart,
   Line,
@@ -984,7 +984,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                   if (!ex) return null;
                   return (
                     <div key={i} className="flex items-center gap-3 py-3.5 border-b border-black/5">
-                      <ExerciseThumb exercise={ex} size={56} />
+                      <ExerciseThumb exercise={ex} size={56} rounded="rounded-lg" className="shadow-sm" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
@@ -1262,10 +1262,10 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   return (
     <div className="pt-1 pb-5 px-1 border-b border-black/10 last:border-b-0">
       <div className="flex items-center gap-3">
-        <ExerciseThumb exercise={exercise} size={56} />
+        <ExerciseThumb exercise={exercise} size={56} rounded="rounded-lg" className="shadow-sm" />
         <button type="button" onClick={() => onOpenDetail?.(exercise, exMeta)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-1.5">
-            <p className="text-black font-bold text-[15px] truncate">{exercise.name}</p>
+            <p className="text-black font-bold text-[17px] truncate">{exercise.name}</p>
             {exMeta.groupType && (
               <span className="bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                 {exMeta.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
@@ -1277,7 +1277,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
               </span>
             )}
           </div>
-          <p className="text-black/45 text-[13px] mt-0.5">
+          <p className="text-black/45 text-[14px] mt-0.5">
             {exMeta.targetSets} sets × {formatTargetReps(exMeta)}
           </p>
         </button>
@@ -1311,7 +1311,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         <div className="mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5">
           <p className="text-black/35 text-[10px] font-semibold tracking-wide mb-1">COACH'S NOTES</p>
           <div className="flex items-start gap-2">
-            <p className={`text-black/80 text-[13px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
+            <p className={`text-black/80 text-[14px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
             {isLongNote && (
               <button
                 onClick={() => setNotesExpanded((v) => !v)}
@@ -1351,7 +1351,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             placeholder="Add your own note on this exercise…"
             rows={2}
             autoFocus
-            className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[13px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
+            className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[14px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
           />
           <p className="text-[11px] mt-1 px-0.5" style={{ color: noteStatus === "saved" ? "#16A34A" : "rgba(10,10,11,0.3)" }}>
             {noteStatus === "saving" ? "Saving…" : noteStatus === "saved" ? "Saved ✓" : "Autosaves as you type"}
@@ -1365,11 +1365,11 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         className="mt-3 w-full flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"
       >
         <Hand size={14} style={{ color: MEASURE_BLUE }} className="shrink-0" />
-        <span className="text-[12px] font-medium flex-1 text-left" style={{ color: MEASURE_BLUE }}>
+        <span className="text-[13px] font-medium flex-1 text-left" style={{ color: MEASURE_BLUE }}>
           Tap to start rest timer
         </span>
         <span
-          className="bg-white border border-black/10 text-[12px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
+          className="bg-white border border-black/10 text-[13px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
           style={{ color: MEASURE_BLUE }}
         >
           <Clock size={11} />
@@ -1378,22 +1378,22 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       </button>
 
       <div className="mt-3">
-        <div className="grid grid-cols-[28px_1fr_80px_60px] gap-2 px-1 mb-1.5">
-          <span className="text-black/60 text-[12px] font-bold">Set</span>
-          <span className="text-black/60 text-[12px] font-bold">Previous</span>
-          <span className="text-black/60 text-[10px] font-bold text-center leading-tight">
+        <div className="grid grid-cols-[30px_1fr_84px_64px] gap-2 px-1 mb-1.5">
+          <span className="text-black/60 text-[13px] font-bold">Set</span>
+          <span className="text-black/60 text-[13px] font-bold">Previous</span>
+          <span className="text-black/60 text-[11px] font-bold text-center leading-tight">
             {exMeta.targetType === "time" ? "Seconds" : "Repetitions"}
           </span>
-          <span className="text-black/60 text-[12px] font-bold text-center">Kg</span>
+          <span className="text-black/60 text-[13px] font-bold text-center">Kg</span>
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           const suggestion = suggestNextSet(prev, exMeta.targetReps);
           return (
-            <div key={i} className="grid grid-cols-[28px_1fr_80px_60px] gap-2 items-center px-1 py-1.5">
-              <span className="text-black text-[14px] font-medium">{i + 1}</span>
+            <div key={i} className="grid grid-cols-[30px_1fr_84px_64px] gap-2 items-center px-1 py-1.5">
+              <span className="text-black text-[15px] font-medium">{i + 1}</span>
               <div className="min-w-0">
-                <p className="text-black/40 text-[13px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
+                <p className="text-black/40 text-[14px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
                 {suggestion && !row.weight && !row.reps && (
                   <button
                     type="button"
@@ -1401,9 +1401,9 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                       onChangeField(i, "weight", String(suggestion.weight));
                       onChangeField(i, "reps", String(suggestion.reps));
                     }}
-                    className="flex items-center gap-1 text-amber-600 text-[11px] font-semibold mt-0.5"
+                    className="flex items-center gap-1 text-amber-600 text-[12px] font-semibold mt-0.5"
                   >
-                    <TrendingUp size={11} className="shrink-0" />
+                    <TrendingUp size={12} className="shrink-0" />
                     <span className="truncate">Try {suggestion.reps} × {suggestion.weight}kg</span>
                   </button>
                 )}
@@ -1414,7 +1414,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.reps}
                 onChange={(e) => onChangeField(i, "reps", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[14px] font-medium py-2 outline-none focus:border-black/40"
+                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[16px] font-medium py-2 outline-none focus:border-black/40"
               />
               <input
                 type="number"
@@ -1422,14 +1422,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[14px] font-medium py-2 outline-none focus:border-black/40"
+                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[16px] font-medium py-2 outline-none focus:border-black/40"
               />
             </div>
           );
         })}
         <button onClick={onAddSet} className="flex items-center gap-1.5 mt-2 px-1" style={{ color: MEASURE_BLUE }}>
           <Plus size={14} className="border rounded-full p-0.5 box-content" style={{ borderColor: MEASURE_BLUE }} />
-          <span className="text-[13px] font-semibold">Add new set</span>
+          <span className="text-[14px] font-semibold">Add new set</span>
         </button>
       </div>
     </div>
@@ -1679,7 +1679,7 @@ function WorkoutSession({
           <button onClick={onExit} className="text-black/60 text-sm font-medium">
             Cancel
           </button>
-          <h1 className="text-black font-bold text-[15px] truncate px-2">{daySession.label}</h1>
+          <h1 className="text-black font-bold text-[17px] truncate px-2">{daySession.label}</h1>
           <button onClick={onFinish} className="text-black font-bold text-sm shrink-0">
             Save
           </button>
@@ -3996,6 +3996,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const [uploadError, setUploadError] = useState("");
   const videoInputRef = useRef(null);
   const pdfInputRef = useRef(null);
+  const imageInputRef = useRef(null);
   const endRef = useRef(null);
 
   useEffect(() => {
@@ -4040,6 +4041,22 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
     }
   }
 
+  async function handleImageFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploadError("");
+    setUploadPct(0);
+    try {
+      const attachment = await uploadMessageImage(user.id, file, setUploadPct);
+      onSend("", attachment);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadPct(null);
+    }
+  }
+
   return (
     <BottomSheet open={open} onClose={onClose} title="Messages">
       <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
@@ -4058,6 +4075,10 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
               {m.text && <p className="whitespace-pre-line">{m.text}</p>}
               {m.attachment && m.attachment.type === "video" ? (
                 <video src={m.attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />
+              ) : m.attachment && m.attachment.type === "image" ? (
+                <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+                  <img src={m.attachment.url} alt={m.attachment.name || "Photo"} className="w-full max-w-[220px] rounded-lg object-cover" />
+                </a>
               ) : (
                 m.attachment && (
                   <a
@@ -4105,6 +4126,15 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
         >
           <Paperclip size={17} />
+        </button>
+        <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
+        <button
+          onClick={() => imageInputRef.current?.click()}
+          disabled={uploadPct !== null}
+          aria-label="Attach a photo"
+          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+        >
+          <ImageIcon size={17} />
         </button>
         <input
           value={input}

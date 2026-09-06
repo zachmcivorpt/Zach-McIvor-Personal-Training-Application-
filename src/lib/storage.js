@@ -8,6 +8,7 @@ import { storage } from "./firebase";
 
 const MAX_VIDEO_BYTES = 75 * 1024 * 1024; // 75MB
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
+const MAX_MESSAGE_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
 const MAX_DESIGN_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
 // A background video autoplays for every single visitor on every visit to
 // the login screen — capped well below the message-video limit so it
@@ -70,6 +71,21 @@ export function uploadMessageVideo(clientId, file, onProgress) {
     );
   }
   return uploadToPath(`messageVideos/${clientId}/${Date.now()}_${file.name}`, file, "video", "Video", onProgress);
+}
+
+// A photo attached to a regular message (a meal, an injury, gym setup,
+// etc.) — same reasoning as video/PDF: a real Storage upload rather than
+// base64 so it isn't squeezed by Firestore's 1MB document cap.
+export function uploadMessageImage(clientId, file, onProgress) {
+  if (!file.type.startsWith("image/")) {
+    return Promise.reject(new Error("Please choose an image file."));
+  }
+  if (file.size > MAX_MESSAGE_IMAGE_BYTES) {
+    return Promise.reject(
+      new Error(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB — please keep it under ${MAX_MESSAGE_IMAGE_BYTES / 1024 / 1024}MB.`)
+    );
+  }
+  return uploadToPath(`messageImages/${clientId}/${Date.now()}_${file.name}`, file, "image", "Image", onProgress);
 }
 
 // Same idea for a PDF attached to a regular message (a program summary, an

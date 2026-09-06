@@ -47,7 +47,7 @@ export function VideoPlayerSheet({ exerciseName, videoUrl, onClose }) {
 // a generic camera icon standing in for it, and tapping it opens a full
 // player. Falls back to a plain (non-interactive) dumbbell icon when there's
 // no video at all.
-export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl" }) {
+export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", className = "" }) {
   const [playerOpen, setPlayerOpen] = useState(false);
   const parsed = exercise?.videoUrl ? parseVideoUrl(exercise.videoUrl) : null;
 
@@ -71,7 +71,7 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl" }) 
   if (!parsed) {
     return (
       <div
-        className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded}`}
+        className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
         style={{ width: size, height: size }}
       >
         {content}
@@ -87,7 +87,7 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl" }) 
           e.stopPropagation();
           setPlayerOpen(true);
         }}
-        className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded}`}
+        className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
         style={{ width: size, height: size }}
         aria-label={`Play demo video${exercise?.name ? ` for ${exercise.name}` : ""}`}
       >
