@@ -5,7 +5,7 @@
 // `body` is an array of either a plain paragraph string or a
 // `{ list: [...] }` bullet list.
 export const LEGAL_CONTACT = {
-  email: "apexcoachingplatform@outlook.com",
+  email: "apexplatformmanagement@outlook.com",
   address: "", // fill in once you have a business address you want published
   abn: "", // optional — leave blank if you don't have one yet
 };
