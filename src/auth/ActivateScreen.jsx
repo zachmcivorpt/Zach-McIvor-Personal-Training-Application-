@@ -12,6 +12,7 @@ export default function ActivateScreen() {
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -85,9 +86,25 @@ export default function ActivateScreen() {
             <TextInput type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Re-enter password" />
           </Field>
 
+          <label className="flex items-start gap-2.5 text-white/50 text-xs leading-relaxed">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 shrink-0 accent-white"
+            />
+            <span>
+              I agree to the{" "}
+              <Link to="/legal/privacy-policy" target="_blank" className="text-white underline underline-offset-2">
+                Privacy Policy
+              </Link>
+              .
+            </span>
+          </label>
+
           {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
 
-          <PrimaryButton type="submit" disabled={busy || !username || !code || !password || !confirm} className="w-full">
+          <PrimaryButton type="submit" disabled={busy || !username || !code || !password || !confirm || !agreed} className="w-full">
             <ShieldCheck size={18} /> ACTIVATE & SIGN IN
           </PrimaryButton>
         </form>

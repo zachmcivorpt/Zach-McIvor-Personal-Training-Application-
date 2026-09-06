@@ -14,6 +14,7 @@ function CoachSignupForm() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [setupCode, setSetupCode] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -75,11 +76,26 @@ function CoachSignupForm() {
           <TextInput type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Re-enter password" required />
         </Field>
 
+        <label className="flex items-start gap-2.5 text-white/50 text-xs leading-relaxed">
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 shrink-0 accent-white" />
+          <span>
+            I agree to the{" "}
+            <Link to="/legal/terms-of-service" target="_blank" className="text-white underline underline-offset-2">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/legal/coach-responsibility-agreement" target="_blank" className="text-white underline underline-offset-2">
+              Coach Responsibility Agreement
+            </Link>
+            .
+          </span>
+        </label>
+
         {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
 
         <PrimaryButton
           type="submit"
-          disabled={busy || !name || !email || !username || !password || !confirm || !setupCode}
+          disabled={busy || !name || !email || !username || !password || !confirm || !setupCode || !agreed}
           className="w-full !rounded-full"
         >
           <Lock size={16} /> CREATE ACCOUNT & SIGN IN
