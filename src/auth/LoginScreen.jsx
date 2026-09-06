@@ -142,7 +142,7 @@ export default function LoginScreen() {
             e.currentTarget.style.display = "none";
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.76) contrast(1.08) saturate(0.85)" }}
+          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
         />
       ) : (
         <img
@@ -154,16 +154,15 @@ export default function LoginScreen() {
             e.currentTarget.style.display = "none";
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.76) contrast(1.08) saturate(0.85)" }}
+          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
           draggable={false}
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/38 via-black/52 to-black/88" />
-      <div className="absolute inset-0 bg-black/18" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
 
       <div className="relative min-h-screen w-full flex flex-col px-6 py-8">
         <div className="flex justify-center pt-2">
-          <Logo variant="mark" tone="white" className="h-9 w-auto" />
+          <Logo variant="wordmark" tone="white" className="h-24 w-auto" />
         </div>
 
         <div className="flex-1 min-h-8" />
