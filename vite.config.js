@@ -14,9 +14,9 @@ export default defineConfig({
         // if name/start_url ever change later — PWABuilder's Android
         // packaging step reads this for the TWA's identity.
         id: '/',
-        name: 'Zach McIvor Personal Training',
-        short_name: 'ZM Training',
-        description: 'Forge Your Path — coaching and client app for Zach McIvor Personal Training.',
+        name: 'APEX Coaching Platform',
+        short_name: 'APEX',
+        description: 'APEX Coaching Platform — train, nutrition, lifestyle, performance.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

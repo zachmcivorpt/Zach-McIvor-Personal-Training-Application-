@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { X, Check, Camera, Dumbbell, Video, Play } from "lucide-react";
 import { SURFACE, SURFACE_RAISED, BORDER, ACCENT, MEASURE_BLUE } from "../theme";
-import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE, TAGLINE_LOGO, TAGLINE_LOGO_BLACK } from "../lib/brand";
+import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { parseVideoUrl } from "../lib/video";
@@ -124,7 +124,7 @@ export function Logo({ variant = "wordmark", tone = "white", className = "", sty
   return (
     <img
       src={customUrl || BRAND_SOURCES[`${variant}-${tone}`]}
-      alt="Zach McIvor Personal Training"
+      alt="APEX Coaching Platform"
       className={className}
       style={style}
       draggable={false}
@@ -132,11 +132,19 @@ export function Logo({ variant = "wordmark", tone = "white", className = "", sty
   );
 }
 
-// The brand slogan — the coach's own hand-lettered "Forge Your Path" mark.
+// The platform's small category tagline ("TRAIN / NUTRITION / LIFESTYLE /
+// PERFORMANCE") — real letter-spaced text rather than a baked-in image, so
+// it stays crisp at any size and adapts to either tone automatically.
 // tone: "white" (for dark surfaces, e.g. the login screen) | "black" (for
 // the app's now-light everyday screens).
-export function Tagline({ tone = "black", className = "h-5 w-auto opacity-80" }) {
-  return <img src={tone === "white" ? TAGLINE_LOGO : TAGLINE_LOGO_BLACK} alt="Forge Your Path" className={className} draggable={false} />;
+export function Tagline({ tone = "black", className = "" }) {
+  return (
+    <p
+      className={`text-[10px] font-semibold tracking-[0.35em] text-center ${tone === "white" ? "text-white/80" : "text-black/50"} ${className}`}
+    >
+      TRAIN / NUTRITION / LIFESTYLE / PERFORMANCE
+    </p>
+  );
 }
 
 // Shows the uploaded photo when set, otherwise the initial-letter circle

@@ -234,7 +234,7 @@ export default function LoginScreen() {
           )}
 
           <div className="flex flex-col items-center mt-10">
-            <Tagline tone="white" className="h-9 w-auto opacity-90" />
+            <Tagline tone="white" />
           </div>
         </div>
       </div>
