@@ -53,9 +53,7 @@ function CoachSignupForm() {
 
   return (
     <div>
-      <p className="text-white/50 text-sm text-center mb-6">
-        Set up your own coach account — your clients, programs and branding stay completely separate from every other coach on the platform.
-      </p>
+      <p className="text-white/50 text-sm text-center mb-6">Set up your own coach account.</p>
       <form onSubmit={submit} className="space-y-4">
         <Field label="BUSINESS NAME" hint="Becomes your own sign-in link, e.g. /login/your-business">
           <TextInput value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="e.g. Apex Fitness" required />
