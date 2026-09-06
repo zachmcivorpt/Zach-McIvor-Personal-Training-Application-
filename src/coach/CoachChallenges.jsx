@@ -166,6 +166,96 @@ function LeaderboardSheet({ challenge, clientsById, onClose }) {
   );
 }
 
+function StatTile({ label, value, tone = "neutral" }) {
+  return (
+    <Card className="!p-4">
+      <p className={`text-3xl font-bold leading-none ${tone === "blue" ? "text-blue-500" : "text-black"}`}>{value}</p>
+      <p className="text-black/40 text-[11px] tracking-wide mt-2">{label}</p>
+    </Card>
+  );
+}
+
+// A short, human line about where a challenge sits in its own timeline —
+// "days left" for something running now, a start countdown for something
+// upcoming — so a coach can tell at a glance which ones need attention
+// without opening each card.
+function timelineLabel(c, status, todayKey) {
+  const today = new Date(todayKey);
+  if (status === "upcoming") {
+    const days = Math.max(1, Math.ceil((new Date(c.startDate) - today) / 86400000));
+    return `Starts in ${days} day${days === 1 ? "" : "s"}`;
+  }
+  if (status === "active") {
+    const days = Math.ceil((new Date(c.endDate) - today) / 86400000);
+    return days <= 0 ? "Ends today" : `${days} day${days === 1 ? "" : "s"} left`;
+  }
+  return `Ended ${new Date(c.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+}
+
+function ChallengeCard({ challenge: c, status, metric, clientsById, onView, onEdit }) {
+  const participants = (c.participantIds || []).map((id) => clientsById[id]).filter(Boolean);
+  const today = new Date();
+  const pctElapsed =
+    status === "active"
+      ? Math.min(100, Math.max(0, Math.round(((today - new Date(c.startDate)) / (new Date(c.endDate) - new Date(c.startDate))) * 100)))
+      : null;
+  const ACCENT = { active: "bg-blue-500", upcoming: "bg-black/25", ended: "bg-black/10" };
+  const STATUS_TONE = { active: "solid", upcoming: "outline", ended: "muted" };
+  const STATUS_LABEL = { active: "Active", upcoming: "Upcoming", ended: "Ended" };
+
+  return (
+    <Card onClick={onView} className="!p-0 overflow-hidden hover:shadow-md transition cursor-pointer">
+      <div className={`h-1 ${ACCENT[status]}`} />
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+            <Trophy size={17} className="text-blue-500" />
+          </div>
+          <Pill tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Pill>
+        </div>
+        <p className="text-black font-bold mt-2.5 truncate">{c.name}</p>
+        <p className="text-black/40 text-xs mt-0.5">{metric?.label} · {timelineLabel(c, status, new Date().toISOString().slice(0, 10))}</p>
+
+        {status === "active" && (
+          <div className="mt-3 h-1.5 rounded-full bg-black/8 overflow-hidden">
+            <div className="h-full rounded-full bg-blue-500" style={{ width: `${pctElapsed}%` }} />
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-black/5">
+          {participants.length > 0 ? (
+            <div className="flex items-center -space-x-2">
+              {participants.slice(0, 4).map((p) => (
+                <div key={p.id} className="ring-2 ring-white rounded-full">
+                  <Avatar name={p.name} url={p.avatarUrl} size={26} />
+                </div>
+              ))}
+              {participants.length > 4 && (
+                <div className="w-[26px] h-[26px] rounded-full bg-black/8 ring-2 ring-white flex items-center justify-center text-black/50 text-[10px] font-semibold">
+                  +{participants.length - 4}
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className="flex items-center gap-1 text-black/30 text-xs">
+              <Users size={12} /> No participants
+            </span>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit();
+            }}
+            className="text-blue-600 hover:text-blue-700 text-xs font-semibold shrink-0"
+          >
+            Edit
+          </button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 export default function CoachChallenges({ showToast }) {
   const { db, createChallenge, updateChallenge, deleteChallenge } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | challenge | null
@@ -174,6 +264,7 @@ export default function CoachChallenges({ showToast }) {
   const activeClients = db.users.filter((u) => u.role === "client" && u.status === "active");
   const clientsById = Object.fromEntries(db.users.map((u) => [u.id, u]));
   const todayKey = new Date().toISOString().slice(0, 10);
+  const statuses = challenges.map((c) => challengeStatus(c, todayKey));
 
   async function handleSave(draft) {
     try {
@@ -196,13 +287,10 @@ export default function CoachChallenges({ showToast }) {
     setEditing(null);
   }
 
-  const STATUS_TONE = { active: "solid", upcoming: "outline", ended: "muted" };
-  const STATUS_LABEL = { active: "Active", upcoming: "Upcoming", ended: "Ended" };
-
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <p className="text-black/40 text-sm">{challenges.length} total · leaderboards computed from real workout, weigh-in and check-in data</p>
+    <div className="max-w-6xl mx-auto px-4 pt-5 pb-8 md:px-8 md:pt-8">
+      <div className="flex items-center justify-between gap-3 mb-1">
+        <h1 className="text-black text-2xl font-bold">Challenges</h1>
         <button
           onClick={() => setEditing({ isNew: true })}
           aria-label="New challenge"
@@ -211,41 +299,35 @@ export default function CoachChallenges({ showToast }) {
           <Plus size={16} /> <span className="hidden sm:inline">NEW CHALLENGE</span>
         </button>
       </div>
+      <p className="text-black/40 text-sm mb-5">Leaderboards computed automatically from real workout, weigh-in and check-in data.</p>
+
+      {challenges.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 mb-6 max-w-md">
+          <StatTile label="ACTIVE" value={statuses.filter((s) => s === "active").length} tone="blue" />
+          <StatTile label="UPCOMING" value={statuses.filter((s) => s === "upcoming").length} />
+          <StatTile label="ENDED" value={statuses.filter((s) => s === "ended").length} />
+        </div>
+      )}
 
       {challenges.length === 0 ? (
-        <Card>
-          <p className="text-black/40 text-sm text-center py-6">No challenges yet — create one to get clients competing.</p>
-        </Card>
+        <div className="border border-dashed border-black/12 rounded-2xl py-14 text-center">
+          <Trophy size={22} className="text-black/15 mx-auto mb-3" />
+          <p className="text-black/40 text-sm font-medium">No challenges yet</p>
+          <p className="text-black/30 text-xs mt-1">Create one to get clients competing.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {challenges.map((c) => {
-            const status = challengeStatus(c, todayKey);
-            const metric = CHALLENGE_METRICS.find((m) => m.id === c.metric);
-            return (
-              <Card key={c.id} onClick={() => setViewing(c)}>
-                <div className="flex items-center justify-between mb-1.5">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Trophy size={16} className="text-blue-500" />
-                  </div>
-                  <Pill tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Pill>
-                </div>
-                <p className="text-black font-semibold mt-2 truncate">{c.name}</p>
-                <p className="text-black/40 text-xs mt-0.5">{metric?.label}</p>
-                <div className="flex items-center gap-1 text-black/35 text-xs mt-2">
-                  <Users size={12} /> {(c.participantIds || []).length} participant{(c.participantIds || []).length === 1 ? "" : "s"}
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditing(c);
-                  }}
-                  className="text-blue-600 hover:text-blue-700 text-xs font-semibold mt-2.5"
-                >
-                  Edit
-                </button>
-              </Card>
-            );
-          })}
+          {challenges.map((c, i) => (
+            <ChallengeCard
+              key={c.id}
+              challenge={c}
+              status={statuses[i]}
+              metric={CHALLENGE_METRICS.find((m) => m.id === c.metric)}
+              clientsById={clientsById}
+              onView={() => setViewing(c)}
+              onEdit={() => setEditing(c)}
+            />
+          ))}
         </div>
       )}
 
