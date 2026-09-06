@@ -159,12 +159,13 @@ export default function LoginScreen() {
       ) : null}
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
 
-      <div className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-8">
-        <div className="w-full max-w-sm mx-auto">
-          <div className="flex justify-center mb-8">
-            <Logo variant="mark" tone="white" className="h-14 w-auto" />
-          </div>
+      <div className="relative min-h-screen w-full flex flex-col px-6 py-8">
+        <div className="flex justify-center pt-2">
+          <Logo variant="mark" tone="white" className="h-14 w-auto" />
+        </div>
 
+        <div className="flex-1 flex flex-col justify-center">
+        <div className="w-full max-w-sm mx-auto">
           <div className="flex bg-white/10 backdrop-blur-sm border border-white/10 rounded-full p-1 mb-6">
             {[
               { id: "client", label: "Client" },
@@ -229,9 +230,11 @@ export default function LoginScreen() {
             </>
           )}
 
-          <div className="flex flex-col items-center mt-10">
-            <Tagline tone="white" />
-          </div>
+        </div>
+        </div>
+
+        <div className="flex flex-col items-center">
+          <Tagline tone="white" />
         </div>
       </div>
     </div>
