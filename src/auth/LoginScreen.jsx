@@ -166,7 +166,7 @@ export default function LoginScreen() {
 
       <div className="relative min-h-screen w-full flex flex-col px-6 py-8">
         <div className="flex justify-center pt-2">
-          <Logo variant="wordmark" tone="white" className="h-24 w-auto" />
+          <Logo variant="mark" tone="white" className="h-9 w-auto" />
         </div>
 
         <div className="flex-1 min-h-8" />
