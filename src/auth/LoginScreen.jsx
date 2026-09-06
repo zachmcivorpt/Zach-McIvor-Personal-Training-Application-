@@ -1,36 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, Link } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db as firestore } from "../lib/firebase";
+import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Tagline } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "./authUi";
 import { ChevronRight, Lock } from "lucide-react";
+import { COACH_SETUP_CODE } from "../lib/config";
 
-// Default APEX brand background (dark mountain peak) — shown on plain
-// /login and on any coach's page who hasn't uploaded their own via
-// Settings -> Design Settings.
+// Default APEX brand background (dark mountain peak), shown until a coach
+// uploads their own via Settings -> Design Settings.
 const DEFAULT_LOGIN_BG = "/brand/login-bg.jpg";
 
-// Open self-serve coach signup — any number of coaches can create their own
-// account here, each fully isolated from every other (see coachId scoping
-// in AppContext.jsx). The business name becomes this coach's own
-// /login/{slug} branded sign-in link, shown back to them in Settings ->
-// Design Settings once they're in.
 function CoachSignupForm() {
   const { createCoachAccount } = useApp();
-  const [businessName, setBusinessName] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [setupCode, setSetupCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
     setError("");
+    if (setupCode.trim() !== COACH_SETUP_CODE) {
+      setError("That setup code isn't right.");
+      return;
+    }
     if (password.length < 6) {
       setError("Choose a password with at least 6 characters.");
       return;
@@ -41,7 +38,7 @@ function CoachSignupForm() {
     }
     setBusy(true);
     try {
-      await createCoachAccount({ name, email, username, password, businessName });
+      await createCoachAccount({ name, email, username, password, setupCode });
       // Navigation happens once the profile listener picks up the new
       // account — see the useEffect in LoginScreen below.
     } catch (err) {
@@ -53,13 +50,21 @@ function CoachSignupForm() {
 
   return (
     <div>
-      <p className="text-white/50 text-sm text-center mb-6">Set up your own coach account.</p>
+      <p className="text-white/50 text-sm text-center mb-6">
+        First time here — set up your coach account. Your password is stored only in this browser, never in the app's code.
+      </p>
       <form onSubmit={submit} className="space-y-4">
-        <Field label="BUSINESS NAME" hint="Becomes your own sign-in link, e.g. /login/your-business">
-          <TextInput value={businessName} onChange={(e) => setBusinessName(e.target.value)} placeholder="e.g. Apex Fitness" required />
+        <Field label="SETUP CODE" hint="Given to you separately — not shared with clients">
+          <TextInput
+            value={setupCode}
+            onChange={(e) => setSetupCode(e.target.value)}
+            placeholder="Enter your setup code"
+            autoCapitalize="characters"
+            required
+          />
         </Field>
         <Field label="FULL NAME">
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Zach McIvor" required />
         </Field>
         <Field label="EMAIL">
           <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
@@ -78,7 +83,7 @@ function CoachSignupForm() {
 
         <PrimaryButton
           type="submit"
-          disabled={busy || !businessName || !name || !email || !username || !password || !confirm}
+          disabled={busy || !name || !email || !username || !password || !confirm || !setupCode}
           className="w-full !rounded-full"
         >
           <Lock size={16} /> CREATE ACCOUNT & SIGN IN
@@ -89,46 +94,14 @@ function CoachSignupForm() {
 }
 
 export default function LoginScreen() {
-  const { login, currentUser, db } = useApp();
+  const { login, hasCoach, currentUser, db } = useApp();
   const navigate = useNavigate();
-  const { coachSlug } = useParams();
   const [role, setRole] = useState("client");
-  const [coachMode, setCoachMode] = useState("signin"); // "signin" | "signup"
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
-  const [slugCoach, setSlugCoach] = useState(null);
-
-  // A branded /login/{slug} link resolves that specific coach's own
-  // branding (logo/background) before anyone's signed in — a plain /login
-  // (no slug) always shows the default APEX look. This is a one-off
-  // lookup, not a live listener, since it only needs to run once per slug.
-  useEffect(() => {
-    if (!coachSlug) {
-      setSlugCoach(null);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      try {
-        const slugSnap = await getDoc(doc(firestore, "coachSlugs", coachSlug));
-        if (!slugSnap.exists() || cancelled) return;
-        const coachSnap = await getDoc(doc(firestore, "coaches", slugSnap.data().coachId));
-        if (!cancelled && coachSnap.exists()) setSlugCoach(coachSnap.data());
-      } catch (err) {
-        console.error("branded login lookup failed:", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [coachSlug]);
-
-  const appDesign = slugCoach?.appDesign || db.appDesign;
-  const bgUrl = appDesign?.loginBackgroundUrl || DEFAULT_LOGIN_BG;
-  const bgType = appDesign?.loginBackgroundUrl ? appDesign.loginBackgroundType : "image";
 
   // Auth (sign-in, coach signup, or activation) is async, and the profile
   // doc that carries `.role` loads a moment after Firebase confirms the
@@ -151,20 +124,18 @@ export default function LoginScreen() {
     }
   }
 
-  const showCoachSignup = role === "coach" && coachMode === "signup";
+  const showCoachSignup = role === "coach" && !hasCoach;
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0A0A0B]">
-      {/* Background — APEX's own dark mountain image by default, so the
-          brand reads clean and sharp everywhere. Coach-customizable via
-          Settings -> Design Settings, a photo OR a short looping video. On
-          a branded /login/{slug} link this is that coach's own appDesign
-          (resolved above); on plain /login it's whichever coach is
-          currently signed in, if any — falling back to the APEX default. */}
-      {bgType === "video" ? (
+      {/* Background — plain black by default, so the logo reads clean and
+          sharp. Coach-customizable via Settings -> Design Settings
+          (db.appDesign.loginBackgroundUrl), a photo OR a short looping
+          video; nothing renders here at all until a coach sets one. */}
+      {db.appDesign?.loginBackgroundUrl && db.appDesign?.loginBackgroundType === "video" ? (
         <video
-          key={bgUrl}
-          src={bgUrl}
+          key={db.appDesign.loginBackgroundUrl}
+          src={db.appDesign.loginBackgroundUrl}
           autoPlay
           muted
           loop
@@ -178,8 +149,8 @@ export default function LoginScreen() {
         />
       ) : (
         <img
-          key={bgUrl}
-          src={bgUrl}
+          key={db.appDesign?.loginBackgroundUrl || DEFAULT_LOGIN_BG}
+          src={db.appDesign?.loginBackgroundUrl || DEFAULT_LOGIN_BG}
           alt=""
           onLoad={() => setBgLoaded(true)}
           onError={(e) => {
@@ -192,15 +163,14 @@ export default function LoginScreen() {
       )}
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/75" />
 
-      <div className="relative min-h-screen w-full flex flex-col px-6 py-10">
-        {/* Top: brand mark */}
-        <div className="flex flex-col items-center shrink-0">
+      <div className="relative min-h-screen w-full flex flex-col px-6 py-8">
+        <div className="flex justify-center pt-2">
           <Logo variant="mark" tone="white" className="h-20 w-auto" />
         </div>
 
-        {/* Middle: login / signup */}
-        <div className="flex-1 flex flex-col justify-center py-8">
-          <div className="w-full max-w-sm mx-auto">
+        <div className="flex-1 min-h-8" />
+
+        <div className="w-full max-w-sm mx-auto">
           <div className="flex bg-white/10 backdrop-blur-sm border border-white/10 rounded-full p-1 mb-6">
             {[
               { id: "client", label: "Client" },
@@ -221,29 +191,6 @@ export default function LoginScreen() {
               </button>
             ))}
           </div>
-
-          {role === "coach" && (
-            <div className="flex justify-center gap-4 mb-5">
-              {[
-                { id: "signin", label: "Sign In" },
-                { id: "signup", label: "Create Account" },
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => {
-                    setCoachMode(m.id);
-                    setError("");
-                  }}
-                  className={`text-sm font-semibold pb-1 border-b-2 transition-colors ${
-                    coachMode === m.id ? "text-white border-white" : "text-white/40 border-transparent"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          )}
 
           {showCoachSignup ? (
             <CoachSignupForm />
@@ -287,12 +234,10 @@ export default function LoginScreen() {
               )}
             </>
           )}
-        </div>
-        </div>
 
-        {/* Bottom: platform tagline */}
-        <div className="flex flex-col items-center shrink-0">
-          <Tagline tone="white" />
+          <div className="flex flex-col items-center mt-10">
+            <Tagline tone="white" />
+          </div>
         </div>
       </div>
     </div>

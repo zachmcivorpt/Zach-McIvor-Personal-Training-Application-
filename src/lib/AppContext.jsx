@@ -26,6 +26,7 @@ import {
 import { auth, db as firestore } from "./firebase";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
+import { COACH_SETUP_CODE } from "./config";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -35,29 +36,6 @@ import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 function stripUndefined(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
-
-// A coach's own URL slug (used for /login/:slug branded sign-in) — derived
-// from their business name, lowercased/hyphenated, with a numeric suffix
-// added by the caller if it collides with an existing one.
-function slugify(str) {
-  return (
-    (str || "")
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-+|-+$)/g, "")
-      .slice(0, 40) || "coach"
-  );
-}
-
-const DEFAULT_COACH_DOC = {
-  name: "",
-  slug: "",
-  avatarUrl: null,
-  timezone: "Australia/Sydney",
-  appDesign: { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null },
-  welcomeMessage: null, // null -> DEFAULT_WELCOME_MESSAGE below
-};
 
 const DEFAULT_HABIT_PRESETS = [
   { id: "hp_steps", label: "12,000 steps" },
@@ -76,7 +54,8 @@ const DEFAULT_WELCOME_MESSAGE = {
     "",
     "Looking forward to getting started!",
     "",
-    "{coachName}",
+    "Zach McIvor",
+    "Zach McIvor Personal Training",
   ].join("\n"),
   attachmentName: "",
   attachmentUrl: "",
@@ -105,22 +84,16 @@ function newDocId(name) {
   return doc(collection(firestore, name)).id;
 }
 
-// One-time seed of a starter exercise/program library for a brand new
-// coach, so their account isn't empty on day one — mirrors what loadDb()
-// used to default to under localStorage. Each coach gets their own copy:
-// the Firestore DOCUMENT id is namespaced by coachId (so two coaches'
-// seeded copies never collide in the shared collection), but the `id`
-// FIELD stored inside stays the original stable string (e.g.
-// "ex_bench-press") — that's the value every exerciseId reference inside
-// SEED_PROGRAMS actually points to, so namespacing only the doc id keeps
-// every internal lookup working with zero remapping.
-async function seedCoachData(coachId) {
+// One-time seed of the shared exercise/program library into a brand new
+// Firebase project, so a freshly created coach account isn't empty —
+// mirrors what loadDb() used to default to under localStorage.
+async function seedCoachData() {
   try {
     const exBatch = writeBatch(firestore);
-    SEED_EXERCISES.forEach((ex) => exBatch.set(doc(firestore, "exercises", `${coachId}__${ex.id}`), { ...ex, coachId }));
+    SEED_EXERCISES.forEach((ex) => exBatch.set(doc(firestore, "exercises", ex.id), ex));
     await exBatch.commit();
     const progBatch = writeBatch(firestore);
-    SEED_PROGRAMS.forEach((p) => progBatch.set(doc(firestore, "programs", `${coachId}__${p.id}`), { ...p, coachId }));
+    SEED_PROGRAMS.forEach((p) => progBatch.set(doc(firestore, "programs", p.id), p));
     await progBatch.commit();
   } catch (err) {
     console.error("seedCoachData failed:", err);
@@ -162,17 +135,13 @@ export function AppProvider({ children }) {
   }, [authUser]);
 
   const role = profile?.role;
-  // A coach's own tenant id is just their own uid; a client's is whichever
-  // coach invited them, stamped on their own users/{uid} doc at activation.
-  const myCoachId = role === "coach" ? profile?.id : profile?.coachId || null;
 
-  // Keeps coaches/{coachId}'s name/avatar (public, readable by that coach's
-  // own clients) in sync with the coach's real users/{uid} doc whenever
-  // either changes.
+  // Keeps settings/coachProfile (public, readable by clients) in sync with
+  // the coach's real users/{uid} doc whenever their name or avatar changes.
   useEffect(() => {
     if (role !== "coach" || !profile) return;
-    setDoc(doc(firestore, "coaches", profile.id), { name: profile.name || "", avatarUrl: profile.avatarUrl || null }, { merge: true }).catch((err) =>
-      console.error("coach profile mirror failed:", err)
+    setDoc(doc(firestore, "settings", "coachProfile"), { name: profile.name || "", avatarUrl: profile.avatarUrl || null }, { merge: true }).catch(
+      (err) => console.error("coachProfile mirror failed:", err)
     );
   }, [role, profile]);
 
@@ -262,45 +231,53 @@ export function AppProvider({ children }) {
       );
     }
 
-    if (!authUser || !role || !myCoachId) return () => unsubs.forEach((u) => u());
+    // Readable before sign-in — lets the Login screen know whether to show
+    // "create the coach account" or a normal sign-in form, and lets
+    // activateAccount() send the auto-welcome message the moment a brand
+    // new client account is created (before its role/profile has loaded).
+    watchDoc("settings", "appMeta", "appMeta", { hasCoach: false });
+    watchDoc("settings", "welcomeMessage", "welcomeMessage", DEFAULT_WELCOME_MESSAGE);
+    // A real client's `users` listener only ever returns their own doc (see
+    // the role==="client" branch below), so they have no way to look up the
+    // coach's name/avatar for things like the client-app chat bubble. This
+    // small public mirror doc is the workaround.
+    watchDoc("settings", "coachProfile", "coachProfile", { name: "", avatarUrl: null });
+    // Coach-customizable branding (login background photo + app logo) —
+    // public/pre-auth for the same reason as the two docs above: the login
+    // screen itself needs the background image before anyone signs in.
+    watchDoc("settings", "appDesign", "appDesign", { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null });
 
-    // This coach's own branding/welcome-message/timezone doc — replaces the
-    // old global settings/* singletons. Public read (see FIRESTORE_RULES),
-    // but only ever watched here once someone's signed in and we know which
-    // coach's doc to read; the login screen resolves a coach's branding
-    // pre-auth via its own one-off slug lookup instead (see LoginScreen.jsx).
-    watchDoc("coaches", myCoachId, "coach", DEFAULT_COACH_DOC);
+    if (!authUser || !role) return () => unsubs.forEach((u) => u());
 
-    // Shared library data, scoped to this coach's own tenant — every other
-    // coach's exercises/programs/etc are invisible.
-    watch("exercises", "exercises", [where("coachId", "==", myCoachId)]);
-    watch("programs", "programs", [where("coachId", "==", myCoachId)]);
-    watch("masterWorkouts", "masterWorkouts", [where("coachId", "==", myCoachId)]);
-    watch("masterMeals", "masterMeals", [where("coachId", "==", myCoachId)]);
-    watch("customFoods", "customFoods", [where("coachId", "==", myCoachId)]);
-    watch("habitPresets", "habitPresets", [where("coachId", "==", myCoachId)]);
-    watch("forms", "forms", [where("coachId", "==", myCoachId)]);
+    // Shared library data — every signed-in user (coach or client) can read it.
+    watch("exercises", "exercises");
+    watch("programs", "programs");
+    watch("masterWorkouts", "masterWorkouts");
+    watch("masterMeals", "masterMeals");
+    watch("customFoods", "customFoods");
+    watch("habitPresets", "habitPresets");
+    watch("forms", "forms");
 
     if (role === "coach") {
-      watch("users", "users", [where("coachId", "==", myCoachId)]);
-      watch("invites", "invites", [where("coachId", "==", myCoachId)]);
-      watch("workoutLogs", "workoutLogs", [where("coachId", "==", myCoachId)]);
-      watch("messages", "messages", [where("coachId", "==", myCoachId)]);
-      watch("progressPhotos", "progressPhotos", [where("coachId", "==", myCoachId)]);
-      watch("savedMeals", "savedMeals", [where("coachId", "==", myCoachId)]);
-      watch("habits", "habits", [where("coachId", "==", myCoachId)]);
-      watch("clientPhases", "clientPhases", [where("coachId", "==", myCoachId)]);
-      watch("formSchedules", "formSchedules", [where("coachId", "==", myCoachId)]);
-      watch("formResponses", "formResponses", [where("coachId", "==", myCoachId)]);
-      watch("clientNotes", "clientNotes", [where("coachId", "==", myCoachId)]);
-      watch("habitLog", "habitLog", [where("coachId", "==", myCoachId)]);
-      watch("weighIns", "weighIns", [where("coachId", "==", myCoachId)]);
-      watch("scheduledWorkouts", "scheduledWorkouts", [where("coachId", "==", myCoachId)]);
-      watch("bodyStatsSchedules", "bodyStatsSchedules", [where("coachId", "==", myCoachId)]);
-      watch("notifications", "notifications", [where("coachId", "==", myCoachId)]);
-      watch("challenges", "challenges", [where("coachId", "==", myCoachId)]);
-      watch("nutritionLogs", "nutritionLogs", [where("coachId", "==", myCoachId)]);
-      watch("bodyMetrics", "bodyMetrics", [where("coachId", "==", myCoachId)]);
+      watch("users", "users");
+      watch("invites", "invites");
+      watch("workoutLogs", "workoutLogs");
+      watch("messages", "messages");
+      watch("progressPhotos", "progressPhotos");
+      watch("savedMeals", "savedMeals");
+      watch("habits", "habits");
+      watch("clientPhases", "clientPhases");
+      watch("formSchedules", "formSchedules");
+      watch("formResponses", "formResponses");
+      watch("clientNotes", "clientNotes");
+      watch("habitLog", "habitLog");
+      watch("weighIns", "weighIns");
+      watch("scheduledWorkouts", "scheduledWorkouts");
+      watch("bodyStatsSchedules", "bodyStatsSchedules");
+      watch("notifications", "notifications");
+      watch("challenges", "challenges");
+      watch("nutritionLogs", "nutritionLogs");
+      watch("bodyMetrics", "bodyMetrics");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -338,7 +315,7 @@ export function AppProvider({ children }) {
     }
 
     return () => unsubs.forEach((u) => u());
-  }, [authUser, role, myCoachId]);
+  }, [authUser, role]);
 
   // Assembles every Firestore listener's output into the exact same shape
   // the rest of this app already expects (db.users, db.workoutLogs, ...) —
@@ -412,7 +389,7 @@ export function AppProvider({ children }) {
       forms: raw.forms || [],
       formSchedules: bucket(raw.formSchedules),
       formResponses: bucket(raw.formResponses, (a, b) => b.date - a.date),
-      welcomeMessage: raw.coach?.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
+      welcomeMessage: raw.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
       clientTags: Object.fromEntries(users.filter((u) => u.role === "client").map((u) => [u.id, u.clientTags || []])),
       clientNotes: bucket(raw.clientNotes, (a, b) => b.date - a.date),
       weighIns: bucket(raw.weighIns, (a, b) => a.date - b.date),
@@ -420,9 +397,8 @@ export function AppProvider({ children }) {
       bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
       notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       challenges: (raw.challenges || []).slice().sort((a, b) => b.createdAt - a.createdAt),
-      coach: raw.coach || DEFAULT_COACH_DOC,
-      coachProfile: { name: raw.coach?.name || "", avatarUrl: raw.coach?.avatarUrl || null },
-      appDesign: raw.coach?.appDesign || { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null },
+      coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
+      appDesign: raw.appDesign || { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null },
       bodyMetrics: bucket(raw.bodyMetrics, (a, b) => a.date.localeCompare(b.date)),
     };
   }, [raw, role, profile]);
@@ -437,6 +413,7 @@ export function AppProvider({ children }) {
   const currentUser =
     viewAsClientId && profile?.role === "coach" ? (db.users || []).find((u) => u.id === viewAsClientId) || profile : profile;
   const session = authUser ? { userId: authUser.uid } : null;
+  const hasCoach = !!raw.appMeta?.hasCoach;
   const authReady = authUser !== undefined;
   // True for the whole window where we can't yet say for certain whether
   // someone is signed in — either Firebase Auth itself hasn't resolved
@@ -465,12 +442,13 @@ export function AppProvider({ children }) {
         await signOut(auth);
       },
 
-      // Open self-serve signup — any number of coaches can create an
-      // account, each fully isolated from every other (see coachId
-      // scoping throughout this file and FIRESTORE_RULES.txt). `businessName`
-      // becomes this coach's URL slug (yourapp.com/login/{slug}) for their
-      // own branded sign-in page; a taken slug gets a numeric suffix.
-      async createCoachAccount({ name, email, username, password, businessName }) {
+      async createCoachAccount({ name, email, username, password, setupCode }) {
+        if (setupCode !== COACH_SETUP_CODE) {
+          throw new Error("That setup code isn't right.");
+        }
+        if (hasCoach) {
+          throw new Error("A coach account already exists.");
+        }
         let cred;
         try {
           cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -480,7 +458,6 @@ export function AppProvider({ children }) {
         const uid = cred.user.uid;
         const coach = {
           role: "coach",
-          coachId: uid,
           name: name.trim(),
           email: email.trim(),
           username: username.trim(),
@@ -488,49 +465,13 @@ export function AppProvider({ children }) {
           createdAt: Date.now(),
           lastLoginAt: Date.now(),
         };
-        try {
-          await setDoc(doc(firestore, "users", uid), coach);
-          const base = slugify(businessName || name);
-          let slug = base;
-          let n = 2;
-          while ((await getDoc(doc(firestore, "coachSlugs", slug))).exists()) {
-            slug = `${base}-${n}`;
-            n++;
-          }
-          await setDoc(doc(firestore, "coachSlugs", slug), { coachId: uid });
-          await setDoc(doc(firestore, "coaches", uid), { ...DEFAULT_COACH_DOC, name: name.trim(), slug, createdAt: Date.now() });
-        } catch (err) {
-          throw new Error("Couldn't finish setting up your account — " + (err.message || "please try again."));
-        }
-        seedCoachData(uid);
+        await setDoc(doc(firestore, "users", uid), coach);
+        await setDoc(doc(firestore, "settings", "appMeta"), { hasCoach: true });
+        seedCoachData();
         return { id: uid, ...coach };
       },
 
-      // Lets a coach rename their own /login/{slug} link later from
-      // Settings -> Design Settings. Frees the old slug and claims the new
-      // one; a collision just gets a numeric suffix, same as at signup.
-      async updateCoachSlug(newBusinessName) {
-        if (!myCoachId) throw new Error("Not signed in as a coach.");
-        const base = slugify(newBusinessName);
-        let slug = base;
-        let n = 2;
-        while ((await getDoc(doc(firestore, "coachSlugs", slug))).exists()) {
-          slug = `${base}-${n}`;
-          n++;
-        }
-        const oldSlug = db.coach?.slug;
-        try {
-          await setDoc(doc(firestore, "coachSlugs", slug), { coachId: myCoachId });
-          await setDoc(doc(firestore, "coaches", myCoachId), { slug }, { merge: true });
-          if (oldSlug && oldSlug !== slug) deleteDoc(doc(firestore, "coachSlugs", oldSlug)).catch(() => {});
-        } catch (err) {
-          throw new Error("Couldn't update your link — " + (err.message || "please try again."));
-        }
-        return slug;
-      },
-
       async createInvite({ name, email }) {
-        if (!myCoachId) throw new Error("Not signed in as a coach.");
         const base = email.trim().toLowerCase();
         let username = base;
         let n = 1;
@@ -539,7 +480,7 @@ export function AppProvider({ children }) {
           n++;
         }
         const code = inviteCode();
-        const invite = { name: name.trim(), email: username, code, coachId: myCoachId, createdAt: Date.now() };
+        const invite = { name: name.trim(), email: username, code, createdAt: Date.now() };
         try {
           await setDoc(doc(firestore, "invites", username), invite);
         } catch (err) {
@@ -586,7 +527,6 @@ export function AppProvider({ children }) {
         const client = {
           ...draft,
           role: "client",
-          coachId: invite.coachId,
           name: invite.name,
           email,
           username: email,
@@ -602,27 +542,15 @@ export function AppProvider({ children }) {
         await setDoc(doc(firestore, "users", uid), client);
         deleteDoc(draftRef).catch(() => {});
         await deleteDoc(inviteRef);
-        // Not signed in with a resolved coachId yet at this point (the
-        // profile/db listeners haven't caught up), so the coach's welcome
-        // message is fetched directly by the invite's own coachId rather
-        // than read from `db`.
-        try {
-          const coachSnap = await getDoc(doc(firestore, "coaches", invite.coachId));
-          const coachData = coachSnap.exists() ? coachSnap.data() : null;
-          const welcome = coachData?.welcomeMessage || DEFAULT_WELCOME_MESSAGE;
-          if (welcome?.autoSend && welcome.text?.trim()) {
-            const text = welcome.text
-              .replace(/\{name\}/gi, invite.name.split(" ")[0])
-              .replace(/\{coachName\}/gi, coachData?.name || "Your Coach");
-            const msgId = newDocId("messages");
-            const msg = { id: msgId, clientId: uid, coachId: invite.coachId, from: "coach", text, date: Date.now() };
-            if (welcome.attachmentUrl) {
-              msg.attachment = { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl };
-            }
-            setDoc(doc(firestore, "messages", msgId), msg).catch(console.error);
+        const welcome = raw.welcomeMessage;
+        if (welcome?.autoSend && welcome.text?.trim()) {
+          const text = welcome.text.replace(/\{name\}/gi, invite.name.split(" ")[0]);
+          const msgId = newDocId("messages");
+          const msg = { id: msgId, clientId: uid, from: "coach", text, date: Date.now() };
+          if (welcome.attachmentUrl) {
+            msg.attachment = { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl };
           }
-        } catch (err) {
-          console.error("auto-welcome message failed:", err);
+          setDoc(doc(firestore, "messages", msgId), msg).catch(console.error);
         }
         return { id: uid, ...client };
       },
@@ -721,7 +649,7 @@ export function AppProvider({ children }) {
 
       async createProgram(data) {
         const id = newDocId("programs");
-        const program = { id, phases: [], coachId: myCoachId, ...data };
+        const program = { id, phases: [], ...data };
         try {
           await setDoc(doc(firestore, "programs", id), stripUndefined(program));
         } catch (err) {
@@ -751,7 +679,6 @@ export function AppProvider({ children }) {
         const phase = {
           id,
           clientId,
-          coachId: myCoachId,
           name: "New Phase",
           level: "Intermediate",
           description: "",
@@ -784,7 +711,7 @@ export function AppProvider({ children }) {
         const src = phases.find((p) => p.id === phaseId);
         if (!src) return null;
         const id = newDocId("clientPhases");
-        const cloned = { ...JSON.parse(JSON.stringify(src)), id, clientId, coachId: myCoachId, createdAt: Date.now(), ...overrides };
+        const cloned = { ...JSON.parse(JSON.stringify(src)), id, clientId, createdAt: Date.now(), ...overrides };
         setDoc(doc(firestore, "clientPhases", id), stripUndefined(cloned)).catch(console.error);
 
         // Re-create the same schedule shape on the new phase's date range —
@@ -811,7 +738,6 @@ export function AppProvider({ children }) {
             batch.set(doc(firestore, "scheduledWorkouts", entryId), {
               id: entryId,
               clientId,
-              coachId: myCoachId,
               date: newDate,
               label: w.label,
               muscleGroups: w.muscleGroups || [],
@@ -826,7 +752,7 @@ export function AppProvider({ children }) {
 
       async createExercise(data) {
         const id = newDocId("exercises");
-        const exercise = { id, instructions: [], formCues: [], secondaryMuscles: [], videoUrl: "", coachId: myCoachId, ...data };
+        const exercise = { id, instructions: [], formCues: [], secondaryMuscles: [], videoUrl: "", ...data };
         try {
           await setDoc(doc(firestore, "exercises", id), exercise);
         } catch (err) {
@@ -847,7 +773,7 @@ export function AppProvider({ children }) {
       async importSeedExercises(list) {
         try {
           const batch = writeBatch(firestore);
-          list.forEach((ex) => batch.set(doc(firestore, "exercises", `${myCoachId}__${ex.id}`), { ...ex, coachId: myCoachId }));
+          list.forEach((ex) => batch.set(doc(firestore, "exercises", ex.id), ex));
           await batch.commit();
         } catch (err) {
           throw new Error("Couldn't import exercises — " + (err.message || "please try again."));
@@ -860,7 +786,7 @@ export function AppProvider({ children }) {
 
       logWorkout(clientId, entry) {
         const id = newDocId("workoutLogs");
-        setDoc(doc(firestore, "workoutLogs", id), { id, clientId, coachId: myCoachId, date: Date.now(), ...entry }).catch(console.error);
+        setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);
       },
 
       // A client's own note on an exercise, saved as soon as they finish
@@ -880,20 +806,20 @@ export function AppProvider({ children }) {
           ? { calories: current.calories, protein: current.protein, carbs: current.carbs, fat: current.fat, water: current.water, meals: current.meals }
           : null;
         const next = updater(base);
-        setDoc(doc(firestore, "nutritionLogs", id), { id, clientId, coachId: myCoachId, date, ...next }).catch(console.error);
+        setDoc(doc(firestore, "nutritionLogs", id), { id, clientId, date, ...next }).catch(console.error);
       },
 
       sendMessage(clientId, from, text, attachment) {
         const trimmed = (text || "").trim();
         if (!trimmed && !attachment) return;
         const id = newDocId("messages");
-        const msg = { id, clientId, coachId: myCoachId, from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}) };
+        const msg = { id, clientId, from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}) };
         setDoc(doc(firestore, "messages", id), msg).catch(console.error);
       },
 
       addProgressPhoto(clientId, dataUrl, caption = "") {
         const id = newDocId("progressPhotos");
-        setDoc(doc(firestore, "progressPhotos", id), { id, clientId, coachId: myCoachId, url: dataUrl, date: Date.now(), caption }).catch(console.error);
+        setDoc(doc(firestore, "progressPhotos", id), { id, clientId, url: dataUrl, date: Date.now(), caption }).catch(console.error);
       },
 
       deleteProgressPhoto(clientId, photoId) {
@@ -902,7 +828,7 @@ export function AppProvider({ children }) {
 
       logWeight(clientId, weight) {
         const id = newDocId("weighIns");
-        setDoc(doc(firestore, "weighIns", id), { id, clientId, coachId: myCoachId, weight, date: Date.now() }).catch(console.error);
+        setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date: Date.now() }).catch(console.error);
       },
 
       // One doc per client per calendar day (steps, sleep, body fat %, lean
@@ -911,7 +837,7 @@ export function AppProvider({ children }) {
       // there instead of overwriting it.
       logBodyMetric(clientId, dateKey, field, value) {
         const id = `${clientId}_${dateKey}`;
-        setDoc(doc(firestore, "bodyMetrics", id), { id, clientId, coachId: myCoachId, date: dateKey, [field]: value }, { merge: true }).catch(console.error);
+        setDoc(doc(firestore, "bodyMetrics", id), { id, clientId, date: dateKey, [field]: value }, { merge: true }).catch(console.error);
       },
 
       // Clears one field from a day's body-metrics doc (steps/sleep/etc. are
@@ -932,7 +858,7 @@ export function AppProvider({ children }) {
       // cleanly replaces whatever was there before instead of duplicating.
       async scheduleWorkout(clientId, { date, label, muscleGroups, exercises }) {
         const id = `${clientId}__${date}`;
-        const entry = { id, clientId, coachId: myCoachId, date, label, muscleGroups: muscleGroups || [], exercises };
+        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises };
         try {
           await setDoc(doc(firestore, "scheduledWorkouts", id), entry);
         } catch (err) {
@@ -951,7 +877,7 @@ export function AppProvider({ children }) {
         const batch = writeBatch(firestore);
         dates.forEach((date) => {
           const id = `${clientId}__${date}`;
-          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, coachId: myCoachId, date, label, muscleGroups: muscleGroups || [], exercises });
+          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises });
         });
         try {
           await batch.commit();
@@ -968,7 +894,7 @@ export function AppProvider({ children }) {
         const batch = writeBatch(firestore);
         dates.forEach((date) => {
           const id = `${clientId}__${date}`;
-          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, coachId: myCoachId, date, label, muscleGroups: muscleGroups || [], exercises });
+          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises });
         });
         try {
           await batch.commit();
@@ -1002,7 +928,7 @@ export function AppProvider({ children }) {
         const batch = writeBatch(firestore);
         dates.forEach((date) => {
           const id = `${clientId}__${date}`;
-          batch.set(doc(firestore, "bodyStatsSchedules", id), { id, clientId, coachId: myCoachId, date });
+          batch.set(doc(firestore, "bodyStatsSchedules", id), { id, clientId, date });
         });
         try {
           await batch.commit();
@@ -1022,12 +948,8 @@ export function AppProvider({ children }) {
           // real users/{id} doc — they're shown from the invites
           // collection instead — so updateDoc would fail outright with
           // "No document to update." setDoc+merge creates it if missing
-          // and behaves exactly like updateDoc when it already exists —
-          // including on that very first write, which is why coachId is
-          // always stamped here too (myCoachId is already the right value
-          // whether the caller is the owning coach or the client
-          // themselves editing their own profile).
-          await setDoc(doc(firestore, "users", id), { coachId: myCoachId, ...stripUndefined(data) }, { merge: true });
+          // and behaves exactly like updateDoc when it already exists.
+          await setDoc(doc(firestore, "users", id), stripUndefined(data), { merge: true });
         } catch (err) {
           throw new Error("Couldn't save — " + (err.message || "please try again."));
         }
@@ -1038,7 +960,7 @@ export function AppProvider({ children }) {
       // workout, which the client app already computes on the fly).
       async notifyCoach(clientId, clientName, type, message) {
         const id = newDocId("notifications");
-        const notification = { id, clientId, coachId: myCoachId, clientName, type, message, createdAt: Date.now(), read: false };
+        const notification = { id, clientId, clientName, type, message, createdAt: Date.now(), read: false };
         try {
           await setDoc(doc(firestore, "notifications", id), notification);
         } catch (err) {
@@ -1056,17 +978,7 @@ export function AppProvider({ children }) {
       // existing workout/weigh-in/check-in data, not tracked separately.
       async createChallenge(data) {
         const id = newDocId("challenges");
-        const challenge = {
-          id,
-          coachId: myCoachId,
-          name: "",
-          description: "",
-          type: "leaderboard",
-          metric: "workouts",
-          participantIds: [],
-          createdAt: Date.now(),
-          ...data,
-        };
+        const challenge = { id, name: "", description: "", type: "leaderboard", metric: "workouts", participantIds: [], createdAt: Date.now(), ...data };
         try {
           await setDoc(doc(firestore, "challenges", id), challenge);
         } catch (err) {
@@ -1087,7 +999,7 @@ export function AppProvider({ children }) {
 
       createSavedMeal(clientId, meal) {
         const id = newDocId("savedMeals");
-        const savedMeal = { id, clientId, coachId: myCoachId, createdAt: Date.now(), ...meal };
+        const savedMeal = { id, clientId, createdAt: Date.now(), ...meal };
         setDoc(doc(firestore, "savedMeals", id), savedMeal).catch(console.error);
         return savedMeal;
       },
@@ -1102,7 +1014,6 @@ export function AppProvider({ children }) {
         const habit = {
           id,
           clientId,
-          coachId: myCoachId,
           label: label.trim(),
           createdAt: Date.now(),
           durationWeeks: weeks,
@@ -1120,23 +1031,14 @@ export function AppProvider({ children }) {
         const dateKey = new Date().toISOString().slice(0, 10);
         const current = (db.habitLog[clientId] || {})[dateKey] || [];
         const next = current.includes(habitId) ? current.filter((id) => id !== habitId) : [...current, habitId];
-        setDoc(doc(firestore, "habitLog", clientId), { coachId: myCoachId, [dateKey]: next }, { merge: true }).catch(console.error);
+        setDoc(doc(firestore, "habitLog", clientId), { [dateKey]: next }, { merge: true }).catch(console.error);
       },
 
       // Master workout templates — reusable building blocks, independent of
       // any single program, that can be dropped into a phase.
       createMasterWorkout(data) {
         const id = newDocId("masterWorkouts");
-        const workout = {
-          id,
-          coachId: myCoachId,
-          label: "New Workout",
-          muscleGroups: [],
-          exercises: [],
-          instructions: "",
-          createdAt: Date.now(),
-          ...data,
-        };
+        const workout = { id, label: "New Workout", muscleGroups: [], exercises: [], instructions: "", createdAt: Date.now(), ...data };
         setDoc(doc(firestore, "masterWorkouts", id), workout).catch(console.error);
         return workout;
       },
@@ -1150,7 +1052,7 @@ export function AppProvider({ children }) {
       // Master meal templates — coach-authored, reusable across clients.
       createMasterMeal(data) {
         const id = newDocId("masterMeals");
-        const meal = { id, coachId: myCoachId, name: "New Meal", ingredients: [], cals: 0, protein: 0, carbs: 0, fat: 0, createdAt: Date.now(), ...data };
+        const meal = { id, name: "New Meal", ingredients: [], cals: 0, protein: 0, carbs: 0, fat: 0, createdAt: Date.now(), ...data };
         setDoc(doc(firestore, "masterMeals", id), meal).catch(console.error);
         return meal;
       },
@@ -1165,7 +1067,7 @@ export function AppProvider({ children }) {
       // wherever the client searches for food to log.
       createFood(data) {
         const id = newDocId("customFoods");
-        const food = { id, coachId: myCoachId, name: "", cals: 0, protein: 0, carbs: 0, fat: 0, ...data };
+        const food = { id, name: "", cals: 0, protein: 0, carbs: 0, fat: 0, ...data };
         setDoc(doc(firestore, "customFoods", id), food).catch(console.error);
         return food;
       },
@@ -1180,7 +1082,7 @@ export function AppProvider({ children }) {
       // client's daily habits (replaces a hardcoded constant).
       createHabitPreset(label) {
         const id = newDocId("habitPresets");
-        const preset = { id, coachId: myCoachId, label: label.trim() };
+        const preset = { id, label: label.trim() };
         setDoc(doc(firestore, "habitPresets", id), preset).catch(console.error);
         return preset;
       },
@@ -1192,7 +1094,7 @@ export function AppProvider({ children }) {
       // rating/photo questions), scheduled recurring onto a client's week.
       async createForm(data) {
         const id = newDocId("forms");
-        const form = { id, coachId: myCoachId, name: "New Check-in", description: "", questions: [], createdAt: Date.now(), ...data };
+        const form = { id, name: "New Check-in", description: "", questions: [], createdAt: Date.now(), ...data };
         try {
           await setDoc(doc(firestore, "forms", id), form);
         } catch (err) {
@@ -1219,7 +1121,7 @@ export function AppProvider({ children }) {
       // program day recurring on the client's rotation, but for check-ins.
       scheduleForm(clientId, formId, dayOfWeek) {
         const id = newDocId("formSchedules");
-        const schedule = { id, clientId, coachId: myCoachId, formId, dayOfWeek, active: true, createdAt: Date.now() };
+        const schedule = { id, clientId, formId, dayOfWeek, active: true, createdAt: Date.now() };
         setDoc(doc(firestore, "formSchedules", id), schedule).catch(console.error);
         return schedule;
       },
@@ -1251,33 +1153,29 @@ export function AppProvider({ children }) {
         const trimmed = text.trim();
         if (!trimmed) return;
         const id = newDocId("clientNotes");
-        setDoc(doc(firestore, "clientNotes", id), { id, clientId, coachId: myCoachId, text: trimmed, date: Date.now() }).catch(console.error);
+        setDoc(doc(firestore, "clientNotes", id), { id, clientId, text: trimmed, date: Date.now() }).catch(console.error);
       },
       deleteClientNote(clientId, noteId) {
         deleteDoc(doc(firestore, "clientNotes", noteId)).catch(console.error);
       },
 
       // The coach's automated welcome message template (text + optional PDF),
-      // auto-sent when a client activates their account. Lives on this
-      // coach's own coaches/{coachId} doc now, not a global singleton.
+      // auto-sent when a client activates their account.
       async updateWelcomeMessage(patch) {
-        if (!myCoachId) throw new Error("Not signed in as a coach.");
         const next = { ...(db.welcomeMessage || DEFAULT_WELCOME_MESSAGE), ...patch };
         try {
-          await setDoc(doc(firestore, "coaches", myCoachId), { welcomeMessage: next }, { merge: true });
+          await setDoc(doc(firestore, "settings", "welcomeMessage"), next);
         } catch (err) {
           throw new Error("Couldn't save — " + (err.message || "please try again."));
         }
       },
 
       // Coach-customizable branding — login background photo + app logo.
-      // Lives on this coach's own coaches/{coachId} doc (public read, so a
-      // client's app and the /login/{slug} page can show it pre-auth).
+      // Public/pre-auth read (see the watchDoc above), coach-only write.
       async updateAppDesign(patch) {
-        if (!myCoachId) throw new Error("Not signed in as a coach.");
         const next = { ...(db.appDesign || { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null }), ...patch };
         try {
-          await setDoc(doc(firestore, "coaches", myCoachId), { appDesign: next }, { merge: true });
+          await setDoc(doc(firestore, "settings", "appDesign"), next);
         } catch (err) {
           throw new Error("Couldn't save — " + (err.message || "please try again."));
         }
@@ -1286,7 +1184,7 @@ export function AppProvider({ children }) {
       // Client-submitted check-in responses.
       submitFormResponse(clientId, { formId, scheduleId, answers }) {
         const id = newDocId("formResponses");
-        const response = { id, clientId, coachId: myCoachId, formId, scheduleId, date: Date.now(), answers, read: false };
+        const response = { id, clientId, formId, scheduleId, date: Date.now(), answers, read: false };
         setDoc(doc(firestore, "formResponses", id), response).catch(console.error);
         return response;
       },
@@ -1294,7 +1192,7 @@ export function AppProvider({ children }) {
         updateDoc(doc(firestore, "formResponses", id), { read: true }).catch(console.error);
       },
     }),
-    [db, raw, myCoachId]
+    [db, raw, hasCoach]
   );
 
   const value = {
@@ -1305,7 +1203,7 @@ export function AppProvider({ children }) {
     viewingAsClient: !!viewAsClientId,
     startViewAsClient: (clientId) => setViewAsClientId(clientId),
     stopViewAsClient: () => setViewAsClientId(null),
-    myCoachId,
+    hasCoach,
     authReady,
     sessionLoading,
     dbReady,

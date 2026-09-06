@@ -42,7 +42,6 @@ function Routed() {
   return (
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
-      <Route path="/login/:coachSlug" element={<LoginScreen />} />
       <Route path="/activate" element={<ActivateScreen />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route
