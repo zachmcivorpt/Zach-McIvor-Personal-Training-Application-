@@ -6,10 +6,6 @@ import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field
 import { ChevronRight, Lock } from "lucide-react";
 import { COACH_SETUP_CODE } from "../lib/config";
 
-// Default APEX brand background (dark mountain peak), shown until a coach
-// uploads their own via Settings -> Design Settings.
-const DEFAULT_LOGIN_BG = "/brand/login-bg.jpg";
-
 function CoachSignupForm() {
   const { createCoachAccount } = useApp();
   const [name, setName] = useState("");
@@ -145,32 +141,30 @@ export default function LoginScreen() {
             e.currentTarget.style.display = "none";
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.9) contrast(1.25) saturate(0.85)" }}
+          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
         />
-      ) : (
+      ) : db.appDesign?.loginBackgroundUrl ? (
         <img
-          key={db.appDesign?.loginBackgroundUrl || DEFAULT_LOGIN_BG}
-          src={db.appDesign?.loginBackgroundUrl || DEFAULT_LOGIN_BG}
+          key={db.appDesign.loginBackgroundUrl}
+          src={db.appDesign.loginBackgroundUrl}
           alt=""
           onLoad={() => setBgLoaded(true)}
           onError={(e) => {
             e.currentTarget.style.display = "none";
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.9) contrast(1.25) saturate(0.85)" }}
+          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
           draggable={false}
         />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/75" />
+      ) : null}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
 
-      <div className="relative min-h-screen w-full flex flex-col px-6 py-8">
-        <div className="flex justify-center pt-2">
-          <Logo variant="mark" tone="white" className="h-14 w-auto" />
-        </div>
-
-        <div className="flex-1 min-h-8" />
-
+      <div className="relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-8">
         <div className="w-full max-w-sm mx-auto">
+          <div className="flex justify-center mb-8">
+            <Logo variant="mark" tone="white" className="h-14 w-auto" />
+          </div>
+
           <div className="flex bg-white/10 backdrop-blur-sm border border-white/10 rounded-full p-1 mb-6">
             {[
               { id: "client", label: "Client" },
