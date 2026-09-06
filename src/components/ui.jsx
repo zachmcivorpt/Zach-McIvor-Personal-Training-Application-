@@ -142,7 +142,7 @@ export function Tagline({ tone = "black", className = "" }) {
     <p
       className={`text-[10px] font-semibold tracking-[0.3em] text-center ${tone === "white" ? "text-white/80" : "text-black/50"} ${className}`}
     >
-      TRAIN / NUTRITION / LIFESTYLE / PERFORMANCE
+      TRAINING &amp; PERFORMANCE
     </p>
   );
 }
