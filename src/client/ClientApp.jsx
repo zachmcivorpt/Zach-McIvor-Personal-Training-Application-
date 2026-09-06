@@ -439,45 +439,30 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
         </div>
       )}
 
-      {isToday ? (
-        <>
-          {completedOnDate && !started && (
-            <div className="flex items-center gap-2 mt-3 text-black/60 text-sm">
-              <Check size={14} /> Workout completed
-            </div>
-          )}
-          <div className="flex gap-2 mt-3.5">
-            {(!completedOnDate || started) && (
-              <button
-                onClick={onStart}
-                className="flex-1 bg-black text-white font-bold py-3 rounded-none text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-              >
-                <Play size={16} fill="white" />
-                {started ? "RESUME" : "START WORKOUT"}
-              </button>
-            )}
-            <button
-              onClick={onView}
-              className={`text-black/70 text-sm font-semibold px-4 rounded-none border-2 border-black/15 bg-black/5 ${
-                completedOnDate && !started ? "flex-1 py-3" : ""
-              }`}
-            >
-              View
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          {completedOnDate && (
-            <div className="flex items-center gap-2 mt-3 text-black/60 text-sm">
-              <Check size={14} /> Workout completed
-            </div>
-          )}
-          <button onClick={onView} className="w-full mt-3 text-black/60 text-sm font-medium py-2 rounded-none border-2 border-black/15 bg-black/5">
-            Preview exercises
-          </button>
-        </>
+      {completedOnDate && !started && (
+        <div className="flex items-center gap-2 mt-3 text-black/60 text-sm">
+          <Check size={14} /> Workout completed
+        </div>
       )}
+      <div className="flex gap-2 mt-3.5">
+        {(!completedOnDate || started) && (
+          <button
+            onClick={onStart}
+            className="flex-1 bg-black text-white font-bold py-3 rounded-none text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          >
+            <Play size={16} fill="white" />
+            {started ? "RESUME" : "START WORKOUT"}
+          </button>
+        )}
+        <button
+          onClick={onView}
+          className={`text-black/70 text-sm font-semibold px-4 rounded-none border-2 border-black/15 bg-black/5 ${
+            completedOnDate && !started ? "flex-1 py-3" : ""
+          }`}
+        >
+          View
+        </button>
+      </div>
     </Card>
   );
 }
@@ -3229,13 +3214,21 @@ function ConsistencyHeatmap({ logs }) {
   );
 }
 
-function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts }) {
+function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey }) {
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
   const [logMetricConfig, setLogMetricConfig] = useState(null);
   const [historyMetricConfig, setHistoryMetricConfig] = useState(null);
+
+  // "Body stats check-in due today" jumps straight here from Home/the
+  // notification bell — landing on the tab isn't the ask, opening the log
+  // sheet itself is. autoOpenWeighInKey increments each time that happens,
+  // so a repeat tap re-opens it even if the client dismissed it last time.
+  useEffect(() => {
+    if (autoOpenWeighInKey) setQuickLogOpen(true);
+  }, [autoOpenWeighInKey]);
 
   const bodyMetricEntries = useMemo(() => {
     const out = {};
@@ -4880,6 +4873,7 @@ export default function ClientApp() {
   const [seenMessageCount, setSeenMessageCount] = useState(0);
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
+  const [autoOpenWeighIn, setAutoOpenWeighIn] = useState(0);
   const sessionStartedAtRef = useRef(null); // wall-clock time the current session started, for a real WORKOUT COMPLETE duration
 
   // An installed PWA is routinely left open (backgrounded, phone locked)
@@ -5002,6 +4996,7 @@ export default function ClientApp() {
         onClick: () => {
           setNotifOpen(false);
           setTab("progress");
+          setAutoOpenWeighIn((n) => n + 1);
         },
       });
     }
@@ -5160,14 +5155,15 @@ export default function ClientApp() {
     const workout = scheduledWorkoutsByDate[fromDate];
     if (!workout) return;
     const destWorkout = scheduledWorkoutsByDate[toDate];
-    scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
     if (destWorkout) {
-      scheduleWorkout(currentUser.id, { date: fromDate, label: destWorkout.label, muscleGroups: destWorkout.muscleGroups, exercises: destWorkout.exercises });
-      showToast("Workouts swapped");
-    } else {
-      unscheduleWorkout(currentUser.id, fromDate);
-      showToast("Workout rescheduled");
+      // That day already has its own workout — leave it exactly as it is
+      // rather than swapping it out to make room for the dragged one.
+      showToast("That day already has a workout scheduled");
+      return;
     }
+    scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
+    unscheduleWorkout(currentUser.id, fromDate);
+    showToast("Workout rescheduled");
   }
 
   return (
@@ -5192,8 +5188,8 @@ export default function ClientApp() {
             user={currentUser}
             todaySession={todaySession}
             activeLog={activeLog}
-            onStartWorkout={() => startWorkout()}
-            onViewWorkout={() => openPreview(daySession, isToday && !completedOnDate)}
+            onStartWorkout={() => startWorkout(daySession)}
+            onViewWorkout={() => openPreview(daySession, !completedOnDate)}
             dayNutrition={dayNutrition}
             targets={targets}
             onLogFood={() => setTab("nutrition")}
@@ -5211,7 +5207,10 @@ export default function ClientApp() {
             dayHabitCompletedIds={dayHabitCompletedIds}
             exercisesById={exercisesById}
             bodyStatsDueToday={bodyStatsDueToday}
-            onLogWeight={() => setTab("progress")}
+            onLogWeight={() => {
+              setTab("progress");
+              setAutoOpenWeighIn((n) => n + 1);
+            }}
             notifCount={notificationItems.length}
             onOpenNotifications={() => setNotifOpen(true)}
             challenges={db.challenges || []}
@@ -5228,7 +5227,7 @@ export default function ClientApp() {
             completedOnDate={completedToday}
             onStart={() => startWorkout()}
             onViewWorkout={() => openPreview(todaySession, !completedToday)}
-            onPreviewWorkout={(day) => openPreview(day, false)}
+            onPreviewWorkout={(day) => openPreview(day, true)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
             onLogCardio={(cardio) => {
@@ -5299,6 +5298,7 @@ export default function ClientApp() {
             onLogBodyMetric={(field, value) => logBodyMetric(currentUser.id, todayDateKey, field, value)}
             onDeleteBodyMetric={(dateKey, field) => deleteBodyMetric(currentUser.id, dateKey, field)}
             scheduledWorkouts={scheduledWorkoutsForClient}
+            autoOpenWeighInKey={autoOpenWeighIn}
           />
         )}
         {tab === "profile" && (

@@ -217,17 +217,33 @@ export function AvatarPicker({ name, url, size = 72, onChange }) {
    OVERLAYS
 ============================================================================ */
 
+// Reference-counted body scroll lock. Sheets routinely nest (e.g. a workout
+// session sheet opens an exercise detail sheet, which opens a video player),
+// and each is its own FullScreenOverlay instance mounting/unmounting on its
+// own schedule. A naive save-then-restore of document.body.style.overflow
+// per instance breaks the instant two are open at once and they close out
+// of mount order — whichever closes last "restores" a value captured while
+// the other was still open, permanently locking the whole app's scroll.
+// Counting locks instead means only the very last one to close ever clears
+// it, regardless of what order they opened or closed in.
+let bodyScrollLockCount = 0;
+function lockBodyScroll() {
+  if (bodyScrollLockCount === 0) document.body.style.overflow = "hidden";
+  bodyScrollLockCount++;
+}
+function unlockBodyScroll() {
+  bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
+  if (bodyScrollLockCount === 0) document.body.style.overflow = "";
+}
+
 // Every full-screen sheet in the app (workout session, workout preview,
 // messages, exercise detail, video player, notifications...) is built on
 // this one wrapper, so a fade-in here softens all of their entrances at
 // once instead of every screen popping in instantly.
 export function FullScreenOverlay({ children }) {
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
+    lockBodyScroll();
+    return unlockBodyScroll;
   }, []);
   if (typeof document === "undefined") return null;
   return createPortal(
