@@ -9,6 +9,11 @@ import { storage } from "./firebase";
 const MAX_VIDEO_BYTES = 75 * 1024 * 1024; // 75MB
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
 const MAX_DESIGN_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
+// A background video autoplays for every single visitor on every visit to
+// the login screen — capped well below the message-video limit so it
+// doesn't turn "sign in" into a slow, data-heavy download on someone's
+// phone. 25MB is still generous for a short, muted, looping clip.
+const MAX_LOGIN_BG_VIDEO_BYTES = 25 * 1024 * 1024; // 25MB
 
 // Firebase's own error text for the two most common setup gaps ("storage/
 // unknown" and "storage/unauthorized") is a cryptic server-response dump
@@ -98,4 +103,26 @@ export function uploadDesignImage(kind, file, onProgress) {
     );
   }
   return uploadToPath(`design/${kind}_${Date.now()}_${file.name}`, file, "image", "Image", onProgress);
+}
+
+// The login background specifically also accepts a short video (autoplayed
+// muted + looped behind the sign-in form) — a separate, tighter size cap
+// than a still image, since it downloads on every visit.
+export function uploadLoginBackground(file, onProgress) {
+  const isVideo = file.type.startsWith("video/");
+  const isImage = file.type.startsWith("image/");
+  if (!isVideo && !isImage) {
+    return Promise.reject(new Error("Please choose an image or video file."));
+  }
+  if (isVideo && file.size > MAX_LOGIN_BG_VIDEO_BYTES) {
+    return Promise.reject(
+      new Error(`That video is ${(file.size / 1024 / 1024).toFixed(0)}MB — please keep a login background video under ${MAX_LOGIN_BG_VIDEO_BYTES / 1024 / 1024}MB.`)
+    );
+  }
+  if (isImage && file.size > MAX_DESIGN_IMAGE_BYTES) {
+    return Promise.reject(
+      new Error(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB — please keep it under ${MAX_DESIGN_IMAGE_BYTES / 1024 / 1024}MB.`)
+    );
+  }
+  return uploadToPath(`design/login-bg_${Date.now()}_${file.name}`, file, isVideo ? "video" : "image", isVideo ? "Video" : "Image", onProgress);
 }

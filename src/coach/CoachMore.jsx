@@ -3,7 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput } from "../components/ui";
 import { fileToDataUrl } from "../lib/image";
 import { enablePush, disablePush } from "../lib/push";
-import { uploadDesignImage } from "../lib/storage";
+import { uploadDesignImage, uploadLoginBackground } from "../lib/storage";
 import {
   Video,
   LogOut,
@@ -206,7 +206,19 @@ function AccountCard({ currentUser, updateUser, updateCoachEmail, showToast }) {
 // background, app logo) — the profile picture keeps using the existing
 // AvatarPicker instead, since it already has its own instant-save circular
 // upload control used the same way elsewhere in the app.
-function DesignAssetRow({ label, description, previewUrl, previewClassName, aspectClassName, uploading, progress, onUpload, onRemove }) {
+function DesignAssetRow({
+  label,
+  description,
+  previewUrl,
+  previewType = "image",
+  previewClassName,
+  aspectClassName,
+  accept = "image/*",
+  uploading,
+  progress,
+  onUpload,
+  onRemove,
+}) {
   const fileRef = useRef(null);
 
   return (
@@ -217,7 +229,11 @@ function DesignAssetRow({ label, description, previewUrl, previewClassName, aspe
         className={`relative rounded-xl overflow-hidden border border-black/10 bg-black/[0.03] flex items-center justify-center ${aspectClassName}`}
       >
         {previewUrl ? (
-          <img src={previewUrl} alt={label} className={previewClassName || "w-full h-full object-cover"} />
+          previewType === "video" ? (
+            <video src={previewUrl} className={previewClassName || "w-full h-full object-cover"} autoPlay muted loop playsInline />
+          ) : (
+            <img src={previewUrl} alt={label} className={previewClassName || "w-full h-full object-cover"} />
+          )
         ) : (
           <ImageIcon size={22} className="text-black/20" />
         )}
@@ -230,7 +246,7 @@ function DesignAssetRow({ label, description, previewUrl, previewClassName, aspe
       <input
         ref={fileRef}
         type="file"
-        accept="image/*"
+        accept={accept}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
@@ -261,12 +277,13 @@ function DesignAssetRow({ label, description, previewUrl, previewClassName, aspe
 }
 
 // Lets the coach customize the app's branding: the login screen's
-// background photo, their own profile picture, and the logo shown at the
-// top of every page. Login background + logo are real uploads to Firebase
-// Storage (see src/lib/storage.js's uploadDesignImage) with just the
-// resulting URL saved to the public settings/appDesign doc via
-// updateAppDesign — read by src/components/ui.jsx's Logo component and
-// src/auth/LoginScreen.jsx, so a change here is reflected everywhere
+// background (a photo, or a short looping video), their own profile
+// picture, and the logo shown at the top of every page. Login background +
+// logo are real uploads to Firebase Storage (see src/lib/storage.js's
+// uploadLoginBackground / uploadDesignImage) with just the resulting URL
+// (+ media type, for the background) saved to the public settings/appDesign
+// doc via updateAppDesign — read by src/components/ui.jsx's Logo component
+// and src/auth/LoginScreen.jsx, so a change here is reflected everywhere
 // immediately with no other wiring needed. The profile picture reuses the
 // existing AvatarPicker/avatarUrl flow already used on this same page.
 function DesignSettingsCard() {
@@ -278,24 +295,43 @@ function DesignSettingsCard() {
   const [logoProgress, setLogoProgress] = useState(0);
   const [error, setError] = useState("");
 
-  async function handleUpload(kind, file, setUploading, setProgress, field) {
+  async function handleLogoUpload(file) {
     setError("");
-    setUploading(true);
-    setProgress(0);
+    setUploadingLogo(true);
+    setLogoProgress(0);
     try {
-      const { url } = await uploadDesignImage(kind, file, setProgress);
-      await updateAppDesign({ [field]: url });
+      const { url } = await uploadDesignImage("logo", file, setLogoProgress);
+      await updateAppDesign({ appLogoUrl: url });
     } catch (err) {
       setError(err.message);
     } finally {
-      setUploading(false);
+      setUploadingLogo(false);
+    }
+  }
+
+  // Login background accepts an image OR a short video — the resulting
+  // `type` ("image" | "video") from the upload is saved alongside the URL
+  // so LoginScreen and this preview know which element to render.
+  async function handleBgUpload(file) {
+    setError("");
+    setUploadingBg(true);
+    setBgProgress(0);
+    try {
+      const { url, type } = await uploadLoginBackground(file, setBgProgress);
+      await updateAppDesign({ loginBackgroundUrl: url, loginBackgroundType: type });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploadingBg(false);
     }
   }
 
   async function handleRemove(field) {
     setError("");
     try {
-      await updateAppDesign({ [field]: null });
+      const patch = { [field]: null };
+      if (field === "loginBackgroundUrl") patch.loginBackgroundType = null;
+      await updateAppDesign(patch);
     } catch (err) {
       setError(err.message);
     }
@@ -316,12 +352,14 @@ function DesignSettingsCard() {
       <div className="space-y-5">
         <DesignAssetRow
           label="Login Background"
-          description="The photo shown behind the sign-in screen"
+          description="The photo or short video shown behind the sign-in screen"
           previewUrl={design.loginBackgroundUrl}
+          previewType={design.loginBackgroundType === "video" ? "video" : "image"}
+          accept="image/*,video/*"
           aspectClassName="aspect-[16/9]"
           uploading={uploadingBg}
           progress={bgProgress}
-          onUpload={(file) => handleUpload("login-bg", file, setUploadingBg, setBgProgress, "loginBackgroundUrl")}
+          onUpload={handleBgUpload}
           onRemove={() => handleRemove("loginBackgroundUrl")}
         />
 
@@ -358,7 +396,7 @@ function DesignSettingsCard() {
           aspectClassName="h-24"
           uploading={uploadingLogo}
           progress={logoProgress}
-          onUpload={(file) => handleUpload("logo", file, setUploadingLogo, setLogoProgress, "appLogoUrl")}
+          onUpload={handleLogoUpload}
           onRemove={() => handleRemove("appLogoUrl")}
         />
       </div>

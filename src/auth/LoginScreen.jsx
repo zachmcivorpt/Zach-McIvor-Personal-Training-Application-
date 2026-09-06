@@ -124,23 +124,40 @@ export default function LoginScreen() {
 
   return (
     <div className="min-h-screen w-full relative overflow-hidden bg-[#0A0A0B]">
-      {/* Background photo — coach-customizable via Settings -> Design
-          Settings (db.appDesign.loginBackgroundUrl). Falls back to
-          public/brand/login-bg.jpg if a file's been dropped there; until
-          either exists this quietly stays hidden and the dark background
-          above shows instead. */}
-      <img
-        key={db.appDesign?.loginBackgroundUrl || "default"}
-        src={db.appDesign?.loginBackgroundUrl || "/brand/login-bg.jpg"}
-        alt=""
-        onLoad={() => setBgLoaded(true)}
-        onError={(e) => {
-          e.currentTarget.style.display = "none";
-        }}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-        style={{ filter: "brightness(0.76) contrast(1.08) saturate(0.85)" }}
-        draggable={false}
-      />
+      {/* Background — coach-customizable via Settings -> Design Settings
+          (db.appDesign.loginBackgroundUrl), a photo OR a short looping
+          video. Falls back to public/brand/login-bg.jpg (always a still
+          image) if a file's been dropped there; until either exists this
+          quietly stays hidden and the dark background above shows instead. */}
+      {db.appDesign?.loginBackgroundUrl && db.appDesign?.loginBackgroundType === "video" ? (
+        <video
+          key={db.appDesign.loginBackgroundUrl}
+          src={db.appDesign.loginBackgroundUrl}
+          autoPlay
+          muted
+          loop
+          playsInline
+          onLoadedData={() => setBgLoaded(true)}
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
+          style={{ filter: "brightness(0.76) contrast(1.08) saturate(0.85)" }}
+        />
+      ) : (
+        <img
+          key={db.appDesign?.loginBackgroundUrl || "default"}
+          src={db.appDesign?.loginBackgroundUrl || "/brand/login-bg.jpg"}
+          alt=""
+          onLoad={() => setBgLoaded(true)}
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
+          style={{ filter: "brightness(0.76) contrast(1.08) saturate(0.85)" }}
+          draggable={false}
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-b from-black/38 via-black/52 to-black/88" />
       <div className="absolute inset-0 bg-black/18" />
 
