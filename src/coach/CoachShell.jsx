@@ -126,7 +126,7 @@ export default function CoachShell() {
       {/* desktop sidebar */}
       <div className="dark-chrome hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col bg-[#0A0A0C]">
         <div className="px-5 pt-7 pb-6">
-          <Logo variant="wordmark" tone="white" className="h-9 w-auto" />
+          <Logo variant="wordmark" tone="white" className="h-10 w-auto" />
         </div>
 
         <div className="flex-1 overflow-y-auto px-4">
@@ -168,7 +168,7 @@ export default function CoachShell() {
       {/* mobile top bar */}
       <div className="dark-chrome md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0A0C]">
         <div className="flex items-center justify-between px-4 py-3">
-          <Logo variant="wordmark" tone="white" className="h-7 w-auto" />
+          <Logo variant="wordmark" tone="white" className="h-8 w-auto" />
           <div className="flex items-center gap-2">
             <button onClick={() => setNotifOpen(true)} className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white/70 relative">
               <Bell size={16} />

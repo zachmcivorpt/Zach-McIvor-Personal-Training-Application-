@@ -132,17 +132,17 @@ export function Logo({ variant = "wordmark", tone = "white", className = "", sty
   );
 }
 
-// The platform's small category tagline ("TRAIN / NUTRITION / LIFESTYLE /
-// PERFORMANCE") — real letter-spaced text rather than a baked-in image, so
-// it stays crisp at any size and adapts to either tone automatically.
+// The platform's small tagline ("TRAINING & PERFORMANCE") — real
+// letter-spaced text rather than a baked-in image, so it stays crisp at
+// any size and adapts to either tone automatically.
 // tone: "white" (for dark surfaces, e.g. the login screen) | "black" (for
 // the app's now-light everyday screens).
 export function Tagline({ tone = "black", className = "" }) {
   return (
     <p
-      className={`text-[10px] font-semibold tracking-[0.25em] text-center ${tone === "white" ? "text-white/80" : "text-black/50"} ${className}`}
+      className={`text-[10px] font-semibold tracking-[0.3em] text-center ${tone === "white" ? "text-white/80" : "text-black/50"} ${className}`}
     >
-      TRAIN / NUTRITION / LIFESTYLE / PERFORMANCE
+      TRAINING &amp; PERFORMANCE
     </p>
   );
 }

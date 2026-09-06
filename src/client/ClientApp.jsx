@@ -358,7 +358,7 @@ function sectionedExercises(list) {
 function BrandBar() {
   return (
     <div className="flex items-center justify-center pt-3 pb-1">
-      <Logo variant="wordmark" tone="black" className="h-9 w-auto opacity-95" />
+      <Logo variant="wordmark" tone="black" className="h-10 w-auto opacity-95" />
     </div>
   );
 }
