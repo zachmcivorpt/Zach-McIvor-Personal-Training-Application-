@@ -4,8 +4,31 @@ import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
-import { computePerformanceTimeline, computePRsInLastNDays, computeWeeklySessionCompletion, closestWeighIn, computePlateaus } from "../lib/trainingStats";
+import {
+  computePerformanceTimeline,
+  computePRsInLastNDays,
+  computeWeeklySessionCompletion,
+  closestWeighIn,
+  computePlateaus,
+  computePersonalBests,
+} from "../lib/trainingStats";
+import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
+import {
+  BODY_FAT_CONFIG,
+  LEAN_MASS_CONFIG,
+  BODY_MEASUREMENTS_CONFIG,
+  buildBodyMetricEntries,
+  LogBodyMetricSheet,
+  BodyMetricHistoryScreen,
+  BodyMetricCard,
+  BodyMeasurementsListCard,
+  ConsistencyHeatmap,
+  PersonalBestsCard,
+  axisStyle,
+} from "../components/ProgressWidgets";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ThreadView } from "./CoachMessages";
+import MealPlanBuilder from "./MealPlanBuilder";
 import { SendLoginSheet, clientStatusPill } from "./CoachClients";
 import WorkoutEditor from "./WorkoutEditor";
 import {
@@ -2721,14 +2744,39 @@ function ClientFoodPreferencesCard({ client, showToast }) {
 function NutritionPanel({ client, showToast }) {
   const { db, setNutritionForDate } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
+  const [mealPlanOpen, setMealPlanOpen] = useState(false);
   const todayDateKey = localDateKey();
   const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === todayDateKey);
+  const mealPlan = (db.mealPlans[client.id] || [])[0];
+  const mealPlanDayCount = mealPlan?.days?.length || 0;
+  const mealPlanMealCount = mealPlan
+    ? mealPlan.days.reduce((n, d) => n + Object.values(d.meals || {}).reduce((a, arr) => a + arr.length, 0), 0)
+    : 0;
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
       <div className="space-y-6 mb-6">
         <NutritionTargetsCard client={client} showToast={showToast} />
         <ClientFoodPreferencesCard client={client} showToast={showToast} />
+
+        <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                <Utensils size={15} className="text-blue-500" />
+              </div>
+              <p className="text-black font-semibold text-sm">Meal Plan</p>
+            </div>
+          </div>
+          <p className="text-black/40 text-xs mb-4 ml-[42px]">
+            {mealPlan
+              ? `${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
+              : "This client has no meal plan yet — build one from your Meal Library."}
+          </p>
+          <PrimaryButton onClick={() => setMealPlanOpen(true)}>
+            {mealPlan ? "EDIT MEAL PLAN" : "BUILD MEAL PLAN"}
+          </PrimaryButton>
+        </div>
       </div>
 
       <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
@@ -2782,6 +2830,8 @@ function NutritionPanel({ client, showToast }) {
           </div>
         )}
       </div>
+
+      {mealPlanOpen && <MealPlanBuilder client={client} onClose={() => setMealPlanOpen(false)} showToast={showToast} />}
     </div>
   );
 }
@@ -3358,14 +3408,85 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
 }
 
 function ProgressPanel({ client }) {
-  const { db } = useApp();
+  const { db, logWeight, deleteWeighIn, logBodyMetric, deleteBodyMetric } = useApp();
   const photos = db.progressPhotos[client.id] || [];
   const logs = db.workoutLogs[client.id] || [];
   const weighIns = (db.weighIns || {})[client.id] || [];
+  const bodyMetrics = (db.bodyMetrics || {})[client.id] || [];
   const exercisesById = Object.fromEntries(db.exercises.map((e) => [e.id, e]));
+
+  const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
+  const [logMetricConfig, setLogMetricConfig] = useState(null);
+  const [historyMetricConfig, setHistoryMetricConfig] = useState(null);
+
+  const personalBests = useMemo(() => computePersonalBests(logs, exercisesById), [logs, exercisesById]);
+  const bodyMetricEntries = useMemo(
+    () => buildBodyMetricEntries(bodyMetrics, [BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
+    [bodyMetrics]
+  );
+  const latestWeighIn = weighIns[weighIns.length - 1];
+  const firstWeighIn = weighIns[0];
+  const weightChange = latestWeighIn && firstWeighIn ? Math.round((latestWeighIn.weight - firstWeighIn.weight) * 10) / 10 : null;
+  const weightChartData = weighIns.map((w) => ({
+    date: new Date(w.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    value: w.weight,
+  }));
 
   return (
     <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6 space-y-5">
+      <PersonalBestsCard personalBests={personalBests} />
+
+      <ConsistencyHeatmap logs={logs} />
+
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-black font-semibold text-sm">Body Weight</p>
+            <p className="text-black/40 text-xs mt-0.5">
+              {weighIns.length === 0
+                ? "No weigh-ins logged yet"
+                : weighIns.length === 1
+                ? `${latestWeighIn.weight} kg · first log`
+                : `${latestWeighIn.weight} kg · ${weightChange > 0 ? "up" : weightChange < 0 ? "down" : "steady"} ${Math.abs(
+                    weightChange
+                  )}kg since first log`}
+            </p>
+          </div>
+        </div>
+        {weighIns.length >= 2 ? (
+          <button onClick={() => setWeightHistoryOpen(true)} className="w-full h-40 mt-3 -ml-4 block">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={weightChartData}>
+                <defs>
+                  <linearGradient id="coachWGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={MEASURE_BLUE} stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+                <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
+                <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+                <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#coachWGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </button>
+        ) : (
+          <button
+            onClick={() => setWeightHistoryOpen(true)}
+            className="w-full mt-3 text-center text-black/30 text-xs py-6 border border-dashed border-black/10 rounded-xl"
+          >
+            {weighIns.length === 0 ? "No weigh-ins logged yet" : "Needs another weigh-in to see a trend"}
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <BodyMetricCard config={BODY_FAT_CONFIG} entries={bodyMetricEntries.bodyFatPct} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
+        <BodyMetricCard config={LEAN_MASS_CONFIG} entries={bodyMetricEntries.leanMassKg} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
+      </div>
+
+      <BodyMeasurementsListCard entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
+
       <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
@@ -3420,6 +3541,36 @@ function ProgressPanel({ client }) {
           </div>
         )}
       </div>
+
+      {weightHistoryOpen && (
+        <BodyMetricHistoryScreen
+          config={{ key: "weight", label: "Body Weight", unit: "kg", icon: Scale }}
+          entries={weighIns.map((w) => ({ id: w.id, date: w.date, value: w.weight }))}
+          onClose={() => setWeightHistoryOpen(false)}
+          onLog={(v) => logWeight(client.id, v)}
+          onDelete={(_dateKey, weighInId) => deleteWeighIn(client.id, weighInId)}
+        />
+      )}
+
+      {historyMetricConfig && (
+        <BodyMetricHistoryScreen
+          config={historyMetricConfig}
+          entries={bodyMetricEntries[historyMetricConfig.key]}
+          onClose={() => setHistoryMetricConfig(null)}
+          onLog={(v) => logBodyMetric(client.id, localDateKey(), historyMetricConfig.key, v)}
+          onDelete={(dateKey) => deleteBodyMetric(client.id, dateKey, historyMetricConfig.key)}
+        />
+      )}
+      <LogBodyMetricSheet
+        open={!!logMetricConfig}
+        config={logMetricConfig}
+        lastValue={logMetricConfig ? bodyMetricEntries[logMetricConfig.key]?.[bodyMetricEntries[logMetricConfig.key].length - 1]?.value : null}
+        onClose={() => setLogMetricConfig(null)}
+        onSave={(v) => {
+          logBodyMetric(client.id, localDateKey(), logMetricConfig.key, v);
+          setLogMetricConfig(null);
+        }}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
+import WorkoutEditor from "./WorkoutEditor";
 import { clientStatusPill } from "./CoachClients";
 import { MEASURE_BLUE } from "../theme";
 import {
@@ -19,6 +20,7 @@ import {
   Send,
   Check,
   StickyNote,
+  Flame,
 } from "lucide-react";
 
 // The check-in's own Q&A, plus a reply box right there — so reviewing one
@@ -259,11 +261,12 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
 }
 
 export default function CoachDashboard({ onNavigate, showToast }) {
-  const { db, sendMessage, markFormResponseRead, currentUser, updateUser } = useApp();
+  const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = localDateKey();
   const [viewingActivity, setViewingActivity] = useState(null); // the clicked Recent Activity item (workout or check-in) for the detail sheet
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
   // ---- smart segments ----
@@ -404,18 +407,6 @@ export default function CoachDashboard({ onNavigate, showToast }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4 items-stretch">
-        <Card className="lg:col-span-2 !p-0 overflow-hidden flex flex-col">
-          <div className="px-5 pt-5 pb-1">
-            <p className="text-black font-semibold">We've auto-tagged your clients based on their needs</p>
-          </div>
-          <div className="px-5 pb-2">
-            <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
-            <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
-            <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
-            <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
-          </div>
-        </Card>
-
         <Card className="lg:col-span-1 !p-0 overflow-hidden flex flex-col">
           <div className="px-5 pt-5 pb-3">
             <p className="text-black font-semibold">Recent Activity</p>
@@ -432,6 +423,18 @@ export default function CoachDashboard({ onNavigate, showToast }) {
                 />
               ))
             )}
+          </div>
+        </Card>
+
+        <Card className="lg:col-span-2 !p-0 overflow-hidden flex flex-col">
+          <div className="px-5 pt-5 pb-1">
+            <p className="text-black font-semibold">We've auto-tagged your clients based on their needs</p>
+          </div>
+          <div className="px-5 pb-2">
+            <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
+            <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
+            <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
+            <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
           </div>
         </Card>
       </div>
@@ -455,6 +458,15 @@ export default function CoachDashboard({ onNavigate, showToast }) {
             <button onClick={() => onNavigate("library")} className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 rounded-xl px-4 py-3 transition-colors">
               <Video size={16} className="text-black/60" />
               <span className="text-black/80 text-sm font-medium flex-1 text-left">Add an exercise + video</span>
+            </button>
+            <button
+              onClick={() => setBroadcastOpen(true)}
+              disabled={active.length === 0}
+              title={active.length === 0 ? "No active clients to broadcast to yet" : undefined}
+              className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 disabled:opacity-40 disabled:hover:bg-black/5 rounded-xl px-4 py-3 transition-colors"
+            >
+              <Flame size={16} className="text-black/60" />
+              <span className="text-black/80 text-sm font-medium flex-1 text-left">Broadcast today's workout</span>
             </button>
           </div>
         </Card>
@@ -502,6 +514,28 @@ export default function CoachDashboard({ onNavigate, showToast }) {
           viewingActivity && <WorkoutLogCard log={viewingActivity.log} exercisesById={exercisesById} defaultOpen />
         )}
       </BottomSheet>
+
+      {broadcastOpen && (
+        <WorkoutEditor
+          open
+          day={{ label: "Today's Workout", muscleGroups: [], exercises: [] }}
+          exercises={db.exercises}
+          onClose={() => setBroadcastOpen(false)}
+          showToast={showToast}
+          onSave={async (built) => {
+            try {
+              await broadcastWorkout(
+                active.map((c) => c.id),
+                { date: todayKey, label: built.label, muscleGroups: built.muscleGroups, exercises: built.exercises }
+              );
+              showToast(`"${built.label}" added to ${active.length} client${active.length === 1 ? "" : "s"}' calendars for today`);
+            } catch (err) {
+              showToast(err.message || "Couldn't broadcast that workout");
+            }
+            setBroadcastOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,20 +1,38 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Card, BottomSheet, Field, TextInput, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
-import { Plus, Search, Apple, Trash2 } from "lucide-react";
+import { fileToCompressedDataUrl } from "../lib/image";
+import { Plus, Search, Apple, Trash2, Camera } from "lucide-react";
 
 function emptyFood() {
-  return { name: "", cals: "", protein: "", carbs: "", fat: "" };
+  return { name: "", cals: "", protein: "", carbs: "", fat: "", imageUrl: "" };
 }
 
 function FoodSheet({ food, open, onClose, showToast }) {
   const { createFood, updateFood, deleteFood } = useApp();
-  const [form, setForm] = useState(() => (food ? { ...food } : emptyFood()));
+  const [form, setForm] = useState(() => (food ? { ...emptyFood(), ...food } : emptyFood()));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const fileRef = useRef(null);
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handlePhoto(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file, 500, 0.75);
+      set("imageUrl", dataUrl);
+    } catch {
+      showToast("Couldn't read that photo");
+    } finally {
+      setPhotoBusy(false);
+    }
   }
 
   function submit(e) {
@@ -25,6 +43,7 @@ function FoodSheet({ food, open, onClose, showToast }) {
       protein: Number(form.protein) || 0,
       carbs: Number(form.carbs) || 0,
       fat: Number(form.fat) || 0,
+      imageUrl: form.imageUrl || "",
     };
     if (food) {
       updateFood(food.id, data);
@@ -39,6 +58,23 @@ function FoodSheet({ food, open, onClose, showToast }) {
   return (
     <BottomSheet open={open} onClose={onClose} title={food ? "Edit Food" : "Add Food"}>
       <form onSubmit={submit} className="space-y-4">
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="w-full flex items-center gap-3 bg-black/5 border border-dashed border-black/15 rounded-xl px-3.5 py-3"
+        >
+          {form.imageUrl ? (
+            <img src={form.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+          ) : (
+            <div className="w-12 h-12 rounded-lg bg-black/8 flex items-center justify-center shrink-0">
+              <Camera size={16} className="text-black/40" />
+            </div>
+          )}
+          <span className="text-black/50 text-sm font-medium">
+            {photoBusy ? "Reading photo..." : form.imageUrl ? "Change photo" : "Add a photo"}
+          </span>
+        </button>
         <Field label="FOOD NAME" hint="Include the serving size, e.g. Chicken Breast (150g)">
           <TextInput value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Chicken Breast (150g)" required />
         </Field>
@@ -130,9 +166,13 @@ export default function CoachFoodLibrary({ showToast }) {
             {filteredCustom.map((f) => (
               <Card key={f.id} onClick={() => setEditing(f)}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Apple size={16} className="text-blue-500" />
-                  </div>
+                  {f.imageUrl ? (
+                    <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                      <Apple size={16} className="text-blue-500" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-black font-semibold text-sm truncate">{f.name}</p>
                     <p className="text-black/40 text-xs truncate mt-0.5">

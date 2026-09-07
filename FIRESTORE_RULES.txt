@@ -184,7 +184,11 @@ service cloud.firestore {
     }
     match /customFoods/{id} {
       allow read: if isSignedIn();
-      allow write: if isCoach();
+      // Any signed-in client can add a food discovered via barcode lookup
+      // (manual entry when a scan/lookup comes up empty) so it's saved for
+      // next time — only the coach can edit or remove library entries.
+      allow create: if isSignedIn();
+      allow update, delete: if isCoach();
     }
     match /habitPresets/{id} {
       allow read: if isSignedIn();
@@ -216,6 +220,12 @@ service cloud.firestore {
       allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /mealPlans/{id} {
+      // Doc id == clientId. Only the coach assigns/edits a plan; the
+      // client can only ever read their own.
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow write: if isCoach();
     }
     match /scheduledWorkouts/{id} {
       allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);

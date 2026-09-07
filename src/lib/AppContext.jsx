@@ -280,6 +280,7 @@ export function AppProvider({ children }) {
       watch("challenges", "challenges");
       watch("nutritionLogs", "nutritionLogs");
       watch("bodyMetrics", "bodyMetrics");
+      watch("mealPlans", "mealPlans");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -296,6 +297,7 @@ export function AppProvider({ children }) {
       watch("bodyStatsSchedules", "bodyStatsSchedules", [where("clientId", "==", uid)]);
       watch("nutritionLogs", "nutritionLogs", [where("clientId", "==", uid)]);
       watch("bodyMetrics", "bodyMetrics", [where("clientId", "==", uid)]);
+      watch("mealPlans", "mealPlans", [where("clientId", "==", uid)]);
       watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
       // clientNotes intentionally NOT synced here — they're the coach's
       // private notes about the client, never shown in the client app.
@@ -420,6 +422,10 @@ export function AppProvider({ children }) {
       coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
       appDesign: raw.appDesign || { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null },
       bodyMetrics: bucket(raw.bodyMetrics, (a, b) => a.date.localeCompare(b.date)),
+      // One doc per client (doc id === clientId), so bucket() always
+      // produces at most a single-item array — same helper, just read as
+      // (db.mealPlans[clientId] || [])[0] wherever it's used.
+      mealPlans: bucket(raw.mealPlans, (a, b) => b.updatedAt - a.updatedAt),
     };
   }, [raw, role, profile]);
 
@@ -1197,6 +1203,30 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "scheduledWorkouts", `${clientId}__${date}`)).catch(console.error);
       },
 
+      // A single WOD/"today's workout" pushed onto every given client's
+      // calendar at once, on the same date — same doc shape and deterministic
+      // id (clientId__date) as scheduleWorkout, so it shows up in each
+      // client's Training tab/calendar exactly like any other scheduled
+      // day, just written for the whole roster in one pass. Chunked at 400
+      // writes per batch (Firestore's cap is 500) the same way every other
+      // bulk write in this app is.
+      async broadcastWorkout(clientIds, { date, label, muscleGroups, exercises }) {
+        const entries = clientIds.map((clientId) => {
+          const id = `${clientId}__${date}`;
+          return { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises, broadcast: true };
+        });
+        try {
+          for (let i = 0; i < entries.length; i += 400) {
+            const batch = writeBatch(firestore);
+            entries.slice(i, i + 400).forEach((entry) => batch.set(doc(firestore, "scheduledWorkouts", entry.id), entry));
+            await batch.commit();
+          }
+        } catch (err) {
+          throw new Error("Couldn't broadcast that workout — " + (err.message || "please try again."));
+        }
+        return entries;
+      },
+
       // Deletes one specific scheduled workout by its own doc id — used by
       // swipe-to-delete on the calendar, where a day can now hold more than
       // one scheduled workout (dragged/moved ones use a fresh id instead of
@@ -1424,6 +1454,16 @@ export function AppProvider({ children }) {
       },
       deleteMasterMeal(id) {
         deleteDoc(doc(firestore, "masterMeals", id)).catch(console.error);
+      },
+
+      // A client's assigned meal plan — one doc per client (doc id ===
+      // clientId), built from master meals referenced by id so an edit to
+      // a master meal's macros is reflected everywhere it's assigned
+      // without having to touch every client's plan. `days` is the whole
+      // day-tabbed structure from the builder; saving always replaces it
+      // wholesale rather than patching individual slots.
+      setMealPlan(clientId, days) {
+        setDoc(doc(firestore, "mealPlans", clientId), { clientId, days, updatedAt: Date.now() }).catch(console.error);
       },
 
       // Custom foods — coach-added, merged with the static FOOD_DATABASE

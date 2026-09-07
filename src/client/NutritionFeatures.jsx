@@ -5,6 +5,7 @@ import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, 
 import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
+import { useApp } from "../lib/AppContext";
 
 /* ============================================================================
    FOOD QUANTITY PICKER — pick how many grams of a food-database item was
@@ -201,13 +202,44 @@ function classifyCameraError(err) {
 }
 
 export function BarcodeScanSheet({ open, onClose, onAdd }) {
+  const { db, createFood } = useApp();
   const [status, setStatus] = useState("scanning"); // scanning | looking-up | error | not-found
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
   const [scanKey, setScanKey] = useState(0);
   const [manual, setManual] = useState({ name: "", cals: "", protein: "", carbs: "", fat: "" });
+  const [saveToLibrary, setSaveToLibrary] = useState(true);
+  const [codeEntryOpen, setCodeEntryOpen] = useState(false);
+  const [manualCode, setManualCode] = useState("");
+  const lookedUpCodeRef = useRef(""); // the digits actually resolved — tagged onto a food saved to the library so the next scan/entry of the same barcode is instant
   const scannerRef = useRef(null);
   const elId = "barcode-scanner-region";
+
+  // Runs a barcode (scanned or typed) through the food library first —
+  // a barcode saved to the library on a previous "not found" pass should
+  // resolve instantly next time, without ever hitting Open Food Facts —
+  // then falls back to the real network lookup.
+  async function resolveCode(code) {
+    const digits = String(code).replace(/\D/g, "");
+    lookedUpCodeRef.current = digits;
+    setCodeEntryOpen(false);
+    setStatus("looking-up");
+    const known = (db.customFoods || []).find((f) => f.barcode === digits);
+    if (known) {
+      onAdd({ ...known, per: known.per ?? 100, defaultQty: known.defaultQty ?? 100 });
+      return;
+    }
+    try {
+      const food = await lookupBarcode(digits);
+      onAdd(food);
+    } catch (err) {
+      setError(err.message);
+      setErrorDetail("");
+      setManual({ name: err.productName || "", cals: "", protein: "", carbs: "", fat: "" });
+      setSaveToLibrary(true);
+      setStatus(err.notFound ? "not-found" : "error");
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -239,16 +271,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
       } catch {
         // already stopped
       }
-      setStatus("looking-up");
-      try {
-        const food = await lookupBarcode(decodedText);
-        onAdd(food);
-      } catch (err) {
-        setError(err.message);
-        setErrorDetail("");
-        setManual({ name: err.productName || "", cals: "", protein: "", carbs: "", fat: "" });
-        setStatus(err.notFound ? "not-found" : "error");
-      }
+      await resolveCode(decodedText);
     }
 
     const scanConfig = { fps: 20, qrbox: { width: 280, height: 130 }, disableFlip: true };
@@ -326,8 +349,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
 
   function addManual() {
     if (!manual.name.trim()) return;
-    onAdd({
-      id: `manual_${Date.now()}`,
+    const data = {
       name: manual.name.trim(),
       cals: Math.round(Number(manual.cals) || 0),
       protein: Number(manual.protein) || 0,
@@ -335,7 +357,13 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
       fat: Number(manual.fat) || 0,
       per: 100,
       defaultQty: 100,
-    });
+    };
+    if (saveToLibrary && lookedUpCodeRef.current) {
+      const saved = createFood({ ...data, barcode: lookedUpCodeRef.current });
+      onAdd(saved);
+    } else {
+      onAdd({ id: `manual_${Date.now()}`, ...data });
+    }
   }
 
   if (!open) return null;
@@ -359,6 +387,28 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
             <div id={elId} className="w-full rounded-2xl overflow-hidden bg-white" />
           </div>
           <p className="text-black/40 text-sm text-center mt-4 px-8">Point your camera at a product barcode</p>
+          <div className="px-5 mt-4">
+            {!codeEntryOpen ? (
+              <button onClick={() => setCodeEntryOpen(true)} className="w-full text-center text-black/40 text-sm font-medium py-2 underline underline-offset-2">
+                Not scanning? Type the barcode number instead
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoFocus
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value.replace(/[^\d]/g, ""))}
+                  placeholder="Barcode digits"
+                  className="flex-1 bg-black/5 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30"
+                />
+                <SecondaryButton onClick={() => manualCode.trim() && resolveCode(manualCode)} disabled={!manualCode.trim()} className="px-4">
+                  Look up
+                </SecondaryButton>
+              </div>
+            )}
+          </div>
         </div>
 
         {status === "looking-up" && (
@@ -382,6 +432,22 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
               <SecondaryButton onClick={onClose} className="px-6">
                 Close
               </SecondaryButton>
+            </div>
+            <div className="w-full mt-6 pt-6 border-t border-black/8">
+              <p className="text-black/30 text-xs mb-2.5">Camera not working? Type the barcode number printed under it:</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value.replace(/[^\d]/g, ""))}
+                  placeholder="Barcode digits"
+                  className="flex-1 bg-black/5 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30"
+                />
+                <SecondaryButton onClick={() => manualCode.trim() && resolveCode(manualCode)} disabled={!manualCode.trim()} className="px-4">
+                  Look up
+                </SecondaryButton>
+              </div>
             </div>
           </div>
         )}
@@ -410,6 +476,10 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
                 ))}
               </div>
             </div>
+            <label className="flex items-center gap-2 mt-3 text-black/50 text-xs">
+              <input type="checkbox" checked={saveToLibrary} onChange={(e) => setSaveToLibrary(e.target.checked)} className="accent-black" />
+              Save to the food library so this barcode is instant next time
+            </label>
             <PrimaryButton className="w-full mt-4" disabled={!manual.name.trim()} onClick={addManual}>
               <Check size={16} /> ADD
             </PrimaryButton>
