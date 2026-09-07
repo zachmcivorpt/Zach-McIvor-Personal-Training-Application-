@@ -963,6 +963,100 @@ export function AppProvider({ children }) {
         return { matchedCount: matched.length, unmatched };
       },
 
+      // Finds exercises that are exact duplicates of each other by name
+      // (trimmed, case-insensitive — the library picked up plenty of these
+      // from pasting/importing the same list more than once) and removes
+      // all but one of each group. Before deleting, any master workout or
+      // program day that references a duplicate's id gets repointed at the
+      // kept copy first — otherwise a workout that happened to use the
+      // "wrong" twin would silently lose that exercise the next time it's
+      // opened. The kept copy is whichever twin has the most filled-in
+      // data (a real video beats a search-link placeholder, which beats
+      // nothing; instructions/form cues/secondary muscles all count).
+      async dedupeExercises() {
+        const groups = new Map();
+        (db.exercises || []).forEach((ex) => {
+          const key = (ex.name || "").trim().toLowerCase();
+          if (!key) return;
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(ex);
+        });
+
+        const score = (ex) => {
+          let s = 0;
+          if (ex.videoUrl && !ex.videoUrl.includes("/results?search_query")) s += 4;
+          else if (ex.videoUrl) s += 1;
+          if (ex.instructions?.length) s += 2;
+          if (ex.formCues?.length) s += 1;
+          if (ex.secondaryMuscles?.length) s += 1;
+          if (ex.muscleGroup) s += 1;
+          return s;
+        };
+
+        const idRemap = new Map(); // duplicate id -> id of the copy we keep
+        const toDelete = [];
+        let groupCount = 0;
+        for (const group of groups.values()) {
+          if (group.length < 2) continue;
+          groupCount++;
+          const sorted = [...group].sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id));
+          const [keeper, ...dupes] = sorted;
+          dupes.forEach((d) => {
+            idRemap.set(d.id, keeper.id);
+            toDelete.push(d.id);
+          });
+        }
+
+        if (toDelete.length === 0) return { removedCount: 0, groupCount: 0 };
+
+        const remapList = (list) =>
+          (list || []).map((e) => (e?.exerciseId && idRemap.has(e.exerciseId) ? { ...e, exerciseId: idRemap.get(e.exerciseId) } : e));
+
+        const docUpdates = [];
+        for (const workout of db.masterWorkouts || []) {
+          const original = workout.exercises || [];
+          const remapped = remapList(original);
+          if (remapped.some((e, i) => e !== original[i])) {
+            docUpdates.push({ ref: doc(firestore, "masterWorkouts", workout.id), data: { exercises: remapped } });
+          }
+        }
+        for (const program of db.programs || []) {
+          let changed = false;
+          const nextPhases = programPhases(program).map((phase) => {
+            const nextDays = (phase.days || []).map((day) => {
+              const original = day.exercises || [];
+              const remapped = remapList(original);
+              if (remapped.some((e, i) => e !== original[i])) {
+                changed = true;
+                return { ...day, exercises: remapped };
+              }
+              return day;
+            });
+            return { ...phase, days: nextDays };
+          });
+          if (changed) {
+            docUpdates.push({ ref: doc(firestore, "programs", program.id), data: { phases: nextPhases } });
+          }
+        }
+
+        try {
+          for (let i = 0; i < docUpdates.length; i += 400) {
+            const batch = writeBatch(firestore);
+            docUpdates.slice(i, i + 400).forEach(({ ref, data }) => batch.update(ref, data));
+            await batch.commit();
+          }
+          for (let i = 0; i < toDelete.length; i += 400) {
+            const batch = writeBatch(firestore);
+            toDelete.slice(i, i + 400).forEach((id) => batch.delete(doc(firestore, "exercises", id)));
+            await batch.commit();
+          }
+        } catch (err) {
+          throw new Error("Couldn't remove duplicates — " + (err.message || "please try again."));
+        }
+
+        return { removedCount: toDelete.length, groupCount };
+      },
+
       logWorkout(clientId, entry) {
         const id = newDocId("workoutLogs");
         setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);

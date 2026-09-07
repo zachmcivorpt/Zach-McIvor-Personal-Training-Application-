@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Card, Pill, BottomSheet, Field, TextInput, TextArea, Select, PrimaryButton, DangerButton, SecondaryButton, ExerciseThumb } from "../components/ui";
-import { Plus, Upload, Search, Trash2, Download, Copy } from "lucide-react";
+import { Plus, Upload, Search, Trash2, Download, Copy, Layers } from "lucide-react";
 import { SEED_EXERCISES } from "../lib/seed";
 import { parseVideoUrl } from "../lib/video";
 
@@ -293,6 +293,85 @@ function ImportVideosSheet({ open, onClose, showToast }) {
   );
 }
 
+// Groups the library by trimmed/lowercased name and lets the coach see
+// exactly what's duplicated before removing anything. Deletion itself
+// happens in AppContext's dedupeExercises — this just previews the groups
+// and reports the result, same pattern as ImportVideosSheet above.
+function DedupeSheet({ open, onClose, showToast }) {
+  const { db, dedupeExercises } = useApp();
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null); // { removedCount, groupCount } | null
+
+  const groups = React.useMemo(() => {
+    const map = new Map();
+    (db.exercises || []).forEach((e) => {
+      const key = (e.name || "").trim().toLowerCase();
+      if (!key) return;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(e);
+    });
+    return [...map.values()].filter((g) => g.length > 1).sort((a, b) => b.length - a.length);
+  }, [db.exercises]);
+  const extraCount = groups.reduce((n, g) => n + g.length - 1, 0);
+
+  function close() {
+    setResult(null);
+    onClose();
+  }
+
+  async function confirm() {
+    setBusy(true);
+    try {
+      const res = await dedupeExercises();
+      setResult(res);
+      showToast(
+        res.removedCount === 0
+          ? "No duplicates found"
+          : `Removed ${res.removedCount} duplicate${res.removedCount === 1 ? "" : "s"} across ${res.groupCount} exercise${res.groupCount === 1 ? "" : "s"}`
+      );
+    } catch (err) {
+      showToast(err.message || "Couldn't remove duplicates");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onClose={close} title="Remove Duplicate Exercises">
+      <div className="space-y-4">
+        {result ? (
+          <p className="text-black/60 text-sm">
+            Removed {result.removedCount} duplicate{result.removedCount === 1 ? "" : "s"}. For each name, the copy with the most
+            filled-in details (real video, instructions, form cues) was kept — any workout or program that used a removed copy now
+            points at the one that's left.
+          </p>
+        ) : groups.length === 0 ? (
+          <p className="text-black/60 text-sm">No duplicate exercise names found.</p>
+        ) : (
+          <>
+            <p className="text-black/40 text-xs">
+              {groups.length} exercise name{groups.length === 1 ? "" : "s"} have duplicates. The copy with the most filled-in details
+              (real video, instructions, form cues) is kept for each; the rest are removed. Any workout or program using a removed
+              copy is automatically repointed at the one that's kept.
+            </p>
+            <div className="max-h-64 overflow-y-auto border border-black/10 rounded-xl divide-y divide-black/10">
+              {groups.map((g) => (
+                <div key={g[0].id} className="px-3.5 py-2.5 flex items-center justify-between gap-3">
+                  <span className="text-black text-sm truncate">{g[0].name}</span>
+                  <span className="text-black/40 text-xs shrink-0">×{g.length}</span>
+                </div>
+              ))}
+            </div>
+            <PrimaryButton type="button" onClick={confirm} className="w-full" disabled={busy}>
+              {busy ? "REMOVING…" : `REMOVE ${extraCount} DUPLICATE${extraCount === 1 ? "" : "S"}`}
+            </PrimaryButton>
+          </>
+        )}
+      </div>
+    </BottomSheet>
+  );
+}
+
 export default function CoachExercises({ showToast, compact = false }) {
   const { db, importSeedExercises: bulkImportExercises, bulkFillExerciseVideos } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | exercise | null
@@ -300,10 +379,24 @@ export default function CoachExercises({ showToast, compact = false }) {
   const [importing, setImporting] = useState(false);
   const [fillingVideos, setFillingVideos] = useState(false);
   const [importVideosOpen, setImportVideosOpen] = useState(false);
+  const [dedupeOpen, setDedupeOpen] = useState(false);
 
   const filtered = db.exercises.filter((e) => (e.name || "").toLowerCase().includes(search.toLowerCase()));
   const missingVideoCount = db.exercises.filter((e) => !e.videoUrl).length;
   const needsRealVideoCount = db.exercises.filter((e) => !e.videoUrl || e.videoUrl.includes("youtube.com/results")).length;
+  const duplicateExtraCount = (() => {
+    const seen = new Map();
+    db.exercises.forEach((e) => {
+      const key = (e.name || "").trim().toLowerCase();
+      if (!key) return;
+      seen.set(key, (seen.get(key) || 0) + 1);
+    });
+    let extra = 0;
+    seen.forEach((count) => {
+      if (count > 1) extra += count - 1;
+    });
+    return extra;
+  })();
 
   // No direct access to the live database from outside the app — this is
   // how the coach hands over their ACTUAL exercise names (rather than
@@ -398,6 +491,16 @@ export default function CoachExercises({ showToast, compact = false }) {
           >
             <Upload size={16} /> <span className="hidden sm:inline">IMPORT VIDEO LIST</span>
           </button>
+          {duplicateExtraCount > 0 && (
+            <button
+              onClick={() => setDedupeOpen(true)}
+              aria-label="Remove duplicate exercises"
+              title="Finds exercises with the same name and removes the extra copies, keeping the most complete one"
+              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <Layers size={16} /> <span className="hidden sm:inline">{duplicateExtraCount} DUPLICATE{duplicateExtraCount === 1 ? "" : "S"}</span>
+            </button>
+          )}
           <button
             onClick={importSeedExercises}
             disabled={importing}
@@ -413,6 +516,7 @@ export default function CoachExercises({ showToast, compact = false }) {
       </div>
 
       <ImportVideosSheet open={importVideosOpen} onClose={() => setImportVideosOpen(false)} showToast={showToast} />
+      <DedupeSheet open={dedupeOpen} onClose={() => setDedupeOpen(false)} showToast={showToast} />
 
       <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
         <Search size={16} className="text-black/40" />
