@@ -4516,14 +4516,14 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       onPointerMove={canSwipe ? swipePointerMove : undefined}
       onPointerUp={canSwipe ? swipePointerUp : undefined}
       onPointerCancel={canSwipe ? swipePointerUp : undefined}
-      className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 select-none ${
+      className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
         onClick ? "hover:bg-black/[0.02]" : ""
       } ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
-      style={{
-        WebkitUserSelect: "none",
-        WebkitTouchCallout: "none",
-        ...(canSwipe ? { touchAction: "pan-y", transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 200ms ease" } : {}),
-      }}
+      style={
+        canSwipe
+          ? { touchAction: "pan-y", transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 200ms ease" }
+          : undefined
+      }
     >
       <span
         className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-white"}`}
@@ -4535,10 +4535,13 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
         {subtitle && <p className="text-black/40 text-[13px] mt-0.5 truncate">{subtitle}</p>}
       </div>
       {/* A dedicated grab handle, not the whole card, owns the drag gesture
-          (touchAction: none) — the card body stays natively scrollable
-          (no touch-action override), so starting an ordinary scroll swipe
-          anywhere on a draggable card just scrolls the page like any other
-          card instead of getting swallowed by the long-press-drag logic. */}
+          (touchAction: none, text-selection disabled) — the card body
+          stays natively scrollable AND its text stays normally selectable,
+          so starting an ordinary scroll swipe (or long-pressing the title
+          to copy it) anywhere on a draggable card just does that, like any
+          other card, instead of getting swallowed by the drag logic. Sized
+          to a full 44px tap target (Apple's own minimum) since a small
+          handle is fiddly to land a thumb on precisely. */}
       {draggable ? (
         <span
           onClick={(e) => e.stopPropagation()}
@@ -4546,10 +4549,10 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="w-9 h-9 -mr-1.5 shrink-0 flex items-center justify-center text-black/30 cursor-grab active:cursor-grabbing select-none"
+          className="w-11 h-11 -mr-2.5 shrink-0 flex items-center justify-center text-black/40 cursor-grab active:cursor-grabbing select-none"
           style={{ touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
         >
-          <GripVertical size={18} />
+          <GripVertical size={20} />
         </span>
       ) : (
         onClick && <ChevronRight size={18} className="text-black/25 shrink-0" />
