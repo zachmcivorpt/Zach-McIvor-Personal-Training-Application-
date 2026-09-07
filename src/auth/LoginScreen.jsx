@@ -126,9 +126,21 @@ export default function LoginScreen() {
   async function submit(e) {
     e.preventDefault();
     setError("");
+    // The button used to stay disabled until React's own state saw
+    // non-empty fields — but iOS autofill/password managers can fill the
+    // inputs visually without ever firing a real onChange, leaving state
+    // empty while the fields look filled in. That made the button
+    // silently refuse to do anything, with zero feedback. Re-reading the
+    // DOM values directly here is the fallback for exactly that case.
+    const emailValue = username || e.currentTarget.email?.value || "";
+    const passwordValue = password || e.currentTarget.password?.value || "";
+    if (!emailValue.trim() || !passwordValue) {
+      setError("Enter your email and password.");
+      return;
+    }
     setBusy(true);
     try {
-      await login(username, password);
+      await login(emailValue, passwordValue);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -211,6 +223,7 @@ export default function LoginScreen() {
                 <Field label="EMAIL">
                   <TextInput
                     type="email"
+                    name="email"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     placeholder="you@example.com"
@@ -221,6 +234,7 @@ export default function LoginScreen() {
                 <Field label="PASSWORD">
                   <TextInput
                     type="password"
+                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
@@ -230,8 +244,8 @@ export default function LoginScreen() {
 
                 {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
 
-                <PrimaryButton type="submit" disabled={busy || !username || !password} className="w-full !rounded-full">
-                  SIGN IN <ChevronRight size={18} />
+                <PrimaryButton type="submit" disabled={busy} className="w-full !rounded-full">
+                  {busy ? "SIGNING IN…" : <>SIGN IN <ChevronRight size={18} /></>}
                 </PrimaryButton>
               </form>
 
