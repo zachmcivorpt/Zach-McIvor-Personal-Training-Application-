@@ -491,6 +491,42 @@ export function AppProvider({ children }) {
         return { id: uid, ...coach };
       },
 
+      // For a client whose real Firebase Auth login still works (so a fresh
+      // invite can't be created for their email — "already in use") but
+      // whose users/{uid} profile doc is gone — e.g. it was deleted. Their
+      // own uid is knowable the moment they successfully sign in (see
+      // LoginScreen's profileMissing fallback, which shows it to them
+      // directly for exactly this reason), so recreating the doc under
+      // that same id reconnects their existing login to a fresh profile —
+      // no new account, no more "email already registered" conflict.
+      async restoreClientProfile(uid, { name, email }) {
+        const trimmedUid = (uid || "").trim();
+        if (!trimmedUid) throw new Error("Enter their account ID.");
+        const trimmedName = (name || "").trim();
+        const trimmedEmail = (email || "").trim().toLowerCase();
+        if (!trimmedName) throw new Error("Name can't be empty.");
+        if (!trimmedEmail) throw new Error("Email can't be empty.");
+        if (db.users.some((u) => u.id === trimmedUid)) {
+          throw new Error("A profile already exists for that account.");
+        }
+        try {
+          await setDoc(doc(firestore, "users", trimmedUid), {
+            role: "client",
+            name: trimmedName,
+            email: trimmedEmail,
+            username: trimmedEmail,
+            status: "active",
+            createdAt: Date.now(),
+            lastLoginAt: Date.now(),
+            currentSessionIndex: 0,
+            fitnessLevel: "Beginner",
+            streak: 0,
+          });
+        } catch (err) {
+          throw new Error("Couldn't restore that profile — " + (err.message || "please try again."));
+        }
+      },
+
       async createInvite({ name, email }) {
         const base = email.trim().toLowerCase();
         let username = base;

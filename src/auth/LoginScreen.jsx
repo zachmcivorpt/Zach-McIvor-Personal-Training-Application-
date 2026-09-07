@@ -114,6 +114,12 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
+  // Set the instant a sign-in genuinely succeeds — Firebase accepted the
+  // credential and handed back a real account. Distinct from `session`
+  // (which the app can also reach via other means) so the "couldn't find
+  // your profile" fallback below only ever fires right after a fresh,
+  // deliberate sign-in on this screen, not on some unrelated stale render.
+  const [signedInUid, setSignedInUid] = useState(null);
 
   // Auth (sign-in, coach signup, or activation) is async, and the profile
   // doc that carries `.role` loads a moment after Firebase confirms the
@@ -123,9 +129,28 @@ export default function LoginScreen() {
     if (currentUser) navigate(currentUser.role === "coach" ? "/coach" : "/app", { replace: true });
   }, [currentUser, navigate]);
 
+  // A sign-in can succeed at the Firebase Auth level (right credential,
+  // real account) while that account's own users/{uid} profile doc no
+  // longer exists — e.g. it was deleted. Nothing throws in that case, so
+  // the old code just sat here forever with zero feedback: it looked
+  // exactly like the button did nothing. Once we've seen an actual
+  // successful sign-in, if no matching profile shows up within a few
+  // seconds, say so plainly and hand over the one thing that lets a coach
+  // actually fix it — this account's own real id.
+  const [profileMissing, setProfileMissing] = useState(false);
+  useEffect(() => {
+    if (!signedInUid || currentUser) {
+      setProfileMissing(false);
+      return;
+    }
+    const t = setTimeout(() => setProfileMissing(true), 4000);
+    return () => clearTimeout(t);
+  }, [signedInUid, currentUser]);
+
   async function submit(e) {
     e.preventDefault();
     setError("");
+    setProfileMissing(false);
     // The button used to stay disabled until React's own state saw
     // non-empty fields — but iOS autofill/password managers can fill the
     // inputs visually without ever firing a real onChange, leaving state
@@ -140,7 +165,8 @@ export default function LoginScreen() {
     }
     setBusy(true);
     try {
-      await login(emailValue, passwordValue);
+      const user = await login(emailValue, passwordValue);
+      setSignedInUid(user.uid);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -243,6 +269,17 @@ export default function LoginScreen() {
                 </Field>
 
                 {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
+
+                {profileMissing && (
+                  <div className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-3 space-y-2">
+                    <p>
+                      Your password is right — you're signed in — but your coach can't find your profile on their end
+                      yet. Send them this so they can fix it:
+                    </p>
+                    <p className="font-mono text-xs bg-black/30 rounded-lg px-2.5 py-2 break-all select-all">{signedInUid}</p>
+                    <p className="text-white/60 text-xs">(Tap the code above to select it, then copy and send it to them.)</p>
+                  </div>
+                )}
 
                 <PrimaryButton type="submit" disabled={busy} className="w-full !rounded-full">
                   {busy ? "SIGNING IN…" : <>SIGN IN <ChevronRight size={18} /></>}

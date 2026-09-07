@@ -39,15 +39,19 @@ export function inviteMailto({ email, name, username, code, coachName }) {
 // out the whole profile before the client ever knows it exists. Sending the
 // actual login details is a separate, deliberate step from the profile.
 function AddClientSheet({ open, onClose, onCreated }) {
-  const { createInvite } = useApp();
+  const { createInvite, restoreClientProfile } = useApp();
+  const [mode, setMode] = useState("new"); // new | restore
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [uid, setUid] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   function close() {
+    setMode("new");
     setName("");
     setEmail("");
+    setUid("");
     setError("");
     onClose();
   }
@@ -57,11 +61,21 @@ function AddClientSheet({ open, onClose, onCreated }) {
     setError("");
     setBusy(true);
     try {
-      const created = await createInvite({ name, email });
-      setName("");
-      setEmail("");
-      onClose();
-      onCreated(created.id);
+      if (mode === "restore") {
+        await restoreClientProfile(uid, { name, email });
+        const restoredId = uid.trim();
+        setName("");
+        setEmail("");
+        setUid("");
+        onClose();
+        onCreated(restoredId);
+      } else {
+        const created = await createInvite({ name, email });
+        setName("");
+        setEmail("");
+        onClose();
+        onCreated(created.id);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -70,8 +84,39 @@ function AddClientSheet({ open, onClose, onCreated }) {
   }
 
   return (
-    <BottomSheet open={open} onClose={close} title="Add Client">
+    <BottomSheet open={open} onClose={close} title={mode === "restore" ? "Restore an Account" : "Add Client"}>
+      <div className="flex bg-black/5 rounded-xl p-1 mb-4">
+        {[
+          { id: "new", label: "New Client" },
+          { id: "restore", label: "Restore Account" },
+        ].map((m) => (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => {
+              setMode(m.id);
+              setError("");
+            }}
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${
+              mode === m.id ? "bg-white shadow text-black" : "text-black/50"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
       <form onSubmit={submit} className="space-y-4">
+        {mode === "restore" && (
+          <>
+            <p className="text-black/40 text-xs -mt-1">
+              For a client whose login still works but whose profile went missing — paste the account ID they see on their
+              own sign-in screen when this happens.
+            </p>
+            <Field label="ACCOUNT ID">
+              <TextInput value={uid} onChange={(e) => setUid(e.target.value)} placeholder="e.g. Ax7fP2qL9mZ..." required />
+            </Field>
+          </>
+        )}
         <Field label="FULL NAME">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Jordan Lee" required />
         </Field>
@@ -80,10 +125,12 @@ function AddClientSheet({ open, onClose, onCreated }) {
         </Field>
         {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5">{error}</p>}
         <PrimaryButton type="submit" className="w-full" disabled={busy}>
-          <UserPlus size={18} /> {busy ? "CREATING…" : "CREATE CLIENT"}
+          <UserPlus size={18} /> {busy ? (mode === "restore" ? "RESTORING…" : "CREATING…") : mode === "restore" ? "RESTORE PROFILE" : "CREATE CLIENT"}
         </PrimaryButton>
         <p className="text-black/30 text-xs text-center">
-          You'll land on their profile next to set up their program and habits. Nothing is sent to them until you choose to.
+          {mode === "restore"
+            ? "Reconnects their existing login to a fresh profile — no new account, and their email must already match."
+            : "You'll land on their profile next to set up their program and habits. Nothing is sent to them until you choose to."}
         </p>
       </form>
     </BottomSheet>
