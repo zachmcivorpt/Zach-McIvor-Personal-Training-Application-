@@ -207,12 +207,92 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
   );
 }
 
+// Paste-in bulk video import — one line per exercise as
+// "Exercise Name | https://youtube.com/watch?v=...", matched by name
+// against the existing library. This is how real, hand-verified videos
+// (found and checked one at a time, e.g. via web search) get applied
+// without editing each exercise by hand.
+function ImportVideosSheet({ open, onClose, showToast }) {
+  const { bulkImportExerciseVideos } = useApp();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null); // { matchedCount, unmatched } | null
+
+  function close() {
+    setText("");
+    setResult(null);
+    onClose();
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    const pairs = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const i = line.indexOf("|");
+        if (i === -1) return null;
+        return { name: line.slice(0, i).trim(), url: line.slice(i + 1).trim() };
+      })
+      .filter(Boolean);
+    if (pairs.length === 0) {
+      showToast("Add at least one line as: Exercise Name | video URL");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await bulkImportExerciseVideos(pairs);
+      setResult(res);
+      if (res.matchedCount > 0) showToast(`Updated ${res.matchedCount} exercise${res.matchedCount === 1 ? "" : "s"}`);
+    } catch (err) {
+      showToast(err.message || "Couldn't import videos");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onClose={close} title="Import Video List">
+      <form onSubmit={submit} className="space-y-4">
+        <p className="text-black/40 text-xs">
+          One exercise per line: <span className="font-mono text-black/60">Exercise Name | video URL</span>. Names are
+          matched exactly (case-insensitive) against your library.
+        </p>
+        <TextArea
+          rows={10}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={"Barbell Back Squat | https://youtube.com/watch?v=...\nDeadlift | https://youtube.com/watch?v=..."}
+          className="font-mono text-xs"
+        />
+        {result && (
+          <div className="bg-black/5 border border-black/10 rounded-xl px-3.5 py-3 text-sm space-y-1.5">
+            <p className="text-black font-semibold">
+              Matched {result.matchedCount} of {result.matchedCount + result.unmatched.length}
+            </p>
+            {result.unmatched.length > 0 && (
+              <p className="text-black/50 text-xs">
+                No exact name match for: {result.unmatched.join(", ")}
+              </p>
+            )}
+          </div>
+        )}
+        <PrimaryButton type="submit" className="w-full" disabled={busy}>
+          {busy ? "IMPORTING…" : "IMPORT VIDEOS"}
+        </PrimaryButton>
+      </form>
+    </BottomSheet>
+  );
+}
+
 export default function CoachExercises({ showToast, compact = false }) {
   const { db, importSeedExercises: bulkImportExercises, bulkFillExerciseVideos } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | exercise | null
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState(false);
   const [fillingVideos, setFillingVideos] = useState(false);
+  const [importVideosOpen, setImportVideosOpen] = useState(false);
 
   const filtered = db.exercises.filter((e) => (e.name || "").toLowerCase().includes(search.toLowerCase()));
   const missingVideoCount = db.exercises.filter((e) => !e.videoUrl).length;
@@ -275,6 +355,14 @@ export default function CoachExercises({ showToast, compact = false }) {
             </button>
           )}
           <button
+            onClick={() => setImportVideosOpen(true)}
+            aria-label="Import a list of specific videos"
+            title="Paste a list of Exercise Name | video URL lines to set real, specific videos in bulk"
+            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+          >
+            <Upload size={16} /> <span className="hidden sm:inline">IMPORT VIDEO LIST</span>
+          </button>
+          <button
             onClick={importSeedExercises}
             disabled={importing}
             aria-label="Import seed exercises"
@@ -287,6 +375,8 @@ export default function CoachExercises({ showToast, compact = false }) {
           </button>
         </div>
       </div>
+
+      <ImportVideosSheet open={importVideosOpen} onClose={() => setImportVideosOpen(false)} showToast={showToast} />
 
       <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
         <Search size={16} className="text-black/40" />

@@ -935,6 +935,34 @@ export function AppProvider({ children }) {
         return missing.length;
       },
 
+      // Applies a batch of real, specific, hand-verified videos (matched by
+      // exercise name) in one write instead of editing each exercise by
+      // hand one at a time — used when curating actual videos to replace
+      // the generic search links from bulkFillExerciseVideos.
+      async bulkImportExerciseVideos(pairs) {
+        const matched = [];
+        const unmatched = [];
+        (pairs || []).forEach(({ name, url }) => {
+          const target = (name || "").trim().toLowerCase();
+          const ex = db.exercises.find((e) => (e.name || "").trim().toLowerCase() === target);
+          if (ex && url) matched.push({ id: ex.id, url: url.trim() });
+          else unmatched.push(name);
+        });
+        if (matched.length > 0) {
+          try {
+            for (let i = 0; i < matched.length; i += 400) {
+              const chunk = matched.slice(i, i + 400);
+              const batch = writeBatch(firestore);
+              chunk.forEach(({ id, url }) => batch.update(doc(firestore, "exercises", id), { videoUrl: url }));
+              await batch.commit();
+            }
+          } catch (err) {
+            throw new Error("Couldn't import videos — " + (err.message || "please try again."));
+          }
+        }
+        return { matchedCount: matched.length, unmatched };
+      },
+
       logWorkout(clientId, entry) {
         const id = newDocId("workoutLogs");
         setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);
