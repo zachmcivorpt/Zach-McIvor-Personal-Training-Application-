@@ -409,7 +409,7 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
 }
 
 function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewDate, showToast, presetPayload }) {
-  const { db, scheduleWorkoutDates } = useApp();
+  const { db, scheduleWorkoutDates, unscheduleWorkout } = useApp();
   const [source, setSource] = useState("library"); // library | custom
   const [masterWorkoutId, setMasterWorkoutId] = useState("");
   const [customDay, setCustomDay] = useState(null); // built via WorkoutEditor
@@ -420,6 +420,13 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   const [weeklyWeekday, setWeeklyWeekday] = useState(null); // 0=Mon..6=Sun, or null
   const [weeklyWeeks, setWeeklyWeeks] = useState(4);
   const [saving, setSaving] = useState(false);
+  // Snapshot of which dates were ALREADY scheduled with this exact workout
+  // the moment the calendar last synced to it — diffed against
+  // selectedDates on submit so unchecking a circled (already-scheduled)
+  // date actually unschedules it instead of silently doing nothing, and so
+  // a date that was never scheduled only gets added, never touched
+  // otherwise. See the payload-driven sync effect below.
+  const baselineScheduledRef = useRef(new Set());
 
   React.useEffect(() => {
     if (open) {
@@ -435,7 +442,6 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
       setSource("library");
       setMasterWorkoutId(db.masterWorkouts?.[0]?.id || "");
       setCustomDay(null);
-      setSelectedDates(new Set(initialDate ? [initialDate] : []));
       // A date-only string is UTC-anchored (T00:00:00Z trick) so extract
       // with the matching UTC getters; otherwise base is a real "now" and
       // needs the viewer's own local month/year, not UTC's.
@@ -508,21 +514,46 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
     );
   }, [db.scheduledWorkouts, client.id, payload?.label]);
 
+  // Whenever the sheet opens, or the coach switches which workout they're
+  // scheduling, sync the calendar's checked dates to match reality: every
+  // date this exact workout is already scheduled on starts checked (circled
+  // AND selected), plus initialDate if a specific day was clicked to get
+  // here. The baseline snapshot is what submit() diffs the final selection
+  // against — so unchecking one of these removes it, and checking a new
+  // date adds it, rather than every click only ever being able to add.
+  React.useEffect(() => {
+    if (!open) return;
+    const next = new Set(alreadyScheduledDates);
+    if (initialDate) next.add(initialDate);
+    setSelectedDates(next);
+    baselineScheduledRef.current = new Set(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, alreadyScheduledDates, initialDate]);
+
   async function submit(e) {
     e.preventDefault();
-    if (!payload || selectedDates.size === 0) return;
+    const baseline = baselineScheduledRef.current;
+    const toAdd = [...selectedDates].filter((d) => !baseline.has(d)).sort();
+    const toRemove = [...baseline].filter((d) => !selectedDates.has(d));
+    if (!payload || (toAdd.length === 0 && toRemove.length === 0)) return;
     setSaving(true);
     try {
-      const dates = [...selectedDates].sort();
-      await scheduleWorkoutDates(client.id, { dates, ...payload });
-      showToast(`Scheduled on ${dates.length} date${dates.length === 1 ? "" : "s"}`);
+      if (toAdd.length > 0) await scheduleWorkoutDates(client.id, { dates: toAdd, ...payload });
+      toRemove.forEach((d) => unscheduleWorkout(client.id, d));
+      const parts = [];
+      if (toAdd.length > 0) parts.push(`scheduled on ${toAdd.length} date${toAdd.length === 1 ? "" : "s"}`);
+      if (toRemove.length > 0) parts.push(`removed from ${toRemove.length} date${toRemove.length === 1 ? "" : "s"}`);
+      showToast(parts.join(", "));
       onClose();
     } catch (err) {
-      showToast(err.message || "Couldn't schedule that workout");
+      showToast(err.message || "Couldn't save that schedule");
     } finally {
       setSaving(false);
     }
   }
+
+  const baseline = baselineScheduledRef.current;
+  const hasChanges = [...selectedDates].some((d) => !baseline.has(d)) || [...baseline].some((d) => !selectedDates.has(d));
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Schedule a Workout">
@@ -645,7 +676,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
           </div>
         </div>
 
-        <PrimaryButton type="submit" className="w-full" disabled={!payload || selectedDates.size === 0 || saving}>
+        <PrimaryButton type="submit" className="w-full" disabled={!payload || !hasChanges || saving}>
           <Calendar size={16} />
           {saving ? "SCHEDULING…" : `SCHEDULE${selectedDates.size > 0 ? ` (${selectedDates.size})` : ""}`}
         </PrimaryButton>
