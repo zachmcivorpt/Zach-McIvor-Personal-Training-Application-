@@ -39,6 +39,11 @@ import {
   Lock,
   Unlock,
   TrendingDown,
+  MoreVertical,
+  RotateCcw,
+  CalendarClock,
+  Search,
+  Minus,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -2704,10 +2709,13 @@ function NutritionPanel({ client, showToast }) {
 }
 
 export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
-  const { db, addClientNote, updateClientNote, deleteClientNote } = useApp();
+  const { db, addClientNote, updateClientNote, deleteClientNote, updateWorkoutLogEntries, moveWorkoutLog, revertWorkoutLogToScheduled, deleteWorkoutLog } =
+    useApp();
   const [open, setOpen] = useState(defaultOpen);
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [modal, setModal] = useState(null); // "stats" | "move" | "revert" | "delete" | null
   const workoutNote = ((db.clientNotes || {})[log.clientId] || []).find((n) => n.workoutLogId === log.id);
   const hasFlags = log.entries.some((e) => e.note || e.swapReason) || !!workoutNote;
   const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
@@ -2733,6 +2741,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
   }
 
   return (
+    <>
     <div className="bg-black/[0.03] border border-black/8 rounded-xl overflow-hidden">
       <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-3.5 py-3 text-left">
         <div>
@@ -2744,11 +2753,76 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
             {prCount > 0 && <span className="text-amber-600 font-semibold"> · {prCount} PR{prCount === 1 ? "" : "s"}</span>}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {hasFlags && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              setMenuOpen((v) => !v);
+            }}
+            className="relative w-7 h-7 -mr-1 flex items-center justify-center rounded-lg text-black/40 hover:bg-black/5 hover:text-black/70"
+          >
+            <MoreVertical size={16} />
+            {menuOpen && (
+              <div
+                onClick={(ev) => ev.stopPropagation()}
+                className="absolute right-0 top-8 z-20 w-52 bg-white border border-black/10 rounded-xl shadow-lg py-1.5 text-left"
+              >
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setModal("stats");
+                  }}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-black/70 hover:bg-black/[0.04]"
+                >
+                  <Edit3 size={13} className="text-black/40" /> Edit Stats
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setModal("move");
+                  }}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-black/70 hover:bg-black/[0.04]"
+                >
+                  <CalendarClock size={13} className="text-black/40" /> Move To Another Day
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setModal("stats");
+                  }}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-black/70 hover:bg-black/[0.04]"
+                >
+                  <Dumbbell size={13} className="text-black/40" /> Edit This Workout
+                </button>
+                <div className="my-1 border-t border-black/8" />
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setModal("revert");
+                  }}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-black/70 hover:bg-black/[0.04]"
+                >
+                  <RotateCcw size={13} className="text-black/40" /> Revert To Scheduled
+                </button>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setModal("delete");
+                  }}
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
+              </div>
+            )}
+          </span>
           <ChevronDown size={16} className={`text-black/30 transition-transform ${open ? "rotate-180" : ""}`} />
         </div>
       </button>
+      {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
       {open && (
         <div className="px-3.5 pb-3.5 space-y-2.5">
           {log.entries.map((e, i) => {
@@ -2851,6 +2925,220 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
         </div>
       )}
     </div>
+    {(modal === "stats" || modal === "move") && (
+      <EditWorkoutModal mode={modal} log={log} exercisesById={exercisesById} onClose={() => setModal(null)} />
+    )}
+    {modal === "revert" && (
+      <ConfirmActionSheet
+        title="Revert To Scheduled?"
+        body="This removes the completed session and puts the workout back as scheduled (not yet done) for that day, using what was logged as the plan."
+        confirmLabel="Revert"
+        onConfirm={() => {
+          revertWorkoutLogToScheduled(log);
+          setModal(null);
+        }}
+        onClose={() => setModal(null)}
+      />
+    )}
+    {modal === "delete" && (
+      <ConfirmActionSheet
+        title="Delete This Workout?"
+        body="This permanently removes the completed session, including all logged sets and any PRs it recorded. This can't be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={() => {
+          deleteWorkoutLog(log.id);
+          setModal(null);
+        }}
+        onClose={() => setModal(null)}
+      />
+    )}
+    </>
+  );
+}
+
+function ConfirmActionSheet({ title, body, confirmLabel, danger = false, onConfirm, onClose }) {
+  return (
+    <BottomSheet open title={title} onClose={onClose}>
+      <div className="px-4 pb-4 space-y-4">
+        <p className="text-black/60 text-sm leading-snug">{body}</p>
+        <div className="flex items-center gap-3">
+          {danger ? (
+            <DangerButton onClick={onConfirm} className="flex-1">
+              {confirmLabel}
+            </DangerButton>
+          ) : (
+            <PrimaryButton onClick={onConfirm} className="flex-1">
+              {confirmLabel}
+            </PrimaryButton>
+          )}
+          <SecondaryButton onClick={onClose} className="flex-1">
+            Cancel
+          </SecondaryButton>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}
+
+// Covers both "Edit Stats" (correct logged numbers) and "Edit This Workout"
+// (add/remove which exercises were done) from Trainerize's "..." menu — one
+// modal handles both since a completed log's exercises and their sets are
+// the same underlying `entries` array.
+function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
+  const { updateWorkoutLogEntries, moveWorkoutLog } = useApp();
+  const [entries, setEntries] = useState(() => log.entries.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s })) })));
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [dateDraft, setDateDraft] = useState(() => new Date(log.date).toISOString().slice(0, 10));
+
+  const allExercises = useMemo(() => Object.values(exercisesById).sort((a, b) => a.name.localeCompare(b.name)), [exercisesById]);
+  const filtered = useMemo(
+    () => allExercises.filter((e) => !search || e.name.toLowerCase().includes(search.toLowerCase())),
+    [allExercises, search]
+  );
+
+  function updateSet(ei, si, patch) {
+    setEntries((prev) => prev.map((e, i) => (i === ei ? { ...e, sets: e.sets.map((s, j) => (j === si ? { ...s, ...patch } : s)) } : e)));
+  }
+  function addSet(ei) {
+    setEntries((prev) => prev.map((e, i) => (i === ei ? { ...e, sets: [...e.sets, { weight: 0, reps: 0, completed: true }] } : e)));
+  }
+  function removeSet(ei, si) {
+    setEntries((prev) => prev.map((e, i) => (i === ei ? { ...e, sets: e.sets.filter((_, j) => j !== si) } : e)));
+  }
+  function removeExercise(ei) {
+    setEntries((prev) => prev.filter((_, i) => i !== ei));
+  }
+  function addExercise(exerciseId) {
+    setEntries((prev) => [...prev, { exerciseId, sets: [{ weight: 0, reps: 0, completed: true }] }]);
+    setPickerOpen(false);
+    setSearch("");
+  }
+
+  function saveStats() {
+    const cleaned = entries
+      .filter((e) => e.sets.length > 0)
+      .map((e) => ({
+        ...e,
+        sets: e.sets.map((s, i) => ({ ...s, setNumber: i + 1, weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, completed: true })),
+      }));
+    updateWorkoutLogEntries(log.id, cleaned);
+    onClose();
+  }
+
+  function saveMove() {
+    if (dateDraft) moveWorkoutLog(log.id, log.date, dateDraft);
+    onClose();
+  }
+
+  if (mode === "move") {
+    return (
+      <BottomSheet open title="Move To Another Day" onClose={onClose}>
+        <div className="px-4 pb-4 space-y-4">
+          <p className="text-black/50 text-xs leading-snug">Pick the date this completed workout should show under instead.</p>
+          <TextInput type="date" value={dateDraft} onChange={(e) => setDateDraft(e.target.value)} />
+          <div className="flex items-center gap-3">
+            <PrimaryButton onClick={saveMove} className="flex-1">
+              Move Workout
+            </PrimaryButton>
+            <SecondaryButton onClick={onClose} className="flex-1">
+              Cancel
+            </SecondaryButton>
+          </div>
+        </div>
+      </BottomSheet>
+    );
+  }
+
+  return (
+    <BottomSheet open title="Edit Workout" onClose={onClose}>
+      <div className="px-4 pb-4 space-y-3 max-h-[70vh] overflow-y-auto">
+        {entries.map((e, ei) => {
+          const exercise = exercisesById[e.exerciseId];
+          return (
+            <div key={ei} className="bg-black/[0.03] border border-black/8 rounded-lg px-3 py-2.5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-black text-sm font-semibold">{exercise?.name || "Exercise"}</p>
+                <button onClick={() => removeExercise(ei)} className="text-black/30 hover:text-red-600">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {e.sets.map((s, si) => (
+                  <div key={si} className="flex items-center gap-2">
+                    <span className="text-black/30 text-[11px] w-10 shrink-0">Set {si + 1}</span>
+                    <TextInput
+                      type="number"
+                      value={s.reps}
+                      onChange={(ev) => updateSet(ei, si, { reps: ev.target.value })}
+                      placeholder="Reps"
+                      className="!py-1.5 !text-xs"
+                    />
+                    <TextInput
+                      type="number"
+                      value={s.weight}
+                      onChange={(ev) => updateSet(ei, si, { weight: ev.target.value })}
+                      placeholder="kg"
+                      className="!py-1.5 !text-xs"
+                    />
+                    <button onClick={() => removeSet(ei, si)} className="text-black/25 hover:text-red-600 shrink-0">
+                      <Minus size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => addSet(ei)} className="mt-2 text-blue-600 text-xs font-semibold flex items-center gap-1">
+                <Plus size={12} /> Add Set
+              </button>
+            </div>
+          );
+        })}
+
+        {pickerOpen ? (
+          <div className="bg-black/[0.03] border border-black/8 rounded-lg p-2.5 space-y-2">
+            <div className="flex items-center gap-2 bg-white border border-black/10 rounded-lg px-2.5 py-1.5">
+              <Search size={13} className="text-black/30" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search exercises…"
+                className="flex-1 text-xs outline-none"
+              />
+            </div>
+            <div className="max-h-40 overflow-y-auto space-y-0.5">
+              {filtered.slice(0, 40).map((ex) => (
+                <button
+                  key={ex.id}
+                  onClick={() => addExercise(ex.id)}
+                  className="w-full text-left px-2.5 py-1.5 text-xs text-black/70 rounded-lg hover:bg-white"
+                >
+                  {ex.name}
+                </button>
+              ))}
+              {filtered.length === 0 && <p className="text-black/30 text-xs px-2.5 py-1.5">No matching exercises.</p>}
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setPickerOpen(true)}
+            className="w-full flex items-center justify-center gap-1.5 border border-dashed border-black/15 rounded-lg py-2.5 text-black/40 text-xs font-semibold hover:border-black/25 hover:text-black/60"
+          >
+            <Plus size={13} /> Add Exercise
+          </button>
+        )}
+
+        <div className="flex items-center gap-3 pt-1">
+          <PrimaryButton onClick={saveStats} className="flex-1">
+            Save Changes
+          </PrimaryButton>
+          <SecondaryButton onClick={onClose} className="flex-1">
+            Cancel
+          </SecondaryButton>
+        </div>
+      </div>
+    </BottomSheet>
   );
 }
 

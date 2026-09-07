@@ -915,6 +915,48 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "workoutLogs", logId)).catch(console.error);
       },
 
+      // Coach corrections to an already-completed session — editing the
+      // logged sets/reps or which exercises were done, from the "..." menu
+      // on a workout log (Trainerize's Edit Stats / Edit This Workout).
+      updateWorkoutLogEntries(logId, entries) {
+        updateDoc(doc(firestore, "workoutLogs", logId), { entries }).catch(console.error);
+      },
+
+      // Moves a completed log onto a different calendar date, keeping the
+      // original time-of-day so ordering within that day is unaffected.
+      moveWorkoutLog(logId, currentDateMs, newDateKey) {
+        const original = new Date(currentDateMs);
+        const next = new Date(newDateKey);
+        next.setHours(original.getHours(), original.getMinutes(), original.getSeconds(), original.getMilliseconds());
+        updateDoc(doc(firestore, "workoutLogs", logId), { date: next.getTime() }).catch(console.error);
+      },
+
+      // Undoes a completion: deletes the log and re-creates a scheduled
+      // (not-yet-done) workout for that same day from what was logged, so
+      // the client sees it as still to-do rather than losing the day's plan.
+      async revertWorkoutLogToScheduled(log) {
+        const dateKey = new Date(log.date).toISOString().slice(0, 10);
+        const exercises = (log.entries || []).map((e) => ({
+          exerciseId: e.exerciseId,
+          targetSets: (e.sets || []).length || 1,
+          targetReps: e.sets?.[0]?.reps ?? 8,
+        }));
+        const id = `${log.clientId}__${dateKey}`;
+        try {
+          await setDoc(doc(firestore, "scheduledWorkouts", id), {
+            id,
+            clientId: log.clientId,
+            date: dateKey,
+            label: log.dayLabel || "Workout",
+            muscleGroups: [],
+            exercises,
+          });
+          await deleteDoc(doc(firestore, "workoutLogs", log.id));
+        } catch (err) {
+          throw new Error("Couldn't revert that workout — " + (err.message || "please try again."));
+        }
+      },
+
       // Reminders for the client to log a bodyweight/measurements check-in
       // on a given date — completion is derived from whether a weighIn
       // exists for that date, not tracked separately here.
