@@ -336,7 +336,7 @@ function buildMonthGrid(year, month) {
 // pass, the same interaction as the source layout's scheduling popover.
 // Renders in the client's local month; navigable and reusable at a
 // compact size inside a sheet.
-function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth }) {
+function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth, alreadyScheduledDates }) {
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = localDateKey();
   return (
@@ -375,6 +375,11 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
               const inMonth = date.getUTCMonth() === viewMonth;
               const isToday = dateStr === todayStr;
               const selected = selectedDates.has(dateStr);
+              // This exact workout is already scheduled on this date (from
+              // a previous save) — shown as an outline ring, distinct from
+              // the filled circle marking what's newly picked in this
+              // session, same as Trainerize's own "Schedule" calendar.
+              const alreadyScheduled = !selected && alreadyScheduledDates?.has(dateStr);
               return (
                 <button
                   key={dateStr}
@@ -383,6 +388,8 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
                   className={`aspect-square rounded-full text-xs font-medium transition-colors ${
                     selected
                       ? "bg-blue-500 text-white"
+                      : alreadyScheduled
+                      ? "border-2 border-blue-400 text-black"
                       : isToday
                       ? "border border-blue-400 text-black"
                       : inMonth
@@ -490,6 +497,17 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
       ? { label: customDay.label, muscleGroups: customDay.muscleGroups || [], exercises: customDay.exercises }
       : null);
 
+  // Dates this exact workout (matched by name) is already scheduled on for
+  // this client — shown circled on the mini calendar below so the coach can
+  // see the existing pattern (e.g. every Monday) before adding to it,
+  // rather than starting from a blank slate every time this sheet opens.
+  const alreadyScheduledDates = useMemo(() => {
+    if (!payload?.label) return new Set();
+    return new Set(
+      ((db.scheduledWorkouts || {})[client.id] || []).filter((w) => w.label === payload.label).map((w) => w.date)
+    );
+  }, [db.scheduledWorkouts, client.id, payload?.label]);
+
   async function submit(e) {
     e.preventDefault();
     if (!payload || selectedDates.size === 0) return;
@@ -578,7 +596,14 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
             )}
           </div>
           <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3">
-            <MiniDatePicker selectedDates={selectedDates} onToggle={toggleDate} viewYear={viewYear} viewMonth={viewMonth} onShiftMonth={shiftMonth} />
+            <MiniDatePicker
+              selectedDates={selectedDates}
+              onToggle={toggleDate}
+              viewYear={viewYear}
+              viewMonth={viewMonth}
+              onShiftMonth={shiftMonth}
+              alreadyScheduledDates={alreadyScheduledDates}
+            />
           </div>
           <p className="text-black/30 text-[11px] mt-1.5">Tap any dates to circle them — pick as many as you like.</p>
         </div>
