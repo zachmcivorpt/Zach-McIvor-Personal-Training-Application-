@@ -94,7 +94,7 @@ function AddClientSheet({ open, onClose, onCreated }) {
 // own profile, only visible to the coach, triggered whenever the coach is
 // actually ready to bring the client in.
 export function SendLoginSheet({ open, onClose, client, showToast }) {
-  const { resendInvite, currentUser } = useApp();
+  const { resendInvite, markLoginDetailsSent, currentUser } = useApp();
   const [code, setCode] = useState(client?.password || "");
 
   if (!client) return null;
@@ -123,6 +123,7 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
       </div>
       <a
         href={inviteMailto({ email: client.email, name: client.name, username: client.username, code, coachName: currentUser?.name })}
+        onClick={() => markLoginDetailsSent(client.id)}
         className="w-full mt-3 bg-black text-white text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2"
       >
         <Mail size={15} /> EMAIL THESE DETAILS
@@ -131,6 +132,7 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
         onClick={() => {
           const activateUrl = `${window.location.origin}/activate`;
           navigator.clipboard?.writeText(`App: ${activateUrl}\nEmail: ${client.username}\nCode: ${code}`);
+          markLoginDetailsSent(client.id);
           showToast("Copied login details");
         }}
         className="w-full mt-2.5 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl flex items-center justify-center gap-2"
@@ -142,6 +144,16 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
       </SecondaryButton>
     </BottomSheet>
   );
+}
+
+// "Sent" only means the coach used the Email/Copy action in Send Login
+// Details at least once — there's no real delivery confirmation, so it's
+// a proxy, but it's still the difference between "haven't touched this
+// yet" and "already gave them their login."
+export function clientStatusPill(c) {
+  if (c.status === "active") return { tone: "outline", label: "Active" };
+  if (c.loginSent) return { tone: "default", label: "Sent" };
+  return { tone: "muted", label: "Not sent yet" };
 }
 
 function PhaseCell({ phase }) {
@@ -412,7 +424,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                   </td>
                   <td className="px-3 py-3.5">
                     <div className="flex items-center gap-1.5">
-                      <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
+                      <Pill tone={clientStatusPill(c).tone}>{clientStatusPill(c).label}</Pill>
                       {c.accessPaused && <Pill tone="warning">Paused</Pill>}
                     </div>
                   </td>
@@ -504,7 +516,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     {c.accessPaused ? <Unlock size={14} /> : <Lock size={14} />}
                   </button>
                 )}
-                <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
+                <Pill tone={clientStatusPill(c).tone}>{clientStatusPill(c).label}</Pill>
               </div>
               {c.accessPaused && (
                 <p className="flex items-center gap-1 text-red-700 text-xs font-medium mb-2.5">

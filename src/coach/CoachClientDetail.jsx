@@ -6,7 +6,7 @@ import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, Dang
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
 import { computePerformanceTimeline, computePRsInLastNDays, computeWeeklySessionCompletion, closestWeighIn, computePlateaus } from "../lib/trainingStats";
 import { ThreadView } from "./CoachMessages";
-import { SendLoginSheet } from "./CoachClients";
+import { SendLoginSheet, clientStatusPill } from "./CoachClients";
 import WorkoutEditor from "./WorkoutEditor";
 import {
   ArrowLeft,
@@ -4142,7 +4142,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
             <div className="min-w-0">
               <p className="text-black font-bold text-sm truncate">{client.name}</p>
               <div className="flex items-center gap-1.5">
-                <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
+                <Pill tone={clientStatusPill(client).tone}>{clientStatusPill(client).label}</Pill>
                 {client.accessPaused && <Pill tone="warning">Paused</Pill>}
               </div>
             </div>
@@ -4252,7 +4252,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast }) {
           <div className="min-w-0 flex-1">
             <p className="text-black font-bold text-sm truncate">{client.name}</p>
             <div className="flex items-center gap-1.5">
-              <Pill tone={client.status === "active" ? "outline" : "muted"}>{client.status === "active" ? "Active" : "Not sent yet"}</Pill>
+              <Pill tone={clientStatusPill(client).tone}>{clientStatusPill(client).label}</Pill>
               {client.accessPaused && <Pill tone="warning">Paused</Pill>}
             </div>
           </div>

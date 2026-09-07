@@ -353,6 +353,7 @@ export function AppProvider({ children }) {
         username: inv.email,
         password: inv.code,
         status: "invited",
+        loginSent: !!inv.loginSent,
         createdAt: inv.createdAt,
         assignedProgramId: draft.assignedProgramId ?? null,
         currentSessionIndex: 0,
@@ -563,6 +564,15 @@ export function AppProvider({ children }) {
         const code = inviteCode();
         updateDoc(doc(firestore, "invites", clientId), { code }).catch(console.error);
         return code;
+      },
+
+      // There's no real delivery confirmation for the login details (they
+      // go out via the coach's own email app or a manual copy/paste, not
+      // something this app sends itself) — this just records that the
+      // coach actually used the Email/Copy action in Send Login Details,
+      // so the Clients table can show "Sent" instead of "Not sent yet".
+      markLoginDetailsSent(clientId) {
+        updateDoc(doc(firestore, "invites", clientId), { loginSent: true, loginSentAt: Date.now() }).catch(console.error);
       },
 
       // For a client who's already activated their own account (so there's

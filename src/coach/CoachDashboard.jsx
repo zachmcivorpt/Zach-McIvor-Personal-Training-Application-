@@ -3,6 +3,7 @@ import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
+import { clientStatusPill } from "./CoachClients";
 import { MEASURE_BLUE } from "../theme";
 import {
   Users,
@@ -474,7 +475,7 @@ export default function CoachDashboard({ onNavigate, showToast }) {
                       <p className="text-black/35 text-xs mt-1 truncate">{phase ? phase.name : "No phase scheduled"}</p>
                     </div>
                   </div>
-                  <Pill tone={c.status === "active" ? "outline" : "muted"}>{c.status === "active" ? "Active" : "Not sent yet"}</Pill>
+                  <Pill tone={clientStatusPill(c).tone}>{clientStatusPill(c).label}</Pill>
                 </div>
               );
             })}
