@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
+import { localDateKey } from "../lib/dateKey";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
 import { computePerformanceTimeline, computePRsInLastNDays, computeWeeklySessionCompletion, closestWeighIn, computePlateaus } from "../lib/trainingStats";
@@ -48,12 +49,12 @@ import {
   Trophy,
 } from "lucide-react";
 
-const todayKey = () => new Date().toISOString().slice(0, 10);
+const todayKey = () => localDateKey();
 
 function addDaysISO(dateStr, days) {
   const d = new Date(dateStr);
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 }
 
 const PHASE_DURATION_OPTIONS = [1, 2, 3, 4, 5];
@@ -208,8 +209,8 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
       newEnd.setDate(newEnd.getDate() + weeks * 7);
       setForm({
         name: `${phase.name} (copy)`,
-        startDate: newStart.toISOString().slice(0, 10),
-        endDate: newEnd.toISOString().slice(0, 10),
+        startDate: localDateKey(newStart),
+        endDate: localDateKey(newEnd),
         weeks,
       });
     }
@@ -221,7 +222,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
     setForm((f) => {
       const newEnd = new Date(startDate);
       newEnd.setDate(newEnd.getDate() + f.weeks * 7);
-      return { ...f, startDate, endDate: newEnd.toISOString().slice(0, 10) };
+      return { ...f, startDate, endDate: localDateKey(newEnd) };
     });
   }
 
@@ -229,7 +230,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
     setForm((f) => {
       const newEnd = new Date(f.startDate);
       newEnd.setDate(newEnd.getDate() + weeks * 7);
-      return { ...f, weeks, endDate: newEnd.toISOString().slice(0, 10) };
+      return { ...f, weeks, endDate: localDateKey(newEnd) };
     });
   }
 
@@ -301,6 +302,13 @@ const CAL_WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // track as trained-or-avoided).
 const MUSCLE_CATEGORIES = ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs", "Core", "Forearms"];
 
+// Extracts the plain "YYYY-MM-DD" a UTC-anchored grid cell (built via
+// Date.UTC in buildMonthGrid, below) already represents — deliberately
+// UTC, not localDateKey, since these Date objects were never meant to
+// represent a real moment in the viewer's own timezone; they're a
+// timezone-agnostic day counter, and toISOString() round-trips it
+// losslessly back to the same y/m/d that built it (regardless of the
+// viewer's own offset), which local getters would not.
 function dKey(d) {
   return d.toISOString().slice(0, 10);
 }
@@ -330,7 +338,7 @@ function buildMonthGrid(year, month) {
 // compact size inside a sheet.
 function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth }) {
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
-  const todayStr = dKey(new Date());
+  const todayStr = localDateKey();
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -413,8 +421,11 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
       setMasterWorkoutId(db.masterWorkouts?.[0]?.id || "");
       setCustomDay(null);
       setSelectedDates(new Set(initialDate ? [initialDate] : []));
-      setViewYear(base.getUTCFullYear());
-      setViewMonth(base.getUTCMonth());
+      // initialDate is UTC-anchored (T00:00:00Z trick) so extract with the
+      // matching UTC getters; otherwise base is a real "now" and needs the
+      // viewer's own local month/year, not UTC's.
+      setViewYear(initialDate ? base.getUTCFullYear() : base.getFullYear());
+      setViewMonth(initialDate ? base.getUTCMonth() : base.getMonth());
       setWeeklyWeekday(null);
       setWeeklyWeeks(4);
     }
@@ -454,7 +465,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
     // advance to the first matching weekday (Mon=0..Sun=6)
     while ((d.getDay() + 6) % 7 !== weeklyWeekday) d.setDate(d.getDate() + 1);
     for (let i = 0; i < weeklyWeeks; i++) {
-      dates.push(dKey(d));
+      dates.push(localDateKey(d));
       d.setDate(d.getDate() + 7);
     }
     setSelectedDates((prev) => new Set([...prev, ...dates]));
@@ -626,14 +637,14 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
 
 function ScheduleBodyStatsSheet({ open, onClose, client, initialDate, showToast }) {
   const { scheduleBodyStatsCheckin } = useApp();
-  const [date, setDate] = useState(initialDate || dKey(new Date()));
+  const [date, setDate] = useState(initialDate || localDateKey());
   const [repeatWeekly, setRepeatWeekly] = useState(false);
   const [weeks, setWeeks] = useState(4);
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
     if (open) {
-      setDate(initialDate || dKey(new Date()));
+      setDate(initialDate || localDateKey());
       setRepeatWeekly(false);
       setWeeks(4);
     }
@@ -891,8 +902,8 @@ function CalendarPanel({ client, showToast }) {
     setDragPos(null);
   }
   const now = new Date();
-  const [viewYear, setViewYear] = useState(now.getUTCFullYear());
-  const [viewMonth, setViewMonth] = useState(now.getUTCMonth());
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [selectedDate, setSelectedDate] = useState(null);
   const [scheduleKind, setScheduleKind] = useState(null); // "workout" | "bodystats" | "form" | null
   const [selectMode, setSelectMode] = useState(false);
@@ -914,11 +925,11 @@ function CalendarPanel({ client, showToast }) {
 
   const workoutsByDate = useMemo(() => Object.fromEntries(scheduledWorkouts.map((w) => [w.date, w])), [scheduledWorkouts]);
   const bodyStatsByDate = useMemo(() => Object.fromEntries(bodyStatsSchedules.map((b) => [b.date, b])), [bodyStatsSchedules]);
-  const weighInDates = useMemo(() => new Set(weighIns.map((w) => dKey(new Date(w.date)))), [weighIns]);
+  const weighInDates = useMemo(() => new Set(weighIns.map((w) => localDateKey(w.date))), [weighIns]);
   const completedWorkoutsByDate = useMemo(() => {
     const map = {};
     workoutLogs.forEach((log) => {
-      const key = dKey(new Date(log.date));
+      const key = localDateKey(log.date);
       if (!map[key]) map[key] = log;
     });
     return map;
@@ -934,7 +945,7 @@ function CalendarPanel({ client, showToast }) {
   const formsById = useMemo(() => Object.fromEntries(forms.map((f) => [f.id, f])), [forms]);
 
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
-  const todayStr = dKey(now);
+  const todayStr = localDateKey(now);
 
   // Relative training volume per muscle group over a trailing 2-week
   // window (not tied to whatever month is being viewed) — sorted lowest
@@ -942,11 +953,11 @@ function CalendarPanel({ client, showToast }) {
   // rather than a flat "trained / not trained" toggle.
   const muscleBalance = useMemo(() => {
     const since = new Date();
-    since.setUTCDate(since.getUTCDate() - 13);
-    const sinceKey = dKey(since);
+    since.setDate(since.getDate() - 13);
+    const sinceKey = localDateKey(since);
     const counts = Object.fromEntries(MUSCLE_CATEGORIES.map((c) => [c, 0]));
     workoutLogs.forEach((log) => {
-      const key = dKey(new Date(log.date));
+      const key = localDateKey(log.date);
       if (key < sinceKey || key > todayStr) return;
       (log.entries || []).forEach((e) => {
         const category = exercisesById[e.exerciseId]?.category;
@@ -998,9 +1009,9 @@ function CalendarPanel({ client, showToast }) {
     const completedIds = isPastOrToday ? habitLogForClient[dateStr] || [] : [];
     habits
       .filter((h) => {
-        const createdKey = dKey(new Date(h.createdAt));
+        const createdKey = localDateKey(h.createdAt);
         if (dateStr < createdKey) return false;
-        if (h.endsAt && dateStr > dKey(new Date(h.endsAt))) return false;
+        if (h.endsAt && dateStr > localDateKey(h.endsAt)) return false;
         return true;
       })
       .forEach((h) => {
@@ -1019,8 +1030,8 @@ function CalendarPanel({ client, showToast }) {
   }
 
   function goToday() {
-    setViewYear(now.getUTCFullYear());
-    setViewMonth(now.getUTCMonth());
+    setViewYear(now.getFullYear());
+    setViewMonth(now.getMonth());
   }
 
   function shiftMonth(delta) {
@@ -2645,7 +2656,7 @@ function ClientFoodPreferencesCard({ client, showToast }) {
 function NutritionPanel({ client, showToast }) {
   const { db, setNutritionForDate } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
-  const todayDateKey = new Date().toISOString().slice(0, 10);
+  const todayDateKey = localDateKey();
   const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === todayDateKey);
 
   return (
@@ -3129,7 +3140,7 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
   const [entries, setEntries] = useState(() => log.entries.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s })) })));
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [dateDraft, setDateDraft] = useState(() => new Date(log.date).toISOString().slice(0, 10));
+  const [dateDraft, setDateDraft] = useState(() => localDateKey(log.date));
 
   const allExercises = useMemo(() => Object.values(exercisesById).sort((a, b) => a.name.localeCompare(b.name)), [exercisesById]);
   const filtered = useMemo(
@@ -3506,7 +3517,7 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   const last7Dates = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    return d.toISOString().slice(0, 10);
+    return localDateKey(d);
   });
   const nutritionByDate = Object.fromEntries(nutritionLogs.map((n) => [n.date, n]));
   const daysLogged = last7Dates.filter((d) => nutritionByDate[d]?.calories > 0).length;
@@ -3518,7 +3529,7 @@ function WeeklyCoachReviewCard({ client, showToast }) {
     const completed = habitLog[d] || [];
     habits.forEach((h) => {
       if (h.endsAt && h.endsAt < weekAgo) return;
-      const createdKey = new Date(h.createdAt).toISOString().slice(0, 10);
+      const createdKey = localDateKey(h.createdAt);
       if (d < createdKey) return;
       habitPossible += 1;
       if (completed.includes(h.id)) habitDone += 1;
@@ -3751,7 +3762,7 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
   const notes = (db.clientNotes || {})[client.id] || [];
 
   const phases = (db.clientPhases || {})[client.id] || [];
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDateKey();
   const phase = getCurrentPhase(phases, todayKey);
   const daysPerWeek = phase?.weeks?.[0]?.days?.length || 0;
 

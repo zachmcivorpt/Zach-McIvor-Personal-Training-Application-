@@ -2,11 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Card, Pill, Field, TextInput, TextArea, Select, SecondaryButton, DangerButton, FullScreenOverlay, Avatar, BottomSheet } from "../components/ui";
 import { CHALLENGE_METRICS, computeLeaderboard, challengeStatus } from "../lib/challengeMetrics";
+import { localDateKey } from "../lib/dateKey";
 import { Trophy, Plus, ChevronLeft, Trash2, Users } from "lucide-react";
 
 function emptyDraft() {
-  const today = new Date().toISOString().slice(0, 10);
-  const inFourWeeks = new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10);
+  const today = localDateKey();
+  const inFourWeeks = localDateKey(Date.now() + 28 * 86400000);
   return { name: "", description: "", type: "leaderboard", metric: "workouts", startDate: today, endDate: inFourWeeks, goalValue: 10, participantIds: [] };
 }
 
@@ -214,7 +215,7 @@ function ChallengeCard({ challenge: c, status, metric, clientsById, onView, onEd
           <Pill tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Pill>
         </div>
         <p className="text-black font-bold mt-2.5 truncate">{c.name}</p>
-        <p className="text-black/40 text-xs mt-0.5">{metric?.label} · {timelineLabel(c, status, new Date().toISOString().slice(0, 10))}</p>
+        <p className="text-black/40 text-xs mt-0.5">{metric?.label} · {timelineLabel(c, status, localDateKey())}</p>
 
         {status === "active" && (
           <div className="mt-3 h-1.5 rounded-full bg-black/8 overflow-hidden">
@@ -263,7 +264,7 @@ export default function CoachChallenges({ showToast }) {
   const challenges = db.challenges || [];
   const activeClients = db.users.filter((u) => u.role === "client" && u.status === "active");
   const clientsById = Object.fromEntries(db.users.map((u) => [u.id, u]));
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDateKey();
   const statuses = challenges.map((c) => challengeStatus(c, todayKey));
 
   async function handleSave(draft) {

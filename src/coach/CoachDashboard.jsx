@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
+import { localDateKey } from "../lib/dateKey";
 import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
 import { MEASURE_BLUE } from "../theme";
@@ -260,7 +261,7 @@ export default function CoachDashboard({ onNavigate, showToast }) {
   const { db, sendMessage, markFormResponseRead, currentUser, updateUser } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDateKey();
   const [viewingActivity, setViewingActivity] = useState(null); // the clicked Recent Activity item (workout or check-in) for the detail sheet
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 

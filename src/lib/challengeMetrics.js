@@ -2,6 +2,8 @@
 // already exists (workout logs, weigh-ins, check-in responses) — no new
 // per-entry tracking needed, the challenge just windows and ranks it.
 
+import { localDateKey } from "./dateKey";
+
 export const CHALLENGE_METRICS = [
   { id: "workouts", label: "Most workouts completed", higherIsBetter: true, unit: "" },
   { id: "volume", label: "Most total volume lifted (kg)", higherIsBetter: true, unit: "kg" },
@@ -10,7 +12,7 @@ export const CHALLENGE_METRICS = [
 ];
 
 function inRange(dateMs, startKey, endKey) {
-  const d = new Date(dateMs).toISOString().slice(0, 10);
+  const d = localDateKey(dateMs);
   return d >= startKey && d <= endKey;
 }
 

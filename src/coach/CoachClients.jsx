@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useApp, getCurrentPhase, getNextPhase } from "../lib/AppContext";
+import { localDateKey } from "../lib/dateKey";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
 import { MEASURE_BLUE } from "../theme";
@@ -145,7 +146,7 @@ export function SendLoginSheet({ open, onClose, client, showToast }) {
 
 function PhaseCell({ phase }) {
   if (!phase) return <span className="text-black/30 text-sm">No phase scheduled</span>;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const pct = (() => {
     if (!phase.endDate) return null;
     const start = new Date(phase.startDate).getTime();
@@ -273,7 +274,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
   const [confirmRemove, setConfirmRemove] = useState(false);
   const q = (search || "").toLowerCase();
   const clients = db.users.filter((u) => u.role === "client" && u.name.toLowerCase().includes(q));
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
 
   function toggleChecked(id) {
     setCheckedIds((prev) => {

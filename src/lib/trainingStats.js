@@ -2,6 +2,8 @@
 // client's own logged workouts (and weigh-ins), never illustrative/demo
 // data. Replaces the old mock wearable-style metrics.
 
+import { localDateKey } from "./dateKey";
+
 const DAY_MS = 86400000;
 
 function epley1RM(weight, reps) {
@@ -14,7 +16,7 @@ function isoWeekKey(ts) {
   d.setHours(0, 0, 0, 0);
   const day = (d.getDay() + 6) % 7; // 0 = Monday
   d.setDate(d.getDate() - day);
-  return d.toISOString().slice(0, 10);
+  return localDateKey(d);
 }
 
 function fmtDate(ts) {
@@ -232,12 +234,12 @@ export function computeWeeklySessionCompletion(logs, scheduledWorkouts) {
     Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
-      return d.toISOString().slice(0, 10);
+      return localDateKey(d);
     })
   );
   const scheduledThisWeek = (scheduledWorkouts || []).filter((w) => weekDates.has(w.date));
   if (scheduledThisWeek.length === 0) return { completed: 0, expected: 0, pct: null };
-  const loggedDates = new Set((logs || []).map((l) => new Date(l.date).toISOString().slice(0, 10)));
+  const loggedDates = new Set((logs || []).map((l) => localDateKey(l.date)));
   const completed = scheduledThisWeek.filter((w) => loggedDates.has(w.date)).length;
   return { completed, expected: scheduledThisWeek.length, pct: Math.round((completed / scheduledThisWeek.length) * 100) };
 }
@@ -267,7 +269,7 @@ export function computeMonthlyConsistency(logs, scheduledWorkouts) {
   const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const scheduledThisMonth = (scheduledWorkouts || []).filter((w) => w.date.startsWith(monthPrefix));
   if (scheduledThisMonth.length === 0) return { completed: 0, expected: 0, pct: null };
-  const loggedDates = new Set((logs || []).map((l) => new Date(l.date).toISOString().slice(0, 10)));
+  const loggedDates = new Set((logs || []).map((l) => localDateKey(l.date)));
   const completed = scheduledThisMonth.filter((w) => loggedDates.has(w.date)).length;
   return { completed, expected: scheduledThisMonth.length, pct: Math.round((completed / scheduledThisMonth.length) * 100) };
 }
@@ -300,8 +302,8 @@ export function computeWeeklyStreak(logs) {
 // the streak while it simply hasn't been done yet — the day isn't over.
 export function computeWorkoutStreak(logs, scheduledWorkouts) {
   if (!scheduledWorkouts || scheduledWorkouts.length === 0) return 0;
-  const completedDates = new Set((logs || []).map((l) => new Date(l.date).toISOString().slice(0, 10)));
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const completedDates = new Set((logs || []).map((l) => localDateKey(l.date)));
+  const todayKey = localDateKey();
   const pastScheduled = scheduledWorkouts
     .map((w) => w.date)
     .filter((d) => d <= todayKey)

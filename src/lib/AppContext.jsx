@@ -27,6 +27,7 @@ import { auth, db as firestore } from "./firebase";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 import { COACH_SETUP_CODE } from "./config";
+import { localDateKey } from "./dateKey";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -685,7 +686,7 @@ export function AppProvider({ children }) {
           name: "New Phase",
           level: "Intermediate",
           description: "",
-          startDate: new Date().toISOString().slice(0, 10),
+          startDate: localDateKey(),
           endDate: "",
           weeks: [],
           createdAt: Date.now(),
@@ -736,6 +737,10 @@ export function AppProvider({ children }) {
           const batch = writeBatch(firestore);
           oldScheduled.forEach((w) => {
             const offsetDays = Math.round((new Date(w.date + "T00:00:00Z").getTime() - oldStart) / dayMs);
+            // newStart is a UTC-midnight-anchored epoch (from the
+            // "T00:00:00Z" trick above) — extract the date with
+            // toISOString(), not localDateKey(), or the viewer's own
+            // timezone offset would shift which calendar day this lands on.
             const newDate = new Date(newStart + offsetDays * dayMs).toISOString().slice(0, 10);
             const entryId = `${clientId}__${newDate}`;
             batch.set(doc(firestore, "scheduledWorkouts", entryId), {
@@ -890,7 +895,7 @@ export function AppProvider({ children }) {
         const dates = [];
         const d = new Date(startDate);
         for (let i = 0; i < weeks; i++) {
-          dates.push(d.toISOString().slice(0, 10));
+          dates.push(localDateKey(d));
           d.setDate(d.getDate() + 7);
         }
         const batch = writeBatch(firestore);
@@ -954,7 +959,7 @@ export function AppProvider({ children }) {
       // (not-yet-done) workout for that same day from what was logged, so
       // the client sees it as still to-do rather than losing the day's plan.
       async revertWorkoutLogToScheduled(log) {
-        const dateKey = new Date(log.date).toISOString().slice(0, 10);
+        const dateKey = localDateKey(log.date);
         const exercises = (log.entries || []).map((e) => ({
           exerciseId: e.exerciseId,
           targetSets: (e.sets || []).length || 1,
@@ -983,7 +988,7 @@ export function AppProvider({ children }) {
         const dates = [];
         const d = new Date(startDate);
         for (let i = 0; i < weeks; i++) {
-          dates.push(d.toISOString().slice(0, 10));
+          dates.push(localDateKey(d));
           d.setDate(d.getDate() + 7);
         }
         const batch = writeBatch(firestore);
@@ -1089,7 +1094,7 @@ export function AppProvider({ children }) {
       },
 
       toggleHabitToday(clientId, habitId) {
-        const dateKey = new Date().toISOString().slice(0, 10);
+        const dateKey = localDateKey();
         const current = (db.habitLog[clientId] || {})[dateKey] || [];
         const next = current.includes(habitId) ? current.filter((id) => id !== habitId) : [...current, habitId];
         setDoc(doc(firestore, "habitLog", clientId), { [dateKey]: next }, { merge: true }).catch(console.error);

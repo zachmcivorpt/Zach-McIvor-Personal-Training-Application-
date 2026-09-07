@@ -69,6 +69,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useApp, estimate1RM, getPreviousPerformance, getPreviousSets, getCurrentPhase } from "../lib/AppContext";
+import { localDateKey } from "../lib/dateKey";
 import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "../lib/workoutStats";
 import {
   Card,
@@ -665,7 +666,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
 }
 
 function ActiveChallengesCard({ challenges, userId }) {
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDateKey();
   const active = challenges.filter((c) => challengeStatus(c, todayKey) === "active");
   if (active.length === 0) return null;
 
@@ -2015,7 +2016,7 @@ function ClientProgramTab({ onPreviewDay }) {
   const { db, currentUser } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateKey();
   const current = getCurrentPhase(phases, todayStr);
   const [selectedId, setSelectedId] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -2101,7 +2102,7 @@ function ClientProgramTab({ onPreviewDay }) {
 function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady }) {
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateKey();
   const upcoming = scheduledWorkouts.filter((w) => w.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
   return (
     <div className="pb-6">
@@ -3257,9 +3258,9 @@ function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
 function ConsistencyHeatmap({ logs }) {
   const DAYS = 30;
   const days = useMemo(() => {
-    const doneDates = new Set(logs.map((l) => new Date(l.date).toISOString().slice(0, 10)));
+    const doneDates = new Set(logs.map((l) => localDateKey(l.date)));
     const prDates = new Set(
-      logs.filter((l) => !l.cardio && (l.entries || []).some((e) => (e.sets || []).some((s) => s.isPR))).map((l) => new Date(l.date).toISOString().slice(0, 10))
+      logs.filter((l) => !l.cardio && (l.entries || []).some((e) => (e.sets || []).some((s) => s.isPR))).map((l) => localDateKey(l.date))
     );
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -3269,7 +3270,7 @@ function ConsistencyHeatmap({ logs }) {
     const out = [];
     const cursor = new Date(start);
     for (let i = 0; i < DAYS; i++) {
-      const dateStr = cursor.toISOString().slice(0, 10);
+      const dateStr = localDateKey(cursor);
       out.push({ date: dateStr, done: doneDates.has(dateStr), pr: prDates.has(dateStr) });
       cursor.setDate(cursor.getDate() + 1);
     }
@@ -4734,16 +4735,16 @@ function ClientCalendarScreen({
   const logsByDate = useMemo(() => {
     const map = {};
     logsForClient.forEach((l) => {
-      const key = new Date(l.date).toISOString().slice(0, 10);
+      const key = localDateKey(l.date);
       if (!map[key]) map[key] = l;
     });
     return map;
   }, [logsForClient]);
-  const weighInDates = useMemo(() => new Set(weighIns.map((w) => new Date(w.date).toISOString().slice(0, 10))), [weighIns]);
+  const weighInDates = useMemo(() => new Set(weighIns.map((w) => localDateKey(w.date))), [weighIns]);
   const weighInsByDate = useMemo(() => {
     const map = {};
     weighIns.forEach((w) => {
-      const key = new Date(w.date).toISOString().slice(0, 10);
+      const key = localDateKey(w.date);
       if (!map[key]) map[key] = w;
     });
     return map;
@@ -4751,7 +4752,7 @@ function ClientCalendarScreen({
   const activeFormSchedules = useMemo(() => (formSchedules || []).filter((s) => s.active), [formSchedules]);
   const formsById = useMemo(() => Object.fromEntries((forms || []).map((f) => [f.id, f])), [forms]);
 
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = localDateKey();
 
   const days = useMemo(() => {
     const start = new Date();
@@ -4761,13 +4762,13 @@ function ClientCalendarScreen({
     for (let i = 0; i <= daysBack + daysForward; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = localDateKey(d);
       const scheduled = scheduledWorkoutsByDate[dateStr];
       const log = logsByDate[dateStr];
       const dayHabits = habits.filter((h) => {
-        const createdKey = new Date(h.createdAt).toISOString().slice(0, 10);
+        const createdKey = localDateKey(h.createdAt);
         if (dateStr < createdKey) return false;
-        if (h.endsAt && dateStr > new Date(h.endsAt).toISOString().slice(0, 10)) return false;
+        if (h.endsAt && dateStr > localDateKey(h.endsAt)) return false;
         return true;
       });
       const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
@@ -5086,7 +5087,7 @@ export default function ClientApp() {
   // to remove it (swipe on the calendar), not the app.
   function sessionForDate(dateKey, logs) {
     const scheduled = scheduledWorkoutsByDate[dateKey];
-    const completedLog = logs.find((l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === dateKey);
+    const completedLog = logs.find((l) => !l.cardio && localDateKey(l.date) === dateKey);
     if (completedLog && (!scheduled || scheduled.label === completedLog.dayLabel)) {
       return {
         label: completedLog.dayLabel || "Workout",
@@ -5109,10 +5110,10 @@ export default function ClientApp() {
   function isDateActuallyCompleted(dateKey, logs) {
     const scheduled = scheduledWorkoutsByDate[dateKey];
     return logs.some(
-      (l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === dateKey && (!scheduled || scheduled.label === l.dayLabel)
+      (l) => !l.cardio && localDateKey(l.date) === dateKey && (!scheduled || scheduled.label === l.dayLabel)
     );
   }
-  const todayDateKey = new Date().toISOString().slice(0, 10);
+  const todayDateKey = localDateKey();
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
   const logsForClient = db.workoutLogs[currentUser.id] || [];
   const completedToday = isDateActuallyCompleted(todayDateKey, logsForClient);
@@ -5128,13 +5129,13 @@ export default function ClientApp() {
   const habits = ((db.habits || {})[currentUser.id] || []).filter((h) => !h.endsAt || h.endsAt >= Date.now());
   const todayKey = todayDateKey;
   const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
-  const bodyStatsDueToday = bodyStatsSchedulesForClient.some((s) => s.date === todayDateKey) && !weighIns.some((w) => new Date(w.date).toISOString().slice(0, 10) === todayDateKey);
+  const bodyStatsDueToday = bodyStatsSchedulesForClient.some((s) => s.date === todayDateKey) && !weighIns.some((w) => localDateKey(w.date) === todayDateKey);
 
   const isToday = dayOffset === 0;
   const selectedDateKey = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() + dayOffset);
-    return d.toISOString().slice(0, 10);
+    return localDateKey(d);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayOffset, dateTick]);
   const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
@@ -5142,7 +5143,7 @@ export default function ClientApp() {
   const daySession = completedOnDate ? sessionForDate(selectedDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[selectedDateKey]);
   const dayNutrition = isToday ? nutrition : nutritionByDateKey[selectedDateKey] || null;
   const cardioLogsForSelectedDate = useMemo(
-    () => logsForClient.filter((l) => l.cardio && new Date(l.date).toISOString().slice(0, 10) === selectedDateKey),
+    () => logsForClient.filter((l) => l.cardio && localDateKey(l.date) === selectedDateKey),
     [logsForClient, selectedDateKey]
   );
 
