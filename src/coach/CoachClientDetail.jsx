@@ -1152,13 +1152,9 @@ function CalendarPanel({ client, showToast }) {
     const entry = workoutsByDate[fromDate];
     if (!entry) return;
     const label = (d) => new Date(d + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
-    // An occupied destination is left completely alone — no swap, no
-    // overwrite. Delete that day's existing workout first (swipe/select)
-    // if you actually want to replace it, then drag.
-    if (workoutsByDate[toDate]) {
-      showToast(`${label(toDate)} already has a workout — remove it first, then drag here`);
-      return;
-    }
+    // Always completes the move, even onto an occupied day (overwriting
+    // whatever was scheduled there) — no blocking prompt. Delete/swipe
+    // gives full manual control to clear a day first if that's not wanted.
     try {
       await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises });
       unscheduleWorkout(client.id, fromDate);

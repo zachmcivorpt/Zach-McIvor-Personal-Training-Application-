@@ -4478,7 +4478,11 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
   const swipeStartRef = useRef(0);
   const widthRef = useRef(0);
   const rowRef = useRef(null);
-  const canSwipe = !!onDelete && !draggable;
+  // The drag gesture lives entirely on its own handle (touchAction: none,
+  // rendered below) — the card body itself no longer competes for the
+  // same touch, so swipe-to-delete works on a draggable card too, not
+  // just non-draggable ones.
+  const canSwipe = !!onDelete;
 
   function swipePointerDown(e) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -4508,10 +4512,10 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
   const card = (
     <Wrapper
       onClick={onClick}
-      onPointerDown={!draggable && canSwipe ? swipePointerDown : undefined}
-      onPointerMove={!draggable && canSwipe ? swipePointerMove : undefined}
-      onPointerUp={!draggable && canSwipe ? swipePointerUp : undefined}
-      onPointerCancel={!draggable && canSwipe ? swipePointerUp : undefined}
+      onPointerDown={canSwipe ? swipePointerDown : undefined}
+      onPointerMove={canSwipe ? swipePointerMove : undefined}
+      onPointerUp={canSwipe ? swipePointerUp : undefined}
+      onPointerCancel={canSwipe ? swipePointerUp : undefined}
       className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
         onClick ? "hover:bg-black/[0.02]" : ""
       } ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
@@ -5411,13 +5415,10 @@ export default function ClientApp() {
     }
     const workout = scheduledWorkoutsByDate[fromDate];
     if (!workout) return;
-    // An occupied destination is left completely alone — no swap, no
-    // overwrite. The client decides what happens to that day's existing
-    // workout themselves (swipe to delete it first, then drag here).
-    if (scheduledWorkoutsByDate[toDate]) {
-      showToast("That day already has a workout — swipe to remove it first, then drag here");
-      return;
-    }
+    // Always completes the move, even onto an occupied day (which then
+    // overwrites whatever was scheduled there) — no blocking prompt. Swipe
+    // gives full manual control to clear/delete a day first if that's not
+    // what's wanted.
     scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
     unscheduleWorkout(currentUser.id, fromDate);
     showToast("Workout rescheduled");
