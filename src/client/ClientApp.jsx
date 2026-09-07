@@ -328,6 +328,7 @@ function formatRest(seconds) {
 function formatTargetReps(exMeta) {
   if (exMeta.targetType === "time") return `${exMeta.targetReps || 30}s`;
   if (exMeta.targetReps === "AMRAP") return "AMRAP";
+  if (exMeta.targetReps == null || exMeta.targetReps === "") return "Repetitions";
   return `${exMeta.targetReps} Repetitions`;
 }
 
@@ -979,10 +980,27 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                             </span>
                           )}
                         </div>
-                        <p className="text-black/45 text-[13px] mt-0.5">
-                          {e.targetSets} sets × {formatTargetReps(e)}, {formatRest(e.restSeconds ?? 90)} rest
-                          between sets
-                        </p>
+                        {e.actualSets ? (
+                          e.actualSets.length > 0 ? (
+                            <div className="mt-1 space-y-0.5">
+                              {e.actualSets.map((s, si) => (
+                                <p key={si} className="text-black/60 text-[13px]">
+                                  Set {si + 1} — {s.reps}
+                                  {s.weight > 0 ? ` × ${s.weight} kg` : ""}
+                                  {s.isPR && <span className="text-amber-600 font-semibold ml-1">PR</span>}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-black/35 text-[13px] mt-0.5 italic">No sets logged</p>
+                          )
+                        ) : (
+                          <p className="text-black/45 text-[13px] mt-0.5">
+                            {e.targetSets} sets × {formatTargetReps(e)}, {formatRest(e.restSeconds ?? 90)} rest
+                            between sets
+                          </p>
+                        )}
+                        {e.note && <p className="text-black/40 text-[12px] mt-1 italic">"{e.note}"</p>}
                       </div>
                       {e.notes && <ClipboardList size={16} className="text-black/40 shrink-0" />}
                     </div>
@@ -4931,7 +4949,12 @@ export default function ClientApp() {
       return {
         label: completedLog.dayLabel || "Workout",
         muscleGroups: scheduledWorkoutsByDate[dateKey]?.muscleGroups || [],
-        exercises: completedLog.entries.map((e) => ({ exerciseId: e.exerciseId, targetSets: (e.sets || []).length })),
+        exercises: completedLog.entries.map((e) => ({
+          exerciseId: e.exerciseId,
+          targetSets: (e.sets || []).length,
+          actualSets: e.sets || [],
+          note: e.note || "",
+        })),
       };
     }
     return scheduledToSession(scheduledWorkoutsByDate[dateKey]);
