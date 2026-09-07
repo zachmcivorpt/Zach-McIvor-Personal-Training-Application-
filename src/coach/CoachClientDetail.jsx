@@ -412,7 +412,7 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
   );
 }
 
-function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, presetPayload }) {
+function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewDate, showToast, presetPayload }) {
   const { db, scheduleWorkoutDates } = useApp();
   const [source, setSource] = useState("library"); // library | custom
   const [masterWorkoutId, setMasterWorkoutId] = useState("");
@@ -427,21 +427,29 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
 
   React.useEffect(() => {
     if (open) {
-      const base = initialDate ? new Date(initialDate + "T00:00:00Z") : new Date();
+      // initialDate pre-circles that exact date (a specific day was
+      // clicked to schedule). initialViewDate only decides which month
+      // the mini calendar opens on, without pre-selecting anything —
+      // used when scheduling from within a phase, so it opens showing
+      // the phase's own month (where its existing scheduled sessions
+      // actually are) instead of defaulting to today's real month, which
+      // is often a different month entirely and just looks empty.
+      const dateForView = initialDate || initialViewDate;
+      const base = dateForView ? new Date(dateForView + "T00:00:00Z") : new Date();
       setSource("library");
       setMasterWorkoutId(db.masterWorkouts?.[0]?.id || "");
       setCustomDay(null);
       setSelectedDates(new Set(initialDate ? [initialDate] : []));
-      // initialDate is UTC-anchored (T00:00:00Z trick) so extract with the
-      // matching UTC getters; otherwise base is a real "now" and needs the
-      // viewer's own local month/year, not UTC's.
-      setViewYear(initialDate ? base.getUTCFullYear() : base.getFullYear());
-      setViewMonth(initialDate ? base.getUTCMonth() : base.getMonth());
+      // A date-only string is UTC-anchored (T00:00:00Z trick) so extract
+      // with the matching UTC getters; otherwise base is a real "now" and
+      // needs the viewer's own local month/year, not UTC's.
+      setViewYear(dateForView ? base.getUTCFullYear() : base.getFullYear());
+      setViewMonth(dateForView ? base.getUTCMonth() : base.getMonth());
       setWeeklyWeekday(null);
       setWeeklyWeeks(4);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialDate]);
+  }, [open, initialDate, initialViewDate]);
 
   function shiftMonth(delta) {
     let m = viewMonth + delta;
@@ -2024,6 +2032,7 @@ function TrainingProgramPanel({ client, showToast }) {
         onClose={() => setSchedulingDay(null)}
         client={client}
         showToast={showToast}
+        initialViewDate={phase?.startDate}
         presetPayload={schedulingDay ? { label: schedulingDay.label, muscleGroups: schedulingDay.muscleGroups || [], exercises: schedulingDay.exercises } : null}
       />
     </div>
