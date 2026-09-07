@@ -3564,7 +3564,14 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const weekAgo = Date.now() - 7 * 86400000;
 
-  const sessionsThisWeek = logs.filter((l) => l.date >= weekAgo).length;
+  // All of this used to recompute from scratch on every render (including
+  // ones caused by totally unrelated state elsewhere on the page, e.g.
+  // typing in the Personal Details fields above) — for a client with a lot
+  // of history that's real, repeated work on every keystroke, which is
+  // exactly the kind of thing that shows up as the tab feeling like it
+  // freezes on a slower phone. Memoized so it only recomputes when the
+  // client's actual underlying data changes.
+  const sessionsThisWeek = useMemo(() => logs.filter((l) => l.date >= weekAgo).length, [logs, weekAgo]);
   // "4 of 7" against what was actually scheduled this calendar week (Mon-Sun),
   // not just a raw count of logs — a plain count told you nothing about
   // whether that was a good week without knowing how much was planned.
@@ -3572,35 +3579,47 @@ function WeeklyCoachReviewCard({ client, showToast }) {
     () => computeWeeklySessionCompletion(logs, scheduledWorkouts),
     [logs, scheduledWorkouts]
   );
-  const volumeThisWeek = Math.round(
-    logs
-      .filter((l) => l.date >= weekAgo)
-      .reduce((a, log) => a + log.entries.reduce((b, e) => b + e.sets.reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0), 0)
+  const volumeThisWeek = useMemo(
+    () =>
+      Math.round(
+        logs
+          .filter((l) => l.date >= weekAgo)
+          .reduce((a, log) => a + log.entries.reduce((b, e) => b + e.sets.reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0), 0)
+      ),
+    [logs, weekAgo]
   );
-  const prCount = computePRsInLastNDays(logs, 7);
+  const prCount = useMemo(() => computePRsInLastNDays(logs, 7), [logs]);
 
-  const last7Dates = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return localDateKey(d);
-  });
-  const nutritionByDate = Object.fromEntries(nutritionLogs.map((n) => [n.date, n]));
-  const daysLogged = last7Dates.filter((d) => nutritionByDate[d]?.calories > 0).length;
-  const nutritionAdherencePct = Math.round((daysLogged / 7) * 100);
+  const last7Dates = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return localDateKey(d);
+      }),
+    []
+  );
+  const nutritionAdherencePct = useMemo(() => {
+    const nutritionByDate = Object.fromEntries(nutritionLogs.map((n) => [n.date, n]));
+    const daysLogged = last7Dates.filter((d) => nutritionByDate[d]?.calories > 0).length;
+    return Math.round((daysLogged / 7) * 100);
+  }, [nutritionLogs, last7Dates]);
 
-  let habitPossible = 0;
-  let habitDone = 0;
-  last7Dates.forEach((d) => {
-    const completed = habitLog[d] || [];
-    habits.forEach((h) => {
-      if (h.endsAt && h.endsAt < weekAgo) return;
-      const createdKey = localDateKey(h.createdAt);
-      if (d < createdKey) return;
-      habitPossible += 1;
-      if (completed.includes(h.id)) habitDone += 1;
+  const consistencyPct = useMemo(() => {
+    let habitPossible = 0;
+    let habitDone = 0;
+    last7Dates.forEach((d) => {
+      const completed = habitLog[d] || [];
+      habits.forEach((h) => {
+        if (h.endsAt && h.endsAt < weekAgo) return;
+        const createdKey = localDateKey(h.createdAt);
+        if (d < createdKey) return;
+        habitPossible += 1;
+        if (completed.includes(h.id)) habitDone += 1;
+      });
     });
-  });
-  const consistencyPct = habitPossible > 0 ? Math.round((habitDone / habitPossible) * 100) : null;
+    return habitPossible > 0 ? Math.round((habitDone / habitPossible) * 100) : null;
+  }, [last7Dates, habitLog, habits, weekAgo]);
 
   const autoFocus = useMemo(() => {
     if (sessionsThisWeek === 0) return "No sessions logged this week — check they're not stuck, injured, or need the program adjusted.";
@@ -3678,8 +3697,10 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   );
 }
 
-function PersonalDetailsCard({ client, showToast }) {
-  const { updateUser } = useApp();
+function PersonalDetailsCard({ client, showToast, onClose }) {
+  const { updateUser, updateClientProfile } = useApp();
+  const [name, setName] = useState(client.name || "");
+  const [email, setEmail] = useState(client.email || "");
   const [age, setAge] = useState(client.age || "");
   const [sex, setSex] = useState(client.sex || "");
   const [heightCm, setHeightCm] = useState(client.heightCm || "");
@@ -3689,6 +3710,8 @@ function PersonalDetailsCard({ client, showToast }) {
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
+    setName(client.name || "");
+    setEmail(client.email || "");
     setAge(client.age || "");
     setSex(client.sex || "");
     setHeightCm(client.heightCm || "");
@@ -3697,6 +3720,8 @@ function PersonalDetailsCard({ client, showToast }) {
     setOtherInfo(client.otherInfo || "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client.id]);
+
+  const nameOrEmailChanged = name.trim() !== (client.name || "") || email.trim().toLowerCase() !== (client.email || "").toLowerCase();
 
   async function save() {
     setSaving(true);
@@ -3709,6 +3734,18 @@ function PersonalDetailsCard({ client, showToast }) {
         injuries,
         otherInfo,
       });
+      if (nameOrEmailChanged) {
+        const emailChanging = email.trim().toLowerCase() !== (client.email || "").toLowerCase();
+        await updateClientProfile(client.id, { name, email });
+        if (emailChanging && client._source === "invite") {
+          // Their doc id was derived from the old email — it just changed,
+          // so this same client object no longer resolves to anything.
+          // Bail out to the list rather than sit on a now-broken view.
+          showToast("Personal details saved");
+          onClose?.();
+          return;
+        }
+      }
       showToast("Personal details saved");
     } catch (err) {
       showToast(err.message || "Couldn't save");
@@ -3734,6 +3771,27 @@ function PersonalDetailsCard({ client, showToast }) {
       </div>
 
       <div className="px-5 py-4">
+        <div className="grid grid-cols-2 gap-5 mb-4">
+          <UnderlineField label="Name">
+            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-transparent outline-none text-black text-sm" />
+          </UnderlineField>
+          <UnderlineField label="Email">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full bg-transparent outline-none text-black text-sm"
+            />
+          </UnderlineField>
+        </div>
+        {client._source === "invite" ? (
+          <p className="text-black/35 text-xs -mt-2 mb-4">This is who they'll activate their account as — no login exists yet.</p>
+        ) : (
+          <p className="text-black/35 text-xs -mt-2 mb-4">
+            Changing email here updates their profile everywhere in the app, but not what they log in with — only they can
+            change that themselves, from their own account.
+          </p>
+        )}
         <div className="grid grid-cols-3 gap-5 mb-4">
           <UnderlineField label="Age">
             <input type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-transparent outline-none text-black text-sm" />
@@ -3799,7 +3857,7 @@ function PersonalDetailsCard({ client, showToast }) {
   );
 }
 
-function SummaryPanel({ client, showToast, onSendLogin }) {
+function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
   const { db, addClientTag, removeClientTag, addClientNote, deleteClientNote, sendMessage, sendPasswordReset } = useApp();
   const [tagInput, setTagInput] = useState("");
   const [noteInput, setNoteInput] = useState("");
@@ -3851,7 +3909,7 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <PersonalDetailsCard client={client} showToast={showToast} />
+      <PersonalDetailsCard client={client} showToast={showToast} onClose={onClose} />
 
       <PerformanceTimelineCard client={client} />
 
@@ -4406,7 +4464,9 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
 
       {/* main panel */}
       <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
-        {clientTab === "summary" && <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} />}
+        {clientTab === "summary" && (
+          <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} onClose={onClose} />
+        )}
         {clientTab === "calendar" && <CalendarPanel client={client} showToast={showToast} />}
         {clientTab === "program" && <TrainingProgramPanel client={client} showToast={showToast} />}
         {clientTab === "nutrition" && <NutritionPanel client={client} showToast={showToast} />}

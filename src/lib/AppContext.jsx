@@ -664,6 +664,59 @@ export function AppProvider({ children }) {
         ].forEach((name) => deleteWhereClientId(name, clientId));
       },
 
+      // Coach-side edit of a client's own name/email. Trickier than a plain
+      // field update because of how each stage stores identity: a client who
+      // hasn't activated yet is a synthetic row keyed by their invite's own
+      // email-derived doc id (see createInvite/activateAccount's comments) —
+      // there's no in-place rename of a Firestore doc's own id, so changing
+      // their email means recreating the invite (and any pre-activation
+      // draft doc) under the new id and deleting the old one. An already
+      // -activated client's doc id is their real Firebase Auth uid, totally
+      // independent of email, so that case is just a plain field update —
+      // though note it only changes what's SHOWN in the app; their actual
+      // login credential is unaffected (Firebase Auth only lets a user
+      // change their own email, signed into their own account — not
+      // something the coach can do on their behalf from here).
+      async updateClientProfile(clientId, { name, email }) {
+        const client = db.users.find((u) => u.id === clientId);
+        if (!client) throw new Error("Client not found.");
+        const trimmedName = (name ?? client.name ?? "").trim();
+        const trimmedEmail = (email ?? client.email ?? "").trim().toLowerCase();
+        if (!trimmedName) throw new Error("Name can't be empty.");
+        if (!trimmedEmail) throw new Error("Email can't be empty.");
+
+        if (client._source === "invite") {
+          const emailChanged = trimmedEmail !== clientId;
+          if (emailChanged && db.users.some((u) => u.id !== clientId && (u.username || "").toLowerCase() === trimmedEmail)) {
+            throw new Error("Another client is already using that email.");
+          }
+          try {
+            if (emailChanged) {
+              const inviteSnap = await getDoc(doc(firestore, "invites", clientId));
+              if (!inviteSnap.exists()) throw new Error("Couldn't find that invite.");
+              const invite = inviteSnap.data();
+              await setDoc(doc(firestore, "invites", trimmedEmail), { ...invite, name: trimmedName, email: trimmedEmail });
+              const draftSnap = await getDoc(doc(firestore, "users", clientId));
+              if (draftSnap.exists()) {
+                await setDoc(doc(firestore, "users", trimmedEmail), draftSnap.data(), { merge: true });
+                await deleteDoc(doc(firestore, "users", clientId));
+              }
+              await deleteDoc(doc(firestore, "invites", clientId));
+            } else {
+              await updateDoc(doc(firestore, "invites", clientId), { name: trimmedName });
+            }
+          } catch (err) {
+            throw new Error("Couldn't save — " + (err.message || "please try again."));
+          }
+        } else {
+          try {
+            await updateDoc(doc(firestore, "users", clientId), { name: trimmedName, email: trimmedEmail, username: trimmedEmail });
+          } catch (err) {
+            throw new Error("Couldn't save — " + (err.message || "please try again."));
+          }
+        }
+      },
+
       // A softer alternative to removeClient: the client's account, program,
       // history and messages all stay intact, but their own app is locked
       // down to a "contact your coach" screen — for chasing up a missed
