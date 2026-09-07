@@ -5055,9 +5055,22 @@ export default function ClientApp() {
     const raw = activeLog || {};
     const cleanedLog = {};
     Object.entries(raw).forEach(([exerciseId, sets]) => {
+      // Only reps are required to count a set as logged — weight is
+      // legitimately blank for a bodyweight exercise (push-ups, planks,
+      // unweighted pull-ups) or a reps-only target. Requiring both used to
+      // silently drop the entire exercise from the saved log the moment
+      // weight was left empty, even though the workout-completed event
+      // still fired — the exercise just vanished from the client's own log
+      // while the coach's activity feed still showed the session as done.
       const cleaned = (sets || [])
-        .filter((s) => s.weight !== "" && s.weight != null && s.reps !== "" && s.reps != null && !isNaN(Number(s.weight)) && !isNaN(Number(s.reps)))
-        .map((s, i) => ({ setNumber: i + 1, weight: Number(s.weight), reps: Number(s.reps), completed: true, isPR: !!s.isPR }));
+        .filter((s) => s.reps !== "" && s.reps != null && !isNaN(Number(s.reps)))
+        .map((s, i) => ({
+          setNumber: i + 1,
+          weight: s.weight !== "" && s.weight != null && !isNaN(Number(s.weight)) ? Number(s.weight) : 0,
+          reps: Number(s.reps),
+          completed: true,
+          isPR: !!s.isPR,
+        }));
       if (cleaned.length) cleanedLog[exerciseId] = cleaned;
     });
     const swapByToId = Object.fromEntries(
