@@ -4914,7 +4914,7 @@ function ClientCalendarScreen({
                     onPointerDown={(e) => cardPointerDown(e, dateStr, "workout", scheduled.label)}
                     onPointerMove={cardPointerMove}
                     onPointerUp={cardPointerUp}
-                    onDelete={() => onDeleteScheduledWorkout(dateStr)}
+                    onDelete={canEdit ? () => onDeleteScheduledWorkout(dateStr) : undefined}
                   />
                 )}
                 {log && !logMatchesScheduled && (
@@ -4923,7 +4923,7 @@ function ClientCalendarScreen({
                     done
                     title={log.dayLabel}
                     subtitle="Completed."
-                    onDelete={() => onDeleteWorkoutLog(log.id)}
+                    onDelete={canEdit ? () => onDeleteWorkoutLog(log.id) : undefined}
                   />
                 )}
                 {dayHabits.map((h) => (
@@ -4961,8 +4961,8 @@ function ClientCalendarScreen({
                     onPointerDown={(e) => cardPointerDown(e, dateStr, "bodystats", "Body Stats Check-in")}
                     onPointerMove={cardPointerMove}
                     onPointerUp={cardPointerUp}
-                    onDelete={() =>
-                      bodyStatsDone ? onDeleteWeighIn(weighInsByDate[dateStr]?.id) : onDeleteBodyStatsSchedule(dateStr)
+                    onDelete={
+                      canEdit ? () => (bodyStatsDone ? onDeleteWeighIn(weighInsByDate[dateStr]?.id) : onDeleteBodyStatsSchedule(dateStr)) : undefined
                     }
                   />
                 )}
