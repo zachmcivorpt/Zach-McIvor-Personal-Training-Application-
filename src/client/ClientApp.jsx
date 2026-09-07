@@ -52,6 +52,7 @@ import {
   Percent,
   Lock,
   Paperclip,
+  CheckCircle2,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -905,6 +906,27 @@ function HomeScreen({
 ============================================================================ */
 
 function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClose }) {
+  const { db, currentUser, addWorkoutComment } = useApp();
+  const [commentDraft, setCommentDraft] = useState("");
+  const comments = session.workoutLogId
+    ? (db.workoutComments[currentUser.id] || []).filter((c) => c.workoutLogId === session.workoutLogId)
+    : [];
+  const autoEntries = session.workoutLogId
+    ? session.exercises.flatMap((e) => {
+        const ex = exercisesById[e.exerciseId];
+        return (e.actualSets || [])
+          .filter((s) => s.isPR)
+          .map((s, si) => ({
+            id: `pr_${e.exerciseId}_${si}`,
+            system: true,
+            text: `New PR — ${ex?.name || "Exercise"}: ${s.reps}${s.weight > 0 ? ` × ${s.weight} kg` : ""}`,
+          }));
+      })
+    : [];
+  const commentTimeline = session.workoutLogId
+    ? [...autoEntries, ...comments.map((c) => ({ ...c, system: false }))].sort((a, b) => (a.date || 0) - (b.date || 0))
+    : [];
+
   const equipment = useMemo(() => {
     const set = new Set();
     session.exercises.forEach((e) => {
@@ -1009,6 +1031,59 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
               </div>
             </div>
           ))}
+
+          {session.workoutLogId && (
+            <div className="mt-6">
+              <p className="text-black/35 text-xs font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+                <MessageCircle size={13} /> COMMENTS
+              </p>
+              <div className="space-y-2">
+                {commentTimeline.length === 0 && <p className="text-black/30 text-[13px]">No comments on this workout yet.</p>}
+                {commentTimeline.map((item) =>
+                  item.system ? (
+                    <div key={item.id} className="flex items-start gap-2 text-black/50 text-[12px]">
+                      <Trophy size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                      <p className="leading-snug">{item.text}</p>
+                    </div>
+                  ) : (
+                    <div key={item.id} className="bg-black/[0.03] border border-black/5 rounded-lg px-3 py-2">
+                      <p className="text-black/60 text-[11px] font-semibold">
+                        {item.authorName || (item.from === "coach" ? "Coach" : "You")}
+                        <span className="text-black/30 font-normal ml-1.5">
+                          {new Date(item.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                        </span>
+                      </p>
+                      <p className="text-black text-[13px] mt-0.5 whitespace-pre-wrap">{item.text}</p>
+                    </div>
+                  )
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <TextInput
+                  value={commentDraft}
+                  onChange={(e) => setCommentDraft(e.target.value)}
+                  placeholder="Add a comment for your coach…"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && commentDraft.trim()) {
+                      addWorkoutComment(currentUser.id, session.workoutLogId, "client", currentUser.name, commentDraft);
+                      setCommentDraft("");
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (!commentDraft.trim()) return;
+                    addWorkoutComment(currentUser.id, session.workoutLogId, "client", currentUser.name, commentDraft);
+                    setCommentDraft("");
+                  }}
+                  disabled={!commentDraft.trim()}
+                  className="shrink-0 w-11 h-11 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-30"
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {canStart && (
@@ -4949,6 +5024,7 @@ export default function ClientApp() {
       return {
         label: completedLog.dayLabel || "Workout",
         muscleGroups: scheduledWorkoutsByDate[dateKey]?.muscleGroups || [],
+        workoutLogId: completedLog.id,
         exercises: completedLog.entries.map((e) => ({
           exerciseId: e.exerciseId,
           targetSets: (e.sets || []).length,

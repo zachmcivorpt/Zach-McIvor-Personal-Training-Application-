@@ -263,6 +263,7 @@ export function AppProvider({ children }) {
       watch("invites", "invites");
       watch("workoutLogs", "workoutLogs");
       watch("messages", "messages");
+      watch("workoutComments", "workoutComments");
       watch("progressPhotos", "progressPhotos");
       watch("savedMeals", "savedMeals");
       watch("habits", "habits");
@@ -282,6 +283,7 @@ export function AppProvider({ children }) {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
       watch("messages", "messages", [where("clientId", "==", uid)]);
+      watch("workoutComments", "workoutComments", [where("clientId", "==", uid)]);
       watch("progressPhotos", "progressPhotos", [where("clientId", "==", uid)]);
       watch("savedMeals", "savedMeals", [where("clientId", "==", uid)]);
       watch("habits", "habits", [where("clientId", "==", uid)]);
@@ -377,6 +379,7 @@ export function AppProvider({ children }) {
       workoutLogs: bucket(raw.workoutLogs, (a, b) => b.date - a.date),
       nutritionLogs: bucket(raw.nutritionLogs, (a, b) => a.date.localeCompare(b.date)),
       messages: bucket(raw.messages, (a, b) => a.date - b.date),
+      workoutComments: bucket(raw.workoutComments, (a, b) => a.date - b.date),
       progressPhotos: bucket(raw.progressPhotos, (a, b) => b.date - a.date),
       savedMeals: bucket(raw.savedMeals, (a, b) => b.createdAt - a.createdAt),
       habits: bucket(raw.habits, (a, b) => a.createdAt - b.createdAt),
@@ -815,6 +818,22 @@ export function AppProvider({ children }) {
         const id = newDocId("messages");
         const msg = { id, clientId, from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}) };
         setDoc(doc(firestore, "messages", id), msg).catch(console.error);
+      },
+
+      // Per-workout comment thread — Trainerize's "Comments" tab on a
+      // completed session. `from` is "coach" or "client"; auto-generated
+      // entries (PRs, exercise swaps) are derived from the log itself at
+      // render time rather than stored here.
+      addWorkoutComment(clientId, workoutLogId, from, authorName, text) {
+        const trimmed = (text || "").trim();
+        if (!trimmed) return;
+        const id = newDocId("workoutComments");
+        setDoc(doc(firestore, "workoutComments", id), { id, clientId, workoutLogId, from, authorName, text: trimmed, date: Date.now() }).catch(
+          console.error
+        );
+      },
+      deleteWorkoutComment(commentId) {
+        deleteDoc(doc(firestore, "workoutComments", commentId)).catch(console.error);
       },
 
       addProgressPhoto(clientId, dataUrl, caption = "") {

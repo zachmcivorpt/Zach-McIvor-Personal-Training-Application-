@@ -44,6 +44,8 @@ import {
   CalendarClock,
   Search,
   Minus,
+  MessageSquare,
+  Trophy,
 } from "lucide-react";
 
 const todayKey = () => new Date().toISOString().slice(0, 10);
@@ -2709,14 +2711,24 @@ function NutritionPanel({ client, showToast }) {
 }
 
 export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
-  const { db, addClientNote, updateClientNote, deleteClientNote, updateWorkoutLogEntries, moveWorkoutLog, revertWorkoutLogToScheduled, deleteWorkoutLog } =
-    useApp();
+  const {
+    db,
+    addClientNote,
+    updateClientNote,
+    deleteClientNote,
+    updateWorkoutLogEntries,
+    moveWorkoutLog,
+    revertWorkoutLogToScheduled,
+    deleteWorkoutLog,
+  } = useApp();
   const [open, setOpen] = useState(defaultOpen);
   const [editingNote, setEditingNote] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [modal, setModal] = useState(null); // "stats" | "move" | "revert" | "delete" | null
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const workoutNote = ((db.clientNotes || {})[log.clientId] || []).find((n) => n.workoutLogId === log.id);
+  const comments = ((db.workoutComments || {})[log.clientId] || []).filter((c) => c.workoutLogId === log.id);
   const hasFlags = log.entries.some((e) => e.note || e.swapReason) || !!workoutNote;
   const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
   const volume = log.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.weight || 0) * (s.reps || 0), 0), 0);
@@ -2755,6 +2767,22 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {hasFlags && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(ev) => {
+              ev.stopPropagation();
+              setCommentsOpen(true);
+            }}
+            className="relative w-7 h-7 flex items-center justify-center rounded-lg text-black/40 hover:bg-black/5 hover:text-black/70"
+          >
+            <MessageSquare size={16} />
+            {comments.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
+                {comments.length}
+              </span>
+            )}
+          </span>
           <span
             role="button"
             tabIndex={0}
@@ -2925,6 +2953,9 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
         </div>
       )}
     </div>
+    {commentsOpen && (
+      <CommentsModal log={log} exercisesById={exercisesById} comments={comments} onClose={() => setCommentsOpen(false)} />
+    )}
     {(modal === "stats" || modal === "move") && (
       <EditWorkoutModal mode={modal} log={log} exercisesById={exercisesById} onClose={() => setModal(null)} />
     )}
@@ -2975,6 +3006,114 @@ function ConfirmActionSheet({ title, body, confirmLabel, danger = false, onConfi
           <SecondaryButton onClick={onClose} className="flex-1">
             Cancel
           </SecondaryButton>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}
+
+// Trainerize's "Comments" tab on a completed workout — a chat-style
+// thread scoped to one session. Manual coach/client messages are stored
+// in `workoutComments`; PR and exercise-swap entries are derived from
+// the log itself at render time rather than persisted separately.
+function CommentsModal({ log, exercisesById, comments, onClose }) {
+  const { db, addWorkoutComment, deleteWorkoutComment } = useApp();
+  const [draft, setDraft] = useState("");
+  const coachName = db.coachProfile?.name || "Coach";
+
+  const autoEntries = [];
+  log.entries.forEach((e) => {
+    const exercise = exercisesById[e.exerciseId];
+    (e.sets || []).forEach((s, si) => {
+      if (s.isPR) {
+        autoEntries.push({
+          id: `pr_${e.exerciseId}_${si}`,
+          system: true,
+          icon: "pr",
+          text: `New PR — ${exercise?.name || "Exercise"}: ${s.reps}×${s.weight}kg`,
+          date: log.date,
+        });
+      }
+    });
+    if (e.swapReason) {
+      autoEntries.push({
+        id: `swap_${e.exerciseId}`,
+        system: true,
+        icon: "swap",
+        text: `Swapped ${e.swappedFromName || "planned exercise"} for ${exercise?.name || "another exercise"} — ${e.swapReason}`,
+        date: log.date,
+      });
+    }
+  });
+  const timeline = [
+    { id: "completed", system: true, icon: "check", text: `Workout completed — ${log.dayLabel}`, date: log.date },
+    ...autoEntries,
+    ...comments,
+  ].sort((a, b) => a.date - b.date);
+
+  return (
+    <BottomSheet open title="Comments" onClose={onClose}>
+      <div className="px-4 pb-4 space-y-3">
+        <div className="max-h-[50vh] overflow-y-auto space-y-2.5 pr-0.5">
+          {timeline.map((item) => {
+            if (item.system) {
+              return (
+                <div key={item.id} className="flex items-start gap-2 text-black/50 text-xs">
+                  {item.icon === "pr" ? (
+                    <Trophy size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                  ) : item.icon === "swap" ? (
+                    <Repeat size={13} className="text-blue-500 shrink-0 mt-0.5" />
+                  ) : (
+                    <CheckCircle2 size={13} className="text-emerald-500 shrink-0 mt-0.5" />
+                  )}
+                  <p className="leading-snug">{item.text}</p>
+                </div>
+              );
+            }
+            return (
+              <div key={item.id} className="bg-black/[0.03] border border-black/5 rounded-lg px-3 py-2 group">
+                <div className="flex items-center justify-between">
+                  <p className="text-black/70 text-[11px] font-semibold">
+                    {item.authorName || (item.from === "coach" ? "Coach" : "Client")}
+                    <span className="text-black/30 font-normal ml-1.5">
+                      {new Date(item.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    </span>
+                  </p>
+                  <button
+                    onClick={() => deleteWorkoutComment(item.id)}
+                    className="text-black/20 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+                <p className="text-black text-sm mt-0.5 whitespace-pre-wrap">{item.text}</p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <TextInput
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Add a comment…"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && draft.trim()) {
+                addWorkoutComment(log.clientId, log.id, "coach", coachName, draft);
+                setDraft("");
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              if (!draft.trim()) return;
+              addWorkoutComment(log.clientId, log.id, "coach", coachName, draft);
+              setDraft("");
+            }}
+            className="shrink-0 w-11 h-11 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-30"
+            disabled={!draft.trim()}
+          >
+            <Send size={16} />
+          </button>
         </div>
       </div>
     </BottomSheet>
