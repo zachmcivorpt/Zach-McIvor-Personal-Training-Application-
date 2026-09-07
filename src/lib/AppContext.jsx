@@ -362,7 +362,22 @@ export function AppProvider({ children }) {
         _source: "invite",
       };
     });
-    const users = [...usersFromAuth, ...usersFromInvites];
+    // Every consumer of `users` app-wide (roster search, messages list,
+    // duplicate-username check, dashboards, ...) assumes name/username/email
+    // are real strings and calls things like .toLowerCase() on them with no
+    // guard. A single malformed/legacy record missing one of these used to
+    // throw inside whatever list was rendering it — which doesn't just skip
+    // that one row, it crashes the ENTIRE list (React aborts the whole
+    // render), making every client look like they'd vanished at once even
+    // though nothing was actually deleted. Normalizing right here, once, at
+    // the single source every screen reads from, means no downstream screen
+    // can ever be taken down by one bad record again.
+    const users = [...usersFromAuth, ...usersFromInvites].map((u) => ({
+      ...u,
+      name: u.name || "Unnamed client",
+      username: u.username || u.email || u.id,
+      email: u.email || "",
+    }));
 
     function bucket(list, sortFn) {
       const out = {};

@@ -320,6 +320,11 @@ export default function CoachClients({ showToast, search, setSearch }) {
   // with zero chance to back out. Now it opens this same kind of
   // are-you-sure sheet first, just like bulk remove already does.
   const [confirmRemoveId, setConfirmRemoveId] = useState(null);
+  // Extra friction on top of the sheet itself: typing the exact name (like
+  // GitHub's "type the repo name to confirm") means even opening this sheet
+  // and tapping through it fast can't delete anyone by accident — the
+  // button stays disabled until the name matches.
+  const [confirmRemoveText, setConfirmRemoveText] = useState("");
   const q = (search || "").toLowerCase();
   const clients = db.users.filter((u) => u.role === "client" && (u.name || "").toLowerCase().includes(q));
   const today = localDateKey();
@@ -599,27 +604,59 @@ export default function CoachClients({ showToast, search, setSearch }) {
         />
       )}
 
-      <BottomSheet open={confirmRemove} onClose={() => setConfirmRemove(false)} title="Remove selected clients?">
+      <BottomSheet
+        open={confirmRemove}
+        onClose={() => {
+          setConfirmRemove(false);
+          setConfirmRemoveText("");
+        }}
+        title="Remove selected clients?"
+      >
         <p className="text-black/50 text-sm mb-4">
           This permanently deletes {checkedIds.size} client{checkedIds.size === 1 ? "" : "s"} and all their workout history,
           messages, and progress data. This can't be undone.
         </p>
-        <DangerButton className="w-full" onClick={bulkRemove}>
+        <Field label={`Type REMOVE to confirm`}>
+          <TextInput value={confirmRemoveText} onChange={(e) => setConfirmRemoveText(e.target.value)} placeholder="REMOVE" />
+        </Field>
+        <DangerButton
+          className="w-full mt-3 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={confirmRemoveText.trim().toUpperCase() !== "REMOVE"}
+          onClick={() => {
+            bulkRemove();
+            setConfirmRemoveText("");
+          }}
+        >
           <Trash2 size={14} /> Remove {checkedIds.size} client{checkedIds.size === 1 ? "" : "s"}
         </DangerButton>
       </BottomSheet>
 
-      <BottomSheet open={!!confirmRemoveId} onClose={() => setConfirmRemoveId(null)} title="Remove this client?">
+      <BottomSheet
+        open={!!confirmRemoveId}
+        onClose={() => {
+          setConfirmRemoveId(null);
+          setConfirmRemoveText("");
+        }}
+        title="Remove this client?"
+      >
         <p className="text-black/50 text-sm mb-4">
           This permanently deletes {db.users.find((u) => u.id === confirmRemoveId)?.name || "this client"} and all their
           workout history, messages, and progress data. This can't be undone.
         </p>
+        <Field label={`Type their name (${db.users.find((u) => u.id === confirmRemoveId)?.name || ""}) to confirm`}>
+          <TextInput value={confirmRemoveText} onChange={(e) => setConfirmRemoveText(e.target.value)} placeholder="Full name" />
+        </Field>
         <DangerButton
-          className="w-full"
+          className="w-full mt-3 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={
+            confirmRemoveText.trim().toLowerCase() !==
+            (db.users.find((u) => u.id === confirmRemoveId)?.name || "").trim().toLowerCase()
+          }
           onClick={() => {
             removeClient(confirmRemoveId);
             showToast("Client removed");
             setConfirmRemoveId(null);
+            setConfirmRemoveText("");
           }}
         >
           <Trash2 size={14} /> Remove client
