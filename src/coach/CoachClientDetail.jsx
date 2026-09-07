@@ -336,7 +336,7 @@ function buildMonthGrid(year, month) {
 // pass, the same interaction as the source layout's scheduling popover.
 // Renders in the client's local month; navigable and reusable at a
 // compact size inside a sheet.
-function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth }) {
+function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth, occupiedDates }) {
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = localDateKey();
   return (
@@ -375,22 +375,33 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
               const inMonth = date.getUTCMonth() === viewMonth;
               const isToday = dateStr === todayStr;
               const selected = selectedDates.has(dateStr);
+              const occupied = occupiedDates?.has(dateStr);
               return (
                 <button
                   key={dateStr}
                   type="button"
                   onClick={() => onToggle(dateStr)}
-                  className={`aspect-square rounded-full text-xs font-medium transition-colors ${
+                  title={occupied ? "Already has a workout scheduled" : undefined}
+                  className={`relative aspect-square rounded-full text-xs font-medium transition-colors ${
                     selected
                       ? "bg-blue-500 text-white"
                       : isToday
                       ? "border border-blue-400 text-black"
+                      : occupied
+                      ? "border border-amber-400 text-black/70 hover:bg-black/8"
                       : inMonth
                       ? "text-black/70 hover:bg-black/8"
                       : "text-black/20"
                   }`}
                 >
                   {date.getUTCDate()}
+                  {occupied && (
+                    <span
+                      className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${
+                        selected ? "bg-white" : "bg-amber-500"
+                      }`}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -470,6 +481,16 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
     }
     setSelectedDates((prev) => new Set([...prev, ...dates]));
   }
+
+  // Marks days on the mini calendar that already have a scheduled workout —
+  // picking one of these and submitting silently overwrites it (both docs
+  // share a deterministic clientId__date id), so surfacing this up front
+  // lets the coach avoid clobbering a day by accident instead of finding
+  // out after the fact.
+  const occupiedDates = useMemo(
+    () => new Set((db.scheduledWorkouts[client.id] || []).map((w) => w.date)),
+    [db.scheduledWorkouts, client.id]
+  );
 
   const selectedMaster = (db.masterWorkouts || []).find((w) => w.id === masterWorkoutId);
   const payload =
@@ -570,9 +591,18 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, showToast, p
             )}
           </div>
           <div className="bg-black/[0.03] border border-black/8 rounded-xl p-3">
-            <MiniDatePicker selectedDates={selectedDates} onToggle={toggleDate} viewYear={viewYear} viewMonth={viewMonth} onShiftMonth={shiftMonth} />
+            <MiniDatePicker
+              selectedDates={selectedDates}
+              onToggle={toggleDate}
+              viewYear={viewYear}
+              viewMonth={viewMonth}
+              onShiftMonth={shiftMonth}
+              occupiedDates={occupiedDates}
+            />
           </div>
-          <p className="text-black/30 text-[11px] mt-1.5">Tap any dates to circle them — pick as many as you like.</p>
+          <p className="text-black/30 text-[11px] mt-1.5">
+            Tap any dates to circle them — pick as many as you like. Days with an amber ring already have a workout scheduled.
+          </p>
         </div>
 
         <div className="bg-black/[0.03] rounded-xl p-3">
