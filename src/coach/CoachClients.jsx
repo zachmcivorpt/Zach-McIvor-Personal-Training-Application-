@@ -313,6 +313,13 @@ export default function CoachClients({ showToast, search, setSearch }) {
   }
   const [checkedIds, setCheckedIds] = useState(() => new Set());
   const [confirmRemove, setConfirmRemove] = useState(false);
+  // Single-row "Remove client" (the desktop table's ... dropdown) used to
+  // call removeClient the instant it was tapped — no confirmation at all,
+  // unlike the bulk-select path below. One stray tap on that menu item
+  // permanently deleted a client's whole account, history and messages
+  // with zero chance to back out. Now it opens this same kind of
+  // are-you-sure sheet first, just like bulk remove already does.
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null);
   const q = (search || "").toLowerCase();
   const clients = db.users.filter((u) => u.role === "client" && u.name.toLowerCase().includes(q));
   const today = localDateKey();
@@ -477,7 +484,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                       )}
                       <RowActions
                         onOpen={() => openClient(c.id)}
-                        onRemove={() => removeClient(c.id)}
+                        onRemove={() => setConfirmRemoveId(c.id)}
                         paused={!!c.accessPaused}
                         onTogglePause={
                           c.status === "active" ? () => setClientAccessPaused(c.id, !c.accessPaused) : undefined
@@ -599,6 +606,23 @@ export default function CoachClients({ showToast, search, setSearch }) {
         </p>
         <DangerButton className="w-full" onClick={bulkRemove}>
           <Trash2 size={14} /> Remove {checkedIds.size} client{checkedIds.size === 1 ? "" : "s"}
+        </DangerButton>
+      </BottomSheet>
+
+      <BottomSheet open={!!confirmRemoveId} onClose={() => setConfirmRemoveId(null)} title="Remove this client?">
+        <p className="text-black/50 text-sm mb-4">
+          This permanently deletes {db.users.find((u) => u.id === confirmRemoveId)?.name || "this client"} and all their
+          workout history, messages, and progress data. This can't be undone.
+        </p>
+        <DangerButton
+          className="w-full"
+          onClick={() => {
+            removeClient(confirmRemoveId);
+            showToast("Client removed");
+            setConfirmRemoveId(null);
+          }}
+        >
+          <Trash2 size={14} /> Remove client
         </DangerButton>
       </BottomSheet>
     </div>
