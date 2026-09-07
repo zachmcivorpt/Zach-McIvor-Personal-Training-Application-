@@ -205,7 +205,7 @@ export default function CoachMessages() {
 
   const clients = db.users
     .filter((u) => u.role === "client" && u.status === "active")
-    .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((c) => (c.name || "").toLowerCase().includes(search.toLowerCase()))
     .map((c) => {
       const thread = db.messages[c.id] || [];
       const lastMsg = thread[thread.length - 1];

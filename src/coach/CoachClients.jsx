@@ -321,7 +321,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
   // are-you-sure sheet first, just like bulk remove already does.
   const [confirmRemoveId, setConfirmRemoveId] = useState(null);
   const q = (search || "").toLowerCase();
-  const clients = db.users.filter((u) => u.role === "client" && u.name.toLowerCase().includes(q));
+  const clients = db.users.filter((u) => u.role === "client" && (u.name || "").toLowerCase().includes(q));
   const today = localDateKey();
 
   function toggleChecked(id) {

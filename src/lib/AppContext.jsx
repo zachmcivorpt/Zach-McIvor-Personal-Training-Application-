@@ -480,7 +480,10 @@ export function AppProvider({ children }) {
         const base = email.trim().toLowerCase();
         let username = base;
         let n = 1;
-        while (db.users.some((u) => u.username.toLowerCase() === username)) {
+        // A legacy/malformed user record with no username field shouldn't
+        // crash the whole add-client flow — treat it as "doesn't collide"
+        // rather than throwing.
+        while (db.users.some((u) => u.username && u.username.toLowerCase() === username)) {
           username = `${base}+${n}`;
           n++;
         }
