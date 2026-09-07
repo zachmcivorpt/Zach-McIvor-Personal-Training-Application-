@@ -500,7 +500,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
           </div>
         )}
         {clients.map((c) => {
-          const { currentPhase, nextPhase, awaitingReply, pendingCheckins } = rowData(c);
+          const { currentPhase, nextPhase, awaitingReply, pendingCheckins, needsNewPhase } = rowData(c);
           return (
             <div
               key={c.id}
