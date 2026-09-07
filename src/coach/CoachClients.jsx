@@ -204,19 +204,33 @@ function mainProgramLabel(client) {
 // Small icon+count chips showing what needs the coach's attention for this
 // client — mirrors the same "awaiting reply" / "unread check-in" signals
 // already surfaced in aggregate on the Overview dashboard, just per-row.
-function EngagementBadges({ awaitingReply, pendingCheckins }) {
+function EngagementBadges({ awaitingReply, pendingCheckins, onOpenMessages, onOpenCheckins }) {
   if (!awaitingReply && !pendingCheckins) return <span className="text-black/20 text-xs">—</span>;
   return (
     <div className="flex items-center gap-1.5">
       {awaitingReply && (
-        <span className="flex items-center gap-1 bg-blue-50 text-blue-600 text-[11px] font-bold px-1.5 py-1 rounded-md">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenMessages?.();
+          }}
+          className="flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[11px] font-bold px-1.5 py-1 rounded-md transition-colors"
+        >
           <MessageCircle size={11} /> 1
-        </span>
+        </button>
       )}
       {pendingCheckins > 0 && (
-        <span className="flex items-center gap-1 bg-amber-50 text-amber-600 text-[11px] font-bold px-1.5 py-1 rounded-md">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenCheckins?.();
+          }}
+          className="flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-600 text-[11px] font-bold px-1.5 py-1 rounded-md transition-colors"
+        >
           <NotebookPen size={11} /> {pendingCheckins}
-        </span>
+        </button>
       )}
     </div>
   );
@@ -282,6 +296,16 @@ export default function CoachClients({ showToast, search, setSearch }) {
   const { db, removeClient, startViewAsClient, setClientAccessPaused, dbReady } = useApp();
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  // Which tab (and whether to jump straight into the messages thread)
+  // to open the client on — set when a specific engagement badge was
+  // clicked (e.g. the unread-message pill) rather than the row itself,
+  // so that jumps straight to what needs attention instead of Summary.
+  const [openAction, setOpenAction] = useState(null); // { tab, messages } | null
+
+  function openClient(id, action = null) {
+    setSelectedId(id);
+    setOpenAction(action);
+  }
   const [checkedIds, setCheckedIds] = useState(() => new Set());
   const [confirmRemove, setConfirmRemove] = useState(false);
   const q = (search || "").toLowerCase();
@@ -388,7 +412,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
               return (
                 <tr
                   key={c.id}
-                  onClick={() => setSelectedId(c.id)}
+                  onClick={() => openClient(c.id)}
                   className={`border-b border-black/5 last:border-0 hover:bg-black/[0.03] cursor-pointer transition-colors ${
                     checkedIds.has(c.id) ? "bg-blue-50/50" : ""
                   }`}
@@ -420,7 +444,12 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     <NextPhaseCell phase={nextPhase} />
                   </td>
                   <td className="px-3 py-3.5">
-                    <EngagementBadges awaitingReply={awaitingReply} pendingCheckins={pendingCheckins} />
+                    <EngagementBadges
+                      awaitingReply={awaitingReply}
+                      pendingCheckins={pendingCheckins}
+                      onOpenMessages={() => openClient(c.id, { messages: true })}
+                      onOpenCheckins={() => openClient(c.id, { tab: "checkins" })}
+                    />
                   </td>
                   <td className="px-3 py-3.5">
                     <div className="flex items-center gap-1.5">
@@ -441,7 +470,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                         </button>
                       )}
                       <RowActions
-                        onOpen={() => setSelectedId(c.id)}
+                        onOpen={() => openClient(c.id)}
                         onRemove={() => removeClient(c.id)}
                         paused={!!c.accessPaused}
                         onTogglePause={
@@ -471,8 +500,8 @@ export default function CoachClients({ showToast, search, setSearch }) {
               key={c.id}
               role="button"
               tabIndex={0}
-              onClick={() => setSelectedId(c.id)}
-              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelectedId(c.id)}
+              onClick={() => openClient(c.id)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openClient(c.id)}
               className="w-full text-left border border-black/8 rounded-2xl p-4 active:bg-black/[0.03] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-3 mb-3">
@@ -525,7 +554,12 @@ export default function CoachClients({ showToast, search, setSearch }) {
               )}
               <div className="flex items-center justify-between gap-3">
                 <PhaseCell phase={currentPhase} />
-                <EngagementBadges awaitingReply={awaitingReply} pendingCheckins={pendingCheckins} />
+                <EngagementBadges
+                  awaitingReply={awaitingReply}
+                  pendingCheckins={pendingCheckins}
+                  onOpenMessages={() => openClient(c.id, { messages: true })}
+                  onOpenCheckins={() => openClient(c.id, { tab: "checkins" })}
+                />
               </div>
               {nextPhase && (
                 <p className="text-black/30 text-xs mt-2 pt-2 border-t border-black/5">
@@ -537,8 +571,20 @@ export default function CoachClients({ showToast, search, setSearch }) {
         })}
       </div>
 
-      <AddClientSheet open={addOpen} onClose={() => setAddOpen(false)} onCreated={setSelectedId} />
-      {selectedId && <CoachClientDetail clientId={selectedId} onClose={() => setSelectedId(null)} showToast={showToast} />}
+      <AddClientSheet open={addOpen} onClose={() => setAddOpen(false)} onCreated={(id) => openClient(id)} />
+      {selectedId && (
+        <CoachClientDetail
+          key={`${selectedId}:${openAction?.tab || ""}:${openAction?.messages ? "m" : ""}`}
+          clientId={selectedId}
+          initialTab={openAction?.tab}
+          openMessages={openAction?.messages}
+          onClose={() => {
+            setSelectedId(null);
+            setOpenAction(null);
+          }}
+          showToast={showToast}
+        />
+      )}
 
       <BottomSheet open={confirmRemove} onClose={() => setConfirmRemove(false)} title="Remove selected clients?">
         <p className="text-black/50 text-sm mb-4">

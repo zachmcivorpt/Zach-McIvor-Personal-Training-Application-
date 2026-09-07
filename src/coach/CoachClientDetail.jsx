@@ -4122,10 +4122,10 @@ const CLIENT_NAV = [
   { id: "profile", label: "Profile", icon: User },
 ];
 
-export default function CoachClientDetail({ clientId, onClose, showToast }) {
+export default function CoachClientDetail({ clientId, onClose, showToast, initialTab, openMessages }) {
   const { db, removeClient, startViewAsClient, setClientAccessPaused } = useApp();
-  const [clientTab, setClientTab] = useState("summary");
-  const [messaging, setMessaging] = useState(false);
+  const [clientTab, setClientTab] = useState(initialTab || "summary");
+  const [messaging, setMessaging] = useState(!!openMessages);
   const [sendOpen, setSendOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
