@@ -909,6 +909,32 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "exercises", id)).catch(console.error);
       },
 
+      // Bulk-fills every exercise missing a video with a YouTube SEARCH
+      // link for its name, not one specific hand-picked video — there's no
+      // reliable way to know a real, correct, still-live video id for
+      // hundreds of exercises at once, and a wrong/dead direct link would
+      // be worse than none. A search link always resolves to something
+      // real and relevant, and the coach can still swap any of them for a
+      // specific video later via the normal per-exercise edit.
+      async bulkFillExerciseVideos() {
+        const missing = (db.exercises || []).filter((e) => !e.videoUrl);
+        if (missing.length === 0) return 0;
+        try {
+          for (let i = 0; i < missing.length; i += 400) {
+            const chunk = missing.slice(i, i + 400);
+            const batch = writeBatch(firestore);
+            chunk.forEach((ex) => {
+              const q = encodeURIComponent(`${ex.name} exercise proper form tutorial`);
+              batch.update(doc(firestore, "exercises", ex.id), { videoUrl: `https://www.youtube.com/results?search_query=${q}` });
+            });
+            await batch.commit();
+          }
+        } catch (err) {
+          throw new Error("Couldn't fill videos — " + (err.message || "please try again."));
+        }
+        return missing.length;
+      },
+
       logWorkout(clientId, entry) {
         const id = newDocId("workoutLogs");
         setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);

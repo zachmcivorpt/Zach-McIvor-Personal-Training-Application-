@@ -196,12 +196,30 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
 }
 
 export default function CoachExercises({ showToast, compact = false }) {
-  const { db, importSeedExercises: bulkImportExercises } = useApp();
+  const { db, importSeedExercises: bulkImportExercises, bulkFillExerciseVideos } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | exercise | null
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState(false);
+  const [fillingVideos, setFillingVideos] = useState(false);
 
-  const filtered = db.exercises.filter((e) => e.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = db.exercises.filter((e) => (e.name || "").toLowerCase().includes(search.toLowerCase()));
+  const missingVideoCount = db.exercises.filter((e) => !e.videoUrl).length;
+
+  async function fillMissingVideos() {
+    setFillingVideos(true);
+    try {
+      const count = await bulkFillExerciseVideos();
+      showToast(
+        count === 0
+          ? "Every exercise already has a video"
+          : `Added a YouTube search link to ${count} exercise${count === 1 ? "" : "s"} — swap any of them for a specific video anytime`
+      );
+    } catch (err) {
+      showToast(err.message || "Couldn't fill videos");
+    } finally {
+      setFillingVideos(false);
+    }
+  }
 
   async function importSeedExercises() {
     setImporting(true);
@@ -232,6 +250,18 @@ export default function CoachExercises({ showToast, compact = false }) {
           <p className="text-black/40 text-sm mt-0.5">{db.exercises.length} total</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          {missingVideoCount > 0 && (
+            <button
+              onClick={fillMissingVideos}
+              disabled={fillingVideos}
+              aria-label="Fill missing exercise videos"
+              title="Adds a YouTube search link (not a specific hand-picked video) to every exercise that doesn't have one yet"
+              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+            >
+              <Upload size={16} />{" "}
+              <span className="hidden sm:inline">{fillingVideos ? "FILLING…" : `FILL ${missingVideoCount} MISSING VIDEO${missingVideoCount === 1 ? "" : "S"}`}</span>
+            </button>
+          )}
           <button
             onClick={importSeedExercises}
             disabled={importing}
