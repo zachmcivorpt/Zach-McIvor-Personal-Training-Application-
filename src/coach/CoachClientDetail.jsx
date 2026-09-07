@@ -2704,8 +2704,12 @@ function NutritionPanel({ client, showToast }) {
 }
 
 export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
+  const { db, addClientNote, updateClientNote, deleteClientNote } = useApp();
   const [open, setOpen] = useState(defaultOpen);
-  const hasFlags = log.entries.some((e) => e.note || e.swapReason);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const workoutNote = ((db.clientNotes || {})[log.clientId] || []).find((n) => n.workoutLogId === log.id);
+  const hasFlags = log.entries.some((e) => e.note || e.swapReason) || !!workoutNote;
   const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
   const volume = log.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.weight || 0) * (s.reps || 0), 0), 0);
 
@@ -2776,6 +2780,74 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
               </div>
             );
           })}
+          <div className="bg-white border border-black/5 rounded-lg px-3 py-2.5">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <NotebookPen size={13} className="text-black/40" />
+                <p className="text-black/60 text-xs font-semibold">This Workout's Note</p>
+                <span className="text-black/25 text-[10px]">· private, only visible to you</span>
+              </div>
+              {!editingNote && workoutNote && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      setNoteDraft(workoutNote.text);
+                      setEditingNote(true);
+                    }}
+                    className="text-black/30 hover:text-black/60"
+                  >
+                    <Edit3 size={13} />
+                  </button>
+                  <button onClick={() => deleteClientNote(log.clientId, workoutNote.id)} className="text-black/30 hover:text-red-600">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              )}
+            </div>
+            {editingNote ? (
+              <div className="space-y-2">
+                <TextArea
+                  value={noteDraft}
+                  onChange={(e) => setNoteDraft(e.target.value)}
+                  placeholder="Private note about this workout — only visible to you."
+                  rows={3}
+                  autoFocus
+                />
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      const trimmed = noteDraft.trim();
+                      if (!trimmed) {
+                        setEditingNote(false);
+                        return;
+                      }
+                      if (workoutNote) updateClientNote(workoutNote.id, trimmed);
+                      else addClientNote(log.clientId, trimmed, log.id);
+                      setEditingNote(false);
+                    }}
+                    className="text-xs font-semibold text-emerald-600 flex items-center gap-1"
+                  >
+                    <Check size={13} /> Save
+                  </button>
+                  <button onClick={() => setEditingNote(false)} className="text-xs font-semibold text-black/40 flex items-center gap-1">
+                    <X size={13} /> Cancel
+                  </button>
+                </div>
+              </div>
+            ) : workoutNote ? (
+              <p className="text-black/60 text-xs leading-snug whitespace-pre-wrap">{workoutNote.text}</p>
+            ) : (
+              <button
+                onClick={() => {
+                  setNoteDraft("");
+                  setEditingNote(true);
+                }}
+                className="text-black/30 text-xs italic"
+              >
+                Add a private note about this workout…
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

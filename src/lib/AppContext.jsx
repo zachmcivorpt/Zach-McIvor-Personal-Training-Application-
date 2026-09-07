@@ -1149,11 +1149,23 @@ export function AppProvider({ children }) {
       },
 
       // Private trainer notes on a client's Summary — coach-only, never shown to the client.
-      addClientNote(clientId, text) {
+      // workoutLogId, when given, ties this note to one specific completed
+      // workout (Trainerize calls this "This Workout's Note") rather than
+      // it just being a general note about the client.
+      addClientNote(clientId, text, workoutLogId) {
         const trimmed = text.trim();
         if (!trimmed) return;
         const id = newDocId("clientNotes");
-        setDoc(doc(firestore, "clientNotes", id), { id, clientId, text: trimmed, date: Date.now() }).catch(console.error);
+        setDoc(doc(firestore, "clientNotes", id), {
+          id,
+          clientId,
+          text: trimmed,
+          date: Date.now(),
+          ...(workoutLogId ? { workoutLogId } : {}),
+        }).catch(console.error);
+      },
+      updateClientNote(noteId, text) {
+        updateDoc(doc(firestore, "clientNotes", noteId), { text: text.trim() }).catch(console.error);
       },
       deleteClientNote(clientId, noteId) {
         deleteDoc(doc(firestore, "clientNotes", noteId)).catch(console.error);
