@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { useApp, getCurrentPhase, getNextPhase } from "../lib/AppContext";
+import { useApp, getCurrentPhase, getNextPhase, needsNewPhaseSoon } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
 import { MEASURE_BLUE } from "../theme";
-import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat, Lock, Unlock } from "lucide-react";
+import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat, Lock, Unlock, AlertTriangle } from "lucide-react";
 
 export function inviteMailto({ email, name, username, code, coachName }) {
   const activateUrl = `${window.location.origin}/activate`;
@@ -156,7 +156,7 @@ export function clientStatusPill(c) {
   return { tone: "muted", label: "Not sent yet" };
 }
 
-function PhaseCell({ phase }) {
+function PhaseCell({ phase, needsNewPhase }) {
   if (!phase) return <span className="text-black/30 text-sm">No phase scheduled</span>;
   const today = localDateKey();
   const pct = (() => {
@@ -177,6 +177,11 @@ function PhaseCell({ phase }) {
         <div className="mt-1.5 w-28">
           <ProgressBar value={pct} max={100} height={5} color={MEASURE_BLUE} />
         </div>
+      )}
+      {needsNewPhase && (
+        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-bold px-1.5 py-0.5 rounded-md mt-1.5">
+          <AlertTriangle size={10} /> Needs new phase
+        </span>
       )}
     </div>
   );
@@ -336,7 +341,8 @@ export default function CoachClients({ showToast, search, setSearch }) {
     const lastMsg = thread[thread.length - 1];
     const awaitingReply = !!(lastMsg && lastMsg.from === "client");
     const pendingCheckins = ((db.formResponses || {})[c.id] || []).filter((r) => r.read === false).length;
-    return { currentPhase, nextPhase, awaitingReply, pendingCheckins };
+    const needsNewPhase = needsNewPhaseSoon(currentPhase, nextPhase, today);
+    return { currentPhase, nextPhase, awaitingReply, pendingCheckins, needsNewPhase };
   }
 
   return (
@@ -408,7 +414,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
               </tr>
             )}
             {clients.map((c) => {
-              const { currentPhase, nextPhase, awaitingReply, pendingCheckins } = rowData(c);
+              const { currentPhase, nextPhase, awaitingReply, pendingCheckins, needsNewPhase } = rowData(c);
               return (
                 <tr
                   key={c.id}
@@ -438,7 +444,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                     <span className="text-black/60 text-sm">{mainProgramLabel(c)}</span>
                   </td>
                   <td className="px-3 py-3.5">
-                    <PhaseCell phase={currentPhase} />
+                    <PhaseCell phase={currentPhase} needsNewPhase={needsNewPhase} />
                   </td>
                   <td className="px-3 py-3.5">
                     <NextPhaseCell phase={nextPhase} />
@@ -553,7 +559,7 @@ export default function CoachClients({ showToast, search, setSearch }) {
                 </p>
               )}
               <div className="flex items-center justify-between gap-3">
-                <PhaseCell phase={currentPhase} />
+                <PhaseCell phase={currentPhase} needsNewPhase={needsNewPhase} />
                 <EngagementBadges
                   awaitingReply={awaitingReply}
                   pendingCheckins={pendingCheckins}

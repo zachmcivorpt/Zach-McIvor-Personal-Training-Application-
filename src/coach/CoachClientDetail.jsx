@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
+import { useApp, getCurrentPhase, getNextPhase, needsNewPhaseSoon, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
@@ -47,6 +47,7 @@ import {
   Minus,
   MessageSquare,
   Trophy,
+  AlertTriangle,
 } from "lucide-react";
 
 const todayKey = () => localDateKey();
@@ -3828,6 +3829,8 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
   const phases = (db.clientPhases || {})[client.id] || [];
   const todayKey = localDateKey();
   const phase = getCurrentPhase(phases, todayKey);
+  const nextPhase = getNextPhase(phases, todayKey);
+  const needsNewPhase = needsNewPhaseSoon(phase, nextPhase, todayKey);
   const daysPerWeek = phase?.weeks?.[0]?.days?.length || 0;
 
   const now = Date.now();
@@ -3898,7 +3901,15 @@ function SummaryPanel({ client, showToast, onSendLogin }) {
           <div>
             <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TAGS</p>
             <div className="flex flex-wrap gap-1.5 mb-2.5">
-              {tags.length === 0 && <span className="text-black/25 text-xs">No tags yet.</span>}
+              {needsNewPhase && (
+                <span
+                  title="Their current phase ends within 7 days (or already has) and nothing's scheduled after it"
+                  className="flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-bold pl-2.5 pr-2 py-1 rounded-full"
+                >
+                  <AlertTriangle size={11} /> Needs new phase
+                </span>
+              )}
+              {tags.length === 0 && !needsNewPhase && <span className="text-black/25 text-xs">No tags yet.</span>}
               {tags.map((t) => (
                 <span key={t} className="flex items-center gap-1 bg-black/8 text-black/70 text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full">
                   {t}

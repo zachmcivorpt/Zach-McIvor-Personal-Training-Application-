@@ -1400,6 +1400,21 @@ export function getNextPhase(phases, todayKey) {
   return sorted[idx + 1] || null;
 }
 
+// True when a client genuinely needs their next training phase lined up
+// soon: their current phase is the one actually running (or already
+// over) — not one still waiting to start — has a real end date, that end
+// date is 7 days away or less (including already past), AND nothing is
+// already scheduled to pick up after it. Drives the automatic "Needs new
+// phase" badge on the roster/client profile — not a manual tag, so it
+// only ever shows for clients who genuinely need attention, not everyone
+// the coach has simply added a note about.
+export function needsNewPhaseSoon(currentPhase, nextPhase, todayKey) {
+  if (!currentPhase?.endDate || nextPhase) return false;
+  if (currentPhase.startDate > todayKey) return false; // hasn't started yet — not "current" in any real sense
+  const daysLeft = Math.round((new Date(currentPhase.endDate).getTime() - new Date(todayKey).getTime()) / 86400000);
+  return daysLeft <= 7;
+}
+
 export function estimate1RM(weight, reps) {
   if (!weight || !reps) return 0;
   return Math.round(weight * (1 + reps / 30) * 10) / 10;
