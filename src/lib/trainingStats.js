@@ -86,13 +86,18 @@ export function computeE1RMHistory(logs, exerciseId) {
   return points;
 }
 
+// Exact-name matching only — deliberately not a loose .includes() check.
+// A substring match ("bench press") used to also catch "Incline Bench
+// Press", "Close-Grip Bench Press", etc., silently overwriting the flat
+// barbell lift's personal best with an unrelated variant's numbers. Each
+// key lift now only updates from the specific exercise name(s) listed.
 const KEY_LIFTS = [
-  { label: "Bench Press", match: (n) => n.includes("bench press") },
-  { label: "Barbell Back Squat", match: (n) => n.includes("squat") && !n.includes("front") && !n.includes("split") },
-  { label: "Deadlift", match: (n) => n.includes("deadlift") },
-  { label: "Pull-ups", match: (n) => n.includes("pull-up") || n.includes("pull up") || n.includes("pullup") },
-  { label: "Overhead Press", match: (n) => n.includes("overhead press") || n.includes("shoulder press") },
-];
+  { label: "Bench Press", names: ["bench press", "barbell bench press"] },
+  { label: "Barbell Back Squat", names: ["barbell back squat", "back squat", "squat"] },
+  { label: "Deadlift", names: ["deadlift", "conventional deadlift", "barbell deadlift"] },
+  { label: "Pull-ups", names: ["pull-up", "pull up", "pullup", "pull-ups", "pull ups"] },
+  { label: "Overhead Press", names: ["overhead press", "barbell overhead press", "military press"] },
+].map((lift) => ({ ...lift, match: (n) => lift.names.includes(n) }));
 
 // The three big compound lifts always show on the Strength Personal Bests
 // card, even with nothing logged yet — a coach/client both expect to see

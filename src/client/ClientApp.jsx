@@ -4918,11 +4918,29 @@ export default function ClientApp() {
   function scheduledToSession(entry) {
     return entry ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises } : null;
   }
+  // A workout done late (e.g. Sunday's session finished Monday) is logged
+  // with today's timestamp, not Sunday's — logWorkout always stamps the
+  // actual moment it was completed, which is correct for the log itself.
+  // But the card for "today" must not then show whatever's separately
+  // scheduled for today (a different day's plan) labeled as complete —
+  // once a real log exists for a date, that log's own dayLabel/exercises
+  // are what actually happened and take over the display for that date.
+  function sessionForDate(dateKey, logs) {
+    const completedLog = logs.find((l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === dateKey);
+    if (completedLog) {
+      return {
+        label: completedLog.dayLabel || "Workout",
+        muscleGroups: scheduledWorkoutsByDate[dateKey]?.muscleGroups || [],
+        exercises: completedLog.entries.map((e) => ({ exerciseId: e.exerciseId, targetSets: (e.sets || []).length })),
+      };
+    }
+    return scheduledToSession(scheduledWorkoutsByDate[dateKey]);
+  }
   const todayDateKey = new Date().toISOString().slice(0, 10);
-  const todaySession = scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
   const logsForClient = db.workoutLogs[currentUser.id] || [];
-  const completedToday = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === todayDateKey);
+  const completedToday = logsForClient.some((l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === todayDateKey);
+  const todaySession = completedToday ? sessionForDate(todayDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
   const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || [];
   const nutritionByDateKey = useMemo(
     () => Object.fromEntries(nutritionLogsForClient.map((n) => [n.date, n])),
@@ -4943,9 +4961,9 @@ export default function ClientApp() {
     return d.toISOString().slice(0, 10);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayOffset, dateTick]);
-  const daySession = scheduledToSession(scheduledWorkoutsByDate[selectedDateKey]);
   const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
-  const completedOnDate = logsForClient.some((l) => new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
+  const completedOnDate = logsForClient.some((l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
+  const daySession = completedOnDate ? sessionForDate(selectedDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[selectedDateKey]);
   const dayNutrition = isToday ? nutrition : nutritionByDateKey[selectedDateKey] || null;
   const cardioLogsForSelectedDate = useMemo(
     () => logsForClient.filter((l) => l.cardio && new Date(l.date).toISOString().slice(0, 10) === selectedDateKey),
