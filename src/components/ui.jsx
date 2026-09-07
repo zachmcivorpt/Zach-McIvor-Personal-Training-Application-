@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
-import { X, Check, Camera, Dumbbell, Video, Play } from "lucide-react";
+import { X, Check, Camera, Dumbbell, Video, Play, Search } from "lucide-react";
 import { SURFACE, SURFACE_RAISED, BORDER, ACCENT, MEASURE_BLUE } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
@@ -24,7 +24,16 @@ export function VideoPlayerSheet({ exerciseName, videoUrl, onClose }) {
           </button>
         </div>
         <div className="flex-1 flex items-center justify-center px-2 pb-6">
-          {parsed.kind === "file" ? (
+          {parsed.kind === "search" ? (
+            <a
+              href={parsed.url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 bg-white/10 text-white text-sm font-semibold px-5 py-3 rounded-xl"
+            >
+              <Search size={16} /> Open YouTube search
+            </a>
+          ) : parsed.kind === "file" ? (
             <video src={parsed.src} controls autoPlay playsInline className="w-full max-h-full rounded-lg" />
           ) : (
             <iframe
@@ -55,6 +64,8 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
     <>
       {!parsed ? (
         <Dumbbell size={Math.round(size * 0.4)} className="text-black/25" />
+      ) : parsed.kind === "search" ? (
+        <Search size={Math.round(size * 0.35)} className="text-black/30" />
       ) : parsed.kind === "file" ? (
         <video src={parsed.src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
       ) : parsed.thumbnail ? (
@@ -85,11 +96,22 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
         type="button"
         onClick={(e) => {
           e.stopPropagation();
+          // A search link has nothing to embed/play — open it as a plain
+          // link in a new tab instead of the video player sheet, which
+          // would otherwise just show a broken, empty iframe.
+          if (parsed?.kind === "search") {
+            window.open(parsed.url, "_blank", "noopener,noreferrer");
+            return;
+          }
           setPlayerOpen(true);
         }}
         className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
         style={{ width: size, height: size }}
-        aria-label={`Play demo video${exercise?.name ? ` for ${exercise.name}` : ""}`}
+        aria-label={
+          parsed?.kind === "search"
+            ? `Search YouTube${exercise?.name ? ` for ${exercise.name}` : ""}`
+            : `Play demo video${exercise?.name ? ` for ${exercise.name}` : ""}`
+        }
       >
         {content}
       </button>

@@ -141,6 +141,18 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
             </button>
             {form.videoUrl && (() => {
               const parsed = parseVideoUrl(form.videoUrl);
+              if (parsed.kind === "search") {
+                return (
+                  <a
+                    href={parsed.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full bg-black/5 border border-black/10 text-black/60 text-sm font-medium py-3 rounded-xl"
+                  >
+                    <Search size={15} /> Open YouTube search — find one, then paste its link here instead
+                  </a>
+                );
+              }
               return parsed.kind === "file" ? (
                 <video src={parsed.src} controls className="w-full rounded-xl bg-white max-h-48" />
               ) : (

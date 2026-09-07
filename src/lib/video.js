@@ -11,6 +11,17 @@ export function parseVideoUrl(url) {
     const u = new URL(url);
     const host = u.hostname.replace(/^www\./, "").replace(/^m\./, "");
 
+    // A YouTube *search results* link (used to bulk-fill exercises that
+    // don't have a specific video yet — see bulkFillExerciseVideos) has no
+    // video id at all, so it can't be embedded or thumbnailed like a real
+    // video. Without this check it fell through to the "file" case below
+    // and got rendered as a broken <video src="...html page..."> — no
+    // thumbnail, nothing playable. This is its own distinct kind instead:
+    // callers show a "search" affordance and open it as a plain link.
+    if (host === "youtube.com" && u.pathname === "/results") {
+      return { kind: "search", url };
+    }
+
     if (host === "youtube.com") {
       let id = u.searchParams.get("v");
       if (!id) {
