@@ -226,7 +226,13 @@ function ImportVideosSheet({ open, onClose, showToast }) {
 
   async function submit(e) {
     e.preventDefault();
-    const pairs = text
+    // Same class of bug as the login screen's Sign In button: pasting into
+    // a mobile textarea can update what's visibly on screen without ever
+    // firing React's onChange, leaving `text` state empty while the box
+    // looks full. Falling back to the DOM value directly means a paste
+    // that "worked" visually actually gets read.
+    const raw = text || e.currentTarget.videos?.value || "";
+    const pairs = raw
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean)
@@ -261,6 +267,7 @@ function ImportVideosSheet({ open, onClose, showToast }) {
         </p>
         <TextArea
           rows={10}
+          name="videos"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={"Barbell Back Squat | https://youtube.com/watch?v=...\nDeadlift | https://youtube.com/watch?v=..."}
