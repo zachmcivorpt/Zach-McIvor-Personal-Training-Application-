@@ -1101,26 +1101,26 @@ function CalendarPanel({ client, showToast }) {
 
   // Drag a not-yet-completed scheduled workout onto a different day to
   // move it there — e.g. the client asks to swap Monday's session to
-  // Wednesday. Dropping onto a day that already has a different workout
-  // used to just overwrite it (both docs share the same clientId__date
-  // id, so scheduling on an occupied day silently destroyed whatever was
-  // there), then swapped the two — but a swap still yanks the destination
-  // day's own workout away from it. Simplest and least surprising: leave an
-  // occupied destination day completely alone and refuse the move.
+  // Wednesday. Both scheduled-workout docs share a deterministic
+  // clientId__date id, so if the destination day already has its own
+  // workout, swap the two (each keeps existing, just on the other day)
+  // instead of blocking the drag or letting one silently overwrite/delete
+  // the other.
   async function moveWorkout(fromDate, toDate) {
     if (fromDate === toDate) return;
     const entry = workoutsByDate[fromDate];
     if (!entry) return;
     const destEntry = workoutsByDate[toDate];
     const label = (d) => new Date(d + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
-    if (destEntry) {
-      showToast(`${label(toDate)} already has a workout scheduled`);
-      return;
-    }
     try {
       await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises });
-      unscheduleWorkout(client.id, fromDate);
-      showToast(`Moved ${entry.label} to ${label(toDate)}`);
+      if (destEntry) {
+        await scheduleWorkout(client.id, { date: fromDate, label: destEntry.label, muscleGroups: destEntry.muscleGroups, exercises: destEntry.exercises });
+        showToast(`Swapped ${entry.label} and ${destEntry.label}`);
+      } else {
+        unscheduleWorkout(client.id, fromDate);
+        showToast(`Moved ${entry.label} to ${label(toDate)}`);
+      }
     } catch (err) {
       showToast(err.message || "Couldn't move that workout — check your connection and try again");
     }

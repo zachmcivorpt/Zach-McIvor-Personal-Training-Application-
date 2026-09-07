@@ -1457,19 +1457,19 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
 
       <div className="mt-3">
         <div className="grid grid-cols-[30px_1fr_84px_64px] gap-2 px-1 mb-1.5">
-          <span className="text-black/60 text-[13px] font-bold">Set</span>
-          <span className="text-black/60 text-[13px] font-bold">Previous</span>
-          <span className="text-black/60 text-[11px] font-bold text-center leading-tight">
+          <span className="text-black/70 text-[13px] font-bold">Set</span>
+          <span className="text-black/70 text-[13px] font-bold">Previous</span>
+          <span className="text-black/70 text-[12px] font-bold text-center leading-tight">
             {exMeta.targetType === "time" ? "Seconds" : "Repetitions"}
           </span>
-          <span className="text-black/60 text-[13px] font-bold text-center">Kg</span>
+          <span className="text-black/70 text-[13px] font-bold text-center">Kg</span>
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           const suggestion = suggestNextSet(prev, exMeta.targetReps);
           return (
             <div key={i} className="grid grid-cols-[30px_1fr_84px_64px] gap-2 items-center px-1 py-1.5">
-              <span className="text-black text-[15px] font-medium">{i + 1}</span>
+              <span className="text-black text-[18px] font-bold">{i + 1}</span>
               <div className="min-w-0">
                 <p className="text-black/40 text-[14px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
                 {suggestion && !row.weight && !row.reps && (
@@ -1492,7 +1492,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.reps}
                 onChange={(e) => onChangeField(i, "reps", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[16px] font-medium py-2 outline-none focus:border-black/40"
+                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"
               />
               <input
                 type="number"
@@ -1500,7 +1500,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[16px] font-medium py-2 outline-none focus:border-black/40"
+                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"
               />
             </div>
           );
@@ -4610,11 +4610,61 @@ function ClientCalendarScreen({
   const [dragOverDate, setDragOverDate] = useState(null);
   const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while actively dragging, drives the floating ghost
   const pressRef = useRef(null); // { timer, startX, startY, date, type, label, fired }
+  // Lets a drag reach days scrolled off-screen: holding near the top/bottom
+  // edge of the scrollable list while dragging keeps auto-scrolling that
+  // direction, and the drop target keeps re-evaluating under the finger
+  // even while it's held still (a plain pointermove-only recheck would go
+  // stale the moment content scrolls out from under a stationary finger).
+  const scrollSpeedRef = useRef(0);
+  const autoScrollRafRef = useRef(null);
+  const lastPointerRef = useRef({ x: 0, y: 0 });
   // A completed drag still ends in a native "click" on the same element
   // (pointer capture keeps the up-event's target pinned to it regardless of
   // where the finger ended up) — without this flag that click immediately
   // re-opened the workout/day right after dropping it.
   const suppressClickRef = useRef(false);
+
+  function recheckDragOverDate() {
+    const { x, y } = lastPointerRef.current;
+    const target = document.elementFromPoint(x, y);
+    const dayEl = target?.closest("[data-date]");
+    const overDate = dayEl?.getAttribute("data-date") || null;
+    setDragOverDate(overDate && overDate !== pressRef.current?.date ? overDate : null);
+  }
+
+  function autoScrollTick() {
+    const el = scrollRef.current;
+    if (el && scrollSpeedRef.current !== 0) {
+      el.scrollTop += scrollSpeedRef.current;
+      recheckDragOverDate();
+    }
+    autoScrollRafRef.current = requestAnimationFrame(autoScrollTick);
+  }
+
+  function updateAutoScroll(clientY) {
+    const el = scrollRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const edge = 70;
+    let speed = 0;
+    if (clientY < rect.top + edge) speed = -(Math.round((rect.top + edge - clientY) / 3) + 3);
+    else if (clientY > rect.bottom - edge) speed = Math.round((clientY - (rect.bottom - edge)) / 3) + 3;
+    scrollSpeedRef.current = speed;
+    if (speed !== 0 && !autoScrollRafRef.current) {
+      autoScrollRafRef.current = requestAnimationFrame(autoScrollTick);
+    } else if (speed === 0 && autoScrollRafRef.current) {
+      cancelAnimationFrame(autoScrollRafRef.current);
+      autoScrollRafRef.current = null;
+    }
+  }
+
+  function stopAutoScroll() {
+    scrollSpeedRef.current = 0;
+    if (autoScrollRafRef.current) {
+      cancelAnimationFrame(autoScrollRafRef.current);
+      autoScrollRafRef.current = null;
+    }
+  }
 
   function cardPointerDown(e, date, type, label) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -4631,7 +4681,7 @@ function ClientCalendarScreen({
         el.setPointerCapture(pointerId);
       } catch {}
       if (navigator.vibrate) navigator.vibrate(10);
-    }, 300);
+    }, 220);
     pressRef.current = { timer, startX, startY, date, type, label, fired: false };
   }
 
@@ -4640,17 +4690,16 @@ function ClientCalendarScreen({
     if (!p) return;
     if (!p.fired) {
       // Moved before the long-press fired — this is a scroll, not a drag.
-      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 10) {
+      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 14) {
         clearTimeout(p.timer);
         pressRef.current = null;
       }
       return;
     }
+    lastPointerRef.current = { x: e.clientX, y: e.clientY };
     setDragPos({ x: e.clientX, y: e.clientY });
-    const target = document.elementFromPoint(e.clientX, e.clientY);
-    const dayEl = target?.closest("[data-date]");
-    const overDate = dayEl?.getAttribute("data-date") || null;
-    setDragOverDate(overDate && overDate !== p.date ? overDate : null);
+    updateAutoScroll(e.clientY);
+    recheckDragOverDate();
   }
 
   function cardPointerUp() {
@@ -4666,6 +4715,7 @@ function ClientCalendarScreen({
     setDragItem(null);
     setDragOverDate(null);
     setDragPos(null);
+    stopAutoScroll();
   }
 
   // Wrap a card's real onClick so the click the browser fires right after a
@@ -4730,6 +4780,12 @@ function ClientCalendarScreen({
   }, [daysBack, daysForward, scheduledWorkoutsByDate, logsByDate, habits, activeFormSchedules, bodyStatsSchedules, todayStr]);
 
   useEffect(() => {
+    return () => {
+      if (autoScrollRafRef.current) cancelAnimationFrame(autoScrollRafRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     if (scrolledToToday.current) return;
     const t = setTimeout(() => {
       todayRef.current?.scrollIntoView({ block: "start" });
@@ -4766,7 +4822,14 @@ function ClientCalendarScreen({
           const habitsDone = dayHabits.filter((h) => doneHabitIds.includes(h.id)).length;
           const bodyStatsDone = weighInDates.has(dateStr);
 
-          const canDragWorkout = canEdit && !!scheduled && !log;
+          // A log only counts as completing THIS day's own scheduled workout
+          // when its label matches — a catch-up log for a different,
+          // overdue day landing on this date must not mark this day's own
+          // (still-undone) workout as done, hide its drag handle, or get
+          // silently merged into its card. The client decides what to do
+          // with the leftover scheduled item themselves (drag or delete).
+          const logMatchesScheduled = !!(scheduled && log && log.dayLabel === scheduled.label);
+          const canDragWorkout = canEdit && !!scheduled && !logMatchesScheduled;
           const canDragBodyStats = canEdit && !!bodyStatsToday && !bodyStatsDone;
           const isDropTarget = canEdit && dragItem && dragItem.date !== dateStr;
 
@@ -4788,12 +4851,12 @@ function ClientCalendarScreen({
                 {scheduled && (
                   <CalendarEventCard
                     dot={{ border: "border-blue-500", bg: "bg-blue-500" }}
-                    done={!!log}
+                    done={logMatchesScheduled}
                     title={scheduled.label}
                     subtitle={
                       canDragWorkout
                         ? "Drag to a different day to reschedule."
-                        : log
+                        : logMatchesScheduled
                         ? "Workout completed."
                         : "Complete your scheduled workout."
                     }
@@ -4808,7 +4871,7 @@ function ClientCalendarScreen({
                     onDelete={() => onDeleteScheduledWorkout(dateStr)}
                   />
                 )}
-                {!scheduled && log && (
+                {log && !logMatchesScheduled && (
                   <CalendarEventCard
                     dot={{ border: "border-emerald-500", bg: "bg-emerald-500" }}
                     done
@@ -5014,16 +5077,20 @@ export default function ClientApp() {
   // A workout done late (e.g. Sunday's session finished Monday) is logged
   // with today's timestamp, not Sunday's — logWorkout always stamps the
   // actual moment it was completed, which is correct for the log itself.
-  // But the card for "today" must not then show whatever's separately
-  // scheduled for today (a different day's plan) labeled as complete —
-  // once a real log exists for a date, that log's own dayLabel/exercises
-  // are what actually happened and take over the display for that date.
+  // When that log's own day matches what's actually scheduled for this
+  // date, show the real completed sets/PRs (Trainerize-style) instead of
+  // the plain prescription. But if this date still has its OWN different
+  // workout scheduled (the client did a different, overdue day's session
+  // instead), leave that scheduled workout showing as-is rather than
+  // replacing it with the catch-up session — the client decides whether
+  // to remove it (swipe on the calendar), not the app.
   function sessionForDate(dateKey, logs) {
+    const scheduled = scheduledWorkoutsByDate[dateKey];
     const completedLog = logs.find((l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === dateKey);
-    if (completedLog) {
+    if (completedLog && (!scheduled || scheduled.label === completedLog.dayLabel)) {
       return {
         label: completedLog.dayLabel || "Workout",
-        muscleGroups: scheduledWorkoutsByDate[dateKey]?.muscleGroups || [],
+        muscleGroups: scheduled?.muscleGroups || [],
         workoutLogId: completedLog.id,
         exercises: completedLog.entries.map((e) => ({
           exerciseId: e.exerciseId,
@@ -5033,12 +5100,22 @@ export default function ClientApp() {
         })),
       };
     }
-    return scheduledToSession(scheduledWorkoutsByDate[dateKey]);
+    return scheduledToSession(scheduled);
+  }
+  // "Completed" for a date means a log exists AND it's actually that
+  // date's own scheduled workout (or nothing was scheduled) — not just
+  // any log landing on that date, so a catch-up completion of a
+  // different, overdue day doesn't mark today's own workout done.
+  function isDateActuallyCompleted(dateKey, logs) {
+    const scheduled = scheduledWorkoutsByDate[dateKey];
+    return logs.some(
+      (l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === dateKey && (!scheduled || scheduled.label === l.dayLabel)
+    );
   }
   const todayDateKey = new Date().toISOString().slice(0, 10);
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
   const logsForClient = db.workoutLogs[currentUser.id] || [];
-  const completedToday = logsForClient.some((l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === todayDateKey);
+  const completedToday = isDateActuallyCompleted(todayDateKey, logsForClient);
   const todaySession = completedToday ? sessionForDate(todayDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
   const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || [];
   const nutritionByDateKey = useMemo(
@@ -5061,7 +5138,7 @@ export default function ClientApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayOffset, dateTick]);
   const dayHabitCompletedIds = isToday ? completedHabitIds : ((db.habitLog || {})[currentUser.id] || {})[selectedDateKey] || [];
-  const completedOnDate = logsForClient.some((l) => !l.cardio && new Date(l.date).toISOString().slice(0, 10) === selectedDateKey);
+  const completedOnDate = isDateActuallyCompleted(selectedDateKey, logsForClient);
   const daySession = completedOnDate ? sessionForDate(selectedDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[selectedDateKey]);
   const dayNutrition = isToday ? nutrition : nutritionByDateKey[selectedDateKey] || null;
   const cardioLogsForSelectedDate = useMemo(
@@ -5270,9 +5347,10 @@ export default function ClientApp() {
   // inside the client's own calendar, while browsing as them — the same
   // "reschedule on the fly" the coach already has on their own calendar
   // view of a client. Dropping a workout onto a day that already has a
-  // different one swaps the two instead of overwriting — both docs share
-  // a clientId__date id, so a plain re-schedule on an occupied day used
-  // to silently destroy whatever was there.
+  // different one swaps the two (each keeps existing, just on the other
+  // day) instead of blocking the drag or letting one overwrite the other
+  // — both docs share a clientId__date id, so a plain re-schedule on an
+  // occupied day would otherwise silently destroy whatever was there.
   function moveScheduledItem(type, fromDate, toDate) {
     if (!viewingAsClient || fromDate === toDate) return;
     if (type === "bodystats") {
@@ -5285,15 +5363,19 @@ export default function ClientApp() {
     const workout = scheduledWorkoutsByDate[fromDate];
     if (!workout) return;
     const destWorkout = scheduledWorkoutsByDate[toDate];
-    if (destWorkout) {
-      // That day already has its own workout — leave it exactly as it is
-      // rather than swapping it out to make room for the dragged one.
-      showToast("That day already has a workout scheduled");
-      return;
-    }
     scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
-    unscheduleWorkout(currentUser.id, fromDate);
-    showToast("Workout rescheduled");
+    if (destWorkout) {
+      scheduleWorkout(currentUser.id, {
+        date: fromDate,
+        label: destWorkout.label,
+        muscleGroups: destWorkout.muscleGroups,
+        exercises: destWorkout.exercises,
+      });
+      showToast(`Swapped ${workout.label} and ${destWorkout.label}`);
+    } else {
+      unscheduleWorkout(currentUser.id, fromDate);
+      showToast("Workout rescheduled");
+    }
   }
 
   return (
