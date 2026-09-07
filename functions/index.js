@@ -56,6 +56,53 @@ async function getCoachId() {
   return snap.empty ? null : snap.docs[0].id;
 }
 
+// Every per-client collection keyed by a `clientId` field (see
+// AppContext.jsx's per-client Firestore listeners for the same list).
+const CLIENT_ID_COLLECTIONS = [
+  "workoutLogs", "messages", "workoutComments", "progressPhotos", "savedMeals",
+  "habits", "clientPhases", "formSchedules", "formResponses", "weighIns",
+  "scheduledWorkouts", "bodyStatsSchedules", "nutritionLogs", "bodyMetrics",
+  "notifications", "clientNotes",
+];
+
+// Before a client accepts their invite, there's no real Firebase Auth
+// account for them yet — so the coach can still build out their whole
+// program, schedule, notes, etc. against a synthetic id (their invite's
+// email-derived username; see activateAccount()'s comment in
+// AppContext.jsx). The moment they set a password and Firebase Auth mints
+// their real, randomly-generated uid, every one of those documents is left
+// keyed to that OLD id — invisible from their real account forever unless
+// it gets re-keyed to the new uid. A client's own Firestore rules can't
+// safely do this re-keying themselves (most of these collections aren't
+// even client-writable at all, by design), so it happens here, server-side
+// with the Admin SDK, the instant their real account doc is created.
+exports.onClientActivated = onDocumentCreated("users/{uid}", async (event) => {
+  const uid = event.params.uid;
+  const data = event.data?.data();
+  if (!data || data.role !== "client") return;
+  const oldId = (data.email || "").trim().toLowerCase();
+  // Nothing to migrate for a brand new client who never had pre-activation
+  // data built for them (or if, somehow, the ids already match).
+  if (!oldId || oldId === uid) return;
+
+  for (const name of CLIENT_ID_COLLECTIONS) {
+    const snap = await db.collection(name).where("clientId", "==", oldId).get();
+    if (snap.empty) continue;
+    const batch = db.batch();
+    snap.docs.forEach((d) => batch.update(d.ref, { clientId: uid }));
+    await batch.commit();
+  }
+
+  // habitLog/{clientId}: the doc id itself IS the clientId, not a field on
+  // it, so this one's a read-write-delete rather than a field update.
+  const oldHabitLogRef = db.collection("habitLog").doc(oldId);
+  const oldHabitLogSnap = await oldHabitLogRef.get();
+  if (oldHabitLogSnap.exists) {
+    await db.collection("habitLog").doc(uid).set(oldHabitLogSnap.data(), { merge: true });
+    await oldHabitLogRef.delete();
+  }
+});
+
 exports.onNewMessage = onDocumentCreated("messages/{id}", async (event) => {
   const m = event.data?.data();
   if (!m) return;

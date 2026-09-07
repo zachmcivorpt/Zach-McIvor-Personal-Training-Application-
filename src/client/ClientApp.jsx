@@ -4603,7 +4603,7 @@ function AccessPausedScreen({ onMessageCoach, onLogout }) {
 // month grid. Opens centered on today and grows further back/forward as the
 // client scrolls near either edge; a "Today" button jumps straight back.
 function ClientCalendarScreen({
-  scheduledWorkoutsByDate,
+  scheduledWorkoutsListByDate,
   logsForClient,
   habits,
   habitLogForClient,
@@ -4632,7 +4632,7 @@ function ClientCalendarScreen({
   // and touch identically, so the same code drives both: press and hold
   // briefly (so an ordinary tap/scroll isn't mistaken for a drag), then
   // move to the target day and release.
-  const [dragItem, setDragItem] = useState(null); // { date, type: "workout" | "bodystats", label }
+  const [dragItem, setDragItem] = useState(null); // { date, type: "workout" | "bodystats", label, workoutId }
   const [dragOverDate, setDragOverDate] = useState(null);
   const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while actively dragging, drives the floating ghost
   const pressRef = useRef(null); // { timer, startX, startY, date, type, label, fired }
@@ -4692,7 +4692,7 @@ function ClientCalendarScreen({
     }
   }
 
-  function cardPointerDown(e, date, type, label) {
+  function cardPointerDown(e, date, type, label, workoutId) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const startX = e.clientX;
     const startY = e.clientY;
@@ -4701,14 +4701,14 @@ function ClientCalendarScreen({
     const timer = setTimeout(() => {
       if (!pressRef.current) return;
       pressRef.current.fired = true;
-      setDragItem({ date, type, label });
+      setDragItem({ date, type, label, workoutId });
       setDragPos({ x: startX, y: startY });
       try {
         el.setPointerCapture(pointerId);
       } catch {}
       if (navigator.vibrate) navigator.vibrate(10);
     }, 220);
-    pressRef.current = { timer, startX, startY, date, type, label, fired: false };
+    pressRef.current = { timer, startX, startY, date, type, label, workoutId, fired: false };
   }
 
   function cardPointerMove(e) {
@@ -4733,7 +4733,7 @@ function ClientCalendarScreen({
     if (p?.fired) {
       suppressClickRef.current = true;
       if (dragOverDate && dragOverDate !== p.date) {
-        onMoveItem(p.type, p.date, dragOverDate);
+        onMoveItem(p.type, p.date, dragOverDate, p.workoutId);
       }
     }
     if (p?.timer) clearTimeout(p.timer);
@@ -4788,7 +4788,7 @@ function ClientCalendarScreen({
       const d = new Date(start);
       d.setDate(start.getDate() + i);
       const dateStr = localDateKey(d);
-      const scheduled = scheduledWorkoutsByDate[dateStr];
+      const scheduledList = scheduledWorkoutsListByDate[dateStr] || [];
       const log = logsByDate[dateStr];
       const dayHabits = habits.filter((h) => {
         const createdKey = localDateKey(h.createdAt);
@@ -4798,12 +4798,12 @@ function ClientCalendarScreen({
       });
       const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
       const bodyStatsToday = (bodyStatsSchedules || []).some((b) => b.date === dateStr);
-      const hasContent = !!scheduled || !!log || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
+      const hasContent = scheduledList.length > 0 || !!log || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
       if (!hasContent && dateStr !== todayStr) continue;
-      list.push({ date: d, dateStr, scheduled, log, dayHabits, checkinsToday, bodyStatsToday, hasContent });
+      list.push({ date: d, dateStr, scheduledList, log, dayHabits, checkinsToday, bodyStatsToday, hasContent });
     }
     return list;
-  }, [daysBack, daysForward, scheduledWorkoutsByDate, logsByDate, habits, activeFormSchedules, bodyStatsSchedules, todayStr]);
+  }, [daysBack, daysForward, scheduledWorkoutsListByDate, logsByDate, habits, activeFormSchedules, bodyStatsSchedules, todayStr]);
 
   useEffect(() => {
     return () => {
@@ -4869,20 +4869,21 @@ function ClientCalendarScreen({
         </button>
       </div>
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-3 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
-        {days.map(({ date: d, dateStr, scheduled, log, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
+        {days.map(({ date: d, dateStr, scheduledList, log, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
           const isToday = dateStr === todayStr;
           const doneHabitIds = habitLogForClient[dateStr] || [];
           const habitsDone = dayHabits.filter((h) => doneHabitIds.includes(h.id)).length;
           const bodyStatsDone = weighInDates.has(dateStr);
 
-          // A log only counts as completing THIS day's own scheduled workout
-          // when its label matches — a catch-up log for a different,
-          // overdue day landing on this date must not mark this day's own
-          // (still-undone) workout as done, hide its drag handle, or get
-          // silently merged into its card. The client decides what to do
-          // with the leftover scheduled item themselves (drag or delete).
-          const logMatchesScheduled = !!(scheduled && log && log.dayLabel === scheduled.label);
-          const canDragWorkout = canEdit && !!scheduled && !logMatchesScheduled;
+          // A log only counts as completing one of THIS day's own scheduled
+          // workouts when its label matches — a catch-up log for a
+          // different, overdue day landing on this date must not mark this
+          // day's own (still-undone) workout as done, hide its drag handle,
+          // or get silently merged into its card. The client decides what
+          // to do with the leftover scheduled item themselves (drag or
+          // delete). The standalone "completed" card below only shows when
+          // the log doesn't match ANY scheduled item on this day.
+          const anyLogMatchesScheduled = !!(log && scheduledList.some((s) => log.dayLabel === s.label));
           const canDragBodyStats = canEdit && !!bodyStatsToday && !bodyStatsDone;
           const isDropTarget = canEdit && dragItem && dragItem.date !== dateStr;
 
@@ -4901,30 +4902,35 @@ function ClientCalendarScreen({
               </p>
               <div className="border-b border-black/10 mb-3" />
               <div className="space-y-2.5">
-                {scheduled && (
-                  <CalendarEventCard
-                    dot={{ border: "border-blue-500", bg: "bg-blue-500" }}
-                    done={logMatchesScheduled}
-                    title={scheduled.label}
-                    subtitle={
-                      canDragWorkout
-                        ? "Drag to a different day to reschedule."
-                        : logMatchesScheduled
-                        ? "Workout completed."
-                        : "Complete your scheduled workout."
-                    }
-                    onClick={guardedClick(() =>
-                      onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })
-                    )}
-                    draggable={canDragWorkout}
-                    dragging={dragItem?.date === dateStr && dragItem?.type === "workout"}
-                    onPointerDown={(e) => cardPointerDown(e, dateStr, "workout", scheduled.label)}
-                    onPointerMove={cardPointerMove}
-                    onPointerUp={cardPointerUp}
-                    onDelete={canEdit ? () => onDeleteScheduledWorkout(dateStr) : undefined}
-                  />
-                )}
-                {log && !logMatchesScheduled && (
+                {scheduledList.map((scheduled) => {
+                  const logMatchesScheduled = !!(log && log.dayLabel === scheduled.label);
+                  const canDragWorkout = canEdit && !logMatchesScheduled;
+                  return (
+                    <CalendarEventCard
+                      key={scheduled.id}
+                      dot={{ border: "border-blue-500", bg: "bg-blue-500" }}
+                      done={logMatchesScheduled}
+                      title={scheduled.label}
+                      subtitle={
+                        canDragWorkout
+                          ? "Drag to a different day to reschedule."
+                          : logMatchesScheduled
+                          ? "Workout completed."
+                          : "Complete your scheduled workout."
+                      }
+                      onClick={guardedClick(() =>
+                        onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })
+                      )}
+                      draggable={canDragWorkout}
+                      dragging={dragItem?.workoutId === scheduled.id}
+                      onPointerDown={(e) => cardPointerDown(e, dateStr, "workout", scheduled.label, scheduled.id)}
+                      onPointerMove={cardPointerMove}
+                      onPointerUp={cardPointerUp}
+                      onDelete={canEdit ? () => onDeleteScheduledWorkout(scheduled.id) : undefined}
+                    />
+                  );
+                })}
+                {log && !anyLogMatchesScheduled && (
                   <CalendarEventCard
                     dot={{ border: "border-emerald-500", bg: "bg-emerald-500" }}
                     done
@@ -5049,8 +5055,8 @@ export default function ClientApp() {
     saveExerciseNote,
     viewingAsClient,
     stopViewAsClient,
-    scheduleWorkout,
-    unscheduleWorkout,
+    deleteScheduledWorkoutById,
+    moveScheduledWorkout,
     scheduleBodyStatsCheckin,
     unscheduleBodyStatsCheckin,
     dbReady,
@@ -5123,6 +5129,18 @@ export default function ClientApp() {
     () => Object.fromEntries(scheduledWorkoutsForClient.map((w) => [w.date, w])),
     [scheduledWorkoutsForClient]
   );
+  // Array form — a day can now hold more than one scheduled workout (e.g.
+  // one dragged onto a day that already had its own), so the calendar
+  // screen needs every entry for a date, not just one. Home/session
+  // resolution above keeps using the single-value map for simplicity.
+  const scheduledWorkoutsListByDate = useMemo(() => {
+    const map = {};
+    scheduledWorkoutsForClient.forEach((w) => {
+      if (!map[w.date]) map[w.date] = [];
+      map[w.date].push(w);
+    });
+    return map;
+  }, [scheduledWorkoutsForClient]);
   const bodyStatsSchedulesForClient = (db.bodyStatsSchedules || {})[currentUser.id] || [];
   function scheduledToSession(entry) {
     return entry ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises } : null;
@@ -5402,12 +5420,11 @@ export default function ClientApp() {
   // workout or body stats check-in from one day to another right from
   // inside the client's own calendar, while browsing as them — the same
   // "reschedule on the fly" the coach already has on their own calendar
-  // view of a client. Dropping a workout onto a day that already has a
-  // different one swaps the two (each keeps existing, just on the other
-  // day) instead of blocking the drag or letting one overwrite the other
-  // — both docs share a clientId__date id, so a plain re-schedule on an
-  // occupied day would otherwise silently destroy whatever was there.
-  function moveScheduledItem(type, fromDate, toDate) {
+  // view of a client. Dropping a workout onto a day that already has one
+  // (or more) never removes/overwrites what's already there — both just
+  // coexist on that day afterward. Removing anything is only ever done by
+  // explicit swipe-delete, never as a side effect of a drag.
+  function moveScheduledItem(type, fromDate, toDate, workoutId) {
     if (!viewingAsClient || fromDate === toDate) return;
     if (type === "bodystats") {
       if (!bodyStatsSchedulesForClient.some((s) => s.date === fromDate)) return;
@@ -5416,15 +5433,10 @@ export default function ClientApp() {
       showToast("Check-in rescheduled");
       return;
     }
-    const workout = scheduledWorkoutsByDate[fromDate];
-    if (!workout) return;
-    // Always completes the move, even onto an occupied day (which then
-    // overwrites whatever was scheduled there) — no blocking prompt. Swipe
-    // gives full manual control to clear/delete a day first if that's not
-    // what's wanted.
-    scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
-    unscheduleWorkout(currentUser.id, fromDate);
-    showToast("Workout rescheduled");
+    if (!workoutId) return;
+    moveScheduledWorkout(currentUser.id, workoutId, toDate)
+      .then(() => showToast("Workout rescheduled"))
+      .catch((err) => showToast(err.message || "Couldn't move that workout"));
   }
 
   return (
@@ -5514,7 +5526,7 @@ export default function ClientApp() {
         {tab === "checkins" && <CheckInsScreen userId={currentUser.id} showToast={showToast} />}
         {tab === "calendar" && (
           <ClientCalendarScreen
-            scheduledWorkoutsByDate={scheduledWorkoutsByDate}
+            scheduledWorkoutsListByDate={scheduledWorkoutsListByDate}
             logsForClient={logsForClient}
             habits={habits}
             habitLogForClient={(db.habitLog || {})[currentUser.id] || {}}
@@ -5525,8 +5537,8 @@ export default function ClientApp() {
             onPreviewWorkout={(day) => openPreview(day, true)}
             canEdit={viewingAsClient}
             onMoveItem={moveScheduledItem}
-            onDeleteScheduledWorkout={(dateStr) => {
-              unscheduleWorkout(currentUser.id, dateStr);
+            onDeleteScheduledWorkout={(workoutId) => {
+              deleteScheduledWorkoutById(workoutId);
               showToast("Workout removed");
             }}
             onDeleteWorkoutLog={(logId) => {

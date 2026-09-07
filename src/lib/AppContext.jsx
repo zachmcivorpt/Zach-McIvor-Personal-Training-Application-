@@ -942,6 +942,38 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "scheduledWorkouts", `${clientId}__${date}`)).catch(console.error);
       },
 
+      // Deletes one specific scheduled workout by its own doc id — used by
+      // swipe-to-delete on the calendar, where a day can now hold more than
+      // one scheduled workout (dragged/moved ones use a fresh id instead of
+      // the deterministic `${clientId}__${date}` one).
+      deleteScheduledWorkoutById(workoutId) {
+        deleteDoc(doc(firestore, "scheduledWorkouts", workoutId)).catch(console.error);
+      },
+
+      // Moves one specific scheduled workout to a new date WITHOUT touching
+      // whatever else is already scheduled on that destination date — both
+      // must coexist. Drag-and-drop on the calendar must never silently
+      // remove/overwrite another day's workout; only explicit swipe-delete
+      // (deleteScheduledWorkoutById) removes anything.
+      async moveScheduledWorkout(clientId, workoutId, toDate) {
+        const entry = (db.scheduledWorkouts[clientId] || []).find((w) => w.id === workoutId);
+        if (!entry) return;
+        const newId = newDocId("scheduledWorkouts");
+        try {
+          await setDoc(doc(firestore, "scheduledWorkouts", newId), {
+            id: newId,
+            clientId,
+            date: toDate,
+            label: entry.label,
+            muscleGroups: entry.muscleGroups || [],
+            exercises: entry.exercises,
+          });
+          await deleteDoc(doc(firestore, "scheduledWorkouts", workoutId));
+        } catch (err) {
+          throw new Error("Couldn't move that workout — " + (err.message || "please try again."));
+        }
+      },
+
       // Removes a completed session (a workoutLogs entry) entirely — used
       // by the coach's calendar bulk-delete for cleaning up test/duplicate
       // entries, including client-logged cardio sessions.
