@@ -4516,14 +4516,14 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       onPointerMove={canSwipe ? swipePointerMove : undefined}
       onPointerUp={canSwipe ? swipePointerUp : undefined}
       onPointerCancel={canSwipe ? swipePointerUp : undefined}
-      className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
+      className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 select-none ${
         onClick ? "hover:bg-black/[0.02]" : ""
       } ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
-      style={
-        canSwipe
-          ? { touchAction: "pan-y", transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 200ms ease" }
-          : undefined
-      }
+      style={{
+        WebkitUserSelect: "none",
+        WebkitTouchCallout: "none",
+        ...(canSwipe ? { touchAction: "pan-y", transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 200ms ease" } : {}),
+      }}
     >
       <span
         className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-white"}`}
@@ -4546,8 +4546,8 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="w-9 h-9 -mr-1.5 shrink-0 flex items-center justify-center text-black/30 cursor-grab active:cursor-grabbing"
-          style={{ touchAction: "none" }}
+          className="w-9 h-9 -mr-1.5 shrink-0 flex items-center justify-center text-black/30 cursor-grab active:cursor-grabbing select-none"
+          style={{ touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
         >
           <GripVertical size={18} />
         </span>

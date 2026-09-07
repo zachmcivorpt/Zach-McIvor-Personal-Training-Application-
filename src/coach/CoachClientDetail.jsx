@@ -1379,7 +1379,9 @@ function CalendarPanel({ client, showToast }) {
                                   }
                                 : undefined
                             }
-                            style={draggableItem ? { touchAction: "none" } : undefined}
+                            style={
+                              draggableItem ? { touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } : undefined
+                            }
                             className={`flex items-center gap-1.5 text-[11px] truncate transition-all duration-150 ${
                               selectable ? "cursor-pointer" : ""
                             } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${
