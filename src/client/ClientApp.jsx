@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Home as HomeIcon,
@@ -53,6 +53,7 @@ import {
   Lock,
   Paperclip,
   CheckCircle2,
+  GripVertical,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -4507,17 +4508,15 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
   const card = (
     <Wrapper
       onClick={onClick}
-      onPointerDown={draggable ? onPointerDown : canSwipe ? swipePointerDown : undefined}
-      onPointerMove={draggable ? onPointerMove : canSwipe ? swipePointerMove : undefined}
-      onPointerUp={draggable ? onPointerUp : canSwipe ? swipePointerUp : undefined}
-      onPointerCancel={draggable ? onPointerUp : canSwipe ? swipePointerUp : undefined}
+      onPointerDown={!draggable && canSwipe ? swipePointerDown : undefined}
+      onPointerMove={!draggable && canSwipe ? swipePointerMove : undefined}
+      onPointerUp={!draggable && canSwipe ? swipePointerUp : undefined}
+      onPointerCancel={!draggable && canSwipe ? swipePointerUp : undefined}
       className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
         onClick ? "hover:bg-black/[0.02]" : ""
-      } ${draggable ? "cursor-grab active:cursor-grabbing select-none" : ""} ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
+      } ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
       style={
-        draggable
-          ? { touchAction: "none" }
-          : canSwipe
+        canSwipe
           ? { touchAction: "pan-y", transform: `translateX(${swipeX}px)`, transition: swiping ? "none" : "transform 200ms ease" }
           : undefined
       }
@@ -4531,7 +4530,26 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
         <p className="text-black font-semibold text-[15px] truncate">{title}</p>
         {subtitle && <p className="text-black/40 text-[13px] mt-0.5 truncate">{subtitle}</p>}
       </div>
-      {onClick && <ChevronRight size={18} className="text-black/25 shrink-0" />}
+      {/* A dedicated grab handle, not the whole card, owns the drag gesture
+          (touchAction: none) — the card body stays natively scrollable
+          (no touch-action override), so starting an ordinary scroll swipe
+          anywhere on a draggable card just scrolls the page like any other
+          card instead of getting swallowed by the long-press-drag logic. */}
+      {draggable ? (
+        <span
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          className="w-9 h-9 -mr-1.5 shrink-0 flex items-center justify-center text-black/30 cursor-grab active:cursor-grabbing"
+          style={{ touchAction: "none" }}
+        >
+          <GripVertical size={18} />
+        </span>
+      ) : (
+        onClick && <ChevronRight size={18} className="text-black/25 shrink-0" />
+      )}
     </Wrapper>
   );
 
@@ -4795,11 +4813,38 @@ function ClientCalendarScreen({
     return () => clearTimeout(t);
   }, [days]);
 
+  // Loading more days near the top means the list grows FROM ABOVE — new
+  // day blocks get inserted before everything currently on screen. With no
+  // compensation the browser leaves scrollTop untouched, so the page the
+  // client was actually looking at gets shoved down out of view and
+  // whatever's now at that same pixel offset (much older days) appears in
+  // its place — reads exactly like the visible content "got removed".
+  // Capturing scrollHeight right before the prepend and re-adding the
+  // difference once the new days are in the DOM keeps the same content
+  // pinned under the finger/viewport.
+  const prependAdjustRef = useRef(null);
+
   function handleScroll(e) {
     const el = e.target;
-    if (el.scrollTop < 400) setDaysBack((d) => Math.min(d + 30, 365));
+    if (el.scrollTop < 400) {
+      setDaysBack((d) => {
+        if (d >= 365) return d;
+        prependAdjustRef.current = el.scrollHeight;
+        return d + 30;
+      });
+    }
     if (el.scrollHeight - el.scrollTop - el.clientHeight < 400) setDaysForward((d) => Math.min(d + 30, 365));
   }
+
+  useLayoutEffect(() => {
+    if (prependAdjustRef.current == null) return;
+    const el = scrollRef.current;
+    if (el) {
+      const delta = el.scrollHeight - prependAdjustRef.current;
+      if (delta > 0) el.scrollTop += delta;
+    }
+    prependAdjustRef.current = null;
+  }, [days]);
 
   function jumpToToday() {
     todayRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -5290,11 +5335,14 @@ export default function ClientApp() {
       const base = n || DEFAULT_NUTRITION;
       return {
         ...base,
-        calories: Math.round(base.calories + food.cals),
-        protein: round1(base.protein + food.protein),
-        carbs: round1(base.carbs + food.carbs),
-        fat: round1(base.fat + food.fat),
-        meals: { ...base.meals, [meal]: [...base.meals[meal], { ...food, id: food.id + "-" + Date.now() }] },
+        calories: Math.round((base.calories || 0) + (Number(food.cals) || 0)),
+        protein: round1((base.protein || 0) + (Number(food.protein) || 0)),
+        carbs: round1((base.carbs || 0) + (Number(food.carbs) || 0)),
+        fat: round1((base.fat || 0) + (Number(food.fat) || 0)),
+        // base.meals[meal] can be missing on an older doc saved before this
+        // category existed (e.g. Pre-workout/Post-workout added later) —
+        // spreading undefined there threw, silently dropping the whole add.
+        meals: { ...base.meals, [meal]: [...(base.meals?.[meal] || []), { ...food, id: food.id + "-" + Date.now() }] },
       };
     });
     showToast(`${food.name} added to ${meal}`);
@@ -5363,20 +5411,16 @@ export default function ClientApp() {
     }
     const workout = scheduledWorkoutsByDate[fromDate];
     if (!workout) return;
-    const destWorkout = scheduledWorkoutsByDate[toDate];
-    scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
-    if (destWorkout) {
-      scheduleWorkout(currentUser.id, {
-        date: fromDate,
-        label: destWorkout.label,
-        muscleGroups: destWorkout.muscleGroups,
-        exercises: destWorkout.exercises,
-      });
-      showToast(`Swapped ${workout.label} and ${destWorkout.label}`);
-    } else {
-      unscheduleWorkout(currentUser.id, fromDate);
-      showToast("Workout rescheduled");
+    // An occupied destination is left completely alone — no swap, no
+    // overwrite. The client decides what happens to that day's existing
+    // workout themselves (swipe to delete it first, then drag here).
+    if (scheduledWorkoutsByDate[toDate]) {
+      showToast("That day already has a workout — swipe to remove it first, then drag here");
+      return;
     }
+    scheduleWorkout(currentUser.id, { date: toDate, label: workout.label, muscleGroups: workout.muscleGroups, exercises: workout.exercises });
+    unscheduleWorkout(currentUser.id, fromDate);
+    showToast("Workout rescheduled");
   }
 
   return (

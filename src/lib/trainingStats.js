@@ -228,6 +228,7 @@ export function computeSessionsThisWeek(logs) {
 // doesn't look like a missed week.
 export function computeWeeklySessionCompletion(logs, scheduledWorkouts) {
   const now = new Date();
+  const todayKey = localDateKey(now);
   const dow = (now.getDay() + 6) % 7; // 0 = Monday
   const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow);
   const weekDates = new Set(
@@ -237,7 +238,10 @@ export function computeWeeklySessionCompletion(logs, scheduledWorkouts) {
       return localDateKey(d);
     })
   );
-  const scheduledThisWeek = (scheduledWorkouts || []).filter((w) => weekDates.has(w.date));
+  // Only count days that have actually arrived yet — a Monday workout
+  // shouldn't read as "1/6" (17%) just because 5 more days are still
+  // scheduled later this week; it's "1/1" (100%) until Tuesday arrives.
+  const scheduledThisWeek = (scheduledWorkouts || []).filter((w) => weekDates.has(w.date) && w.date <= todayKey);
   if (scheduledThisWeek.length === 0) return { completed: 0, expected: 0, pct: null };
   const loggedDates = new Set((logs || []).map((l) => localDateKey(l.date)));
   const completed = scheduledThisWeek.filter((w) => loggedDates.has(w.date)).length;
@@ -266,8 +270,9 @@ export function computeMonthlyVolume(logs) {
 // Comes back with pct: null (not 0%) when nothing's scheduled this month.
 export function computeMonthlyConsistency(logs, scheduledWorkouts) {
   const now = new Date();
+  const todayKey = localDateKey(now);
   const monthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const scheduledThisMonth = (scheduledWorkouts || []).filter((w) => w.date.startsWith(monthPrefix));
+  const scheduledThisMonth = (scheduledWorkouts || []).filter((w) => w.date.startsWith(monthPrefix) && w.date <= todayKey);
   if (scheduledThisMonth.length === 0) return { completed: 0, expected: 0, pct: null };
   const loggedDates = new Set((logs || []).map((l) => localDateKey(l.date)));
   const completed = scheduledThisMonth.filter((w) => loggedDates.has(w.date)).length;

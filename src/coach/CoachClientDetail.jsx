@@ -1121,17 +1121,18 @@ function CalendarPanel({ client, showToast }) {
     if (fromDate === toDate) return;
     const entry = workoutsByDate[fromDate];
     if (!entry) return;
-    const destEntry = workoutsByDate[toDate];
     const label = (d) => new Date(d + "T00:00:00Z").toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+    // An occupied destination is left completely alone — no swap, no
+    // overwrite. Delete that day's existing workout first (swipe/select)
+    // if you actually want to replace it, then drag.
+    if (workoutsByDate[toDate]) {
+      showToast(`${label(toDate)} already has a workout — remove it first, then drag here`);
+      return;
+    }
     try {
       await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises });
-      if (destEntry) {
-        await scheduleWorkout(client.id, { date: fromDate, label: destEntry.label, muscleGroups: destEntry.muscleGroups, exercises: destEntry.exercises });
-        showToast(`Swapped ${entry.label} and ${destEntry.label}`);
-      } else {
-        unscheduleWorkout(client.id, fromDate);
-        showToast(`Moved ${entry.label} to ${label(toDate)}`);
-      }
+      unscheduleWorkout(client.id, fromDate);
+      showToast(`Moved ${entry.label} to ${label(toDate)}`);
     } catch (err) {
       showToast(err.message || "Couldn't move that workout — check your connection and try again");
     }
