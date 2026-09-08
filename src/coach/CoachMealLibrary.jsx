@@ -84,7 +84,7 @@ function ImportMealPhotosSheet({ open, onClose, showToast }) {
 
 // A meal's photo is attached separately from the ingredient builder (its
 // own small upload button on the card) rather than inside CreateMealSheet
-// — lets a coach snap/attach a photo for the 200 imported AU meals without
+// — lets a coach snap/attach a photo for the imported AU meals without
 // having to open and re-save the whole ingredient list.
 function MealPhotoButton({ meal, showToast }) {
   const { updateMasterMeal } = useApp();
@@ -168,8 +168,8 @@ export default function CoachMealLibrary({ showToast }) {
       const { importedCount } = await importFitnessMealsAU();
       showToast(
         importedCount > 0
-          ? `Synced 200 AU meals — added ${importedCount} new, refreshed the rest (your photos are kept)`
-          : "Synced 200 AU meals — names & macros refreshed (your photos are kept)"
+          ? `Synced AU meal library — added ${importedCount} new, refreshed the rest (your photos are kept)`
+          : "Synced AU meal library — names & macros refreshed (your photos are kept)"
       );
     } catch (err) {
       showToast(err.message || "Couldn't import the meal list");
@@ -186,10 +186,10 @@ export default function CoachMealLibrary({ showToast }) {
           <button
             onClick={handleImportAU}
             disabled={importing}
-            title="Imports the 200 common Australian fitness meals, or re-syncs them to the latest names/macros/tags if already imported — your photos are always kept"
+            title="Imports the full library of common Australian fitness meals, or re-syncs them to the latest names/macros/tags if already imported — your photos are always kept"
             className="flex items-center gap-2 bg-black/8 hover:bg-black/15 disabled:opacity-50 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
-            <Download size={16} /> <span className="hidden sm:inline">{importing ? "SYNCING…" : "SYNC 200 AU MEALS"}</span>
+            <Download size={16} /> <span className="hidden sm:inline">{importing ? "SYNCING…" : "SYNC AU MEAL LIBRARY"}</span>
           </button>
           <button
             onClick={() => setImportPhotosOpen(true)}

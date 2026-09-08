@@ -21,8 +21,18 @@ const CATEGORY_BY_PREFIX = {
   n: "Pantry & Nuts",
   l: "Pantry & Nuts",
   p: "Pantry & Nuts",
+  t: "Treats & Snacks",
 };
-export const CATEGORY_ORDER = ["Meat & Poultry", "Seafood", "Dairy & Eggs", "Fruit & Veg", "Grains & Bread", "Pantry & Nuts", "Other"];
+export const CATEGORY_ORDER = [
+  "Meat & Poultry",
+  "Seafood",
+  "Dairy & Eggs",
+  "Fruit & Veg",
+  "Grains & Bread",
+  "Pantry & Nuts",
+  "Treats & Snacks",
+  "Other",
+];
 
 function categoryFor(foodId) {
   return CATEGORY_BY_PREFIX[foodId[0]] || "Other";

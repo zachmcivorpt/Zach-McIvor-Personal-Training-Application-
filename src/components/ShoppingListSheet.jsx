@@ -15,6 +15,7 @@ const CATEGORY_ICONS = {
   "Fruit & Veg": "🥦",
   "Grains & Bread": "🍞",
   "Pantry & Nuts": "🥜",
+  "Treats & Snacks": "🍫",
   Other: "🛒",
 };
 

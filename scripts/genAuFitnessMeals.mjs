@@ -60,6 +60,30 @@ const BRAND_HINTS = {
   n12: "Cobram Estate Extra Virgin Olive Oil",
   l03: "Coles Chickpeas",
   l04: "Coles Lentils",
+  n31: "Lotus Biscoff Smooth Spread",
+  g51: "Sanitarium Weet-Bix",
+  g52: "Coles Wholemeal Burger Buns",
+  g53: "Helga's Protein Bread",
+  t01: "Streets Paddle Pop Original",
+  t02: "Arnott's Tim Tam Original",
+  m11: "Coles Middle Bacon Rashers",
+  d09: "Coles Tasty Cheese Slices",
+  l01: "Coles Black Beans",
+  l02: "Coles Red Kidney Beans",
+  g12: "Mission Wholemeal Wraps",
+  g19: "Coles Bakery Bagels",
+  g35: "Coles Lebanese Style Pita Bread",
+  f05: "Coles Barramundi Fillets",
+  f09: "Coles Smoked Salmon",
+  d11: "Coles Danish Feta",
+  m27: "Coles Australian Lamb Loin Chops",
+  m30: "Primo Chorizo",
+  l09: "Coles Hummus Dip",
+  l18: "Coles Falafel Bites",
+  v58: "Coles Sweet Potato Fries",
+  m10: "Coles Pork Mince",
+  g43: "San Remo Lasagne Sheets",
+  g27: "SunRice Arborio Rice",
 };
 
 function ingredientLine(id, grams) {
@@ -410,6 +434,271 @@ meals.push(
     undefined,
     "1. Brown the beef mince in a hot pan, breaking it up as it cooks.\n2. Roast or boil the sweet potato until tender.\n3. Steam the broccoli until just tender.\n4. Combine in a bowl and serve."
   )
+);
+
+// ---- NEW BATCH: burgers, fakeaway/bowls, wraps & sandwiches, protein
+// breakfast trend items, protein treats/desserts, small snacks & treats,
+// pasta/rice bakes, salads & poke bowls, shakes & smoothies, and
+// signature fitness-industry dishes — a second, more "flexible dieting"
+// flavoured library sitting alongside the classic PT combos above.
+
+// ---- Burgers ----
+meals.push(
+  meal("Lean Beef Mince Burger", [["m05", 150], ["g52", 65], ["v11", 50], ["v22", 20], ["d09", 20]], undefined,
+    "1. Shape the beef mince into a patty and season.\n2. Grill or pan-fry until cooked through, topping with the cheese in the last minute to melt.\n3. Toast the burger bun.\n4. Assemble with the lettuce and tomato and serve."),
+  meal("Turkey Burger with Melted Cheese", [["m32", 150], ["g52", 65], ["d09", 20], ["v14", 20], ["s01", 15]], undefined,
+    "1. Shape the turkey mince into a patty and season.\n2. Pan-fry or grill until cooked through, topping with the cheese to melt.\n3. Toast the bun and add the diced onion and ketchup.\n4. Assemble and serve."),
+  meal("Air-Fried Chicken Burger", [["m01", 160], ["d01", 55], ["bk15", 30], ["g52", 65], ["v22", 20], ["s04", 10]], undefined,
+    "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs.\n2. Air-fry at 190°C for 12-15 minutes, turning halfway, until golden and cooked through.\n3. Toast the bun.\n4. Assemble with the lettuce and mayonnaise and serve."),
+  meal("Crispy Chicken Burger with Slaw", [["m01", 160], ["d01", 55], ["bk15", 30], ["v21", 40], ["s04", 10], ["g52", 65]], undefined,
+    "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and air-fry or pan-fry until golden and cooked through.\n2. Toss the shredded cabbage with the mayonnaise to make a quick slaw.\n3. Toast the bun and assemble with the slaw."),
+  meal("Double Beef Cheeseburger", [["m05", 160], ["d09", 40], ["g52", 65], ["v54", 15], ["s01", 10], ["s05", 5]], undefined,
+    "1. Shape the beef mince into two thin patties and season.\n2. Pan-fry or grill until cooked through, topping each with cheese to melt.\n3. Toast the bun and stack both patties with the pickles, ketchup and mustard."),
+  meal("BBQ Bacon Cheeseburger", [["m05", 150], ["m11", 30], ["d09", 20], ["s02", 15], ["g52", 65]], undefined,
+    "1. Shape the beef mince into a patty and season, then grill or pan-fry until cooked through, topping with cheese to melt.\n2. Grill the bacon until crisp.\n3. Toast the bun and assemble with the bacon and BBQ sauce."),
+  meal("Pork & Fennel Burger", [["m10", 150], ["v33", 40], ["g52", 65], ["s12", 10]], undefined,
+    "1. Mix the finely chopped fennel through the pork mince and season, then shape into a patty.\n2. Pan-fry or grill until cooked through.\n3. Toast the bun and assemble with the sweet chilli sauce."),
+  meal("Lamb Mince Burger with Tzatziki", [["m28", 150], ["g52", 65], ["s21", 30], ["v11", 40]], undefined,
+    "1. Shape the lamb mince into a patty and season, then grill or pan-fry until cooked through.\n2. Toast the bun.\n3. Assemble with the tomato and a generous spoon of tzatziki."),
+  meal("Salmon Burger", [["f01", 150], ["g52", 65], ["v28", 40], ["v22", 15]], undefined,
+    "1. Finely chop or pulse the salmon and shape into a patty.\n2. Pan-fry over medium heat for 3-4 minutes each side until cooked through.\n3. Toast the bun and assemble with sliced avocado and lettuce."),
+  meal("Falafel Burger", [["l18", 120], ["g52", 65], ["s21", 25], ["v22", 15]], undefined,
+    "1. Warm the falafel through in a pan or oven.\n2. Toast the bun.\n3. Assemble with the lettuce and tzatziki and serve."),
+  meal("Plant-Based Burger", [["pb02", 113], ["g52", 65], ["v11", 40], ["s04", 10]], undefined,
+    "1. Cook the plant-based patty according to packet instructions (pan-fry or grill until browned).\n2. Toast the bun.\n3. Assemble with the tomato and mayonnaise and serve."),
+  meal("Chicken & Halloumi Burger", [["m01", 140], ["d26", 50], ["g52", 65], ["v61", 20]], undefined,
+    "1. Season the chicken breast and grill or pan-fry until cooked through.\n2. Pan-fry the halloumi slices until golden on each side.\n3. Toast the bun and assemble with the salad leaves.")
+);
+
+// ---- Fakeaway & Rice Bowls ----
+meals.push(
+  meal("Air-Fried Chicken Burrito Bowl", [["m01", 160], ["g01", 150], ["l01", 100], ["v13", 60], ["v14", 30], ["s22", 30], ["s10", 30]], undefined,
+    "1. Season the chicken breast and grill, pan-fry, or air-fry until cooked through, then slice.\n2. Cook the rice according to packet instructions.\n3. Drain and rinse the black beans and warm through.\n4. Assemble the rice, beans, capsicum and onion in a bowl, top with the chicken, guacamole and salsa."),
+  meal("Homemade Butter Chicken with Rice", [["m02", 180], ["s25", 20], ["n14", 100], ["g01", 150]], undefined,
+    "1. Brown the chicken thigh pieces in a hot pan.\n2. Stir in the curry paste and cook for a minute until fragrant, then add the coconut milk and simmer until the chicken is cooked through and the sauce has thickened.\n3. Meanwhile, cook the rice according to packet instructions.\n4. Serve the curry over the rice."),
+  meal("Homemade Chicken Fried Rice", [["m01", 150], ["g01", 200], ["d01", 55], ["v17", 50], ["v47", 10], ["s03", 15]], undefined,
+    "1. Dice and cook the chicken breast in a hot pan or wok until cooked through, then push to one side.\n2. Add the beaten egg and scramble, then stir through the cooked rice and peas.\n3. Add the soy sauce and spring onion, toss well and serve."),
+  meal("Beef & Broccoli Stir-Fry Fakeaway", [["m08", 160], ["v01", 120], ["g02", 150], ["s19", 15], ["s03", 10]], undefined,
+    "1. Slice the sirloin thinly and stir-fry in a hot wok or pan for 2-3 minutes until browned.\n2. Add the broccoli and stir-fry for a further 2-3 minutes until just tender.\n3. Add the oyster sauce and soy sauce and toss to coat.\n4. Cook the brown rice according to packet instructions and serve the beef and broccoli over the rice."),
+  meal("Homemade Sweet & Sour Chicken", [["m01", 160], ["v13", 60], ["r08", 80], ["g01", 150], ["s12", 20]], undefined,
+    "1. Dice and pan-fry the chicken breast until cooked through.\n2. Add the capsicum and pineapple and stir-fry for a few minutes until the capsicum is just tender.\n3. Stir through the sweet chilli sauce.\n4. Cook the rice according to packet instructions and serve together."),
+  meal("Homemade Pad Thai", [["g18", 200], ["m01", 120], ["d01", 55], ["l20", 60], ["s18", 10], ["n04", 15]], undefined,
+    "1. Cook the rice noodles according to packet instructions.\n2. Stir-fry the diced chicken in a hot wok until cooked through, push to one side, then scramble in the egg.\n3. Add the noodles, bean sprouts and fish sauce and toss well.\n4. Top with crushed peanuts and serve."),
+  meal("Homemade Kebab Bowl", [["m02", 160], ["g35", 60], ["v11", 50], ["v10", 50], ["s21", 30]], undefined,
+    "1. Season the chicken thigh and grill or pan-fry until cooked through, then slice.\n2. Warm the pita bread.\n3. Serve the chicken with the tomato, cucumber and a generous spoon of tzatziki."),
+  meal("Turkey Taco Bowl", [["m32", 150], ["g01", 150], ["l01", 100], ["v13", 50], ["s10", 30], ["d09", 20]], undefined,
+    "1. Brown the turkey mince in a hot pan, breaking it up as it cooks.\n2. Cook the rice according to packet instructions and drain and rinse the black beans.\n3. Assemble the rice, beans and capsicum in a bowl, top with the turkey mince, salsa and cheese."),
+  meal("Cajun Chicken & Rice Bowl", [["m01", 160], ["g02", 150], ["v13", 50], ["v14", 30], ["n12", 5]], undefined,
+    "1. Season the chicken breast generously with Cajun spice and pan-fry or grill until cooked through, then slice.\n2. Cook the brown rice according to packet instructions.\n3. Sauté the capsicum and onion in the olive oil until softened.\n4. Combine everything in a bowl and serve."),
+  meal("Beef Burrito Bowl", [["m05", 150], ["g01", 150], ["l02", 100], ["v13", 50], ["s10", 30], ["d09", 20]], undefined,
+    "1. Brown the beef mince in a hot pan, breaking it up as it cooks.\n2. Cook the rice according to packet instructions and drain and rinse the kidney beans.\n3. Assemble the rice, beans and capsicum in a bowl, top with the beef mince, salsa and cheese."),
+  meal("Honey Soy Salmon Bowl", [["f01", 160], ["g02", 150], ["s06", 15], ["s03", 10], ["v31", 80]], undefined,
+    "1. Pan-fry or bake the salmon, brushing with the honey and soy sauce, until it flakes easily.\n2. Cook the rice according to packet instructions.\n3. Steam the bok choy until just tender.\n4. Serve the salmon over the rice with the bok choy."),
+  meal("Chilli Prawn Noodle Bowl", [["f07", 150], ["g46", 180], ["v49", 5], ["s03", 10], ["v47", 10]], undefined,
+    "1. Cook the soba noodles according to packet instructions.\n2. Pan-fry or sauté the prawns with the sliced chilli for 2-3 minutes until pink and cooked through.\n3. Toss through the noodles with the soy sauce and spring onion and serve."),
+  meal("Homemade Nasi Goreng", [["g01", 200], ["m01", 120], ["d01", 55], ["s03", 15], ["s15", 10]], undefined,
+    "1. Dice and stir-fry the chicken breast in a hot wok until cooked through, then push to one side.\n2. Add the beaten egg and scramble.\n3. Stir through the cooked rice, soy sauce and sriracha, tossing well over high heat, and serve."),
+  meal("Teriyaki Chicken Rice Bowl", [["m01", 160], ["g02", 150], ["s03", 10], ["s06", 15], ["v18", 50]], undefined,
+    "1. Season the chicken breast and pan-fry or grill until cooked through, then slice.\n2. Combine the soy sauce and honey in the pan and simmer briefly to glaze the chicken.\n3. Cook the rice according to packet instructions and serve the chicken and corn over the rice."),
+  meal("Mongolian Beef Bowl", [["m08", 160], ["g02", 150], ["v47", 15], ["s03", 15], ["bk10", 10]], undefined,
+    "1. Slice the sirloin thinly and stir-fry in a hot wok or pan until browned.\n2. Add the soy sauce and brown sugar and simmer briefly until glazed.\n3. Cook the rice according to packet instructions and serve the beef over the rice, topped with spring onion.")
+);
+
+// ---- Wraps & Sandwiches ----
+meals.push(
+  meal("Chicken Caesar Wrap", [["m01", 140], ["g12", 60], ["v22", 30], ["d23", 10], ["s30", 10]], undefined,
+    "1. Season the chicken breast and grill, pan-fry, or bake until cooked through, then slice.\n2. Warm the wrap.\n3. Fill with the chicken, lettuce, parmesan and a drizzle of aioli, then roll up and serve."),
+  meal("Tuna & Avocado Wrap", [["f02", 100], ["v28", 60], ["g12", 60], ["v10", 30]], undefined,
+    "1. Drain the tuna.\n2. Warm the wrap.\n3. Fill with the tuna, mashed avocado and sliced cucumber, then roll up and serve."),
+  meal("Turkey & Cheese Sandwich", [["m04", 80], ["g09", 80], ["d09", 20], ["v22", 15]], undefined,
+    "1. Toast the bread if desired.\n2. Layer the turkey breast, cheese and lettuce between the slices and serve."),
+  meal("Chicken & Hummus Wrap", [["m01", 140], ["l09", 40], ["g12", 60], ["v02", 30]], undefined,
+    "1. Season the chicken breast and grill, pan-fry, or bake until cooked through, then slice.\n2. Warm the wrap and spread with hummus.\n3. Fill with the chicken and spinach, roll up and serve."),
+  meal("BLT Sandwich", [["m11", 40], ["v11", 50], ["v22", 20], ["g10", 70], ["s04", 10]], undefined,
+    "1. Grill or pan-fry the bacon until crisp.\n2. Toast the bread if desired and spread with mayonnaise.\n3. Layer the bacon, tomato and lettuce between the slices and serve."),
+  meal("Egg & Bacon Roll", [["d01", 55], ["m11", 30], ["g52", 65], ["s01", 10]], undefined,
+    "1. Grill or pan-fry the bacon until crisp.\n2. Fry or poach the egg to your liking.\n3. Toast the roll and assemble with the bacon, egg and ketchup."),
+  meal("Steak Sandwich", [["m08", 150], ["g11", 80], ["v14", 30], ["s02", 10], ["v61", 15]], undefined,
+    "1. Season the steak and grill or pan-sear to your liking, then rest for a few minutes and slice.\n2. Caramelise the sliced onion in a pan.\n3. Toast the sourdough and assemble with the steak, onion, salad leaves and BBQ sauce."),
+  meal("Ham & Cheese Toastie", [["m13", 60], ["d09", 30], ["g09", 80], ["d13", 5]], undefined,
+    "1. Butter the outside of the bread slices.\n2. Layer the ham and cheese between the slices.\n3. Toast in a sandwich press or pan until golden and the cheese has melted."),
+  meal("Smashed Avo & Feta Wrap", [["v28", 100], ["d11", 30], ["g12", 60], ["v12", 40]], undefined,
+    "1. Mash the avocado and crumble in the feta.\n2. Warm the wrap and spread with the avocado mixture.\n3. Top with the cherry tomatoes, roll up and serve."),
+  meal("Chicken Schnitzel Sandwich", [["m01", 160], ["d01", 55], ["bk15", 25], ["g11", 80], ["v61", 20], ["s04", 10]], undefined,
+    "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and pan-fry until golden and cooked through.\n2. Toast the sourdough.\n3. Assemble with the salad leaves and mayonnaise and serve."),
+  meal("Prawn & Avocado Sandwich", [["f07", 120], ["v28", 60], ["g09", 80], ["s04", 10]], undefined,
+    "1. Pan-fry or sauté the prawns until pink and cooked through, then cool slightly.\n2. Toast the bread if desired.\n3. Layer the prawns, mashed avocado and mayonnaise between the slices and serve."),
+  meal("Vegemite & Cheese Toast", [["g09", 80], ["s09", 8], ["d09", 20]], undefined,
+    "1. Toast the bread.\n2. Spread thinly with Vegemite and top with the cheese.\n3. Grill briefly until the cheese melts, then serve.")
+);
+
+// ---- Protein Breakfast Trend Items ----
+meals.push(
+  breakfastMeal("YoPro Biscoff Overnight Weet-Bix", [["g51", 40], ["d07", 170], ["n31", 20], ["d04", 100]],
+    "1. Crumble the wheat biscuits into a jar or container and pour over the milk.\n2. Cover and refrigerate overnight to soften.\n3. In the morning, top with the YoPro yoghurt and a drizzle of the biscoff spread, then serve."),
+  breakfastMeal("Biscoff Protein Overnight Oats", [["g07", 60], ["p01", 30], ["n31", 15], ["d04", 200]],
+    "1. Combine the oats, protein powder, biscoff spread and milk in a jar.\n2. Stir well, cover, and refrigerate overnight.\n3. Stir again before serving, adding a splash more milk if needed."),
+  breakfastMeal("YoPro Berry Protein Bowl", [["d07", 170], ["r50", 80], ["g48", 30]],
+    "1. Spoon the YoPro yoghurt into a bowl.\n2. Top with the mixed berries and granola and serve."),
+  breakfastMeal("Protein French Toast", [["g53", 60], ["d01", 55], ["d04", 50], ["s07", 15]],
+    "1. Whisk the egg and milk together in a shallow dish.\n2. Dip the high-protein bread slices in the mixture to coat.\n3. Pan-fry in a lightly greased non-stick pan until golden on each side.\n4. Drizzle with maple syrup and serve."),
+  breakfastMeal("Protein Weet-Bix with Banana", [["g51", 40], ["d04", 200], ["r01", 100]],
+    "1. Place the wheat biscuits in a bowl and pour over the milk.\n2. Top with sliced banana and serve."),
+  breakfastMeal("High-Protein Bread Avo Toast with Egg", [["g53", 60], ["v28", 60], ["d01", 55]],
+    "1. Toast the high-protein bread.\n2. Mash the avocado onto the toast.\n3. Fry or poach the egg to your liking and place on top, then serve."),
+  breakfastMeal("Protein Pancake Stack", [["p11", 60], ["d01", 55], ["d04", 100], ["r50", 60]],
+    "1. Whisk the pancake mix, egg and milk together into a batter.\n2. Cook spoonfuls in a lightly greased non-stick pan over medium heat until bubbles form, then flip and cook the other side.\n3. Stack and top with the mixed berries and serve."),
+  breakfastMeal("Protein Waffles with Yoghurt", [["p17", 60], ["d06", 100], ["r50", 60]],
+    "1. Prepare the waffle batter according to packet instructions and cook in a waffle iron until golden.\n2. Top with the Greek yoghurt and mixed berries and serve."),
+  breakfastMeal("Cottage Cheese Pancakes", [["d08", 150], ["d01", 110], ["g07", 30]],
+    "1. Blend or whisk the cottage cheese, eggs and oats together into a batter.\n2. Cook spoonfuls in a lightly greased non-stick pan over medium heat until golden on each side.\n3. Serve warm."),
+  breakfastMeal("Protein Cereal with Milk", [["p20", 40], ["d04", 200], ["r01", 100]],
+    "1. Pour the protein cereal into a bowl and add the milk.\n2. Top with sliced banana and serve."),
+  breakfastMeal("Bircher Muesli with YoPro", [["g23", 50], ["d07", 150], ["r02", 100]],
+    "1. Grate the apple and combine with the muesli and YoPro yoghurt in a bowl or jar.\n2. Cover and refrigerate for at least an hour (or overnight) before serving."),
+  breakfastMeal("Everything Bagel with Smoked Salmon & Cream Cheese", [["f09", 60], ["g19", 90], ["d12", 30]],
+    "1. Slice and toast the bagel.\n2. Spread with the cream cheese.\n3. Top with the smoked salmon and serve."),
+  breakfastMeal("Protein Iced Coffee", [["p01", 30], ["b03", 200], ["d04", 100]],
+    "1. Brew the coffee and allow to cool slightly, or use chilled coffee.\n2. Add to a shaker or blender with the protein powder and milk.\n3. Shake or blend until smooth and serve over ice."),
+  breakfastMeal("Protein Chia Pudding with Biscoff", [["n08", 30], ["d04", 200], ["n31", 15]],
+    "1. Whisk the chia seeds into the milk in a jar or container.\n2. Cover and refrigerate for at least 4 hours (or overnight) until thickened, stirring once partway through.\n3. Top with a drizzle of biscoff spread and serve."),
+  breakfastMeal("Egg White Bites with Spinach & Feta", [["d02", 200], ["v02", 40], ["d11", 30]],
+    "1. Preheat the oven and lightly grease a muffin tray.\n2. Whisk the egg whites and stir through the chopped spinach and crumbled feta.\n3. Pour into the muffin tray and bake until set (about 15-18 minutes at 180°C).\n4. Cool slightly before removing and serve.")
+);
+
+// ---- Protein Treats & Desserts ----
+meals.push(
+  snackMeal("Protein Ice Cream Tub", [["p12", 150]], "1. Scoop the protein ice cream into a bowl and serve."),
+  snackMeal("Chocolate Protein Mug Cake", [["p01", 30], ["bk12", 10], ["d01", 55], ["d04", 40]],
+    "1. Whisk the protein powder, cocoa powder, egg and milk together in a large mug.\n2. Microwave for 60-90 seconds until risen and set.\n3. Allow to cool slightly before eating."),
+  snackMeal("Protein Biscoff Balls", [["p01", 20], ["n31", 30], ["g07", 20]],
+    "1. Combine the protein powder, biscoff spread and oats in a bowl until a firm dough forms (add a splash of water if needed).\n2. Roll into small balls.\n3. Refrigerate for at least 30 minutes to firm up before eating."),
+  snackMeal("YoPro & Dark Chocolate Bowl", [["d07", 170], ["k01", 15]],
+    "1. Spoon the YoPro yoghurt into a bowl.\n2. Grate or chop the dark chocolate over the top and serve."),
+  snackMeal("Protein Hot Chocolate", [["p01", 25], ["bk12", 10], ["d04", 250]],
+    "1. Whisk the cocoa powder into the milk in a saucepan over low-medium heat until warmed through.\n2. Remove from the heat and whisk in the protein powder until smooth.\n3. Pour into a mug and serve."),
+  snackMeal("Protein Cookie", [["p16", 60]], "1. Serve the protein cookie as is."),
+  snackMeal("Protein Bar", [["p03", 60]], "1. Serve the protein bar as is."),
+  snackMeal("Choc Protein Muesli Bar", [["p13", 40]], "1. Serve the protein muesli bar as is."),
+  snackMeal("Vanilla Protein Custard", [["p04", 30], ["d30", 150]],
+    "1. Whisk the casein protein powder into the custard until smooth.\n2. Chill briefly if desired and serve."),
+  snackMeal("Protein Cheesecake Bite", [["d08", 150], ["p01", 20], ["k01", 10]],
+    "1. Blend the cottage cheese and protein powder together until smooth and creamy.\n2. Spoon into a small bowl and top with grated dark chocolate.\n3. Chill for 20-30 minutes before eating.")
+);
+
+// ---- Small Snacks & Treats (portion-controlled, not "cheat" foods) ----
+meals.push(
+  snackMeal("Paddle Pop Ice Cream Stick", [["t01", 52]], "1. Enjoy straight from the freezer."),
+  snackMeal("Tim Tam (One Biscuit)", [["t02", 19]], "1. Serve one biscuit as a portion-controlled treat."),
+  snackMeal("Two Chocolate Biscuits", [["t02", 38]], "1. Serve two biscuits as a portion-controlled treat."),
+  snackMeal("Small Chocolate Square", [["k01", 15]], "1. Break off a small square of dark chocolate and enjoy."),
+  snackMeal("Handful of Lollies", [["k16", 20]], "1. Portion out a small handful of lollies and enjoy."),
+  snackMeal("Small Bag of Chips", [["k03", 25]], "1. Portion out a small serve of chips and enjoy."),
+  snackMeal("Rice Crackers Snack Pack", [["k11", 20]], "1. Portion out the rice crackers and enjoy."),
+  snackMeal("Fruit & Nut Trail Mix Snack", [["k13", 30]], "1. Portion out a small serve of trail mix and enjoy."),
+  snackMeal("Yoghurt-Coated Nuts Snack", [["k12", 25]], "1. Portion out a small serve of yoghurt-coated nuts and enjoy."),
+  snackMeal("Small Scoop of Gelato", [["k14", 80]], "1. Scoop into a bowl and enjoy."),
+  snackMeal("One Meringue", [["k29", 20]], "1. Enjoy one meringue as a light, low-fat treat."),
+  snackMeal("Air-Popped Popcorn Snack", [["g25", 20]], "1. Air-pop the popcorn (or use a pre-popped pack) and enjoy."),
+  snackMeal("Dark Chocolate Coated Almonds", [["k35", 30]], "1. Portion out a small serve and enjoy."),
+  snackMeal("Licorice Treat", [["k30", 20]], "1. Portion out a small serve of licorice and enjoy."),
+  snackMeal("Date & Nut Bar", [["k18", 45]], "1. Serve the date and nut bar as is.")
+);
+
+// ---- Pasta & Rice Bakes ----
+meals.push(
+  meal("Chicken & Broccoli Pasta Bake", [["m01", 160], ["g15", 180], ["v01", 100], ["d09", 30]], undefined,
+    "1. Season the chicken breast and pan-fry until cooked through, then dice.\n2. Cook the wholemeal pasta according to packet instructions, adding the broccoli for the last 2-3 minutes.\n3. Combine the chicken, pasta and broccoli in a baking dish, top with the cheese and grill or bake until melted."),
+  meal("Beef Mince Lasagne", [["m05", 150], ["g43", 150], ["d15", 60], ["d09", 30], ["v11", 100]], undefined,
+    "1. Brown the beef mince in a hot pan, breaking it up as it cooks, then stir through the diced tomato and simmer for a few minutes.\n2. Layer the lasagne sheets, beef mixture and ricotta in a baking dish, finishing with the cheese on top.\n3. Bake at 180°C for 25-30 minutes until golden and bubbling."),
+  meal("Creamy Tuna Pasta Bake", [["f02", 190], ["g15", 180], ["d14", 40], ["d09", 30], ["v02", 40]], undefined,
+    "1. Cook the wholemeal pasta according to packet instructions, wilting the spinach through for the last minute.\n2. Drain the tuna and stir through the pasta with the sour cream.\n3. Transfer to a baking dish, top with the cheese, and bake or grill until golden."),
+  meal("Chicken & Mushroom Risotto", [["m01", 140], ["g27", 150], ["v15", 80], ["d23", 15]], undefined,
+    "1. Season the chicken breast and pan-fry until cooked through, then dice.\n2. Sauté the mushrooms in a pan until softened.\n3. Cook the arborio rice risotto-style, gradually adding stock or water and stirring until creamy and tender.\n4. Stir through the chicken, mushrooms and parmesan and serve."),
+  meal("Beef & Vegetable Rice Bake", [["m05", 150], ["g01", 150], ["v13", 50], ["v09", 50], ["d09", 20]], undefined,
+    "1. Brown the beef mince in a hot pan, breaking it up as it cooks.\n2. Cook the rice according to packet instructions and dice and sauté the capsicum and zucchini.\n3. Combine everything in a baking dish, top with the cheese, and bake until golden."),
+  meal("Turkey Mince & Zucchini Pasta Bake", [["m32", 150], ["g15", 180], ["v09", 80], ["d09", 20]], undefined,
+    "1. Brown the turkey mince in a hot pan, breaking it up as it cooks, and dice and add the zucchini partway through.\n2. Cook the wholemeal pasta according to packet instructions.\n3. Combine in a baking dish, top with the cheese, and bake or grill until golden."),
+  meal("Mac & Cheese with Chicken", [["m01", 140], ["g42", 180], ["d09", 40], ["d03", 60]], undefined,
+    "1. Season the chicken breast and pan-fry until cooked through, then dice.\n2. Cook the macaroni according to packet instructions.\n3. Stir the cheese and milk through the hot macaroni until melted and creamy.\n4. Fold through the chicken and serve."),
+  meal("Prawn & Chorizo Paella", [["f07", 150], ["m30", 40], ["g27", 150], ["v13", 50]], undefined,
+    "1. Pan-fry the chorizo until it releases its oil, then add the diced capsicum and cook until softened.\n2. Add the rice and stir to coat, then gradually add stock or water, stirring occasionally, until tender.\n3. Add the prawns for the last few minutes of cooking until pink and cooked through, then serve."),
+  meal("Salmon & Pea Risotto", [["f01", 150], ["g27", 150], ["v17", 60], ["d23", 15]], undefined,
+    "1. Season the salmon and pan-fry or bake until it flakes easily, then flake into chunks.\n2. Cook the arborio rice risotto-style, gradually adding stock or water and stirring until creamy and tender.\n3. Stir through the peas, parmesan and flaked salmon and serve."),
+  meal("Beef & Bean Chilli with Rice", [["m05", 150], ["l02", 120], ["g01", 150], ["v13", 50], ["s10", 20]], undefined,
+    "1. Brown the beef mince in a hot pan, breaking it up as it cooks.\n2. Add the diced capsicum and drained kidney beans and simmer for 10-15 minutes.\n3. Cook the rice according to packet instructions and serve the chilli over the rice with a spoon of salsa.")
+);
+
+// ---- Salads & Poke Bowls ----
+meals.push(
+  meal("Salmon Poke Bowl", [["f01", 150], ["g01", 150], ["v10", 50], ["v57", 5], ["s03", 10], ["v28", 50]], undefined,
+    "1. Cook the rice according to packet instructions and cool slightly.\n2. Cube the salmon (sushi-grade if eating raw, or sear it lightly) and toss with a little soy sauce.\n3. Assemble the rice, salmon, cucumber, avocado and nori in a bowl and serve."),
+  meal("Tuna Poke Bowl", [["f03", 150], ["g01", 150], ["v10", 50], ["v18", 40], ["s15", 10]], undefined,
+    "1. Cook the rice according to packet instructions and cool slightly.\n2. Sear the tuna steak briefly on each side (or use sushi-grade raw) and slice.\n3. Assemble the rice, tuna, cucumber and corn in a bowl, drizzle with sriracha and serve."),
+  meal("Greek Chicken Salad", [["m01", 150], ["d11", 30], ["v52", 20], ["v10", 60], ["v11", 60], ["n12", 8]], undefined,
+    "1. Season the chicken breast and grill, pan-fry, or bake until cooked through, then slice.\n2. Toss the cucumber, tomato, olives and feta in a bowl with the olive oil.\n3. Top with the sliced chicken and serve."),
+  meal("Chicken Caesar Salad", [["m01", 150], ["v22", 60], ["d23", 15], ["g11", 30], ["s30", 15]], undefined,
+    "1. Season the chicken breast and grill, pan-fry, or bake until cooked through, then slice.\n2. Toast or cube the sourdough into croutons.\n3. Toss the lettuce with the parmesan, croutons and aioli, then top with the chicken."),
+  meal("Prawn & Mango Salad", [["f07", 150], ["r09", 80], ["v61", 60], ["v13", 40]], undefined,
+    "1. Pan-fry or sauté the prawns for 2-3 minutes each side until pink and cooked through.\n2. Toss the salad leaves and capsicum with the diced mango in a bowl.\n3. Top with the prawns and serve."),
+  meal("Halloumi & Roast Veg Salad", [["d26", 60], ["v24", 100], ["v61", 60], ["n12", 8]], undefined,
+    "1. Roast the pumpkin until tender and lightly caramelised.\n2. Pan-fry the halloumi slices until golden on each side.\n3. Toss the salad leaves with the roasted pumpkin and olive oil, then top with the halloumi."),
+  meal("Steak Salad with Balsamic", [["m08", 150], ["v61", 60], ["v12", 60], ["s14", 10]], undefined,
+    "1. Season the steak and grill or pan-sear to your liking, then rest for a few minutes and slice.\n2. Toss the salad leaves and cherry tomatoes with the balsamic vinegar.\n3. Top with the sliced steak and serve."),
+  meal("Falafel & Hummus Salad Bowl", [["l18", 100], ["l09", 30], ["v61", 60], ["v10", 50]], undefined,
+    "1. Warm the falafel through in a pan or oven.\n2. Toss the salad leaves and cucumber in a bowl and spoon over the hummus.\n3. Top with the falafel and serve."),
+  meal("Chickpea & Feta Salad", [["l03", 150], ["d11", 30], ["v12", 60], ["v14", 20], ["n12", 8]], undefined,
+    "1. Drain and rinse the chickpeas.\n2. Toss with the cherry tomatoes, onion, feta and olive oil in a bowl and serve."),
+  meal("Salmon & Quinoa Superfood Salad", [["f01", 140], ["g05", 100], ["v02", 40], ["v28", 50]], undefined,
+    "1. Season the salmon and bake, grill, or pan-fry until it flakes easily.\n2. Simmer the quinoa in water until tender and the liquid is absorbed.\n3. Toss the quinoa with the spinach and sliced avocado, then top with the salmon and serve.")
+);
+
+// ---- Shakes & Smoothies ----
+meals.push(
+  snackMeal("Chocolate Peanut Butter Protein Shake", [["p01", 30], ["n05", 20], ["d04", 250]],
+    "1. Add the protein powder, peanut butter and milk to a blender.\n2. Blend until smooth and serve."),
+  snackMeal("Berry Protein Smoothie", [["p01", 30], ["r50", 100], ["d19", 200]],
+    "1. Add the protein powder, mixed berries and almond milk to a blender.\n2. Blend until smooth and serve."),
+  snackMeal("Mango Protein Smoothie", [["p01", 30], ["r09", 100], ["d20", 200]],
+    "1. Add the protein powder, mango and soy milk to a blender.\n2. Blend until smooth and serve."),
+  snackMeal("Green Protein Smoothie", [["p01", 30], ["v02", 40], ["r01", 100], ["d19", 200]],
+    "1. Add the protein powder, spinach, banana and almond milk to a blender.\n2. Blend until smooth and serve."),
+  snackMeal("Vanilla Protein & Oats Smoothie", [["p01", 30], ["g07", 30], ["r01", 80], ["d04", 200]],
+    "1. Add the protein powder, oats, banana and milk to a blender.\n2. Blend until smooth and serve."),
+  snackMeal("Iced Coffee Protein Shake", [["p01", 30], ["b03", 150], ["d04", 100]],
+    "1. Add the protein powder, cooled coffee and milk to a shaker or blender.\n2. Shake or blend until smooth and serve over ice."),
+  snackMeal("Tropical Protein Smoothie", [["p01", 30], ["r08", 100], ["r09", 80], ["d21", 150]],
+    "1. Add the protein powder, pineapple, mango and oat milk to a blender.\n2. Blend until smooth and serve."),
+  snackMeal("Casein Overnight Shake", [["p04", 30], ["d04", 250]],
+    "1. Add the casein protein powder and milk to a shaker.\n2. Shake well and refrigerate, or drink immediately before bed."),
+  snackMeal("Plant Protein Berry Smoothie", [["p02", 30], ["r50", 100], ["d20", 200]],
+    "1. Add the plant protein powder, mixed berries and soy milk to a blender.\n2. Blend until smooth and serve."),
+  snackMeal("Peanut Butter Banana Protein Smoothie Bowl", [["p01", 30], ["r01", 120], ["n05", 15], ["d04", 100], ["g48", 20]],
+    "1. Add the protein powder, banana, peanut butter and milk to a blender and blend until thick and smooth.\n2. Pour into a bowl and top with the granola.")
+);
+
+// ---- Signature Fitness-Industry Dishes ----
+meals.push(
+  meal("Chicken Souvlaki Plate", [["m02", 170], ["g35", 60], ["v10", 50], ["s21", 30]], undefined,
+    "1. Marinate and grill or pan-fry the chicken thigh until cooked through, then slice.\n2. Warm the pita bread.\n3. Serve the chicken with the cucumber and a generous spoon of tzatziki."),
+  meal("Beef & Vegetable Skewers", [["m08", 160], ["v13", 50], ["v14", 40], ["g02", 150]], undefined,
+    "1. Cube the sirloin and thread onto skewers with the capsicum and onion.\n2. Grill or pan-fry, turning occasionally, until cooked to your liking.\n3. Cook the brown rice according to packet instructions and serve together."),
+  meal("Lamb Chops with Roast Veg", [["m27", 160], ["v24", 120], ["v20", 100]], undefined,
+    "1. Season the lamb chops and grill or pan-fry until cooked to your liking.\n2. Roast the pumpkin until tender and lightly caramelised.\n3. Steam the Brussels sprouts until just tender.\n4. Plate together and serve."),
+  meal("Fish & Sweet Potato Chips", [["f05", 160], ["v58", 150], ["v61", 40]], undefined,
+    "1. Season the barramundi and bake, grill, or pan-fry until it flakes easily.\n2. Bake the sweet potato fries according to packet instructions until golden.\n3. Serve together with the salad leaves."),
+  meal("Chicken Parmigiana with Sweet Potato Fries", [["m01", 170], ["d01", 55], ["bk15", 30], ["v11", 60], ["d10", 30], ["v58", 150]], undefined,
+    "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and pan-fry until golden and cooked through.\n2. Top with the diced tomato and mozzarella and grill until the cheese melts.\n3. Bake the sweet potato fries according to packet instructions and serve together."),
+  meal("Honey Mustard Chicken Traybake", [["m02", 170], ["s06", 15], ["s05", 10], ["v05", 150], ["v20", 100]], undefined,
+    "1. Toss the chicken thigh with the honey and mustard.\n2. Arrange on a tray with the cubed sweet potato and Brussels sprouts.\n3. Bake at 200°C for 25-30 minutes until the chicken is cooked through and the vegetables are tender."),
+  meal("Beef Massaman Curry with Rice", [["m08", 160], ["s25", 20], ["n14", 100], ["g01", 150]], undefined,
+    "1. Brown the diced beef in a hot pan.\n2. Stir in the curry paste and cook for a minute until fragrant, then add the coconut milk and simmer until the beef is tender and the sauce has thickened.\n3. Cook the rice according to packet instructions and serve together."),
+  meal("Chicken Tikka with Rice", [["m01", 160], ["s25", 15], ["d06", 40], ["g01", 150]], undefined,
+    "1. Combine the chicken breast with the curry paste and yoghurt and marinate briefly.\n2. Grill, pan-fry, or bake until cooked through.\n3. Cook the rice according to packet instructions and serve together."),
+  meal("Grilled Barramundi with Asparagus", [["f05", 160], ["v19", 100], ["v05", 150]], undefined,
+    "1. Season the barramundi and grill or pan-fry until it flakes easily.\n2. Roast or boil the sweet potato until tender.\n3. Steam or pan-fry the asparagus until just tender.\n4. Plate together and serve."),
+  meal("Turkey & Sweet Potato Chilli", [["m32", 150], ["l01", 100], ["v05", 100], ["s10", 20]], undefined,
+    "1. Brown the turkey mince in a hot pan, breaking it up as it cooks.\n2. Add the diced sweet potato and drained black beans and simmer until the sweet potato is tender.\n3. Serve topped with a spoon of salsa.")
 );
 
 console.log("Total meals generated:", meals.length);

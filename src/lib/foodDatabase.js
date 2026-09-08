@@ -174,6 +174,9 @@ export const FOOD_DATABASE = [
   { id: "g48", name: "Granola", cals: 471, protein: 10, carbs: 64, fat: 20, per: 100, defaultQty: 50, units: ["cup"] },
   { id: "g49", name: "All-Bran", cals: 275, protein: 13, carbs: 68, fat: 3, per: 100, defaultQty: 40, units: ["cup"] },
   { id: "g50", name: "Cracker Bread / Crispbread", cals: 375, protein: 10, carbs: 71, fat: 3, per: 100, defaultQty: 15 },
+  { id: "g51", name: "Wheat Biscuits (breakfast cereal)", cals: 338, protein: 12.7, carbs: 68, fat: 1.9, per: 100, defaultQty: 30, customUnit: { label: "biscuit", pluralLabel: "biscuits", grams: 13.5 } },
+  { id: "g52", name: "Wholemeal Burger Bun", cals: 260, protein: 9, carbs: 47, fat: 4, per: 100, defaultQty: 65, customUnit: { label: "bun", pluralLabel: "buns", grams: 65 } },
+  { id: "g53", name: "High-Protein Bread", cals: 232, protein: 15, carbs: 20, fat: 8, per: 100, defaultQty: 30, customUnit: { label: "slice", pluralLabel: "slices", grams: 30 } },
 
   // --- Legumes & beans ---
   { id: "l01", name: "Black Beans (cooked)", cals: 132, protein: 8.9, carbs: 24, fat: 0.5, per: 100, defaultQty: 150, units: ["cup"] },
@@ -344,6 +347,7 @@ export const FOOD_DATABASE = [
   { id: "n28", name: "Ghee", cals: 900, protein: 0, carbs: 0, fat: 100, per: 100, defaultQty: 10, units: ["tbsp", "tsp"] },
   { id: "n29", name: "Margarine", cals: 717, protein: 0.2, carbs: 0.9, fat: 80, per: 100, defaultQty: 10, units: ["tbsp", "tsp"] },
   { id: "n30", name: "Cocoa Butter", cals: 884, protein: 0, carbs: 0, fat: 100, per: 100, defaultQty: 10, units: ["tbsp", "tsp"] },
+  { id: "n31", name: "Speculoos Biscuit Spread", cals: 553, protein: 3.8, carbs: 54, fat: 33, per: 100, defaultQty: 20, units: ["tbsp", "tsp"] },
 
   // --- Sauces, condiments, spreads ---
   { id: "s01", name: "Tomato Sauce / Ketchup", cals: 112, protein: 1.3, carbs: 26, fat: 0.2, per: 100, defaultQty: 20, units: ["tbsp", "tsp"] },
@@ -495,6 +499,11 @@ export const FOOD_DATABASE = [
   { id: "pb12", name: "Aquafaba", cals: 20, protein: 0.8, carbs: 3.6, fat: 0, per: 100, defaultQty: 50 },
   { id: "pb13", name: "Vegan Ice Cream", cals: 190, protein: 2, carbs: 25, fat: 9, per: 100, defaultQty: 100 },
   { id: "pb14", name: "Oat Yoghurt", cals: 100, protein: 2.5, carbs: 13, fat: 3.5, per: 100, defaultQty: 170 },
+
+  // --- single-serve treats — small, portion-controlled indulgences a
+  // flexible-dieting client fits into their day, not a "cheat" ---
+  { id: "t01", name: "Chocolate Ice Cream Stick", cals: 198, protein: 2.9, carbs: 27, fat: 8.7, per: 100, defaultQty: 52, customUnit: { label: "stick", pluralLabel: "sticks", grams: 52 } },
+  { id: "t02", name: "Chocolate Biscuit", cals: 494, protein: 5, carbs: 62, fat: 25, per: 100, defaultQty: 19, customUnit: { label: "biscuit", pluralLabel: "biscuits", grams: 19 } },
 ];
 
 // Standard weight/volume unit conversions (approximated at water density for
