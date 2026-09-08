@@ -27,6 +27,7 @@ import { auth, db as firestore } from "./firebase";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 import { FOOD_DATABASE } from "./foodDatabase";
+import { FITNESS_MEALS_AU } from "./fitnessMealsAU";
 import { COACH_SETUP_CODE } from "./config";
 import { localDateKey } from "./dateKey";
 
@@ -1455,6 +1456,27 @@ export function AppProvider({ children }) {
       },
       deleteMasterMeal(id) {
         deleteDoc(doc(firestore, "masterMeals", id)).catch(console.error);
+      },
+
+      // One-time bulk import of the 200-meal Australian fitness-meal set
+      // (src/lib/fitnessMealsAU.js) into the Meal Library, same idempotent
+      // pattern as importBuiltInFoods — only writes meals not already
+      // imported (matched by their stable au_meal_NNN id), so re-running
+      // it never reverts a photo or macro edit already made to one.
+      async importFitnessMealsAU() {
+        const existingIds = new Set((db.masterMeals || []).map((m) => m.id));
+        const toImport = FITNESS_MEALS_AU.filter((m) => !existingIds.has(m.id));
+        if (toImport.length === 0) return { importedCount: 0 };
+        try {
+          for (let i = 0; i < toImport.length; i += 400) {
+            const batch = writeBatch(firestore);
+            toImport.slice(i, i + 400).forEach((meal) => batch.set(doc(firestore, "masterMeals", meal.id), meal));
+            await batch.commit();
+          }
+        } catch (err) {
+          throw new Error("Couldn't import the meal list — " + (err.message || "please try again."));
+        }
+        return { importedCount: toImport.length };
       },
 
       // A client's assigned meal plan — one doc per client (doc id ===
