@@ -10,7 +10,7 @@
 //   - a daily schedule -> push a client whose weekly check-in form is due
 //     tomorrow and who hasn't already filled it out this week
 
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
@@ -114,6 +114,38 @@ exports.onNewMessage = onDocumentCreated("messages/{id}", async (event) => {
   } else if (m.from === "coach" && m.clientId) {
     await notifyUser(m.clientId, { title: "Your coach sent a message", body: preview });
   }
+});
+
+// A coach publishing a plan (MealPlanBuilder's publish(), the only path
+// that calls setMealPlan) always bumps `updatedAt`; the client's own
+// "swap this meal" action (swapMealPlanMeal) only ever writes `days` and
+// never touches it — that's the signal used to notify only on an actual
+// coach-made change, not the client's own edit to their own plan.
+exports.onMealPlanChanged = onDocumentWritten("mealPlans/{clientId}", async (event) => {
+  const after = event.data?.after?.data();
+  if (!after) return; // deleted
+  const before = event.data?.before?.data();
+  const isNew = !before;
+  if (!isNew && after.updatedAt === before.updatedAt) return;
+  await notifyUser(
+    event.params.clientId,
+    { title: isNew ? "New meal plan" : "Your meal plan was updated", body: "Your coach just updated your meal plan — check the Nutrition tab." },
+    "mealPlanUpdates"
+  );
+});
+
+// clientPhases has no client write path at all (see FIRESTORE_RULES.txt),
+// so any create/update here is always the coach assigning or editing a
+// training phase — no extra "who changed it" check needed like mealPlans.
+exports.onClientPhaseChanged = onDocumentWritten("clientPhases/{id}", async (event) => {
+  const after = event.data?.after?.data();
+  if (!after || !after.clientId) return;
+  const before = event.data?.before?.data();
+  await notifyUser(
+    after.clientId,
+    { title: before ? "Your training program was updated" : "New training program", body: "Your coach just updated your training — check the Training tab." },
+    "programUpdates"
+  );
 });
 
 exports.onNewCheckIn = onDocumentCreated("formResponses/{id}", async () => {

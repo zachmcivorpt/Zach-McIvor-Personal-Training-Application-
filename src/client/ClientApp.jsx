@@ -37,6 +37,7 @@ import {
   FileText,
   Info,
   Repeat,
+  ShoppingCart,
   Scale,
   Beef,
   GlassWater,
@@ -115,6 +116,7 @@ import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
+import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
 import {
   BODY_FAT_CONFIG,
@@ -2510,6 +2512,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   const mealPlanDay = mealPlan ? daysInActiveWeek.find((d) => d.id === mealPlanDayId) || daysInActiveWeek[0] : null;
   const [swapping, setSwapping] = useState(null); // { slot, index, meal } | null
   const [planMealDetail, setPlanMealDetail] = useState(null); // { meal, slot } | null
+  const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const swapAlternatives = useMemo(() => {
     if (!swapping || !mealPlanDay) return [];
     const usedIds = new Set(Object.values(mealPlanDay.meals || {}).flat());
@@ -2624,7 +2627,15 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                 {planWeeksCount === 1 ? "1-week plan" : `Week ${activeWeek + 1} of ${planWeeksCount}`}
               </span>
             </div>
-            <p className="text-black/40 text-xs mb-3">Built by your coach — tap any meal to log it now</p>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <p className="text-black/40 text-xs">Built by your coach — tap any meal to log it now</p>
+              <button
+                onClick={() => setShoppingListOpen(true)}
+                className="shrink-0 flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+              >
+                <ShoppingCart size={12} /> LIST
+              </button>
+            </div>
             {planWeeksCount > 1 && (
               <div className="flex items-center gap-2 mb-2 overflow-x-auto">
                 {Array.from({ length: planWeeksCount }, (_, w) => w).map((w) => (
@@ -2944,6 +2955,14 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
           logSavedMeal(m, slot);
           setPlanMealDetail(null);
         }}
+      />
+
+      <ShoppingListSheet
+        open={shoppingListOpen}
+        onClose={() => setShoppingListOpen(false)}
+        plan={mealPlan}
+        mealsById={mealsById}
+        clientName={currentUser.name}
       />
     </div>
   );

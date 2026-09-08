@@ -11,6 +11,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Brown Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -18,6 +20,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -25,6 +29,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -32,6 +38,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -54,6 +62,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Brown Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -61,6 +71,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -68,6 +80,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -75,6 +89,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -97,6 +113,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & White Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -104,6 +122,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -111,6 +131,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -118,6 +140,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -140,6 +164,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & White Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -147,6 +173,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -154,6 +182,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -161,6 +191,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -183,6 +215,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & White Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -190,6 +224,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -197,6 +233,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -204,6 +242,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -226,6 +266,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Basmati Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -233,6 +275,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -240,6 +284,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -247,6 +293,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -269,6 +317,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Basmati Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -276,6 +326,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -283,6 +335,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -290,6 +344,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -312,6 +368,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Sweet Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -319,6 +377,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -326,6 +386,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -333,6 +395,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -355,6 +419,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Sweet Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -362,6 +428,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -369,6 +437,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -376,6 +446,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -398,6 +470,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Sweet Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -405,6 +479,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -412,6 +488,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -419,6 +497,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -441,6 +521,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -448,6 +530,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -455,6 +539,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -462,6 +548,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -484,6 +572,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -491,6 +581,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -498,6 +590,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -505,6 +599,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -527,6 +623,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Quinoa with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -534,6 +632,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -541,6 +641,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -548,6 +650,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -570,6 +674,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Quinoa with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -577,6 +683,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -584,6 +692,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -591,6 +701,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -613,6 +725,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Quinoa with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -620,6 +734,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -627,6 +743,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -634,6 +752,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -656,6 +776,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Wholemeal Pasta with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -663,6 +785,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -670,6 +794,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -677,6 +803,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -699,6 +827,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast & Wholemeal Pasta with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -706,6 +836,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -713,6 +845,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -720,6 +854,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -742,6 +878,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Brown Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -749,6 +887,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -756,6 +896,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -763,6 +905,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -785,6 +929,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Brown Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -792,6 +938,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -799,6 +947,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -806,6 +956,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -828,6 +980,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Brown Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -835,6 +989,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -842,6 +998,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -849,6 +1007,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -871,6 +1031,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & White Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -878,6 +1040,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -885,6 +1049,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -892,6 +1058,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -914,6 +1082,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & White Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -921,6 +1091,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -928,6 +1100,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -935,6 +1109,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -957,6 +1133,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Basmati Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -964,6 +1142,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -971,6 +1151,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -978,6 +1160,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1000,6 +1184,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Basmati Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1007,6 +1193,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -1014,6 +1202,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -1021,6 +1211,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1043,6 +1235,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Basmati Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1050,6 +1244,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -1057,6 +1253,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -1064,6 +1262,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1086,6 +1286,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Sweet Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1093,6 +1295,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -1100,6 +1304,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -1107,6 +1313,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1129,6 +1337,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Sweet Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1136,6 +1346,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -1143,6 +1355,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -1150,6 +1364,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1172,6 +1388,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1179,6 +1397,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -1186,6 +1406,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -1193,6 +1415,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1215,6 +1439,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1222,6 +1448,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -1229,6 +1457,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -1236,6 +1466,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1258,6 +1490,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1265,6 +1499,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -1272,6 +1508,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -1279,6 +1517,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1301,6 +1541,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Quinoa with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1308,6 +1550,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -1315,6 +1559,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -1322,6 +1568,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1344,6 +1592,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Quinoa with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1351,6 +1601,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -1358,6 +1610,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -1365,6 +1619,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1387,6 +1643,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Wholemeal Pasta with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1394,6 +1652,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -1401,6 +1661,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -1408,6 +1670,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1430,6 +1694,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Wholemeal Pasta with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1437,6 +1703,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -1444,6 +1712,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -1451,6 +1721,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1473,6 +1745,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh & Wholemeal Pasta with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -1480,6 +1754,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -1487,6 +1763,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -1494,6 +1772,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1516,6 +1796,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Brown Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1523,6 +1805,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -1530,6 +1814,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -1537,6 +1823,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1559,6 +1847,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Brown Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1566,6 +1856,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -1573,6 +1865,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -1580,6 +1874,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1602,6 +1898,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & White Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1609,6 +1907,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -1616,6 +1916,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -1623,6 +1925,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1645,6 +1949,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & White Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1652,6 +1958,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -1659,6 +1967,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -1666,6 +1976,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1688,6 +2000,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & White Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1695,6 +2009,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -1702,6 +2018,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -1709,6 +2027,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1731,6 +2051,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Basmati Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1738,6 +2060,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -1745,6 +2069,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -1752,6 +2078,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1774,6 +2102,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Basmati Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1781,6 +2111,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -1788,6 +2120,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -1795,6 +2129,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1817,6 +2153,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Sweet Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1824,6 +2162,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -1831,6 +2171,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -1838,6 +2180,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1860,6 +2204,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Sweet Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1867,6 +2213,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -1874,6 +2222,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -1881,6 +2231,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1903,6 +2255,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Sweet Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1910,6 +2264,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -1917,6 +2273,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -1924,6 +2282,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1946,6 +2306,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1953,6 +2315,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -1960,6 +2324,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -1967,6 +2333,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -1989,6 +2357,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -1996,6 +2366,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -2003,6 +2375,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -2010,6 +2384,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2032,6 +2408,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Quinoa with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -2039,6 +2417,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -2046,6 +2426,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -2053,6 +2435,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2075,6 +2459,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Quinoa with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -2082,6 +2468,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -2089,6 +2477,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -2096,6 +2486,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2118,6 +2510,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Quinoa with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -2125,6 +2519,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -2132,6 +2528,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -2139,6 +2537,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2161,6 +2561,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Wholemeal Pasta with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -2168,6 +2570,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -2175,6 +2579,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -2182,6 +2588,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2204,6 +2612,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince & Wholemeal Pasta with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -2211,6 +2621,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -2218,6 +2630,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -2225,6 +2639,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2247,6 +2663,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Brown Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2254,6 +2672,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -2261,6 +2681,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -2268,6 +2690,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2290,6 +2714,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Brown Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2297,6 +2723,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -2304,6 +2732,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -2311,6 +2741,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2333,6 +2765,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Brown Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2340,6 +2774,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -2347,6 +2783,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -2354,6 +2792,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2376,6 +2816,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & White Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2383,6 +2825,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -2390,6 +2834,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -2397,6 +2843,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2419,6 +2867,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & White Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2426,6 +2876,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -2433,6 +2885,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -2440,6 +2894,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2462,6 +2918,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Basmati Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2469,6 +2927,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -2476,6 +2936,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -2483,6 +2945,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2505,6 +2969,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Basmati Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2512,6 +2978,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -2519,6 +2987,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -2526,6 +2996,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2548,6 +3020,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Basmati Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2555,6 +3029,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -2562,6 +3038,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -2569,6 +3047,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2591,6 +3071,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Sweet Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2598,6 +3080,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -2605,6 +3089,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -2612,6 +3098,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2634,6 +3122,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Sweet Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2641,6 +3131,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -2648,6 +3140,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -2655,6 +3149,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2677,6 +3173,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2684,6 +3182,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -2691,6 +3191,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -2698,6 +3200,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2720,6 +3224,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2727,6 +3233,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -2734,6 +3242,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -2741,6 +3251,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2763,6 +3275,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2770,6 +3284,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -2777,6 +3293,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -2784,6 +3302,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2806,6 +3326,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Quinoa with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2813,6 +3335,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -2820,6 +3344,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -2827,6 +3353,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2849,6 +3377,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Quinoa with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2856,6 +3386,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -2863,6 +3395,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -2870,6 +3404,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2892,6 +3428,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Wholemeal Pasta with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2899,6 +3437,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -2906,6 +3446,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -2913,6 +3455,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2935,6 +3479,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Wholemeal Pasta with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2942,6 +3488,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -2949,6 +3497,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -2956,6 +3506,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -2978,6 +3530,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak & Wholemeal Pasta with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -2985,6 +3539,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -2992,6 +3548,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -2999,6 +3557,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3021,6 +3581,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Brown Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3028,6 +3590,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -3035,6 +3599,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -3042,6 +3608,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3064,6 +3632,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Brown Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3071,6 +3641,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -3078,6 +3650,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -3085,6 +3659,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3107,6 +3683,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & White Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3114,6 +3692,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -3121,6 +3701,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -3128,6 +3710,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3150,6 +3734,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & White Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3157,6 +3743,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -3164,6 +3752,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -3171,6 +3761,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3193,6 +3785,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & White Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3200,6 +3794,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -3207,6 +3803,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -3214,6 +3812,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3236,6 +3836,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Basmati Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3243,6 +3845,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -3250,6 +3854,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -3257,6 +3863,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3279,6 +3887,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Basmati Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3286,6 +3896,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -3293,6 +3905,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -3300,6 +3914,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3322,6 +3938,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Sweet Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3329,6 +3947,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -3336,6 +3956,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -3343,6 +3965,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3365,6 +3989,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Sweet Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3372,6 +3998,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -3379,6 +4007,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -3386,6 +4016,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3408,6 +4040,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Sweet Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3415,6 +4049,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -3422,6 +4058,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -3429,6 +4067,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3451,6 +4091,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3458,6 +4100,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -3465,6 +4109,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -3472,6 +4118,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3494,6 +4142,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3501,6 +4151,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -3508,6 +4160,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -3515,6 +4169,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3537,6 +4193,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Quinoa with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3544,6 +4202,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -3551,6 +4211,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -3558,6 +4220,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3580,6 +4244,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Quinoa with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3587,6 +4253,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -3594,6 +4262,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -3601,6 +4271,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3623,6 +4295,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Quinoa with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3630,6 +4304,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -3637,6 +4313,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -3644,6 +4322,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3666,6 +4346,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Wholemeal Pasta with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3673,6 +4355,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -3680,6 +4364,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -3687,6 +4373,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3709,6 +4397,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin & Wholemeal Pasta with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -3716,6 +4406,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -3723,6 +4415,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -3730,6 +4424,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3752,6 +4448,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Brown Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -3759,6 +4457,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -3766,6 +4466,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -3773,6 +4475,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3795,6 +4499,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Brown Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -3802,6 +4508,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -3809,6 +4517,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -3816,6 +4526,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3838,6 +4550,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Brown Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -3845,6 +4559,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -3852,6 +4568,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -3859,6 +4577,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3881,6 +4601,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & White Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -3888,6 +4610,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -3895,6 +4619,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -3902,6 +4628,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3924,6 +4652,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & White Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -3931,6 +4661,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -3938,6 +4670,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -3945,6 +4679,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -3967,6 +4703,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Basmati Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -3974,6 +4712,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -3981,6 +4721,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -3988,6 +4730,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4010,6 +4754,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Basmati Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4017,6 +4763,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -4024,6 +4772,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -4031,6 +4781,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4053,6 +4805,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Basmati Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4060,6 +4814,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -4067,6 +4823,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -4074,6 +4832,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4096,6 +4856,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Sweet Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4103,6 +4865,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -4110,6 +4874,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -4117,6 +4883,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4139,6 +4907,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Sweet Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4146,6 +4916,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -4153,6 +4925,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -4160,6 +4934,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4182,6 +4958,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4189,6 +4967,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -4196,6 +4976,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -4203,6 +4985,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4225,6 +5009,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4232,6 +5018,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -4239,6 +5027,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -4246,6 +5036,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4268,6 +5060,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4275,6 +5069,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -4282,6 +5078,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -4289,6 +5087,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4311,6 +5111,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Quinoa with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4318,6 +5120,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -4325,6 +5129,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -4332,6 +5138,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4354,6 +5162,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Quinoa with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4361,6 +5171,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -4368,6 +5180,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -4375,6 +5189,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4397,6 +5213,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Wholemeal Pasta with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4404,6 +5222,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -4411,6 +5231,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -4418,6 +5240,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4440,6 +5264,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Wholemeal Pasta with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4447,6 +5273,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -4454,6 +5282,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -4461,6 +5291,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4483,6 +5315,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Wholemeal Pasta with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 150,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (150g)",
         "cals": 222,
         "protein": 30,
@@ -4490,6 +5324,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -4497,6 +5333,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -4504,6 +5342,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4526,6 +5366,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Brown Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4533,6 +5375,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -4540,6 +5384,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -4547,6 +5393,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4569,6 +5417,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Brown Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4576,6 +5426,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -4583,6 +5435,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -4590,6 +5444,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4612,6 +5468,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & White Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4619,6 +5477,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -4626,6 +5486,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -4633,6 +5495,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4655,6 +5519,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & White Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4662,6 +5528,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -4669,6 +5537,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -4676,6 +5546,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4698,6 +5570,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & White Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4705,6 +5579,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -4712,6 +5588,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -4719,6 +5597,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4741,6 +5621,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Basmati Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4748,6 +5630,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -4755,6 +5639,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -4762,6 +5648,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4784,6 +5672,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Basmati Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4791,6 +5681,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -4798,6 +5690,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -4805,6 +5699,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4827,6 +5723,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Sweet Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4834,6 +5732,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -4841,6 +5741,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -4848,6 +5750,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4870,6 +5774,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Sweet Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4877,6 +5783,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -4884,6 +5792,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -4891,6 +5801,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4913,6 +5825,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Sweet Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4920,6 +5834,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -4927,6 +5843,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -4934,6 +5852,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4956,6 +5876,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -4963,6 +5885,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -4970,6 +5894,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -4977,6 +5903,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -4999,6 +5927,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -5006,6 +5936,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -5013,6 +5945,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -5020,6 +5954,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5042,6 +5978,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Quinoa with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -5049,6 +5987,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -5056,6 +5996,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -5063,6 +6005,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5085,6 +6029,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Quinoa with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -5092,6 +6038,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -5099,6 +6047,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -5106,6 +6056,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5128,6 +6080,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Quinoa with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -5135,6 +6089,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -5142,6 +6098,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -5149,6 +6107,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5171,6 +6131,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Wholemeal Pasta with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -5178,6 +6140,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -5185,6 +6149,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -5192,6 +6158,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5214,6 +6182,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon & Wholemeal Pasta with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 150,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (150g)",
         "cals": 312,
         "protein": 30,
@@ -5221,6 +6191,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 19.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -5228,6 +6200,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -5235,6 +6209,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5257,6 +6233,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Brown Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5264,6 +6242,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -5271,6 +6251,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -5278,6 +6260,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5300,6 +6284,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Brown Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5307,6 +6293,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -5314,6 +6302,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -5321,6 +6311,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5343,6 +6335,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Brown Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5350,6 +6344,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -5357,6 +6353,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -5364,6 +6362,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5386,6 +6386,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & White Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5393,6 +6395,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -5400,6 +6404,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -5407,6 +6413,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5429,6 +6437,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & White Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5436,6 +6446,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -5443,6 +6455,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -5450,6 +6464,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5472,6 +6488,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Basmati Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5479,6 +6497,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -5486,6 +6506,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -5493,6 +6515,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5515,6 +6539,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Basmati Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5522,6 +6548,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -5529,6 +6557,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -5536,6 +6566,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5558,6 +6590,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Basmati Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5565,6 +6599,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -5572,6 +6608,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -5579,6 +6617,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5601,6 +6641,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Sweet Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5608,6 +6650,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -5615,6 +6659,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -5622,6 +6668,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5644,6 +6692,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Sweet Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5651,6 +6701,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -5658,6 +6710,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -5665,6 +6719,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5687,6 +6743,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5694,6 +6752,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -5701,6 +6761,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -5708,6 +6770,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5730,6 +6794,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5737,6 +6803,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -5744,6 +6812,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -5751,6 +6821,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5773,6 +6845,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5780,6 +6854,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -5787,6 +6863,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -5794,6 +6872,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5816,6 +6896,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Quinoa with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5823,6 +6905,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -5830,6 +6914,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -5837,6 +6923,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5859,6 +6947,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Quinoa with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5866,6 +6956,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -5873,6 +6965,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -5880,6 +6974,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5902,6 +6998,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Wholemeal Pasta with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5909,6 +7007,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -5916,6 +7016,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -5923,6 +7025,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5945,6 +7049,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Wholemeal Pasta with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5952,6 +7058,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -5959,6 +7067,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -5966,6 +7076,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -5988,6 +7100,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Wholemeal Pasta with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 120,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (120g)",
         "cals": 139,
         "protein": 31.2,
@@ -5995,6 +7109,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.2
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -6002,6 +7118,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -6009,6 +7127,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6031,6 +7151,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Brown Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6038,6 +7160,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -6045,6 +7169,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -6052,6 +7178,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6074,6 +7202,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Brown Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6081,6 +7211,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -6088,6 +7220,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -6095,6 +7229,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6117,6 +7253,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & White Rice with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6124,6 +7262,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -6131,6 +7271,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -6138,6 +7280,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6160,6 +7304,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & White Rice with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6167,6 +7313,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -6174,6 +7322,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -6181,6 +7331,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6203,6 +7355,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & White Rice with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6210,6 +7364,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g01",
+        "grams": 150,
         "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
         "cals": 195,
         "protein": 3.6,
@@ -6217,6 +7373,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -6224,6 +7382,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6246,6 +7406,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Basmati Rice with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6253,6 +7415,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -6260,6 +7424,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -6267,6 +7433,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6289,6 +7457,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Basmati Rice with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6296,6 +7466,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g03",
+        "grams": 150,
         "name": "Basmati Rice (cooked) — SunRice Basmati Rice (150g)",
         "cals": 182,
         "protein": 3.8,
@@ -6303,6 +7475,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -6310,6 +7484,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6332,6 +7508,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Sweet Potato with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6339,6 +7517,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -6346,6 +7526,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -6353,6 +7535,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6375,6 +7559,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Sweet Potato with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6382,6 +7568,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -6389,6 +7577,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -6396,6 +7586,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6418,6 +7610,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Sweet Potato with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6425,6 +7619,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -6432,6 +7628,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -6439,6 +7637,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6461,6 +7661,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Potato with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6468,6 +7670,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -6475,6 +7679,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -6482,6 +7688,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6504,6 +7712,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Potato with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6511,6 +7721,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v06",
+        "grams": 200,
         "name": "White Potato (baked) (200g)",
         "cals": 186,
         "protein": 5,
@@ -6518,6 +7730,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -6525,6 +7739,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6547,6 +7763,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Quinoa with Broccoli",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6554,6 +7772,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -6561,6 +7781,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,
@@ -6568,6 +7790,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6590,6 +7814,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Quinoa with Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6597,6 +7823,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -6604,6 +7832,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -6611,6 +7841,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6633,6 +7865,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Quinoa with Side Salad",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6640,6 +7874,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -6647,6 +7883,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -6654,6 +7892,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6676,6 +7916,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Wholemeal Pasta with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6683,6 +7925,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -6690,6 +7934,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -6697,6 +7943,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6719,6 +7967,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawns & Wholemeal Pasta with Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 150,
         "name": "Prawns — Coles Cooked Prawns (150g)",
         "cals": 149,
         "protein": 36,
@@ -6726,6 +7976,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 150,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (150g)",
         "cals": 186,
         "protein": 7.5,
@@ -6733,6 +7985,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v19",
+        "grams": 100,
         "name": "Asparagus (steamed) — Coles Asparagus (100g)",
         "cals": 22,
         "protein": 2.4,
@@ -6740,6 +7994,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -6762,6 +8018,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Breast Stir-Fry with Zucchini & Capsicum",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 150,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (150g)",
         "cals": 248,
         "protein": 46.5,
@@ -6769,6 +8027,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.4
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -6776,6 +8036,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v09",
+        "grams": 60,
         "name": "Zucchini (raw) — Coles Zucchini (60g)",
         "cals": 10,
         "protein": 0.7,
@@ -6783,6 +8045,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v13",
+        "grams": 60,
         "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
         "cals": 19,
         "protein": 0.6,
@@ -6790,6 +8054,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 8,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
         "cals": 71,
         "protein": 0,
@@ -6812,6 +8078,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken Thigh Stir-Fry with Zucchini & Capsicum",
     "ingredients": [
       {
+        "baseFoodId": "m02",
+        "grams": 150,
         "name": "Chicken Thigh (skinless) — Coles RSPCA Approved Chicken Thigh Fillets Skinless (150g)",
         "cals": 314,
         "protein": 39,
@@ -6819,6 +8087,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 16.4
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -6826,6 +8096,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v09",
+        "grams": 60,
         "name": "Zucchini (raw) — Coles Zucchini (60g)",
         "cals": 10,
         "protein": 0.7,
@@ -6833,6 +8105,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v13",
+        "grams": 60,
         "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
         "cals": 19,
         "protein": 0.6,
@@ -6840,6 +8114,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 8,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
         "cals": 71,
         "protein": 0,
@@ -6862,6 +8138,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef Mince Stir-Fry with Zucchini & Capsicum",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -6869,6 +8147,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -6876,6 +8156,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v09",
+        "grams": 60,
         "name": "Zucchini (raw) — Coles Zucchini (60g)",
         "cals": 10,
         "protein": 0.7,
@@ -6883,6 +8165,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v13",
+        "grams": 60,
         "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
         "cals": 19,
         "protein": 0.6,
@@ -6890,6 +8174,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 8,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
         "cals": 71,
         "protein": 0,
@@ -6912,6 +8198,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Sirloin Steak Stir-Fry with Zucchini & Capsicum",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 150,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
         "cals": 275,
         "protein": 43.5,
@@ -6919,6 +8207,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -6926,6 +8216,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v09",
+        "grams": 60,
         "name": "Zucchini (raw) — Coles Zucchini (60g)",
         "cals": 10,
         "protein": 0.7,
@@ -6933,6 +8225,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v13",
+        "grams": 60,
         "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
         "cals": 19,
         "protein": 0.6,
@@ -6940,6 +8234,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 8,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
         "cals": 71,
         "protein": 0,
@@ -6962,6 +8258,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin Stir-Fry with Zucchini & Capsicum",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 150,
         "name": "Pork Loin — Coles Pork Tenderloin (150g)",
         "cals": 260,
         "protein": 40.5,
@@ -6969,6 +8267,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 150,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
         "cals": 185,
         "protein": 4.1,
@@ -6976,6 +8276,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "v09",
+        "grams": 60,
         "name": "Zucchini (raw) — Coles Zucchini (60g)",
         "cals": 10,
         "protein": 0.7,
@@ -6983,6 +8285,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v13",
+        "grams": 60,
         "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
         "cals": 19,
         "protein": 0.6,
@@ -6990,6 +8294,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 8,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
         "cals": 71,
         "protein": 0,
@@ -7012,6 +8318,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Protein Oats with Banana",
     "ingredients": [
       {
+        "baseFoodId": "g07",
+        "grams": 60,
         "name": "Oats (dry) — Woolworths Australian Rolled Oats (60g)",
         "cals": 227,
         "protein": 7.8,
@@ -7019,6 +8327,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 4.2
       },
       {
+        "baseFoodId": "p01",
+        "grams": 30,
         "name": "Whey Protein Powder — Woolworths Macro Whey Protein Isolate Powder (30g)",
         "cals": 120,
         "protein": 24,
@@ -7026,6 +8336,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "d04",
+        "grams": 200,
         "name": "Milk (skim) — Coles Skim Milk (200ml)",
         "cals": 70,
         "protein": 7.2,
@@ -7033,6 +8345,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "r01",
+        "grams": 100,
         "name": "Banana — Coles Cavendish Bananas (100g)",
         "cals": 89,
         "protein": 1.1,
@@ -7054,6 +8368,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Protein Oats with Mixed Berries",
     "ingredients": [
       {
+        "baseFoodId": "g07",
+        "grams": 60,
         "name": "Oats (dry) — Woolworths Australian Rolled Oats (60g)",
         "cals": 227,
         "protein": 7.8,
@@ -7061,6 +8377,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 4.2
       },
       {
+        "baseFoodId": "p01",
+        "grams": 30,
         "name": "Whey Protein Powder — Woolworths Macro Whey Protein Isolate Powder (30g)",
         "cals": 120,
         "protein": 24,
@@ -7068,6 +8386,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "d19",
+        "grams": 200,
         "name": "Almond Milk (unsweetened) — Woolworths Unsweetened Almond Milk (200ml)",
         "cals": 30,
         "protein": 1.2,
@@ -7075,6 +8395,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.4
       },
       {
+        "baseFoodId": "r50",
+        "grams": 80,
         "name": "Frozen Mixed Berries — Coles Mixed Berries Frozen (80g)",
         "cals": 40,
         "protein": 0.6,
@@ -7096,6 +8418,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Overnight Oats with Chia & Peanut Butter",
     "ingredients": [
       {
+        "baseFoodId": "g07",
+        "grams": 50,
         "name": "Oats (dry) — Woolworths Australian Rolled Oats (50g)",
         "cals": 190,
         "protein": 6.5,
@@ -7103,6 +8427,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 3.5
       },
       {
+        "baseFoodId": "n08",
+        "grams": 15,
         "name": "Chia Seeds — Coles Chia Seeds (15g)",
         "cals": 73,
         "protein": 2.6,
@@ -7110,6 +8436,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 4.6
       },
       {
+        "baseFoodId": "n05",
+        "grams": 20,
         "name": "Peanut Butter — Bega Peanut Butter Smooth (20g)",
         "cals": 118,
         "protein": 5,
@@ -7117,6 +8445,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10
       },
       {
+        "baseFoodId": "d04",
+        "grams": 180,
         "name": "Milk (skim) — Coles Skim Milk (180ml)",
         "cals": 63,
         "protein": 6.5,
@@ -7124,6 +8454,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "d06",
+        "grams": 100,
         "name": "Greek Yoghurt (low fat) — Coles High Protein Greek Style Natural Yoghurt No Added Sugar (100g)",
         "cals": 59,
         "protein": 10,
@@ -7145,6 +8477,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Scrambled Eggs on Wholemeal Toast",
     "ingredients": [
       {
+        "baseFoodId": "d01",
+        "grams": 150,
         "name": "Eggs, whole — Woolworths Free Range Eggs (150g)",
         "cals": 215,
         "protein": 19.5,
@@ -7152,6 +8486,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 15
       },
       {
+        "baseFoodId": "g09",
+        "grams": 60,
         "name": "Whole Wheat Bread — Tip Top 9 Grain Bread (60g)",
         "cals": 148,
         "protein": 7.8,
@@ -7159,6 +8495,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "v28",
+        "grams": 50,
         "name": "Avocado — Woolworths Hass Avocado (50g)",
         "cals": 80,
         "protein": 1,
@@ -7180,6 +8518,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Egg White Omelette with Spinach",
     "ingredients": [
       {
+        "baseFoodId": "d02",
+        "grams": 200,
         "name": "Egg Whites — Woolworths Egg Whites (200g)",
         "cals": 104,
         "protein": 22,
@@ -7187,6 +8527,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       },
       {
+        "baseFoodId": "d01",
+        "grams": 55,
         "name": "Eggs, whole — Woolworths Free Range Eggs (55g)",
         "cals": 79,
         "protein": 7.2,
@@ -7194,6 +8536,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 40,
         "name": "Spinach (raw) — Coles Baby Spinach (40g)",
         "cals": 9,
         "protein": 1.2,
@@ -7201,6 +8545,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -7222,6 +8568,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Greek Yoghurt Bowl with Berries & Almonds",
     "ingredients": [
       {
+        "baseFoodId": "d06",
+        "grams": 200,
         "name": "Greek Yoghurt (low fat) — Coles High Protein Greek Style Natural Yoghurt No Added Sugar (200g)",
         "cals": 118,
         "protein": 20,
@@ -7229,6 +8577,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.8
       },
       {
+        "baseFoodId": "r50",
+        "grams": 80,
         "name": "Frozen Mixed Berries — Coles Mixed Berries Frozen (80g)",
         "cals": 40,
         "protein": 0.6,
@@ -7236,6 +8586,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.3
       },
       {
+        "baseFoodId": "n01",
+        "grams": 15,
         "name": "Almonds — Coles Australian Almonds (15g)",
         "cals": 87,
         "protein": 3.2,
@@ -7257,6 +8609,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Cottage Cheese with Banana & Oats",
     "ingredients": [
       {
+        "baseFoodId": "d08",
+        "grams": 150,
         "name": "Cottage Cheese — Coles Low Fat Creamed Cottage Cheese (150g)",
         "cals": 147,
         "protein": 16.5,
@@ -7264,6 +8618,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 6.5
       },
       {
+        "baseFoodId": "r01",
+        "grams": 100,
         "name": "Banana — Coles Cavendish Bananas (100g)",
         "cals": 89,
         "protein": 1.1,
@@ -7271,6 +8627,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.3
       },
       {
+        "baseFoodId": "g07",
+        "grams": 30,
         "name": "Oats (dry) — Woolworths Australian Rolled Oats (30g)",
         "cals": 114,
         "protein": 3.9,
@@ -7292,6 +8650,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Protein Pancakes",
     "ingredients": [
       {
+        "baseFoodId": "g07",
+        "grams": 50,
         "name": "Oats (dry) — Woolworths Australian Rolled Oats (50g)",
         "cals": 190,
         "protein": 6.5,
@@ -7299,6 +8659,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 3.5
       },
       {
+        "baseFoodId": "d01",
+        "grams": 100,
         "name": "Eggs, whole — Woolworths Free Range Eggs (100g)",
         "cals": 143,
         "protein": 13,
@@ -7306,6 +8668,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10
       },
       {
+        "baseFoodId": "p01",
+        "grams": 30,
         "name": "Whey Protein Powder — Woolworths Macro Whey Protein Isolate Powder (30g)",
         "cals": 120,
         "protein": 24,
@@ -7313,6 +8677,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "r01",
+        "grams": 80,
         "name": "Banana — Coles Cavendish Bananas (80g)",
         "cals": 71,
         "protein": 0.9,
@@ -7320,6 +8686,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "d04",
+        "grams": 60,
         "name": "Milk (skim) — Coles Skim Milk (60ml)",
         "cals": 21,
         "protein": 2.2,
@@ -7341,6 +8709,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Egg Wholemeal Wrap",
     "ingredients": [
       {
+        "baseFoodId": "d01",
+        "grams": 110,
         "name": "Eggs, whole — Woolworths Free Range Eggs (110g)",
         "cals": 157,
         "protein": 14.3,
@@ -7348,6 +8718,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 11
       },
       {
+        "baseFoodId": "g09",
+        "grams": 60,
         "name": "Whole Wheat Bread — Tip Top 9 Grain Bread (60g)",
         "cals": 148,
         "protein": 7.8,
@@ -7369,6 +8741,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Smoked Salmon & Avocado on Toast",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 80,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (80g)",
         "cals": 166,
         "protein": 16,
@@ -7376,6 +8750,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.4
       },
       {
+        "baseFoodId": "v28",
+        "grams": 60,
         "name": "Avocado — Woolworths Hass Avocado (60g)",
         "cals": 96,
         "protein": 1.2,
@@ -7383,6 +8759,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 9
       },
       {
+        "baseFoodId": "g09",
+        "grams": 60,
         "name": "Whole Wheat Bread — Tip Top 9 Grain Bread (60g)",
         "cals": 148,
         "protein": 7.8,
@@ -7404,6 +8782,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chia Pudding with Almond Milk & Berries",
     "ingredients": [
       {
+        "baseFoodId": "n08",
+        "grams": 30,
         "name": "Chia Seeds — Coles Chia Seeds (30g)",
         "cals": 146,
         "protein": 5.1,
@@ -7411,6 +8791,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 9.3
       },
       {
+        "baseFoodId": "d19",
+        "grams": 200,
         "name": "Almond Milk (unsweetened) — Woolworths Unsweetened Almond Milk (200ml)",
         "cals": 30,
         "protein": 1.2,
@@ -7418,6 +8800,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.4
       },
       {
+        "baseFoodId": "r50",
+        "grams": 60,
         "name": "Frozen Mixed Berries — Coles Mixed Berries Frozen (60g)",
         "cals": 30,
         "protein": 0.5,
@@ -7439,6 +8823,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Mince & Egg Breakfast Hash",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 100,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (100g)",
         "cals": 148,
         "protein": 20,
@@ -7446,6 +8832,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 7
       },
       {
+        "baseFoodId": "v06",
+        "grams": 150,
         "name": "White Potato (baked) (150g)",
         "cals": 140,
         "protein": 3.8,
@@ -7453,6 +8841,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "d01",
+        "grams": 55,
         "name": "Eggs, whole — Woolworths Free Range Eggs (55g)",
         "cals": 79,
         "protein": 7.2,
@@ -7474,6 +8864,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Muesli with Greek Yoghurt",
     "ingredients": [
       {
+        "baseFoodId": "g07",
+        "grams": 50,
         "name": "Oats (dry) — Woolworths Australian Rolled Oats (50g)",
         "cals": 190,
         "protein": 6.5,
@@ -7481,6 +8873,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 3.5
       },
       {
+        "baseFoodId": "d06",
+        "grams": 150,
         "name": "Greek Yoghurt (low fat) — Coles High Protein Greek Style Natural Yoghurt No Added Sugar (150g)",
         "cals": 89,
         "protein": 15,
@@ -7488,6 +8882,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "n01",
+        "grams": 10,
         "name": "Almonds — Coles Australian Almonds (10g)",
         "cals": 58,
         "protein": 2.1,
@@ -7495,6 +8891,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       },
       {
+        "baseFoodId": "r01",
+        "grams": 60,
         "name": "Banana — Coles Cavendish Bananas (60g)",
         "cals": 53,
         "protein": 0.7,
@@ -7516,6 +8914,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Peanut Butter Banana Protein Shake",
     "ingredients": [
       {
+        "baseFoodId": "p01",
+        "grams": 30,
         "name": "Whey Protein Powder — Woolworths Macro Whey Protein Isolate Powder (30g)",
         "cals": 120,
         "protein": 24,
@@ -7523,6 +8923,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "n05",
+        "grams": 20,
         "name": "Peanut Butter — Bega Peanut Butter Smooth (20g)",
         "cals": 118,
         "protein": 5,
@@ -7530,6 +8932,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10
       },
       {
+        "baseFoodId": "r01",
+        "grams": 100,
         "name": "Banana — Coles Cavendish Bananas (100g)",
         "cals": 89,
         "protein": 1.1,
@@ -7537,6 +8941,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.3
       },
       {
+        "baseFoodId": "d04",
+        "grams": 250,
         "name": "Milk (skim) — Coles Skim Milk (250ml)",
         "cals": 88,
         "protein": 9,
@@ -7558,6 +8964,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Post-Workout Whey Protein Shake",
     "ingredients": [
       {
+        "baseFoodId": "p01",
+        "grams": 35,
         "name": "Whey Protein Powder — Woolworths Macro Whey Protein Isolate Powder (35g)",
         "cals": 140,
         "protein": 28,
@@ -7565,6 +8973,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.8
       },
       {
+        "baseFoodId": "d04",
+        "grams": 300,
         "name": "Milk (skim) — Coles Skim Milk (300ml)",
         "cals": 105,
         "protein": 10.8,
@@ -7586,6 +8996,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Whey Protein & Banana Shake",
     "ingredients": [
       {
+        "baseFoodId": "p01",
+        "grams": 30,
         "name": "Whey Protein Powder — Woolworths Macro Whey Protein Isolate Powder (30g)",
         "cals": 120,
         "protein": 24,
@@ -7593,6 +9005,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "r01",
+        "grams": 100,
         "name": "Banana — Coles Cavendish Bananas (100g)",
         "cals": 89,
         "protein": 1.1,
@@ -7600,6 +9014,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.3
       },
       {
+        "baseFoodId": "d19",
+        "grams": 250,
         "name": "Almond Milk (unsweetened) — Woolworths Unsweetened Almond Milk (250ml)",
         "cals": 38,
         "protein": 1.5,
@@ -7621,6 +9037,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna & Rice Cakes",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 95,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (95g)",
         "cals": 110,
         "protein": 24.7,
@@ -7628,6 +9046,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1
       },
       {
+        "baseFoodId": "g13",
+        "grams": 27,
         "name": "Rice Cakes — Coles Rice Cakes (27g)",
         "cals": 104,
         "protein": 2.2,
@@ -7649,6 +9069,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Cottage Cheese & Rice Cakes",
     "ingredients": [
       {
+        "baseFoodId": "d08",
+        "grams": 150,
         "name": "Cottage Cheese — Coles Low Fat Creamed Cottage Cheese (150g)",
         "cals": 147,
         "protein": 16.5,
@@ -7656,6 +9078,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 6.5
       },
       {
+        "baseFoodId": "g13",
+        "grams": 18,
         "name": "Rice Cakes — Coles Rice Cakes (18g)",
         "cals": 70,
         "protein": 1.4,
@@ -7677,6 +9101,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Greek Yoghurt & Almonds",
     "ingredients": [
       {
+        "baseFoodId": "d06",
+        "grams": 170,
         "name": "Greek Yoghurt (low fat) — Coles High Protein Greek Style Natural Yoghurt No Added Sugar (170g)",
         "cals": 100,
         "protein": 17,
@@ -7684,6 +9110,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.7
       },
       {
+        "baseFoodId": "n01",
+        "grams": 20,
         "name": "Almonds — Coles Australian Almonds (20g)",
         "cals": 116,
         "protein": 4.2,
@@ -7705,6 +9133,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Almonds & Banana",
     "ingredients": [
       {
+        "baseFoodId": "n01",
+        "grams": 25,
         "name": "Almonds — Coles Australian Almonds (25g)",
         "cals": 145,
         "protein": 5.3,
@@ -7712,6 +9142,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 12.5
       },
       {
+        "baseFoodId": "r01",
+        "grams": 120,
         "name": "Banana — Coles Cavendish Bananas (120g)",
         "cals": 107,
         "protein": 1.3,
@@ -7733,6 +9165,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Boiled Eggs & Avocado",
     "ingredients": [
       {
+        "baseFoodId": "d01",
+        "grams": 110,
         "name": "Eggs, whole — Woolworths Free Range Eggs (110g)",
         "cals": 157,
         "protein": 14.3,
@@ -7740,6 +9174,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 11
       },
       {
+        "baseFoodId": "v28",
+        "grams": 60,
         "name": "Avocado — Woolworths Hass Avocado (60g)",
         "cals": 96,
         "protein": 1.2,
@@ -7761,6 +9197,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Peanut Butter Rice Cakes",
     "ingredients": [
       {
+        "baseFoodId": "g13",
+        "grams": 18,
         "name": "Rice Cakes — Coles Rice Cakes (18g)",
         "cals": 70,
         "protein": 1.4,
@@ -7768,6 +9206,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "n05",
+        "grams": 25,
         "name": "Peanut Butter — Bega Peanut Butter Smooth (25g)",
         "cals": 147,
         "protein": 6.3,
@@ -7789,6 +9229,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chickpea & Spinach Salad",
     "ingredients": [
       {
+        "baseFoodId": "l03",
+        "grams": 150,
         "name": "Chickpeas (cooked) — Coles Chickpeas (150g)",
         "cals": 246,
         "protein": 13.5,
@@ -7796,6 +9238,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 3.9
       },
       {
+        "baseFoodId": "v02",
+        "grams": 40,
         "name": "Spinach (raw) — Coles Baby Spinach (40g)",
         "cals": 9,
         "protein": 1.2,
@@ -7803,6 +9247,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 8,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
         "cals": 71,
         "protein": 0,
@@ -7824,6 +9270,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lentil & Mixed Salad Bowl",
     "ingredients": [
       {
+        "baseFoodId": "l04",
+        "grams": 150,
         "name": "Lentils (cooked) — Coles Lentils (150g)",
         "cals": 174,
         "protein": 13.5,
@@ -7831,6 +9279,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.6
       },
       {
+        "baseFoodId": "v61",
+        "grams": 80,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (80g)",
         "cals": 12,
         "protein": 1.1,
@@ -7838,6 +9288,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 8,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
         "cals": 71,
         "protein": 0,
@@ -7859,6 +9311,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Cottage Cheese & Berries",
     "ingredients": [
       {
+        "baseFoodId": "d08",
+        "grams": 150,
         "name": "Cottage Cheese — Coles Low Fat Creamed Cottage Cheese (150g)",
         "cals": 147,
         "protein": 16.5,
@@ -7866,6 +9320,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 6.5
       },
       {
+        "baseFoodId": "r50",
+        "grams": 80,
         "name": "Frozen Mixed Berries — Coles Mixed Berries Frozen (80g)",
         "cals": 40,
         "protein": 0.6,
@@ -7887,6 +9343,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Protein Shake with Oats",
     "ingredients": [
       {
+        "baseFoodId": "p01",
+        "grams": 30,
         "name": "Whey Protein Powder — Woolworths Macro Whey Protein Isolate Powder (30g)",
         "cals": 120,
         "protein": 24,
@@ -7894,6 +9352,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.5
       },
       {
+        "baseFoodId": "g07",
+        "grams": 30,
         "name": "Oats (dry) — Woolworths Australian Rolled Oats (30g)",
         "cals": 114,
         "protein": 3.9,
@@ -7901,6 +9361,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       },
       {
+        "baseFoodId": "d04",
+        "grams": 250,
         "name": "Milk (skim) — Coles Skim Milk (250ml)",
         "cals": 88,
         "protein": 9,
@@ -7922,6 +9384,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken, Sweet Potato & Broccoli Meal Prep",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 180,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (180g)",
         "cals": 297,
         "protein": 55.8,
@@ -7929,6 +9393,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 6.5
       },
       {
+        "baseFoodId": "v05",
+        "grams": 220,
         "name": "Sweet Potato (baked) (220g)",
         "cals": 198,
         "protein": 4.4,
@@ -7936,6 +9402,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 120,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (120g)",
         "cals": 42,
         "protein": 2.9,
@@ -7943,6 +9411,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "n12",
+        "grams": 5,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
         "cals": 44,
         "protein": 0,
@@ -7965,6 +9435,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Beef Mince Bolognese with Wholemeal Pasta",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 150,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (150g)",
         "cals": 258,
         "protein": 39,
@@ -7972,6 +9444,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 10.5
       },
       {
+        "baseFoodId": "g15",
+        "grams": 180,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (180g)",
         "cals": 223,
         "protein": 9,
@@ -7979,6 +9453,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.5
       },
       {
+        "baseFoodId": "v09",
+        "grams": 50,
         "name": "Zucchini (raw) — Coles Zucchini (50g)",
         "cals": 9,
         "protein": 0.6,
@@ -7986,6 +9462,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v13",
+        "grams": 50,
         "name": "Capsicum / Bell Pepper — Coles Capsicum (50g)",
         "cals": 16,
         "protein": 0.5,
@@ -8008,6 +9486,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Salmon, Quinoa & Asparagus",
     "ingredients": [
       {
+        "baseFoodId": "f01",
+        "grams": 160,
         "name": "Salmon Fillet — Coles Tasmanian Salmon Portions (160g)",
         "cals": 333,
         "protein": 32,
@@ -8015,6 +9495,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 20.8
       },
       {
+        "baseFoodId": "g05",
+        "grams": 150,
         "name": "Quinoa (cooked) — Coles Quinoa (150g)",
         "cals": 180,
         "protein": 6.6,
@@ -8022,6 +9504,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.8
       },
       {
+        "baseFoodId": "v19",
+        "grams": 120,
         "name": "Asparagus (steamed) — Coles Asparagus (120g)",
         "cals": 26,
         "protein": 2.9,
@@ -8044,6 +9528,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Steak, Potato & Green Beans",
     "ingredients": [
       {
+        "baseFoodId": "m08",
+        "grams": 180,
         "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (180g)",
         "cals": 329,
         "protein": 52.2,
@@ -8051,6 +9537,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 12.6
       },
       {
+        "baseFoodId": "v06",
+        "grams": 220,
         "name": "White Potato (baked) (220g)",
         "cals": 205,
         "protein": 5.5,
@@ -8058,6 +9546,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 120,
         "name": "Green Beans (steamed) — Coles Green Beans (120g)",
         "cals": 42,
         "protein": 2.2,
@@ -8080,6 +9570,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawn Stir-Fry with Brown Rice",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 180,
         "name": "Prawns — Coles Cooked Prawns (180g)",
         "cals": 178,
         "protein": 43.2,
@@ -8087,6 +9579,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "g02",
+        "grams": 180,
         "name": "Brown Rice (cooked) — SunRice Brown Rice (180g)",
         "cals": 221,
         "protein": 4.9,
@@ -8094,6 +9588,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.8
       },
       {
+        "baseFoodId": "v09",
+        "grams": 60,
         "name": "Zucchini (raw) — Coles Zucchini (60g)",
         "cals": 10,
         "protein": 0.7,
@@ -8101,6 +9597,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v13",
+        "grams": 60,
         "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
         "cals": 19,
         "protein": 0.6,
@@ -8108,6 +9606,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "n12",
+        "grams": 8,
         "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
         "cals": 71,
         "protein": 0,
@@ -8130,6 +9630,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Turkey Meatballs with Wholemeal Pasta",
     "ingredients": [
       {
+        "baseFoodId": "m32",
+        "grams": 160,
         "name": "Turkey Mince — Woolworths Turkey Breast Mince (160g)",
         "cals": 237,
         "protein": 32,
@@ -8137,6 +9639,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 11.2
       },
       {
+        "baseFoodId": "g15",
+        "grams": 180,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (180g)",
         "cals": 223,
         "protein": 9,
@@ -8144,6 +9648,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -8166,6 +9672,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chicken & Egg Salad Bowl",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 160,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (160g)",
         "cals": 264,
         "protein": 49.6,
@@ -8173,6 +9681,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.8
       },
       {
+        "baseFoodId": "v61",
+        "grams": 100,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (100g)",
         "cals": 15,
         "protein": 1.4,
@@ -8180,6 +9690,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "d01",
+        "grams": 55,
         "name": "Eggs, whole — Woolworths Free Range Eggs (55g)",
         "cals": 79,
         "protein": 7.2,
@@ -8202,6 +9714,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Pork Loin with Sweet Potato Mash",
     "ingredients": [
       {
+        "baseFoodId": "m09",
+        "grams": 170,
         "name": "Pork Loin — Coles Pork Tenderloin (170g)",
         "cals": 294,
         "protein": 45.9,
@@ -8209,6 +9723,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 11.9
       },
       {
+        "baseFoodId": "v05",
+        "grams": 220,
         "name": "Sweet Potato (baked) (220g)",
         "cals": 198,
         "protein": 4.4,
@@ -8216,6 +9732,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v16",
+        "grams": 100,
         "name": "Green Beans (steamed) — Coles Green Beans (100g)",
         "cals": 35,
         "protein": 1.8,
@@ -8238,6 +9756,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Tuna Pasta Bake",
     "ingredients": [
       {
+        "baseFoodId": "f02",
+        "grams": 190,
         "name": "Tuna (canned, spring water) — John West Tuna Chunks in Springwater (190g)",
         "cals": 220,
         "protein": 49.4,
@@ -8245,6 +9765,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.9
       },
       {
+        "baseFoodId": "g15",
+        "grams": 180,
         "name": "Wholemeal Pasta (cooked) — San Remo Wholemeal Pasta (180g)",
         "cals": 223,
         "protein": 9,
@@ -8252,6 +9774,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.5
       },
       {
+        "baseFoodId": "v02",
+        "grams": 60,
         "name": "Spinach (raw) — Coles Baby Spinach (60g)",
         "cals": 14,
         "protein": 1.7,
@@ -8274,6 +9798,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Chickpea & Chicken Grain Bowl",
     "ingredients": [
       {
+        "baseFoodId": "m01",
+        "grams": 140,
         "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (140g)",
         "cals": 231,
         "protein": 43.4,
@@ -8281,6 +9807,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       },
       {
+        "baseFoodId": "l03",
+        "grams": 120,
         "name": "Chickpeas (cooked) — Coles Chickpeas (120g)",
         "cals": 197,
         "protein": 10.8,
@@ -8288,6 +9816,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 3.1
       },
       {
+        "baseFoodId": "g05",
+        "grams": 100,
         "name": "Quinoa (cooked) — Coles Quinoa (100g)",
         "cals": 120,
         "protein": 4.4,
@@ -8295,6 +9825,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 1.9
       },
       {
+        "baseFoodId": "v61",
+        "grams": 60,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
         "cals": 9,
         "protein": 0.8,
@@ -8317,6 +9849,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Prawn & Avocado Salad",
     "ingredients": [
       {
+        "baseFoodId": "f07",
+        "grams": 160,
         "name": "Prawns — Coles Cooked Prawns (160g)",
         "cals": 158,
         "protein": 38.4,
@@ -8324,6 +9858,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       },
       {
+        "baseFoodId": "v28",
+        "grams": 80,
         "name": "Avocado — Woolworths Hass Avocado (80g)",
         "cals": 128,
         "protein": 1.6,
@@ -8331,6 +9867,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 12
       },
       {
+        "baseFoodId": "v61",
+        "grams": 100,
         "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (100g)",
         "cals": 15,
         "protein": 1.4,
@@ -8353,6 +9891,8 @@ export const FITNESS_MEALS_AU = [
     "name": "Lean Beef & Sweet Potato Bowl",
     "ingredients": [
       {
+        "baseFoodId": "m05",
+        "grams": 160,
         "name": "Lean Beef Mince (5% fat) — Woolworths Lean Beef Mince (160g)",
         "cals": 275,
         "protein": 41.6,
@@ -8360,6 +9900,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 11.2
       },
       {
+        "baseFoodId": "v05",
+        "grams": 200,
         "name": "Sweet Potato (baked) (200g)",
         "cals": 180,
         "protein": 4,
@@ -8367,6 +9909,8 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       },
       {
+        "baseFoodId": "v01",
+        "grams": 100,
         "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
         "cals": 35,
         "protein": 2.4,

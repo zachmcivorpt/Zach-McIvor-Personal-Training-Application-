@@ -29,6 +29,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ThreadView } from "./CoachMessages";
 import MealPlanBuilder from "./MealPlanBuilder";
+import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import { SendLoginSheet, clientStatusPill } from "./CoachClients";
 import WorkoutEditor from "./WorkoutEditor";
 import {
@@ -2745,9 +2746,11 @@ function NutritionPanel({ client, showToast }) {
   const { db, setNutritionForDate } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
   const [mealPlanOpen, setMealPlanOpen] = useState(false);
+  const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const todayDateKey = localDateKey();
   const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === todayDateKey);
   const mealPlan = (db.mealPlans[client.id] || [])[0];
+  const mealsById = useMemo(() => Object.fromEntries((db.masterMeals || []).map((m) => [m.id, m])), [db.masterMeals]);
   const mealPlanDayCount = mealPlan?.days?.length || 0;
   const mealPlanMealCount = mealPlan
     ? mealPlan.days.reduce((n, d) => n + Object.values(d.meals || {}).reduce((a, arr) => a + arr.length, 0), 0)
@@ -2774,9 +2777,16 @@ function NutritionPanel({ client, showToast }) {
               ? `${mealPlanWeeks ? `${mealPlanWeeks}-week plan · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
               : "This client has no meal plan yet — build one from your Meal Library."}
           </p>
-          <PrimaryButton onClick={() => setMealPlanOpen(true)}>
-            {mealPlan ? "EDIT MEAL PLAN" : "BUILD MEAL PLAN"}
-          </PrimaryButton>
+          <div className="flex gap-2">
+            <PrimaryButton className={mealPlan ? "flex-1" : "w-full"} onClick={() => setMealPlanOpen(true)}>
+              {mealPlan ? "EDIT MEAL PLAN" : "BUILD MEAL PLAN"}
+            </PrimaryButton>
+            {mealPlan && (
+              <SecondaryButton className="flex-1" onClick={() => setShoppingListOpen(true)}>
+                SHOPPING LIST
+              </SecondaryButton>
+            )}
+          </div>
         </div>
       </div>
 
@@ -2833,6 +2843,13 @@ function NutritionPanel({ client, showToast }) {
       </div>
 
       {mealPlanOpen && <MealPlanBuilder client={client} onClose={() => setMealPlanOpen(false)} showToast={showToast} />}
+      <ShoppingListSheet
+        open={shoppingListOpen}
+        onClose={() => setShoppingListOpen(false)}
+        plan={mealPlan}
+        mealsById={mealsById}
+        clientName={client.name}
+      />
     </div>
   );
 }

@@ -67,6 +67,13 @@ function ingredientLine(id, grams) {
   const scale = grams / f.per;
   const brand = BRAND_HINTS[id];
   return {
+    // baseFoodId + grams let the shopping-list builder (src/lib/shoppingList.js)
+    // aggregate this exact ingredient across every meal in a plan, the same
+    // way manually-added food-database ingredients already do (see
+    // scaleFood() in src/lib/foodDatabase.js) — the display name alone
+    // can't be summed since it bakes in a brand + this one meal's amount.
+    baseFoodId: id,
+    grams,
     name: `${f.name}${brand ? ` — ${brand}` : ""} (${grams}${f.units?.includes("ml") ? "ml" : "g"})`,
     cals: Math.round(f.cals * scale),
     protein: Math.round(f.protein * scale * 10) / 10,
