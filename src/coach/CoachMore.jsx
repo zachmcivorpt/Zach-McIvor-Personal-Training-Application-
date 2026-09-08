@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput } from "../components/ui";
-import { fileToDataUrl } from "../lib/image";
+import { fileToDataUrl, removeFlatLogoBackground } from "../lib/image";
 import { enablePush, disablePush } from "../lib/push";
 import { uploadDesignImage, uploadLoginBackground } from "../lib/storage";
 import {
@@ -218,6 +218,7 @@ function DesignAssetRow({
   progress,
   onUpload,
   onRemove,
+  iconClassName = "text-black/20",
 }) {
   const fileRef = useRef(null);
 
@@ -235,7 +236,7 @@ function DesignAssetRow({
             <img src={previewUrl} alt={label} className={previewClassName || "w-full h-full object-cover"} />
           )
         ) : (
-          <ImageIcon size={22} className="text-black/20" />
+          <ImageIcon size={22} className={iconClassName} />
         )}
         {uploading && (
           <div className="absolute inset-0 bg-white/75 flex items-center justify-center">
@@ -291,21 +292,32 @@ function DesignSettingsCard() {
   const design = db.appDesign || {};
   const [uploadingBg, setUploadingBg] = useState(false);
   const [bgProgress, setBgProgress] = useState(0);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [logoProgress, setLogoProgress] = useState(0);
+  const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
+  const [logoDarkProgress, setLogoDarkProgress] = useState(0);
+  const [uploadingLogoLight, setUploadingLogoLight] = useState(false);
+  const [logoLightProgress, setLogoLightProgress] = useState(0);
   const [error, setError] = useState("");
 
-  async function handleLogoUpload(file) {
+  // Cuts out a flat/solid background (a white canvas, a single brand
+  // color) so the mark sits cleanly on the target surface instead of
+  // showing inside a visible box. Only kicks in when the file's corners
+  // actually look like one flat color — a real photo behind the logo is
+  // left untouched rather than risk mangling it (see
+  // removeFlatLogoBackground for the exact rule). `field` picks which of
+  // the two independent uploads this is — see the Logo component for why
+  // there are two.
+  async function handleLogoUpload(field, setUploading, setProgress, file) {
     setError("");
-    setUploadingLogo(true);
-    setLogoProgress(0);
+    setUploading(true);
+    setProgress(0);
     try {
-      const { url } = await uploadDesignImage("logo", file, setLogoProgress);
-      await updateAppDesign({ appLogoUrl: url });
+      const transparent = await removeFlatLogoBackground(file);
+      const { url } = await uploadDesignImage(field, transparent, setProgress);
+      await updateAppDesign({ [field]: url });
     } catch (err) {
       setError(err.message);
     } finally {
-      setUploadingLogo(false);
+      setUploading(false);
     }
   }
 
@@ -389,15 +401,28 @@ function DesignSettingsCard() {
         <div className="border-t border-black/8" />
 
         <DesignAssetRow
-          label="App Logo"
-          description="Shown at the top of every page, in place of the default logo"
-          previewUrl={design.appLogoUrl}
+          label="Logo — Dark Backgrounds"
+          description="Login screen and your coach console header — needs a light-colored mark"
+          previewUrl={design.appLogoUrlOnDark}
+          previewClassName="max-w-[65%] max-h-[65%] object-contain"
+          aspectClassName="h-24 !bg-black"
+          iconClassName="text-white/25"
+          uploading={uploadingLogoDark}
+          progress={logoDarkProgress}
+          onUpload={(file) => handleLogoUpload("appLogoUrlOnDark", setUploadingLogoDark, setLogoDarkProgress, file)}
+          onRemove={() => handleRemove("appLogoUrlOnDark")}
+        />
+
+        <DesignAssetRow
+          label="Logo — Light Backgrounds"
+          description="Your client app — needs a dark-colored mark"
+          previewUrl={design.appLogoUrlOnLight}
           previewClassName="max-w-[65%] max-h-[65%] object-contain"
           aspectClassName="h-24"
-          uploading={uploadingLogo}
-          progress={logoProgress}
-          onUpload={handleLogoUpload}
-          onRemove={() => handleRemove("appLogoUrl")}
+          uploading={uploadingLogoLight}
+          progress={logoLightProgress}
+          onUpload={(file) => handleLogoUpload("appLogoUrlOnLight", setUploadingLogoLight, setLogoLightProgress, file)}
+          onRemove={() => handleRemove("appLogoUrlOnLight")}
         />
       </div>
 

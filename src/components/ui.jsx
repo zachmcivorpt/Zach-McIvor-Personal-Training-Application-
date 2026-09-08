@@ -137,12 +137,22 @@ const BRAND_SOURCES = {
 // tone: "white" (for dark surfaces) | "black" (for light surfaces)
 //
 // A coach-uploaded logo (Settings -> Design Settings) overrides the default
-// brand mark everywhere this component is used — there's only one uploaded
-// logo, not separate mark/wordmark/black/white variants of it, so it takes
-// over regardless of the variant/tone props requested by the call site.
+// brand mark everywhere this component is used. There are two independent
+// uploads — one for dark surfaces (login screen, coach console) and one for
+// light surfaces (client app) — because a single mark can't read on both:
+// a white "M" that looks right on the black coach header disappears
+// entirely on the client app's white background, and there's no reliable
+// way to auto-invert an arbitrary (possibly multi-color) logo image. `tone`
+// already tells every call site which kind of surface it's on, so it
+// doubles as which upload to use; if only one has been uploaded, that one
+// is used everywhere rather than falling back to the default mark on the
+// surface that's missing its own.
 export function Logo({ variant = "wordmark", tone = "white", className = "", style }) {
   const { db } = useApp();
-  const customUrl = db?.appDesign?.appLogoUrl;
+  const design = db?.appDesign || {};
+  const customUrl = tone === "white"
+    ? design.appLogoUrlOnDark || design.appLogoUrlOnLight
+    : design.appLogoUrlOnLight || design.appLogoUrlOnDark;
   return (
     <img
       src={customUrl || BRAND_SOURCES[`${variant}-${tone}`]}
