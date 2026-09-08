@@ -21,6 +21,7 @@ import {
   Check,
   StickyNote,
   Flame,
+  Utensils,
 } from "lucide-react";
 
 // The check-in's own Q&A, plus a reply box right there — so reviewing one
@@ -99,6 +100,12 @@ function hasActivePhaseToday(phases, todayKey) {
 
 function daysUntil(dateKey, todayKey) {
   return Math.round((new Date(dateKey) - new Date(todayKey)) / 86400000);
+}
+
+function addDaysISO(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return localDateKey(d);
 }
 
 function timeAgo(ts) {
@@ -283,6 +290,18 @@ export default function CoachDashboard({ onNavigate, showToast }) {
     return days >= 0 && days <= 7;
   });
 
+  // A meal plan's last day = startDate + (weeksCount * 7 - 1) days.
+  // Flagged once there are 2 or fewer days left, so a coach can duplicate
+  // the current week (or build a fresh one) before the client runs out.
+  const mealPlanEndingSoon = active.filter((c) => {
+    const plan = (db.mealPlans[c.id] || [])[0];
+    if (!plan?.startDate || !plan.days?.length) return false;
+    const weeksCount = Math.max(...plan.days.map((d, i) => d.weekIndex ?? Math.floor(i / 7))) + 1;
+    const endDateKey = addDaysISO(plan.startDate, weeksCount * 7 - 1);
+    const days = daysUntil(endDateKey, todayKey);
+    return days >= 0 && days <= 2;
+  });
+
   const sevenDaysAgo = Date.now() - 7 * 86400000;
   const newPRs = active.filter((c) => {
     const logs = db.workoutLogs[c.id] || [];
@@ -434,6 +453,7 @@ export default function CoachDashboard({ onNavigate, showToast }) {
             <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
             <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
             <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
+            <SegmentRow icon={Utensils} label="Meal plan ending in a couple of days" clients={mealPlanEndingSoon} onViewAll={() => onNavigate("clients")} />
             <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
           </div>
         </Card>
