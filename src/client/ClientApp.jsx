@@ -2659,8 +2659,9 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               </div>
             )}
             <div className="space-y-3">
-              {Object.entries(mealPlanDay.meals || {}).map(([slot, mealIds]) =>
-                mealIds.length === 0 ? null : (
+              {["Breakfast", "Lunch", "Dinner", "Snacks"].map((slot) => {
+                const mealIds = mealPlanDay.meals?.[slot] || [];
+                return mealIds.length === 0 ? null : (
                   <div key={slot}>
                     <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">{slot.toUpperCase()}</p>
                     <div className="space-y-1.5">
@@ -2700,8 +2701,8 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                       })}
                     </div>
                   </div>
-                )
-              )}
+                );
+              })}
             </div>
           </Card>
         </div>
