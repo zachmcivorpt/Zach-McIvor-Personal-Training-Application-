@@ -60,8 +60,10 @@ export async function lookupBarcode(code) {
   }
 
   if (!product) {
-    const err = new Error("No product found for that barcode — you can still add it manually below.");
+    const digits = String(code).replace(/\D/g, "");
+    const err = new Error(`Barcode scanned: ${digits}\nProduct not found — you can still add it manually below.`);
     err.notFound = true;
+    err.scannedCode = digits;
     throw err;
   }
 
@@ -74,9 +76,13 @@ export async function lookupBarcode(code) {
     // entered its nutrition facts yet — common for smaller/local brands.
     // Surface the name so manual entry can be pre-filled instead of typed
     // from scratch, rather than pretending it's a valid zero-calorie food.
-    const err = new Error(`Found "${name}", but it doesn't have nutrition info yet — you can add it manually below.`);
+    const digits = String(code).replace(/\D/g, "");
+    const err = new Error(
+      `Barcode scanned: ${digits}\nFound "${name}", but it doesn't have nutrition info yet — you can add it manually below.`
+    );
     err.notFound = true;
     err.productName = name;
+    err.scannedCode = digits;
     throw err;
   }
 

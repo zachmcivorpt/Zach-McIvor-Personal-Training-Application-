@@ -209,9 +209,25 @@ function classifyCameraError(err) {
   return { text: "Couldn't start the camera. Try closing and reopening this screen.", raw };
 }
 
+// Html5Qrcode.stop() is NOT an async function — on its unhappy path (no
+// active scan session) it does a bare synchronous `throw`, not a rejected
+// promise. A `.catch()` chained onto that call never attaches, because the
+// throw happens before stop() returns anything to chain onto — it has to be
+// a real try/catch. This one helper is used everywhere we stop a scanner so
+// that fact only has to be remembered once.
+async function safeStop(instance) {
+  if (!instance) return;
+  try {
+    await instance.stop();
+  } catch {
+    // Already stopped/never started — nothing to do.
+  }
+}
+
 export function BarcodeScanSheet({ open, onClose, onAdd }) {
   const { db, createFood } = useApp();
-  const [status, setStatus] = useState("scanning"); // scanning | looking-up | error | not-found
+  const [status, setStatus] = useState("scanning"); // scanning | detected | looking-up | error | not-found
+  const [detectedCode, setDetectedCode] = useState("");
   const [error, setError] = useState("");
   const [errorDetail, setErrorDetail] = useState("");
   const [scanKey, setScanKey] = useState(0);
@@ -274,12 +290,16 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
     async function onDecoded(decodedText) {
       if (stopped) return;
       stopped = true;
-      try {
-        await activeScanner?.stop();
-      } catch {
-        // already stopped
-      }
-      await resolveCode(decodedText);
+      await safeStop(activeScanner);
+      // A brief, explicit "got it" beat before the lookup spinner takes
+      // over — confirms the decode itself succeeded (this exact code was
+      // read off the barcode) as a separate fact from whatever the lookup
+      // turns up next, per the "clear feedback when detected" requirement.
+      setDetectedCode(decodedText.replace(/\D/g, ""));
+      setStatus("detected");
+      setTimeout(() => {
+        if (!cancelled) resolveCode(decodedText);
+      }, 450);
     }
 
     const scanConfig = { fps: 20, qrbox: { width: 280, height: 130 }, disableFlip: true };
@@ -315,7 +335,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
           if (cancelled) {
             // The sheet closed while this attempt was still resolving —
             // shut down the camera we just opened instead of leaking it.
-            instance.stop().catch(() => {}).finally(() => instance.clear());
+            safeStop(instance).finally(() => instance.clear());
             return;
           }
           activeScanner = instance;
@@ -340,12 +360,15 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
 
     return () => {
       cancelled = true;
+      // onDecoded may already have stopped (and be mid-lookup on) this exact
+      // instance — that's the crash this used to hit: stop() throws
+      // synchronously when called on an already-stopped scanner, and that
+      // throw happened during cleanup with nothing to catch it. Only stop
+      // it here if this cleanup is the first thing to do so.
+      const alreadyStopped = stopped;
       stopped = true;
-      if (activeScanner) {
-        activeScanner
-          .stop()
-          .catch(() => {})
-          .finally(() => activeScanner.clear());
+      if (activeScanner && !alreadyStopped) {
+        safeStop(activeScanner).finally(() => activeScanner.clear());
       }
       setStatus("scanning");
     };
@@ -419,6 +442,16 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
           </div>
         </div>
 
+        {status === "detected" && (
+          <div className="flex-1 flex flex-col items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-black flex items-center justify-center mb-4">
+              <Check size={26} className="text-white" />
+            </div>
+            <p className="text-black font-semibold text-sm">Barcode detected</p>
+            {detectedCode && <p className="text-black/40 text-xs font-mono mt-1">{detectedCode}</p>}
+          </div>
+        )}
+
         {status === "looking-up" && (
           <div className="flex-1 flex flex-col items-center justify-center">
             <div className="w-10 h-10 border-2 border-black/20 border-t-black rounded-full animate-spin mb-4" />
@@ -462,7 +495,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
 
         {status === "not-found" && (
           <div className="flex-1 px-5 pb-6">
-            <p className="text-black/50 text-sm text-center mb-5">{error}</p>
+            <p className="text-black/50 text-sm text-center mb-5 whitespace-pre-line">{error}</p>
             <p className="text-black/30 text-xs tracking-wide mb-2">ADD IT MANUALLY — PER 100G</p>
             <div className="space-y-2.5">
               <TextInput
