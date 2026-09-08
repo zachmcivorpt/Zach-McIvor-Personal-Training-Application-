@@ -2348,7 +2348,11 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   // Coach-added and barcode-discovered foods (db.customFoods) are searched
   // alongside the static built-in database — they're what "save to food
   // library" from a barcode scan/manual entry is actually for.
-  const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE];
+  const customFoodIds = new Set((db.customFoods || []).map((f) => f.id));
+  // A built-in food the coach has imported into customFoods (editable,
+  // maybe with a photo now) replaces the static entry rather than
+  // duplicating it — same id, so the imported version simply wins.
+  const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
   const filteredFoods = allFoods.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
 
   function addAndClose(food) {

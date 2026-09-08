@@ -3,7 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { Card, BottomSheet, Field, TextInput, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { fileToCompressedDataUrl } from "../lib/image";
-import { Plus, Search, Apple, Trash2, Camera } from "lucide-react";
+import { Plus, Search, Apple, Trash2, Camera, Download } from "lucide-react";
 
 function emptyFood() {
   return { name: "", cals: "", protein: "", carbs: "", fat: "", imageUrl: "" };
@@ -129,24 +129,58 @@ function FoodSheet({ food, open, onClose, showToast }) {
 }
 
 export default function CoachFoodLibrary({ showToast }) {
-  const { db } = useApp();
+  const { db, importBuiltInFoods } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | food | null
   const [search, setSearch] = useState("");
+  const [importing, setImporting] = useState(false);
   const customFoods = db.customFoods || [];
+  const customIds = new Set(customFoods.map((f) => f.id));
+  // Once a built-in food is imported it becomes a real, editable customFoods
+  // doc with the same id — drop it from the read-only list below so it
+  // doesn't show up twice (editable version above, locked version below).
+  const remainingBuiltIn = FOOD_DATABASE.filter((f) => !customIds.has(f.id));
 
   const q = search.toLowerCase();
   const filteredCustom = customFoods.filter((f) => f.name.toLowerCase().includes(q));
-  const filteredBase = FOOD_DATABASE.filter((f) => f.name.toLowerCase().includes(q));
+  const filteredBase = remainingBuiltIn.filter((f) => f.name.toLowerCase().includes(q));
+
+  async function handleImport() {
+    setImporting(true);
+    try {
+      const { importedCount } = await importBuiltInFoods();
+      showToast(
+        importedCount === 0
+          ? "Already imported — nothing new to add"
+          : `Imported ${importedCount} built-in food${importedCount === 1 ? "" : "s"} — now fully editable`
+      );
+    } catch (err) {
+      showToast(err.message || "Couldn't import the built-in foods");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
-      <div className="flex items-center justify-between gap-3 mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <p className="text-black/40 text-sm">
-          {customFoods.length} custom · {FOOD_DATABASE.length} built-in
+          {customFoods.length} custom · {remainingBuiltIn.length} built-in not yet imported
         </p>
-        <button onClick={() => setEditing({ isNew: true })} aria-label="Add food" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
-          <Plus size={16} /> <span className="hidden sm:inline">ADD FOOD</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {remainingBuiltIn.length > 0 && (
+            <button
+              onClick={handleImport}
+              disabled={importing}
+              title="Turns every built-in food into a real, editable entry (add a photo, fix macros) here in your library"
+              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 disabled:opacity-50 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "MAKE BUILT-INS EDITABLE"}</span>
+            </button>
+          )}
+          <button onClick={() => setEditing({ isNew: true })} aria-label="Add food" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
+            <Plus size={16} /> <span className="hidden sm:inline">ADD FOOD</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
@@ -186,7 +220,11 @@ export default function CoachFoodLibrary({ showToast }) {
         </>
       )}
 
-      <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">BUILT-IN LIBRARY</p>
+      {filteredBase.length > 0 && (
+        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">
+          BUILT-IN LIBRARY — READ-ONLY UNTIL IMPORTED
+        </p>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
         {filteredBase.map((f) => (
           <Card key={f.id}>

@@ -26,6 +26,7 @@ import {
 import { auth, db as firestore } from "./firebase";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
+import { FOOD_DATABASE } from "./foodDatabase";
 import { COACH_SETUP_CODE } from "./config";
 import { localDateKey } from "./dateKey";
 
@@ -1479,6 +1480,28 @@ export function AppProvider({ children }) {
       },
       deleteFood(id) {
         deleteDoc(doc(firestore, "customFoods", id)).catch(console.error);
+      },
+
+      // Turns the static built-in food list into real, editable Firestore
+      // docs (same collection as custom foods, same ids as FOOD_DATABASE)
+      // so a coach can add a photo or correct macros on a food that used
+      // to be locked. Only writes the ones not already imported, so
+      // running it again after editing an imported food never reverts
+      // that edit — it just picks up any built-ins added since last time.
+      async importBuiltInFoods() {
+        const existingIds = new Set((db.customFoods || []).map((f) => f.id));
+        const toImport = FOOD_DATABASE.filter((f) => !existingIds.has(f.id));
+        if (toImport.length === 0) return { importedCount: 0 };
+        try {
+          for (let i = 0; i < toImport.length; i += 400) {
+            const batch = writeBatch(firestore);
+            toImport.slice(i, i + 400).forEach((food) => batch.set(doc(firestore, "customFoods", food.id), food));
+            await batch.commit();
+          }
+        } catch (err) {
+          throw new Error("Couldn't import the built-in foods — " + (err.message || "please try again."));
+        }
+        return { importedCount: toImport.length };
       },
 
       // Habit presets — the master suggestion list offered when adding a
