@@ -379,7 +379,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -430,7 +430,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -481,7 +481,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -532,7 +532,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -583,7 +583,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -1297,7 +1297,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -1348,7 +1348,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -1399,7 +1399,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -1450,7 +1450,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -1501,7 +1501,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -2164,7 +2164,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -2215,7 +2215,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -2266,7 +2266,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -2317,7 +2317,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -2368,7 +2368,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -3082,7 +3082,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -3133,7 +3133,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -3184,7 +3184,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -3235,7 +3235,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -3286,7 +3286,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -3949,7 +3949,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -4000,7 +4000,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -4051,7 +4051,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -4102,7 +4102,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -4153,7 +4153,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -4867,7 +4867,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -4918,7 +4918,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -4969,7 +4969,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -5020,7 +5020,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -5071,7 +5071,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -5734,7 +5734,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -5785,7 +5785,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -5836,7 +5836,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -5887,7 +5887,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -5938,7 +5938,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -6652,7 +6652,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -6703,7 +6703,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -6754,7 +6754,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -6805,7 +6805,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -6856,7 +6856,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -7519,7 +7519,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -7570,7 +7570,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -7621,7 +7621,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -7672,7 +7672,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -7723,7 +7723,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 200,
-        "name": "White Potato (baked) (200g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (200g)",
         "cals": 186,
         "protein": 5,
         "carbs": 42,
@@ -8834,7 +8834,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 150,
-        "name": "White Potato (baked) (150g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (150g)",
         "cals": 140,
         "protein": 3.8,
         "carbs": 31.5,
@@ -9395,7 +9395,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 220,
-        "name": "Sweet Potato (baked) (220g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (220g)",
         "cals": 198,
         "protein": 4.4,
         "carbs": 46.2,
@@ -9539,7 +9539,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v06",
         "grams": 220,
-        "name": "White Potato (baked) (220g)",
+        "name": "White Potato (baked) — Coles Brushed Potatoes (220g)",
         "cals": 205,
         "protein": 5.5,
         "carbs": 46.2,
@@ -9725,7 +9725,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 220,
-        "name": "Sweet Potato (baked) (220g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (220g)",
         "cals": 198,
         "protein": 4.4,
         "carbs": 46.2,
@@ -9902,7 +9902,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 200,
-        "name": "Sweet Potato (baked) (200g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
         "cals": 180,
         "protein": 4,
         "carbs": 42,
@@ -9953,7 +9953,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v11",
         "grams": 50,
-        "name": "Tomato (raw) (50g)",
+        "name": "Tomato (raw) — Coles Tomatoes (50g)",
         "cals": 9,
         "protein": 0.5,
         "carbs": 2,
@@ -9962,7 +9962,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v22",
         "grams": 20,
-        "name": "Lettuce (raw) (20g)",
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (20g)",
         "cals": 3,
         "protein": 0.3,
         "carbs": 0.6,
@@ -10022,7 +10022,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v14",
         "grams": 20,
-        "name": "Onion (raw) (20g)",
+        "name": "Onion (raw) — Coles Brown Onions (20g)",
         "cals": 8,
         "protein": 0.2,
         "carbs": 1.8,
@@ -10031,7 +10031,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s01",
         "grams": 15,
-        "name": "Tomato Sauce / Ketchup (15g)",
+        "name": "Tomato Sauce / Ketchup — Rosella Tomato Sauce (15g)",
         "cals": 17,
         "protein": 0.2,
         "carbs": 3.9,
@@ -10073,7 +10073,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "bk15",
         "grams": 30,
-        "name": "Breadcrumbs (30g)",
+        "name": "Breadcrumbs — Coles Breadcrumbs (30g)",
         "cals": 119,
         "protein": 3.9,
         "carbs": 21.6,
@@ -10091,7 +10091,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v22",
         "grams": 20,
-        "name": "Lettuce (raw) (20g)",
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (20g)",
         "cals": 3,
         "protein": 0.3,
         "carbs": 0.6,
@@ -10100,7 +10100,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s04",
         "grams": 10,
-        "name": "Mayonnaise (10g)",
+        "name": "Mayonnaise — Praise Whole Egg Mayonnaise (10g)",
         "cals": 68,
         "protein": 0.1,
         "carbs": 0.1,
@@ -10142,7 +10142,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "bk15",
         "grams": 30,
-        "name": "Breadcrumbs (30g)",
+        "name": "Breadcrumbs — Coles Breadcrumbs (30g)",
         "cals": 119,
         "protein": 3.9,
         "carbs": 21.6,
@@ -10151,7 +10151,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v21",
         "grams": 40,
-        "name": "Cabbage (raw) (40g)",
+        "name": "Cabbage (raw) — Coles Cabbage (40g)",
         "cals": 10,
         "protein": 0.5,
         "carbs": 2.4,
@@ -10160,7 +10160,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s04",
         "grams": 10,
-        "name": "Mayonnaise (10g)",
+        "name": "Mayonnaise — Praise Whole Egg Mayonnaise (10g)",
         "cals": 68,
         "protein": 0.1,
         "carbs": 0.1,
@@ -10220,7 +10220,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v54",
         "grams": 15,
-        "name": "Pickles / Gherkins (15g)",
+        "name": "Pickles / Gherkins — Coles Sliced Gherkins (15g)",
         "cals": 2,
         "protein": 0,
         "carbs": 0.3,
@@ -10229,7 +10229,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s01",
         "grams": 10,
-        "name": "Tomato Sauce / Ketchup (10g)",
+        "name": "Tomato Sauce / Ketchup — Rosella Tomato Sauce (10g)",
         "cals": 11,
         "protein": 0.1,
         "carbs": 2.6,
@@ -10238,7 +10238,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s05",
         "grams": 5,
-        "name": "Mustard (5g)",
+        "name": "Mustard — Masterfoods Dijon Mustard (5g)",
         "cals": 3,
         "protein": 0.2,
         "carbs": 0.3,
@@ -10289,7 +10289,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s02",
         "grams": 15,
-        "name": "BBQ Sauce (15g)",
+        "name": "BBQ Sauce — Masterfoods BBQ Sauce (15g)",
         "cals": 26,
         "protein": 0.2,
         "carbs": 6,
@@ -10331,7 +10331,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v33",
         "grams": 40,
-        "name": "Fennel (40g)",
+        "name": "Fennel — Coles Fennel (40g)",
         "cals": 12,
         "protein": 0.5,
         "carbs": 2.8,
@@ -10349,7 +10349,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s12",
         "grams": 10,
-        "name": "Sweet Chilli Sauce (10g)",
+        "name": "Sweet Chilli Sauce — Trident Sweet Chilli Sauce (10g)",
         "cals": 21,
         "protein": 0.1,
         "carbs": 5.2,
@@ -10373,7 +10373,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "m28",
         "grams": 150,
-        "name": "Lamb Mince (150g)",
+        "name": "Lamb Mince — Coles Australian Lamb Mince (150g)",
         "cals": 381,
         "protein": 30,
         "carbs": 0,
@@ -10391,7 +10391,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s21",
         "grams": 30,
-        "name": "Tzatziki (30g)",
+        "name": "Tzatziki — Coles Tzatziki Dip (30g)",
         "cals": 25,
         "protein": 1.1,
         "carbs": 1.2,
@@ -10400,7 +10400,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v11",
         "grams": 40,
-        "name": "Tomato (raw) (40g)",
+        "name": "Tomato (raw) — Coles Tomatoes (40g)",
         "cals": 7,
         "protein": 0.4,
         "carbs": 1.6,
@@ -10451,7 +10451,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v22",
         "grams": 15,
-        "name": "Lettuce (raw) (15g)",
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (15g)",
         "cals": 2,
         "protein": 0.2,
         "carbs": 0.4,
@@ -10493,7 +10493,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s21",
         "grams": 25,
-        "name": "Tzatziki (25g)",
+        "name": "Tzatziki — Coles Tzatziki Dip (25g)",
         "cals": 21,
         "protein": 1,
         "carbs": 1,
@@ -10502,7 +10502,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v22",
         "grams": 15,
-        "name": "Lettuce (raw) (15g)",
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (15g)",
         "cals": 2,
         "protein": 0.2,
         "carbs": 0.4,
@@ -10544,7 +10544,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v11",
         "grams": 40,
-        "name": "Tomato (raw) (40g)",
+        "name": "Tomato (raw) — Coles Tomatoes (40g)",
         "cals": 7,
         "protein": 0.4,
         "carbs": 1.6,
@@ -10553,7 +10553,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s04",
         "grams": 10,
-        "name": "Mayonnaise (10g)",
+        "name": "Mayonnaise — Praise Whole Egg Mayonnaise (10g)",
         "cals": 68,
         "protein": 0.1,
         "carbs": 0.1,
@@ -10586,7 +10586,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d26",
         "grams": 50,
-        "name": "Halloumi (50g)",
+        "name": "Halloumi — Coles Cypriot Style Haloumi (50g)",
         "cals": 161,
         "protein": 10.5,
         "carbs": 1,
@@ -10664,7 +10664,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v14",
         "grams": 30,
-        "name": "Onion (raw) (30g)",
+        "name": "Onion (raw) — Coles Brown Onions (30g)",
         "cals": 12,
         "protein": 0.3,
         "carbs": 2.7,
@@ -10673,7 +10673,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s22",
         "grams": 30,
-        "name": "Guacamole (30g)",
+        "name": "Guacamole — Coles Guacamole (30g)",
         "cals": 45,
         "protein": 0.6,
         "carbs": 2.4,
@@ -10682,7 +10682,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s10",
         "grams": 30,
-        "name": "Salsa (30g)",
+        "name": "Salsa — Old El Paso Salsa (30g)",
         "cals": 11,
         "protein": 0.5,
         "carbs": 2.1,
@@ -10715,7 +10715,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s25",
         "grams": 20,
-        "name": "Curry Paste (20g)",
+        "name": "Curry Paste — Coles Curry Paste (20g)",
         "cals": 26,
         "protein": 0.6,
         "carbs": 3,
@@ -10724,7 +10724,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "n14",
         "grams": 100,
-        "name": "Coconut Milk (canned) (100ml)",
+        "name": "Coconut Milk (canned) — Ayam Coconut Milk (100ml)",
         "cals": 230,
         "protein": 2.3,
         "carbs": 6,
@@ -10784,7 +10784,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v17",
         "grams": 50,
-        "name": "Peas (cooked) (50g)",
+        "name": "Peas (cooked) — Birds Eye Peas (50g)",
         "cals": 42,
         "protein": 2.7,
         "carbs": 7,
@@ -10793,7 +10793,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v47",
         "grams": 10,
-        "name": "Spring Onion / Scallion (10g)",
+        "name": "Spring Onion / Scallion — Coles Spring Onions (10g)",
         "cals": 3,
         "protein": 0.2,
         "carbs": 0.7,
@@ -10802,7 +10802,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s03",
         "grams": 15,
-        "name": "Soy Sauce (15g)",
+        "name": "Soy Sauce — Kikkoman Soy Sauce (15g)",
         "cals": 8,
         "protein": 1.2,
         "carbs": 0.8,
@@ -10853,7 +10853,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s19",
         "grams": 15,
-        "name": "Oyster Sauce (15g)",
+        "name": "Oyster Sauce — Lee Kum Kee Oyster Sauce (15g)",
         "cals": 8,
         "protein": 0.2,
         "carbs": 1.7,
@@ -10862,7 +10862,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s03",
         "grams": 10,
-        "name": "Soy Sauce (10g)",
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
         "cals": 5,
         "protein": 0.8,
         "carbs": 0.5,
@@ -10922,7 +10922,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s12",
         "grams": 20,
-        "name": "Sweet Chilli Sauce (20g)",
+        "name": "Sweet Chilli Sauce — Trident Sweet Chilli Sauce (20g)",
         "cals": 42,
         "protein": 0.1,
         "carbs": 10.4,
@@ -10946,7 +10946,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g18",
         "grams": 200,
-        "name": "Rice Noodles (cooked) (200g)",
+        "name": "Rice Noodles (cooked) — Fantastic Rice Noodles (200g)",
         "cals": 218,
         "protein": 1.8,
         "carbs": 50,
@@ -10973,7 +10973,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "l20",
         "grams": 60,
-        "name": "Bean Sprouts (60g)",
+        "name": "Bean Sprouts — Coles Bean Sprouts (60g)",
         "cals": 18,
         "protein": 1.8,
         "carbs": 3.6,
@@ -10982,7 +10982,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s18",
         "grams": 10,
-        "name": "Fish Sauce (10g)",
+        "name": "Fish Sauce — Squid Brand Fish Sauce (10g)",
         "cals": 4,
         "protein": 0.5,
         "carbs": 0.4,
@@ -10991,7 +10991,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "n04",
         "grams": 15,
-        "name": "Peanuts (15g)",
+        "name": "Peanuts — Coles Dry Roasted Peanuts (15g)",
         "cals": 85,
         "protein": 3.9,
         "carbs": 2.4,
@@ -11033,7 +11033,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v11",
         "grams": 50,
-        "name": "Tomato (raw) (50g)",
+        "name": "Tomato (raw) — Coles Tomatoes (50g)",
         "cals": 9,
         "protein": 0.5,
         "carbs": 2,
@@ -11042,7 +11042,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v10",
         "grams": 50,
-        "name": "Cucumber (raw) (50g)",
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (50g)",
         "cals": 8,
         "protein": 0.4,
         "carbs": 1.8,
@@ -11051,7 +11051,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s21",
         "grams": 30,
-        "name": "Tzatziki (30g)",
+        "name": "Tzatziki — Coles Tzatziki Dip (30g)",
         "cals": 25,
         "protein": 1.1,
         "carbs": 1.2,
@@ -11111,7 +11111,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s10",
         "grams": 30,
-        "name": "Salsa (30g)",
+        "name": "Salsa — Old El Paso Salsa (30g)",
         "cals": 11,
         "protein": 0.5,
         "carbs": 2.1,
@@ -11171,7 +11171,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v14",
         "grams": 30,
-        "name": "Onion (raw) (30g)",
+        "name": "Onion (raw) — Coles Brown Onions (30g)",
         "cals": 12,
         "protein": 0.3,
         "carbs": 2.7,
@@ -11240,7 +11240,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s10",
         "grams": 30,
-        "name": "Salsa (30g)",
+        "name": "Salsa — Old El Paso Salsa (30g)",
         "cals": 11,
         "protein": 0.5,
         "carbs": 2.1,
@@ -11291,7 +11291,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s06",
         "grams": 15,
-        "name": "Honey (15g)",
+        "name": "Honey — Capilano Honey (15g)",
         "cals": 46,
         "protein": 0,
         "carbs": 12.3,
@@ -11300,7 +11300,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s03",
         "grams": 10,
-        "name": "Soy Sauce (10g)",
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
         "cals": 5,
         "protein": 0.8,
         "carbs": 0.5,
@@ -11309,7 +11309,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v31",
         "grams": 80,
-        "name": "Bok Choy (steamed) (80g)",
+        "name": "Bok Choy (steamed) — Coles Baby Bok Choy (80g)",
         "cals": 10,
         "protein": 1.2,
         "carbs": 1,
@@ -11342,7 +11342,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g46",
         "grams": 180,
-        "name": "Soba Noodles (cooked) (180g)",
+        "name": "Soba Noodles (cooked) — Obento Soba Noodles (180g)",
         "cals": 178,
         "protein": 9,
         "carbs": 37.8,
@@ -11351,7 +11351,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v49",
         "grams": 5,
-        "name": "Chilli Pepper (raw) (5g)",
+        "name": "Chilli Pepper (raw) — Coles Long Red Chilli (5g)",
         "cals": 2,
         "protein": 0.1,
         "carbs": 0.5,
@@ -11360,7 +11360,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s03",
         "grams": 10,
-        "name": "Soy Sauce (10g)",
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
         "cals": 5,
         "protein": 0.8,
         "carbs": 0.5,
@@ -11369,7 +11369,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v47",
         "grams": 10,
-        "name": "Spring Onion / Scallion (10g)",
+        "name": "Spring Onion / Scallion — Coles Spring Onions (10g)",
         "cals": 3,
         "protein": 0.2,
         "carbs": 0.7,
@@ -11420,7 +11420,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s03",
         "grams": 15,
-        "name": "Soy Sauce (15g)",
+        "name": "Soy Sauce — Kikkoman Soy Sauce (15g)",
         "cals": 8,
         "protein": 1.2,
         "carbs": 0.8,
@@ -11429,7 +11429,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s15",
         "grams": 10,
-        "name": "Sriracha (10g)",
+        "name": "Sriracha — Flying Goose Sriracha (10g)",
         "cals": 9,
         "protein": 0.2,
         "carbs": 1.9,
@@ -11471,7 +11471,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s03",
         "grams": 10,
-        "name": "Soy Sauce (10g)",
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
         "cals": 5,
         "protein": 0.8,
         "carbs": 0.5,
@@ -11480,7 +11480,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s06",
         "grams": 15,
-        "name": "Honey (15g)",
+        "name": "Honey — Capilano Honey (15g)",
         "cals": 46,
         "protein": 0,
         "carbs": 12.3,
@@ -11489,7 +11489,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v18",
         "grams": 50,
-        "name": "Corn (cooked) (50g)",
+        "name": "Corn (cooked) — Coles Corn Cobettes (50g)",
         "cals": 48,
         "protein": 1.7,
         "carbs": 10.5,
@@ -11531,7 +11531,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v47",
         "grams": 15,
-        "name": "Spring Onion / Scallion (15g)",
+        "name": "Spring Onion / Scallion — Coles Spring Onions (15g)",
         "cals": 5,
         "protein": 0.3,
         "carbs": 1.1,
@@ -11540,7 +11540,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s03",
         "grams": 15,
-        "name": "Soy Sauce (15g)",
+        "name": "Soy Sauce — Kikkoman Soy Sauce (15g)",
         "cals": 8,
         "protein": 1.2,
         "carbs": 0.8,
@@ -11549,7 +11549,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "bk10",
         "grams": 10,
-        "name": "Brown Sugar (10g)",
+        "name": "Brown Sugar — CSR Brown Sugar (10g)",
         "cals": 38,
         "protein": 0,
         "carbs": 9.8,
@@ -11591,7 +11591,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v22",
         "grams": 30,
-        "name": "Lettuce (raw) (30g)",
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (30g)",
         "cals": 5,
         "protein": 0.4,
         "carbs": 0.9,
@@ -11600,7 +11600,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d23",
         "grams": 10,
-        "name": "Parmesan Cheese (10g)",
+        "name": "Parmesan Cheese — Coles Grated Parmesan (10g)",
         "cals": 43,
         "protein": 3.8,
         "carbs": 0.4,
@@ -11609,7 +11609,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s30",
         "grams": 10,
-        "name": "Aioli (10g)",
+        "name": "Aioli — Coles Aioli (10g)",
         "cals": 69,
         "protein": 0.1,
         "carbs": 0.2,
@@ -11660,7 +11660,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v10",
         "grams": 30,
-        "name": "Cucumber (raw) (30g)",
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (30g)",
         "cals": 5,
         "protein": 0.2,
         "carbs": 1.1,
@@ -11684,7 +11684,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "m04",
         "grams": 80,
-        "name": "Turkey Breast (80g)",
+        "name": "Turkey Breast — Ingham's Turkey Breast (80g)",
         "cals": 108,
         "protein": 24,
         "carbs": 0,
@@ -11711,7 +11711,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v22",
         "grams": 15,
-        "name": "Lettuce (raw) (15g)",
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (15g)",
         "cals": 2,
         "protein": 0.2,
         "carbs": 0.4,
@@ -11795,7 +11795,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v11",
         "grams": 50,
-        "name": "Tomato (raw) (50g)",
+        "name": "Tomato (raw) — Coles Tomatoes (50g)",
         "cals": 9,
         "protein": 0.5,
         "carbs": 2,
@@ -11804,7 +11804,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v22",
         "grams": 20,
-        "name": "Lettuce (raw) (20g)",
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (20g)",
         "cals": 3,
         "protein": 0.3,
         "carbs": 0.6,
@@ -11813,7 +11813,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g10",
         "grams": 70,
-        "name": "White Bread (70g)",
+        "name": "White Bread — Tip Top White Bread (70g)",
         "cals": 186,
         "protein": 6.3,
         "carbs": 34.3,
@@ -11822,7 +11822,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s04",
         "grams": 10,
-        "name": "Mayonnaise (10g)",
+        "name": "Mayonnaise — Praise Whole Egg Mayonnaise (10g)",
         "cals": 68,
         "protein": 0.1,
         "carbs": 0.1,
@@ -11873,7 +11873,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s01",
         "grams": 10,
-        "name": "Tomato Sauce / Ketchup (10g)",
+        "name": "Tomato Sauce / Ketchup — Rosella Tomato Sauce (10g)",
         "cals": 11,
         "protein": 0.1,
         "carbs": 2.6,
@@ -11906,7 +11906,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g11",
         "grams": 80,
-        "name": "Sourdough Bread (80g)",
+        "name": "Sourdough Bread — Coles Bakery Sourdough (80g)",
         "cals": 219,
         "protein": 7.2,
         "carbs": 42.4,
@@ -11915,7 +11915,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v14",
         "grams": 30,
-        "name": "Onion (raw) (30g)",
+        "name": "Onion (raw) — Coles Brown Onions (30g)",
         "cals": 12,
         "protein": 0.3,
         "carbs": 2.7,
@@ -11924,7 +11924,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s02",
         "grams": 10,
-        "name": "BBQ Sauce (10g)",
+        "name": "BBQ Sauce — Masterfoods BBQ Sauce (10g)",
         "cals": 17,
         "protein": 0.1,
         "carbs": 4,
@@ -11957,7 +11957,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "m13",
         "grams": 60,
-        "name": "Ham (deli slices) (60g)",
+        "name": "Ham (deli slices) — Coles Shaved Leg Ham (60g)",
         "cals": 64,
         "protein": 10.8,
         "carbs": 1.2,
@@ -11984,7 +11984,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d13",
         "grams": 5,
-        "name": "Butter (5g)",
+        "name": "Butter — Western Star Butter (5g)",
         "cals": 36,
         "protein": 0,
         "carbs": 0,
@@ -12035,7 +12035,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v12",
         "grams": 40,
-        "name": "Cherry Tomatoes (40g)",
+        "name": "Cherry Tomatoes — Coles Cherry Tomatoes (40g)",
         "cals": 7,
         "protein": 0.4,
         "carbs": 1.6,
@@ -12077,7 +12077,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "bk15",
         "grams": 25,
-        "name": "Breadcrumbs (25g)",
+        "name": "Breadcrumbs — Coles Breadcrumbs (25g)",
         "cals": 99,
         "protein": 3.3,
         "carbs": 18,
@@ -12086,7 +12086,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g11",
         "grams": 80,
-        "name": "Sourdough Bread (80g)",
+        "name": "Sourdough Bread — Coles Bakery Sourdough (80g)",
         "cals": 219,
         "protein": 7.2,
         "carbs": 42.4,
@@ -12104,7 +12104,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s04",
         "grams": 10,
-        "name": "Mayonnaise (10g)",
+        "name": "Mayonnaise — Praise Whole Egg Mayonnaise (10g)",
         "cals": 68,
         "protein": 0.1,
         "carbs": 0.1,
@@ -12155,7 +12155,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s04",
         "grams": 10,
-        "name": "Mayonnaise (10g)",
+        "name": "Mayonnaise — Praise Whole Egg Mayonnaise (10g)",
         "cals": 68,
         "protein": 0.1,
         "carbs": 0.1,
@@ -12188,7 +12188,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s09",
         "grams": 8,
-        "name": "Vegemite (8g)",
+        "name": "Vegemite — Bega Vegemite (8g)",
         "cals": 14,
         "protein": 2,
         "carbs": 1.3,
@@ -12339,7 +12339,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g48",
         "grams": 30,
-        "name": "Granola (30g)",
+        "name": "Granola — Carman's Granola (30g)",
         "cals": 141,
         "protein": 3,
         "carbs": 19.2,
@@ -12389,7 +12389,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s07",
         "grams": 15,
-        "name": "Maple Syrup (15g)",
+        "name": "Maple Syrup — Coles Maple Flavoured Syrup (15g)",
         "cals": 39,
         "protein": 0,
         "carbs": 10,
@@ -12667,7 +12667,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g23",
         "grams": 50,
-        "name": "Muesli (50g)",
+        "name": "Muesli — Carman's Muesli (50g)",
         "cals": 188,
         "protein": 5,
         "carbs": 33,
@@ -12726,7 +12726,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d12",
         "grams": 30,
-        "name": "Cream Cheese (30g)",
+        "name": "Cream Cheese — Philadelphia Cream Cheese (30g)",
         "cals": 103,
         "protein": 1.8,
         "carbs": 1.2,
@@ -12904,7 +12904,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "bk12",
         "grams": 10,
-        "name": "Cocoa Powder (10g)",
+        "name": "Cocoa Powder — Cadbury Cocoa (10g)",
         "cals": 23,
         "protein": 2,
         "carbs": 5.8,
@@ -12995,7 +12995,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k01",
         "grams": 15,
-        "name": "Dark Chocolate (70%) (15g)",
+        "name": "Dark Chocolate (70%) — Lindt Dark Chocolate (15g)",
         "cals": 90,
         "protein": 1.2,
         "carbs": 6.9,
@@ -13027,7 +13027,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "bk12",
         "grams": 10,
-        "name": "Cocoa Powder (10g)",
+        "name": "Cocoa Powder — Cadbury Cocoa (10g)",
         "cals": 23,
         "protein": 2,
         "carbs": 5.8,
@@ -13082,7 +13082,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "p03",
         "grams": 60,
-        "name": "Protein Bar (generic) (60g)",
+        "name": "Protein Bar (generic) — Vital Strength Protein Bar (60g)",
         "cals": 210,
         "protein": 18,
         "carbs": 21,
@@ -13128,7 +13128,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "p04",
         "grams": 30,
-        "name": "Casein Protein Powder (30g)",
+        "name": "Casein Protein Powder — Woolworths Macro Casein Protein (30g)",
         "cals": 110,
         "protein": 24,
         "carbs": 3,
@@ -13137,7 +13137,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d30",
         "grams": 150,
-        "name": "Custard (150g)",
+        "name": "Custard — Nestlé Custard (150g)",
         "cals": 183,
         "protein": 5.6,
         "carbs": 25.5,
@@ -13178,7 +13178,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k01",
         "grams": 10,
-        "name": "Dark Chocolate (70%) (10g)",
+        "name": "Dark Chocolate (70%) — Lindt Dark Chocolate (10g)",
         "cals": 60,
         "protein": 0.8,
         "carbs": 4.6,
@@ -13270,7 +13270,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k01",
         "grams": 15,
-        "name": "Dark Chocolate (70%) (15g)",
+        "name": "Dark Chocolate (70%) — Lindt Dark Chocolate (15g)",
         "cals": 90,
         "protein": 1.2,
         "carbs": 6.9,
@@ -13293,7 +13293,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k16",
         "grams": 20,
-        "name": "Jelly / Gummy Lollies (20g)",
+        "name": "Jelly / Gummy Lollies — Allen's Party Mix (20g)",
         "cals": 69,
         "protein": 1.4,
         "carbs": 15.8,
@@ -13316,7 +13316,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k03",
         "grams": 25,
-        "name": "Potato Chips (25g)",
+        "name": "Potato Chips — Smith's Chips (25g)",
         "cals": 134,
         "protein": 1.8,
         "carbs": 13.3,
@@ -13339,7 +13339,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k11",
         "grams": 20,
-        "name": "Rice Crackers (20g)",
+        "name": "Rice Crackers — Sakata Rice Crackers (20g)",
         "cals": 77,
         "protein": 1.4,
         "carbs": 16.2,
@@ -13362,7 +13362,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k13",
         "grams": 30,
-        "name": "Trail Mix (30g)",
+        "name": "Trail Mix — Coles Deluxe Trail Mix (30g)",
         "cals": 139,
         "protein": 4.2,
         "carbs": 13.2,
@@ -13385,7 +13385,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k12",
         "grams": 25,
-        "name": "Yoghurt-Coated Nuts (25g)",
+        "name": "Yoghurt-Coated Nuts — Coles Yoghurt Coated Almonds (25g)",
         "cals": 120,
         "protein": 3,
         "carbs": 11.3,
@@ -13408,7 +13408,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k14",
         "grams": 80,
-        "name": "Gelato (80g)",
+        "name": "Gelato — Bulla Gelato (80g)",
         "cals": 144,
         "protein": 3.2,
         "carbs": 20.8,
@@ -13431,7 +13431,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k29",
         "grams": 20,
-        "name": "Meringue (20g)",
+        "name": "Meringue — Coles Mini Meringues (20g)",
         "cals": 76,
         "protein": 1.1,
         "carbs": 18,
@@ -13454,7 +13454,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g25",
         "grams": 20,
-        "name": "Popcorn (air-popped) (20g)",
+        "name": "Popcorn (air-popped) — Cobs Popcorn (20g)",
         "cals": 77,
         "protein": 2.6,
         "carbs": 15.6,
@@ -13477,7 +13477,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k35",
         "grams": 30,
-        "name": "Chocolate-Coated Almonds (30g)",
+        "name": "Chocolate-Coated Almonds — Coles Chocolate Coated Almonds (30g)",
         "cals": 156,
         "protein": 3.6,
         "carbs": 12.6,
@@ -13500,7 +13500,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k30",
         "grams": 20,
-        "name": "Licorice (20g)",
+        "name": "Licorice — Darrell Lea Liquorice (20g)",
         "cals": 65,
         "protein": 0.8,
         "carbs": 15.8,
@@ -13523,7 +13523,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "k18",
         "grams": 45,
-        "name": "Nut Bar (date-based) (45g)",
+        "name": "Nut Bar (date-based) — Nice & Natural Fruit & Nut Bar (45g)",
         "cals": 180,
         "protein": 3.6,
         "carbs": 24.8,
@@ -13615,7 +13615,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d15",
         "grams": 60,
-        "name": "Ricotta Cheese (60g)",
+        "name": "Ricotta Cheese — Coles Ricotta (60g)",
         "cals": 104,
         "protein": 6.6,
         "carbs": 1.8,
@@ -13633,7 +13633,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v11",
         "grams": 100,
-        "name": "Tomato (raw) (100g)",
+        "name": "Tomato (raw) — Coles Tomatoes (100g)",
         "cals": 18,
         "protein": 0.9,
         "carbs": 3.9,
@@ -13675,7 +13675,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d14",
         "grams": 40,
-        "name": "Sour Cream (40g)",
+        "name": "Sour Cream — Coles Sour Cream (40g)",
         "cals": 79,
         "protein": 1,
         "carbs": 1.8,
@@ -13735,7 +13735,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v15",
         "grams": 80,
-        "name": "Mushrooms (raw) (80g)",
+        "name": "Mushrooms (raw) — Coles Mushrooms (80g)",
         "cals": 18,
         "protein": 2.5,
         "carbs": 2.6,
@@ -13744,7 +13744,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d23",
         "grams": 15,
-        "name": "Parmesan Cheese (15g)",
+        "name": "Parmesan Cheese — Coles Grated Parmesan (15g)",
         "cals": 65,
         "protein": 5.7,
         "carbs": 0.6,
@@ -13888,7 +13888,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g42",
         "grams": 180,
-        "name": "Macaroni (cooked) (180g)",
+        "name": "Macaroni (cooked) — San Remo Macaroni (180g)",
         "cals": 230,
         "protein": 8.1,
         "carbs": 45,
@@ -13999,7 +13999,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v17",
         "grams": 60,
-        "name": "Peas (cooked) (60g)",
+        "name": "Peas (cooked) — Birds Eye Peas (60g)",
         "cals": 50,
         "protein": 3.2,
         "carbs": 8.4,
@@ -14008,7 +14008,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d23",
         "grams": 15,
-        "name": "Parmesan Cheese (15g)",
+        "name": "Parmesan Cheese — Coles Grated Parmesan (15g)",
         "cals": 65,
         "protein": 5.7,
         "carbs": 0.6,
@@ -14068,7 +14068,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s10",
         "grams": 20,
-        "name": "Salsa (20g)",
+        "name": "Salsa — Old El Paso Salsa (20g)",
         "cals": 7,
         "protein": 0.3,
         "carbs": 1.4,
@@ -14110,7 +14110,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v10",
         "grams": 50,
-        "name": "Cucumber (raw) (50g)",
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (50g)",
         "cals": 8,
         "protein": 0.4,
         "carbs": 1.8,
@@ -14119,7 +14119,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v57",
         "grams": 5,
-        "name": "Seaweed / Nori (5g)",
+        "name": "Seaweed / Nori — Obento Nori Sheets (5g)",
         "cals": 2,
         "protein": 0.3,
         "carbs": 0.3,
@@ -14128,7 +14128,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s03",
         "grams": 10,
-        "name": "Soy Sauce (10g)",
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
         "cals": 5,
         "protein": 0.8,
         "carbs": 0.5,
@@ -14161,7 +14161,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "f03",
         "grams": 150,
-        "name": "Tuna Steak (150g)",
+        "name": "Tuna Steak — Coles Tuna Steaks (150g)",
         "cals": 276,
         "protein": 45,
         "carbs": 0,
@@ -14179,7 +14179,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v10",
         "grams": 50,
-        "name": "Cucumber (raw) (50g)",
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (50g)",
         "cals": 8,
         "protein": 0.4,
         "carbs": 1.8,
@@ -14188,7 +14188,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v18",
         "grams": 40,
-        "name": "Corn (cooked) (40g)",
+        "name": "Corn (cooked) — Coles Corn Cobettes (40g)",
         "cals": 38,
         "protein": 1.4,
         "carbs": 8.4,
@@ -14197,7 +14197,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s15",
         "grams": 10,
-        "name": "Sriracha (10g)",
+        "name": "Sriracha — Flying Goose Sriracha (10g)",
         "cals": 9,
         "protein": 0.2,
         "carbs": 1.9,
@@ -14239,7 +14239,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v52",
         "grams": 20,
-        "name": "Olives (green) (20g)",
+        "name": "Olives (green) — Coles Pitted Green Olives (20g)",
         "cals": 29,
         "protein": 0.2,
         "carbs": 0.8,
@@ -14248,7 +14248,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v10",
         "grams": 60,
-        "name": "Cucumber (raw) (60g)",
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (60g)",
         "cals": 9,
         "protein": 0.4,
         "carbs": 2.2,
@@ -14257,7 +14257,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v11",
         "grams": 60,
-        "name": "Tomato (raw) (60g)",
+        "name": "Tomato (raw) — Coles Tomatoes (60g)",
         "cals": 11,
         "protein": 0.5,
         "carbs": 2.3,
@@ -14299,7 +14299,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v22",
         "grams": 60,
-        "name": "Lettuce (raw) (60g)",
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (60g)",
         "cals": 9,
         "protein": 0.8,
         "carbs": 1.7,
@@ -14308,7 +14308,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d23",
         "grams": 15,
-        "name": "Parmesan Cheese (15g)",
+        "name": "Parmesan Cheese — Coles Grated Parmesan (15g)",
         "cals": 65,
         "protein": 5.7,
         "carbs": 0.6,
@@ -14317,7 +14317,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g11",
         "grams": 30,
-        "name": "Sourdough Bread (30g)",
+        "name": "Sourdough Bread — Coles Bakery Sourdough (30g)",
         "cals": 82,
         "protein": 2.7,
         "carbs": 15.9,
@@ -14326,7 +14326,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s30",
         "grams": 15,
-        "name": "Aioli (15g)",
+        "name": "Aioli — Coles Aioli (15g)",
         "cals": 104,
         "protein": 0.2,
         "carbs": 0.3,
@@ -14401,7 +14401,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d26",
         "grams": 60,
-        "name": "Halloumi (60g)",
+        "name": "Halloumi — Coles Cypriot Style Haloumi (60g)",
         "cals": 193,
         "protein": 12.6,
         "carbs": 1.2,
@@ -14410,7 +14410,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v24",
         "grams": 100,
-        "name": "Pumpkin (roasted) (100g)",
+        "name": "Pumpkin (roasted) — Coles Kent Pumpkin (100g)",
         "cals": 26,
         "protein": 1,
         "carbs": 7,
@@ -14470,7 +14470,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v12",
         "grams": 60,
-        "name": "Cherry Tomatoes (60g)",
+        "name": "Cherry Tomatoes — Coles Cherry Tomatoes (60g)",
         "cals": 11,
         "protein": 0.5,
         "carbs": 2.3,
@@ -14479,7 +14479,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s14",
         "grams": 10,
-        "name": "Balsamic Vinegar (10g)",
+        "name": "Balsamic Vinegar — Coles Balsamic Vinegar (10g)",
         "cals": 9,
         "protein": 0.1,
         "carbs": 1.7,
@@ -14530,7 +14530,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v10",
         "grams": 50,
-        "name": "Cucumber (raw) (50g)",
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (50g)",
         "cals": 8,
         "protein": 0.4,
         "carbs": 1.8,
@@ -14572,7 +14572,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v12",
         "grams": 60,
-        "name": "Cherry Tomatoes (60g)",
+        "name": "Cherry Tomatoes — Coles Cherry Tomatoes (60g)",
         "cals": 11,
         "protein": 0.5,
         "carbs": 2.3,
@@ -14581,7 +14581,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v14",
         "grams": 20,
-        "name": "Onion (raw) (20g)",
+        "name": "Onion (raw) — Coles Brown Onions (20g)",
         "cals": 8,
         "protein": 0.2,
         "carbs": 1.8,
@@ -14765,7 +14765,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d20",
         "grams": 200,
-        "name": "Soy Milk (200ml)",
+        "name": "Soy Milk — Vitasoy Soy Milk (200ml)",
         "cals": 66,
         "protein": 6.6,
         "carbs": 3.6,
@@ -14956,7 +14956,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d21",
         "grams": 150,
-        "name": "Oat Milk (150ml)",
+        "name": "Oat Milk — Oatly Oat Milk (150ml)",
         "cals": 71,
         "protein": 1.5,
         "carbs": 11.3,
@@ -14979,7 +14979,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "p04",
         "grams": 30,
-        "name": "Casein Protein Powder (30g)",
+        "name": "Casein Protein Powder — Woolworths Macro Casein Protein (30g)",
         "cals": 110,
         "protein": 24,
         "carbs": 3,
@@ -15011,7 +15011,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "p02",
         "grams": 30,
-        "name": "Plant Protein Powder (30g)",
+        "name": "Plant Protein Powder — Macro Plant Protein (30g)",
         "cals": 113,
         "protein": 21,
         "carbs": 3.9,
@@ -15029,7 +15029,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d20",
         "grams": 200,
-        "name": "Soy Milk (200ml)",
+        "name": "Soy Milk — Vitasoy Soy Milk (200ml)",
         "cals": 66,
         "protein": 6.6,
         "carbs": 3.6,
@@ -15088,7 +15088,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "g48",
         "grams": 20,
-        "name": "Granola (20g)",
+        "name": "Granola — Carman's Granola (20g)",
         "cals": 94,
         "protein": 2,
         "carbs": 12.8,
@@ -15129,7 +15129,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v10",
         "grams": 50,
-        "name": "Cucumber (raw) (50g)",
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (50g)",
         "cals": 8,
         "protein": 0.4,
         "carbs": 1.8,
@@ -15138,7 +15138,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s21",
         "grams": 30,
-        "name": "Tzatziki (30g)",
+        "name": "Tzatziki — Coles Tzatziki Dip (30g)",
         "cals": 25,
         "protein": 1.1,
         "carbs": 1.2,
@@ -15180,7 +15180,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v14",
         "grams": 40,
-        "name": "Onion (raw) (40g)",
+        "name": "Onion (raw) — Coles Brown Onions (40g)",
         "cals": 16,
         "protein": 0.4,
         "carbs": 3.6,
@@ -15222,7 +15222,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v24",
         "grams": 120,
-        "name": "Pumpkin (roasted) (120g)",
+        "name": "Pumpkin (roasted) — Coles Kent Pumpkin (120g)",
         "cals": 31,
         "protein": 1.2,
         "carbs": 8.4,
@@ -15231,7 +15231,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v20",
         "grams": 100,
-        "name": "Brussels Sprouts (steamed) (100g)",
+        "name": "Brussels Sprouts (steamed) — Coles Brussels Sprouts (100g)",
         "cals": 43,
         "protein": 3.4,
         "carbs": 9,
@@ -15315,7 +15315,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "bk15",
         "grams": 30,
-        "name": "Breadcrumbs (30g)",
+        "name": "Breadcrumbs — Coles Breadcrumbs (30g)",
         "cals": 119,
         "protein": 3.9,
         "carbs": 21.6,
@@ -15324,7 +15324,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v11",
         "grams": 60,
-        "name": "Tomato (raw) (60g)",
+        "name": "Tomato (raw) — Coles Tomatoes (60g)",
         "cals": 11,
         "protein": 0.5,
         "carbs": 2.3,
@@ -15333,7 +15333,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "d10",
         "grams": 30,
-        "name": "Mozzarella Cheese (30g)",
+        "name": "Mozzarella Cheese — Coles Mozzarella Cheese Block (30g)",
         "cals": 84,
         "protein": 8.4,
         "carbs": 0.9,
@@ -15375,7 +15375,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s06",
         "grams": 15,
-        "name": "Honey (15g)",
+        "name": "Honey — Capilano Honey (15g)",
         "cals": 46,
         "protein": 0,
         "carbs": 12.3,
@@ -15384,7 +15384,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s05",
         "grams": 10,
-        "name": "Mustard (10g)",
+        "name": "Mustard — Masterfoods Dijon Mustard (10g)",
         "cals": 7,
         "protein": 0.4,
         "carbs": 0.5,
@@ -15393,7 +15393,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 150,
-        "name": "Sweet Potato (baked) (150g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (150g)",
         "cals": 135,
         "protein": 3,
         "carbs": 31.5,
@@ -15402,7 +15402,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v20",
         "grams": 100,
-        "name": "Brussels Sprouts (steamed) (100g)",
+        "name": "Brussels Sprouts (steamed) — Coles Brussels Sprouts (100g)",
         "cals": 43,
         "protein": 3.4,
         "carbs": 9,
@@ -15435,7 +15435,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s25",
         "grams": 20,
-        "name": "Curry Paste (20g)",
+        "name": "Curry Paste — Coles Curry Paste (20g)",
         "cals": 26,
         "protein": 0.6,
         "carbs": 3,
@@ -15444,7 +15444,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "n14",
         "grams": 100,
-        "name": "Coconut Milk (canned) (100ml)",
+        "name": "Coconut Milk (canned) — Ayam Coconut Milk (100ml)",
         "cals": 230,
         "protein": 2.3,
         "carbs": 6,
@@ -15486,7 +15486,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s25",
         "grams": 15,
-        "name": "Curry Paste (15g)",
+        "name": "Curry Paste — Coles Curry Paste (15g)",
         "cals": 20,
         "protein": 0.5,
         "carbs": 2.3,
@@ -15546,7 +15546,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 150,
-        "name": "Sweet Potato (baked) (150g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (150g)",
         "cals": 135,
         "protein": 3,
         "carbs": 31.5,
@@ -15588,7 +15588,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "v05",
         "grams": 100,
-        "name": "Sweet Potato (baked) (100g)",
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (100g)",
         "cals": 90,
         "protein": 2,
         "carbs": 21,
@@ -15597,7 +15597,7 @@ export const FITNESS_MEALS_AU = [
       {
         "baseFoodId": "s10",
         "grams": 20,
-        "name": "Salsa (20g)",
+        "name": "Salsa — Old El Paso Salsa (20g)",
         "cals": 7,
         "protein": 0.3,
         "carbs": 1.4,

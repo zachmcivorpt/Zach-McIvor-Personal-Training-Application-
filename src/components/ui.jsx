@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { X, Check, Camera, Dumbbell, Video, Play, Search } from "lucide-react";
-import { SURFACE, SURFACE_RAISED, BORDER, ACCENT, MEASURE_BLUE } from "../theme";
+import { SURFACE, SURFACE_RAISED, BORDER, ACCENT, MEASURE_BLUE, GOAL_GREEN } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
@@ -367,6 +367,41 @@ export function ProgressBar({ value, max, height = 8, dim = false, color }) {
         style={{ width: `${pct}%`, height, backgroundColor: color || (dim ? "rgba(10,10,11,0.5)" : ACCENT) }}
       />
     </div>
+  );
+}
+
+// A little glass that visibly fills with blue water as a client logs
+// intake (+250ml, +500ml, custom) — the fill line eases up smoothly on
+// every log so it reads as "pouring in" rather than jumping, and it never
+// rises past the rim: any amount beyond `max` still just reads as a full
+// glass, it doesn't overflow the drawing.
+export function WaterCup({ value, max, size = 56 }) {
+  const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
+  const full = pct >= 1;
+  const topY = 8;
+  const baseY = 76;
+  const fillY = baseY - pct * (baseY - topY);
+  const cupPath = "M13 8 L51 8 L44.5 74 Q44 78 39.5 78 L24.5 78 Q20 78 19.5 74 Z";
+  return (
+    <svg width={size} height={Math.round(size * (86 / 64))} viewBox="0 0 64 86" className="shrink-0" aria-hidden="true">
+      <defs>
+        <clipPath id="waterCupClip">
+          <path d={cupPath} />
+        </clipPath>
+      </defs>
+      <g clipPath="url(#waterCupClip)">
+        <rect x="0" y="0" width="64" height="86" fill="rgba(10,10,11,0.04)" />
+        <rect
+          x="0"
+          y={fillY}
+          width="64"
+          height={86 - fillY}
+          fill={full ? GOAL_GREEN : MEASURE_BLUE}
+          style={{ transition: "y 0.7s cubic-bezier(0.22,1,0.36,1), height 0.7s cubic-bezier(0.22,1,0.36,1), fill 0.4s ease" }}
+        />
+      </g>
+      <path d={cupPath} fill="none" stroke="rgba(10,10,11,0.35)" strokeWidth="2.5" strokeLinejoin="round" />
+    </svg>
   );
 }
 

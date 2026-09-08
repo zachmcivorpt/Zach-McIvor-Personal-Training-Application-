@@ -77,6 +77,7 @@ import {
   Card,
   Pill,
   ProgressBar,
+  WaterCup,
   BottomSheet,
   Toast,
   FullScreenOverlay,
@@ -518,23 +519,20 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
           </div>
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t-2 border-black/10">
-        <div className="flex items-center gap-3 mb-1.5">
-          {logged.water >= targets.water ? (
-            <Droplets size={16} className="text-black shrink-0" />
-          ) : (
-            <GlassWater size={16} className="text-black/50 shrink-0" />
-          )}
-          <span className="text-black/70 text-sm flex-1">
-            Water: <span className="font-semibold text-black">{logged.water}L</span> / {targets.water}L
-          </span>
+      <div className="mt-4 pt-4 border-t-2 border-black/10 flex items-center gap-3">
+        <WaterCup value={logged.water} max={targets.water} size={36} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            {logged.water >= targets.water ? (
+              <Droplets size={16} className="text-black shrink-0" />
+            ) : (
+              <GlassWater size={16} className="text-black/50 shrink-0" />
+            )}
+            <span className="text-black/70 text-sm">
+              Water: <span className="font-semibold text-black">{logged.water}L</span> / {targets.water}L
+            </span>
+          </div>
         </div>
-        <ProgressBar
-          value={logged.water}
-          max={targets.water}
-          height={6}
-          color={logged.water >= targets.water ? GOAL_GREEN : MEASURE_BLUE}
-        />
       </div>
       {isToday && (
         <div className="flex gap-2 mt-4">
@@ -2576,25 +2574,22 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 
       <div className="px-3 mt-4">
         <Card>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-black font-semibold flex items-center gap-2">
-              {nutrition.water >= targets.water ? (
-                <Droplets size={16} className="text-black" />
-              ) : (
-                <GlassWater size={16} className="text-black/60" />
-              )}{" "}
-              Water
-            </p>
-            <span className="text-black/50 text-sm">
-              {nutrition.water}L / {targets.water}L
-            </span>
+          <div className="flex items-center gap-4">
+            <WaterCup value={nutrition.water} max={targets.water} size={52} />
+            <div className="flex-1 min-w-0">
+              <p className="text-black font-semibold flex items-center gap-2">
+                {nutrition.water >= targets.water ? (
+                  <Droplets size={16} className="text-black" />
+                ) : (
+                  <GlassWater size={16} className="text-black/60" />
+                )}{" "}
+                Water
+              </p>
+              <p className="text-black/50 text-sm mt-0.5">
+                <span className="text-black font-semibold">{nutrition.water}L</span> / {targets.water}L
+              </p>
+            </div>
           </div>
-          <ProgressBar
-          value={nutrition.water}
-          max={targets.water}
-          height={6}
-          color={nutrition.water >= targets.water ? GOAL_GREEN : MEASURE_BLUE}
-        />
           <div className="flex gap-2 mt-3">
             <button
               onClick={() => onAddWater(0.25)}
