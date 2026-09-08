@@ -7,6 +7,14 @@ import { lookupBarcode } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 
+// Ingredient macros already carry their own rounding, but summing several
+// of them (each already rounded to 1dp) drifts into floating-point noise
+// like 15.899999999999999 — round the running total too, not just each
+// input, so every macro stat shown to a coach or client is clean to 1dp.
+function round1(n) {
+  return Math.round(n * 10) / 10;
+}
+
 /* ============================================================================
    FOOD QUANTITY PICKER — pick how many grams of a food-database item was
    eaten, scaling its per-100g macros live. Shared by every place a food gets
@@ -538,10 +546,11 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
     setStatus("build");
   }
 
-  const totals = ingredients.reduce(
+  const rawTotals = ingredients.reduce(
     (a, i) => ({ cals: a.cals + i.cals, protein: a.protein + i.protein, carbs: a.carbs + i.carbs, fat: a.fat + i.fat }),
     { cals: 0, protein: 0, carbs: 0, fat: 0 }
   );
+  const totals = { cals: Math.round(rawTotals.cals), protein: round1(rawTotals.protein), carbs: round1(rawTotals.carbs), fat: round1(rawTotals.fat) };
 
   const filtered = FOOD_DATABASE.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -759,10 +768,11 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
     }
   }, [open, prefill]);
 
-  const totals = ingredients.reduce(
+  const rawTotals = ingredients.reduce(
     (a, i) => ({ cals: a.cals + i.cals, protein: a.protein + i.protein, carbs: a.carbs + i.carbs, fat: a.fat + i.fat }),
     { cals: 0, protein: 0, carbs: 0, fat: 0 }
   );
+  const totals = { cals: Math.round(rawTotals.cals), protein: round1(rawTotals.protein), carbs: round1(rawTotals.carbs), fat: round1(rawTotals.fat) };
 
   const filtered = FOOD_DATABASE.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
 

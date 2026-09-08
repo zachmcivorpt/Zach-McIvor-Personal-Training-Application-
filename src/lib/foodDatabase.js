@@ -259,6 +259,7 @@ export const FOOD_DATABASE = [
   { id: "v58", name: "Sweet Potato Fries (baked)", cals: 150, protein: 2, carbs: 23, fat: 5.4, per: 100, defaultQty: 150 },
   { id: "v59", name: "Potato Wedges (baked)", cals: 175, protein: 2.7, carbs: 26, fat: 6.7, per: 100, defaultQty: 150 },
   { id: "v60", name: "Vegetable Stir-Fry Mix", cals: 40, protein: 2, carbs: 7, fat: 0.5, per: 100, defaultQty: 150 },
+  { id: "v61", name: "Mixed Salad Leaves", cals: 15, protein: 1.4, carbs: 2.9, fat: 0.2, per: 100, defaultQty: 60, units: ["cup"] },
 
   // --- Fruits ---
   { id: "r01", name: "Banana", cals: 89, protein: 1.1, carbs: 23, fat: 0.3, per: 100, defaultQty: 118, customUnit: { label: "banana", pluralLabel: "bananas", grams: 118 } },

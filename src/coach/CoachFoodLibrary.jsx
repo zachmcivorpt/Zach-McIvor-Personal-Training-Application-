@@ -229,9 +229,13 @@ export default function CoachFoodLibrary({ showToast }) {
         {filteredBase.map((f) => (
           <Card key={f.id}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-black/8 flex items-center justify-center shrink-0">
-                <Apple size={16} className="text-black/40" />
-              </div>
+              {f.imageUrl ? (
+                <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-black/8 flex items-center justify-center shrink-0">
+                  <Apple size={16} className="text-black/40" />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-black font-semibold text-sm truncate">{f.name}</p>
                 <p className="text-black/40 text-xs truncate mt-0.5">

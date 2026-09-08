@@ -1463,6 +1463,34 @@ export function AppProvider({ children }) {
       // pattern as importBuiltInFoods — only writes meals not already
       // imported (matched by their stable au_meal_NNN id), so re-running
       // it never reverts a photo or macro edit already made to one.
+      // Same "paste Name | URL, match by name" bulk pattern as
+      // bulkImportExerciseVideos — lets a big batch of sourced meal
+      // photos be applied in one paste instead of one at a time through
+      // the per-meal camera button.
+      async bulkImportMealPhotos(pairs) {
+        const matched = [];
+        const unmatched = [];
+        (pairs || []).forEach(({ name, url }) => {
+          const target = (name || "").trim().toLowerCase();
+          const meal = (db.masterMeals || []).find((m) => (m.name || "").trim().toLowerCase() === target);
+          if (meal && url) matched.push({ id: meal.id, url: url.trim() });
+          else unmatched.push(name);
+        });
+        if (matched.length > 0) {
+          try {
+            for (let i = 0; i < matched.length; i += 400) {
+              const chunk = matched.slice(i, i + 400);
+              const batch = writeBatch(firestore);
+              chunk.forEach(({ id, url }) => batch.update(doc(firestore, "masterMeals", id), { photoUrl: url }));
+              await batch.commit();
+            }
+          } catch (err) {
+            throw new Error("Couldn't import photos — " + (err.message || "please try again."));
+          }
+        }
+        return { matchedCount: matched.length, unmatched };
+      },
+
       async importFitnessMealsAU() {
         const existingIds = new Set((db.masterMeals || []).map((m) => m.id));
         const toImport = FITNESS_MEALS_AU.filter((m) => !existingIds.has(m.id));

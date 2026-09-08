@@ -1,9 +1,86 @@
 import React, { useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, SecondaryButton, DangerButton } from "../components/ui";
+import { Card, SecondaryButton, DangerButton, BottomSheet, TextArea, PrimaryButton } from "../components/ui";
 import { CreateMealSheet } from "../client/NutritionFeatures";
 import { fileToCompressedDataUrl } from "../lib/image";
-import { Plus, Utensils, Trash2, Camera, Download } from "lucide-react";
+import { Plus, Utensils, Trash2, Camera, Download, Image as ImageIcon } from "lucide-react";
+
+// Same "paste Name | URL, match by name" bulk pattern as the exercise
+// library's Import Video List — for pasting a big batch of sourced meal
+// photos in one go instead of one at a time via the per-meal camera button.
+function ImportMealPhotosSheet({ open, onClose, showToast }) {
+  const { bulkImportMealPhotos } = useApp();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null); // { matchedCount, unmatched } | null
+
+  function close() {
+    setText("");
+    setResult(null);
+    onClose();
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    const raw = text || e.currentTarget.photos?.value || "";
+    const pairs = raw
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const i = line.indexOf("|");
+        if (i === -1) return null;
+        return { name: line.slice(0, i).trim(), url: line.slice(i + 1).trim() };
+      })
+      .filter(Boolean);
+    if (pairs.length === 0) {
+      showToast("Add at least one line as: Meal Name | photo URL");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await bulkImportMealPhotos(pairs);
+      setResult(res);
+      if (res.matchedCount > 0) showToast(`Updated ${res.matchedCount} meal${res.matchedCount === 1 ? "" : "s"}`);
+    } catch (err) {
+      showToast(err.message || "Couldn't import photos");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onClose={close} title="Import Meal Photos">
+      <form onSubmit={submit} className="space-y-4">
+        <p className="text-black/40 text-xs">
+          One meal per line: <span className="font-mono text-black/60">Meal Name | photo URL</span>. Names are matched
+          exactly (case-insensitive) against your Meal Library.
+        </p>
+        <TextArea
+          rows={10}
+          name="photos"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={"Chicken Breast & Brown Rice with Spinach | https://...\nSalmon & Basmati Rice with Broccoli | https://..."}
+          className="font-mono text-xs"
+        />
+        {result && (
+          <div className="bg-black/5 border border-black/10 rounded-xl px-3.5 py-3 text-sm space-y-1.5">
+            <p className="text-black font-semibold">
+              Matched {result.matchedCount} of {result.matchedCount + result.unmatched.length}
+            </p>
+            {result.unmatched.length > 0 && (
+              <p className="text-black/50 text-xs">No exact name match for: {result.unmatched.join(", ")}</p>
+            )}
+          </div>
+        )}
+        <PrimaryButton type="submit" className="w-full" disabled={busy}>
+          {busy ? "IMPORTING…" : "IMPORT PHOTOS"}
+        </PrimaryButton>
+      </form>
+    </BottomSheet>
+  );
+}
 
 // A meal's photo is attached separately from the ingredient builder (its
 // own small upload button on the card) rather than inside CreateMealSheet
@@ -55,6 +132,7 @@ export default function CoachMealLibrary({ showToast }) {
   const [editing, setEditing] = useState(null); // { isNew: true } | meal | null
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [importPhotosOpen, setImportPhotosOpen] = useState(false);
   const meals = db.masterMeals || [];
 
   function handleSave(data) {
@@ -96,6 +174,13 @@ export default function CoachMealLibrary({ showToast }) {
             className="flex items-center gap-2 bg-black/8 hover:bg-black/15 disabled:opacity-50 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
             <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "IMPORT 200 AU MEALS"}</span>
+          </button>
+          <button
+            onClick={() => setImportPhotosOpen(true)}
+            title="Paste a Meal Name | photo URL list to bulk-add photos, same as Import Video List for exercises"
+            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+          >
+            <ImageIcon size={16} /> <span className="hidden sm:inline">IMPORT PHOTOS</span>
           </button>
           <button
             onClick={() => setEditing({ isNew: true })}
@@ -176,6 +261,8 @@ export default function CoachMealLibrary({ showToast }) {
           </div>
         </div>
       )}
+
+      <ImportMealPhotosSheet open={importPhotosOpen} onClose={() => setImportPhotosOpen(false)} showToast={showToast} />
     </div>
   );
 }

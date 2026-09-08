@@ -28,7 +28,12 @@ function dayTotals(day, mealsById) {
       total.fat += m.fat || 0;
     });
   });
-  return total;
+  return {
+    cals: Math.round(total.cals),
+    protein: Math.round(total.protein * 10) / 10,
+    carbs: Math.round(total.carbs * 10) / 10,
+    fat: Math.round(total.fat * 10) / 10,
+  };
 }
 
 function MealPickerSheet({ open, onClose, onPick, meals }) {
