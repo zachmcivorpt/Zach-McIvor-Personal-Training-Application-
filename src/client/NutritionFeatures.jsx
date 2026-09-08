@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine } from "lucide-react";
-import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
+import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
@@ -755,6 +755,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   const [name, setName] = useState("");
   const [ingredients, setIngredients] = useState([]);
   const [mealTypes, setMealTypes] = useState([]);
+  const [instructions, setInstructions] = useState("");
   const [search, setSearch] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
@@ -766,6 +767,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
       setName(prefill?.name || "");
       setIngredients(prefill?.ingredients?.map((i) => ({ ...i, id: i.id || `ing_${Math.random().toString(36).slice(2, 8)}` })) || []);
       setMealTypes(prefill?.mealTypes || []);
+      setInstructions(prefill?.instructions || "");
       setSearch("");
       setManualOpen(false);
       setBarcodeOpen(false);
@@ -802,7 +804,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
 
   function save() {
     if (!name.trim() || ingredients.length === 0) return;
-    onSave({ name: name.trim(), ingredients, mealTypes, ...totals });
+    onSave({ name: name.trim(), ingredients, mealTypes, instructions: instructions.trim(), ...totals });
   }
 
   return (
@@ -832,6 +834,15 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
           </div>
         </Field>
       )}
+
+      <Field label="HOW TO PREPARE (OPTIONAL)" hint="Shown to the client when they tap this meal in their plan">
+        <TextArea
+          rows={4}
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder={"1. Cook the chicken breast until done...\n2. ..."}
+        />
+      </Field>
 
       {ingredients.length > 0 && (
         <div className="mt-4 space-y-1.5">

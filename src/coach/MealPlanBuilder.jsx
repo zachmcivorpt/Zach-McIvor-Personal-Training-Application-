@@ -298,6 +298,32 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
     if (activeWeek >= lastIdx) selectWeek(lastIdx - 1);
   }
 
+  // Copies the active week's meals into a brand new week appended to the
+  // plan — e.g. build Week 1 once, then repeat it across the rest of a
+  // 4-week plan instead of rebuilding each week from scratch.
+  function duplicateWeek() {
+    if (weeksCount >= MAX_WEEKS) {
+      showToast(`Plans can only go up to ${MAX_WEEKS} weeks`);
+      return;
+    }
+    const sourceWeekLabel = activeWeek + 1;
+    const newIndex = weeksCount;
+    const newDays = daysInActiveWeek.map((d, i) => {
+      const wd = d.weekdayIndex ?? i;
+      return {
+        id: `day_${Date.now()}_${newIndex}_${i}_${Math.random().toString(36).slice(2, 7)}`,
+        label: DAY_NAMES[wd % 7],
+        weekIndex: newIndex,
+        weekdayIndex: wd,
+        meals: JSON.parse(JSON.stringify(d.meals)),
+        autoSlots: {},
+      };
+    });
+    setDays((list) => [...list, ...newDays]);
+    selectWeek(newIndex);
+    showToast(`Duplicated Week ${sourceWeekLabel} into new Week ${newIndex + 1}`);
+  }
+
   function updateActiveDay(fn) {
     setDays((list) => list.map((d) => (d.id === activeDay.id ? fn(d) : d)));
   }
@@ -563,6 +589,14 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
               className="text-black/40 hover:text-black/70 text-xs font-semibold px-2.5 py-2 rounded-lg"
             >
               Label as Mon–Sun
+            </button>
+            <button
+              onClick={duplicateWeek}
+              disabled={weeksCount >= MAX_WEEKS}
+              title="Copy this week's meals into a brand new week"
+              className="flex items-center gap-1 text-black/40 hover:text-black/70 disabled:opacity-30 text-xs font-semibold px-2.5 py-2 rounded-lg"
+            >
+              <Copy size={12} /> Duplicate Week
             </button>
           </div>
           <button

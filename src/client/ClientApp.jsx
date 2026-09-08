@@ -2374,6 +2374,70 @@ function SwapMealSheet({ open, onClose, meal, alternatives, onPick }) {
   );
 }
 
+// Tapping a meal in "My Meal Plan" opens this instead of logging it
+// immediately — shows the full ingredient breakdown and how-to-prepare
+// notes, with logging as an explicit action from here (or via the quick
+// "+" on the row itself).
+function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
+  if (!open || !meal) return null;
+  return (
+    <div className="fixed inset-0 z-[130] bg-black/40 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 pt-5 pb-1 shrink-0">
+          <p className="text-black font-semibold truncate pr-3">{meal.name}</p>
+          <button onClick={onClose} className="text-black/50 shrink-0">
+            <X size={20} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 pb-5">
+          {meal.photoUrl && <img src={meal.photoUrl} alt="" className="w-full h-40 object-cover rounded-2xl mt-3" />}
+
+          <div className="grid grid-cols-4 gap-2 bg-black/[0.03] border border-black/8 rounded-2xl p-3.5 mt-4">
+            {[
+              ["Cals", meal.cals],
+              ["Protein", `${meal.protein}g`],
+              ["Carbs", `${meal.carbs}g`],
+              ["Fat", `${meal.fat}g`],
+            ].map(([l, v]) => (
+              <div key={l} className="text-center">
+                <p className="text-black font-bold text-sm">{v}</p>
+                <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
+              </div>
+            ))}
+          </div>
+
+          {meal.ingredients?.length > 0 && (
+            <div className="mt-4">
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">INGREDIENTS</p>
+              <div className="space-y-1">
+                {meal.ingredients.map((ing, i) => (
+                  <div key={i} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-3 py-2">
+                    <p className="text-black text-sm truncate pr-2">{ing.name}</p>
+                    <p className="text-black/40 text-xs shrink-0">{ing.cals} kcal</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4">
+            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">HOW TO PREPARE</p>
+            {meal.instructions ? (
+              <p className="text-black/70 text-sm whitespace-pre-line leading-relaxed">{meal.instructions}</p>
+            ) : (
+              <p className="text-black/30 text-sm">No preparation notes added for this meal.</p>
+            )}
+          </div>
+
+          <PrimaryButton className="w-full mt-5" onClick={() => onLog(meal, slot)}>
+            <Plus size={16} /> LOG THIS MEAL
+          </PrimaryButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
   const { db, currentUser, swapMealPlanMeal } = useApp();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -2445,6 +2509,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   const [mealPlanDayId, setMealPlanDayId] = useState(null);
   const mealPlanDay = mealPlan ? daysInActiveWeek.find((d) => d.id === mealPlanDayId) || daysInActiveWeek[0] : null;
   const [swapping, setSwapping] = useState(null); // { slot, index, meal } | null
+  const [planMealDetail, setPlanMealDetail] = useState(null); // { meal, slot } | null
   const swapAlternatives = useMemo(() => {
     if (!swapping || !mealPlanDay) return [];
     const usedIds = new Set(Object.values(mealPlanDay.meals || {}).flat());
@@ -2605,16 +2670,23 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                         return (
                           <div key={`${mealId}_${i}`} className="flex items-center gap-1.5">
                             <button
-                              onClick={() => logSavedMeal(m, slot)}
-                              className="flex-1 min-w-0 flex items-center justify-between bg-black/[0.03] rounded-xl px-3 py-2.5 text-left"
+                              onClick={() => setPlanMealDetail({ meal: m, slot })}
+                              className="flex-1 min-w-0 flex items-center gap-2.5 bg-black/[0.03] rounded-xl px-3 py-2.5 text-left"
                             >
-                              <div className="min-w-0">
+                              {m.photoUrl && <img src={m.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
+                              <div className="min-w-0 flex-1">
                                 <p className="text-black text-sm font-medium truncate">{m.name}</p>
                                 <p className="text-black/40 text-xs">
                                   {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                                 </p>
                               </div>
-                              <span className="text-black/40 text-xs font-semibold shrink-0 ml-2">+ LOG</span>
+                            </button>
+                            <button
+                              onClick={() => logSavedMeal(m, slot)}
+                              title="Log this meal now"
+                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-black/[0.03] text-black/40 hover:text-black"
+                            >
+                              <Plus size={14} />
                             </button>
                             <button
                               onClick={() => setSwapping({ slot, index: i, meal: m })}
@@ -2860,6 +2932,17 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         meal={swapping?.meal}
         alternatives={swapAlternatives}
         onPick={confirmSwap}
+      />
+
+      <PlanMealDetailSheet
+        open={!!planMealDetail}
+        onClose={() => setPlanMealDetail(null)}
+        meal={planMealDetail?.meal}
+        slot={planMealDetail?.slot}
+        onLog={(m, slot) => {
+          logSavedMeal(m, slot);
+          setPlanMealDetail(null);
+        }}
       />
     </div>
   );
