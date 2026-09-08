@@ -299,7 +299,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
       setStatus("detected");
       setTimeout(() => {
         if (!cancelled) resolveCode(decodedText);
-      }, 450);
+      }, 250);
     }
 
     const scanConfig = { fps: 20, qrbox: { width: 280, height: 130 }, disableFlip: true };
