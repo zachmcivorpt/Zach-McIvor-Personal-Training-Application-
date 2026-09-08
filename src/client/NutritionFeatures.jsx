@@ -749,9 +749,12 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal }) {
    CREATE MEAL — build a reusable meal from ingredients, save it
 ============================================================================ */
 
-export function CreateMealSheet({ open, onClose, onSave, prefill }) {
+const MEAL_TYPE_OPTIONS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
+
+export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes = false }) {
   const [name, setName] = useState("");
   const [ingredients, setIngredients] = useState([]);
+  const [mealTypes, setMealTypes] = useState([]);
   const [search, setSearch] = useState("");
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
@@ -762,11 +765,16 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
     if (open) {
       setName(prefill?.name || "");
       setIngredients(prefill?.ingredients?.map((i) => ({ ...i, id: i.id || `ing_${Math.random().toString(36).slice(2, 8)}` })) || []);
+      setMealTypes(prefill?.mealTypes || []);
       setSearch("");
       setManualOpen(false);
       setBarcodeOpen(false);
     }
   }, [open, prefill]);
+
+  function toggleMealType(type) {
+    setMealTypes((list) => (list.includes(type) ? list.filter((t) => t !== type) : [...list, type]));
+  }
 
   const rawTotals = ingredients.reduce(
     (a, i) => ({ cals: a.cals + i.cals, protein: a.protein + i.protein, carbs: a.carbs + i.carbs, fat: a.fat + i.fat }),
@@ -794,7 +802,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
 
   function save() {
     if (!name.trim() || ingredients.length === 0) return;
-    onSave({ name: name.trim(), ingredients, ...totals });
+    onSave({ name: name.trim(), ingredients, mealTypes, ...totals });
   }
 
   return (
@@ -802,6 +810,28 @@ export function CreateMealSheet({ open, onClose, onSave, prefill }) {
       <Field label="MEAL NAME">
         <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. My go-to breakfast" />
       </Field>
+
+      {showMealTypes && (
+        <Field label="WHEN SHOULD THIS BE SUGGESTED?" hint="Used by Auto-Build to only suggest this meal for the right slot. Leave all unchecked to allow any time.">
+          <div className="flex flex-wrap gap-2">
+            {MEAL_TYPE_OPTIONS.map((type) => {
+              const active = mealTypes.includes(type);
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => toggleMealType(type)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                    active ? "bg-black text-white" : "bg-black/5 text-black/50"
+                  }`}
+                >
+                  {type}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+      )}
 
       {ingredients.length > 0 && (
         <div className="mt-4 space-y-1.5">

@@ -222,10 +222,13 @@ service cloud.firestore {
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /mealPlans/{id} {
-      // Doc id == clientId. Only the coach assigns/edits a plan; the
-      // client can only ever read their own.
+      // Doc id == clientId. Only the coach creates/deletes a plan; a
+      // client may update() their own doc (used by the "swap this meal"
+      // feature) but can never reassign it to a different clientId.
       allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
-      allow write: if isCoach();
+      allow create, delete: if isCoach();
+      allow update: if isCoach() ||
+        (isSignedIn() && resource.data.clientId == request.auth.uid && request.resource.data.clientId == resource.data.clientId);
     }
     match /scheduledWorkouts/{id} {
       allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);

@@ -39,6 +39,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 491,
     "protein": 52.3,
     "carbs": 41.2,
@@ -76,6 +80,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 499,
     "protein": 53,
@@ -115,6 +123,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 522,
     "protein": 52.5,
     "carbs": 49,
@@ -152,6 +164,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 522,
     "protein": 51.9,
@@ -191,6 +207,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 496,
     "protein": 50.9,
     "carbs": 43.7,
@@ -228,6 +248,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 488,
     "protein": 52,
@@ -267,6 +291,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 496,
     "protein": 52.7,
     "carbs": 41.5,
@@ -304,6 +332,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 507,
     "protein": 52.9,
@@ -343,6 +375,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 507,
     "protein": 52.3,
     "carbs": 49,
@@ -380,6 +416,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 481,
     "protein": 51.3,
@@ -419,6 +459,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 492,
     "protein": 53.2,
     "carbs": 44.2,
@@ -456,6 +500,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 500,
     "protein": 53.9,
@@ -495,6 +543,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 507,
     "protein": 55.5,
     "carbs": 38.5,
@@ -532,6 +584,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 507,
     "protein": 54.9,
@@ -571,6 +627,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 481,
     "protein": 53.9,
     "carbs": 33.2,
@@ -608,6 +668,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 492,
     "protein": 55.7,
@@ -647,6 +711,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 500,
     "protein": 56.4,
     "carbs": 44.5,
@@ -684,6 +752,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 578,
     "protein": 45.5,
@@ -723,6 +795,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 578,
     "protein": 44.9,
     "carbs": 46,
@@ -760,6 +836,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 552,
     "protein": 43.9,
@@ -799,6 +879,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 567,
     "protein": 44.3,
     "carbs": 44.2,
@@ -836,6 +920,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 575,
     "protein": 45,
@@ -875,6 +963,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 575,
     "protein": 45.2,
     "carbs": 44.5,
@@ -912,6 +1004,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 575,
     "protein": 44.6,
@@ -951,6 +1047,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 549,
     "protein": 43.6,
     "carbs": 39.2,
@@ -988,6 +1088,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 552,
     "protein": 44.7,
@@ -1027,6 +1131,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 560,
     "protein": 45.4,
     "carbs": 46,
@@ -1064,6 +1172,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 579,
     "protein": 46.4,
@@ -1103,6 +1215,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 579,
     "protein": 45.8,
     "carbs": 49,
@@ -1140,6 +1256,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 553,
     "protein": 44.8,
@@ -1179,6 +1299,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 552,
     "protein": 47.3,
     "carbs": 33.7,
@@ -1216,6 +1340,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 560,
     "protein": 48,
@@ -1255,6 +1383,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 579,
     "protein": 48.9,
     "carbs": 47.5,
@@ -1292,6 +1424,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 579,
     "protein": 48.3,
@@ -1331,6 +1467,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 553,
     "protein": 47.3,
     "carbs": 42.2,
@@ -1368,6 +1508,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 501,
     "protein": 44.8,
@@ -1407,6 +1551,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 509,
     "protein": 45.5,
     "carbs": 43,
@@ -1444,6 +1592,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 532,
     "protein": 45,
@@ -1483,6 +1635,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 532,
     "protein": 44.4,
     "carbs": 49,
@@ -1520,6 +1676,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 506,
     "protein": 43.4,
@@ -1559,6 +1719,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 498,
     "protein": 44.5,
     "carbs": 39.7,
@@ -1596,6 +1760,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 506,
     "protein": 45.2,
@@ -1635,6 +1803,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 517,
     "protein": 45.4,
     "carbs": 49,
@@ -1672,6 +1844,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 517,
     "protein": 44.8,
@@ -1711,6 +1887,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 491,
     "protein": 43.8,
     "carbs": 43.7,
@@ -1748,6 +1928,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 502,
     "protein": 45.7,
@@ -1787,6 +1971,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 510,
     "protein": 46.4,
     "carbs": 46,
@@ -1824,6 +2012,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 517,
     "protein": 48,
@@ -1863,6 +2055,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 517,
     "protein": 47.4,
     "carbs": 38.5,
@@ -1900,6 +2096,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 491,
     "protein": 46.4,
@@ -1939,6 +2139,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 502,
     "protein": 48.2,
     "carbs": 42.7,
@@ -1976,6 +2180,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 510,
     "protein": 48.9,
@@ -2015,6 +2223,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 539,
     "protein": 50,
     "carbs": 46,
@@ -2052,6 +2264,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 539,
     "protein": 49.4,
@@ -2091,6 +2307,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 513,
     "protein": 48.4,
     "carbs": 40.7,
@@ -2128,6 +2348,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 528,
     "protein": 48.8,
@@ -2167,6 +2391,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 536,
     "protein": 49.5,
     "carbs": 46,
@@ -2204,6 +2432,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 536,
     "protein": 49.7,
@@ -2243,6 +2475,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 536,
     "protein": 49.1,
     "carbs": 44.5,
@@ -2280,6 +2516,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 510,
     "protein": 48.1,
@@ -2319,6 +2559,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 513,
     "protein": 49.2,
     "carbs": 44.2,
@@ -2356,6 +2600,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 521,
     "protein": 49.9,
@@ -2395,6 +2643,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 540,
     "protein": 50.9,
     "carbs": 49,
@@ -2432,6 +2684,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 540,
     "protein": 50.3,
@@ -2471,6 +2727,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 514,
     "protein": 49.3,
     "carbs": 43.7,
@@ -2508,6 +2768,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 513,
     "protein": 51.8,
@@ -2547,6 +2811,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 521,
     "protein": 52.5,
     "carbs": 35.5,
@@ -2584,6 +2852,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 540,
     "protein": 53.4,
@@ -2623,6 +2895,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 540,
     "protein": 52.8,
     "carbs": 47.5,
@@ -2660,6 +2936,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 514,
     "protein": 51.8,
@@ -2699,6 +2979,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 503,
     "protein": 46.3,
     "carbs": 41.2,
@@ -2736,6 +3020,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 511,
     "protein": 47,
@@ -2775,6 +3063,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 534,
     "protein": 46.5,
     "carbs": 49,
@@ -2812,6 +3104,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 534,
     "protein": 45.9,
@@ -2851,6 +3147,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 508,
     "protein": 44.9,
     "carbs": 43.7,
@@ -2888,6 +3188,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 500,
     "protein": 46,
@@ -2927,6 +3231,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 508,
     "protein": 46.7,
     "carbs": 41.5,
@@ -2964,6 +3272,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 519,
     "protein": 46.9,
@@ -3003,6 +3315,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 519,
     "protein": 46.3,
     "carbs": 49,
@@ -3040,6 +3356,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 493,
     "protein": 45.3,
@@ -3079,6 +3399,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 504,
     "protein": 47.2,
     "carbs": 44.2,
@@ -3116,6 +3440,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 512,
     "protein": 47.9,
@@ -3155,6 +3483,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 519,
     "protein": 49.5,
     "carbs": 38.5,
@@ -3192,6 +3524,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 519,
     "protein": 48.9,
@@ -3231,6 +3567,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 493,
     "protein": 47.9,
     "carbs": 33.2,
@@ -3268,6 +3608,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 504,
     "protein": 49.7,
@@ -3307,6 +3651,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 512,
     "protein": 50.4,
     "carbs": 44.5,
@@ -3344,6 +3692,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 486,
     "protein": 36.5,
@@ -3383,6 +3735,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 486,
     "protein": 35.9,
     "carbs": 46,
@@ -3420,6 +3776,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 460,
     "protein": 34.9,
@@ -3459,6 +3819,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 475,
     "protein": 35.3,
     "carbs": 44.2,
@@ -3496,6 +3860,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 483,
     "protein": 36,
@@ -3535,6 +3903,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 483,
     "protein": 36.2,
     "carbs": 44.5,
@@ -3572,6 +3944,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 483,
     "protein": 35.6,
@@ -3611,6 +3987,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 457,
     "protein": 34.6,
     "carbs": 39.2,
@@ -3648,6 +4028,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 460,
     "protein": 35.7,
@@ -3687,6 +4071,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 468,
     "protein": 36.4,
     "carbs": 46,
@@ -3724,6 +4112,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 487,
     "protein": 37.4,
@@ -3763,6 +4155,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 487,
     "protein": 36.8,
     "carbs": 49,
@@ -3800,6 +4196,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 461,
     "protein": 35.8,
@@ -3839,6 +4239,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 460,
     "protein": 38.3,
     "carbs": 33.7,
@@ -3876,6 +4280,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 468,
     "protein": 39,
@@ -3915,6 +4323,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 487,
     "protein": 39.9,
     "carbs": 47.5,
@@ -3952,6 +4364,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 487,
     "protein": 39.3,
@@ -3991,6 +4407,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 461,
     "protein": 38.3,
     "carbs": 42.2,
@@ -4028,6 +4448,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 555,
     "protein": 35.8,
@@ -4067,6 +4491,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 563,
     "protein": 36.5,
     "carbs": 43,
@@ -4104,6 +4532,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 586,
     "protein": 36,
@@ -4143,6 +4575,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 586,
     "protein": 35.4,
     "carbs": 49,
@@ -4180,6 +4616,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 560,
     "protein": 34.4,
@@ -4219,6 +4659,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 552,
     "protein": 35.5,
     "carbs": 39.7,
@@ -4256,6 +4700,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 560,
     "protein": 36.2,
@@ -4295,6 +4743,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 571,
     "protein": 36.4,
     "carbs": 49,
@@ -4332,6 +4784,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 571,
     "protein": 35.8,
@@ -4371,6 +4827,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 545,
     "protein": 34.8,
     "carbs": 43.7,
@@ -4408,6 +4868,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 556,
     "protein": 36.7,
@@ -4447,6 +4911,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 564,
     "protein": 37.4,
     "carbs": 46,
@@ -4484,6 +4952,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 571,
     "protein": 39,
@@ -4523,6 +4995,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 571,
     "protein": 38.4,
     "carbs": 38.5,
@@ -4560,6 +5036,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 545,
     "protein": 37.4,
@@ -4599,6 +5079,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 556,
     "protein": 39.2,
     "carbs": 42.7,
@@ -4636,6 +5120,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 564,
     "protein": 39.9,
@@ -4675,6 +5163,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 403,
     "protein": 37.7,
     "carbs": 46,
@@ -4712,6 +5204,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 403,
     "protein": 37.1,
@@ -4751,6 +5247,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 377,
     "protein": 36.1,
     "carbs": 40.7,
@@ -4788,6 +5288,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 392,
     "protein": 36.5,
@@ -4827,6 +5331,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 400,
     "protein": 37.2,
     "carbs": 46,
@@ -4864,6 +5372,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 400,
     "protein": 37.4,
@@ -4903,6 +5415,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 400,
     "protein": 36.8,
     "carbs": 44.5,
@@ -4940,6 +5456,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 374,
     "protein": 35.8,
@@ -4979,6 +5499,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 377,
     "protein": 36.9,
     "carbs": 44.2,
@@ -5016,6 +5540,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 385,
     "protein": 37.6,
@@ -5055,6 +5583,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 404,
     "protein": 38.6,
     "carbs": 49,
@@ -5092,6 +5624,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 404,
     "protein": 38,
@@ -5131,6 +5667,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 378,
     "protein": 37,
     "carbs": 43.7,
@@ -5168,6 +5708,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 377,
     "protein": 39.5,
@@ -5207,6 +5751,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 385,
     "protein": 40.2,
     "carbs": 35.5,
@@ -5244,6 +5792,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 404,
     "protein": 41.1,
@@ -5283,6 +5835,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 404,
     "protein": 40.5,
     "carbs": 47.5,
@@ -5320,6 +5876,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 378,
     "protein": 39.5,
@@ -5359,6 +5919,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 392,
     "protein": 41.8,
     "carbs": 41.2,
@@ -5396,6 +5960,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 400,
     "protein": 42.5,
@@ -5435,6 +6003,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 423,
     "protein": 42,
     "carbs": 49,
@@ -5472,6 +6044,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 423,
     "protein": 41.4,
@@ -5511,6 +6087,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 397,
     "protein": 40.4,
     "carbs": 43.7,
@@ -5548,6 +6128,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 389,
     "protein": 41.5,
@@ -5587,6 +6171,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 397,
     "protein": 42.2,
     "carbs": 41.5,
@@ -5624,6 +6212,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 408,
     "protein": 42.4,
@@ -5663,6 +6255,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 408,
     "protein": 41.8,
     "carbs": 49,
@@ -5700,6 +6296,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 382,
     "protein": 40.8,
@@ -5739,6 +6339,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 393,
     "protein": 42.7,
     "carbs": 44.2,
@@ -5776,6 +6380,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 401,
     "protein": 43.4,
@@ -5815,6 +6423,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 408,
     "protein": 45,
     "carbs": 38.5,
@@ -5852,6 +6464,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 408,
     "protein": 44.4,
@@ -5891,6 +6507,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 382,
     "protein": 43.4,
     "carbs": 33.2,
@@ -5929,6 +6549,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 393,
     "protein": 45.2,
     "carbs": 42.7,
@@ -5966,6 +6590,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 5
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 401,
     "protein": 45.9,
@@ -6012,6 +6640,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 8
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 533,
     "protein": 51.9,
     "carbs": 44.5,
@@ -6056,6 +6688,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 8
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 599,
     "protein": 44.4,
@@ -6102,6 +6738,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 8
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 543,
     "protein": 44.4,
     "carbs": 44.5,
@@ -6146,6 +6786,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0,
         "fat": 8
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 560,
     "protein": 48.9,
@@ -6192,6 +6836,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 8
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 545,
     "protein": 45.9,
     "carbs": 44.5,
@@ -6230,6 +6878,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.3
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 506,
     "protein": 40.1,
     "carbs": 77,
@@ -6267,6 +6918,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 9.6,
         "fat": 0.3
       }
+    ],
+    "mealTypes": [
+      "Breakfast"
     ],
     "cals": 417,
     "protein": 33.6,
@@ -6313,6 +6967,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 503,
     "protein": 30.6,
     "carbs": 57.1,
@@ -6343,6 +7000,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 4.5,
         "fat": 7.5
       }
+    ],
+    "mealTypes": [
+      "Breakfast"
     ],
     "cals": 443,
     "protein": 28.3,
@@ -6382,6 +7042,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 236,
     "protein": 30.4,
     "carbs": 4,
@@ -6413,6 +7076,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 7.5
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 245,
     "protein": 23.8,
     "carbs": 20.1,
@@ -6443,6 +7109,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 20.4,
         "fat": 2.1
       }
+    ],
+    "mealTypes": [
+      "Breakfast"
     ],
     "cals": 350,
     "protein": 21.5,
@@ -6489,6 +7158,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 545,
     "protein": 46.6,
     "carbs": 59.5,
@@ -6512,6 +7184,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 24.6,
         "fat": 2.1
       }
+    ],
+    "mealTypes": [
+      "Breakfast"
     ],
     "cals": 305,
     "protein": 22.1,
@@ -6544,6 +7219,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 2.1
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 410,
     "protein": 25,
     "carbs": 30,
@@ -6575,6 +7253,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 206,
     "protein": 6.8,
     "carbs": 21,
@@ -6605,6 +7286,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 0.6,
         "fat": 5.5
       }
+    ],
+    "mealTypes": [
+      "Breakfast"
     ],
     "cals": 367,
     "protein": 31,
@@ -6644,6 +7328,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 390,
     "protein": 24.3,
     "carbs": 55.4,
@@ -6682,6 +7369,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.3
       }
     ],
+    "mealTypes": [
+      "Breakfast"
+    ],
     "cals": 415,
     "protein": 39.1,
     "carbs": 42.8,
@@ -6705,6 +7395,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 15.3,
         "fat": 0.3
       }
+    ],
+    "mealTypes": [
+      "Snacks"
     ],
     "cals": 245,
     "protein": 38.8,
@@ -6737,6 +7430,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 3
       }
     ],
+    "mealTypes": [
+      "Snacks"
+    ],
     "cals": 247,
     "protein": 26.6,
     "carbs": 27.5,
@@ -6760,6 +7456,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 22.1,
         "fat": 0.8
       }
+    ],
+    "mealTypes": [
+      "Snacks"
     ],
     "cals": 214,
     "protein": 26.9,
@@ -6785,6 +7484,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.5
       }
     ],
+    "mealTypes": [
+      "Snacks"
+    ],
     "cals": 217,
     "protein": 17.9,
     "carbs": 19.9,
@@ -6808,6 +7510,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 4.4,
         "fat": 10
       }
+    ],
+    "mealTypes": [
+      "Snacks"
     ],
     "cals": 216,
     "protein": 21.2,
@@ -6833,6 +7538,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.4
       }
     ],
+    "mealTypes": [
+      "Snacks"
+    ],
     "cals": 252,
     "protein": 6.6,
     "carbs": 33.1,
@@ -6857,6 +7565,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 9
       }
     ],
+    "mealTypes": [
+      "Snacks"
+    ],
     "cals": 253,
     "protein": 15.5,
     "carbs": 6.5,
@@ -6880,6 +7591,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 5,
         "fat": 12.5
       }
+    ],
+    "mealTypes": [
+      "Snacks"
     ],
     "cals": 217,
     "protein": 7.7,
@@ -6912,6 +7626,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 8
       }
     ],
+    "mealTypes": [
+      "Snacks"
+    ],
     "cals": 326,
     "protein": 14.7,
     "carbs": 41.9,
@@ -6943,6 +7660,9 @@ export const FITNESS_MEALS_AU = [
         "fat": 8
       }
     ],
+    "mealTypes": [
+      "Snacks"
+    ],
     "cals": 257,
     "protein": 14.6,
     "carbs": 32.3,
@@ -6966,6 +7686,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 9.6,
         "fat": 0.3
       }
+    ],
+    "mealTypes": [
+      "Snacks"
     ],
     "cals": 187,
     "protein": 17.1,
@@ -6997,6 +7720,9 @@ export const FITNESS_MEALS_AU = [
         "carbs": 12.8,
         "fat": 0.3
       }
+    ],
+    "mealTypes": [
+      "Snacks"
     ],
     "cals": 322,
     "protein": 36.9,
@@ -7036,6 +7762,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 581,
     "protein": 63.1,
     "carbs": 54.6,
@@ -7074,6 +7804,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 506,
     "protein": 49.1,
     "carbs": 53.2,
@@ -7105,6 +7839,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 539,
     "protein": 41.5,
     "carbs": 36.3,
@@ -7135,6 +7873,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 8.4,
         "fat": 0.2
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 576,
     "protein": 59.9,
@@ -7181,6 +7923,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 8
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 499,
     "protein": 49.4,
     "carbs": 52.3,
@@ -7211,6 +7957,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 2.2,
         "fat": 0.2
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 474,
     "protein": 42.7,
@@ -7243,6 +7993,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 5.5
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 358,
     "protein": 58.2,
     "carbs": 3.5,
@@ -7274,6 +8028,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 527,
     "protein": 52.1,
     "carbs": 53.2,
@@ -7304,6 +8062,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 2.2,
         "fat": 0.2
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 457,
     "protein": 60.1,
@@ -7343,6 +8105,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.1
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 557,
     "protein": 59.4,
     "carbs": 55.1,
@@ -7374,6 +8140,10 @@ export const FITNESS_MEALS_AU = [
         "fat": 0.2
       }
     ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
     "cals": 301,
     "protein": 41.4,
     "carbs": 10.1,
@@ -7404,6 +8174,10 @@ export const FITNESS_MEALS_AU = [
         "carbs": 7,
         "fat": 0.4
       }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
     ],
     "cals": 490,
     "protein": 48,

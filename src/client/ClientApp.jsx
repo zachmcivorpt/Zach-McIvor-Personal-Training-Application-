@@ -114,6 +114,7 @@ import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
+import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
 import {
   BODY_FAT_CONFIG,
@@ -2331,8 +2332,50 @@ function SwipeableRow({ onDelete, children }) {
   );
 }
 
+// Lets a client swap an assigned meal for an alternative with similar
+// calories/macros themselves, instead of having to message the coach —
+// same best-fit matching the coach's Auto-Build uses, scoped to this one
+// meal's own macros as the target so the replacement is a close match.
+function SwapMealSheet({ open, onClose, meal, alternatives, onPick }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-[130] bg-black/40 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[75vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 pt-5 pb-1 shrink-0">
+          <p className="text-black font-semibold truncate pr-3">Swap "{meal?.name}"</p>
+          <button onClick={onClose} className="text-black/50 shrink-0">
+            <X size={20} />
+          </button>
+        </div>
+        <p className="text-black/40 text-xs px-5 pb-3">Similar options from your Meal Library, closest match first</p>
+        <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-1.5">
+          {alternatives.length === 0 ? (
+            <p className="text-black/30 text-sm text-center py-8">No similar alternatives available right now.</p>
+          ) : (
+            alternatives.map(({ meal: alt, score }) => (
+              <button
+                key={alt.id}
+                onClick={() => onPick(alt.id)}
+                className="w-full flex items-center justify-between gap-2 bg-black/[0.03] rounded-xl px-3.5 py-2.5 text-left"
+              >
+                <div className="min-w-0">
+                  <p className="text-black text-sm font-medium truncate">{alt.name}</p>
+                  <p className="text-black/40 text-xs">
+                    {alt.cals} kcal · P{alt.protein} C{alt.carbs} F{alt.fat}
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-black/5 text-black/50">{matchPct(score)}% match</span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
-  const { db, currentUser } = useApp();
+  const { db, currentUser, swapMealPlanMeal } = useApp();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
   const [detailMeal, setDetailMeal] = useState(null);
@@ -2401,6 +2444,26 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
     : [];
   const [mealPlanDayId, setMealPlanDayId] = useState(null);
   const mealPlanDay = mealPlan ? daysInActiveWeek.find((d) => d.id === mealPlanDayId) || daysInActiveWeek[0] : null;
+  const [swapping, setSwapping] = useState(null); // { slot, index, meal } | null
+  const swapAlternatives = useMemo(() => {
+    if (!swapping || !mealPlanDay) return [];
+    const usedIds = new Set(Object.values(mealPlanDay.meals || {}).flat());
+    const pool = (db.masterMeals || []).filter(
+      (m) => m.id !== swapping.meal.id && !usedIds.has(m.id) && eligibleForSlot(m, swapping.slot)
+    );
+    return bestMatches(
+      pool,
+      { calories: swapping.meal.cals, protein: swapping.meal.protein, carbs: swapping.meal.carbs, fat: swapping.meal.fat },
+      8
+    );
+  }, [swapping, mealPlanDay, db.masterMeals]);
+
+  function confirmSwap(newMealId) {
+    if (!swapping || !mealPlanDay) return;
+    swapMealPlanMeal(currentUser.id, mealPlanDay.id, swapping.slot, swapping.index, newMealId);
+    showToast("Meal swapped");
+    setSwapping(null);
+  }
 
   return (
     <div className="pb-6">
@@ -2540,19 +2603,27 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                         const m = mealsById[mealId];
                         if (!m) return null;
                         return (
-                          <button
-                            key={`${mealId}_${i}`}
-                            onClick={() => logSavedMeal(m, slot)}
-                            className="w-full flex items-center justify-between bg-black/[0.03] rounded-xl px-3 py-2.5 text-left"
-                          >
-                            <div className="min-w-0">
-                              <p className="text-black text-sm font-medium truncate">{m.name}</p>
-                              <p className="text-black/40 text-xs">
-                                {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
-                              </p>
-                            </div>
-                            <span className="text-black/40 text-xs font-semibold shrink-0 ml-2">+ LOG</span>
-                          </button>
+                          <div key={`${mealId}_${i}`} className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => logSavedMeal(m, slot)}
+                              className="flex-1 min-w-0 flex items-center justify-between bg-black/[0.03] rounded-xl px-3 py-2.5 text-left"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-black text-sm font-medium truncate">{m.name}</p>
+                                <p className="text-black/40 text-xs">
+                                  {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
+                                </p>
+                              </div>
+                              <span className="text-black/40 text-xs font-semibold shrink-0 ml-2">+ LOG</span>
+                            </button>
+                            <button
+                              onClick={() => setSwapping({ slot, index: i, meal: m })}
+                              title="Swap for a similar meal"
+                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-black/[0.03] text-black/40 hover:text-black"
+                            >
+                              <Repeat size={14} />
+                            </button>
+                          </div>
                         );
                       })}
                     </div>
@@ -2781,6 +2852,14 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
           showToast(`Saved "${meal.name}" to My Meals`);
           setCreateMealOpen(false);
         }}
+      />
+
+      <SwapMealSheet
+        open={!!swapping}
+        onClose={() => setSwapping(null)}
+        meal={swapping?.meal}
+        alternatives={swapAlternatives}
+        onPick={confirmSwap}
       />
     </div>
   );

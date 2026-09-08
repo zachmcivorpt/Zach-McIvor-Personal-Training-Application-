@@ -1491,20 +1491,27 @@ export function AppProvider({ children }) {
         return { matchedCount: matched.length, unmatched };
       },
 
+      // Always (re)writes all 200 meals to match the current generated
+      // list — not just insert-if-missing — so that if the meal list is
+      // ever regenerated (new names/macros), re-running this brings the
+      // library back in sync instead of leaving stale names stuck forever.
+      // A coach's own photoUrl on a given meal id is always preserved.
       async importFitnessMealsAU() {
-        const existingIds = new Set((db.masterMeals || []).map((m) => m.id));
-        const toImport = FITNESS_MEALS_AU.filter((m) => !existingIds.has(m.id));
-        if (toImport.length === 0) return { importedCount: 0 };
+        const existingById = new Map((db.masterMeals || []).map((m) => [m.id, m]));
+        const newCount = FITNESS_MEALS_AU.filter((m) => !existingById.has(m.id)).length;
         try {
-          for (let i = 0; i < toImport.length; i += 400) {
+          for (let i = 0; i < FITNESS_MEALS_AU.length; i += 400) {
             const batch = writeBatch(firestore);
-            toImport.slice(i, i + 400).forEach((meal) => batch.set(doc(firestore, "masterMeals", meal.id), meal));
+            FITNESS_MEALS_AU.slice(i, i + 400).forEach((meal) => {
+              const existing = existingById.get(meal.id);
+              batch.set(doc(firestore, "masterMeals", meal.id), existing?.photoUrl ? { ...meal, photoUrl: existing.photoUrl } : meal);
+            });
             await batch.commit();
           }
         } catch (err) {
           throw new Error("Couldn't import the meal list — " + (err.message || "please try again."));
         }
-        return { importedCount: toImport.length };
+        return { importedCount: newCount };
       },
 
       // A client's assigned meal plan — one doc per client (doc id ===
@@ -1520,6 +1527,21 @@ export function AppProvider({ children }) {
         setDoc(doc(firestore, "mealPlans", clientId), { clientId, days, weeks: weeks || null, startDate: startDate || null, updatedAt: Date.now() }).catch(
           console.error
         );
+      },
+
+      // Lets a client swap one assigned meal for an alternative themselves
+      // (Firestore rules only let them update() their own plan doc, and
+      // only its content — never reassign it to another clientId).
+      swapMealPlanMeal(clientId, dayId, slot, index, newMealId) {
+        const plan = (db.mealPlans[clientId] || [])[0];
+        if (!plan) return;
+        const days = plan.days.map((d) => {
+          if (d.id !== dayId) return d;
+          const nextSlot = [...(d.meals[slot] || [])];
+          nextSlot[index] = newMealId;
+          return { ...d, meals: { ...d.meals, [slot]: nextSlot }, autoSlots: { ...(d.autoSlots || {}), [slot]: false } };
+        });
+        updateDoc(doc(firestore, "mealPlans", clientId), { days }).catch(console.error);
       },
 
       // Custom foods — coach-added, merged with the static FOOD_DATABASE

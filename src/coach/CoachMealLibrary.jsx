@@ -151,9 +151,9 @@ export default function CoachMealLibrary({ showToast }) {
     try {
       const { importedCount } = await importFitnessMealsAU();
       showToast(
-        importedCount === 0
-          ? "Already imported — nothing new to add"
-          : `Imported ${importedCount} Australian fitness meal${importedCount === 1 ? "" : "s"} — add photos any time`
+        importedCount > 0
+          ? `Synced 200 AU meals — added ${importedCount} new, refreshed the rest (your photos are kept)`
+          : "Synced 200 AU meals — names & macros refreshed (your photos are kept)"
       );
     } catch (err) {
       showToast(err.message || "Couldn't import the meal list");
@@ -213,6 +213,7 @@ export default function CoachMealLibrary({ showToast }) {
                   <p className="text-black/40 text-xs truncate mt-0.5">
                     {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                   </p>
+                  {m.mealTypes?.length > 0 && <p className="text-blue-500/70 text-[10px] font-semibold truncate mt-0.5">{m.mealTypes.join(" · ")}</p>}
                 </div>
                 <MealPhotoButton meal={m} showToast={showToast} />
                 <button
@@ -236,6 +237,7 @@ export default function CoachMealLibrary({ showToast }) {
         onClose={() => setEditing(null)}
         onSave={handleSave}
         prefill={editing && !editing.isNew ? editing : null}
+        showMealTypes
       />
 
       {confirmDelete && (
