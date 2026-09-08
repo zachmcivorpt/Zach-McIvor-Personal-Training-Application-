@@ -170,10 +170,10 @@ export default function CoachMealLibrary({ showToast }) {
           <button
             onClick={handleImportAU}
             disabled={importing}
-            title="Imports 200 common Australian fitness meals (real Coles/Woolworths-style ingredients, computed macros) — add photos afterwards"
+            title="Imports the 200 common Australian fitness meals, or re-syncs them to the latest names/macros/tags if already imported — your photos are always kept"
             className="flex items-center gap-2 bg-black/8 hover:bg-black/15 disabled:opacity-50 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
-            <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "IMPORT 200 AU MEALS"}</span>
+            <Download size={16} /> <span className="hidden sm:inline">{importing ? "SYNCING…" : "SYNC 200 AU MEALS"}</span>
           </button>
           <button
             onClick={() => setImportPhotosOpen(true)}
