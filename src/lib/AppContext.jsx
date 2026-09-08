@@ -1491,6 +1491,24 @@ export function AppProvider({ children }) {
         return { matchedCount: matched.length, unmatched };
       },
 
+      // Wipes every meal's photo in one go — an escape hatch for when a
+      // batch of sourced photos turns out to be a bad fit and a coach
+      // would rather start over than remove them one by one.
+      async clearAllMealPhotos() {
+        const withPhoto = (db.masterMeals || []).filter((m) => m.photoUrl);
+        if (withPhoto.length === 0) return { clearedCount: 0 };
+        try {
+          for (let i = 0; i < withPhoto.length; i += 400) {
+            const batch = writeBatch(firestore);
+            withPhoto.slice(i, i + 400).forEach((m) => batch.update(doc(firestore, "masterMeals", m.id), { photoUrl: deleteField() }));
+            await batch.commit();
+          }
+        } catch (err) {
+          throw new Error("Couldn't clear meal photos — " + (err.message || "please try again."));
+        }
+        return { clearedCount: withPhoto.length };
+      },
+
       // Always (re)writes all 200 meals to match the current generated
       // list — not just insert-if-missing — so that if the meal list is
       // ever regenerated (new names/macros), re-running this brings the

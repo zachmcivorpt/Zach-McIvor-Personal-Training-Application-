@@ -3,7 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { Card, SecondaryButton, DangerButton, BottomSheet, TextArea, PrimaryButton } from "../components/ui";
 import { CreateMealSheet } from "../client/NutritionFeatures";
 import { fileToCompressedDataUrl } from "../lib/image";
-import { Plus, Utensils, Trash2, Camera, Download, Image as ImageIcon } from "lucide-react";
+import { Plus, Utensils, Trash2, Camera, Download, Image as ImageIcon, ImageOff } from "lucide-react";
 
 // Same "paste Name | URL, match by name" bulk pattern as the exercise
 // library's Import Video List — for pasting a big batch of sourced meal
@@ -128,12 +128,28 @@ function MealPhotoButton({ meal, showToast }) {
 }
 
 export default function CoachMealLibrary({ showToast }) {
-  const { db, createMasterMeal, updateMasterMeal, deleteMasterMeal, importFitnessMealsAU } = useApp();
+  const { db, createMasterMeal, updateMasterMeal, deleteMasterMeal, importFitnessMealsAU, clearAllMealPhotos } = useApp();
   const [editing, setEditing] = useState(null); // { isNew: true } | meal | null
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmClearPhotos, setConfirmClearPhotos] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [clearingPhotos, setClearingPhotos] = useState(false);
   const [importPhotosOpen, setImportPhotosOpen] = useState(false);
   const meals = db.masterMeals || [];
+  const photoCount = meals.filter((m) => m.photoUrl).length;
+
+  async function handleClearPhotos() {
+    setClearingPhotos(true);
+    try {
+      const { clearedCount } = await clearAllMealPhotos();
+      showToast(clearedCount > 0 ? `Cleared ${clearedCount} meal photo${clearedCount === 1 ? "" : "s"}` : "No meal photos to clear");
+    } catch (err) {
+      showToast(err.message || "Couldn't clear meal photos");
+    } finally {
+      setClearingPhotos(false);
+      setConfirmClearPhotos(false);
+    }
+  }
 
   function handleSave(data) {
     if (editing?.id) {
@@ -182,6 +198,15 @@ export default function CoachMealLibrary({ showToast }) {
           >
             <ImageIcon size={16} /> <span className="hidden sm:inline">IMPORT PHOTOS</span>
           </button>
+          {photoCount > 0 && (
+            <button
+              onClick={() => setConfirmClearPhotos(true)}
+              title="Remove every meal's photo — an escape hatch if a batch of imported photos doesn't work out"
+              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <ImageOff size={16} /> <span className="hidden sm:inline">CLEAR PHOTOS</span>
+            </button>
+          )}
           <button
             onClick={() => setEditing({ isNew: true })}
             aria-label="New meal"
@@ -258,6 +283,23 @@ export default function CoachMealLibrary({ showToast }) {
                 }}
               >
                 Delete
+              </DangerButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmClearPhotos && (
+        <div className="fixed inset-0 z-[110] bg-black/40 flex items-center justify-center px-6" onClick={() => setConfirmClearPhotos(false)}>
+          <div className="bg-white rounded-2xl p-5 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <p className="text-black font-semibold mb-1">Clear all {photoCount} meal photo{photoCount === 1 ? "" : "s"}?</p>
+            <p className="text-black/40 text-sm mb-4">This can't be undone — every meal will fall back to the placeholder icon until you add photos again.</p>
+            <div className="flex gap-2">
+              <SecondaryButton className="flex-1" onClick={() => setConfirmClearPhotos(false)}>
+                Cancel
+              </SecondaryButton>
+              <DangerButton className="flex-1" disabled={clearingPhotos} onClick={handleClearPhotos}>
+                {clearingPhotos ? "Clearing…" : "Clear all"}
               </DangerButton>
             </div>
           </div>
