@@ -2619,7 +2619,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </div>
 
       {mealPlan && mealPlanDay && (
-        <div className="px-3 mt-4">
+        <div className="px-3 mt-7">
           <Card>
             <div className="flex items-center justify-between mb-1">
               <p className="text-black font-semibold">My Meal Plan</p>
@@ -2719,7 +2719,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         </div>
       )}
 
-      <div className="px-3 mt-4">
+      <div className="px-3 mt-7">
         <SavedMealsSection
           meals={savedMeals}
           onCreateNew={() => {
@@ -2731,29 +2731,34 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         />
       </div>
 
-      <div className="px-3 mt-5 space-y-2.5">
-        {mealCategories.map((meal) => {
-          const items = nutrition.meals[meal] || [];
-          const totalCals = items.reduce((a, f) => a + f.cals, 0);
-          return (
-            <button key={meal} onClick={() => setDetailMeal(meal)} className="w-full text-left active:scale-[0.99] transition-transform">
-              <Card>
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0">
-                    <p className="text-black font-semibold">{meal}</p>
-                    <p className="text-black/40 text-xs mt-0.5">
-                      {items.length === 0 ? "No items logged" : `${items.length} item${items.length === 1 ? "" : "s"} logged`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-black/50 text-sm font-medium">{totalCals} kcal</span>
-                    <ChevronRight size={16} className="text-black/25" />
-                  </div>
+      <div className="px-3 mt-7">
+        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1">TODAY'S MEALS</p>
+        <Card className="!p-0 overflow-hidden">
+          {mealCategories.map((meal, i) => {
+            const items = nutrition.meals[meal] || [];
+            const totalCals = items.reduce((a, f) => a + f.cals, 0);
+            return (
+              <button
+                key={meal}
+                onClick={() => setDetailMeal(meal)}
+                className={`w-full text-left px-5 py-4 flex items-center justify-between active:bg-black/[0.03] transition-colors ${
+                  i > 0 ? "border-t border-black/5" : ""
+                }`}
+              >
+                <div className="min-w-0">
+                  <p className="text-black font-semibold">{meal}</p>
+                  <p className="text-black/40 text-xs mt-0.5">
+                    {items.length === 0 ? "No items logged" : `${items.length} item${items.length === 1 ? "" : "s"} logged`}
+                  </p>
                 </div>
-              </Card>
-            </button>
-          );
-        })}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-black/50 text-sm font-medium">{totalCals} kcal</span>
+                  <ChevronRight size={16} className="text-black/25" />
+                </div>
+              </button>
+            );
+          })}
+        </Card>
       </div>
 
       <BottomSheet open={!!detailMeal} onClose={() => setDetailMeal(null)} title={detailMeal || ""}>
