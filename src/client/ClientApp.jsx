@@ -2383,8 +2383,24 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 
   const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
   const mealsById = Object.fromEntries((db.masterMeals || []).map((m) => [m.id, m]));
+  // Plans built before the week-structure existed have no weekIndex on
+  // their days — fall back to grouping them into blocks of 7 by position
+  // so "Week X of Y" still works for older plans.
+  const planWeeksCount = mealPlan
+    ? Math.max(...mealPlan.days.map((d, i) => (d.weekIndex ?? Math.floor(i / 7)))) + 1
+    : 1;
+  const planCurrentWeek = (() => {
+    if (!mealPlan?.startDate) return 0;
+    const diffDays = Math.floor((Date.now() - new Date(mealPlan.startDate + "T00:00:00").getTime()) / 86400000);
+    return Math.max(0, Math.min(planWeeksCount - 1, Math.floor(diffDays / 7)));
+  })();
+  const [selectedWeek, setSelectedWeek] = useState(null);
+  const activeWeek = selectedWeek != null ? selectedWeek : planCurrentWeek;
+  const daysInActiveWeek = mealPlan
+    ? mealPlan.days.filter((d, i) => (d.weekIndex ?? Math.floor(i / 7)) === activeWeek)
+    : [];
   const [mealPlanDayId, setMealPlanDayId] = useState(null);
-  const mealPlanDay = mealPlan ? mealPlan.days.find((d) => d.id === mealPlanDayId) || mealPlan.days[0] : null;
+  const mealPlanDay = mealPlan ? daysInActiveWeek.find((d) => d.id === mealPlanDayId) || daysInActiveWeek[0] : null;
 
   return (
     <div className="pb-6">
@@ -2474,11 +2490,34 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       {mealPlan && mealPlanDay && (
         <div className="px-3 mt-4">
           <Card>
-            <p className="text-black font-semibold mb-1">My Meal Plan</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-black font-semibold">My Meal Plan</p>
+              <span className="text-black/40 text-[11px] font-semibold bg-black/5 px-2 py-0.5 rounded-full shrink-0">
+                {planWeeksCount === 1 ? "1-week plan" : `Week ${activeWeek + 1} of ${planWeeksCount}`}
+              </span>
+            </div>
             <p className="text-black/40 text-xs mb-3">Built by your coach — tap any meal to log it now</p>
-            {mealPlan.days.length > 1 && (
+            {planWeeksCount > 1 && (
+              <div className="flex items-center gap-2 mb-2 overflow-x-auto">
+                {Array.from({ length: planWeeksCount }, (_, w) => w).map((w) => (
+                  <button
+                    key={w}
+                    onClick={() => {
+                      setSelectedWeek(w);
+                      setMealPlanDayId(null);
+                    }}
+                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                      w === activeWeek ? "bg-blue-500 text-white" : "bg-black/5 text-black/50"
+                    }`}
+                  >
+                    Week {w + 1}
+                  </button>
+                ))}
+              </div>
+            )}
+            {daysInActiveWeek.length > 1 && (
               <div className="flex items-center gap-2 mb-3 overflow-x-auto">
-                {mealPlan.days.map((d) => (
+                {daysInActiveWeek.map((d) => (
                   <button
                     key={d.id}
                     onClick={() => setMealPlanDayId(d.id)}

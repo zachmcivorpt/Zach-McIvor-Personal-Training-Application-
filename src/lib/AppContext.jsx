@@ -1512,9 +1512,14 @@ export function AppProvider({ children }) {
       // a master meal's macros is reflected everywhere it's assigned
       // without having to touch every client's plan. `days` is the whole
       // day-tabbed structure from the builder; saving always replaces it
-      // wholesale rather than patching individual slots.
-      setMealPlan(clientId, days) {
-        setDoc(doc(firestore, "mealPlans", clientId), { clientId, days, updatedAt: Date.now() }).catch(console.error);
+      // wholesale rather than patching individual slots. `weeks` +
+      // `startDate` let the client app show "Week X of Y" — both are
+      // optional so older plans saved before this field existed still load
+      // fine as an undated, single-block plan.
+      setMealPlan(clientId, { days, weeks, startDate }) {
+        setDoc(doc(firestore, "mealPlans", clientId), { clientId, days, weeks: weeks || null, startDate: startDate || null, updatedAt: Date.now() }).catch(
+          console.error
+        );
       },
 
       // Custom foods — coach-added, merged with the static FOOD_DATABASE

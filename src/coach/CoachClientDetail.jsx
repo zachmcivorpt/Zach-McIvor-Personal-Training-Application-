@@ -2752,6 +2752,7 @@ function NutritionPanel({ client, showToast }) {
   const mealPlanMealCount = mealPlan
     ? mealPlan.days.reduce((n, d) => n + Object.values(d.meals || {}).reduce((a, arr) => a + arr.length, 0), 0)
     : 0;
+  const mealPlanWeeks = mealPlan?.weeks || null;
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
@@ -2770,7 +2771,7 @@ function NutritionPanel({ client, showToast }) {
           </div>
           <p className="text-black/40 text-xs mb-4 ml-[42px]">
             {mealPlan
-              ? `${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
+              ? `${mealPlanWeeks ? `${mealPlanWeeks}-week plan · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
               : "This client has no meal plan yet — build one from your Meal Library."}
           </p>
           <PrimaryButton onClick={() => setMealPlanOpen(true)}>
