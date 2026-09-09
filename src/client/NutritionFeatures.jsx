@@ -401,7 +401,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[95] bg-white flex flex-col overflow-y-auto">
+      <div className="fixed inset-0 z-[135] bg-white flex flex-col overflow-y-auto">
         <div className="flex items-center justify-between px-5 pt-6 pb-3">
           <span className="text-black font-semibold">Scan Barcode</span>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center text-black/60">
