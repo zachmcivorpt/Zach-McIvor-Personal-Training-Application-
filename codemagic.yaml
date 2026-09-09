@@ -18,10 +18,9 @@ workflows:
       - name: Generate Xcode project from ios/project.yml
         script: |
           cd ios && xcodegen generate
-      - name: Set up code signing (using the stored APEX Distribution certificate)
+      - name: Set up code signing (using the stored APEX certificate + profile)
         script: |
           keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
           keychain add-certificates
           xcode-project use-profiles
       - name: Increment build number to match Codemagic build
