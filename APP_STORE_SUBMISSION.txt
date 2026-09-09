@@ -1,104 +1,237 @@
-APEX Coaching Platform — App Store Submission Guide (iOS, on your Mac)
-========================================================================
+APEX Coaching Platform — App Store Listing Content
+====================================================
 
 WHAT THIS IS
 ------------
-Step-by-step instructions for packaging APEX as a native iOS app and
-submitting it to the Apple App Store. This has to be done on a Mac —
-Apple requires the final build to be compiled and signed with Xcode,
-which only runs on macOS. Nothing here can be done from a Claude Code
-cloud session; these are manual steps for you to follow yourself.
+Everything needed to fill in the "App Store" tab in App Store Connect
+(Distribution -> App Store -> your version). Copy each field straight
+across. Where something needs a real decision from you (support email,
+business address, demo login), it's marked clearly below.
 
-Your live app URL:      https://zach-mc-ivor-personal-training-appl.vercel.app
-Your privacy policy URL: https://zach-mc-ivor-personal-training-appl.vercel.app/legal/privacy-policy
-
-
-STEP 1 — Enroll in the Apple Developer Program
-------------------------------------------------
-1. Go to https://developer.apple.com/programs
-2. Click "Enroll", sign in with your Apple ID.
-3. Choose "Individual" (not "Organization" — that requires a D-U-N-S
-   business number and a lot more paperwork; Individual is fine for
-   publishing solo).
-4. Pay the $99/year fee.
-5. Approval usually takes a few hours to a day.
+This replaces the old version of this file, which described building
+the app on a Mac with PWABuilder/Xcode — that path is dead (the Mac
+that would've run it broke). The actual pipeline now: push to GitHub ->
+Codemagic builds, signs and uploads to TestFlight automatically ->
+App Store Connect is where you turn a tested build into a public
+listing. Nothing below needs Xcode, a Mac, or Codemagic.
 
 
-STEP 2 — Generate the iOS package with PWABuilder
-----------------------------------------------------
-1. On your Mac, open pwabuilder.com in Safari or Chrome.
-2. Paste in your live app URL (above) and click "Start".
-3. It scans the app and shows a readiness report — the manifest and
-   icons are already set up correctly, so this should score well.
-4. Click "Package for Stores" -> choose "iOS".
-5. Fill in the fields it asks for:
-   - Bundle ID: something like com.apexcoaching.app
-   - Apple Developer Team ID: found at developer.apple.com under
-     "Membership" once Step 1 is approved
-6. Download the generated .zip file.
+===========================================================================
+1. APP INFORMATION
+===========================================================================
+
+Name (30 char max):
+  APEX Coaching Platform
+
+Subtitle (30 char max):
+  Coach & Client Training Hub
+
+Category:
+  Primary:    Health & Fitness
+  Secondary:  (leave blank, or Lifestyle if it wants a second one)
+
+Privacy Policy URL:
+  https://apexcoachingplatform-appl.vercel.app/legal/privacy-policy
+
+Support URL (required — Apple will not accept a mailto: link here):
+  https://apexcoachingplatform-appl.vercel.app
+  (Using the app's own homepage as a stopgap. If you want a real
+  dedicated support/contact page instead, say so and it can be built
+  and deployed in a few minutes — same style as the existing /legal
+  pages.)
+
+Marketing URL (optional):
+  Leave blank, or use the same homepage URL above.
+
+Copyright:
+  2026 Zach McIvor
+  (or your registered business name, if different)
 
 
-STEP 3 — Open it in Xcode
-----------------------------
-1. Unzip the download.
-2. Open the .xcodeproj (or .xcworkspace) file inside — this launches
-   Xcode automatically.
-3. In Xcode's left sidebar, click the project name at the very top.
-4. Go to the "Signing & Capabilities" tab.
-5. Under "Team", select your Apple Developer account. Xcode will
-   auto-generate the signing certificate for you.
+===========================================================================
+2. PROMOTIONAL TEXT (170 char max — the only field editable anytime
+   without a new App Review, good for "New: Quick Add is here" style
+   updates later)
+===========================================================================
+
+  Program your clients, track their nutrition, and stay on top of
+  every check-in — all from one app built for real coaching.
 
 
-STEP 4 — Test it
--------------------
-1. At the top of the Xcode window, pick a simulator (e.g. "iPhone 15")
-   from the device dropdown.
-2. Click the Run button (the triangle/play icon).
-3. Confirm the app opens and loads your real app content — try
-   signing in, check the login screen looks right.
+===========================================================================
+3. DESCRIPTION (4000 char max)
+===========================================================================
+
+APEX Coaching Platform is the all-in-one training and nutrition app
+built for personal trainers and their clients — one app, two views,
+everything a real coaching relationship actually needs.
+
+FOR COACHES
+Run your entire roster from your phone. Build training programs with
+full sets/reps/RIR prescriptions, supersets and circuits, then assign
+them to clients across structured training phases. Track every
+client's check-ins, progress photos, body measurements and workout
+history in one place. Message clients directly, review their weekly
+check-in forms, and get an automatic Recent Activity feed so nothing
+falls through the cracks. Build a reusable library of workouts, meal
+templates, foods and habits once — assign it to any client, forever.
+
+FOR CLIENTS
+Follow your training program day by day, log every set with weight
+and notes, and see your progress tracked automatically over time —
+strength history, consistency streaks, personal bests and body
+metrics, all graphed. Track nutrition against coach-set targets with
+a 400+ item food database, barcode scanning, and Quick Add for
+logging anything by name and calories in seconds. Complete weekly
+check-ins your coach actually sees. Message your coach directly, get
+push notifications for new programs and replies, and never lose track
+of what's due.
+
+KEY FEATURES
+- Full training program builder: phases, supersets, circuits, AMRAP,
+  reps-or-time prescriptions
+- Nutrition tracking: barcode scanning, Quick Add, custom meals,
+  400+ food database, macro targets
+- Progress tracking: strength history, body measurements, progress
+  photos, personal bests, consistency streaks
+- Custom check-in forms, scheduled weekly with push reminders
+- Direct coach-client messaging with photo/video/PDF attachments
+- Daily habit tracking and challenges
+- Full training calendar with drag-and-drop scheduling
+- Built for real coaching businesses — not a generic fitness tracker
+
+Whether you're a coach managing a full client roster or a client
+following your program, APEX keeps training, nutrition and
+communication in one place.
 
 
-STEP 5 — Create the App Store listing
------------------------------------------
-1. Go to https://appstoreconnect.apple.com
-2. My Apps -> the "+" button -> New App.
-3. Fill in:
-   - Name: APEX Coaching Platform
-   - Category: Health & Fitness
-   - Privacy Policy URL: (see top of this file)
-4. You'll need a few screenshots — take them from the Xcode simulator
-   (Simulator app -> File -> Save Screen, or Cmd+S while it's focused).
-5. Write a short app description. Ask your Claude Code session to
-   draft this for you if you want a hand with the wording.
-6. Under "App Privacy", fill in the data-collection questionnaire —
-   this should match what's disclosed in the Privacy Policy (health
-   and fitness data, account info, messages/photos between coach and
-   client).
+===========================================================================
+4. KEYWORDS (100 char max, comma-separated, no spaces needed after commas)
+===========================================================================
+
+  personal trainer,fitness coach,workout log,nutrition tracker,gym
+  coaching,client management,training program,check in,macro tracker
 
 
-STEP 6 — Archive and submit
--------------------------------
-1. Back in Xcode: Product menu -> Archive. This packages the final
-   release build (takes a minute or two).
-2. When the Organizer window opens showing your archive, click
-   "Distribute App".
-3. Choose "App Store Connect" -> follow the prompts -> Upload.
-4. Back in App Store Connect, go to your app listing, attach the
-   build you just uploaded (may take 10-30 min to finish processing
-   on Apple's end before it's selectable).
-5. Click "Submit for Review".
+===========================================================================
+5. AGE RATING QUESTIONNAIRE
+===========================================================================
 
-Apple's review typically takes 1-3 days. You'll get an email either
-approving it or asking for changes.
+Apple's age rating form is a set of yes/no questions about content —
+answer based on what the app actually contains, not aspirationally.
+For APEX as built:
+
+- Violence, sexual content, profanity, gambling, alcohol/tobacco/drug
+  references: No, to all of them — the app has none of this.
+- Horror/fear themes: No.
+- Medical/treatment information: Depends on how you read it — the app
+  handles fitness/nutrition data (workouts, calories, body metrics)
+  but isn't itself a medical device or diagnostic tool, and the
+  Privacy Policy already says APEX doesn't provide medical or health
+  advice itself. Answering "No" here is defensible; if unsure, "Yes"
+  just adds a content descriptor, it doesn't block approval.
+- Unrestricted web access: No — the native app only loads the APEX
+  domain; it doesn't act as a general browser.
+- User-generated content / messaging: The app has private 1:1
+  messaging between a coach and their own clients only (not public,
+  not with strangers, no open chat rooms) — this typically doesn't
+  trigger the stricter "unmoderated UGC" rating tier the way an open
+  social app would, but confirm this in the questionnaire yourself
+  since Apple's exact wording/logic can shift between versions.
+
+Expected result: 4+ rating.
 
 
-ANDROID (BONUS — doesn't need a Mac at all)
------------------------------------------------
-Same starting point, done entirely in your browser:
-1. pwabuilder.com -> paste your URL -> "Package for Stores" -> Android.
-2. It builds a signed .aab package for you in the cloud — no Android
-   Studio needed.
-3. Download it and upload directly to Google Play Console
-   (play.google.com/console), $25 one-time developer fee.
-4. Fill in the same kind of store listing (name, description,
-   screenshots, privacy policy URL, data safety questionnaire).
+===========================================================================
+6. APP PRIVACY ("Nutrition Label")
+===========================================================================
+
+This section needs to match what the app actually collects, and
+Apple treats it as your legal declaration — the draft below is a
+starting point based on what's actually implemented (Firebase Auth +
+Firestore + Firebase Cloud Messaging for push, nothing else), not a
+substitute for you confirming it's accurate before submitting.
+
+Data types collected (recommend declaring):
+  - Contact Info: Name, Email Address
+  - Health & Fitness: Fitness (workouts, activity), Health
+    (body metrics, nutrition data)
+  - User Content: Photos or Videos (progress photos, message
+    attachments), Other User Content (messages, notes, check-in forms)
+  - Identifiers: User ID
+  - Usage Data: Product Interaction (if you're comfortable declaring
+    general in-app activity — optional if you don't track this
+    explicitly beyond what Firebase collects by default)
+  - Diagnostics: Crash Data (Firebase's SDKs collect some of this by
+    default even without an Analytics package explicitly added —
+    worth declaring to be safe)
+
+Data use: "App Functionality" for all of the above (this app doesn't
+use data for third-party advertising or tracking).
+
+Data linked to identity: Yes — all of the above is tied to the
+signed-in user's account.
+
+Tracking (the separate Apple "used to track you across apps/sites for
+ads" question): No — nothing in this app does that.
+
+
+===========================================================================
+7. APP REVIEW INFORMATION
+===========================================================================
+
+Sign-in required: Yes
+Demo account: use the same coach (or dedicated test/demo) login you
+already gave Apple for the TestFlight Beta App Review — reuse those
+exact credentials here so the reviewer can get in.
+
+Contact:
+  First/Last name: Zach McIvor
+  Phone: 0460 848 940
+  Email: zachmcivorpt@outlook.com
+
+Notes for reviewer (optional but helpful):
+  "This app serves two roles from the same login system: coaches and
+  their clients. The demo account provided is a coach account — after
+  signing in, use the bottom navigation to explore Clients, Programs,
+  Library and Messages. A client-side view can be seen via any
+  activated client account, or the coach's 'View as Client' feature
+  from a client's profile."
+
+
+===========================================================================
+8. VERSION RELEASE NOTES ("What's New in This Version" — required even
+   for the very first submission)
+===========================================================================
+
+  Welcome to APEX Coaching Platform — the first release. Build and
+  assign training programs, track nutrition, review client check-ins,
+  and message your roster, all from one app.
+
+
+===========================================================================
+9. SCREENSHOTS — SHOT LIST
+===========================================================================
+
+Apple requires screenshots per device size you support (at minimum,
+the largest iPhone size; add iPad sizes too since this app clearly
+supports iPad). Take these directly from the TestFlight build once
+it's installed and populated with real-looking data — a coach account
+with at least one client, some programs assigned, and a few days of
+logged nutrition/progress looks far better than an empty account.
+
+Recommended shots (5-8, in this rough order):
+  1. Coach Overview — roster stats + Recent Activity
+  2. Program builder or a client's assigned phase/program view
+  3. Client Home screen (today's workout card, date strip)
+  4. Client Training/workout session screen mid-set
+  5. Client Nutrition screen — macro bars + logged meals
+  6. Client Progress tab — a strength or bodyweight graph
+  7. Coach Messages or client check-in review screen
+  8. Client Calendar or Challenges screen
+
+Take these on your iPad in portrait (and landscape too if you want to
+support iPad's default listing size) directly from the installed
+TestFlight build — Settings gear icon isn't needed; on iPad, press
+the top button + volume up together for a screenshot, or use the
+Screenshot toolbar if using Apple Pencil.
