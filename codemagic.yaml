@@ -13,7 +13,6 @@ workflows:
         XCODE_PROJECT: "ApexCoach.xcodeproj"
         XCODE_SCHEME: "ApexCoach"
       xcode: latest
-      vars_from_secrets: []
     scripts:
       - name: Install xcodegen
         script: |
