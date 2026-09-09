@@ -877,7 +877,7 @@ function HomeScreen({
   dbReady,
 }) {
   return (
-    <div className="pb-6 space-y-4">
+    <div className="pb-28 space-y-4">
       <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
       <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
@@ -2118,7 +2118,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
   const todayStr = localDateKey();
   const upcoming = scheduledWorkouts.filter((w) => w.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
   return (
-    <div className="pb-6">
+    <div className="pb-28">
       <div className="px-3 pt-6 pb-4">
         <h1 className="text-black text-2xl font-bold">Training</h1>
       </div>
@@ -2532,7 +2532,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   }
 
   return (
-    <div className="pb-6">
+    <div className="pb-28">
       <div className="px-3 pt-6 pb-2 flex items-center justify-between">
         <h1 className="text-black text-2xl font-bold">Nutrition</h1>
         <Search size={20} className="text-black/40" />
@@ -3425,7 +3425,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
   }
 
   return (
-    <div className="pb-6">
+    <div className="pb-28">
       <div className="px-3 pt-6 pb-4 flex items-center justify-between">
         <h1 className="text-black text-2xl font-bold">Progress</h1>
         <BarChart3 size={20} className="text-black/40" />
@@ -3910,7 +3910,7 @@ function ProfileScreen({
     { label: "Connected devices", icon: Heart, onClick: () => setDevicesOpen(true) },
   ];
   return (
-    <div className="pb-6">
+    <div className="pb-28">
       <div className="px-3 pt-6 pb-4">
         <h1 className="text-black text-2xl font-bold">Profile</h1>
       </div>
@@ -4431,7 +4431,7 @@ function CheckInsScreen({ userId, showToast }) {
   }
 
   return (
-    <div className="pb-6 space-y-4">
+    <div className="pb-28 space-y-4">
       <div className="px-3 pt-6 pb-2">
         <h1 className="text-black text-2xl font-bold">Check-ins</h1>
         <p className="text-black/40 text-sm mt-0.5">Scheduled by your coach</p>
