@@ -1,0 +1,41 @@
+workflows:
+  ios-workflow:
+    name: APEX Coaching Platform - iOS
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: appstore_credentials
+    environment:
+      groups:
+        - appstore_credentials
+      vars:
+        BUNDLE_ID: "com.apexcoaching.platform"
+        XCODE_PROJECT: "ApexCoach.xcodeproj"
+        XCODE_SCHEME: "ApexCoach"
+      xcode: latest
+      vars_from_secrets: []
+    scripts:
+      - name: Install xcodegen
+        script: |
+          brew install xcodegen
+      - name: Generate Xcode project from ios/project.yml
+        script: |
+          cd ios && xcodegen generate
+      - name: Set up code signing (automatic, via App Store Connect API key)
+        script: |
+          xcode-project use-profiles
+      - name: Increment build number to match Codemagic build
+        script: |
+          cd ios && agvtool new-version -all "$PROJECT_BUILD_NUMBER"
+      - name: Build .ipa for distribution
+        script: |
+          xcode-project build-ipa \
+            --project "ios/$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
