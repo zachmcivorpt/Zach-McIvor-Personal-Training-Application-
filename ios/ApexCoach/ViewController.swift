@@ -61,6 +61,16 @@ final class ViewController: UIViewController, WKNavigationDelegate {
     // Keep everything on our own domain inside the app; anything else (an
     // external link in a message, a support page, etc.) opens in Safari
     // instead of trapping the user in a webview with no browser chrome.
+    //
+    // Only a top-level (main-frame) navigation counts as "leaving the app" —
+    // Firebase Auth loads its own project authDomain (…firebaseapp.com) in a
+    // hidden IFRAME on every sign-in, plain email/password included, to
+    // handle session persistence. That's a sub-frame navigation to a
+    // different host, not a user tapping a link; sending it out to Safari
+    // (as this used to do for any host mismatch) breaks the auth handshake
+    // silently — sign-in still "worked" from cached local state, but every
+    // Firestore query gated on it, like the coach's client list, came back
+    // empty. Sub-frame requests always stay in the webview regardless of host.
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
@@ -70,7 +80,8 @@ final class ViewController: UIViewController, WKNavigationDelegate {
             decisionHandler(.allow)
             return
         }
-        if url.host == siteURL.host || url.scheme == "about" {
+        let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
+        if !isMainFrame || url.host == siteURL.host || url.scheme == "about" {
             decisionHandler(.allow)
         } else {
             UIApplication.shared.open(url)
