@@ -5,9 +5,6 @@ workflows:
     instance_type: mac_mini_m2
     integrations:
       app_store_connect: APEX
-    ios_signing:
-      distribution_type: app_store
-      bundle_identifier: com.apexcoaching.platform
     environment:
       vars:
         BUNDLE_ID: "com.apexcoaching.platform"
@@ -24,6 +21,7 @@ workflows:
       - name: Set up code signing (using the stored APEX Distribution certificate)
         script: |
           keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
           keychain add-certificates
           xcode-project use-profiles
       - name: Increment build number to match Codemagic build
