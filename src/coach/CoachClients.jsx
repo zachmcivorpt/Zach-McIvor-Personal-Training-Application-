@@ -345,7 +345,7 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
 }
 
 export default function CoachClients({ showToast, search, setSearch }) {
-  const { db, removeClient, startViewAsClient, setClientAccessPaused, dbReady } = useApp();
+  const { db, removeClient, startViewAsClient, setClientAccessPaused, usersReady: dbReady } = useApp();
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   // Which tab (and whether to jump straight into the messages thread)

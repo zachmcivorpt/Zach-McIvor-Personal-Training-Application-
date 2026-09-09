@@ -149,11 +149,20 @@ export function AppProvider({ children }) {
   }, [role, profile]);
 
   const [dbReady, setDbReady] = useState(false);
+  // A coach's `dbReady` above only flips once EVERY watched collection has
+  // reported in — for a coach with any real history that means the roster
+  // sits on "Loading your clients…" until the biggest collection (workout
+  // logs, messages, notifications, all unfiltered across every client ever)
+  // finishes, even though the roster itself only needs `users`. This is a
+  // narrower flag scoped to just that, so the client list can render the
+  // moment its own data is in instead of waiting on everything else.
+  const [usersReady, setUsersReady] = useState(false);
 
   useEffect(() => {
     const unsubs = [];
     let cancelled = false;
     setDbReady(false);
+    setUsersReady(false);
     // Tracks every collection/doc this run of the effect subscribed to, so
     // the rest of the app can tell "still loading" apart from "genuinely
     // empty" — without this, a page refresh that catches a listener before
@@ -163,6 +172,7 @@ export function AppProvider({ children }) {
     // client's calendar — even though the data was never actually lost.
     const pendingKeys = new Set();
     function markReceived(key) {
+      if (key === "users") setUsersReady(true);
       if (pendingKeys.delete(key) && pendingKeys.size === 0) setDbReady(true);
     }
 
@@ -1740,6 +1750,7 @@ export function AppProvider({ children }) {
     authReady,
     sessionLoading,
     dbReady,
+    usersReady,
     ...actions,
   };
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
