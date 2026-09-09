@@ -6,6 +6,9 @@ workflows:
     integrations:
       app_store_connect: APEX
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.apexcoaching.platform
       vars:
         BUNDLE_ID: "com.apexcoaching.platform"
         XCODE_PROJECT: "ApexCoach.xcodeproj"
@@ -20,8 +23,6 @@ workflows:
           cd ios && xcodegen generate
       - name: Set up code signing (using the stored APEX certificate + profile)
         script: |
-          keychain initialize
-          keychain add-certificates
           xcode-project use-profiles
       - name: Increment build number to match Codemagic build
         script: |
