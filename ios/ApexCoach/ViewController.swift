@@ -19,13 +19,23 @@ final class ViewController: UIViewController, WKNavigationDelegate {
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
 
-        webView = WKWebView(frame: view.bounds, configuration: config)
+        webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
-        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        webView.translatesAutoresizingMaskIntoConstraints = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isOpaque = false
         webView.backgroundColor = .white
         view.addSubview(webView)
+
+        // Pin below the status bar/notch — a bare WKWebView doesn't auto-inset
+        // for the safe area the way Safari does, so without this the app's own
+        // header renders underneath the system status bar and its buttons.
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
 
         spinner.color = .gray
         spinner.center = view.center
