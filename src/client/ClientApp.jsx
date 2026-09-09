@@ -55,6 +55,7 @@ import {
   Paperclip,
   CheckCircle2,
   GripVertical,
+  Zap,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -118,7 +119,7 @@ import { parseVideoUrl } from "../lib/video";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
-import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet } from "./NutritionFeatures";
+import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
 import {
   BODY_FAT_CONFIG,
   LEAN_MASS_CONFIG,
@@ -2447,6 +2448,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   const [search, setSearch] = useState("");
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [createMealOpen, setCreateMealOpen] = useState(false);
   const [mealPrefill, setMealPrefill] = useState(null);
   const [pendingFood, setPendingFood] = useState(null);
@@ -2854,6 +2856,16 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             <Camera size={18} />
             Photo
           </button>
+          <button
+            onClick={() => {
+              setSheetOpen(false);
+              setQuickAddOpen(true);
+            }}
+            className="flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"
+          >
+            <Zap size={18} />
+            Quick add
+          </button>
         </div>
         <p className="text-black/30 text-xs mb-2 tracking-wide">SEARCH RESULTS · PER 100G</p>
         <div className="space-y-1">
@@ -2909,6 +2921,14 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         onAdd={(food) => {
           setBarcodeOpen(false);
           setPendingFood(food);
+        }}
+      />
+      <QuickAddFoodSheet
+        open={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        onAdd={(food) => {
+          setQuickAddOpen(false);
+          addAndClose(food);
         }}
       />
       <PhotoEstimateSheet

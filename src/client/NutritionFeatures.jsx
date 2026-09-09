@@ -535,6 +535,74 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
 }
 
 /* ============================================================================
+   QUICK ADD — log a single food by typing its name and calories/macros
+   directly, for anything not in the database and not worth a full barcode
+   scan (a restaurant meal, a homemade dish). Mirrors the barcode sheet's
+   manual-entry fallback, but reachable straight from "Add to <meal>"
+   instead of only after a failed scan.
+============================================================================ */
+
+export function QuickAddFoodSheet({ open, onClose, onAdd }) {
+  const { createFood } = useApp();
+  const [manual, setManual] = useState({ name: "", cals: "", protein: "", carbs: "", fat: "" });
+  const [saveToLibrary, setSaveToLibrary] = useState(true);
+
+  useEffect(() => {
+    if (open) {
+      setManual({ name: "", cals: "", protein: "", carbs: "", fat: "" });
+      setSaveToLibrary(true);
+    }
+  }, [open]);
+
+  function submit() {
+    if (!manual.name.trim()) return;
+    const data = {
+      name: manual.name.trim(),
+      cals: Math.round(Number(manual.cals) || 0),
+      protein: Number(manual.protein) || 0,
+      carbs: Number(manual.carbs) || 0,
+      fat: Number(manual.fat) || 0,
+      per: 100,
+      defaultQty: 100,
+    };
+    onAdd(saveToLibrary ? createFood(data) : { id: `manual_${Date.now()}`, ...data });
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Quick Add">
+      <p className="text-black/30 text-xs tracking-wide mb-2">LOG A FOOD BY NAME</p>
+      <div className="space-y-2.5">
+        <TextInput
+          value={manual.name}
+          onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
+          placeholder="e.g. Honey Chicken Sushi Roll"
+        />
+        <div className="grid grid-cols-4 gap-1.5">
+          {["cals", "protein", "carbs", "fat"].map((k) => (
+            <input
+              key={k}
+              type="number"
+              inputMode="decimal"
+              value={manual[k]}
+              onChange={(e) => setManual((m) => ({ ...m, [k]: e.target.value }))}
+              placeholder={k}
+              className="bg-black/5 rounded-lg text-center text-black text-xs py-2.5 outline-none placeholder:text-black/25 placeholder:capitalize"
+            />
+          ))}
+        </div>
+      </div>
+      <label className="flex items-center gap-2 mt-3 text-black/50 text-xs">
+        <input type="checkbox" checked={saveToLibrary} onChange={(e) => setSaveToLibrary(e.target.checked)} className="accent-black" />
+        Save to My Foods so it's there to search next time
+      </label>
+      <PrimaryButton className="w-full mt-4" disabled={!manual.name.trim()} onClick={submit}>
+        <Check size={16} /> Log it
+      </PrimaryButton>
+    </BottomSheet>
+  );
+}
+
+/* ============================================================================
    PHOTO MEAL — attach a reference photo, then build the meal by hand.
    There's no safe way to run real food-photo recognition from a public
    static site (it would mean shipping an API key in the client bundle), so
