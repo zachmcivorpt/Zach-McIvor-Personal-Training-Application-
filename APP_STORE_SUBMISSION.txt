@@ -17,6 +17,25 @@ listing. Nothing below needs Xcode, a Mac, or Codemagic.
 
 
 ===========================================================================
+0. DISTRIBUTION — MAKE IT UNLISTED (PRIVATE LINK ONLY)
+===========================================================================
+
+You wanted clients-only access, not a public/searchable App Store
+listing. Apple has a built-in option for exactly this: an "Unlisted"
+app. It still goes through full App Store Review and gets a real
+listing page, but it's excluded from search and browse — the only way
+anyone finds it is a direct link you send them (text, email, QR code).
+No TestFlight downsides either (no 90-day build expiry, no tester cap,
+no re-inviting) — it behaves like a normal permanent App Store app,
+just hidden from public discovery.
+
+To set it: in App Store Connect, on the app's Pricing and Availability
+page, choose "Unlisted" under App Distribution Method (instead of the
+default "Public Presence"). Once approved, App Store Connect gives you
+a private App Store link — that's what you send to clients.
+
+
+===========================================================================
 1. APP INFORMATION
 ===========================================================================
 
