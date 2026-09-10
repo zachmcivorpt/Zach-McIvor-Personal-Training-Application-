@@ -599,7 +599,7 @@ function DateStrip({ selectedOffset, onSelect }) {
               key={offset}
               data-offset={offset}
               onClick={() => onSelect(offset)}
-              className={`shrink-0 w-[calc((100%-32px)/5)] rounded-2xl py-3 flex flex-col items-center gap-1 border transition-colors ${
+              className={`shrink-0 w-[calc((100%-48px)/7)] rounded-2xl py-3 flex flex-col items-center gap-1 border transition-colors ${
                 isSelected ? "bg-black border-black" : "bg-black/5 border-black/10"
               }`}
             >
