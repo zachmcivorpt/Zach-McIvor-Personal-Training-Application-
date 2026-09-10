@@ -1,4 +1,4 @@
-// Auto-generated — 200 common Australian fitness-industry meals, built
+// Auto-generated — 410 common Australian fitness-industry meals, built
 // entirely from this app's own Food Library (src/lib/foodDatabase.js) so
 // every ingredient's macros trace back to a real, single source of
 // truth. Ingredient labels carry a real, current Coles/Woolworths-style
@@ -15613,5 +15613,4412 @@ export const FITNESS_MEALS_AU = [
     "protein": 41.2,
     "carbs": 46.4,
     "fat": 11.1
+  },
+  {
+    "id": "au_meal_320",
+    "name": "Venison & Couscous with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, prepare the couscous by pouring over boiling water/stock and letting it stand, covered, for 5 minutes, then fluff with a fork.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 484,
+    "protein": 52.1,
+    "carbs": 42.5,
+    "fat": 10
+  },
+  {
+    "id": "au_meal_321",
+    "name": "Venison & Couscous with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, prepare the couscous by pouring over boiling water/stock and letting it stand, covered, for 5 minutes, then fluff with a fork.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 486,
+    "protein": 51.6,
+    "carbs": 42.9,
+    "fat": 10
+  },
+  {
+    "id": "au_meal_322",
+    "name": "Venison & Wild Rice with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g26",
+        "grams": 150,
+        "name": "Wild Rice (cooked) (150g)",
+        "cals": 152,
+        "protein": 6,
+        "carbs": 31.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, cook the wild rice according to packet instructions (it takes longer than white rice).\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 468,
+    "protein": 52.4,
+    "carbs": 39.5,
+    "fat": 10.2
+  },
+  {
+    "id": "au_meal_323",
+    "name": "Venison & Wild Rice with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g26",
+        "grams": 150,
+        "name": "Wild Rice (cooked) (150g)",
+        "cals": 152,
+        "protein": 6,
+        "carbs": 31.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, cook the wild rice according to packet instructions (it takes longer than white rice).\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 470,
+    "protein": 51.9,
+    "carbs": 39.9,
+    "fat": 10.2
+  },
+  {
+    "id": "au_meal_324",
+    "name": "Venison & Barley with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g28",
+        "grams": 150,
+        "name": "Barley (cooked) (150g)",
+        "cals": 185,
+        "protein": 3.5,
+        "carbs": 42,
+        "fat": 0.6
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, simmer the barley in water until tender, about 25-30 minutes.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 501,
+    "protein": 49.9,
+    "carbs": 50,
+    "fat": 10.3
+  },
+  {
+    "id": "au_meal_325",
+    "name": "Venison & Barley with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g28",
+        "grams": 150,
+        "name": "Barley (cooked) (150g)",
+        "cals": 185,
+        "protein": 3.5,
+        "carbs": 42,
+        "fat": 0.6
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, simmer the barley in water until tender, about 25-30 minutes.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 503,
+    "protein": 49.4,
+    "carbs": 50.4,
+    "fat": 10.3
+  },
+  {
+    "id": "au_meal_326",
+    "name": "Venison & Buckwheat with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g29",
+        "grams": 150,
+        "name": "Buckwheat (cooked) (150g)",
+        "cals": 138,
+        "protein": 5.1,
+        "carbs": 30,
+        "fat": 0.9
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, rinse and simmer the buckwheat until tender, about 15 minutes.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 454,
+    "protein": 51.5,
+    "carbs": 38,
+    "fat": 10.6
+  },
+  {
+    "id": "au_meal_327",
+    "name": "Venison & Buckwheat with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g29",
+        "grams": 150,
+        "name": "Buckwheat (cooked) (150g)",
+        "cals": 138,
+        "protein": 5.1,
+        "carbs": 30,
+        "fat": 0.9
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, rinse and simmer the buckwheat until tender, about 15 minutes.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 456,
+    "protein": 51,
+    "carbs": 38.4,
+    "fat": 10.6
+  },
+  {
+    "id": "au_meal_328",
+    "name": "Venison & Farro with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g31",
+        "grams": 150,
+        "name": "Farro (cooked) (150g)",
+        "cals": 195,
+        "protein": 7.5,
+        "carbs": 39,
+        "fat": 1.5
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, simmer the farro in water until tender but still chewy, about 20-25 minutes.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 511,
+    "protein": 53.9,
+    "carbs": 47,
+    "fat": 11.2
+  },
+  {
+    "id": "au_meal_329",
+    "name": "Venison & Farro with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g31",
+        "grams": 150,
+        "name": "Farro (cooked) (150g)",
+        "cals": 195,
+        "protein": 7.5,
+        "carbs": 39,
+        "fat": 1.5
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, simmer the farro in water until tender but still chewy, about 20-25 minutes.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 513,
+    "protein": 53.4,
+    "carbs": 47.4,
+    "fat": 11.2
+  },
+  {
+    "id": "au_meal_330",
+    "name": "Venison & Bulgur with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g32",
+        "grams": 150,
+        "name": "Bulgur (cooked) (150g)",
+        "cals": 125,
+        "protein": 4.5,
+        "carbs": 28.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, pour boiling water over the bulgur and let it stand, covered, for 10-15 minutes until tender.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 441,
+    "protein": 50.9,
+    "carbs": 36.5,
+    "fat": 10
+  },
+  {
+    "id": "au_meal_331",
+    "name": "Venison & Bulgur with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g32",
+        "grams": 150,
+        "name": "Bulgur (cooked) (150g)",
+        "cals": 125,
+        "protein": 4.5,
+        "carbs": 28.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, pour boiling water over the bulgur and let it stand, covered, for 10-15 minutes until tender.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 443,
+    "protein": 50.4,
+    "carbs": 36.9,
+    "fat": 10
+  },
+  {
+    "id": "au_meal_332",
+    "name": "Venison & Polenta with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g30",
+        "grams": 150,
+        "name": "Polenta (cooked) (150g)",
+        "cals": 128,
+        "protein": 3,
+        "carbs": 27,
+        "fat": 0.8
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, whisk the polenta into simmering water or stock and stir until thick and creamy.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 444,
+    "protein": 49.4,
+    "carbs": 35,
+    "fat": 10.5
+  },
+  {
+    "id": "au_meal_333",
+    "name": "Venison & Polenta with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g30",
+        "grams": 150,
+        "name": "Polenta (cooked) (150g)",
+        "cals": 128,
+        "protein": 3,
+        "carbs": 27,
+        "fat": 0.8
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing.\n2. Meanwhile, whisk the polenta into simmering water or stock and stir until thick and creamy.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 446,
+    "protein": 48.9,
+    "carbs": 35.4,
+    "fat": 10.5
+  },
+  {
+    "id": "au_meal_334",
+    "name": "Duck Breast & Couscous with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, prepare the couscous by pouring over boiling water/stock and letting it stand, covered, for 5 minutes, then fluff with a fork.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 549,
+    "protein": 41.6,
+    "carbs": 42.5,
+    "fat": 22
+  },
+  {
+    "id": "au_meal_335",
+    "name": "Duck Breast & Couscous with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, prepare the couscous by pouring over boiling water/stock and letting it stand, covered, for 5 minutes, then fluff with a fork.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 551,
+    "protein": 41.1,
+    "carbs": 42.9,
+    "fat": 22
+  },
+  {
+    "id": "au_meal_336",
+    "name": "Duck Breast & Wild Rice with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g26",
+        "grams": 150,
+        "name": "Wild Rice (cooked) (150g)",
+        "cals": 152,
+        "protein": 6,
+        "carbs": 31.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, cook the wild rice according to packet instructions (it takes longer than white rice).\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 533,
+    "protein": 41.9,
+    "carbs": 39.5,
+    "fat": 22.2
+  },
+  {
+    "id": "au_meal_337",
+    "name": "Duck Breast & Wild Rice with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g26",
+        "grams": 150,
+        "name": "Wild Rice (cooked) (150g)",
+        "cals": 152,
+        "protein": 6,
+        "carbs": 31.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, cook the wild rice according to packet instructions (it takes longer than white rice).\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 535,
+    "protein": 41.4,
+    "carbs": 39.9,
+    "fat": 22.2
+  },
+  {
+    "id": "au_meal_338",
+    "name": "Duck Breast & Barley with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g28",
+        "grams": 150,
+        "name": "Barley (cooked) (150g)",
+        "cals": 185,
+        "protein": 3.5,
+        "carbs": 42,
+        "fat": 0.6
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, simmer the barley in water until tender, about 25-30 minutes.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 566,
+    "protein": 39.4,
+    "carbs": 50,
+    "fat": 22.3
+  },
+  {
+    "id": "au_meal_339",
+    "name": "Duck Breast & Barley with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g28",
+        "grams": 150,
+        "name": "Barley (cooked) (150g)",
+        "cals": 185,
+        "protein": 3.5,
+        "carbs": 42,
+        "fat": 0.6
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, simmer the barley in water until tender, about 25-30 minutes.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 568,
+    "protein": 38.9,
+    "carbs": 50.4,
+    "fat": 22.3
+  },
+  {
+    "id": "au_meal_340",
+    "name": "Duck Breast & Buckwheat with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g29",
+        "grams": 150,
+        "name": "Buckwheat (cooked) (150g)",
+        "cals": 138,
+        "protein": 5.1,
+        "carbs": 30,
+        "fat": 0.9
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, rinse and simmer the buckwheat until tender, about 15 minutes.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 519,
+    "protein": 41,
+    "carbs": 38,
+    "fat": 22.6
+  },
+  {
+    "id": "au_meal_341",
+    "name": "Duck Breast & Buckwheat with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g29",
+        "grams": 150,
+        "name": "Buckwheat (cooked) (150g)",
+        "cals": 138,
+        "protein": 5.1,
+        "carbs": 30,
+        "fat": 0.9
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, rinse and simmer the buckwheat until tender, about 15 minutes.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 521,
+    "protein": 40.5,
+    "carbs": 38.4,
+    "fat": 22.6
+  },
+  {
+    "id": "au_meal_342",
+    "name": "Duck Breast & Farro with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g31",
+        "grams": 150,
+        "name": "Farro (cooked) (150g)",
+        "cals": 195,
+        "protein": 7.5,
+        "carbs": 39,
+        "fat": 1.5
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, simmer the farro in water until tender but still chewy, about 20-25 minutes.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 576,
+    "protein": 43.4,
+    "carbs": 47,
+    "fat": 23.2
+  },
+  {
+    "id": "au_meal_343",
+    "name": "Duck Breast & Farro with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g31",
+        "grams": 150,
+        "name": "Farro (cooked) (150g)",
+        "cals": 195,
+        "protein": 7.5,
+        "carbs": 39,
+        "fat": 1.5
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, simmer the farro in water until tender but still chewy, about 20-25 minutes.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 578,
+    "protein": 42.9,
+    "carbs": 47.4,
+    "fat": 23.2
+  },
+  {
+    "id": "au_meal_344",
+    "name": "Duck Breast & Bulgur with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g32",
+        "grams": 150,
+        "name": "Bulgur (cooked) (150g)",
+        "cals": 125,
+        "protein": 4.5,
+        "carbs": 28.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, pour boiling water over the bulgur and let it stand, covered, for 10-15 minutes until tender.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 506,
+    "protein": 40.4,
+    "carbs": 36.5,
+    "fat": 22
+  },
+  {
+    "id": "au_meal_345",
+    "name": "Duck Breast & Bulgur with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g32",
+        "grams": 150,
+        "name": "Bulgur (cooked) (150g)",
+        "cals": 125,
+        "protein": 4.5,
+        "carbs": 28.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, pour boiling water over the bulgur and let it stand, covered, for 10-15 minutes until tender.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 508,
+    "protein": 39.9,
+    "carbs": 36.9,
+    "fat": 22
+  },
+  {
+    "id": "au_meal_346",
+    "name": "Duck Breast & Polenta with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g30",
+        "grams": 150,
+        "name": "Polenta (cooked) (150g)",
+        "cals": 128,
+        "protein": 3,
+        "carbs": 27,
+        "fat": 0.8
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, whisk the polenta into simmering water or stock and stir until thick and creamy.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 509,
+    "protein": 38.9,
+    "carbs": 35,
+    "fat": 22.5
+  },
+  {
+    "id": "au_meal_347",
+    "name": "Duck Breast & Polenta with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g30",
+        "grams": 150,
+        "name": "Polenta (cooked) (150g)",
+        "cals": 128,
+        "protein": 3,
+        "carbs": 27,
+        "fat": 0.8
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more.\n2. Meanwhile, whisk the polenta into simmering water or stock and stir until thick and creamy.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 511,
+    "protein": 38.4,
+    "carbs": 35.4,
+    "fat": 22.5
+  },
+  {
+    "id": "au_meal_348",
+    "name": "Veal & Couscous with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m20",
+        "grams": 150,
+        "name": "Veal (150g)",
+        "cals": 258,
+        "protein": 43.5,
+        "carbs": 0,
+        "fat": 7.5
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the veal and pan-fry or grill until just cooked through, taking care not to overcook.\n2. Meanwhile, prepare the couscous by pouring over boiling water/stock and letting it stand, covered, for 5 minutes, then fluff with a fork.\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 505,
+    "protein": 50.6,
+    "carbs": 42.5,
+    "fat": 13
+  },
+  {
+    "id": "au_meal_349",
+    "name": "Veal & Couscous with Leek",
+    "ingredients": [
+      {
+        "baseFoodId": "m20",
+        "grams": 150,
+        "name": "Veal (150g)",
+        "cals": 258,
+        "protein": 43.5,
+        "carbs": 0,
+        "fat": 7.5
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the veal and pan-fry or grill until just cooked through, taking care not to overcook.\n2. Meanwhile, prepare the couscous by pouring over boiling water/stock and letting it stand, covered, for 5 minutes, then fluff with a fork.\n3. Slice and sauté the leek in a little oil until soft.\n4. Plate everything together and serve.",
+    "cals": 507,
+    "protein": 50.1,
+    "carbs": 42.9,
+    "fat": 13
+  },
+  {
+    "id": "au_meal_350",
+    "name": "Veal & Wild Rice with Beetroot",
+    "ingredients": [
+      {
+        "baseFoodId": "m20",
+        "grams": 150,
+        "name": "Veal (150g)",
+        "cals": 258,
+        "protein": 43.5,
+        "carbs": 0,
+        "fat": 7.5
+      },
+      {
+        "baseFoodId": "g26",
+        "grams": 150,
+        "name": "Wild Rice (cooked) (150g)",
+        "cals": 152,
+        "protein": 6,
+        "carbs": 31.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 5,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the veal and pan-fry or grill until just cooked through, taking care not to overcook.\n2. Meanwhile, cook the wild rice according to packet instructions (it takes longer than white rice).\n3. Steam or roast the beetroot until tender (or use pre-cooked beetroot).\n4. Plate everything together and serve.",
+    "cals": 489,
+    "protein": 50.9,
+    "carbs": 39.5,
+    "fat": 13.2
+  },
+  {
+    "id": "au_meal_351",
+    "name": "Venison Stir-Fry with Bok Choy & Capsicum",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g18",
+        "grams": 150,
+        "name": "Rice Noodles (cooked) — Fantastic Rice Noodles (150g)",
+        "cals": 164,
+        "protein": 1.4,
+        "carbs": 37.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v31",
+        "grams": 60,
+        "name": "Bok Choy (steamed) — Coles Baby Bok Choy (60g)",
+        "cals": 8,
+        "protein": 0.9,
+        "carbs": 0.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "s03",
+        "grams": 10,
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
+        "cals": 5,
+        "protein": 0.8,
+        "carbs": 0.5,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n27",
+        "grams": 5,
+        "name": "Sesame Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the venison and pan-sear over high heat for 2-3 minutes per side for medium-rare, then rest before slicing, then slice or flake.\n2. Meanwhile, cook the rice noodles according to packet instructions.\n3. Stir-fry the bok choy and capsicum in a hot wok with the sesame oil for 2-3 minutes.\n4. Combine everything with the soy sauce, toss to coat, and serve.",
+    "cals": 477,
+    "protein": 48.7,
+    "carbs": 42.3,
+    "fat": 10.2
+  },
+  {
+    "id": "au_meal_352",
+    "name": "Duck Breast Stir-Fry with Bok Choy & Capsicum",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "g18",
+        "grams": 150,
+        "name": "Rice Noodles (cooked) — Fantastic Rice Noodles (150g)",
+        "cals": 164,
+        "protein": 1.4,
+        "carbs": 37.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v31",
+        "grams": 60,
+        "name": "Bok Choy (steamed) — Coles Baby Bok Choy (60g)",
+        "cals": 8,
+        "protein": 0.9,
+        "carbs": 0.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "s03",
+        "grams": 10,
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
+        "cals": 5,
+        "protein": 0.8,
+        "carbs": 0.5,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n27",
+        "grams": 5,
+        "name": "Sesame Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin, then pan-fry skin-side down over medium heat until the fat renders and the skin is crisp (8-10 minutes), flip and cook 3-4 minutes more, then slice or flake.\n2. Meanwhile, cook the rice noodles according to packet instructions.\n3. Stir-fry the bok choy and capsicum in a hot wok with the sesame oil for 2-3 minutes.\n4. Combine everything with the soy sauce, toss to coat, and serve.",
+    "cals": 542,
+    "protein": 38.2,
+    "carbs": 42.3,
+    "fat": 22.2
+  },
+  {
+    "id": "au_meal_353",
+    "name": "Veal Stir-Fry with Bok Choy & Capsicum",
+    "ingredients": [
+      {
+        "baseFoodId": "m20",
+        "grams": 150,
+        "name": "Veal (150g)",
+        "cals": 258,
+        "protein": 43.5,
+        "carbs": 0,
+        "fat": 7.5
+      },
+      {
+        "baseFoodId": "g18",
+        "grams": 150,
+        "name": "Rice Noodles (cooked) — Fantastic Rice Noodles (150g)",
+        "cals": 164,
+        "protein": 1.4,
+        "carbs": 37.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v31",
+        "grams": 60,
+        "name": "Bok Choy (steamed) — Coles Baby Bok Choy (60g)",
+        "cals": 8,
+        "protein": 0.9,
+        "carbs": 0.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "s03",
+        "grams": 10,
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
+        "cals": 5,
+        "protein": 0.8,
+        "carbs": 0.5,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n27",
+        "grams": 5,
+        "name": "Sesame Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the veal and pan-fry or grill until just cooked through, taking care not to overcook, then slice or flake.\n2. Meanwhile, cook the rice noodles according to packet instructions.\n3. Stir-fry the bok choy and capsicum in a hot wok with the sesame oil for 2-3 minutes.\n4. Combine everything with the soy sauce, toss to coat, and serve.",
+    "cals": 498,
+    "protein": 47.2,
+    "carbs": 42.3,
+    "fat": 13.2
+  },
+  {
+    "id": "au_meal_354",
+    "name": "Rabbit Stir-Fry with Bok Choy & Capsicum",
+    "ingredients": [
+      {
+        "baseFoodId": "m34",
+        "grams": 150,
+        "name": "Rabbit (150g)",
+        "cals": 260,
+        "protein": 49.5,
+        "carbs": 0,
+        "fat": 5.3
+      },
+      {
+        "baseFoodId": "g18",
+        "grams": 150,
+        "name": "Rice Noodles (cooked) — Fantastic Rice Noodles (150g)",
+        "cals": 164,
+        "protein": 1.4,
+        "carbs": 37.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v31",
+        "grams": 60,
+        "name": "Bok Choy (steamed) — Coles Baby Bok Choy (60g)",
+        "cals": 8,
+        "protein": 0.9,
+        "carbs": 0.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "s03",
+        "grams": 10,
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
+        "cals": 5,
+        "protein": 0.8,
+        "carbs": 0.5,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n27",
+        "grams": 5,
+        "name": "Sesame Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the rabbit and braise or slow-cook until tender, or pan-fry smaller cuts until cooked through, then slice or flake.\n2. Meanwhile, cook the rice noodles according to packet instructions.\n3. Stir-fry the bok choy and capsicum in a hot wok with the sesame oil for 2-3 minutes.\n4. Combine everything with the soy sauce, toss to coat, and serve.",
+    "cals": 500,
+    "protein": 53.2,
+    "carbs": 42.3,
+    "fat": 11
+  },
+  {
+    "id": "au_meal_355",
+    "name": "Cod Stir-Fry with Bok Choy & Capsicum",
+    "ingredients": [
+      {
+        "baseFoodId": "f04",
+        "grams": 160,
+        "name": "Cod (160g)",
+        "cals": 168,
+        "protein": 36.8,
+        "carbs": 0,
+        "fat": 1.6
+      },
+      {
+        "baseFoodId": "g18",
+        "grams": 150,
+        "name": "Rice Noodles (cooked) — Fantastic Rice Noodles (150g)",
+        "cals": 164,
+        "protein": 1.4,
+        "carbs": 37.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v31",
+        "grams": 60,
+        "name": "Bok Choy (steamed) — Coles Baby Bok Choy (60g)",
+        "cals": 8,
+        "protein": 0.9,
+        "carbs": 0.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "s03",
+        "grams": 10,
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
+        "cals": 5,
+        "protein": 0.8,
+        "carbs": 0.5,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n27",
+        "grams": 5,
+        "name": "Sesame Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the cod and bake, grill, or pan-fry until it flakes easily with a fork (about 4-5 minutes per side), then slice or flake.\n2. Meanwhile, cook the rice noodles according to packet instructions.\n3. Stir-fry the bok choy and capsicum in a hot wok with the sesame oil for 2-3 minutes.\n4. Combine everything with the soy sauce, toss to coat, and serve.",
+    "cals": 408,
+    "protein": 40.5,
+    "carbs": 42.3,
+    "fat": 7.3
+  },
+  {
+    "id": "au_meal_356",
+    "name": "Trout Stir-Fry with Bok Choy & Capsicum",
+    "ingredients": [
+      {
+        "baseFoodId": "f16",
+        "grams": 150,
+        "name": "Trout (150g)",
+        "cals": 222,
+        "protein": 31.5,
+        "carbs": 0,
+        "fat": 9.9
+      },
+      {
+        "baseFoodId": "g18",
+        "grams": 150,
+        "name": "Rice Noodles (cooked) — Fantastic Rice Noodles (150g)",
+        "cals": 164,
+        "protein": 1.4,
+        "carbs": 37.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v31",
+        "grams": 60,
+        "name": "Bok Choy (steamed) — Coles Baby Bok Choy (60g)",
+        "cals": 8,
+        "protein": 0.9,
+        "carbs": 0.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "s03",
+        "grams": 10,
+        "name": "Soy Sauce — Kikkoman Soy Sauce (10g)",
+        "cals": 5,
+        "protein": 0.8,
+        "carbs": 0.5,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n27",
+        "grams": 5,
+        "name": "Sesame Oil (5g)",
+        "cals": 44,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the trout and bake, grill, or pan-fry skin-side down until it flakes easily, then slice or flake.\n2. Meanwhile, cook the rice noodles according to packet instructions.\n3. Stir-fry the bok choy and capsicum in a hot wok with the sesame oil for 2-3 minutes.\n4. Combine everything with the soy sauce, toss to coat, and serve.",
+    "cals": 462,
+    "protein": 35.2,
+    "carbs": 42.3,
+    "fat": 15.6
+  },
+  {
+    "id": "au_meal_357",
+    "name": "Buckwheat Porridge with Berries",
+    "ingredients": [
+      {
+        "baseFoodId": "g29",
+        "grams": 200,
+        "name": "Buckwheat (cooked) (200g)",
+        "cals": 184,
+        "protein": 6.8,
+        "carbs": 40,
+        "fat": 1.2
+      },
+      {
+        "baseFoodId": "r50",
+        "grams": 80,
+        "name": "Frozen Mixed Berries — Coles Mixed Berries Frozen (80g)",
+        "cals": 40,
+        "protein": 0.6,
+        "carbs": 9.6,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "n05",
+        "grams": 15,
+        "name": "Peanut Butter — Bega Peanut Butter Smooth (15g)",
+        "cals": 88,
+        "protein": 3.8,
+        "carbs": 3,
+        "fat": 7.5
+      },
+      {
+        "baseFoodId": "s06",
+        "grams": 10,
+        "name": "Honey — Capilano Honey (10g)",
+        "cals": 30,
+        "protein": 0,
+        "carbs": 8.2,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 342,
+    "protein": 11.2,
+    "carbs": 60.8,
+    "fat": 9
+  },
+  {
+    "id": "au_meal_358",
+    "name": "Smoked Trout & Poached Egg on Sourdough",
+    "ingredients": [
+      {
+        "baseFoodId": "f16",
+        "grams": 80,
+        "name": "Trout (80g)",
+        "cals": 118,
+        "protein": 16.8,
+        "carbs": 0,
+        "fat": 5.3
+      },
+      {
+        "baseFoodId": "d01",
+        "grams": 100,
+        "name": "Eggs, whole — Woolworths Free Range Eggs (100g)",
+        "cals": 143,
+        "protein": 13,
+        "carbs": 1,
+        "fat": 10
+      },
+      {
+        "baseFoodId": "g11",
+        "grams": 60,
+        "name": "Sourdough Bread — Coles Bakery Sourdough (60g)",
+        "cals": 164,
+        "protein": 5.4,
+        "carbs": 31.8,
+        "fat": 1.2
+      },
+      {
+        "baseFoodId": "v10",
+        "grams": 40,
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (40g)",
+        "cals": 6,
+        "protein": 0.3,
+        "carbs": 1.4,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 431,
+    "protein": 35.5,
+    "carbs": 34.2,
+    "fat": 16.5
+  },
+  {
+    "id": "au_meal_359",
+    "name": "Tofu Scramble with Spinach",
+    "ingredients": [
+      {
+        "baseFoodId": "l07",
+        "grams": 150,
+        "name": "Tofu (firm) (150g)",
+        "cals": 114,
+        "protein": 12,
+        "carbs": 2.8,
+        "fat": 7.2
+      },
+      {
+        "baseFoodId": "v02",
+        "grams": 60,
+        "name": "Spinach (raw) — Coles Baby Spinach (60g)",
+        "cals": 14,
+        "protein": 1.7,
+        "carbs": 2.2,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v11",
+        "grams": 60,
+        "name": "Tomato (raw) — Coles Tomatoes (60g)",
+        "cals": 11,
+        "protein": 0.5,
+        "carbs": 2.3,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "g11",
+        "grams": 50,
+        "name": "Sourdough Bread — Coles Bakery Sourdough (50g)",
+        "cals": 137,
+        "protein": 4.5,
+        "carbs": 26.5,
+        "fat": 1
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 276,
+    "protein": 18.7,
+    "carbs": 33.8,
+    "fat": 8.5
+  },
+  {
+    "id": "au_meal_360",
+    "name": "Barley Porridge with Banana & Honey",
+    "ingredients": [
+      {
+        "baseFoodId": "g28",
+        "grams": 200,
+        "name": "Barley (cooked) (200g)",
+        "cals": 246,
+        "protein": 4.6,
+        "carbs": 56,
+        "fat": 0.8
+      },
+      {
+        "baseFoodId": "r01",
+        "grams": 100,
+        "name": "Banana — Coles Cavendish Bananas (100g)",
+        "cals": 89,
+        "protein": 1.1,
+        "carbs": 23,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "s06",
+        "grams": 15,
+        "name": "Honey — Capilano Honey (15g)",
+        "cals": 46,
+        "protein": 0,
+        "carbs": 12.3,
+        "fat": 0
+      },
+      {
+        "baseFoodId": "d04",
+        "grams": 100,
+        "name": "Milk (skim) — Coles Skim Milk (100ml)",
+        "cals": 35,
+        "protein": 3.6,
+        "carbs": 5.1,
+        "fat": 0.1
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 416,
+    "protein": 9.3,
+    "carbs": 96.4,
+    "fat": 1.2
+  },
+  {
+    "id": "au_meal_361",
+    "name": "Duck Egg & Mushroom Omelette",
+    "ingredients": [
+      {
+        "baseFoodId": "d17",
+        "grams": 120,
+        "name": "Duck Egg (120g)",
+        "cals": 222,
+        "protein": 15.6,
+        "carbs": 1.8,
+        "fat": 16.8
+      },
+      {
+        "baseFoodId": "v15",
+        "grams": 60,
+        "name": "Mushrooms (raw) — Coles Mushrooms (60g)",
+        "cals": 13,
+        "protein": 1.9,
+        "carbs": 2,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "d09",
+        "grams": 20,
+        "name": "Cheddar Cheese — Coles Tasty Cheese Slices (20g)",
+        "cals": 80,
+        "protein": 5,
+        "carbs": 0.3,
+        "fat": 6.6
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 315,
+    "protein": 22.5,
+    "carbs": 4.1,
+    "fat": 23.6
+  },
+  {
+    "id": "au_meal_362",
+    "name": "Polenta with Poached Egg & Parmesan",
+    "ingredients": [
+      {
+        "baseFoodId": "g30",
+        "grams": 200,
+        "name": "Polenta (cooked) (200g)",
+        "cals": 170,
+        "protein": 4,
+        "carbs": 36,
+        "fat": 1
+      },
+      {
+        "baseFoodId": "d01",
+        "grams": 100,
+        "name": "Eggs, whole — Woolworths Free Range Eggs (100g)",
+        "cals": 143,
+        "protein": 13,
+        "carbs": 1,
+        "fat": 10
+      },
+      {
+        "baseFoodId": "d23",
+        "grams": 15,
+        "name": "Parmesan Cheese — Coles Grated Parmesan (15g)",
+        "cals": 65,
+        "protein": 5.7,
+        "carbs": 0.6,
+        "fat": 4.4
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 378,
+    "protein": 22.7,
+    "carbs": 37.6,
+    "fat": 15.4
+  },
+  {
+    "id": "au_meal_363",
+    "name": "Farro Breakfast Bowl with Fruit & Nuts",
+    "ingredients": [
+      {
+        "baseFoodId": "g31",
+        "grams": 200,
+        "name": "Farro (cooked) (200g)",
+        "cals": 260,
+        "protein": 10,
+        "carbs": 52,
+        "fat": 2
+      },
+      {
+        "baseFoodId": "r05",
+        "grams": 60,
+        "name": "Blueberries (60g)",
+        "cals": 34,
+        "protein": 0.4,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n02",
+        "grams": 15,
+        "name": "Walnuts (15g)",
+        "cals": 98,
+        "protein": 2.3,
+        "carbs": 2.1,
+        "fat": 9.8
+      },
+      {
+        "baseFoodId": "d05",
+        "grams": 100,
+        "name": "Greek Yoghurt (full fat) (100g)",
+        "cals": 97,
+        "protein": 9,
+        "carbs": 4,
+        "fat": 5
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 489,
+    "protein": 21.7,
+    "carbs": 66.5,
+    "fat": 17
+  },
+  {
+    "id": "au_meal_364",
+    "name": "Cauliflower Hash with Bacon & Eggs",
+    "ingredients": [
+      {
+        "baseFoodId": "v08",
+        "grams": 150,
+        "name": "Cauliflower (steamed) (150g)",
+        "cals": 38,
+        "protein": 3,
+        "carbs": 7.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "m11",
+        "grams": 40,
+        "name": "Bacon (grilled) — Coles Middle Bacon Rashers (40g)",
+        "cals": 134,
+        "protein": 10.8,
+        "carbs": 0.4,
+        "fat": 10
+      },
+      {
+        "baseFoodId": "d01",
+        "grams": 100,
+        "name": "Eggs, whole — Woolworths Free Range Eggs (100g)",
+        "cals": 143,
+        "protein": 13,
+        "carbs": 1,
+        "fat": 10
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 315,
+    "protein": 26.8,
+    "carbs": 8.9,
+    "fat": 20.5
+  },
+  {
+    "id": "au_meal_365",
+    "name": "Beetroot Hummus with Crackers",
+    "ingredients": [
+      {
+        "baseFoodId": "v23",
+        "grams": 80,
+        "name": "Beetroot (cooked) (80g)",
+        "cals": 35,
+        "protein": 1.4,
+        "carbs": 8,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "l09",
+        "grams": 40,
+        "name": "Hummus — Coles Hummus Dip (40g)",
+        "cals": 66,
+        "protein": 3.2,
+        "carbs": 5.6,
+        "fat": 4
+      },
+      {
+        "baseFoodId": "g21",
+        "grams": 30,
+        "name": "Crackers (plain) (30g)",
+        "cals": 126,
+        "protein": 2.7,
+        "carbs": 21.3,
+        "fat": 3.3
+      }
+    ],
+    "mealTypes": [
+      "Snacks"
+    ],
+    "instructions": "",
+    "cals": 227,
+    "protein": 7.3,
+    "carbs": 34.9,
+    "fat": 7.5
+  },
+  {
+    "id": "au_meal_366",
+    "name": "Tempeh & Vegetable Skewers",
+    "ingredients": [
+      {
+        "baseFoodId": "l08",
+        "grams": 120,
+        "name": "Tempeh (120g)",
+        "cals": 232,
+        "protein": 22.8,
+        "carbs": 10.8,
+        "fat": 13.2
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v14",
+        "grams": 40,
+        "name": "Onion (raw) — Coles Brown Onions (40g)",
+        "cals": 16,
+        "protein": 0.4,
+        "carbs": 3.6,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Snacks"
+    ],
+    "instructions": "",
+    "cals": 267,
+    "protein": 23.8,
+    "carbs": 18,
+    "fat": 13.4
+  },
+  {
+    "id": "au_meal_367",
+    "name": "Kale Chips",
+    "ingredients": [
+      {
+        "baseFoodId": "v03",
+        "grams": 80,
+        "name": "Kale (raw) (80g)",
+        "cals": 39,
+        "protein": 3.4,
+        "carbs": 7.2,
+        "fat": 0.7
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 8,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
+        "cals": 71,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 8
+      }
+    ],
+    "mealTypes": [
+      "Snacks"
+    ],
+    "instructions": "",
+    "cals": 110,
+    "protein": 3.4,
+    "carbs": 7.2,
+    "fat": 8.7
+  },
+  {
+    "id": "au_meal_368",
+    "name": "Cottage Cheese with Beetroot & Walnuts",
+    "ingredients": [
+      {
+        "baseFoodId": "d08",
+        "grams": 150,
+        "name": "Cottage Cheese — Coles Low Fat Creamed Cottage Cheese (150g)",
+        "cals": 147,
+        "protein": 16.5,
+        "carbs": 5.1,
+        "fat": 6.5
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 60,
+        "name": "Beetroot (cooked) (60g)",
+        "cals": 26,
+        "protein": 1,
+        "carbs": 6,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n02",
+        "grams": 15,
+        "name": "Walnuts (15g)",
+        "cals": 98,
+        "protein": 2.3,
+        "carbs": 2.1,
+        "fat": 9.8
+      }
+    ],
+    "mealTypes": [
+      "Snacks"
+    ],
+    "instructions": "",
+    "cals": 271,
+    "protein": 19.8,
+    "carbs": 13.2,
+    "fat": 16.4
+  },
+  {
+    "id": "au_meal_369",
+    "name": "Roast Eggplant Dip with Pita",
+    "ingredients": [
+      {
+        "baseFoodId": "v25",
+        "grams": 150,
+        "name": "Eggplant (cooked) (150g)",
+        "cals": 53,
+        "protein": 1.2,
+        "carbs": 12.9,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 10,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (10g)",
+        "cals": 88,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 10
+      },
+      {
+        "baseFoodId": "g35",
+        "grams": 60,
+        "name": "Pita Bread — Coles Lebanese Style Pita Bread (60g)",
+        "cals": 165,
+        "protein": 5.4,
+        "carbs": 33,
+        "fat": 0.7
+      }
+    ],
+    "mealTypes": [
+      "Snacks"
+    ],
+    "instructions": "",
+    "cals": 306,
+    "protein": 6.6,
+    "carbs": 45.9,
+    "fat": 11
+  },
+  {
+    "id": "au_meal_370",
+    "name": "Smoked Mackerel Pâté on Rye",
+    "ingredients": [
+      {
+        "baseFoodId": "f17",
+        "grams": 100,
+        "name": "Mackerel (100g)",
+        "cals": 205,
+        "protein": 19,
+        "carbs": 0,
+        "fat": 14
+      },
+      {
+        "baseFoodId": "d12",
+        "grams": 30,
+        "name": "Cream Cheese — Philadelphia Cream Cheese (30g)",
+        "cals": 103,
+        "protein": 1.8,
+        "carbs": 1.2,
+        "fat": 10.2
+      },
+      {
+        "baseFoodId": "g33",
+        "grams": 50,
+        "name": "Rye Bread (50g)",
+        "cals": 130,
+        "protein": 4.3,
+        "carbs": 24,
+        "fat": 1.7
+      }
+    ],
+    "mealTypes": [
+      "Snacks"
+    ],
+    "instructions": "",
+    "cals": 438,
+    "protein": 25.1,
+    "carbs": 25.2,
+    "fat": 25.9
+  },
+  {
+    "id": "au_meal_371",
+    "name": "Duck Breast with Braised Cabbage",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "v21",
+        "grams": 100,
+        "name": "Cabbage (raw) — Coles Cabbage (100g)",
+        "cals": 25,
+        "protein": 1.3,
+        "carbs": 6,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v05",
+        "grams": 150,
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (150g)",
+        "cals": 135,
+        "protein": 3,
+        "carbs": 31.5,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin and pan-fry skin-side down until crisp, then flip and finish cooking.\n2. Braise the cabbage in a covered pan with a splash of water until tender.\n3. Roast or boil the sweet potato until tender and serve together.",
+    "cals": 462,
+    "protein": 38.8,
+    "carbs": 37.5,
+    "fat": 16.8
+  },
+  {
+    "id": "au_meal_372",
+    "name": "Venison Steak with Farro & Greens",
+    "ingredients": [
+      {
+        "baseFoodId": "m18",
+        "grams": 150,
+        "name": "Venison (150g)",
+        "cals": 237,
+        "protein": 45,
+        "carbs": 0,
+        "fat": 4.5
+      },
+      {
+        "baseFoodId": "g31",
+        "grams": 150,
+        "name": "Farro (cooked) (150g)",
+        "cals": 195,
+        "protein": 7.5,
+        "carbs": 39,
+        "fat": 1.5
+      },
+      {
+        "baseFoodId": "v03",
+        "grams": 60,
+        "name": "Kale (raw) (60g)",
+        "cals": 29,
+        "protein": 2.6,
+        "carbs": 5.4,
+        "fat": 0.5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Pan-sear the venison to your liking and rest before slicing.\n2. Simmer the farro until tender but chewy.\n3. Massage the kale with a little oil and serve alongside.",
+    "cals": 461,
+    "protein": 55.1,
+    "carbs": 44.4,
+    "fat": 6.5
+  },
+  {
+    "id": "au_meal_373",
+    "name": "Veal Schnitzel with Mash & Peas",
+    "ingredients": [
+      {
+        "baseFoodId": "m20",
+        "grams": 150,
+        "name": "Veal (150g)",
+        "cals": 258,
+        "protein": 43.5,
+        "carbs": 0,
+        "fat": 7.5
+      },
+      {
+        "baseFoodId": "v07",
+        "grams": 200,
+        "name": "Mashed Potato (200g)",
+        "cals": 210,
+        "protein": 4,
+        "carbs": 32,
+        "fat": 8
+      },
+      {
+        "baseFoodId": "v17",
+        "grams": 60,
+        "name": "Peas (cooked) — Birds Eye Peas (60g)",
+        "cals": 50,
+        "protein": 3.2,
+        "carbs": 8.4,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Crumb and pan-fry the veal until golden and cooked through.\n2. Warm the mashed potato and peas.\n3. Serve together.",
+    "cals": 518,
+    "protein": 50.7,
+    "carbs": 40.4,
+    "fat": 15.7
+  },
+  {
+    "id": "au_meal_374",
+    "name": "Braised Rabbit with Root Vegetables",
+    "ingredients": [
+      {
+        "baseFoodId": "m34",
+        "grams": 180,
+        "name": "Rabbit (180g)",
+        "cals": 311,
+        "protein": 59.4,
+        "carbs": 0,
+        "fat": 6.3
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 100,
+        "name": "Beetroot (cooked) (100g)",
+        "cals": 44,
+        "protein": 1.7,
+        "carbs": 10,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v06",
+        "grams": 150,
+        "name": "White Potato (baked) — Coles Brushed Potatoes (150g)",
+        "cals": 140,
+        "protein": 3.8,
+        "carbs": 31.5,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Brown the rabbit, then slow-cook or braise with the beetroot and potato until tender.",
+    "cals": 495,
+    "protein": 64.9,
+    "carbs": 41.5,
+    "fat": 6.7
+  },
+  {
+    "id": "au_meal_375",
+    "name": "Snapper with Couscous & Roast Veg",
+    "ingredients": [
+      {
+        "baseFoodId": "f19",
+        "grams": 160,
+        "name": "Snapper (160g)",
+        "cals": 160,
+        "protein": 33.6,
+        "carbs": 0,
+        "fat": 2.1
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v25",
+        "grams": 100,
+        "name": "Eggplant (cooked) (100g)",
+        "cals": 35,
+        "protein": 0.8,
+        "carbs": 8.6,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the snapper and bake, grill, or pan-fry until it flakes easily.\n2. Prepare the couscous with boiling water/stock.\n3. Roast the eggplant and serve together.",
+    "cals": 363,
+    "protein": 40.1,
+    "carbs": 43.1,
+    "fat": 2.6
+  },
+  {
+    "id": "au_meal_376",
+    "name": "Cod with Buttered Leeks",
+    "ingredients": [
+      {
+        "baseFoodId": "f04",
+        "grams": 170,
+        "name": "Cod (170g)",
+        "cals": 179,
+        "protein": 39.1,
+        "carbs": 0,
+        "fat": 1.7
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 100,
+        "name": "Leek (100g)",
+        "cals": 61,
+        "protein": 1.5,
+        "carbs": 14,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v06",
+        "grams": 150,
+        "name": "White Potato (baked) — Coles Brushed Potatoes (150g)",
+        "cals": 140,
+        "protein": 3.8,
+        "carbs": 31.5,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the cod and bake or pan-fry until it flakes easily.\n2. Sauté the leek in a little butter until soft.\n3. Boil or roast the potato and serve together.",
+    "cals": 380,
+    "protein": 44.4,
+    "carbs": 45.5,
+    "fat": 2.2
+  },
+  {
+    "id": "au_meal_377",
+    "name": "Tofu & Vegetable Curry with Rice",
+    "ingredients": [
+      {
+        "baseFoodId": "l07",
+        "grams": 180,
+        "name": "Tofu (firm) (180g)",
+        "cals": 137,
+        "protein": 14.4,
+        "carbs": 3.4,
+        "fat": 8.6
+      },
+      {
+        "baseFoodId": "v08",
+        "grams": 100,
+        "name": "Cauliflower (steamed) (100g)",
+        "cals": 25,
+        "protein": 2,
+        "carbs": 5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "s25",
+        "grams": 20,
+        "name": "Curry Paste — Coles Curry Paste (20g)",
+        "cals": 26,
+        "protein": 0.6,
+        "carbs": 3,
+        "fat": 1.4
+      },
+      {
+        "baseFoodId": "n14",
+        "grams": 100,
+        "name": "Coconut Milk (canned) — Ayam Coconut Milk (100ml)",
+        "cals": 230,
+        "protein": 2.3,
+        "carbs": 6,
+        "fat": 24
+      },
+      {
+        "baseFoodId": "g01",
+        "grams": 150,
+        "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
+        "cals": 195,
+        "protein": 3.6,
+        "carbs": 42,
+        "fat": 0.5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Pan-fry the cubed tofu until golden.\n2. Stir in the curry paste and coconut milk, add the cauliflower, and simmer until tender.\n3. Cook the rice and serve together.",
+    "cals": 613,
+    "protein": 22.9,
+    "carbs": 59.4,
+    "fat": 34.8
+  },
+  {
+    "id": "au_meal_378",
+    "name": "Tempeh Buddha Bowl",
+    "ingredients": [
+      {
+        "baseFoodId": "l08",
+        "grams": 120,
+        "name": "Tempeh (120g)",
+        "cals": 232,
+        "protein": 22.8,
+        "carbs": 10.8,
+        "fat": 13.2
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v08",
+        "grams": 80,
+        "name": "Cauliflower (steamed) (80g)",
+        "cals": 20,
+        "protein": 1.6,
+        "carbs": 4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v28",
+        "grams": 60,
+        "name": "Avocado — Woolworths Hass Avocado (60g)",
+        "cals": 96,
+        "protein": 1.2,
+        "carbs": 5.4,
+        "fat": 9
+      },
+      {
+        "baseFoodId": "n21",
+        "grams": 10,
+        "name": "Tahini (10g)",
+        "cals": 60,
+        "protein": 1.7,
+        "carbs": 2.1,
+        "fat": 5.4
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Pan-fry the sliced tempeh until golden.\n2. Prepare the couscous and roast or steam the cauliflower.\n3. Assemble in a bowl with sliced avocado and a drizzle of tahini.",
+    "cals": 576,
+    "protein": 33,
+    "carbs": 56.8,
+    "fat": 28.1
+  },
+  {
+    "id": "au_meal_379",
+    "name": "Mackerel with Bulgur Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "f17",
+        "grams": 130,
+        "name": "Mackerel (130g)",
+        "cals": 267,
+        "protein": 24.7,
+        "carbs": 0,
+        "fat": 18.2
+      },
+      {
+        "baseFoodId": "g32",
+        "grams": 150,
+        "name": "Bulgur (cooked) (150g)",
+        "cals": 125,
+        "protein": 4.5,
+        "carbs": 28.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v11",
+        "grams": 60,
+        "name": "Tomato (raw) — Coles Tomatoes (60g)",
+        "cals": 11,
+        "protein": 0.5,
+        "carbs": 2.3,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v10",
+        "grams": 40,
+        "name": "Cucumber (raw) — Coles Lebanese Cucumber (40g)",
+        "cals": 6,
+        "protein": 0.3,
+        "carbs": 1.4,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Grill or pan-fry the mackerel until cooked through.\n2. Prepare the bulgur with boiling water.\n3. Toss with the diced tomato and cucumber, and serve with the mackerel.",
+    "cals": 409,
+    "protein": 30,
+    "carbs": 32.2,
+    "fat": 18.6
+  },
+  {
+    "id": "au_meal_380",
+    "name": "Trout with Wild Rice Pilaf",
+    "ingredients": [
+      {
+        "baseFoodId": "f16",
+        "grams": 150,
+        "name": "Trout (150g)",
+        "cals": 222,
+        "protein": 31.5,
+        "carbs": 0,
+        "fat": 9.9
+      },
+      {
+        "baseFoodId": "g26",
+        "grams": 150,
+        "name": "Wild Rice (cooked) (150g)",
+        "cals": 152,
+        "protein": 6,
+        "carbs": 31.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n01",
+        "grams": 15,
+        "name": "Almonds — Coles Australian Almonds (15g)",
+        "cals": 87,
+        "protein": 3.2,
+        "carbs": 3.3,
+        "fat": 7.5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Bake or pan-fry the trout until it flakes easily.\n2. Cook the wild rice according to packet instructions.\n3. Sauté the leek and stir through the rice with the almonds, then serve with the trout.",
+    "cals": 498,
+    "protein": 41.6,
+    "carbs": 43.2,
+    "fat": 18.1
+  },
+  {
+    "id": "au_meal_381",
+    "name": "Goat Curry with Rice",
+    "ingredients": [
+      {
+        "baseFoodId": "m35",
+        "grams": 180,
+        "name": "Goat Meat (180g)",
+        "cals": 257,
+        "protein": 48.6,
+        "carbs": 0,
+        "fat": 5.4
+      },
+      {
+        "baseFoodId": "s25",
+        "grams": 20,
+        "name": "Curry Paste — Coles Curry Paste (20g)",
+        "cals": 26,
+        "protein": 0.6,
+        "carbs": 3,
+        "fat": 1.4
+      },
+      {
+        "baseFoodId": "n14",
+        "grams": 100,
+        "name": "Coconut Milk (canned) — Ayam Coconut Milk (100ml)",
+        "cals": 230,
+        "protein": 2.3,
+        "carbs": 6,
+        "fat": 24
+      },
+      {
+        "baseFoodId": "g01",
+        "grams": 150,
+        "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
+        "cals": 195,
+        "protein": 3.6,
+        "carbs": 42,
+        "fat": 0.5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Brown the goat meat in a hot pan.\n2. Stir in the curry paste and coconut milk and simmer until tender.\n3. Cook the rice and serve together.",
+    "cals": 708,
+    "protein": 55.1,
+    "carbs": 51,
+    "fat": 31.3
+  },
+  {
+    "id": "au_meal_382",
+    "name": "Crab & Avocado Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "f12",
+        "grams": 120,
+        "name": "Crab Meat (120g)",
+        "cals": 116,
+        "protein": 22.8,
+        "carbs": 0,
+        "fat": 1.8
+      },
+      {
+        "baseFoodId": "v28",
+        "grams": 80,
+        "name": "Avocado — Woolworths Hass Avocado (80g)",
+        "cals": 128,
+        "protein": 1.6,
+        "carbs": 7.2,
+        "fat": 12
+      },
+      {
+        "baseFoodId": "v22",
+        "grams": 60,
+        "name": "Lettuce (raw) — Coles Iceberg Lettuce (60g)",
+        "cals": 9,
+        "protein": 0.8,
+        "carbs": 1.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "r44",
+        "grams": 10,
+        "name": "Lemon (10g)",
+        "cals": 3,
+        "protein": 0.1,
+        "carbs": 0.9,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Combine the crab meat with the sliced avocado and lettuce.\n2. Squeeze over fresh lime juice and serve.",
+    "cals": 256,
+    "protein": 25.3,
+    "carbs": 9.8,
+    "fat": 13.9
+  },
+  {
+    "id": "au_meal_383",
+    "name": "Scallops with Cauliflower Purée",
+    "ingredients": [
+      {
+        "baseFoodId": "f13",
+        "grams": 150,
+        "name": "Scallops (150g)",
+        "cals": 167,
+        "protein": 30,
+        "carbs": 7.5,
+        "fat": 1.2
+      },
+      {
+        "baseFoodId": "v08",
+        "grams": 150,
+        "name": "Cauliflower (steamed) (150g)",
+        "cals": 38,
+        "protein": 3,
+        "carbs": 7.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 8,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
+        "cals": 71,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 8
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Pan-sear the scallops for 1-2 minutes per side until golden.\n2. Steam and blend the cauliflower with a little olive oil until smooth.\n3. Serve the scallops over the purée.",
+    "cals": 276,
+    "protein": 33,
+    "carbs": 15,
+    "fat": 9.7
+  },
+  {
+    "id": "au_meal_384",
+    "name": "Mussels in Tomato Broth",
+    "ingredients": [
+      {
+        "baseFoodId": "f11",
+        "grams": 250,
+        "name": "Mussels (250g)",
+        "cals": 430,
+        "protein": 60,
+        "carbs": 17.5,
+        "fat": 11.3
+      },
+      {
+        "baseFoodId": "v11",
+        "grams": 100,
+        "name": "Tomato (raw) — Coles Tomatoes (100g)",
+        "cals": 18,
+        "protein": 0.9,
+        "carbs": 3.9,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v14",
+        "grams": 40,
+        "name": "Onion (raw) — Coles Brown Onions (40g)",
+        "cals": 16,
+        "protein": 0.4,
+        "carbs": 3.6,
+        "fat": 0
+      },
+      {
+        "baseFoodId": "g11",
+        "grams": 50,
+        "name": "Sourdough Bread — Coles Bakery Sourdough (50g)",
+        "cals": 137,
+        "protein": 4.5,
+        "carbs": 26.5,
+        "fat": 1
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Sauté the onion, then add the diced tomato and a splash of water to make a broth.\n2. Add the mussels, cover, and cook until they open.\n3. Serve with crusty sourdough.",
+    "cals": 601,
+    "protein": 65.8,
+    "carbs": 51.5,
+    "fat": 12.5
+  },
+  {
+    "id": "au_meal_385",
+    "name": "Calamari & Fennel Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "f08",
+        "grams": 150,
+        "name": "Calamari (cooked) (150g)",
+        "cals": 263,
+        "protein": 27,
+        "carbs": 12,
+        "fat": 10.5
+      },
+      {
+        "baseFoodId": "v33",
+        "grams": 60,
+        "name": "Fennel — Coles Fennel (60g)",
+        "cals": 19,
+        "protein": 0.7,
+        "carbs": 4.2,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 60,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
+        "cals": 9,
+        "protein": 0.8,
+        "carbs": 1.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 8,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
+        "cals": 71,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 8
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Cook the calamari briefly in a hot pan until just tender.\n2. Toss with the sliced fennel, salad leaves and olive oil.",
+    "cals": 362,
+    "protein": 28.5,
+    "carbs": 17.9,
+    "fat": 18.7
+  },
+  {
+    "id": "au_meal_386",
+    "name": "Oysters Natural with Lemon",
+    "ingredients": [
+      {
+        "baseFoodId": "f22",
+        "grams": 120,
+        "name": "Oysters (120g)",
+        "cals": 82,
+        "protein": 8.4,
+        "carbs": 4.8,
+        "fat": 3
+      },
+      {
+        "baseFoodId": "r44",
+        "grams": 20,
+        "name": "Lemon (20g)",
+        "cals": 6,
+        "protein": 0.2,
+        "carbs": 1.9,
+        "fat": 0.1
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Shuck the oysters (or use pre-shucked).\n2. Serve chilled with a squeeze of fresh lemon.",
+    "cals": 88,
+    "protein": 8.6,
+    "carbs": 6.7,
+    "fat": 3.1
+  },
+  {
+    "id": "au_meal_387",
+    "name": "Lobster Tail with Greens",
+    "ingredients": [
+      {
+        "baseFoodId": "f21",
+        "grams": 180,
+        "name": "Lobster (180g)",
+        "cals": 160,
+        "protein": 34.2,
+        "carbs": 0,
+        "fat": 1.6
+      },
+      {
+        "baseFoodId": "v19",
+        "grams": 100,
+        "name": "Asparagus (steamed) — Coles Asparagus (100g)",
+        "cals": 22,
+        "protein": 2.4,
+        "carbs": 4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v37",
+        "grams": 60,
+        "name": "Leek (60g)",
+        "cals": 37,
+        "protein": 0.9,
+        "carbs": 8.4,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Steam, boil, or grill the lobster tail until cooked through.\n2. Steam the asparagus and sauté the leek.\n3. Serve together.",
+    "cals": 219,
+    "protein": 37.5,
+    "carbs": 12.4,
+    "fat": 2
+  },
+  {
+    "id": "au_meal_388",
+    "name": "Barramundi with Barley Risotto",
+    "ingredients": [
+      {
+        "baseFoodId": "f05",
+        "grams": 160,
+        "name": "Barramundi — Coles Barramundi Fillets (160g)",
+        "cals": 198,
+        "protein": 33.6,
+        "carbs": 0,
+        "fat": 6.4
+      },
+      {
+        "baseFoodId": "g28",
+        "grams": 150,
+        "name": "Barley (cooked) (150g)",
+        "cals": 185,
+        "protein": 3.5,
+        "carbs": 42,
+        "fat": 0.6
+      },
+      {
+        "baseFoodId": "v15",
+        "grams": 60,
+        "name": "Mushrooms (raw) — Coles Mushrooms (60g)",
+        "cals": 13,
+        "protein": 1.9,
+        "carbs": 2,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "d23",
+        "grams": 15,
+        "name": "Parmesan Cheese — Coles Grated Parmesan (15g)",
+        "cals": 65,
+        "protein": 5.7,
+        "carbs": 0.6,
+        "fat": 4.4
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the barramundi and pan-fry until it flakes easily.\n2. Simmer the barley with the mushrooms until tender and creamy, stirring in the parmesan.\n3. Serve together.",
+    "cals": 461,
+    "protein": 44.7,
+    "carbs": 44.6,
+    "fat": 11.6
+  },
+  {
+    "id": "au_meal_389",
+    "name": "Beef Cheeks with Polenta",
+    "ingredients": [
+      {
+        "baseFoodId": "m08",
+        "grams": 180,
+        "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (180g)",
+        "cals": 329,
+        "protein": 52.2,
+        "carbs": 0,
+        "fat": 12.6
+      },
+      {
+        "baseFoodId": "g30",
+        "grams": 200,
+        "name": "Polenta (cooked) (200g)",
+        "cals": 170,
+        "protein": 4,
+        "carbs": 36,
+        "fat": 1
+      },
+      {
+        "baseFoodId": "v14",
+        "grams": 40,
+        "name": "Onion (raw) — Coles Brown Onions (40g)",
+        "cals": 16,
+        "protein": 0.4,
+        "carbs": 3.6,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Slow-cook the beef with the onion until fork-tender.\n2. Whisk the polenta into simmering water or stock until thick and creamy.\n3. Serve the beef over the polenta.",
+    "cals": 515,
+    "protein": 56.6,
+    "carbs": 39.6,
+    "fat": 13.6
+  },
+  {
+    "id": "au_meal_390",
+    "name": "Goat Cheese & Beetroot Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "d11",
+        "grams": 40,
+        "name": "Feta Cheese — Coles Danish Feta (40g)",
+        "cals": 106,
+        "protein": 5.6,
+        "carbs": 1.6,
+        "fat": 8.4
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 100,
+        "name": "Beetroot (cooked) (100g)",
+        "cals": 44,
+        "protein": 1.7,
+        "carbs": 10,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 60,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
+        "cals": 9,
+        "protein": 0.8,
+        "carbs": 1.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n02",
+        "grams": 15,
+        "name": "Walnuts (15g)",
+        "cals": 98,
+        "protein": 2.3,
+        "carbs": 2.1,
+        "fat": 9.8
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Toss the salad leaves with the diced beetroot and walnuts.\n2. Crumble over the goat's cheese (or feta) and serve.",
+    "cals": 257,
+    "protein": 10.4,
+    "carbs": 15.4,
+    "fat": 18.5
+  },
+  {
+    "id": "au_meal_391",
+    "name": "Kiwi & Passionfruit Yoghurt Bowl",
+    "ingredients": [
+      {
+        "baseFoodId": "d05",
+        "grams": 200,
+        "name": "Greek Yoghurt (full fat) (200g)",
+        "cals": 194,
+        "protein": 18,
+        "carbs": 8,
+        "fat": 10
+      },
+      {
+        "baseFoodId": "r11",
+        "grams": 80,
+        "name": "Kiwi Fruit (80g)",
+        "cals": 49,
+        "protein": 0.9,
+        "carbs": 12,
+        "fat": 0.4
+      },
+      {
+        "baseFoodId": "r22",
+        "grams": 40,
+        "name": "Passionfruit (40g)",
+        "cals": 39,
+        "protein": 0.9,
+        "carbs": 9.2,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "g48",
+        "grams": 30,
+        "name": "Granola — Carman's Granola (30g)",
+        "cals": 141,
+        "protein": 3,
+        "carbs": 19.2,
+        "fat": 6
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 423,
+    "protein": 22.8,
+    "carbs": 48.4,
+    "fat": 16.6
+  },
+  {
+    "id": "au_meal_392",
+    "name": "Papaya & Lime Smoothie Bowl",
+    "ingredients": [
+      {
+        "baseFoodId": "r24",
+        "grams": 150,
+        "name": "Papaya (150g)",
+        "cals": 65,
+        "protein": 0.8,
+        "carbs": 16.5,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "r43",
+        "grams": 10,
+        "name": "Lime (10g)",
+        "cals": 3,
+        "protein": 0.1,
+        "carbs": 1.1,
+        "fat": 0
+      },
+      {
+        "baseFoodId": "d20",
+        "grams": 150,
+        "name": "Soy Milk — Vitasoy Soy Milk (150ml)",
+        "cals": 50,
+        "protein": 4.9,
+        "carbs": 2.7,
+        "fat": 2.7
+      },
+      {
+        "baseFoodId": "n08",
+        "grams": 10,
+        "name": "Chia Seeds — Coles Chia Seeds (10g)",
+        "cals": 49,
+        "protein": 1.7,
+        "carbs": 4.2,
+        "fat": 3.1
+      }
+    ],
+    "mealTypes": [
+      "Breakfast"
+    ],
+    "instructions": "",
+    "cals": 167,
+    "protein": 7.5,
+    "carbs": 24.5,
+    "fat": 6.3
+  },
+  {
+    "id": "au_meal_393",
+    "name": "Dragon Fruit & Berry Bowl",
+    "ingredients": [
+      {
+        "baseFoodId": "r32",
+        "grams": 100,
+        "name": "Dragon Fruit (100g)",
+        "cals": 60,
+        "protein": 1.2,
+        "carbs": 13,
+        "fat": 0.4
+      },
+      {
+        "baseFoodId": "r05",
+        "grams": 60,
+        "name": "Blueberries (60g)",
+        "cals": 34,
+        "protein": 0.4,
+        "carbs": 8.4,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "d06",
+        "grams": 150,
+        "name": "Greek Yoghurt (low fat) — Coles High Protein Greek Style Natural Yoghurt No Added Sugar (150g)",
+        "cals": 89,
+        "protein": 15,
+        "carbs": 5.4,
+        "fat": 0.6
+      }
+    ],
+    "mealTypes": [
+      "Snacks"
+    ],
+    "instructions": "",
+    "cals": 183,
+    "protein": 16.6,
+    "carbs": 26.8,
+    "fat": 1.2
+  },
+  {
+    "id": "au_meal_394",
+    "name": "Butter Chicken with Cauliflower Rice",
+    "ingredients": [
+      {
+        "baseFoodId": "ff13",
+        "grams": 300,
+        "name": "Butter Chicken (300g)",
+        "cals": 465,
+        "protein": 30,
+        "carbs": 18,
+        "fat": 30
+      },
+      {
+        "baseFoodId": "v08",
+        "grams": 150,
+        "name": "Cauliflower (steamed) (150g)",
+        "cals": 38,
+        "protein": 3,
+        "carbs": 7.5,
+        "fat": 0.5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Warm the butter chicken through.\n2. Rice or steam the cauliflower as a lighter side.\n3. Serve together.",
+    "cals": 503,
+    "protein": 33,
+    "carbs": 25.5,
+    "fat": 30.5
+  },
+  {
+    "id": "au_meal_395",
+    "name": "Pad Thai with Extra Prawns",
+    "ingredients": [
+      {
+        "baseFoodId": "ff12",
+        "grams": 350,
+        "name": "Pad Thai (350g)",
+        "cals": 525,
+        "protein": 21,
+        "carbs": 70,
+        "fat": 17.5
+      },
+      {
+        "baseFoodId": "f07",
+        "grams": 80,
+        "name": "Prawns — Coles Cooked Prawns (80g)",
+        "cals": 79,
+        "protein": 19.2,
+        "carbs": 0,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Warm the pad thai through in a hot pan or wok.\n2. Pan-fry the extra prawns for 2-3 minutes each side and stir through.",
+    "cals": 604,
+    "protein": 40.2,
+    "carbs": 70,
+    "fat": 17.7
+  },
+  {
+    "id": "au_meal_396",
+    "name": "Chicken Burrito Bowl",
+    "ingredients": [
+      {
+        "baseFoodId": "ff09",
+        "grams": 300,
+        "name": "Burrito (chicken) (300g)",
+        "cals": 630,
+        "protein": 33,
+        "carbs": 75,
+        "fat": 24
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 40,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (40g)",
+        "cals": 6,
+        "protein": 0.6,
+        "carbs": 1.2,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "s22",
+        "grams": 30,
+        "name": "Guacamole — Coles Guacamole (30g)",
+        "cals": 45,
+        "protein": 0.6,
+        "carbs": 2.4,
+        "fat": 3.9
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Warm the burrito through, or deconstruct into a bowl.\n2. Add extra salad leaves and a spoon of guacamole.",
+    "cals": 681,
+    "protein": 34.2,
+    "carbs": 78.6,
+    "fat": 28
+  },
+  {
+    "id": "au_meal_397",
+    "name": "Club Sandwich with Side Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "ff20",
+        "grams": 250,
+        "name": "Club Sandwich (250g)",
+        "cals": 550,
+        "protein": 30,
+        "carbs": 50,
+        "fat": 25
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 60,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
+        "cals": 9,
+        "protein": 0.8,
+        "carbs": 1.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v12",
+        "grams": 40,
+        "name": "Cherry Tomatoes — Coles Cherry Tomatoes (40g)",
+        "cals": 7,
+        "protein": 0.4,
+        "carbs": 1.6,
+        "fat": 0.1
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Serve the club sandwich with a side salad of mixed leaves and cherry tomatoes.",
+    "cals": 566,
+    "protein": 31.2,
+    "carbs": 53.3,
+    "fat": 25.2
+  },
+  {
+    "id": "au_meal_398",
+    "name": "Fish and Chips with Extra Greens",
+    "ingredients": [
+      {
+        "baseFoodId": "ff14",
+        "grams": 350,
+        "name": "Fish and Chips (350g)",
+        "cals": 910,
+        "protein": 35,
+        "carbs": 87.5,
+        "fat": 49
+      },
+      {
+        "baseFoodId": "v01",
+        "grams": 100,
+        "name": "Broccoli (steamed) — Perfection Fresh Broccoli (100g)",
+        "cals": 35,
+        "protein": 2.4,
+        "carbs": 7,
+        "fat": 0.4
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Warm the fish and chips through in an oven or air fryer to keep them crisp.\n2. Steam the broccoli and serve alongside.",
+    "cals": 945,
+    "protein": 37.4,
+    "carbs": 94.5,
+    "fat": 49.4
+  },
+  {
+    "id": "au_meal_399",
+    "name": "Sausage Roll with Side Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "ff17",
+        "grams": 150,
+        "name": "Sausage Roll (150g)",
+        "cals": 480,
+        "protein": 10.5,
+        "carbs": 37.5,
+        "fat": 31.5
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 60,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
+        "cals": 9,
+        "protein": 0.8,
+        "carbs": 1.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "s01",
+        "grams": 15,
+        "name": "Tomato Sauce / Ketchup — Rosella Tomato Sauce (15g)",
+        "cals": 17,
+        "protein": 0.2,
+        "carbs": 3.9,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Snacks"
+    ],
+    "instructions": "",
+    "cals": 506,
+    "protein": 11.5,
+    "carbs": 43.1,
+    "fat": 31.6
+  },
+  {
+    "id": "au_meal_400",
+    "name": "Caesar Salad with Grilled Chicken",
+    "ingredients": [
+      {
+        "baseFoodId": "ff15",
+        "grams": 250,
+        "name": "Caesar Salad (with dressing) (250g)",
+        "cals": 475,
+        "protein": 15,
+        "carbs": 17.5,
+        "fat": 40
+      },
+      {
+        "baseFoodId": "m01",
+        "grams": 120,
+        "name": "Chicken Breast — Coles RSPCA Approved Chicken Breast Fillets (120g)",
+        "cals": 198,
+        "protein": 37.2,
+        "carbs": 0,
+        "fat": 4.3
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Grill or pan-fry the chicken breast until cooked through, then slice.\n2. Toss through the Caesar salad and serve.",
+    "cals": 673,
+    "protein": 52.2,
+    "carbs": 17.5,
+    "fat": 44.3
+  },
+  {
+    "id": "au_meal_401",
+    "name": "Nachos with Extra Beans",
+    "ingredients": [
+      {
+        "baseFoodId": "ff19",
+        "grams": 300,
+        "name": "Nachos (with cheese) (300g)",
+        "cals": 840,
+        "protein": 21,
+        "carbs": 84,
+        "fat": 48
+      },
+      {
+        "baseFoodId": "l01",
+        "grams": 80,
+        "name": "Black Beans (cooked) — Coles Black Beans (80g)",
+        "cals": 106,
+        "protein": 7.1,
+        "carbs": 19.2,
+        "fat": 0.4
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Warm the nachos through.\n2. Stir the black beans through or serve on the side for extra protein and fibre.",
+    "cals": 946,
+    "protein": 28.1,
+    "carbs": 103.2,
+    "fat": 48.4
+  },
+  {
+    "id": "au_meal_402",
+    "name": "Prosciutto, Fig & Rocket Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "m31",
+        "grams": 60,
+        "name": "Prosciutto (60g)",
+        "cals": 117,
+        "protein": 15.6,
+        "carbs": 0,
+        "fat": 6
+      },
+      {
+        "baseFoodId": "r27",
+        "grams": 100,
+        "name": "Fig (fresh) (100g)",
+        "cals": 74,
+        "protein": 0.8,
+        "carbs": 19,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 60,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
+        "cals": 9,
+        "protein": 0.8,
+        "carbs": 1.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "d23",
+        "grams": 15,
+        "name": "Parmesan Cheese — Coles Grated Parmesan (15g)",
+        "cals": 65,
+        "protein": 5.7,
+        "carbs": 0.6,
+        "fat": 4.4
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Arrange the rocket on a plate.\n2. Top with the sliced fresh figs, prosciutto and shaved parmesan.",
+    "cals": 265,
+    "protein": 22.9,
+    "carbs": 21.3,
+    "fat": 10.8
+  },
+  {
+    "id": "au_meal_403",
+    "name": "Seared Duck with Fig & Walnut Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "m19",
+        "grams": 150,
+        "name": "Duck Breast (150g)",
+        "cals": 302,
+        "protein": 34.5,
+        "carbs": 0,
+        "fat": 16.5
+      },
+      {
+        "baseFoodId": "r27",
+        "grams": 80,
+        "name": "Fig (fresh) (80g)",
+        "cals": 59,
+        "protein": 0.6,
+        "carbs": 15.2,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n02",
+        "grams": 15,
+        "name": "Walnuts (15g)",
+        "cals": 98,
+        "protein": 2.3,
+        "carbs": 2.1,
+        "fat": 9.8
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 60,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
+        "cals": 9,
+        "protein": 0.8,
+        "carbs": 1.7,
+        "fat": 0.1
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Score the duck breast skin and pan-fry skin-side down until crisp, then slice.\n2. Toss the salad leaves with the sliced figs and walnuts, then top with the duck.",
+    "cals": 468,
+    "protein": 38.2,
+    "carbs": 19,
+    "fat": 26.6
+  },
+  {
+    "id": "au_meal_404",
+    "name": "Grilled Haloumi & Roast Beetroot Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "d26",
+        "grams": 80,
+        "name": "Halloumi — Coles Cypriot Style Haloumi (80g)",
+        "cals": 257,
+        "protein": 16.8,
+        "carbs": 1.6,
+        "fat": 20
+      },
+      {
+        "baseFoodId": "v23",
+        "grams": 100,
+        "name": "Beetroot (cooked) (100g)",
+        "cals": 44,
+        "protein": 1.7,
+        "carbs": 10,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 60,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (60g)",
+        "cals": 9,
+        "protein": 0.8,
+        "carbs": 1.7,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 8,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
+        "cals": 71,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 8
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Pan-fry the haloumi until golden on each side.\n2. Toss the salad leaves with the roasted beetroot and olive oil, then top with the haloumi.",
+    "cals": 381,
+    "protein": 19.3,
+    "carbs": 13.3,
+    "fat": 28.3
+  },
+  {
+    "id": "au_meal_405",
+    "name": "Pumpkin & Sage Risotto",
+    "ingredients": [
+      {
+        "baseFoodId": "v24",
+        "grams": 200,
+        "name": "Pumpkin (roasted) — Coles Kent Pumpkin (200g)",
+        "cals": 52,
+        "protein": 2,
+        "carbs": 14,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "g27",
+        "grams": 150,
+        "name": "Arborio Rice (cooked) — SunRice Arborio Rice (150g)",
+        "cals": 195,
+        "protein": 4.1,
+        "carbs": 42,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "d23",
+        "grams": 20,
+        "name": "Parmesan Cheese — Coles Grated Parmesan (20g)",
+        "cals": 86,
+        "protein": 7.6,
+        "carbs": 0.8,
+        "fat": 5.8
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Roast the pumpkin until tender.\n2. Cook the arborio rice risotto-style, stirring in stock gradually until creamy.\n3. Fold through the roasted pumpkin and parmesan.",
+    "cals": 333,
+    "protein": 13.7,
+    "carbs": 56.8,
+    "fat": 6.3
+  },
+  {
+    "id": "au_meal_406",
+    "name": "Beef & Barley Soup",
+    "ingredients": [
+      {
+        "baseFoodId": "m07",
+        "grams": 150,
+        "name": "Beef Mince (regular) (150g)",
+        "cals": 381,
+        "protein": 37.5,
+        "carbs": 0,
+        "fat": 25.5
+      },
+      {
+        "baseFoodId": "g28",
+        "grams": 100,
+        "name": "Barley (cooked) (100g)",
+        "cals": 123,
+        "protein": 2.3,
+        "carbs": 28,
+        "fat": 0.4
+      },
+      {
+        "baseFoodId": "v04",
+        "grams": 60,
+        "name": "Carrot (raw) (60g)",
+        "cals": 25,
+        "protein": 0.5,
+        "carbs": 6,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v14",
+        "grams": 40,
+        "name": "Onion (raw) — Coles Brown Onions (40g)",
+        "cals": 16,
+        "protein": 0.4,
+        "carbs": 3.6,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Brown the beef in a large pot.\n2. Add the barley, diced carrot and onion with plenty of water or stock.\n3. Simmer until the barley and vegetables are tender.",
+    "cals": 545,
+    "protein": 40.7,
+    "carbs": 37.6,
+    "fat": 26
+  },
+  {
+    "id": "au_meal_407",
+    "name": "Lentil & Vegetable Soup",
+    "ingredients": [
+      {
+        "baseFoodId": "l04",
+        "grams": 200,
+        "name": "Lentils (cooked) — Coles Lentils (200g)",
+        "cals": 232,
+        "protein": 18,
+        "carbs": 40,
+        "fat": 0.8
+      },
+      {
+        "baseFoodId": "v04",
+        "grams": 60,
+        "name": "Carrot (raw) (60g)",
+        "cals": 25,
+        "protein": 0.5,
+        "carbs": 6,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v26",
+        "grams": 40,
+        "name": "Celery (raw) (40g)",
+        "cals": 6,
+        "protein": 0.3,
+        "carbs": 1.2,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "v14",
+        "grams": 40,
+        "name": "Onion (raw) — Coles Brown Onions (40g)",
+        "cals": 16,
+        "protein": 0.4,
+        "carbs": 3.6,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Sauté the onion and celery in a pot.\n2. Add the lentils, diced carrot and plenty of water or stock.\n3. Simmer until the lentils and vegetables are tender.",
+    "cals": 279,
+    "protein": 19.2,
+    "carbs": 50.8,
+    "fat": 1
+  },
+  {
+    "id": "au_meal_408",
+    "name": "Split Pea & Ham Soup",
+    "ingredients": [
+      {
+        "baseFoodId": "l10",
+        "grams": 200,
+        "name": "Split Peas (cooked) (200g)",
+        "cals": 236,
+        "protein": 16,
+        "carbs": 42,
+        "fat": 0.8
+      },
+      {
+        "baseFoodId": "m13",
+        "grams": 60,
+        "name": "Ham (deli slices) — Coles Shaved Leg Ham (60g)",
+        "cals": 64,
+        "protein": 10.8,
+        "carbs": 1.2,
+        "fat": 1.8
+      },
+      {
+        "baseFoodId": "v04",
+        "grams": 60,
+        "name": "Carrot (raw) (60g)",
+        "cals": 25,
+        "protein": 0.5,
+        "carbs": 6,
+        "fat": 0.1
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Combine the split peas, diced ham and carrot in a pot with water or stock.\n2. Simmer until the peas break down and the soup thickens.",
+    "cals": 325,
+    "protein": 27.3,
+    "carbs": 49.2,
+    "fat": 2.7
+  },
+  {
+    "id": "au_meal_409",
+    "name": "Moroccan Chickpea & Couscous Bowl",
+    "ingredients": [
+      {
+        "baseFoodId": "l03",
+        "grams": 150,
+        "name": "Chickpeas (cooked) — Coles Chickpeas (150g)",
+        "cals": 246,
+        "protein": 13.5,
+        "carbs": 40.5,
+        "fat": 3.9
+      },
+      {
+        "baseFoodId": "g06",
+        "grams": 150,
+        "name": "Couscous (cooked) (150g)",
+        "cals": 168,
+        "protein": 5.7,
+        "carbs": 34.5,
+        "fat": 0.3
+      },
+      {
+        "baseFoodId": "v04",
+        "grams": 40,
+        "name": "Carrot (raw) (40g)",
+        "cals": 16,
+        "protein": 0.4,
+        "carbs": 4,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "r19",
+        "grams": 15,
+        "name": "Raisins (15g)",
+        "cals": 45,
+        "protein": 0.5,
+        "carbs": 11.9,
+        "fat": 0.1
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Warm the chickpeas with the grated carrot and raisins.\n2. Prepare the couscous with boiling water/stock.\n3. Combine and serve.",
+    "cals": 475,
+    "protein": 20.1,
+    "carbs": 90.9,
+    "fat": 4.4
+  },
+  {
+    "id": "au_meal_410",
+    "name": "Kangaroo Steak with Sweet Potato Mash",
+    "ingredients": [
+      {
+        "baseFoodId": "m08",
+        "grams": 150,
+        "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
+        "cals": 275,
+        "protein": 43.5,
+        "carbs": 0,
+        "fat": 10.5
+      },
+      {
+        "baseFoodId": "v05",
+        "grams": 200,
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
+        "cals": 180,
+        "protein": 4,
+        "carbs": 42,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v03",
+        "grams": 60,
+        "name": "Kale (raw) (60g)",
+        "cals": 29,
+        "protein": 2.6,
+        "carbs": 5.4,
+        "fat": 0.5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season and pan-sear the steak to your liking (kangaroo cooks similarly to lean beef — quick and hot), then rest before slicing.\n2. Mash the cooked sweet potato.\n3. Massage the kale with a little oil and serve together.",
+    "cals": 484,
+    "protein": 50.1,
+    "carbs": 47.4,
+    "fat": 11.2
   }
 ];
