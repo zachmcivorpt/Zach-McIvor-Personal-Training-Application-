@@ -254,6 +254,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
   const [excludedIds, setExcludedIds] = useState(() => new Set());
   const [excludeKeyword, setExcludeKeyword] = useState("");
   const [optionsScope, setOptionsScope] = useState(null); // "day" | "plan" | null
+  const [confirmDeleteWeek, setConfirmDeleteWeek] = useState(false);
   const dragRef = useRef(null); // { slot, index } of the row currently being dragged
   // Persists across the whole builder session (not per-day) so calling
   // Auto-Build on day after day cycles through different best-fit meals
@@ -276,6 +277,39 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
     const firstDay = days.find((d) => (d.weekIndex ?? 0) === w);
     if (firstDay) setActiveDayId(firstDay.id);
     setEditingLabel(false);
+    setConfirmDeleteWeek(false);
+  }
+
+  // Deletes whichever week is currently selected (not just the last one),
+  // meals and all — unlike removeLastWeek this doesn't require the week to
+  // be empty first, since the whole point is clearing out a week you built
+  // and no longer want. Requires a second tap to confirm.
+  function deleteActiveWeek() {
+    if (weeksCount <= 1) return;
+    if (!confirmDeleteWeek) {
+      setConfirmDeleteWeek(true);
+      return;
+    }
+    const idx = activeWeek;
+    const remaining = weeksCount - 1;
+    const newActiveIndex = idx >= remaining ? remaining - 1 : idx;
+    // The day that will represent newActiveIndex once the deleted week's
+    // days are gone and everything above idx shifts down by one — looked
+    // up against the current (pre-update) `days`, since setDays below
+    // hasn't applied yet.
+    const oldIndexForNewActive = newActiveIndex >= idx ? newActiveIndex + 1 : newActiveIndex;
+    const firstDayOfNewActive = days.find((d) => (d.weekIndex ?? 0) === oldIndexForNewActive);
+
+    setDays((list) =>
+      list
+        .filter((d) => (d.weekIndex ?? 0) !== idx)
+        .map((d) => ((d.weekIndex ?? 0) > idx ? { ...d, weekIndex: (d.weekIndex ?? 0) - 1 } : d))
+    );
+    setActiveWeek(newActiveIndex);
+    if (firstDayOfNewActive) setActiveDayId(firstDayOfNewActive.id);
+    setEditingLabel(false);
+    setConfirmDeleteWeek(false);
+    showToast(`Week ${idx + 1} deleted`);
   }
 
   function addWeek() {
@@ -597,6 +631,16 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
               className="flex items-center gap-1 text-black/40 hover:text-black/70 disabled:opacity-30 text-xs font-semibold px-2.5 py-2 rounded-lg"
             >
               <Copy size={12} /> Duplicate Week
+            </button>
+            <button
+              onClick={deleteActiveWeek}
+              disabled={weeksCount <= 1}
+              title="Delete this week, meals and all"
+              className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg disabled:opacity-30 ${
+                confirmDeleteWeek ? "bg-red-500 text-white" : "text-black/40 hover:text-red-600"
+              }`}
+            >
+              <Trash2 size={12} /> {confirmDeleteWeek ? "Confirm delete?" : "Delete Week"}
             </button>
           </div>
           <button
