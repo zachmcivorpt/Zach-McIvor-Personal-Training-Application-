@@ -589,7 +589,7 @@ function DateStrip({ selectedOffset, onSelect }) {
 
   return (
     <div className="px-3">
-      <div ref={stripRef} className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+      <div ref={stripRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {offsets.map((offset) => {
           const d = dateForOffset(offset);
           const isToday = offset === 0;
@@ -599,13 +599,13 @@ function DateStrip({ selectedOffset, onSelect }) {
               key={offset}
               data-offset={offset}
               onClick={() => onSelect(offset)}
-              className={`shrink-0 w-10 rounded-xl py-1.5 flex flex-col items-center gap-0.5 border transition-colors ${
+              className={`shrink-0 w-[15vw] max-w-[64px] min-w-[52px] rounded-2xl py-3 flex flex-col items-center gap-1 border transition-colors ${
                 isSelected ? "bg-black border-black" : "bg-black/5 border-black/10"
               }`}
             >
-              <span className={`text-sm font-bold leading-none ${isSelected ? "text-white" : "text-black"}`}>{d.getDate()}</span>
-              <span className={`text-[9px] font-medium ${isSelected ? "text-white/60" : "text-black/40"}`}>
-                {d.toLocaleDateString(undefined, { weekday: "narrow" })}
+              <span className={`text-lg font-bold leading-none ${isSelected ? "text-white" : "text-black"}`}>{d.getDate()}</span>
+              <span className={`text-[10px] font-semibold tracking-wide ${isSelected ? "text-white/60" : "text-black/40"}`}>
+                {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
               {isToday && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white/60" : "bg-black/50"}`} />}
             </button>
@@ -652,7 +652,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
             <Tag
               key={h.id}
               onClick={interactive ? () => onToggle(h.id) : undefined}
-              className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors ${
+              className={`w-full flex items-center gap-3 rounded-lg px-3.5 py-3 text-left transition-colors ${
                 done ? "bg-black/[0.04]" : "bg-black/5"
               } ${interactive ? "active:scale-[0.97]" : "opacity-70"} transition-transform duration-150`}
             >
@@ -878,7 +878,7 @@ function HomeScreen({
   dbReady,
 }) {
   return (
-    <div className="pb-28 space-y-4">
+    <div className="pb-28 space-y-5">
       <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
       <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
