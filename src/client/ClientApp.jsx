@@ -599,12 +599,12 @@ function DateStrip({ selectedOffset, onSelect }) {
               key={offset}
               data-offset={offset}
               onClick={() => onSelect(offset)}
-              className={`shrink-0 w-[calc((100%-48px)/7)] rounded-2xl py-3 flex flex-col items-center gap-1 border transition-colors ${
+              className={`shrink-0 w-[calc((100%-48px)/7)] rounded-xl py-2 flex flex-col items-center gap-0.5 border transition-colors ${
                 isSelected ? "bg-black border-black" : "bg-black/5 border-black/10"
               }`}
             >
-              <span className={`text-lg font-bold leading-none ${isSelected ? "text-white" : "text-black"}`}>{d.getDate()}</span>
-              <span className={`text-[10px] font-semibold tracking-wide ${isSelected ? "text-white/60" : "text-black/40"}`}>
+              <span className={`text-sm font-bold leading-none ${isSelected ? "text-white" : "text-black"}`}>{d.getDate()}</span>
+              <span className={`text-[9px] font-semibold tracking-wide ${isSelected ? "text-white/60" : "text-black/40"}`}>
                 {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
               {isToday && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white/60" : "bg-black/50"}`} />}
