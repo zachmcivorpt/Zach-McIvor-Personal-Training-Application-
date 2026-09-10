@@ -1663,7 +1663,7 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
 }
 
 function TrainingProgramPanel({ client, showToast }) {
-  const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase, createProgram } = useApp();
+  const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase, createProgram, scheduleWorkout } = useApp();
   const phases = (db.clientPhases || {})[client.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const [selectedPhaseId, setSelectedPhaseId] = useState(() => getCurrentPhase(phases, todayKey())?.id || sorted[0]?.id || null);
@@ -1753,8 +1753,10 @@ function TrainingProgramPanel({ client, showToast }) {
 
   async function saveWorkout(day) {
     if (!phase) return;
+    const isNewDay = editingWorkout.dayIndex >= days.length;
+    const prevLabel = !isNewDay ? days[editingWorkout.dayIndex]?.label : null;
     const nextDays = [...days];
-    if (editingWorkout.dayIndex < nextDays.length) {
+    if (!isNewDay) {
       nextDays[editingWorkout.dayIndex] = day;
     } else {
       nextDays.push(day);
@@ -1765,6 +1767,23 @@ function TrainingProgramPanel({ client, showToast }) {
       // failed save looked identical to a successful one and the workout
       // just vanished next time the phase was opened.
       await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+      // Scheduling a day onto the calendar (duplicate phase, weekly
+      // pattern, etc.) writes a standalone snapshot to scheduledWorkouts —
+      // editing the day here only updates the phase template, so without
+      // this, every date already scheduled from this day keeps showing
+      // its old exercise list on the client's Home/Calendar/session
+      // summary until it's re-scheduled by hand. Refresh every upcoming
+      // one (matched by its previous label, same match the scheduling
+      // sheet itself uses) so the change shows up everywhere at once.
+      if (prevLabel) {
+        const today = todayKey();
+        const stale = ((db.scheduledWorkouts || {})[client.id] || []).filter(
+          (w) => w.label === prevLabel && w.date >= today
+        );
+        stale.forEach((w) =>
+          scheduleWorkout(client.id, { date: w.date, label: day.label, muscleGroups: day.muscleGroups, exercises: day.exercises })
+        );
+      }
       setEditingWorkout(null);
       showToast("Workout saved");
     } catch (err) {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { TextInput, TextArea, Select, ExerciseThumb } from "../components/ui";
 import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup, Edit3, Play, Hand, Copy, Trash2 } from "lucide-react";
@@ -109,13 +109,6 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       return [...r.slice(0, insertAt), newRestRow(addSection), ...r.slice(insertAt)];
     });
   }
-  function handleDragStart(i) {
-    setDragIndex(i);
-  }
-  function handleDragOver(e, i) {
-    e.preventDefault();
-    if (overIndex !== i) setOverIndex(i);
-  }
   function handleDrop(i) {
     setRows((r) => {
       if (dragIndex === null || dragIndex === i) return r;
@@ -127,9 +120,58 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     setDragIndex(null);
     setOverIndex(null);
   }
-  function handleDragEnd() {
-    setDragIndex(null);
-    setOverIndex(null);
+  // Built on Pointer Events rather than the HTML5 drag-and-drop API — that
+  // API is mouse-only and never fires from a touch gesture, which is why
+  // reordering exercises didn't work (or felt "difficult") on an iPad.
+  // Same pattern as the coach calendar's drag-drop: hold briefly on the
+  // grip handle (so a scroll swipe passing over it isn't mistaken for a
+  // drag — if it moves before the hold completes, this backs off and lets
+  // the scroll happen untouched), then move to the target row and release.
+  const gripPressRef = useRef(null); // { timer, startX, startY, index, fired }
+  function gripPointerDown(e, i) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const el = e.currentTarget;
+    const pointerId = e.pointerId;
+    const timer = setTimeout(() => {
+      if (!gripPressRef.current) return;
+      gripPressRef.current.fired = true;
+      setDragIndex(i);
+      try {
+        el.setPointerCapture(pointerId);
+      } catch {}
+      if (navigator.vibrate) navigator.vibrate(10);
+    }, 150);
+    gripPressRef.current = { timer, startX, startY, index: i, fired: false };
+  }
+  function gripPointerMove(e) {
+    const p = gripPressRef.current;
+    if (!p) return;
+    if (!p.fired) {
+      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 8) {
+        clearTimeout(p.timer);
+        gripPressRef.current = null;
+      }
+      return;
+    }
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const rowEl = target?.closest("[data-row-index]");
+    const overIdx = rowEl ? Number(rowEl.getAttribute("data-row-index")) : null;
+    setOverIndex(overIdx !== null && overIdx !== p.index ? overIdx : null);
+  }
+  function gripPointerUp() {
+    const p = gripPressRef.current;
+    if (p?.fired) {
+      if (overIndex !== null && overIndex !== p.index) handleDrop(overIndex);
+      else {
+        setDragIndex(null);
+        setOverIndex(null);
+      }
+    }
+    if (p?.timer) clearTimeout(p.timer);
+    gripPressRef.current = null;
   }
   function toggleSelected(i) {
     setSelected((s) => {
@@ -352,8 +394,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                           return (
                             <div
                               key={i}
-                              onDragOver={(e) => handleDragOver(e, i)}
-                              onDrop={() => handleDrop(i)}
+                              data-row-index={i}
                               className={overIndex === i && dragIndex !== null && dragIndex !== i ? "border-t-2 border-black/40" : ""}
                             >
                               {row.groupType && (
@@ -389,9 +430,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     ))}
                                   </select>
                                   <div
-                                    draggable
-                                    onDragStart={() => handleDragStart(i)}
-                                    onDragEnd={handleDragEnd}
+                                    onPointerDown={(e) => gripPointerDown(e, i)}
+                                    onPointerMove={gripPointerMove}
+                                    onPointerUp={gripPointerUp}
+                                    style={{ touchAction: "none" }}
                                     className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing"
                                   >
                                     <GripVertical size={16} />
@@ -418,9 +460,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                       className="w-4 h-4 shrink-0 accent-black md:hidden"
                                     />
                                     <div
-                                      draggable
-                                      onDragStart={() => handleDragStart(i)}
-                                      onDragEnd={handleDragEnd}
+                                      onPointerDown={(e) => gripPointerDown(e, i)}
+                                      onPointerMove={gripPointerMove}
+                                      onPointerUp={gripPointerUp}
+                                      style={{ touchAction: "none" }}
                                       className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing md:hidden"
                                     >
                                       <GripVertical size={16} />
@@ -587,9 +630,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
 
                                   {/* drag handle — desktop only column */}
                                   <div
-                                    draggable
-                                    onDragStart={() => handleDragStart(i)}
-                                    onDragEnd={handleDragEnd}
+                                    onPointerDown={(e) => gripPointerDown(e, i)}
+                                    onPointerMove={gripPointerMove}
+                                    onPointerUp={gripPointerUp}
+                                    style={{ touchAction: "none" }}
                                     className="hidden md:flex items-center justify-center text-black/25 hover:text-black/50 cursor-grab active:cursor-grabbing"
                                   >
                                     <GripVertical size={16} />

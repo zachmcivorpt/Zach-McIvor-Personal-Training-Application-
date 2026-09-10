@@ -2439,7 +2439,7 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
   );
 }
 
-function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, showToast }) {
+function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const { db, currentUser, swapMealPlanMeal } = useApp();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
@@ -2867,6 +2867,29 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             Quick add
           </button>
         </div>
+        {!search.trim() && recentFoods.length > 0 && (
+          <div className="mb-4">
+            <p className="text-black/30 text-xs mb-2 tracking-wide">RECENTLY LOGGED</p>
+            <div className="space-y-1">
+              {recentFoods.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => addAndClose({ ...f, id: `recent_${Date.now()}` })}
+                  className="w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"
+                >
+                  {f.photoUrl && <img src={f.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="text-black text-sm font-medium truncate">{f.name}</p>
+                    <p className="text-black/40 text-xs">
+                      P{round1(f.protein)} · C{round1(f.carbs)} · F{round1(f.fat)}
+                    </p>
+                  </div>
+                  <span className="text-black/50 text-sm shrink-0">{f.cals} kcal</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <p className="text-black/30 text-xs mb-2 tracking-wide">SEARCH RESULTS · PER 100G</p>
         <div className="space-y-1">
           {filteredFoods.map((f) => (
@@ -5235,8 +5258,39 @@ export default function ClientApp() {
     [nutritionLogsForClient]
   );
   const nutrition = nutritionByDateKey[todayDateKey] || DEFAULT_NUTRITION;
+  // Distinct foods this client has actually logged before, most recent
+  // first — surfaced in the food-add sheet the same way "My Meals" offers
+  // one-tap re-logging, so a food they eat often (but never saved as a
+  // meal) doesn't mean re-searching or re-typing it from scratch every time.
+  const recentFoods = useMemo(() => {
+    const seen = new Map();
+    const sortedDays = [...nutritionLogsForClient].sort((a, b) => b.date.localeCompare(a.date));
+    for (const day of sortedDays) {
+      for (const items of Object.values(day.meals || {})) {
+        for (const item of items) {
+          const key = (item.name || "").toLowerCase();
+          if (key && !seen.has(key)) seen.set(key, item);
+        }
+      }
+      if (seen.size >= 10) break;
+    }
+    return [...seen.values()].slice(0, 10);
+  }, [nutritionLogsForClient]);
   const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
-  const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
+  // Shared across every client, not just the one who created it — a meal
+  // (or single food, via Quick Add/barcode's own library save) only needs
+  // to be built once, then anyone can one-tap log it from here on.
+  // Deduped by name so two clients creating the same thing (e.g. "Milo")
+  // doesn't leave two near-identical entries sitting in the list.
+  const savedMeals = useMemo(() => {
+    const all = Object.values(db.savedMeals || {}).flat();
+    const seen = new Map();
+    for (const m of [...all].sort((a, b) => b.createdAt - a.createdAt)) {
+      const key = (m.name || "").toLowerCase();
+      if (key && !seen.has(key)) seen.set(key, m);
+    }
+    return [...seen.values()];
+  }, [db.savedMeals]);
   const habits = ((db.habits || {})[currentUser.id] || []).filter((h) => !h.endsAt || h.endsAt >= Date.now());
   const todayKey = todayDateKey;
   const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
@@ -5561,6 +5615,7 @@ export default function ClientApp() {
             savedMeals={savedMeals}
             onCreateSavedMeal={(meal) => createSavedMeal(currentUser.id, meal)}
             onDeleteSavedMeal={(mealId) => deleteSavedMeal(currentUser.id, mealId)}
+            recentFoods={recentFoods}
             showToast={showToast}
           />
         )}

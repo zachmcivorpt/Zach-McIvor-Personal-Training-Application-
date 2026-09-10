@@ -232,7 +232,6 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
   const [errorDetail, setErrorDetail] = useState("");
   const [scanKey, setScanKey] = useState(0);
   const [manual, setManual] = useState({ name: "", cals: "", protein: "", carbs: "", fat: "" });
-  const [saveToLibrary, setSaveToLibrary] = useState(true);
   const [codeEntryOpen, setCodeEntryOpen] = useState(false);
   const [manualCode, setManualCode] = useState("");
   const lookedUpCodeRef = useRef(""); // the digits actually resolved — tagged onto a food saved to the library so the next scan/entry of the same barcode is instant
@@ -260,7 +259,6 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
       setError(err.message);
       setErrorDetail("");
       setManual({ name: err.productName || "", cals: "", protein: "", carbs: "", fat: "" });
-      setSaveToLibrary(true);
       setStatus(err.notFound ? "not-found" : "error");
     }
   }
@@ -389,12 +387,9 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
       per: 100,
       defaultQty: 100,
     };
-    if (saveToLibrary && lookedUpCodeRef.current) {
-      const saved = createFood({ ...data, barcode: lookedUpCodeRef.current });
-      onAdd(saved);
-    } else {
-      onAdd({ id: `manual_${Date.now()}`, ...data });
-    }
+    // Always saved to the shared food library — same as Quick Add — so a
+    // barcode that comes up empty only ever needs a manual entry once.
+    onAdd(createFood(lookedUpCodeRef.current ? { ...data, barcode: lookedUpCodeRef.current } : data));
   }
 
   if (!open) return null;
@@ -517,10 +512,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
                 ))}
               </div>
             </div>
-            <label className="flex items-center gap-2 mt-3 text-black/50 text-xs">
-              <input type="checkbox" checked={saveToLibrary} onChange={(e) => setSaveToLibrary(e.target.checked)} className="accent-black" />
-              Save to the food library so this barcode is instant next time
-            </label>
+            <p className="text-black/30 text-[11px] mt-3">Saved to the food library automatically — instant next time.</p>
             <PrimaryButton className="w-full mt-4" disabled={!manual.name.trim()} onClick={addManual}>
               <Check size={16} /> ADD
             </PrimaryButton>
@@ -545,13 +537,9 @@ export function BarcodeScanSheet({ open, onClose, onAdd }) {
 export function QuickAddFoodSheet({ open, onClose, onAdd }) {
   const { createFood } = useApp();
   const [manual, setManual] = useState({ name: "", cals: "", protein: "", carbs: "", fat: "" });
-  const [saveToLibrary, setSaveToLibrary] = useState(true);
 
   useEffect(() => {
-    if (open) {
-      setManual({ name: "", cals: "", protein: "", carbs: "", fat: "" });
-      setSaveToLibrary(true);
-    }
+    if (open) setManual({ name: "", cals: "", protein: "", carbs: "", fat: "" });
   }, [open]);
 
   function submit() {
@@ -565,7 +553,9 @@ export function QuickAddFoodSheet({ open, onClose, onAdd }) {
       per: 100,
       defaultQty: 100,
     };
-    onAdd(saveToLibrary ? createFood(data) : { id: `manual_${Date.now()}`, ...data });
+    // Always saved to the shared food library — a food only needs to be
+    // typed in once, then it's searchable by every client from here on.
+    onAdd(createFood(data));
   }
 
   return (
@@ -591,10 +581,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd }) {
           ))}
         </div>
       </div>
-      <label className="flex items-center gap-2 mt-3 text-black/50 text-xs">
-        <input type="checkbox" checked={saveToLibrary} onChange={(e) => setSaveToLibrary(e.target.checked)} className="accent-black" />
-        Save to My Foods so it's there to search next time
-      </label>
+      <p className="text-black/30 text-[11px] mt-3">Saved to the food library automatically — searchable by name next time.</p>
       <PrimaryButton className="w-full mt-4" disabled={!manual.name.trim()} onClick={submit}>
         <Check size={16} /> Log it
       </PrimaryButton>

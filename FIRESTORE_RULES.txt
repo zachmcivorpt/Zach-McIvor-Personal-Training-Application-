@@ -258,7 +258,12 @@ service cloud.firestore {
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /savedMeals/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      // Read is intentionally unrestricted to any signed-in user (not
+      // scoped to the creating client) — saved meals work as a shared
+      // library across every client, so anyone can see and one-tap log a
+      // meal another client already built. Only the creator (or the coach)
+      // can edit or remove one, same as customFoods' library model.
+      allow read: if isSignedIn();
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
