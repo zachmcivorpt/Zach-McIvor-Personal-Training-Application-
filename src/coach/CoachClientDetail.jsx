@@ -1307,34 +1307,33 @@ function CalendarPanel({ client, showToast }) {
         )}
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        <div className="w-full lg:w-64 shrink-0 bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm lg:sticky lg:top-4">
-          <p className="text-black font-semibold text-sm mb-3">{monthLabel} Adherence</p>
-          <div className="space-y-4">
-            {[
-              { label: "Monthly Training Adherence", stat: monthAdherence.training },
-              { label: "Monthly Habit Adherence", stat: monthAdherence.habits },
-              { label: "Monthly Nutrition Adherence", stat: monthAdherence.nutrition },
-            ].map(({ label, stat }) => (
-              <div key={label}>
-                <p className="text-black/50 text-[11px] font-medium mb-1">{label}</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-black font-bold text-2xl tabular-nums">{stat.pct != null ? `${stat.pct}%` : "—"}</p>
-                  {stat.expected > 0 && (
-                    <p className="text-black/30 text-xs tabular-nums">
-                      {stat.completed}/{stat.expected}
-                    </p>
-                  )}
-                </div>
-                <div className="mt-1.5 h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
-                  <div className="h-full rounded-full bg-blue-500" style={{ width: `${stat.pct ?? 0}%` }} />
-                </div>
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+        <p className="text-black font-semibold text-sm mb-3">{monthLabel} Adherence</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-4">
+          {[
+            { label: "Monthly Training Adherence", stat: monthAdherence.training },
+            { label: "Monthly Habit Adherence", stat: monthAdherence.habits },
+            { label: "Monthly Nutrition Adherence", stat: monthAdherence.nutrition },
+          ].map(({ label, stat }) => (
+            <div key={label}>
+              <p className="text-black/50 text-[11px] font-medium mb-1">{label}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-black font-bold text-2xl tabular-nums">{stat.pct != null ? `${stat.pct}%` : "—"}</p>
+                {stat.expected > 0 && (
+                  <p className="text-black/30 text-xs tabular-nums">
+                    {stat.completed}/{stat.expected}
+                  </p>
+                )}
               </div>
-            ))}
-          </div>
+              <div className="mt-1.5 h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+                <div className="h-full rounded-full bg-blue-500" style={{ width: `${stat.pct ?? 0}%` }} />
+              </div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        <div className="flex-1 min-w-0 w-full bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <button onClick={() => shiftMonth(-1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
@@ -1453,7 +1452,7 @@ function CalendarPanel({ client, showToast }) {
                           }
                         : undefined
                     }
-                    className={`min-h-[112px] md:min-h-[152px] border-r border-b border-black/10 text-left px-2.5 py-2 transition-colors duration-150 font-sans ${
+                    className={`min-h-[112px] md:min-h-[168px] border-r border-b border-black/10 text-left px-3 py-2.5 transition-colors duration-150 font-sans ${
                       inMonth ? "bg-white" : "bg-black/[0.015]"
                     } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""} ${
                       dragOverDate === dateStr ? "bg-blue-50 ring-2 ring-inset ring-blue-400" : ""
@@ -1503,7 +1502,7 @@ function CalendarPanel({ client, showToast }) {
                             style={
                               draggableItem ? { touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } : undefined
                             }
-                            className={`flex items-center gap-1.5 text-xs md:text-[12.5px] truncate transition-all duration-150 ${
+                            className={`flex items-center gap-1.5 text-xs md:text-[13.5px] truncate transition-all duration-150 ${
                               selectable ? "cursor-pointer" : ""
                             } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${
                               dragging ? "opacity-30 scale-[0.97]" : ""
@@ -1548,7 +1547,6 @@ function CalendarPanel({ client, showToast }) {
               <span className="text-black/40 text-xs">{label}</span>
             </div>
           ))}
-        </div>
         </div>
       </div>
 
