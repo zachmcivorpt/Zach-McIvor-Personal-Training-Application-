@@ -539,10 +539,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     </div>
                                     <ExerciseThumb exercise={ex} size={32} rounded="rounded-lg" />
                                     <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-1.5">
-                                        <p className="text-black font-semibold text-sm truncate">{ex?.name || "Unknown exercise"}</p>
+                                      <div className="flex items-start gap-1.5">
+                                        <p className="text-black font-semibold text-sm leading-snug line-clamp-2">{ex?.name || "Unknown exercise"}</p>
                                         {row.dropSet && (
-                                          <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                                          <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0 mt-0.5">
                                             DROPSET
                                           </span>
                                         )}
