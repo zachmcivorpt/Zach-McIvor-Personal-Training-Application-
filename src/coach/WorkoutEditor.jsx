@@ -423,7 +423,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           ) : (
             <>
               {/* column header, desktop only */}
-              <div className="hidden md:grid grid-cols-[20px_1fr_64px_1fr_104px_20px] gap-3 px-1 mb-1.5">
+              <div className="hidden md:grid grid-cols-[20px_1fr_64px_1fr_104px_20px] gap-3 px-2 mb-1.5">
                 <span />
                 <span className="text-black/30 text-[10px] font-bold tracking-wide">EXERCISE NAME</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide">SETS</span>
