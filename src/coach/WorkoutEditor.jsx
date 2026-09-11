@@ -423,11 +423,11 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           ) : (
             <>
               {/* column header, desktop only */}
-              <div className="hidden md:grid grid-cols-[20px_1.5fr_60px_150px_1fr_96px_20px] gap-3 px-2 mb-1.5">
+              <div className="hidden md:grid grid-cols-[20px_1.3fr_56px_200px_1fr_92px_20px] gap-3 px-2 mb-1.5">
                 <span />
                 <span className="text-black/30 text-[10px] font-bold tracking-wide">EXERCISE NAME</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">SETS</span>
-                <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">TARGET</span>
+                <span className="text-black/30 text-[10px] font-bold tracking-wide">TARGET</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide">NOTES</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">REST PERIOD</span>
                 <span />
@@ -511,7 +511,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                 </div>
                               ) : (
                                 <div
-                                  className={`bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:p-2 transition-colors md:grid md:grid-cols-[20px_1.5fr_60px_150px_1fr_96px_20px] md:gap-3 md:items-center ${
+                                  className={`bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:py-2 md:px-2 transition-colors md:grid md:grid-cols-[20px_1.3fr_56px_200px_1fr_92px_20px] md:gap-3 md:items-center ${
                                     dragIndex === i ? "opacity-40" : "border-black/8"
                                   }`}
                                 >
@@ -569,91 +569,91 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                       min={1}
                                       value={row.targetSets}
                                       onChange={(e) => updateRow(i, { targetSets: +e.target.value })}
-                                      className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
+                                      className="w-full bg-white border border-black/10 rounded-lg text-center text-black text-sm py-1.5 outline-none"
                                     />
                                   </div>
 
-                                  {/* target: reps/time toggle + value + notes */}
-                                  <div className="mt-2.5 md:mt-0">
-                                    <div className="flex items-center flex-wrap gap-1.5 mb-1">
-                                      {/* Segmented REPS/TIME control — both options always shown with
-                                          the active one highlighted, rather than a single button whose
-                                          label named the OTHER mode (read by more than one coach as the
-                                          app having reps/time backwards, since the highlighted-looking
-                                          label was actually what you'd switch to, not the current mode). */}
-                                      <div className="flex items-center rounded overflow-hidden shrink-0 border border-black/8">
-                                        <button
-                                          type="button"
-                                          onClick={() => updateRow(i, { targetType: "reps", targetReps: 10 })}
-                                          className={`text-[9px] font-bold px-1.5 py-0.5 ${
-                                            row.targetType === "time" ? "bg-black/8 text-black/40" : "bg-black text-white"
-                                          }`}
-                                        >
-                                          REPS
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => updateRow(i, { targetType: "time", targetReps: 30 })}
-                                          className={`text-[9px] font-bold px-1.5 py-0.5 ${
-                                            row.targetType === "time" ? "bg-black text-white" : "bg-black/8 text-black/40"
-                                          }`}
-                                        >
-                                          TIME
-                                        </button>
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <button
-                                          type="button"
-                                          onClick={() => updateRow(i, { dropSet: !row.dropSet })}
-                                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                            row.dropSet ? "bg-orange-500 text-white" : "bg-black/8 text-black/40"
-                                          }`}
-                                        >
-                                          DROPSET
-                                        </button>
-                                        {row.targetType !== "time" && (
-                                          <button
-                                            type="button"
-                                            onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}
-                                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                              row.targetReps === "AMRAP" ? "bg-black text-white" : "bg-black/8 text-black/40"
-                                            }`}
-                                          >
-                                            AMRAP
-                                          </button>
-                                        )}
-                                      </div>
+                                  {/* target: reps/time toggle + value, single line on desktop, dropset/amrap as compact icon chips */}
+                                  <div className="mt-2.5 md:mt-0 flex items-center flex-wrap md:flex-nowrap gap-1">
+                                    {/* Segmented REPS/TIME control — both options always shown with
+                                        the active one highlighted, rather than a single button whose
+                                        label named the OTHER mode (read by more than one coach as the
+                                        app having reps/time backwards, since the highlighted-looking
+                                        label was actually what you'd switch to, not the current mode). */}
+                                    <div className="flex items-center rounded-lg overflow-hidden shrink-0 border border-black/10">
+                                      <button
+                                        type="button"
+                                        onClick={() => updateRow(i, { targetType: "reps", targetReps: 10 })}
+                                        className={`text-[9px] font-bold px-1.5 py-[7px] ${
+                                          row.targetType === "time" ? "bg-white text-black/35" : "bg-black text-white"
+                                        }`}
+                                      >
+                                        REPS
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => updateRow(i, { targetType: "time", targetReps: 30 })}
+                                        className={`text-[9px] font-bold px-1.5 py-[7px] ${
+                                          row.targetType === "time" ? "bg-black text-white" : "bg-white text-black/35"
+                                        }`}
+                                      >
+                                        TIME
+                                      </button>
                                     </div>
                                     {row.targetType === "time" ? (
-                                      <div className="flex items-center gap-1">
+                                      <div className="flex items-center gap-0.5 shrink-0">
                                         <button
                                           type="button"
                                           onClick={() => updateRow(i, { targetReps: Math.max(10, (Number(row.targetReps) || 30) - 10) })}
-                                          className="w-6 h-[30px] shrink-0 rounded-lg bg-black/5 text-black/50 text-sm font-bold"
+                                          className="w-5 h-[30px] shrink-0 rounded-lg bg-white border border-black/10 text-black/50 text-sm font-bold"
                                         >
                                           −
                                         </button>
-                                        <div className="flex-1 bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">
+                                        <div className="w-11 bg-white border border-black/10 rounded-lg text-center text-black text-xs font-semibold py-1.5">
                                           {row.targetReps || 30}s
                                         </div>
                                         <button
                                           type="button"
                                           onClick={() => updateRow(i, { targetReps: (Number(row.targetReps) || 30) + 10 })}
-                                          className="w-6 h-[30px] shrink-0 rounded-lg bg-black/5 text-black/50 text-sm font-bold"
+                                          className="w-5 h-[30px] shrink-0 rounded-lg bg-white border border-black/10 text-black/50 text-sm font-bold"
                                         >
                                           +
                                         </button>
                                       </div>
                                     ) : row.targetReps === "AMRAP" ? (
-                                      <div className="bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">AMRAP</div>
+                                      <div className="px-2 bg-white border border-black/10 rounded-lg text-center text-black text-xs font-semibold py-1.5 shrink-0">
+                                        AMRAP
+                                      </div>
                                     ) : (
                                       <input
                                         type="number"
                                         min={1}
                                         value={row.targetReps}
                                         onChange={(e) => updateRow(i, { targetReps: +e.target.value })}
-                                        className="w-14 bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
+                                        className="w-10 shrink-0 bg-white border border-black/10 rounded-lg text-center text-black text-sm py-1.5 outline-none"
                                       />
+                                    )}
+                                    <button
+                                      type="button"
+                                      title="Drop set"
+                                      onClick={() => updateRow(i, { dropSet: !row.dropSet })}
+                                      className={`w-5 h-[26px] shrink-0 rounded-lg text-[9px] font-bold flex items-center justify-center ${
+                                        row.dropSet ? "bg-orange-500 text-white" : "bg-white border border-black/10 text-black/30"
+                                      }`}
+                                    >
+                                      D
+                                    </button>
+                                    {row.targetType !== "time" && (
+                                      <button
+                                        type="button"
+                                        title="AMRAP (as many reps as possible)"
+                                        onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}
+                                        className={`w-5 h-[26px] shrink-0 rounded-lg text-[9px] font-bold flex items-center justify-center ${
+                                          row.targetReps === "AMRAP" ? "bg-black text-white" : "bg-white border border-black/10 text-black/30"
+                                        }`}
+                                      >
+                                        A
+                                      </button>
                                     )}
                                   </div>
 
@@ -664,7 +664,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                       value={row.notes || ""}
                                       onChange={(e) => updateRow(i, { notes: e.target.value })}
                                       placeholder="Note / cue..."
-                                      className="w-full bg-black/5 rounded-lg px-2.5 py-1.5 text-black text-xs outline-none placeholder:text-black/25"
+                                      className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-xs outline-none placeholder:text-black/30"
                                     />
                                   </div>
 
@@ -674,7 +674,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     <select
                                       value={row.restSeconds ?? 90}
                                       onChange={(e) => updateRow(i, { restSeconds: +e.target.value })}
-                                      className="w-full bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none appearance-none"
+                                      className="w-full bg-white border border-black/10 rounded-lg text-center text-black text-sm py-1.5 outline-none appearance-none"
                                     >
                                       {REST_PRESETS.map((s) => (
                                         <option key={s} value={s}>
