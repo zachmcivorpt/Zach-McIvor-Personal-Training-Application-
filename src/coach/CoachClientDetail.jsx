@@ -1734,7 +1734,7 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
 }
 
 function TrainingProgramPanel({ client, showToast }) {
-  const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase, createProgram, scheduleWorkout } = useApp();
+  const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase, createProgram, scheduleWorkout, createMasterWorkout } = useApp();
   const phases = (db.clientPhases || {})[client.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const [selectedPhaseId, setSelectedPhaseId] = useState(() => getCurrentPhase(phases, todayKey())?.id || sorted[0]?.id || null);
@@ -1745,6 +1745,11 @@ function TrainingProgramPanel({ client, showToast }) {
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(null);
   const [schedulingDay, setSchedulingDay] = useState(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedDayIds, setSelectedDayIds] = useState(() => new Set());
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameDraft, setRenameDraft] = useState("");
 
   const phase = phases.find((p) => p.id === selectedPhaseId) || sorted[0] || null;
   const days = phase?.weeks?.[0]?.days || [];
@@ -1886,6 +1891,87 @@ function TrainingProgramPanel({ client, showToast }) {
     } catch (err) {
       showToast("Couldn't delete that workout — check your connection and try again");
     }
+  }
+
+  function toggleSelectMode() {
+    setSelectMode((m) => !m);
+    setSelectedDayIds(new Set());
+    setOpenMenuId(null);
+  }
+
+  function toggleDaySelected(id) {
+    setSelectedDayIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkDeleteSelected() {
+    if (!phase || selectedDayIds.size === 0) return;
+    const count = selectedDayIds.size;
+    const nextDays = days.filter((d) => !selectedDayIds.has(d.id));
+    try {
+      await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+      showToast(`Deleted ${count} workout${count === 1 ? "" : "s"}`);
+      setSelectedDayIds(new Set());
+      setSelectMode(false);
+    } catch (err) {
+      showToast("Couldn't delete — check your connection and try again");
+    }
+  }
+
+  async function duplicateWorkoutRow(i) {
+    if (!phase) return;
+    const source = days[i];
+    const clone = {
+      ...JSON.parse(JSON.stringify(source)),
+      id: `d_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      label: `${source.label} (Copy)`,
+    };
+    const nextDays = [...days.slice(0, i + 1), clone, ...days.slice(i + 1)];
+    try {
+      await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+      showToast("Workout duplicated");
+    } catch (err) {
+      showToast("Couldn't duplicate — check your connection and try again");
+    }
+    setOpenMenuId(null);
+  }
+
+  function startRename(d) {
+    setRenamingId(d.id);
+    setRenameDraft(d.label);
+    setOpenMenuId(null);
+  }
+
+  async function confirmRename(i) {
+    if (!phase) return;
+    const trimmed = renameDraft.trim();
+    setRenamingId(null);
+    if (!trimmed || trimmed === days[i]?.label) return;
+    const nextDays = days.map((d, idx) => (idx === i ? { ...d, label: trimmed } : d));
+    try {
+      await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+    } catch (err) {
+      showToast("Couldn't rename — check your connection and try again");
+    }
+  }
+
+  async function saveWorkoutRowToLibrary(d) {
+    try {
+      await createMasterWorkout({
+        label: d.label,
+        muscleGroups: d.muscleGroups || [],
+        exercises: JSON.parse(JSON.stringify(d.exercises || [])),
+        instructions: d.instructions || "",
+      });
+      showToast("Saved to Workout Library");
+    } catch (err) {
+      showToast("Couldn't save to Library");
+    }
+    setOpenMenuId(null);
   }
 
   return (
@@ -2041,9 +2127,14 @@ function TrainingProgramPanel({ client, showToast }) {
               className="mb-6"
             />
 
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <p className="text-black font-semibold text-sm">Workouts</p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                {!selectMode && days.length > 0 && (
+                  <button onClick={toggleSelectMode} className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold">
+                    <Check size={13} /> Select
+                  </button>
+                )}
                 <button onClick={() => setLibraryPickerOpen(true)} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
                   <Library size={13} /> From library
                 </button>
@@ -2053,62 +2144,149 @@ function TrainingProgramPanel({ client, showToast }) {
               </div>
             </div>
 
+            {selectMode && (
+              <div className="flex items-center justify-between gap-3 flex-wrap bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 mb-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedDayIds(selectedDayIds.size === days.length ? new Set() : new Set(days.map((d) => d.id)))}
+                    className="text-blue-700 text-xs font-semibold"
+                  >
+                    {selectedDayIds.size === days.length ? "Deselect all" : `Select all ${days.length} workout${days.length === 1 ? "" : "s"}`}
+                  </button>
+                  <span className="text-blue-700/50 text-xs">{selectedDayIds.size} selected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={bulkDeleteSelected}
+                    disabled={selectedDayIds.size === 0}
+                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-30 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={12} /> Delete{selectedDayIds.size > 0 ? ` (${selectedDayIds.size})` : ""}
+                  </button>
+                  <button onClick={toggleSelectMode} className="text-black/50 hover:text-black text-xs font-semibold px-2">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             {days.length === 0 ? (
               <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
                 <p className="text-black/30 text-sm">No workouts in this phase yet.</p>
               </div>
             ) : (
               <div className="space-y-2">
-                {days.map((d, i) => (
-                  <button
-                    key={d.id || i}
-                    onClick={() => setPreviewIndex(i)}
-                    className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-4 py-3 text-left transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-black font-medium text-sm truncate flex items-center gap-1.5">
-                        {d.label}
-                        {d.exercises.some((e) => isExerciseStale(e, phase?.createdAt)) && (
-                          <span
-                            className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
-                            title="Has an exercise that's been in the program 45+ days"
+                {days.map((d, i) => {
+                  const selected = selectedDayIds.has(d.id);
+                  return (
+                    <div
+                      key={d.id || i}
+                      onClick={() => {
+                        if (selectMode) toggleDaySelected(d.id);
+                        else if (renamingId !== d.id) setPreviewIndex(i);
+                      }}
+                      className={`w-full flex items-center gap-3 border rounded-xl px-4 py-3 text-left transition-colors cursor-pointer ${
+                        selected ? "bg-blue-50 border-blue-200" : "bg-black/[0.03] hover:bg-black/[0.06] border-black/8"
+                      }`}
+                    >
+                      {selectMode && (
+                        <span
+                          className={`w-4 h-4 rounded shrink-0 border-2 flex items-center justify-center ${
+                            selected ? "bg-blue-600 border-blue-600" : "border-black/25 bg-white"
+                          }`}
+                        >
+                          {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        {renamingId === d.id ? (
+                          <input
+                            autoFocus
+                            value={renameDraft}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => setRenameDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") confirmRename(i);
+                              if (e.key === "Escape") setRenamingId(null);
+                            }}
+                            onBlur={() => confirmRename(i)}
+                            className="bg-white border border-blue-300 rounded-lg px-2 py-1 text-sm font-medium text-black outline-none w-full max-w-xs"
                           />
+                        ) : (
+                          <p className="text-blue-600 font-semibold text-sm truncate flex items-center gap-1.5">
+                            {d.label}
+                            {d.exercises.some((e) => isExerciseStale(e, phase?.createdAt)) && (
+                              <span
+                                className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+                                title="Has an exercise that's been in the program 45+ days"
+                              />
+                            )}
+                          </p>
                         )}
-                      </p>
-                      <p className="text-black/35 text-xs truncate">
-                        est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
-                        {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
-                      </p>
+                        <p className="text-black/35 text-xs truncate mt-0.5">
+                          est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
+                          {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
+                        </p>
+                      </div>
+                      {!selectMode && (
+                        <>
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingWorkout({ dayIndex: i, day: d });
+                            }}
+                            className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors shrink-0"
+                          >
+                            <Edit3 size={13} /> Edit
+                          </span>
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSchedulingDay(d);
+                            }}
+                            className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors shrink-0"
+                          >
+                            <CalendarPlus size={13} /> Schedule
+                          </span>
+                          <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <span
+                              onClick={() => setOpenMenuId(openMenuId === d.id ? null : d.id)}
+                              className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-black hover:bg-black/8 rounded-lg cursor-pointer"
+                            >
+                              <MoreVertical size={15} />
+                            </span>
+                            {openMenuId === d.id && (
+                              <>
+                                <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                                <div className="absolute right-0 top-8 z-20 bg-white border border-black/10 rounded-xl shadow-lg py-1.5 w-40">
+                                  <button onClick={() => startRename(d)} className="w-full text-left px-3 py-2 text-sm text-black/70 hover:bg-black/5">
+                                    Rename
+                                  </button>
+                                  <button onClick={() => duplicateWorkoutRow(i)} className="w-full text-left px-3 py-2 text-sm text-black/70 hover:bg-black/5">
+                                    Duplicate
+                                  </button>
+                                  <button onClick={() => saveWorkoutRowToLibrary(d)} className="w-full text-left px-3 py-2 text-sm text-black/70 hover:bg-black/5">
+                                    Save to Library
+                                  </button>
+                                  <div className="border-t border-black/8 my-1" />
+                                  <button
+                                    onClick={() => {
+                                      deleteWorkout(i);
+                                      setOpenMenuId(null);
+                                    }}
+                                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingWorkout({ dayIndex: i, day: d });
-                      }}
-                      className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors shrink-0"
-                    >
-                      <Edit3 size={13} /> Edit
-                    </span>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSchedulingDay(d);
-                      }}
-                      className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors shrink-0"
-                    >
-                      <CalendarPlus size={13} /> Schedule
-                    </span>
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteWorkout(i);
-                      }}
-                      className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60 shrink-0"
-                    >
-                      <X size={14} />
-                    </span>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             )}
           </>
