@@ -423,7 +423,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           ) : (
             <>
               {/* column header, desktop only */}
-              <div className="hidden md:grid grid-cols-[20px_1fr_64px_1fr_104px_20px] gap-3 px-2 mb-1.5">
+              <div className="hidden md:grid grid-cols-[20px_1.8fr_60px_1.3fr_96px_20px] gap-3 px-2 mb-1.5">
                 <span />
                 <span className="text-black/30 text-[10px] font-bold tracking-wide">EXERCISE NAME</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">SETS</span>
@@ -510,7 +510,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                 </div>
                               ) : (
                                 <div
-                                  className={`bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:p-2 transition-colors md:grid md:grid-cols-[20px_1fr_64px_1fr_104px_20px] md:gap-3 md:items-center ${
+                                  className={`bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:p-2 transition-colors md:grid md:grid-cols-[20px_1.8fr_60px_1.3fr_96px_20px] md:gap-3 md:items-center ${
                                     dragIndex === i ? "opacity-40" : "border-black/8"
                                   }`}
                                 >
@@ -574,7 +574,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
 
                                   {/* target: reps/time toggle + value + notes */}
                                   <div className="mt-2.5 md:mt-0">
-                                    <div className="flex items-center justify-between mb-1 gap-1 md:mb-1">
+                                    <div className="flex items-center flex-wrap gap-1.5 mb-1">
                                       {/* Segmented REPS/TIME control — both options always shown with
                                           the active one highlighted, rather than a single button whose
                                           label named the OTHER mode (read by more than one coach as the
@@ -604,7 +604,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                         <button
                                           type="button"
                                           onClick={() => updateRow(i, { dropSet: !row.dropSet })}
-                                          className={`text-[9px] font-bold px-1.5 rounded ${
+                                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                                             row.dropSet ? "bg-orange-500 text-white" : "bg-black/8 text-black/40"
                                           }`}
                                         >
@@ -614,7 +614,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                           <button
                                             type="button"
                                             onClick={() => updateRow(i, { targetReps: row.targetReps === "AMRAP" ? 10 : "AMRAP" })}
-                                            className={`text-[9px] font-bold px-1.5 rounded ${
+                                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                                               row.targetReps === "AMRAP" ? "bg-black text-white" : "bg-black/8 text-black/40"
                                             }`}
                                           >
