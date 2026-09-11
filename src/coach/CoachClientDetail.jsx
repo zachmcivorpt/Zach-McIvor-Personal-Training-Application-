@@ -1539,7 +1539,7 @@ function CalendarPanel({ client, showToast }) {
             ["border-blue-500", "Workout"],
             ["border-emerald-500", "Completed"],
             ["border-amber-500", "Body Stats"],
-            ["border-purple-500", "Daily Habits"],
+            ["border-purple-500", "Daily Execution"],
             ["border-rose-500", "Nutrition Logged"],
           ].map(([cls, label]) => (
             <div key={label} className="flex items-center gap-1.5">
@@ -2394,7 +2394,7 @@ function HabitsPanel({ client }) {
             <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
               <ListChecks size={15} className="text-amber-600" />
             </div>
-            <p className="text-black font-semibold text-sm">Daily Habits</p>
+            <p className="text-black font-semibold text-sm">Daily Execution</p>
           </div>
           {habits.length > 0 && <Pill tone="muted">{habits.length}</Pill>}
         </div>

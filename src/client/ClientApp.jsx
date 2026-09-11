@@ -635,7 +635,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
   return (
     <Card className="mx-3">
       <div className="flex items-center justify-between mb-1">
-        <h3 className="text-black font-semibold">Daily Habits</h3>
+        <h3 className="text-black font-semibold">Daily Execution</h3>
         <span className="text-black/40 text-xs">
           {doneCount}/{habits.length}
         </span>
