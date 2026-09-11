@@ -1519,7 +1519,7 @@ function CalendarPanel({ client, showToast }) {
                                 {checked && <Check size={9} className="text-white" strokeWidth={3} />}
                               </span>
                             ) : (
-                              <span className={`w-2 h-2 rounded-full shrink-0 border-2 ${dot.border} ${it.done ? dot.bg : "bg-transparent"}`} />
+                              <span className={`w-2 h-2 rounded-full shrink-0 border ${dot.border} ${it.done ? dot.bg : "bg-transparent"}`} />
                             )}
                             <span className="truncate">{it.label}</span>
                           </div>
@@ -1543,7 +1543,7 @@ function CalendarPanel({ client, showToast }) {
             ["border-rose-500", "Nutrition Logged"],
           ].map(([cls, label]) => (
             <div key={label} className="flex items-center gap-1.5">
-              <span className={`w-2.5 h-2.5 rounded-full border-2 ${cls}`} />
+              <span className={`w-2.5 h-2.5 rounded-full border ${cls}`} />
               <span className="text-black/40 text-xs">{label}</span>
             </div>
           ))}
