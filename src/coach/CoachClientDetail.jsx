@@ -1059,6 +1059,49 @@ function CalendarPanel({ client, showToast }) {
     );
   }, [workoutLogs, exercisesById, todayStr]);
 
+  // Adherence for whichever month is currently being viewed (not always the
+  // real current month — the coach can navigate) capped at today so a
+  // future or in-progress month isn't scored against days that haven't
+  // happened yet.
+  const monthAdherence = useMemo(() => {
+    const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
+    const daysInMonth = new Date(Date.UTC(viewYear, viewMonth + 1, 0)).getUTCDate();
+    const isCurrentMonth = viewYear === now.getFullYear() && viewMonth === now.getMonth();
+
+    const scheduledThisMonth = scheduledWorkouts.filter(
+      (w) => w.date.startsWith(monthPrefix) && (!isCurrentMonth || w.date <= todayStr)
+    );
+    const trainingCompleted = scheduledThisMonth.filter((w) => completedWorkoutsByDate[w.date]).length;
+
+    let habitExpected = 0;
+    let habitCompleted = 0;
+    let nutritionExpected = 0;
+    let nutritionCompleted = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${monthPrefix}-${String(d).padStart(2, "0")}`;
+      if (isCurrentMonth && dateStr > todayStr) break;
+      const activeHabits = habits.filter((h) => {
+        const createdKey = localDateKey(h.createdAt);
+        if (dateStr < createdKey) return false;
+        if (h.endsAt && dateStr > localDateKey(h.endsAt)) return false;
+        return true;
+      });
+      const doneIds = habitLogForClient[dateStr] || [];
+      habitExpected += activeHabits.length;
+      habitCompleted += activeHabits.filter((h) => doneIds.includes(h.id)).length;
+
+      nutritionExpected += 1;
+      if (nutritionByDate[dateStr]) nutritionCompleted += 1;
+    }
+
+    const pct = (c, e) => (e === 0 ? null : Math.round((c / e) * 100));
+    return {
+      training: { completed: trainingCompleted, expected: scheduledThisMonth.length, pct: pct(trainingCompleted, scheduledThisMonth.length) },
+      habits: { completed: habitCompleted, expected: habitExpected, pct: pct(habitCompleted, habitExpected) },
+      nutrition: { completed: nutritionCompleted, expected: nutritionExpected, pct: pct(nutritionCompleted, nutritionExpected) },
+    };
+  }, [viewYear, viewMonth, scheduledWorkouts, completedWorkoutsByDate, habits, habitLogForClient, nutritionByDate, now, todayStr]);
+
   function itemsForDate(date) {
     const dateStr = dKey(date);
     const items = [];
@@ -1264,7 +1307,34 @@ function CalendarPanel({ client, showToast }) {
         )}
       </div>
 
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="w-full lg:w-64 shrink-0 bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm lg:sticky lg:top-4">
+          <p className="text-black font-semibold text-sm mb-3">{monthLabel} Adherence</p>
+          <div className="space-y-4">
+            {[
+              { label: "Monthly Training Adherence", stat: monthAdherence.training },
+              { label: "Monthly Habit Adherence", stat: monthAdherence.habits },
+              { label: "Monthly Nutrition Adherence", stat: monthAdherence.nutrition },
+            ].map(({ label, stat }) => (
+              <div key={label}>
+                <p className="text-black/50 text-[11px] font-medium mb-1">{label}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-black font-bold text-2xl tabular-nums">{stat.pct != null ? `${stat.pct}%` : "—"}</p>
+                  {stat.expected > 0 && (
+                    <p className="text-black/30 text-xs tabular-nums">
+                      {stat.completed}/{stat.expected}
+                    </p>
+                  )}
+                </div>
+                <div className="mt-1.5 h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
+                  <div className="h-full rounded-full bg-blue-500" style={{ width: `${stat.pct ?? 0}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0 w-full bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <button onClick={() => shiftMonth(-1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
@@ -1383,7 +1453,7 @@ function CalendarPanel({ client, showToast }) {
                           }
                         : undefined
                     }
-                    className={`min-h-[104px] md:min-h-[130px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors duration-150 font-sans ${
+                    className={`min-h-[112px] md:min-h-[152px] border-r border-b border-black/10 text-left px-2.5 py-2 transition-colors duration-150 font-sans ${
                       inMonth ? "bg-white" : "bg-black/[0.015]"
                     } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""} ${
                       dragOverDate === dateStr ? "bg-blue-50 ring-2 ring-inset ring-blue-400" : ""
@@ -1395,7 +1465,7 @@ function CalendarPanel({ client, showToast }) {
                       </span>
                     </div>
                     <div className="mt-1 space-y-1">
-                      {items.slice(0, 4).map((it, i) => {
+                      {items.slice(0, 5).map((it, i) => {
                         const dot =
                           it.type === "workout"
                             ? { border: "border-blue-500", bg: "bg-blue-500" }
@@ -1433,7 +1503,7 @@ function CalendarPanel({ client, showToast }) {
                             style={
                               draggableItem ? { touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } : undefined
                             }
-                            className={`flex items-center gap-1.5 text-[11px] truncate transition-all duration-150 ${
+                            className={`flex items-center gap-1.5 text-xs md:text-[12.5px] truncate transition-all duration-150 ${
                               selectable ? "cursor-pointer" : ""
                             } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${
                               dragging ? "opacity-30 scale-[0.97]" : ""
@@ -1456,7 +1526,7 @@ function CalendarPanel({ client, showToast }) {
                           </div>
                         );
                       })}
-                      {items.length > 4 && <p className="text-black/30 text-[11px]">+{items.length - 4} more</p>}
+                      {items.length > 5 && <p className="text-black/30 text-[11px]">+{items.length - 5} more</p>}
                     </div>
                   </div>
                 );
@@ -1478,6 +1548,7 @@ function CalendarPanel({ client, showToast }) {
               <span className="text-black/40 text-xs">{label}</span>
             </div>
           ))}
+        </div>
         </div>
       </div>
 
