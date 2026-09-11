@@ -426,9 +426,9 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
               <div className="hidden md:grid grid-cols-[20px_1fr_64px_1fr_104px_20px] gap-3 px-2 mb-1.5">
                 <span />
                 <span className="text-black/30 text-[10px] font-bold tracking-wide">EXERCISE NAME</span>
-                <span className="text-black/30 text-[10px] font-bold tracking-wide">SETS</span>
-                <span className="text-black/30 text-[10px] font-bold tracking-wide">TARGET</span>
-                <span className="text-black/30 text-[10px] font-bold tracking-wide">REST PERIOD</span>
+                <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">SETS</span>
+                <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">TARGET</span>
+                <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">REST PERIOD</span>
                 <span />
               </div>
 
