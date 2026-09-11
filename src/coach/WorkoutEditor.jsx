@@ -423,11 +423,12 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           ) : (
             <>
               {/* column header, desktop only */}
-              <div className="hidden md:grid grid-cols-[20px_1.8fr_60px_1.3fr_96px_20px] gap-3 px-2 mb-1.5">
+              <div className="hidden md:grid grid-cols-[20px_1.5fr_60px_150px_1fr_96px_20px] gap-3 px-2 mb-1.5">
                 <span />
                 <span className="text-black/30 text-[10px] font-bold tracking-wide">EXERCISE NAME</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">SETS</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">TARGET</span>
+                <span className="text-black/30 text-[10px] font-bold tracking-wide">NOTES</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">REST PERIOD</span>
                 <span />
               </div>
@@ -510,7 +511,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                 </div>
                               ) : (
                                 <div
-                                  className={`bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:p-2 transition-colors md:grid md:grid-cols-[20px_1.8fr_60px_1.3fr_96px_20px] md:gap-3 md:items-center ${
+                                  className={`bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:p-2 transition-colors md:grid md:grid-cols-[20px_1.5fr_60px_150px_1fr_96px_20px] md:gap-3 md:items-center ${
                                     dragIndex === i ? "opacity-40" : "border-black/8"
                                   }`}
                                 >
@@ -623,45 +624,48 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                         )}
                                       </div>
                                     </div>
-                                    <div className="flex items-center gap-1.5">
-                                      {row.targetType === "time" ? (
-                                        <div className="flex items-center gap-1 flex-1">
-                                          <button
-                                            type="button"
-                                            onClick={() => updateRow(i, { targetReps: Math.max(10, (Number(row.targetReps) || 30) - 10) })}
-                                            className="w-6 h-[30px] shrink-0 rounded-lg bg-black/5 text-black/50 text-sm font-bold"
-                                          >
-                                            −
-                                          </button>
-                                          <div className="flex-1 bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">
-                                            {row.targetReps || 30}s
-                                          </div>
-                                          <button
-                                            type="button"
-                                            onClick={() => updateRow(i, { targetReps: (Number(row.targetReps) || 30) + 10 })}
-                                            className="w-6 h-[30px] shrink-0 rounded-lg bg-black/5 text-black/50 text-sm font-bold"
-                                          >
-                                            +
-                                          </button>
+                                    {row.targetType === "time" ? (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => updateRow(i, { targetReps: Math.max(10, (Number(row.targetReps) || 30) - 10) })}
+                                          className="w-6 h-[30px] shrink-0 rounded-lg bg-black/5 text-black/50 text-sm font-bold"
+                                        >
+                                          −
+                                        </button>
+                                        <div className="flex-1 bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">
+                                          {row.targetReps || 30}s
                                         </div>
-                                      ) : row.targetReps === "AMRAP" ? (
-                                        <div className="flex-1 bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">AMRAP</div>
-                                      ) : (
-                                        <input
-                                          type="number"
-                                          min={1}
-                                          value={row.targetReps}
-                                          onChange={(e) => updateRow(i, { targetReps: +e.target.value })}
-                                          className="w-14 shrink-0 bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
-                                        />
-                                      )}
+                                        <button
+                                          type="button"
+                                          onClick={() => updateRow(i, { targetReps: (Number(row.targetReps) || 30) + 10 })}
+                                          className="w-6 h-[30px] shrink-0 rounded-lg bg-black/5 text-black/50 text-sm font-bold"
+                                        >
+                                          +
+                                        </button>
+                                      </div>
+                                    ) : row.targetReps === "AMRAP" ? (
+                                      <div className="bg-black/5 rounded-lg text-center text-black text-sm py-1.5 font-semibold">AMRAP</div>
+                                    ) : (
                                       <input
-                                        value={row.notes || ""}
-                                        onChange={(e) => updateRow(i, { notes: e.target.value })}
-                                        placeholder="Note / cue..."
-                                        className="flex-1 min-w-0 bg-black/5 rounded-lg px-2.5 py-1.5 text-black text-xs outline-none placeholder:text-black/25"
+                                        type="number"
+                                        min={1}
+                                        value={row.targetReps}
+                                        onChange={(e) => updateRow(i, { targetReps: +e.target.value })}
+                                        className="w-14 bg-black/5 rounded-lg text-center text-black text-sm py-1.5 outline-none"
                                       />
-                                    </div>
+                                    )}
+                                  </div>
+
+                                  {/* notes / cue */}
+                                  <div className="mt-2.5 md:mt-0">
+                                    <p className="text-black/30 text-[10px] mb-1 md:hidden">NOTES</p>
+                                    <input
+                                      value={row.notes || ""}
+                                      onChange={(e) => updateRow(i, { notes: e.target.value })}
+                                      placeholder="Note / cue..."
+                                      className="w-full bg-black/5 rounded-lg px-2.5 py-1.5 text-black text-xs outline-none placeholder:text-black/25"
+                                    />
                                   </div>
 
                                   {/* rest period */}
