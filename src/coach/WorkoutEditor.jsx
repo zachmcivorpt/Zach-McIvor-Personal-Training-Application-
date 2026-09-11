@@ -69,6 +69,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const [customForm, setCustomForm] = useState({ name: "", category: "", equipment: "Barbell" });
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
+  const [draggingExerciseId, setDraggingExerciseId] = useState(null); // exercise being dragged in from the picker, or null
   const [selected, setSelected] = useState(() => new Set());
   const [mobilePanel, setMobilePanel] = useState("editor"); // "editor" | "picker" — mobile-only tab switch
   const [addSection, setAddSection] = useState("main"); // which section new exercises from the picker land in
@@ -205,6 +206,68 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   function addExercise(exerciseId) {
     setRows((r) => [...r, newRow(exerciseId, addSection)]);
     setMobilePanel("editor");
+  }
+  function insertExerciseAt(i, exerciseId) {
+    setRows((r) => {
+      const section = r[i]?.section || addSection;
+      return [...r.slice(0, i), newRow(exerciseId, section), ...r.slice(i)];
+    });
+  }
+  // Same hold-then-drag pattern as the row-reorder grip handle, applied to
+  // a whole exercise card in the picker — a plain tap still adds it to the
+  // end of whichever section is selected under "ADDING TO" (the existing
+  // onClick), while a brief hold and drag onto a specific row in the
+  // session list drops it in right there instead.
+  const pickerPressRef = useRef(null); // { timer, startX, startY, exerciseId, fired }
+  const suppressPickerClickRef = useRef(false);
+  function pickerPointerDown(e, exerciseId) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const el = e.currentTarget;
+    const pointerId = e.pointerId;
+    const timer = setTimeout(() => {
+      if (!pickerPressRef.current) return;
+      pickerPressRef.current.fired = true;
+      setDraggingExerciseId(exerciseId);
+      try {
+        el.setPointerCapture(pointerId);
+      } catch {}
+      if (navigator.vibrate) navigator.vibrate(10);
+    }, 250);
+    pickerPressRef.current = { timer, startX, startY, exerciseId, fired: false };
+  }
+  function pickerPointerMove(e) {
+    const p = pickerPressRef.current;
+    if (!p) return;
+    if (!p.fired) {
+      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 8) {
+        clearTimeout(p.timer);
+        pickerPressRef.current = null;
+      }
+      return;
+    }
+    const target = document.elementFromPoint(e.clientX, e.clientY);
+    const rowEl = target?.closest("[data-row-index]");
+    setOverIndex(rowEl ? Number(rowEl.getAttribute("data-row-index")) : null);
+  }
+  function pickerPointerUp() {
+    const p = pickerPressRef.current;
+    if (p?.fired) {
+      suppressPickerClickRef.current = true;
+      if (overIndex !== null) insertExerciseAt(overIndex, p.exerciseId);
+    }
+    if (p?.timer) clearTimeout(p.timer);
+    pickerPressRef.current = null;
+    setDraggingExerciseId(null);
+    setOverIndex(null);
+  }
+  function pickerCardClick(exerciseId) {
+    if (suppressPickerClickRef.current) {
+      suppressPickerClickRef.current = false;
+      return;
+    }
+    addExercise(exerciseId);
   }
   async function addCustomExercise() {
     if (!customForm.name.trim()) return;
@@ -395,7 +458,13 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                             <div
                               key={i}
                               data-row-index={i}
-                              className={overIndex === i && dragIndex !== null && dragIndex !== i ? "border-t-2 border-black/40" : ""}
+                              className={
+                                overIndex === i && dragIndex !== null && dragIndex !== i
+                                  ? "border-t-2 border-black/40"
+                                  : overIndex === i && draggingExerciseId !== null
+                                  ? "border-t-2 border-blue-400"
+                                  : ""
+                              }
                             >
                               {row.groupType && (
                                 <div className="flex items-center gap-1.5 mt-2 mb-1">
@@ -722,10 +791,21 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
             </div>
           )}
 
+          <p className="text-black/25 text-[10px] mb-2 -mt-1">Tap to add, or hold and drag onto a spot in the session.</p>
           <div className="grid grid-cols-2 gap-2.5">
             {filtered.map((ex) => (
-              <div key={ex.id} className="relative bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl p-3 transition-colors">
-                <button type="button" onClick={() => addExercise(ex.id)} className="w-full text-left">
+              <div
+                key={ex.id}
+                onPointerDown={(e) => pickerPointerDown(e, ex.id)}
+                onPointerMove={pickerPointerMove}
+                onPointerUp={pickerPointerUp}
+                onPointerCancel={pickerPointerUp}
+                style={draggingExerciseId === ex.id ? { touchAction: "none" } : undefined}
+                className={`relative bg-black/[0.03] hover:bg-black/[0.06] border rounded-xl p-3 transition-all select-none ${
+                  draggingExerciseId === ex.id ? "opacity-40 scale-[0.97] border-blue-300" : "border-black/8"
+                }`}
+              >
+                <button type="button" onClick={() => pickerCardClick(ex.id)} className="w-full text-left">
                   <div className="relative w-full aspect-square rounded-lg bg-black/8 overflow-hidden flex items-center justify-center mb-2">
                     {(() => {
                       const parsed = ex.videoUrl ? parseVideoUrl(ex.videoUrl) : null;
