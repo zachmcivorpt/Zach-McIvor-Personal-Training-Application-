@@ -634,12 +634,13 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
   const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
   return (
     <Card className="mx-3">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-0.5">
         <h3 className="text-black font-semibold">Daily Execution</h3>
         <span className="text-black/40 text-xs">
           {doneCount}/{habits.length}
         </span>
       </div>
+      <p className="text-black/40 text-xs mb-3">The small actions that drive your performance.</p>
       <div className="mb-3">
         <ProgressBar value={doneCount} max={habits.length} height={6} />
       </div>
