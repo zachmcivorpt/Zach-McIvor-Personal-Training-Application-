@@ -1452,7 +1452,7 @@ function CalendarPanel({ client, showToast }) {
                           }
                         : undefined
                     }
-                    className={`min-h-[112px] md:min-h-[168px] border-r border-b border-black/10 text-left px-3 py-2.5 transition-colors duration-150 font-sans ${
+                    className={`min-h-[92px] md:min-h-[112px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors duration-150 font-sans ${
                       inMonth ? "bg-white" : "bg-black/[0.015]"
                     } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""} ${
                       dragOverDate === dateStr ? "bg-blue-50 ring-2 ring-inset ring-blue-400" : ""
@@ -1464,7 +1464,7 @@ function CalendarPanel({ client, showToast }) {
                       </span>
                     </div>
                     <div className="mt-1 space-y-1">
-                      {items.slice(0, 5).map((it, i) => {
+                      {items.slice(0, 4).map((it, i) => {
                         const dot =
                           it.type === "workout"
                             ? { border: "border-blue-500", bg: "bg-blue-500" }
@@ -1502,7 +1502,7 @@ function CalendarPanel({ client, showToast }) {
                             style={
                               draggableItem ? { touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } : undefined
                             }
-                            className={`flex items-center gap-1.5 text-xs md:text-[13.5px] truncate transition-all duration-150 ${
+                            className={`flex items-center gap-1 text-[10px] md:text-[10.5px] truncate transition-all duration-150 ${
                               selectable ? "cursor-pointer" : ""
                             } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${
                               dragging ? "opacity-30 scale-[0.97]" : ""
@@ -1525,7 +1525,7 @@ function CalendarPanel({ client, showToast }) {
                           </div>
                         );
                       })}
-                      {items.length > 5 && <p className="text-black/30 text-[11px]">+{items.length - 5} more</p>}
+                      {items.length > 4 && <p className="text-black/30 text-[10px]">+{items.length - 4} more</p>}
                     </div>
                   </div>
                 );
