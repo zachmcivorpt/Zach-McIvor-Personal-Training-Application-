@@ -1149,7 +1149,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                   if (!ex) return null;
                   return (
                     <div key={i} className={dark ? "flex items-center gap-3 py-3.5 border-b border-white/5" : "flex items-center gap-3 py-3.5 border-b border-black/5"}>
-                      <ExerciseThumb dark exercise={ex} size={56} rounded="rounded-lg" className="shadow-sm" />
+                      <ExerciseThumb dark={dark} exercise={ex} size={56} rounded="rounded-lg" className="shadow-sm" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className={dark ? "text-white font-semibold text-[15px] truncate" : "text-black font-semibold text-[15px] truncate"}>{ex.name}</p>
@@ -1220,7 +1220,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                 )}
               </div>
               <div className="flex items-center gap-2 mt-3">
-                <TextInput dark
+                <TextInput dark={dark}
                   value={commentDraft}
                   onChange={(e) => setCommentDraft(e.target.value)}
                   placeholder="Add a comment for your coach…"
@@ -1280,7 +1280,7 @@ const PRE_WORKOUT_REMINDERS = [
 function PreWorkoutReadySheet({ open, onClose, onReady }) {
   const dark = useClientDark();
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Ready to train?">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Ready to train?">
       <div className="space-y-3">
         {PRE_WORKOUT_REMINDERS.map((r, i) => (
           <div key={i} className={dark ? "flex items-start gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-3.5 py-3" : "flex items-start gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3"}>
@@ -1419,7 +1419,7 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
           {exercise.formCues?.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-4">
               {exercise.formCues.map((c, i) => (
-                <Pill dark key={i} tone="outline">
+                <Pill dark={dark} key={i} tone="outline">
                   {c}
                 </Pill>
               ))}
@@ -1446,8 +1446,8 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
             <div style={{ height: 140 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={e1rmHistory}>
-                  <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-                  <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
+                  <XAxis dataKey="date" tick={axisStyleFor(dark)} axisLine={false} tickLine={false} />
+                  <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyleFor(dark)} axisLine={false} tickLine={false} width={30} />
                   <Tooltip
                     contentStyle={{
                           background: dark ? "#1C1C1C" : "#FFFFFF",
@@ -1511,7 +1511,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   return (
     <div className={dark ? "pt-1 pb-5 px-1 border-b border-white/10 last:border-b-0" : "pt-1 pb-5 px-1 border-b border-black/10 last:border-b-0"}>
       <div className="flex items-center gap-3">
-        <ExerciseThumb dark exercise={exercise} size={56} rounded="rounded-lg" className="shadow-sm" />
+        <ExerciseThumb dark={dark} exercise={exercise} size={56} rounded="rounded-lg" className="shadow-sm" />
         <button type="button" onClick={() => onOpenDetail?.(exercise, exMeta)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-1.5">
             <p className={dark ? "text-white font-bold text-[17px] truncate" : "text-black font-bold text-[17px] truncate"}>{exercise.name}</p>
@@ -1706,7 +1706,7 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
     .slice(0, 40);
 
   return (
-    <BottomSheet dark open={!!exMeta} onClose={onClose} title={selected ? "Why the swap?" : `Swap ${exercise?.name || "exercise"}`}>
+    <BottomSheet dark={dark} open={!!exMeta} onClose={onClose} title={selected ? "Why the swap?" : `Swap ${exercise?.name || "exercise"}`}>
       {!selected ? (
         <div>
           <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
@@ -1749,10 +1749,10 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
             className={dark ? "w-full bg-white/5 border border-white/10 rounded-2xl px-3.5 py-2.5 text-white text-sm outline-none placeholder:text-white/30 resize-none" : "w-full bg-black/5 border border-black/10 rounded-2xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30 resize-none"}
           />
           <div className="flex gap-2 mt-4">
-            <SecondaryButton dark className="flex-1" onClick={() => setSelected(null)}>
+            <SecondaryButton dark={dark} className="flex-1" onClick={() => setSelected(null)}>
               Back
             </SecondaryButton>
-            <PrimaryButton dark className="flex-1" disabled={!reason.trim()} onClick={() => onConfirm(selected, reason.trim())}>
+            <PrimaryButton dark={dark} className="flex-1" disabled={!reason.trim()} onClick={() => onConfirm(selected, reason.trim())}>
               Confirm Swap
             </PrimaryButton>
           </div>
@@ -2143,7 +2143,7 @@ function LogCardioSheet({ open, onClose, onSave }) {
   }
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Log Activity">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log Activity">
       <p className={dark ? "text-white/40 text-xs tracking-wide mb-2" : "text-black/40 text-xs tracking-wide mb-2"}>ACTIVITY</p>
       <div className="grid grid-cols-3 gap-2 mb-5">
         {CARDIO_ACTIVITIES.map((a) => {
@@ -2165,14 +2165,14 @@ function LogCardioSheet({ open, onClose, onSave }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <NumberStepper dark label="DURATION (MIN)" value={duration} setValue={setDuration} step={5} min={0} />
-        <NumberStepper dark label="DISTANCE (KM)" value={distance} setValue={setDistance} step={0.5} min={0} />
+        <NumberStepper dark={dark} label="DURATION (MIN)" value={duration} setValue={setDuration} step={5} min={0} />
+        <NumberStepper dark={dark} label="DISTANCE (KM)" value={distance} setValue={setDistance} step={0.5} min={0} />
       </div>
       <div className="mb-5">
-        <NumberStepper dark label="CALORIES BURNED (OPTIONAL)" value={caloriesBurned} setValue={setCaloriesBurned} step={25} min={0} />
+        <NumberStepper dark={dark} label="CALORIES BURNED (OPTIONAL)" value={caloriesBurned} setValue={setCaloriesBurned} step={25} min={0} />
       </div>
 
-      <PrimaryButton dark className="w-full" disabled={duration <= 0} onClick={save}>
+      <PrimaryButton dark={dark} className="w-full" disabled={duration <= 0} onClick={save}>
         <Check size={16} /> LOG ACTIVITY
       </PrimaryButton>
     </BottomSheet>
@@ -2183,7 +2183,7 @@ function LogCardioSheet({ open, onClose, onSave }) {
 function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId, onSelect }) {
   const dark = useClientDark();
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Training Phases">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Training Phases">
       {phases.length === 0 ? (
         <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No phases yet.</p>
       ) : (
@@ -2217,20 +2217,28 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
 // Read-only mirror of the coach's own Training Program view — same phase
 // (name/dates/description) + workout-list structure, just without any
 // edit/add/schedule controls, which stay coach-only.
-function ClientProgramTab({ onPreviewDay }) {
+function ClientProgramTab({ onPreviewDay, showToast }) {
   const dark = useClientDark();
-  const { db, currentUser } = useApp();
+  const { db, currentUser, notifyCoach } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const todayStr = localDateKey();
   const current = getCurrentPhase(phases, todayStr);
   const [selectedId, setSelectedId] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const logsForClient = db.workoutLogs[currentUser.id] || [];
+
+  function requestWorkout(message) {
+    notifyCoach(currentUser.id, currentUser.name, "workout_request", message);
+    showToast?.("Sent to your coach");
+  }
 
   if (phases.length === 0) {
     return (
       <div className="px-3">
-        <Card dark>
+        <Card dark={dark}>
           <p className={dark ? "text-white/40 text-sm text-center py-8" : "text-black/40 text-sm text-center py-8"}>No training program set up yet — your coach will assign one soon.</p>
         </Card>
       </div>
@@ -2242,7 +2250,7 @@ function ClientProgramTab({ onPreviewDay }) {
 
   return (
     <div className="px-3 space-y-4">
-      <Card dark>
+      <Card dark={dark}>
         <div className="flex items-start justify-between gap-3 mb-1">
           <h2 className={dark ? "text-white text-lg font-bold min-w-0 truncate" : "text-black text-lg font-bold min-w-0 truncate"}>{phase.name}</h2>
           <button
@@ -2263,19 +2271,36 @@ function ClientProgramTab({ onPreviewDay }) {
       </Card>
 
       <div>
-        <p className={dark ? "text-white/40 text-xs tracking-wide mb-2 px-1" : "text-black/40 text-xs tracking-wide mb-2 px-1"}>WORKOUTS IN THIS PHASE</p>
+        <div className="flex items-center justify-between mb-2 px-1 flex-wrap gap-y-1">
+          <p className={dark ? "text-white/40 text-xs tracking-wide" : "text-black/40 text-xs tracking-wide"}>WORKOUTS IN THIS PHASE</p>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setAddOpen(true)} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
+              <Plus size={13} /> Add new workout
+            </button>
+            <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
+              <Upload size={13} /> Import
+            </button>
+          </div>
+        </div>
         {days.length === 0 ? (
-          <Card dark>
+          <Card dark={dark}>
             <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No workouts added to this phase yet.</p>
           </Card>
         ) : (
           <div className="space-y-2">
             {days.map((d, i) => (
               <button key={d.id || i} onClick={() => onPreviewDay(d)} className="w-full text-left">
-                <Card dark className="!py-3.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className={dark ? "text-white font-semibold text-sm truncate" : "text-black font-semibold text-sm truncate"}>{d.label}</p>
+                <Card dark={dark} className="!py-3.5">
+                  <div className="flex items-center gap-3">
+                    {d.photoUrl ? (
+                      <img src={d.photoUrl} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
+                    ) : (
+                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${dark ? "bg-white/8" : "bg-black/5"}`}>
+                        <Dumbbell size={20} className={dark ? "text-white/25" : "text-black/20"} />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className={dark ? "text-white font-bold text-base truncate" : "text-black font-bold text-base truncate"}>{d.label}</p>
                       <p className={dark ? "text-white/40 text-xs mt-0.5 truncate" : "text-black/40 text-xs mt-0.5 truncate"}>
                         est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
                         {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
@@ -2301,7 +2326,85 @@ function ClientProgramTab({ onPreviewDay }) {
           setHistoryOpen(false);
         }}
       />
+
+      <RequestWorkoutSheet open={addOpen} onClose={() => setAddOpen(false)} onSend={requestWorkout} />
+      <ImportPastWorkoutSheet open={importOpen} onClose={() => setImportOpen(false)} logs={logsForClient} onSend={requestWorkout} />
     </div>
+  );
+}
+
+// Clients can't write to their own program (that stays coach-managed, same
+// as every other phase edit), so "Add new workout" / "Import" send the
+// coach a notification instead of touching clientPhases directly — no new
+// write access needed, and it shows up right in the coach's existing
+// notification bell.
+function RequestWorkoutSheet({ open, onClose, onSend }) {
+  const dark = useClientDark();
+  const [name, setName] = useState("");
+
+  function close() {
+    setName("");
+    onClose();
+  }
+
+  function submit(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    onSend(`Requested a new workout: "${name.trim()}"`);
+    close();
+  }
+
+  return (
+    <BottomSheet open={open} onClose={close} title="Add New Workout" dark={dark}>
+      <form onSubmit={submit} className="space-y-4">
+        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
+          Tell your coach what you'd like added to your program — they'll build it into your phase.
+        </p>
+        <TextInput dark={dark} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Extra arm day" autoFocus />
+        <PrimaryButton dark={dark} type="submit" className="w-full" disabled={!name.trim()}>
+          <Send size={15} /> SEND TO COACH
+        </PrimaryButton>
+      </form>
+    </BottomSheet>
+  );
+}
+
+function ImportPastWorkoutSheet({ open, onClose, logs, onSend }) {
+  const dark = useClientDark();
+  const past = [...(logs || [])]
+    .filter((l) => !l.cardio)
+    .sort((a, b) => b.date - a.date)
+    .slice(0, 30);
+
+  function pick(log) {
+    onSend(`Asked to re-add a past workout to their program: "${log.dayLabel}" (${new Date(log.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })})`);
+    onClose();
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Import a Past Workout" dark={dark}>
+      <p className={dark ? "text-white/40 text-xs mb-3" : "text-black/40 text-xs mb-3"}>
+        Pick one of your completed workouts to ask your coach to add back into your program.
+      </p>
+      {past.length === 0 ? (
+        <p className={dark ? "text-white/30 text-sm text-center py-8" : "text-black/30 text-sm text-center py-8"}>No completed workouts yet.</p>
+      ) : (
+        <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
+          {past.map((log) => (
+            <button
+              key={log.id}
+              onClick={() => pick(log)}
+              className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left ${dark ? "bg-white/[0.06] hover:bg-white/[0.1]" : "bg-black/[0.03] hover:bg-black/[0.06]"}`}
+            >
+              <span className={dark ? "text-white text-sm truncate pr-2" : "text-black text-sm truncate pr-2"}>{log.dayLabel}</span>
+              <span className={dark ? "text-white/40 text-xs shrink-0" : "text-black/40 text-xs shrink-0"}>
+                {new Date(log.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </BottomSheet>
   );
 }
 
@@ -2350,7 +2453,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             <Footprints size={16} /> + Log a cardio session
           </button>
           {todaySession && (
-            <Card dark>
+            <Card dark={dark}>
               <h3 className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Exercises</h3>
               <div className="space-y-2">
                 {todaySession.exercises.map((e, i) => {
@@ -2396,7 +2499,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       {tab === "history" && (
         <div className="px-3 space-y-3">
           {logsForClient.length === 0 && (
-            <Card dark>
+            <Card dark={dark}>
               <p className={dark ? "text-white/40 text-sm text-center py-6" : "text-black/40 text-sm text-center py-6"}>No completed workouts yet — finish today's session to see it here.</p>
             </Card>
           )}
@@ -2404,20 +2507,20 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             const volume = h.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + s.weight * s.reps, 0), 0);
             const prCount = h.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
             return (
-              <Card dark key={h.id}>
+              <Card dark={dark} key={h.id}>
                 <div className="flex justify-between items-center">
                   <div>
                     <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{h.dayLabel}</p>
                     <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
                   </div>
                   {h.cardio ? (
-                    <Pill dark tone="outline">
+                    <Pill dark={dark} tone="outline">
                       {h.cardio.durationMin}min{h.cardio.distanceKm > 0 ? ` · ${h.cardio.distanceKm}km` : ""}
                       {h.cardio.caloriesBurned > 0 ? ` · ${h.cardio.caloriesBurned} kcal` : ""}
                     </Pill>
                   ) : (
                     <div className="flex flex-col items-end gap-1">
-                      <Pill dark tone="outline">{volume.toLocaleString()} kg</Pill>
+                      <Pill dark={dark} tone="outline">{volume.toLocaleString()} kg</Pill>
                       {prCount > 0 && (
                         <span className="text-[11px] font-semibold" style={{ color: GOAL_GREEN }}>
                           {prCount} PR{prCount === 1 ? "" : "s"}
@@ -2444,14 +2547,14 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       {tab === "upcoming" && (
         <div className="px-3 space-y-2">
           {upcoming.length === 0 && (
-            <Card dark>
+            <Card dark={dark}>
               <p className={dark ? "text-white/40 text-sm text-center py-6" : "text-black/40 text-sm text-center py-6"}>
                 {dbReady ? "Nothing scheduled yet — your coach will set up your upcoming workouts." : "Loading your schedule…"}
               </p>
             </Card>
           )}
           {upcoming.map((w) => (
-            <Card dark key={w.id} className="!py-3">
+            <Card dark={dark} key={w.id} className="!py-3">
               <div className="flex items-center justify-between">
                 <div>
                   <p className={dark ? "text-white font-semibold text-sm" : "text-black font-semibold text-sm"}>{w.label}</p>
@@ -2646,7 +2749,7 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
             )}
           </div>
 
-          <PrimaryButton dark className="w-full mt-5" onClick={() => onLog(meal, slot)}>
+          <PrimaryButton dark={dark} className="w-full mt-5" onClick={() => onLog(meal, slot)}>
             <Plus size={16} /> LOG THIS MEAL
           </PrimaryButton>
         </div>
@@ -2758,7 +2861,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </div>
 
       <div className="px-3 mt-3">
-        <Card dark>
+        <Card dark={dark}>
           <p className={dark ? "text-white/40 text-xs tracking-wide mb-1" : "text-black/40 text-xs tracking-wide mb-1"}>CALORIE TARGET</p>
           <div className="flex items-baseline gap-2">
             <span className={dark ? "text-white text-3xl font-bold" : "text-black text-3xl font-bold"}>{Math.max(0, targets.calories - nutrition.calories)}</span>
@@ -2792,7 +2895,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </div>
 
       <div className="px-3 mt-4">
-        <Card dark>
+        <Card dark={dark}>
           <div className="flex items-center gap-4">
             <WaterCup value={nutrition.water} max={targets.water} size={52} />
             <div className="flex-1 min-w-0">
@@ -2834,7 +2937,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 
       {mealPlan && mealPlanDay && (
         <div className="px-3 mt-7">
-          <Card dark>
+          <Card dark={dark}>
             <div className="flex items-center justify-between mb-1">
               <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>My Meal Plan</p>
               <span className={dark ? "text-white/40 text-[11px] font-semibold bg-white/5 px-2 py-0.5 rounded-full shrink-0" : "text-black/40 text-[11px] font-semibold bg-black/5 px-2 py-0.5 rounded-full shrink-0"}>
@@ -2947,7 +3050,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 
       <div className="px-3 mt-7">
         <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>TODAY'S MEALS</p>
-        <Card dark className="!p-0 overflow-hidden">
+        <Card dark={dark} className="!p-0 overflow-hidden">
           {mealCategories.map((meal, i) => {
             const items = nutrition.meals[meal] || [];
             const totalCals = items.reduce((a, f) => a + f.cals, 0);
@@ -2975,7 +3078,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         </Card>
       </div>
 
-      <BottomSheet dark open={!!detailMeal} onClose={() => setDetailMeal(null)} title={detailMeal || ""}>
+      <BottomSheet dark={dark} open={!!detailMeal} onClose={() => setDetailMeal(null)} title={detailMeal || ""}>
         {detailMeal &&
           (() => {
             const items = nutrition.meals[detailMeal] || [];
@@ -3042,7 +3145,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
           })()}
       </BottomSheet>
 
-      <BottomSheet dark open={sheetOpen} onClose={() => setSheetOpen(false)} title={`Add to ${activeMeal}`}>
+      <BottomSheet dark={dark} open={sheetOpen} onClose={() => setSheetOpen(false)} title={`Add to ${activeMeal}`}>
         <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
           <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
           <input
@@ -3138,7 +3241,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         }}
       />
 
-      <BottomSheet dark open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
+      <BottomSheet dark={dark} open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
         <div className="grid grid-cols-3 gap-2">
           {[0.1, 0.2, 0.33, 0.5, 0.75, 1.0].map((v) => (
             <button
@@ -3188,7 +3291,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         onSaveAsMeal={saveMealFromEstimate}
       />
       <CreateMealSheet
-        dark
+        dark={dark}
         open={createMealOpen}
         onClose={() => setCreateMealOpen(false)}
         prefill={mealPrefill}
@@ -3219,7 +3322,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       />
 
       <ShoppingListSheet
-        dark
+        dark={dark}
         open={shoppingListOpen}
         onClose={() => setShoppingListOpen(false)}
         plan={mealPlan}
@@ -3237,7 +3340,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 function ChartCard({ title, subtitle, children }) {
   const dark = useClientDark();
   return (
-    <Card dark>
+    <Card dark={dark}>
       <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{title}</p>
       {subtitle && <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{subtitle}</p>}
       <div className="h-40 mt-3 -ml-4">{children}</div>
@@ -3245,7 +3348,7 @@ function ChartCard({ title, subtitle, children }) {
   );
 }
 
-const axisStyle = { fontSize: 11, fill: dark ? "rgba(255,255,255,0.35)" : "rgba(10,10,11,0.35)" };
+const axisStyleFor = (dark) => ({ fontSize: 11, fill: dark ? "rgba(255,255,255,0.35)" : "rgba(10,10,11,0.35)" });
 
 function MetricDetailSheet({ metric, onClose }) {
   const dark = useClientDark();
@@ -3300,8 +3403,8 @@ function MetricDetailSheet({ metric, onClose }) {
                           <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+                      <XAxis dataKey="date" tick={axisStyleFor(dark)} axisLine={false} tickLine={false} />
+                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyleFor(dark)} axisLine={false} tickLine={false} width={34} />
                       <Tooltip
                         contentStyle={{
                           background: dark ? "#1C1C1C" : "#FFFFFF",
@@ -3337,9 +3440,9 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
   const valid = weight !== "" && !isNaN(parsed) && parsed > 0;
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Log Weight">
-      <Field dark label="WEIGHT (KG)">
-        <TextInput dark
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log Weight">
+      <Field dark={dark} label="WEIGHT (KG)">
+        <TextInput dark={dark}
           type="number"
           inputMode="decimal"
           value={weight}
@@ -3348,7 +3451,7 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
           autoFocus
         />
       </Field>
-      <PrimaryButton dark
+      <PrimaryButton dark={dark}
         className="w-full mt-4"
         disabled={!valid}
         onClick={() => {
@@ -3392,7 +3495,7 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
             <div className="py-16 text-center">
               <Scale size={28} className={dark ? "mx-auto text-white/15 mb-3" : "mx-auto text-black/15 mb-3"} />
               <p className={dark ? "text-white/40 text-sm mb-4" : "text-black/40 text-sm mb-4"}>No weigh-ins logged yet.</p>
-              <PrimaryButton dark onClick={() => setLogOpen(true)} className="mx-auto">
+              <PrimaryButton dark={dark} onClick={() => setLogOpen(true)} className="mx-auto">
                 <Plus size={16} /> LOG YOUR FIRST WEIGHT
               </PrimaryButton>
             </div>
@@ -3415,8 +3518,8 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
                           <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+                      <XAxis dataKey="date" tick={axisStyleFor(dark)} axisLine={false} tickLine={false} />
+                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyleFor(dark)} axisLine={false} tickLine={false} width={34} />
                       <Tooltip
                         contentStyle={{
                           background: dark ? "#1C1C1C" : "#FFFFFF",
@@ -3489,7 +3592,7 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
   const [viewing, setViewing] = useState(null);
 
   return (
-    <Card dark>
+    <Card dark={dark}>
       <div className="flex items-center justify-between mb-3">
         <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Progress Photos</p>
         <ImageIcon size={16} className={dark ? "text-white/30" : "text-black/30"} />
@@ -3532,7 +3635,7 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
       </div>
       {photos.length === 0 && <p className={dark ? "text-white/25 text-xs mt-3" : "text-black/25 text-xs mt-3"}>No photos yet — add one to start a visual timeline.</p>}
 
-      <BottomSheet dark open={!!viewing} onClose={() => setViewing(null)} title={viewing ? new Date(viewing.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : ""}>
+      <BottomSheet dark={dark} open={!!viewing} onClose={() => setViewing(null)} title={viewing ? new Date(viewing.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : ""}>
         {viewing && (
           <div>
             <img src={viewing.url} alt="Progress" className="w-full rounded-2xl mb-3" />
@@ -3546,7 +3649,7 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
                 <p className={dark ? "text-white/30 text-xs text-center mb-4" : "text-black/30 text-xs text-center mb-4"}>No weigh-in logged near this date.</p>
               );
             })()}
-            <DangerButton dark
+            <DangerButton dark={dark}
               className="w-full"
               onClick={() => {
                 onDelete(viewing.id);
@@ -3721,7 +3824,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>My Progress</p>
           <div className="grid grid-cols-2 gap-3">
             {tiles.map((t) => (
-              <MetricTile dark
+              <MetricTile dark={dark}
                 key={t.key}
                 label={t.label}
                 date={t.date}
@@ -3733,7 +3836,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           </div>
         </div>
 
-        <Card dark>
+        <Card dark={dark}>
           <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Strength Personal Bests</p>
           <div className="space-y-2.5">
             {personalBests.map((s) => (
@@ -3749,11 +3852,11 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           </div>
         </Card>
 
-        <ConsistencyHeatmap logs={logsForClient} dark />
+        <ConsistencyHeatmap logs={logsForClient} dark={dark} />
 
         <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
 
-        <Card dark>
+        <Card dark={dark}>
           <div className="flex items-center justify-between">
             <div>
               <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Body Weight</p>
@@ -3784,8 +3887,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
                       <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-                  <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
+                  <XAxis dataKey="date" tick={axisStyleFor(dark)} axisLine={false} tickLine={false} />
+                  <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyleFor(dark)} axisLine={false} tickLine={false} width={30} />
                   <Tooltip contentStyle={{
                           background: dark ? "#1C1C1C" : "#FFFFFF",
                           border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.1)",
@@ -3809,14 +3912,14 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
         <div className="grid grid-cols-2 gap-3">
           <BodyMetricCard
-            dark
+            dark={dark}
             config={BODY_FAT_CONFIG}
             entries={bodyMetricEntries.bodyFatPct}
             onLog={setLogMetricConfig}
             onOpenHistory={setHistoryMetricConfig}
           />
           <BodyMetricCard
-            dark
+            dark={dark}
             config={LEAN_MASS_CONFIG}
             entries={bodyMetricEntries.leanMassKg}
             onLog={setLogMetricConfig}
@@ -3824,11 +3927,11 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           />
         </div>
 
-        <BodyMeasurementsListCard dark entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
+        <BodyMeasurementsListCard dark={dark} entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
 
         {BODY_METRICS_CONFIG.map((cfg) => (
           <BodyMetricCard
-            dark
+            dark={dark}
             key={cfg.key}
             config={cfg}
             entries={bodyMetricEntries[cfg.key]}
@@ -3844,8 +3947,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyVolume}>
-                <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
-                <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+                <XAxis dataKey="week" tick={axisStyleFor(dark)} axisLine={false} tickLine={false} />
+                <YAxis tick={axisStyleFor(dark)} axisLine={false} tickLine={false} width={34} />
                 <Tooltip contentStyle={{
                           background: dark ? "#1C1C1C" : "#FFFFFF",
                           border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.1)",
@@ -3858,13 +3961,13 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             </ResponsiveContainer>
           </ChartCard>
         ) : (
-          <Card dark>
+          <Card dark={dark}>
             <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Weekly Training Volume</p>
             <p className={dark ? "text-white/30 text-sm mt-2" : "text-black/30 text-sm mt-2"}>Complete a few more weeks of logged workouts to see your volume trend.</p>
           </Card>
         )}
 
-        <Card dark>
+        <Card dark={dark}>
           <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Achievements</p>
           {achievements.length === 0 ? (
             <p className={dark ? "text-white/30 text-sm" : "text-black/30 text-sm"}>Complete workouts to start unlocking milestones here.</p>
@@ -3897,7 +4000,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
       {historyMetricConfig && (
         <BodyMetricHistoryScreen
-          dark
+          dark={dark}
           config={historyMetricConfig}
           entries={bodyMetricEntries[historyMetricConfig.key]}
           onClose={() => setHistoryMetricConfig(null)}
@@ -3906,7 +4009,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         />
       )}
       <LogBodyMetricSheet
-        dark
+        dark={dark}
         open={!!logMetricConfig}
         config={logMetricConfig}
         lastValue={logMetricConfig ? bodyMetricEntries[logMetricConfig.key]?.[bodyMetricEntries[logMetricConfig.key].length - 1]?.value : null}
@@ -4009,11 +4112,11 @@ function PreferencesSheet({ section, open, onClose, user }) {
   if (!section) return null;
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title={PREF_TITLES[section] || ""}>
+    <BottomSheet dark={dark} open={open} onClose={onClose} title={PREF_TITLES[section] || ""}>
       <div className="space-y-4">
         {section === "goals" && (
-          <Field dark label="YOUR GOALS" hint="Shared with your coach">
-            <TextArea dark rows={4} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on my main lifts..." />
+          <Field dark={dark} label="YOUR GOALS" hint="Shared with your coach">
+            <TextArea dark={dark} rows={4} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on my main lifts..." />
           </Field>
         )}
         {section === "equipment" && (
@@ -4050,8 +4153,8 @@ function PreferencesSheet({ section, open, onClose, user }) {
                 ))}
               </div>
             </div>
-            <Field dark label="ANYTHING ELSE?" hint="Injuries, limitations, preferred exercises...">
-              <TextArea dark rows={3} value={trainingNotes} onChange={(e) => setTrainingNotes(e.target.value)} placeholder="e.g. Bad left knee, avoid deep squats..." />
+            <Field dark={dark} label="ANYTHING ELSE?" hint="Injuries, limitations, preferred exercises...">
+              <TextArea dark={dark} rows={3} value={trainingNotes} onChange={(e) => setTrainingNotes(e.target.value)} placeholder="e.g. Bad left knee, avoid deep squats..." />
             </Field>
           </>
         )}
@@ -4067,8 +4170,8 @@ function PreferencesSheet({ section, open, onClose, user }) {
                 ))}
               </div>
             </div>
-            <Field dark label="ALLERGIES / DISLIKES" hint="Anything you can't or won't eat">
-              <TextArea dark rows={2} value={nutritionNotes} onChange={(e) => setNutritionNotes(e.target.value)} placeholder="e.g. Allergic to peanuts, don't like fish..." />
+            <Field dark={dark} label="ALLERGIES / DISLIKES" hint="Anything you can't or won't eat">
+              <TextArea dark={dark} rows={2} value={nutritionNotes} onChange={(e) => setNutritionNotes(e.target.value)} placeholder="e.g. Allergic to peanuts, don't like fish..." />
             </Field>
           </>
         )}
@@ -4084,7 +4187,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
 function ConnectedDevicesSheet({ open, onClose }) {
   const dark = useClientDark();
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Connected devices">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Connected devices">
       <div className="text-center py-6">
         <Heart size={28} className={dark ? "text-white/20 mx-auto mb-3" : "text-black/20 mx-auto mb-3"} />
         <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Not available yet</p>
@@ -4125,7 +4228,7 @@ function PushNotificationsSheet({ open, onClose, showToast, userId }) {
   }
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Push Notifications">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Push Notifications">
       <p className={dark ? "text-white/50 text-sm mb-4" : "text-black/50 text-sm mb-4"}>
         Get notified on this device when your coach messages you or reviews a check-in — even when the app is closed.
       </p>
@@ -4165,7 +4268,7 @@ function NotificationRow({ icon: Icon, title, subtitle, onClick }) {
 function NotificationsCenterSheet({ open, onClose, items }) {
   const dark = useClientDark();
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Notifications">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Notifications">
       {items.length === 0 ? (
         <p className={dark ? "text-white/40 text-sm text-center py-8" : "text-black/40 text-sm text-center py-8"}>You're all caught up.</p>
       ) : (
@@ -4221,9 +4324,9 @@ function ProfileScreen({
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Profile</h1>
       </div>
       <div className="px-3">
-        <Card dark>
+        <Card dark={dark}>
           <div className="flex items-center gap-4">
-            <AvatarPicker dark name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
+            <AvatarPicker dark={dark} name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
             <div>
               <p className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>{user.name}</p>
               <p className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>
@@ -4249,7 +4352,7 @@ function ProfileScreen({
       </div>
 
       <div className="px-3 mt-4 space-y-3">
-        <Card dark onClick={() => setMessagesOpen(true)}>
+        <Card dark={dark} onClick={() => setMessagesOpen(true)}>
           <div className="flex items-center gap-3">
             <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative"}>
               <MessageCircle size={18} className={dark ? "text-white" : "text-black"} />
@@ -4267,7 +4370,7 @@ function ProfileScreen({
           </div>
         </Card>
 
-        <Card dark onClick={onOpenCheckIns}>
+        <Card dark={dark} onClick={onOpenCheckIns}>
           <div className="flex items-center gap-3">
             <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative"}>
               <CalendarCheck size={18} className={dark ? "text-white" : "text-black"} />
@@ -4285,7 +4388,7 @@ function ProfileScreen({
           </div>
         </Card>
 
-        <Card dark onClick={() => setCoachOpen(true)}>
+        <Card dark={dark} onClick={() => setCoachOpen(true)}>
           <div className="flex items-center gap-3">
             <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center"}>
               <Activity size={18} className={dark ? "text-white" : "text-black"} />
@@ -4300,7 +4403,7 @@ function ProfileScreen({
       </div>
 
       <div className="px-3 mt-4">
-        <Card dark>
+        <Card dark={dark}>
           {rows.map((r, i) => (
             <button
               key={r.label}
@@ -4356,7 +4459,7 @@ function CoachSheet({ open, onClose, ctx }) {
   }
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Quick Tips">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Quick Tips">
       <div className="space-y-3 mb-4 max-h-[45vh] overflow-y-auto">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -4475,7 +4578,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   }
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Messages">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Messages">
       <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
         {thread.length === 0 && (
           <div className="flex justify-start">
@@ -4611,7 +4714,7 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
   const canSubmit = form.questions.every((q) => !q.required || (answers[q.id] !== undefined && answers[q.id] !== ""));
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title={form.name}>
+    <BottomSheet dark={dark} open={open} onClose={onClose} title={form.name}>
       {form.description && <p className={dark ? "text-white/50 text-sm mb-4" : "text-black/50 text-sm mb-4"}>{form.description}</p>}
       <div className="space-y-4">
         {form.questions.map((q) => (
@@ -4749,7 +4852,7 @@ function CheckInsScreen({ userId, showToast }) {
       </div>
 
       {schedules.length === 0 ? (
-        <Card dark className="mx-3 text-center py-10">
+        <Card dark={dark} className="mx-3 text-center py-10">
           <CalendarCheck size={26} className={dark ? "text-white/25 mx-auto mb-3" : "text-black/25 mx-auto mb-3"} />
           <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>No check-ins scheduled</p>
           <p className={dark ? "text-white/40 text-sm mt-1" : "text-black/40 text-sm mt-1"}>Your coach hasn't scheduled any check-ins yet.</p>

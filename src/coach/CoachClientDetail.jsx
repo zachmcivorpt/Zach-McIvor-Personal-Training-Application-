@@ -72,7 +72,53 @@ import {
   MessageSquare,
   Trophy,
   AlertTriangle,
+  Camera,
 } from "lucide-react";
+import { fileToCompressedDataUrl } from "../lib/image";
+
+// Same paste-a-photo pattern as CoachMealLibrary's per-meal camera button —
+// attaches a small compressed thumbnail directly to a workout day, shown on
+// the client's Training tab program list.
+function WorkoutPhotoButton({ day, onPhoto }) {
+  const fileRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleFile(e) {
+    e.stopPropagation();
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file, 500, 0.75);
+      await onPhoto(dataUrl);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+      <span
+        onClick={(e) => {
+          e.stopPropagation();
+          fileRef.current?.click();
+        }}
+        className={`w-9 h-9 rounded-lg overflow-hidden shrink-0 flex items-center justify-center transition-colors ${
+          day.photoUrl ? "" : "bg-black/[0.04] hover:bg-black/8"
+        } ${busy ? "opacity-40 pointer-events-none" : ""}`}
+        title={day.photoUrl ? "Change workout photo" : "Add a workout photo"}
+      >
+        {day.photoUrl ? (
+          <img src={day.photoUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <Camera size={14} className="text-black/30" />
+        )}
+      </span>
+    </>
+  );
+}
 
 const todayKey = () => localDateKey();
 
@@ -1891,6 +1937,16 @@ function TrainingProgramPanel({ client, showToast }) {
     }
   }
 
+  async function setDayPhoto(i, photoUrl) {
+    if (!phase) return;
+    const nextDays = days.map((d, idx) => (idx !== i ? d : { ...d, photoUrl }));
+    try {
+      await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+    } catch (err) {
+      showToast("Couldn't save that photo — check your connection and try again");
+    }
+  }
+
   function toggleSelectMode() {
     setSelectMode((m) => !m);
     setSelectedDayIds(new Set());
@@ -2196,6 +2252,7 @@ function TrainingProgramPanel({ client, showToast }) {
                           {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                         </span>
                       )}
+                      <WorkoutPhotoButton day={d} onPhoto={(url) => setDayPhoto(i, url)} />
                       <div className="flex-1 min-w-0">
                         {renamingId === d.id ? (
                           <input
@@ -2211,7 +2268,7 @@ function TrainingProgramPanel({ client, showToast }) {
                             className="bg-white border border-blue-300 rounded-lg px-2 py-1 text-sm font-medium text-black outline-none w-full max-w-xs"
                           />
                         ) : (
-                          <p className="text-blue-600 font-semibold text-sm truncate flex items-center gap-1.5">
+                          <p className="text-blue-600 font-bold text-base truncate flex items-center gap-1.5">
                             {d.label}
                             {d.exercises.some((e) => isExerciseStale(e, phase?.createdAt)) && (
                               <span

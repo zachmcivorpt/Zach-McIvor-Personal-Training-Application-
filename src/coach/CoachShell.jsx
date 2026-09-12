@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
-import { LayoutDashboard, Users, ClipboardList, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy } from "lucide-react";
+import { LayoutDashboard, Users, ClipboardList, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
 import CoachPrograms from "./CoachPrograms";
@@ -35,6 +35,7 @@ function timeAgo(ts) {
 
 function NotificationIcon({ type }) {
   if (type === "preference_update") return <SlidersHorizontal size={15} className="text-blue-500" />;
+  if (type === "workout_request") return <Dumbbell size={15} className="text-blue-500" />;
   return <Bell size={15} className="text-blue-500" />;
 }
 
