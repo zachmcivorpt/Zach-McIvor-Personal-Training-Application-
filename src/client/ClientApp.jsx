@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Home as HomeIcon,
@@ -56,6 +56,8 @@ import {
   CheckCircle2,
   GripVertical,
   Zap,
+  Upload,
+  Download,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -372,6 +374,20 @@ function sectionedExercises(list) {
 }
 
 /* ============================================================================
+   THEME — the coach can flip the client app between dark and light from
+   Design Settings (settings/appDesign.clientDarkMode). Every themed
+   component below reads it via useClientDark() rather than a prop, since
+   plumbing one boolean through this many nested components would mean
+   touching every function signature; a context avoids that while still
+   updating instantly everywhere the moment the coach flips the switch.
+============================================================================ */
+
+export const ClientThemeContext = createContext(true);
+export function useClientDark() {
+  return useContext(ClientThemeContext);
+}
+
+/* ============================================================================
    HOME
 ============================================================================ */
 
@@ -384,40 +400,67 @@ function BrandBar({ dark = false }) {
 }
 
 function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
+  const dark = useClientDark();
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
     <div className="flex items-center justify-between px-4 pt-6 pb-2">
       <div>
-        <p className="text-white text-xl font-semibold tracking-tight">
+        <p className={`text-xl font-semibold tracking-tight ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
         </p>
-        <p className="text-white/40 text-sm mt-0.5">{dateStr}</p>
+        <p className={`text-sm mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>{dateStr}</p>
       </div>
       <div className="flex items-center gap-2.5">
-        <button onClick={onOpenNotifications} className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center relative active:scale-95 transition-transform">
-          <Bell size={17} className="text-white/80" />
+        <button
+          onClick={onOpenNotifications}
+          className={`w-10 h-10 rounded-full flex items-center justify-center relative active:scale-95 transition-transform ${
+            dark ? "bg-white/8" : "bg-black/8"
+          }`}
+        >
+          <Bell size={17} className={dark ? "text-white/80" : "text-black/80"} />
           {notifCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
+            <span
+              className={`absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                dark ? "bg-white text-black" : "bg-black text-white"
+              }`}
+            >
               {notifCount}
             </span>
           )}
         </button>
-        <Avatar name={user.name} url={user.avatarUrl} size={40} onClick={onAvatarClick} dark />
+        <Avatar name={user.name} url={user.avatarUrl} size={40} onClick={onAvatarClick} dark={dark} />
       </div>
     </div>
   );
 }
 
-function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById, dbReady = true }) {
+function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById, dbReady = true, fullWidth = false }) {
+  const dark = useClientDark();
+  const outerMargin = fullWidth ? "" : "mx-4";
+  const outerRadius = fullWidth ? "rounded-none" : "rounded-2xl";
+  const cardBg = dark ? "#141414" : "#F7F7F8";
+  const border = dark ? "border-white/8" : "border-black/8";
+  const muted20 = dark ? "text-white/20" : "text-black/20";
+  const muted30 = dark ? "text-white/30" : "text-black/30";
+  const muted35 = dark ? "text-white/35" : "text-black/35";
+  const muted40 = dark ? "text-white/40" : "text-black/40";
+  const muted45 = dark ? "text-white/45" : "text-black/45";
+  const muted70 = dark ? "text-white/70" : "text-black/70";
+  const primaryText = dark ? "text-white" : "text-black";
+  const trackClass = dark ? "bg-white/10" : "bg-black/10";
+  const ctaClass = dark ? "bg-white text-black" : "bg-black text-white";
+  const ctaFill = dark ? "black" : "white";
+  const viewBorder = dark ? "border-white/12 bg-white/5" : "border-black/12 bg-black/5";
+
   if (!todaySession) {
     return (
-      <div className="mx-4 rounded-2xl p-8 border border-white/8 text-center" style={{ backgroundColor: "#141414" }}>
-        <Dumbbell size={22} className="text-white/20 mx-auto mb-3" />
-        <p className="text-white/70 font-medium text-sm">{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
+      <div className={`${outerMargin} ${outerRadius} p-8 ${border} border text-center`} style={{ backgroundColor: cardBg }}>
+        <Dumbbell size={22} className={`${muted20} mx-auto mb-3`} />
+        <p className={`${muted70} font-medium text-sm`}>{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
         {dbReady && (
-          <p className="text-white/30 text-xs mt-1">{isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}</p>
+          <p className={`${muted30} text-xs mt-1`}>{isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}</p>
         )}
       </div>
     );
@@ -430,28 +473,28 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S FOCUS" : isPastDate ? "MISSED" : "SCHEDULED";
 
   return (
-    <div className="mx-4 rounded-2xl p-5 border border-white/8" style={{ backgroundColor: "#141414" }}>
+    <div className={`${outerMargin} ${outerRadius} p-5 ${border} border`} style={{ backgroundColor: cardBg }}>
       <div className="flex items-center justify-between mb-2.5">
-        <span className="text-white/35 text-[11px] font-bold tracking-[0.14em]">{pillLabel}</span>
-        {completedOnDate && !started && <Check size={15} className="text-white/40" />}
+        <span className={`${muted35} text-[11px] font-bold tracking-[0.14em]`}>{pillLabel}</span>
+        {completedOnDate && !started && <Check size={15} className={muted40} />}
       </div>
-      <h2 className="text-white text-xl font-bold tracking-tight">{todaySession.label}</h2>
+      <h2 className={`${primaryText} text-xl font-bold tracking-tight`}>{todaySession.label}</h2>
       {(todaySession.muscleGroups || []).length > 0 && (
-        <p className="text-white/45 text-[13px] mt-1">{todaySession.muscleGroups.join(" & ")} Focus</p>
+        <p className={`${muted45} text-[13px] mt-1`}>{todaySession.muscleGroups.join(" & ")} Focus</p>
       )}
-      <p className="text-white/30 text-[12px] mt-2.5 tracking-wide">
+      <p className={`${muted30} text-[12px] mt-2.5 tracking-wide`}>
         {exCount} EXERCISE{exCount === 1 ? "" : "S"} · ~{estMin} MIN
       </p>
 
       {started && (
         <div className="mt-4">
-          <div className="flex justify-between text-xs text-white/35 mb-1.5">
+          <div className={`flex justify-between text-xs ${muted35} mb-1.5`}>
             <span>Progress</span>
             <span>
               {completedSets}/{totalSets} sets
             </span>
           </div>
-          <ProgressBar value={completedSets} max={totalSets} color="#FFFFFF" trackClassName="bg-white/10" />
+          <ProgressBar value={completedSets} max={totalSets} color={dark ? "#FFFFFF" : "#0A0A0B"} trackClassName={trackClass} />
         </div>
       )}
 
@@ -459,15 +502,15 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
         {(!completedOnDate || started) && (
           <button
             onClick={onStart}
-            className="flex-1 bg-white text-black font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className={`flex-1 font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${ctaClass}`}
           >
-            <Play size={15} fill="black" />
+            <Play size={15} fill={ctaFill} />
             {started ? "RESUME WORKOUT" : "START WORKOUT"}
           </button>
         )}
         <button
           onClick={onView}
-          className={`text-white/70 text-sm font-semibold px-4 rounded-xl border border-white/12 bg-white/5 active:scale-[0.98] transition-transform ${
+          className={`${muted70} text-sm font-semibold px-4 rounded-xl border ${viewBorder} active:scale-[0.98] transition-transform ${
             completedOnDate && !started ? "flex-1 py-3.5" : ""
           }`}
         >
@@ -479,6 +522,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
 }
 
 function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isToday = true }) {
+  const dark = useClientDark();
   const logged = nutrition || DEFAULT_NUTRITION;
   const items = [
     { label: "CALORIES", value: Math.round(logged.calories), target: targets.calories, unit: "" },
@@ -486,55 +530,64 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
     { label: "CARBS", value: round1(logged.carbs), target: targets.carbs, unit: "g" },
     { label: "FAT", value: round1(logged.fat), target: targets.fat, unit: "g" },
   ];
+  const border = dark ? "border-white/8" : "border-black/8";
+  const primaryText = dark ? "text-white" : "text-black";
+  const muted25 = dark ? "text-white/25" : "text-black/25";
+  const muted30 = dark ? "text-white/30" : "text-black/30";
+  const muted35 = dark ? "text-white/35" : "text-black/35";
+  const muted50 = dark ? "text-white/50" : "text-black/50";
+  const muted70 = dark ? "text-white/70" : "text-black/70";
+  const trackClass = dark ? "bg-white/8" : "bg-black/8";
+  const actionBtn = dark ? "bg-white/8 text-white" : "bg-black/8 text-black";
   return (
-    <div className="mx-4 rounded-2xl p-5 border border-white/8" style={{ backgroundColor: "#141414" }}>
+    <div className={`mx-4 rounded-2xl p-5 ${border} border`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white font-semibold">{isToday ? "Nutrition Today" : "Nutrition"}</h3>
-        <Utensils size={15} className="text-white/25" />
+        <h3 className={`${primaryText} font-semibold`}>{isToday ? "Nutrition Today" : "Nutrition"}</h3>
+        <Utensils size={15} className={muted25} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         {items.map((it) => (
           <div key={it.label}>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-white/35 tracking-wide">{it.label}</span>
+              <span className={`${muted35} tracking-wide`}>{it.label}</span>
             </div>
-            <p className="text-white text-sm font-semibold mb-1.5">
+            <p className={`${primaryText} text-sm font-semibold mb-1.5`}>
               {it.value}
-              {it.unit} <span className="text-white/30 font-normal">/ {it.target}{it.unit}</span>
+              {it.unit} <span className={`${muted30} font-normal`}>/ {it.target}{it.unit}</span>
             </p>
             <ProgressBar
               value={it.value}
               max={it.target}
               height={6}
               color={it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE}
-              trackClassName="bg-white/8"
+              trackClassName={trackClass}
             />
           </div>
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t border-white/8 flex items-center gap-3">
-        <WaterCup value={logged.water} max={targets.water} size={36} dark />
+      <div className={`mt-4 pt-4 border-t ${border} flex items-center gap-3`}>
+        <WaterCup value={logged.water} max={targets.water} size={36} dark={dark} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {logged.water >= targets.water ? (
-              <Droplets size={16} className="text-white shrink-0" />
+              <Droplets size={16} className={`${primaryText} shrink-0`} />
             ) : (
-              <GlassWater size={16} className="text-white/50 shrink-0" />
+              <GlassWater size={16} className={`${muted50} shrink-0`} />
             )}
-            <span className="text-white/70 text-sm">
-              Water: <span className="font-semibold text-white">{logged.water}L</span> / {targets.water}L
+            <span className={`${muted70} text-sm`}>
+              Water: <span className={`font-semibold ${primaryText}`}>{logged.water}L</span> / {targets.water}L
             </span>
           </div>
         </div>
       </div>
       {isToday && (
         <div className="flex gap-2 mt-4">
-          <button onClick={onLogFood} className="flex-1 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform">
+          <button onClick={onLogFood} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
             + LOG FOOD
           </button>
           <button
             onClick={onLogWater}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl active:scale-90 transition-transform duration-150"
+            className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold py-3 rounded-xl active:scale-90 transition-transform duration-150 ${actionBtn}`}
           >
             <GlassWater size={15} /> + LOG WATER
           </button>
@@ -551,21 +604,22 @@ function dateForOffset(offset) {
 }
 
 function DayHeader({ selectedOffset, onJumpToday }) {
-  const label = dateForOffset(selectedOffset).toLocaleDateString(undefined, { month: "long", day: "numeric" });
-  const isToday = selectedOffset === 0;
+  const dark = useClientDark();
+  if (selectedOffset === 0) return null;
   return (
-    <div className="flex items-center justify-between px-4 pt-1 pb-1">
-      <p className="text-white text-lg font-bold">{label}</p>
-      {!isToday && (
-        <button onClick={onJumpToday} className="text-white/50 text-sm font-semibold underline underline-offset-2">
-          Jump to today
-        </button>
-      )}
+    <div className="flex items-center justify-end px-4 pt-1 pb-1">
+      <button
+        onClick={onJumpToday}
+        className={`text-sm font-semibold underline underline-offset-2 ${dark ? "text-white/50" : "text-black/50"}`}
+      >
+        Jump to today
+      </button>
     </div>
   );
 }
 
 function DateStrip({ selectedOffset, onSelect }) {
+  const dark = useClientDark();
   const offsets = useMemo(() => {
     const out = [];
     for (let i = -7; i <= 13; i++) out.push(i);
@@ -592,14 +646,36 @@ function DateStrip({ selectedOffset, onSelect }) {
               data-offset={offset}
               onClick={() => onSelect(offset)}
               className={`shrink-0 w-[calc((100%-48px)/7)] rounded-xl py-2 flex flex-col items-center gap-0.5 border transition-colors ${
-                isSelected ? "bg-white border-white" : "bg-white/[0.04] border-white/8"
+                isSelected
+                  ? dark
+                    ? "bg-white border-white"
+                    : "bg-black border-black"
+                  : dark
+                  ? "bg-white/[0.04] border-white/8"
+                  : "bg-black/[0.04] border-black/8"
               }`}
             >
-              <span className={`text-sm font-bold leading-none ${isSelected ? "text-black" : "text-white"}`}>{d.getDate()}</span>
-              <span className={`text-[9px] font-semibold tracking-wide ${isSelected ? "text-black/50" : "text-white/35"}`}>
+              <span
+                className={`text-sm font-bold leading-none ${
+                  isSelected ? (dark ? "text-black" : "text-white") : dark ? "text-white" : "text-black"
+                }`}
+              >
+                {d.getDate()}
+              </span>
+              <span
+                className={`text-[9px] font-semibold tracking-wide ${
+                  isSelected ? (dark ? "text-black/50" : "text-white/50") : dark ? "text-white/35" : "text-black/35"
+                }`}
+              >
                 {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
-              {isToday && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-black/40" : "bg-white/50"}`} />}
+              {isToday && (
+                <span
+                  className={`w-1 h-1 rounded-full ${
+                    isSelected ? (dark ? "bg-black/40" : "bg-white/40") : dark ? "bg-white/50" : "bg-black/50"
+                  }`}
+                />
+              )}
             </button>
           );
         })}
@@ -622,6 +698,7 @@ function habitIcon(label) {
 }
 
 function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, showToast }) {
+  const dark = useClientDark();
   // Optimistic overrides, keyed by habit id, for taps whose Firestore write
   // hasn't confirmed yet — without this the checkbox only ever changes once
   // the realtime listener echoes the write back, so a slow connection (or a
@@ -648,17 +725,34 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
     }
   }
 
+  const doneRowBg = dark ? "bg-white/[0.06]" : "bg-black/[0.06]";
+  const notDoneRowBg = dark ? "bg-white/[0.03]" : "bg-black/[0.03]";
+  const doneIconBg = dark ? "bg-white" : "bg-black";
+  const notDoneIconBg = dark ? "bg-white/8" : "bg-black/8";
+  const doneIconColor = dark ? "text-black" : "text-white";
+  const notDoneIconColor = dark ? "text-white/45" : "text-black/45";
+  const doneLabelColor = dark ? "text-white/35" : "text-black/35";
+  const notDoneLabelColor = dark ? "text-white/85" : "text-black/85";
+  const doneCheckBg = dark ? "bg-white border-white" : "bg-black border-black";
+  const notDoneCheckBorder = dark ? "border-white/20" : "border-black/20";
+  const checkIconColor = dark ? "text-black" : "text-white";
   return (
-    <div className="mx-4 rounded-2xl p-5 border border-white/8" style={{ backgroundColor: "#141414" }}>
+    <div className={`mx-4 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
       <div className="flex items-center justify-between mb-0.5">
-        <h3 className="text-white font-semibold">Daily Execution</h3>
-        <span className="text-white/35 text-xs font-medium tracking-wide">
+        <h3 className={`font-semibold ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
+        <span className={`text-xs font-medium tracking-wide ${dark ? "text-white/35" : "text-black/35"}`}>
           {doneCount}/{habits.length} COMPLETE
         </span>
       </div>
-      <p className="text-white/35 text-xs mb-3">The small actions that drive your performance.</p>
+      <p className={`text-xs mb-3 ${dark ? "text-white/35" : "text-black/35"}`}>The small actions that drive your performance.</p>
       <div className="mb-3">
-        <ProgressBar value={doneCount} max={habits.length} height={6} color="#FFFFFF" trackClassName="bg-white/10" />
+        <ProgressBar
+          value={doneCount}
+          max={habits.length}
+          height={6}
+          color={dark ? "#FFFFFF" : "#0A0A0B"}
+          trackClassName={dark ? "bg-white/10" : "bg-black/10"}
+        />
       </div>
       <div className="space-y-1.5">
         {habits.map((h) => {
@@ -670,23 +764,23 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
               key={h.id}
               onClick={() => (interactive ? handleToggle(h) : showToast?.("Jump to today to update habits"))}
               className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors ${
-                done ? "bg-white/[0.06]" : "bg-white/[0.03]"
+                done ? doneRowBg : notDoneRowBg
               } ${interactive ? "active:scale-[0.97]" : "opacity-60"} transition-transform duration-150`}
             >
               <span
                 className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? "bg-white scale-100" : "bg-white/8 scale-95"
+                  done ? `${doneIconBg} scale-100` : `${notDoneIconBg} scale-95`
                 }`}
               >
-                <Icon size={16} className={done ? "text-black" : "text-white/45"} strokeWidth={2.2} />
+                <Icon size={16} className={done ? doneIconColor : notDoneIconColor} strokeWidth={2.2} />
               </span>
-              <span className={`text-sm flex-1 transition-colors ${done ? "text-white/35 line-through" : "text-white/85"}`}>{h.label}</span>
+              <span className={`text-sm flex-1 transition-colors ${done ? `${doneLabelColor} line-through` : notDoneLabelColor}`}>{h.label}</span>
               <span
                 className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? "bg-white border-white scale-100" : "border-white/20 scale-90"
+                  done ? `${doneCheckBg} scale-100` : `${notDoneCheckBorder} scale-90`
                 }`}
               >
-                {done && <Check size={12} className="text-black" strokeWidth={3.5} />}
+                {done && <Check size={12} className={checkIconColor} strokeWidth={3.5} />}
               </span>
             </button>
           );
@@ -697,6 +791,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
 }
 
 function ActiveChallengesCard({ challenges, userId }) {
+  const dark = useClientDark();
   const todayKey = localDateKey();
   const active = challenges.filter((c) => challengeStatus(c, todayKey) === "active");
   if (active.length === 0) return null;
@@ -707,19 +802,23 @@ function ActiveChallengesCard({ challenges, userId }) {
         const snapshot = c.leaderboardSnapshot || [];
         const mine = snapshot.find((r) => r.clientId === userId);
         return (
-          <div key={c.id} className="rounded-2xl p-4 border border-white/8" style={{ backgroundColor: "#141414" }}>
+          <div
+            key={c.id}
+            className={`rounded-2xl p-4 border ${dark ? "border-white/8" : "border-black/8"}`}
+            style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+          >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center shrink-0">
-                <Trophy size={17} className="text-white" />
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${dark ? "bg-white/8" : "bg-black/8"}`}>
+                <Trophy size={17} className={dark ? "text-white" : "text-black"} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold text-sm truncate">{c.name}</p>
+                <p className={`font-semibold text-sm truncate ${dark ? "text-white" : "text-black"}`}>{c.name}</p>
                 {mine ? (
-                  <p className="text-white/45 text-xs mt-0.5">
+                  <p className={`text-xs mt-0.5 ${dark ? "text-white/45" : "text-black/45"}`}>
                     You're rank #{mine.rank} of {snapshot.length} · {mine.value}
                   </p>
                 ) : (
-                  <p className="text-white/30 text-xs mt-0.5">Leaderboard updates when your coach checks in</p>
+                  <p className={`text-xs mt-0.5 ${dark ? "text-white/30" : "text-black/30"}`}>Leaderboard updates when your coach checks in</p>
                 )}
               </div>
               {mine && mine.rank <= 3 && (
@@ -789,6 +888,7 @@ function CoachChatBubble({ coachUser, unreadCount, onOpen }) {
 }
 
 function NotificationsPromptCard({ userId, showToast }) {
+  const dark = useClientDark();
   const [supported, setSupported] = useState(false);
   const [dismissed, setDismissed] = useState(() => localStorage.getItem("pushPromptDismissed") === "1");
   const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
@@ -820,9 +920,14 @@ function NotificationsPromptCard({ userId, showToast }) {
   }
 
   return (
-    <div className="mx-4 flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/8" style={{ backgroundColor: "#141414" }}>
+    <div
+      className={`mx-4 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
+      style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+    >
       <BellRing size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
-      <p className="flex-1 text-white/65 text-[13px] font-medium">Turn on notifications so you never miss a message from your coach</p>
+      <p className={`flex-1 text-[13px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>
+        Turn on notifications so you never miss a message from your coach
+      </p>
       <button
         onClick={enable}
         disabled={busy}
@@ -831,7 +936,11 @@ function NotificationsPromptCard({ userId, showToast }) {
       >
         {busy ? "…" : "ENABLE"}
       </button>
-      <button onClick={dismiss} aria-label="Dismiss" className="shrink-0 text-white/25 hover:text-white/50">
+      <button
+        onClick={dismiss}
+        aria-label="Dismiss"
+        className={`shrink-0 ${dark ? "text-white/25 hover:text-white/50" : "text-black/25 hover:text-black/50"}`}
+      >
         <X size={16} />
       </button>
     </div>
@@ -842,17 +951,22 @@ function NotificationsPromptCard({ userId, showToast }) {
 // sessions (entries: [], cardio: {...}) previously only ever surfaced
 // buried in the Workouts tab's history list.
 function CardioLogCard({ logs }) {
+  const dark = useClientDark();
   if (!logs || logs.length === 0) return null;
   return (
     <div className="mx-4 space-y-2">
       {logs.map((log) => (
-        <div key={log.id} className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/8" style={{ backgroundColor: "#141414" }}>
+        <div
+          key={log.id}
+          className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
+          style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+        >
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.15)" }}>
             <Footprints size={17} style={{ color: MEASURE_BLUE }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white/85 text-sm font-semibold truncate">{log.cardio.activityLabel}</p>
-            <p className="text-white/40 text-xs mt-0.5">
+            <p className={`text-sm font-semibold truncate ${dark ? "text-white/85" : "text-black/85"}`}>{log.cardio.activityLabel}</p>
+            <p className={`text-xs mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>
               {[
                 log.cardio.durationMin ? `${log.cardio.durationMin} min` : null,
                 log.cardio.distanceKm ? `${log.cardio.distanceKm} km` : null,
@@ -899,6 +1013,7 @@ function HomeScreen({
   cardioLogs,
   dbReady,
 }) {
+  const dark = useClientDark();
   return (
     <div className="pb-28 space-y-5">
       <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
@@ -906,9 +1021,12 @@ function HomeScreen({
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
-        <div className="mx-4 flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/8" style={{ backgroundColor: "#141414" }}>
+        <div
+          className={`mx-4 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
+          style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+        >
           <Scale size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
-          <p className="flex-1 text-white/65 text-[13px] font-medium">Body stats check-in due today</p>
+          <p className={`flex-1 text-[13px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>Body stats check-in due today</p>
           <button onClick={onLogWeight} className="text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0" style={{ backgroundColor: MEASURE_BLUE }}>
             LOG WEIGHT
           </button>
@@ -944,6 +1062,7 @@ function HomeScreen({
 ============================================================================ */
 
 function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClose }) {
+  const dark = useClientDark();
   const { db, currentUser, addWorkoutComment } = useApp();
   const [commentDraft, setCommentDraft] = useState("");
   const comments = session.workoutLogId
@@ -978,22 +1097,22 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-black flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5">
-          <button onClick={onClose} className="text-white/60">
+      <div className={dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"}>
+        <div className={dark ? "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+          <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
             <X size={22} />
           </button>
-          <span className="text-white/70 text-sm font-semibold">{session.weekLabel || "Workout Preview"}</span>
-          <ClipboardList size={19} className="text-white/25" />
+          <span className={dark ? "text-white/70 text-sm font-semibold" : "text-black/70 text-sm font-semibold"}>{session.weekLabel || "Workout Preview"}</span>
+          <ClipboardList size={19} className={dark ? "text-white/25" : "text-black/25"} />
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-28">
           <div className="flex items-center gap-2.5 mt-4">
-            <span className="w-9 h-9 rounded-full border-2 border-white/15 shrink-0" />
-            <h1 className="text-white text-2xl font-bold truncate">{session.label}</h1>
+            <span className={dark ? "w-9 h-9 rounded-full border-2 border-white/15 shrink-0" : "w-9 h-9 rounded-full border-2 border-black/15 shrink-0"} />
+            <h1 className={dark ? "text-white text-2xl font-bold truncate" : "text-black text-2xl font-bold truncate"}>{session.label}</h1>
           </div>
 
-          <div className="flex items-center gap-5 mt-4 text-white/50 text-[13px] font-medium flex-wrap">
+          <div className={dark ? "flex items-center gap-5 mt-4 text-white/50 text-[13px] font-medium flex-wrap" : "flex items-center gap-5 mt-4 text-black/50 text-[13px] font-medium flex-wrap"}>
             <span className="flex items-center gap-1.5">
               <Target size={15} /> Regular
             </span>
@@ -1007,14 +1126,14 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
 
           {equipment.length > 0 && (
             <div className="mt-5">
-              <p className="text-white/35 text-xs font-semibold tracking-wide mb-2">EQUIPMENT</p>
+              <p className={dark ? "text-white/35 text-xs font-semibold tracking-wide mb-2" : "text-black/35 text-xs font-semibold tracking-wide mb-2"}>EQUIPMENT</p>
               <div className="flex gap-2.5 flex-wrap">
                 {equipment.map((eq) => (
                   <div key={eq} className="flex flex-col items-center gap-1.5 w-16">
-                    <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center">
-                      <Dumbbell size={20} className="text-white/40" />
+                    <div className={dark ? "w-14 h-14 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center" : "w-14 h-14 rounded-2xl bg-black/5 border border-black/5 flex items-center justify-center"}>
+                      <Dumbbell size={20} className={dark ? "text-white/40" : "text-black/40"} />
                     </div>
-                    <span className="text-white/45 text-[10px] text-center leading-tight">{eq}</span>
+                    <span className={dark ? "text-white/45 text-[10px] text-center leading-tight" : "text-black/45 text-[10px] text-center leading-tight"}>{eq}</span>
                   </div>
                 ))}
               </div>
@@ -1023,17 +1142,17 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
 
           {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
             <div key={group.key} className="mt-5">
-              {group.showHeader && <p className="text-white/40 text-xs font-bold tracking-wide mb-1">{group.label.toUpperCase()}</p>}
-              <div className="border-t border-white/5">
+              {group.showHeader && <p className={dark ? "text-white/40 text-xs font-bold tracking-wide mb-1" : "text-black/40 text-xs font-bold tracking-wide mb-1"}>{group.label.toUpperCase()}</p>}
+              <div className={dark ? "border-t border-white/5" : "border-t border-black/5"}>
                 {group.items.map(({ exMeta: e, i }) => {
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
                   return (
-                    <div key={i} className="flex items-center gap-3 py-3.5 border-b border-white/5">
+                    <div key={i} className={dark ? "flex items-center gap-3 py-3.5 border-b border-white/5" : "flex items-center gap-3 py-3.5 border-b border-black/5"}>
                       <ExerciseThumb dark exercise={ex} size={56} rounded="rounded-lg" className="shadow-sm" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-white font-semibold text-[15px] truncate">{ex.name}</p>
+                          <p className={dark ? "text-white font-semibold text-[15px] truncate" : "text-black font-semibold text-[15px] truncate"}>{ex.name}</p>
                           {e.dropSet && (
                             <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                               DROPSET
@@ -1044,7 +1163,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                           e.actualSets.length > 0 ? (
                             <div className="mt-1 space-y-0.5">
                               {e.actualSets.map((s, si) => (
-                                <p key={si} className="text-white/60 text-[13px]">
+                                <p key={si} className={dark ? "text-white/60 text-[13px]" : "text-black/60 text-[13px]"}>
                                   Set {si + 1} — {s.reps}
                                   {s.weight > 0 ? ` × ${s.weight} kg` : ""}
                                   {s.isPR && (
@@ -1056,17 +1175,17 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                               ))}
                             </div>
                           ) : (
-                            <p className="text-white/35 text-[13px] mt-0.5 italic">No sets logged</p>
+                            <p className={dark ? "text-white/35 text-[13px] mt-0.5 italic" : "text-black/35 text-[13px] mt-0.5 italic"}>No sets logged</p>
                           )
                         ) : (
-                          <p className="text-white/45 text-[13px] mt-0.5">
+                          <p className={dark ? "text-white/45 text-[13px] mt-0.5" : "text-black/45 text-[13px] mt-0.5"}>
                             {e.targetSets} sets × {formatTargetReps(e)}, {formatRest(e.restSeconds ?? 90)} rest
                             between sets
                           </p>
                         )}
-                        {e.note && <p className="text-white/40 text-[12px] mt-1 italic">"{e.note}"</p>}
+                        {e.note && <p className={dark ? "text-white/40 text-[12px] mt-1 italic" : "text-black/40 text-[12px] mt-1 italic"}>"{e.note}"</p>}
                       </div>
-                      {e.notes && <ClipboardList size={16} className="text-white/40 shrink-0" />}
+                      {e.notes && <ClipboardList size={16} className={dark ? "text-white/40 shrink-0" : "text-black/40 shrink-0"} />}
                     </div>
                   );
                 })}
@@ -1076,26 +1195,26 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
 
           {session.workoutLogId && (
             <div className="mt-6">
-              <p className="text-white/35 text-xs font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+              <p className={dark ? "text-white/35 text-xs font-semibold tracking-wide mb-2 flex items-center gap-1.5" : "text-black/35 text-xs font-semibold tracking-wide mb-2 flex items-center gap-1.5"}>
                 <MessageCircle size={13} /> COMMENTS
               </p>
               <div className="space-y-2">
-                {commentTimeline.length === 0 && <p className="text-white/30 text-[13px]">No comments on this workout yet.</p>}
+                {commentTimeline.length === 0 && <p className={dark ? "text-white/30 text-[13px]" : "text-black/30 text-[13px]"}>No comments on this workout yet.</p>}
                 {commentTimeline.map((item) =>
                   item.system ? (
-                    <div key={item.id} className="flex items-start gap-2 text-white/50 text-[12px]">
+                    <div key={item.id} className={dark ? "flex items-start gap-2 text-white/50 text-[12px]" : "flex items-start gap-2 text-black/50 text-[12px]"}>
                       <Trophy size={13} className="shrink-0 mt-0.5" style={{ color: GOAL_GREEN }} />
                       <p className="leading-snug">{item.text}</p>
                     </div>
                   ) : (
-                    <div key={item.id} className="bg-white/[0.03] border border-white/5 rounded-lg px-3 py-2">
-                      <p className="text-white/60 text-[11px] font-semibold">
+                    <div key={item.id} className={dark ? "bg-white/[0.03] border border-white/5 rounded-lg px-3 py-2" : "bg-black/[0.03] border border-black/5 rounded-lg px-3 py-2"}>
+                      <p className={dark ? "text-white/60 text-[11px] font-semibold" : "text-black/60 text-[11px] font-semibold"}>
                         {item.authorName || (item.from === "coach" ? "Coach" : "You")}
-                        <span className="text-white/30 font-normal ml-1.5">
+                        <span className={dark ? "text-white/30 font-normal ml-1.5" : "text-black/30 font-normal ml-1.5"}>
                           {new Date(item.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                         </span>
                       </p>
-                      <p className="text-white text-[13px] mt-0.5 whitespace-pre-wrap">{item.text}</p>
+                      <p className={dark ? "text-white text-[13px] mt-0.5 whitespace-pre-wrap" : "text-black text-[13px] mt-0.5 whitespace-pre-wrap"}>{item.text}</p>
                     </div>
                   )
                 )}
@@ -1119,7 +1238,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                     setCommentDraft("");
                   }}
                   disabled={!commentDraft.trim()}
-                  className="shrink-0 w-11 h-11 rounded-xl bg-white text-black flex items-center justify-center disabled:opacity-30"
+                  className={dark ? "shrink-0 w-11 h-11 rounded-xl bg-white text-black flex items-center justify-center disabled:opacity-30" : "shrink-0 w-11 h-11 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-30"}
                 >
                   <Send size={16} />
                 </button>
@@ -1132,7 +1251,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
           <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
             <button
               onClick={onStart}
-              className="bg-white text-black font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"
+              className={dark ? "bg-white text-black font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform" : "bg-black text-white font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"}
             >
               <Play size={16} fill="white" />
               Start Now
@@ -1159,21 +1278,22 @@ const PRE_WORKOUT_REMINDERS = [
 ];
 
 function PreWorkoutReadySheet({ open, onClose, onReady }) {
+  const dark = useClientDark();
   return (
     <BottomSheet dark open={open} onClose={onClose} title="Ready to train?">
       <div className="space-y-3">
         {PRE_WORKOUT_REMINDERS.map((r, i) => (
-          <div key={i} className="flex items-start gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-3.5 py-3">
-            <r.icon size={18} className="text-white/50 shrink-0 mt-0.5" />
+          <div key={i} className={dark ? "flex items-start gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-3.5 py-3" : "flex items-start gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3"}>
+            <r.icon size={18} className={dark ? "text-white/50 shrink-0 mt-0.5" : "text-black/50 shrink-0 mt-0.5"} />
             <div>
-              <p className="text-white text-sm font-semibold">{r.title}</p>
-              <p className="text-white/45 text-[13px] mt-0.5 leading-snug">{r.body}</p>
+              <p className={dark ? "text-white text-sm font-semibold" : "text-black text-sm font-semibold"}>{r.title}</p>
+              <p className={dark ? "text-white/45 text-[13px] mt-0.5 leading-snug" : "text-black/45 text-[13px] mt-0.5 leading-snug"}>{r.body}</p>
             </div>
           </div>
         ))}
         <button
           onClick={onReady}
-          className="w-full bg-white text-black font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-1"
+          className={dark ? "w-full bg-white text-black font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-1" : "w-full bg-black text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-1"}
         >
           <Play size={16} fill="white" /> LET'S GO
         </button>
@@ -1183,23 +1303,24 @@ function PreWorkoutReadySheet({ open, onClose, onReady }) {
 }
 
 function RestBar({ restTime, restTotal, onSkip, onAdd15 }) {
+  const dark = useClientDark();
   const pct = restTotal > 0 ? ((restTotal - restTime) / restTotal) * 100 : 0;
   return (
     <div className="fixed top-0 left-0 right-0 z-[95] flex justify-center pt-safe animate-[slideDown_0.3s_ease-out]">
-      <div className="w-full max-w-md bg-white text-black px-5 py-3.5 flex items-center gap-3 shadow-2xl">
+      <div className={dark ? "w-full max-w-md bg-white text-black px-5 py-3.5 flex items-center gap-3 shadow-2xl" : "w-full max-w-md bg-black text-white px-5 py-3.5 flex items-center gap-3 shadow-2xl"}>
         <div className="flex-1 min-w-0">
-          <p className="text-black/50 text-[11px] tracking-wide truncate">RELAX AND HAVE A DRINK</p>
-          <p className="text-black text-xl font-bold tabular-nums">
+          <p className={dark ? "text-black/50 text-[11px] tracking-wide truncate" : "text-white/50 text-[11px] tracking-wide truncate"}>RELAX AND HAVE A DRINK</p>
+          <p className={dark ? "text-black text-xl font-bold tabular-nums" : "text-white text-xl font-bold tabular-nums"}>
             {Math.floor(Math.max(restTime, 0) / 60)}:{String(Math.max(restTime, 0) % 60).padStart(2, "0")}
           </p>
-          <div className="h-1 bg-black/15 rounded-full mt-1.5 overflow-hidden">
-            <div className="h-full bg-black rounded-full transition-all" style={{ width: `${pct}%` }} />
+          <div className={dark ? "h-1 bg-black/15 rounded-full mt-1.5 overflow-hidden" : "h-1 bg-white/15 rounded-full mt-1.5 overflow-hidden"}>
+            <div className={dark ? "h-full bg-black rounded-full transition-all" : "h-full bg-white rounded-full transition-all"} style={{ width: `${pct}%` }} />
           </div>
         </div>
-        <button onClick={onAdd15} className="bg-black/12 text-black text-xs font-semibold px-3 py-2.5 rounded-xl shrink-0">
+        <button onClick={onAdd15} className={dark ? "bg-black/12 text-black text-xs font-semibold px-3 py-2.5 rounded-xl shrink-0" : "bg-white/12 text-white text-xs font-semibold px-3 py-2.5 rounded-xl shrink-0"}>
           +15s
         </button>
-        <button onClick={onSkip} className="bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl shrink-0">
+        <button onClick={onSkip} className={dark ? "bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl shrink-0" : "bg-white text-black text-xs font-bold px-3 py-2.5 rounded-xl shrink-0"}>
           SKIP
         </button>
       </div>
@@ -1212,6 +1333,7 @@ function RestBar({ restTime, restTotal, onSkip, onAdd15 }) {
 // video, instructions/cues, the client's personal best on it, and every
 // past logged session that included it.
 function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
+  const dark = useClientDark();
   const [videoOpen, setVideoOpen] = useState(false);
   const [notesExpanded, setNotesExpanded] = useState(false);
 
@@ -1249,12 +1371,12 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[115] bg-black flex flex-col overflow-y-auto">
+      <div className={dark ? "fixed inset-0 z-[115] bg-black flex flex-col overflow-y-auto" : "fixed inset-0 z-[115] bg-white flex flex-col overflow-y-auto"}>
         <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
-          <button onClick={onClose} className="text-white/60 -ml-1.5">
+          <button onClick={onClose} className={dark ? "text-white/60 -ml-1.5" : "text-black/60 -ml-1.5"}>
             <ChevronLeft size={24} />
           </button>
-          <ClipboardList size={19} className="text-white/25" />
+          <ClipboardList size={19} className={dark ? "text-white/25" : "text-black/25"} />
         </div>
 
         {parsed && (
@@ -1275,7 +1397,7 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
         )}
 
         <div className="px-5 py-5">
-          <h1 className="text-white text-2xl font-bold mb-3">{exercise.name}</h1>
+          <h1 className={dark ? "text-white text-2xl font-bold mb-3" : "text-black text-2xl font-bold mb-3"}>{exercise.name}</h1>
 
           {instructions.length > 0 && (
             <>
@@ -1306,12 +1428,12 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
         </div>
 
         {best && (
-          <div className="px-5 py-4 bg-white/[0.03] border-y border-white/8 flex items-center justify-between">
+          <div className={dark ? "px-5 py-4 bg-white/[0.03] border-y border-white/8 flex items-center justify-between" : "px-5 py-4 bg-black/[0.03] border-y border-black/8 flex items-center justify-between"}>
             <div>
-              <p className="text-white/40 text-xs tracking-wide">PERSONAL BEST TO BEAT</p>
-              <p className="text-white font-bold mt-0.5">{best.reps} rep max</p>
+              <p className={dark ? "text-white/40 text-xs tracking-wide" : "text-black/40 text-xs tracking-wide"}>PERSONAL BEST TO BEAT</p>
+              <p className={dark ? "text-white font-bold mt-0.5" : "text-black font-bold mt-0.5"}>{best.reps} rep max</p>
             </div>
-            <p className="text-white text-2xl font-bold">
+            <p className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>
               {best.weight}
               <span className="text-sm font-semibold">kg</span>
             </p>
@@ -1320,14 +1442,20 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 
         {e1rmHistory.length >= 2 && (
           <div className="px-5 pt-5">
-            <p className="text-white/40 text-xs font-semibold tracking-wide mb-3">PROGRESSION</p>
+            <p className={dark ? "text-white/40 text-xs font-semibold tracking-wide mb-3" : "text-black/40 text-xs font-semibold tracking-wide mb-3"}>PROGRESSION</p>
             <div style={{ height: 140 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={e1rmHistory}>
                   <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
                   <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
                   <Tooltip
-                    contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }}
+                    contentStyle={{
+                          background: dark ? "#1C1C1C" : "#FFFFFF",
+                          border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.1)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                          color: dark ? "#FFFFFF" : "#0A0A0B",
+                        }}
                     formatter={(v) => [`${v} kg`, "Est. 1RM"]}
                   />
                   <Line type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: MEASURE_BLUE }} />
@@ -1338,23 +1466,23 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
         )}
 
         <div className="px-5 py-5">
-          <p className="text-white/40 text-xs font-semibold tracking-wide mb-3">HISTORY</p>
+          <p className={dark ? "text-white/40 text-xs font-semibold tracking-wide mb-3" : "text-black/40 text-xs font-semibold tracking-wide mb-3"}>HISTORY</p>
           {history.length === 0 ? (
-            <p className="text-white/30 text-sm">No previous sessions logged for this exercise yet.</p>
+            <p className={dark ? "text-white/30 text-sm" : "text-black/30 text-sm"}>No previous sessions logged for this exercise yet.</p>
           ) : (
             <div className="space-y-5">
               {history.map((h, i) => (
                 <div key={i}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-white font-semibold text-sm">{h.dayLabel}</p>
-                    <p className="text-white/40 text-xs">
+                    <p className={dark ? "text-white font-semibold text-sm" : "text-black font-semibold text-sm"}>{h.dayLabel}</p>
+                    <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
                       {new Date(h.date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
                     </p>
                   </div>
                   {h.sets.map((s, si) => (
-                    <div key={si} className="flex items-center justify-between text-sm py-1.5 border-b border-white/5 last:border-0">
-                      <span className="text-white/50">Set {s.setNumber}</span>
-                      <span className="text-white font-medium">
+                    <div key={si} className={dark ? "flex items-center justify-between text-sm py-1.5 border-b border-white/5 last:border-0" : "flex items-center justify-between text-sm py-1.5 border-b border-black/5 last:border-0"}>
+                      <span className={dark ? "text-white/50" : "text-black/50"}>Set {s.setNumber}</span>
+                      <span className={dark ? "text-white font-medium" : "text-black font-medium"}>
                         {s.reps} x {s.weight} kg
                       </span>
                     </div>
@@ -1372,6 +1500,7 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 }
 
 function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, onNoteSave, swapInfo, onSwap, onStartRest, onOpenDetail }) {
+  const dark = useClientDark();
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [noteStatus, setNoteStatus] = useState("idle"); // idle | saving | saved
   const noteSaveTimeout = useRef(null);
@@ -1380,14 +1509,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const isLongNote = coachNote.length > 90;
 
   return (
-    <div className="pt-1 pb-5 px-1 border-b border-white/10 last:border-b-0">
+    <div className={dark ? "pt-1 pb-5 px-1 border-b border-white/10 last:border-b-0" : "pt-1 pb-5 px-1 border-b border-black/10 last:border-b-0"}>
       <div className="flex items-center gap-3">
         <ExerciseThumb dark exercise={exercise} size={56} rounded="rounded-lg" className="shadow-sm" />
         <button type="button" onClick={() => onOpenDetail?.(exercise, exMeta)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-1.5">
-            <p className="text-white font-bold text-[17px] truncate">{exercise.name}</p>
+            <p className={dark ? "text-white font-bold text-[17px] truncate" : "text-black font-bold text-[17px] truncate"}>{exercise.name}</p>
             {exMeta.groupType && (
-              <span className="bg-white/8 text-white/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+              <span className={dark ? "bg-white/8 text-white/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0" : "bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0"}>
                 {exMeta.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
               </span>
             )}
@@ -1397,7 +1526,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
               </span>
             )}
           </div>
-          <p className="text-white/45 text-[14px] mt-0.5">
+          <p className={dark ? "text-white/45 text-[14px] mt-0.5" : "text-black/45 text-[14px] mt-0.5"}>
             {exMeta.targetSets} sets × {formatTargetReps(exMeta)}
           </p>
         </button>
@@ -1420,16 +1549,16 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       </div>
 
       {swapInfo && (
-        <div className="mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5">
-          <p className="text-white/70 text-[13px] leading-snug">
+        <div className={dark ? "mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5" : "mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5"}>
+          <p className={dark ? "text-white/70 text-[13px] leading-snug" : "text-black/70 text-[13px] leading-snug"}>
             <span className="font-semibold">Swapped from {swapInfo.fromName}.</span> {swapInfo.reason}
           </p>
         </div>
       )}
 
       {coachNote && (
-        <div className="mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5">
-          <p className="text-white/35 text-[10px] font-semibold tracking-wide mb-1">COACH'S NOTES</p>
+        <div className={dark ? "mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5" : "mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5"}>
+          <p className={dark ? "text-white/35 text-[10px] font-semibold tracking-wide mb-1" : "text-black/35 text-[10px] font-semibold tracking-wide mb-1"}>COACH'S NOTES</p>
           <div className="flex items-start gap-2">
             <p className={`text-white/80 text-[14px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
             {isLongNote && (
@@ -1471,9 +1600,9 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             placeholder="Add your own note on this exercise…"
             rows={2}
             autoFocus
-            className="w-full bg-black border border-white/15 rounded-xl px-3.5 py-2.5 text-white text-[14px] outline-none focus:border-white/30 placeholder:text-white/25 resize-none"
+            className={dark ? "w-full bg-black border border-white/15 rounded-xl px-3.5 py-2.5 text-white text-[14px] outline-none focus:border-white/30 placeholder:text-white/25 resize-none" : "w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[14px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"}
           />
-          <p className="text-[11px] mt-1 px-0.5" style={{ color: noteStatus === "saved" ? "#16A34A" : "rgba(255,255,255,0.3)" }}>
+          <p className="text-[11px] mt-1 px-0.5" style={{ color: noteStatus === "saved" ? "#16A34A" : dark ? "rgba(255,255,255,0.3)" : "rgba(10,10,11,0.3)" }}>
             {noteStatus === "saving" ? "Saving…" : noteStatus === "saved" ? "Saved ✓" : "Autosaves as you type"}
           </p>
         </div>
@@ -1482,14 +1611,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       <button
         type="button"
         onClick={() => onStartRest(exMeta)}
-        className="mt-3 w-full flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"
+        className={dark ? "mt-3 w-full flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors" : "mt-3 w-full flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"}
       >
         <Hand size={14} style={{ color: MEASURE_BLUE }} className="shrink-0" />
         <span className="text-[13px] font-medium flex-1 text-left" style={{ color: MEASURE_BLUE }}>
           Tap to start rest timer
         </span>
         <span
-          className="bg-black border border-white/10 text-[13px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
+          className={dark ? "bg-black border border-white/10 text-[13px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1" : "bg-white border border-black/10 text-[13px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"}
           style={{ color: MEASURE_BLUE }}
         >
           <Clock size={11} />
@@ -1499,21 +1628,21 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
 
       <div className="mt-3">
         <div className="grid grid-cols-[30px_1fr_84px_64px] gap-2 px-1 mb-1.5">
-          <span className="text-white/70 text-[13px] font-bold">Set</span>
-          <span className="text-white/70 text-[13px] font-bold">Previous</span>
-          <span className="text-white/70 text-[12px] font-bold text-center leading-tight">
+          <span className={dark ? "text-white/70 text-[13px] font-bold" : "text-black/70 text-[13px] font-bold"}>Set</span>
+          <span className={dark ? "text-white/70 text-[13px] font-bold" : "text-black/70 text-[13px] font-bold"}>Previous</span>
+          <span className={dark ? "text-white/70 text-[12px] font-bold text-center leading-tight" : "text-black/70 text-[12px] font-bold text-center leading-tight"}>
             {exMeta.targetType === "time" ? "Seconds" : "Repetitions"}
           </span>
-          <span className="text-white/70 text-[13px] font-bold text-center">Kg</span>
+          <span className={dark ? "text-white/70 text-[13px] font-bold text-center" : "text-black/70 text-[13px] font-bold text-center"}>Kg</span>
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           const suggestion = suggestNextSet(prev, exMeta.targetReps);
           return (
             <div key={i} className="grid grid-cols-[30px_1fr_84px_64px] gap-2 items-center px-1 py-1.5">
-              <span className="text-white text-[18px] font-bold">{i + 1}</span>
+              <span className={dark ? "text-white text-[18px] font-bold" : "text-black text-[18px] font-bold"}>{i + 1}</span>
               <div className="min-w-0">
-                <p className="text-white/40 text-[14px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
+                <p className={dark ? "text-white/40 text-[14px] truncate" : "text-black/40 text-[14px] truncate"}>{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
                 {suggestion && !row.weight && !row.reps && (
                   <button
                     type="button"
@@ -1535,7 +1664,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.reps}
                 onChange={(e) => onChangeField(i, "reps", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40"
+                className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"}
               />
               <input
                 type="number"
@@ -1543,7 +1672,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40"
+                className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"}
               />
             </div>
           );
@@ -1558,6 +1687,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
 }
 
 function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm }) {
+  const dark = useClientDark();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [reason, setReason] = useState("");
@@ -1579,14 +1709,14 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
     <BottomSheet dark open={!!exMeta} onClose={onClose} title={selected ? "Why the swap?" : `Swap ${exercise?.name || "exercise"}`}>
       {!selected ? (
         <div>
-          <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3">
-            <Search size={16} className="text-white/40" />
+          <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
+            <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search exercises"
               autoFocus
-              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+              className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
             />
           </div>
           <div className="space-y-1 max-h-72 overflow-y-auto">
@@ -1594,20 +1724,20 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
               <button
                 key={e.id}
                 onClick={() => setSelected(e)}
-                className="w-full flex items-center justify-between py-2.5 border-b border-white/5 last:border-0"
+                className={dark ? "w-full flex items-center justify-between py-2.5 border-b border-white/5 last:border-0" : "w-full flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"}
               >
-                <span className="text-white text-sm">{e.name}</span>
-                <span className="text-white/30 text-xs">{e.equipment}</span>
+                <span className={dark ? "text-white text-sm" : "text-black text-sm"}>{e.name}</span>
+                <span className={dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>{e.equipment}</span>
               </button>
             ))}
-            {search && filtered.length === 0 && <p className="text-white/30 text-sm text-center py-6">No matching exercises.</p>}
+            {search && filtered.length === 0 && <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No matching exercises.</p>}
           </div>
         </div>
       ) : (
         <div>
-          <p className="text-white/50 text-sm mb-3">
-            Swapping <span className="font-semibold text-white">{exercise?.name}</span> for{" "}
-            <span className="font-semibold text-white">{selected.name}</span>. Let your coach know why — this note is required and
+          <p className={dark ? "text-white/50 text-sm mb-3" : "text-black/50 text-sm mb-3"}>
+            Swapping <span className={dark ? "font-semibold text-white" : "font-semibold text-black"}>{exercise?.name}</span> for{" "}
+            <span className={dark ? "font-semibold text-white" : "font-semibold text-black"}>{selected.name}</span>. Let your coach know why — this note is required and
             visible to them.
           </p>
           <textarea
@@ -1616,7 +1746,7 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
             rows={3}
             autoFocus
             placeholder="e.g. Shoulder felt tight, swapped for a machine variation"
-            className="w-full bg-white/5 border border-white/10 rounded-2xl px-3.5 py-2.5 text-white text-sm outline-none placeholder:text-white/30 resize-none"
+            className={dark ? "w-full bg-white/5 border border-white/10 rounded-2xl px-3.5 py-2.5 text-white text-sm outline-none placeholder:text-white/30 resize-none" : "w-full bg-black/5 border border-black/10 rounded-2xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30 resize-none"}
           />
           <div className="flex gap-2 mt-4">
             <SecondaryButton dark className="flex-1" onClick={() => setSelected(null)}>
@@ -1685,6 +1815,7 @@ function WorkoutSession({
   onExit,
   onSaveNote,
 }) {
+  const dark = useClientDark();
   const [noteOpenFor, setNoteOpenFor] = useState(null);
   const [swapFor, setSwapFor] = useState(null); // the original exMeta currently being swapped
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
@@ -1795,13 +1926,13 @@ function WorkoutSession({
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-black flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5">
-          <button onClick={onExit} className="text-white/60 text-sm font-medium">
+      <div className={dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"}>
+        <div className={dark ? "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+          <button onClick={onExit} className={dark ? "text-white/60 text-sm font-medium" : "text-black/60 text-sm font-medium"}>
             Cancel
           </button>
-          <h1 className="text-white font-bold text-[17px] truncate px-2">{daySession.label}</h1>
-          <button onClick={onFinish} className="text-white font-bold text-sm shrink-0">
+          <h1 className={dark ? "text-white font-bold text-[17px] truncate px-2" : "text-black font-bold text-[17px] truncate px-2"}>{daySession.label}</h1>
+          <button onClick={onFinish} className={dark ? "text-white font-bold text-sm shrink-0" : "text-black font-bold text-sm shrink-0"}>
             Save
           </button>
         </div>
@@ -1810,7 +1941,7 @@ function WorkoutSession({
           {sectionedExercises(exercisesForSession).map((group) => (
             <div key={group.key}>
               {group.showHeader && (
-                <p className="text-white/40 text-[11px] font-bold tracking-wide mb-2 mt-1">{group.label.toUpperCase()}</p>
+                <p className={dark ? "text-white/40 text-[11px] font-bold tracking-wide mb-2 mt-1" : "text-black/40 text-[11px] font-bold tracking-wide mb-2 mt-1"}>{group.label.toUpperCase()}</p>
               )}
               <div className="space-y-4">
                 {group.items.map(({ exMeta, i }) => {
@@ -1872,11 +2003,11 @@ function WorkoutSession({
           <>
             <ConfettiBurst />
             <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[101] w-[88%] max-w-sm animate-[prPop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
-              <div className="bg-white rounded-2xl p-5 shadow-2xl text-center">
+              <div className={dark ? "bg-white rounded-2xl p-5 shadow-2xl text-center" : "bg-black rounded-2xl p-5 shadow-2xl text-center"}>
                 <p className="text-3xl leading-none mb-1.5">🏆</p>
-                <p className="text-black font-bold text-sm tracking-wide">NEW PERSONAL RECORD</p>
-                <p className="text-black text-xl font-bold mt-1">{prToast.exerciseName}</p>
-                <p className="text-black/70 text-sm mt-0.5">
+                <p className={dark ? "text-black font-bold text-sm tracking-wide" : "text-white font-bold text-sm tracking-wide"}>NEW PERSONAL RECORD</p>
+                <p className={dark ? "text-black text-xl font-bold mt-1" : "text-white text-xl font-bold mt-1"}>{prToast.exerciseName}</p>
+                <p className={dark ? "text-black/70 text-sm mt-0.5" : "text-white/70 text-sm mt-0.5"}>
                   {prToast.weight}kg × {prToast.reps} · Best previous: {prToast.prevWeight}kg × {prToast.prevReps}
                 </p>
               </div>
@@ -1904,6 +2035,7 @@ function WorkoutSummary({
   onToggleHabit,
   onDone,
 }) {
+  const dark = useClientDark();
   const allSets = Object.values(activeLog).flat();
   const totalVolume = allSets.reduce((a, s) => a + s.weight * s.reps, 0);
   const totalSets = allSets.length;
@@ -1913,45 +2045,45 @@ function WorkoutSummary({
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-black flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10">
+      <div className={dark ? "fixed inset-0 z-[90] bg-black flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10" : "fixed inset-0 z-[90] bg-white flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10"}>
         <Logo variant="mark" tone="black" className="h-8 w-auto opacity-70 mb-1.5" />
         <Tagline tone="white" className="mb-6" />
-        <div className="w-20 h-20 rounded-full bg-white/10 border border-white/15 flex items-center justify-center mb-5">
-          <Check size={36} className="text-white" strokeWidth={3} />
+        <div className={dark ? "w-20 h-20 rounded-full bg-white/10 border border-white/15 flex items-center justify-center mb-5" : "w-20 h-20 rounded-full bg-black/10 border border-black/15 flex items-center justify-center mb-5"}>
+          <Check size={36} className={dark ? "text-white" : "text-black"} strokeWidth={3} />
         </div>
-        <p className="text-white/40 text-xs tracking-widest font-semibold">WORKOUT COMPLETE</p>
-        <h2 className="text-white text-3xl font-bold mt-1">{daySession.label}</h2>
-        <p className="text-white text-4xl font-bold tabular-nums mt-6">
+        <p className={dark ? "text-white/40 text-xs tracking-widest font-semibold" : "text-black/40 text-xs tracking-widest font-semibold"}>WORKOUT COMPLETE</p>
+        <h2 className={dark ? "text-white text-3xl font-bold mt-1" : "text-black text-3xl font-bold mt-1"}>{daySession.label}</h2>
+        <p className={dark ? "text-white text-4xl font-bold tabular-nums mt-6" : "text-black text-4xl font-bold tabular-nums mt-6"}>
           {durationMin}:{String(durationSec).padStart(2, "0")}
         </p>
 
         <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-6">
-          <div className="bg-[#1C1C1C] rounded-2xl p-4 border border-white/8">
-            <p className="text-white text-xl font-bold">{totalSets}</p>
-            <p className="text-white/40 text-xs mt-0.5">Sets completed</p>
+          <div className={dark ? "bg-[#1C1C1C] rounded-2xl p-4 border border-white/8" : "bg-[#F7F7F8] rounded-2xl p-4 border border-black/5"}>
+            <p className={dark ? "text-white text-xl font-bold" : "text-black text-xl font-bold"}>{totalSets}</p>
+            <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>Sets completed</p>
           </div>
-          <div className="bg-[#1C1C1C] rounded-2xl p-4 border border-white/8">
-            <p className="text-white text-xl font-bold">{totalVolume.toLocaleString()} kg</p>
-            <p className="text-white/40 text-xs mt-0.5">Total volume</p>
+          <div className={dark ? "bg-[#1C1C1C] rounded-2xl p-4 border border-white/8" : "bg-[#F7F7F8] rounded-2xl p-4 border border-black/5"}>
+            <p className={dark ? "text-white text-xl font-bold" : "text-black text-xl font-bold"}>{totalVolume.toLocaleString()} kg</p>
+            <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>Total volume</p>
           </div>
-          <div className="bg-[#1C1C1C] rounded-2xl p-4 border border-white/8">
-            <p className="text-white text-xl font-bold">{calories}</p>
-            <p className="text-white/40 text-xs mt-0.5">Calories burned</p>
+          <div className={dark ? "bg-[#1C1C1C] rounded-2xl p-4 border border-white/8" : "bg-[#F7F7F8] rounded-2xl p-4 border border-black/5"}>
+            <p className={dark ? "text-white text-xl font-bold" : "text-black text-xl font-bold"}>{calories}</p>
+            <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>Calories burned</p>
           </div>
-          <div className="bg-[#1C1C1C] rounded-2xl p-4 border border-white/8">
-            <p className="text-xl font-bold text-white">{prCount} new</p>
-            <p className="text-white/40 text-xs mt-0.5">Personal records</p>
+          <div className={dark ? "bg-[#1C1C1C] rounded-2xl p-4 border border-white/8" : "bg-[#F7F7F8] rounded-2xl p-4 border border-black/5"}>
+            <p className={dark ? "text-xl font-bold text-white" : "text-xl font-bold text-black"}>{prCount} new</p>
+            <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>Personal records</p>
           </div>
         </div>
 
-        <div className="w-full max-w-sm mt-6 flex items-start gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-3.5 py-3 text-left">
-          <Utensils size={18} className="text-white/50 shrink-0 mt-0.5" />
+        <div className={dark ? "w-full max-w-sm mt-6 flex items-start gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-3.5 py-3 text-left" : "w-full max-w-sm mt-6 flex items-start gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3 text-left"}>
+          <Utensils size={18} className={dark ? "text-white/50 shrink-0 mt-0.5" : "text-black/50 shrink-0 mt-0.5"} />
           <div>
-            <p className="text-white/40 text-[10px] font-bold tracking-widest">NEXT OBJECTIVE</p>
-            <p className="text-white text-sm font-semibold mt-0.5">
+            <p className={dark ? "text-white/40 text-[10px] font-bold tracking-widest" : "text-black/40 text-[10px] font-bold tracking-widest"}>NEXT OBJECTIVE</p>
+            <p className={dark ? "text-white text-sm font-semibold mt-0.5" : "text-black text-sm font-semibold mt-0.5"}>
               {proteinRemaining > 0 ? `Hit your protein target — ${proteinRemaining}g to go today.` : "Protein target hit — now prioritize recovery."}
             </p>
-            <p className="text-white/45 text-[13px] mt-0.5 leading-snug">Refuel, hydrate, and get good sleep tonight to lock in today's session.</p>
+            <p className={dark ? "text-white/45 text-[13px] mt-0.5 leading-snug" : "text-black/45 text-[13px] mt-0.5 leading-snug"}>Refuel, hydrate, and get good sleep tonight to lock in today's session.</p>
           </div>
         </div>
 
@@ -1961,7 +2093,7 @@ function WorkoutSummary({
           </div>
         )}
 
-        <button onClick={onDone} className="w-full max-w-sm mt-4 bg-white text-black font-bold py-4 rounded-2xl">
+        <button onClick={onDone} className={dark ? "w-full max-w-sm mt-4 bg-white text-black font-bold py-4 rounded-2xl" : "w-full max-w-sm mt-4 bg-black text-white font-bold py-4 rounded-2xl"}>
           DONE
         </button>
       </div>
@@ -1984,6 +2116,7 @@ const CARDIO_ACTIVITIES = [
 ];
 
 function LogCardioSheet({ open, onClose, onSave }) {
+  const dark = useClientDark();
   const [activityId, setActivityId] = useState("running");
   const [duration, setDuration] = useState(30);
   const [distance, setDistance] = useState(0);
@@ -2011,7 +2144,7 @@ function LogCardioSheet({ open, onClose, onSave }) {
 
   return (
     <BottomSheet dark open={open} onClose={onClose} title="Log Activity">
-      <p className="text-white/40 text-xs tracking-wide mb-2">ACTIVITY</p>
+      <p className={dark ? "text-white/40 text-xs tracking-wide mb-2" : "text-black/40 text-xs tracking-wide mb-2"}>ACTIVITY</p>
       <div className="grid grid-cols-3 gap-2 mb-5">
         {CARDIO_ACTIVITIES.map((a) => {
           const Icon = a.icon;
@@ -2048,10 +2181,11 @@ function LogCardioSheet({ open, onClose, onSave }) {
 
 
 function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId, onSelect }) {
+  const dark = useClientDark();
   return (
     <BottomSheet dark open={open} onClose={onClose} title="Training Phases">
       {phases.length === 0 ? (
-        <p className="text-white/30 text-sm text-center py-6">No phases yet.</p>
+        <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No phases yet.</p>
       ) : (
         <div className="space-y-1.5">
           {phases.map((p) => (
@@ -2061,12 +2195,12 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
               className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${p.id === selectedId ? "bg-white/8" : "hover:bg-white/[0.03]"}`}
             >
               <div className="flex items-center gap-2">
-                <p className="text-white text-sm font-medium flex-1 truncate">{p.name}</p>
+                <p className={dark ? "text-white text-sm font-medium flex-1 truncate" : "text-black text-sm font-medium flex-1 truncate"}>{p.name}</p>
                 {p.id === currentId && (
-                  <span className="text-[10px] font-bold text-black bg-white px-2 py-0.5 rounded-full shrink-0">CURRENT</span>
+                  <span className={dark ? "text-[10px] font-bold text-black bg-white px-2 py-0.5 rounded-full shrink-0" : "text-[10px] font-bold text-white bg-black px-2 py-0.5 rounded-full shrink-0"}>CURRENT</span>
                 )}
               </div>
-              <p className="text-white/35 text-xs mt-0.5">
+              <p className={dark ? "text-white/35 text-xs mt-0.5" : "text-black/35 text-xs mt-0.5"}>
                 {new Date(p.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                 {p.endDate
                   ? ` – ${new Date(p.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
@@ -2084,6 +2218,7 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
 // (name/dates/description) + workout-list structure, just without any
 // edit/add/schedule controls, which stay coach-only.
 function ClientProgramTab({ onPreviewDay }) {
+  const dark = useClientDark();
   const { db, currentUser } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
@@ -2096,7 +2231,7 @@ function ClientProgramTab({ onPreviewDay }) {
     return (
       <div className="px-3">
         <Card dark>
-          <p className="text-white/40 text-sm text-center py-8">No training program set up yet — your coach will assign one soon.</p>
+          <p className={dark ? "text-white/40 text-sm text-center py-8" : "text-black/40 text-sm text-center py-8"}>No training program set up yet — your coach will assign one soon.</p>
         </Card>
       </div>
     );
@@ -2109,7 +2244,7 @@ function ClientProgramTab({ onPreviewDay }) {
     <div className="px-3 space-y-4">
       <Card dark>
         <div className="flex items-start justify-between gap-3 mb-1">
-          <h2 className="text-white text-lg font-bold min-w-0 truncate">{phase.name}</h2>
+          <h2 className={dark ? "text-white text-lg font-bold min-w-0 truncate" : "text-black text-lg font-bold min-w-0 truncate"}>{phase.name}</h2>
           <button
             onClick={() => setHistoryOpen(true)}
             className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold shrink-0"
@@ -2117,21 +2252,21 @@ function ClientProgramTab({ onPreviewDay }) {
             <Calendar size={14} /> PHASES
           </button>
         </div>
-        <p className="text-white/40 text-xs mb-3">
+        <p className={dark ? "text-white/40 text-xs mb-3" : "text-black/40 text-xs mb-3"}>
           {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
           {phase.endDate
             ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
             : ""}
-          {phase.id === current?.id && <span className="ml-2 text-white font-semibold">· Current</span>}
+          {phase.id === current?.id && <span className={dark ? "ml-2 text-white font-semibold" : "ml-2 text-black font-semibold"}>· Current</span>}
         </p>
-        {phase.description && <p className="text-white/60 text-sm leading-relaxed whitespace-pre-line">{phase.description}</p>}
+        {phase.description && <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line" : "text-black/60 text-sm leading-relaxed whitespace-pre-line"}>{phase.description}</p>}
       </Card>
 
       <div>
-        <p className="text-white/40 text-xs tracking-wide mb-2 px-1">WORKOUTS IN THIS PHASE</p>
+        <p className={dark ? "text-white/40 text-xs tracking-wide mb-2 px-1" : "text-black/40 text-xs tracking-wide mb-2 px-1"}>WORKOUTS IN THIS PHASE</p>
         {days.length === 0 ? (
           <Card dark>
-            <p className="text-white/30 text-sm text-center py-6">No workouts added to this phase yet.</p>
+            <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No workouts added to this phase yet.</p>
           </Card>
         ) : (
           <div className="space-y-2">
@@ -2140,13 +2275,13 @@ function ClientProgramTab({ onPreviewDay }) {
                 <Card dark className="!py-3.5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-white font-semibold text-sm truncate">{d.label}</p>
-                      <p className="text-white/40 text-xs mt-0.5 truncate">
+                      <p className={dark ? "text-white font-semibold text-sm truncate" : "text-black font-semibold text-sm truncate"}>{d.label}</p>
+                      <p className={dark ? "text-white/40 text-xs mt-0.5 truncate" : "text-black/40 text-xs mt-0.5 truncate"}>
                         est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
                         {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
                       </p>
                     </div>
-                    <ChevronRight size={16} className="text-white/25 shrink-0" />
+                    <ChevronRight size={16} className={dark ? "text-white/25 shrink-0" : "text-black/25 shrink-0"} />
                   </div>
                 </Card>
               </button>
@@ -2170,7 +2305,8 @@ function ClientProgramTab({ onPreviewDay }) {
   );
 }
 
-function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady }) {
+function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
+  const dark = useClientDark();
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
   const todayStr = localDateKey();
@@ -2178,7 +2314,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-4">
-        <h1 className="text-white text-2xl font-bold">Training</h1>
+        <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Training</h1>
       </div>
       <div className="flex gap-2 px-3 mb-4 overflow-x-auto no-scrollbar">
         {["today", "program", "history", "upcoming"].map((t) => (
@@ -2195,7 +2331,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       </div>
 
       {tab === "today" && (
-        <div className="px-3 space-y-4">
+        <div className={dark ? "space-y-4" : "px-3 space-y-4"}>
           <TodayWorkoutCard
             todaySession={todaySession}
             activeLog={activeLog}
@@ -2204,61 +2340,64 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             isToday
             completedOnDate={completedOnDate}
             dbReady={dbReady}
+            fullWidth
           />
+          <div className="px-3 space-y-4">
           <button
             onClick={() => setCardioOpen(true)}
-            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
+            className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform" : "w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"}
           >
             <Footprints size={16} /> + Log a cardio session
           </button>
           {todaySession && (
             <Card dark>
-              <h3 className="text-white font-semibold mb-3">Exercises</h3>
+              <h3 className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Exercises</h3>
               <div className="space-y-2">
                 {todaySession.exercises.map((e, i) => {
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
                   return (
-                    <div key={i} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
-                      <span className="w-7 h-7 rounded-full bg-white/8 text-white/50 text-xs font-bold flex items-center justify-center">
+                    <div key={i} className={dark ? "flex items-center gap-3 py-2 border-b border-white/5 last:border-0" : "flex items-center gap-3 py-2 border-b border-black/5 last:border-0"}>
+                      <span className={dark ? "w-7 h-7 rounded-full bg-white/8 text-white/50 text-xs font-bold flex items-center justify-center" : "w-7 h-7 rounded-full bg-black/8 text-black/50 text-xs font-bold flex items-center justify-center"}>
                         {i + 1}
                       </span>
                       <div className="flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-white text-sm font-medium">{ex.name}</p>
+                          <p className={dark ? "text-white text-sm font-medium" : "text-black text-sm font-medium"}>{ex.name}</p>
                           {e.groupType && (
-                            <span className="bg-white/8 text-white/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded">
+                            <span className={dark ? "bg-white/8 text-white/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded" : "bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded"}>
                               {e.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
                             </span>
                           )}
                           {e.dropSet && (
-                            <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded">
+                            <span className={dark ? "bg-orange-500/15 text-orange-400 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded" : "bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded"}>
                               DROPSET
                             </span>
                           )}
                         </div>
-                        <p className="text-white/40 text-xs">
+                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
                           {e.targetSets} sets × {formatTargetReps(e)} · RIR {e.targetRIR ?? 2}
                         </p>
-                        {e.notes && <p className="text-white/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
+                        {e.notes && <p className={dark ? "text-white/25 text-[11px] mt-0.5 italic" : "text-black/25 text-[11px] mt-0.5 italic"}>{e.notes}</p>}
                       </div>
-                      <span className="text-white/30 text-xs">{ex.equipment}</span>
+                      <span className={dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>{ex.equipment}</span>
                     </div>
                   );
                 })}
               </div>
             </Card>
           )}
+          </div>
         </div>
       )}
 
-      {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} />}
+      {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} showToast={showToast} />}
 
       {tab === "history" && (
         <div className="px-3 space-y-3">
           {logsForClient.length === 0 && (
             <Card dark>
-              <p className="text-white/40 text-sm text-center py-6">No completed workouts yet — finish today's session to see it here.</p>
+              <p className={dark ? "text-white/40 text-sm text-center py-6" : "text-black/40 text-sm text-center py-6"}>No completed workouts yet — finish today's session to see it here.</p>
             </Card>
           )}
           {logsForClient.map((h) => {
@@ -2268,8 +2407,8 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
               <Card dark key={h.id}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-white font-semibold">{h.dayLabel}</p>
-                    <p className="text-white/40 text-xs mt-0.5">{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                    <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{h.dayLabel}</p>
+                    <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
                   </div>
                   {h.cardio ? (
                     <Pill dark tone="outline">
@@ -2306,7 +2445,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
         <div className="px-3 space-y-2">
           {upcoming.length === 0 && (
             <Card dark>
-              <p className="text-white/40 text-sm text-center py-6">
+              <p className={dark ? "text-white/40 text-sm text-center py-6" : "text-black/40 text-sm text-center py-6"}>
                 {dbReady ? "Nothing scheduled yet — your coach will set up your upcoming workouts." : "Loading your schedule…"}
               </p>
             </Card>
@@ -2315,12 +2454,12 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             <Card dark key={w.id} className="!py-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-white font-semibold text-sm">{w.label}</p>
-                  <p className="text-white/40 text-xs mt-0.5">
+                  <p className={dark ? "text-white font-semibold text-sm" : "text-black font-semibold text-sm"}>{w.label}</p>
+                  <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
                     {new Date(w.date + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
                   </p>
                 </div>
-                <span className="text-white/30 text-xs">{countExercises(w.exercises)} ex</span>
+                <span className={dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>{countExercises(w.exercises)} ex</span>
               </div>
             </Card>
           ))}
@@ -2338,6 +2477,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
 // trash affordance underneath as it moves. Works with touch and mouse alike
 // since it's built on pointer events.
 function SwipeableRow({ onDelete, children }) {
+  const dark = useClientDark();
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const startXRef = useRef(0);
@@ -2382,7 +2522,7 @@ function SwipeableRow({ onDelete, children }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
-        className="relative bg-black touch-pan-y select-none"
+        className={dark ? "relative bg-black touch-pan-y select-none" : "relative bg-white touch-pan-y select-none"}
       >
         {children}
       </div>
@@ -2395,34 +2535,35 @@ function SwipeableRow({ onDelete, children }) {
 // same best-fit matching the coach's Auto-Build uses, scoped to this one
 // meal's own macros as the target so the replacement is a close match.
 function SwapMealSheet({ open, onClose, meal, alternatives, onPick }) {
+  const dark = useClientDark();
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[130] bg-black/40 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
-      <div className="bg-black rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[75vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className={dark ? "bg-black rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[75vh] flex flex-col" : "bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[75vh] flex flex-col"} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-1 shrink-0">
-          <p className="text-white font-semibold truncate pr-3">Swap "{meal?.name}"</p>
-          <button onClick={onClose} className="text-white/50 shrink-0">
+          <p className={dark ? "text-white font-semibold truncate pr-3" : "text-black font-semibold truncate pr-3"}>Swap "{meal?.name}"</p>
+          <button onClick={onClose} className={dark ? "text-white/50 shrink-0" : "text-black/50 shrink-0"}>
             <X size={20} />
           </button>
         </div>
-        <p className="text-white/40 text-xs px-5 pb-3">Similar options from your Meal Library, closest match first</p>
+        <p className={dark ? "text-white/40 text-xs px-5 pb-3" : "text-black/40 text-xs px-5 pb-3"}>Similar options from your Meal Library, closest match first</p>
         <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-1.5">
           {alternatives.length === 0 ? (
-            <p className="text-white/30 text-sm text-center py-8">No similar alternatives available right now.</p>
+            <p className={dark ? "text-white/30 text-sm text-center py-8" : "text-black/30 text-sm text-center py-8"}>No similar alternatives available right now.</p>
           ) : (
             alternatives.map(({ meal: alt, score }) => (
               <button
                 key={alt.id}
                 onClick={() => onPick(alt.id)}
-                className="w-full flex items-center justify-between gap-2 bg-white/[0.03] rounded-xl px-3.5 py-2.5 text-left"
+                className={dark ? "w-full flex items-center justify-between gap-2 bg-white/[0.03] rounded-xl px-3.5 py-2.5 text-left" : "w-full flex items-center justify-between gap-2 bg-black/[0.03] rounded-xl px-3.5 py-2.5 text-left"}
               >
                 <div className="min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{alt.name}</p>
-                  <p className="text-white/40 text-xs">
+                  <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{alt.name}</p>
+                  <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
                     {alt.cals} kcal · P{alt.protein} C{alt.carbs} F{alt.fat}
                   </p>
                 </div>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-white/5 text-white/50">{matchPct(score)}% match</span>
+                <span className={dark ? "text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-white/5 text-white/50" : "text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-black/5 text-black/50"}>{matchPct(score)}% match</span>
               </button>
             ))
           )}
@@ -2437,20 +2578,21 @@ function SwapMealSheet({ open, onClose, meal, alternatives, onPick }) {
 // notes, with logging as an explicit action from here (or via the quick
 // "+" on the row itself).
 function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
+  const dark = useClientDark();
   if (!open || !meal) return null;
   return (
     <div className="fixed inset-0 z-[130] bg-black/40 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
-      <div className="bg-black rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className={dark ? "bg-black rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] flex flex-col" : "bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] flex flex-col"} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-1 shrink-0">
-          <p className="text-white font-semibold truncate pr-3">{meal.name}</p>
-          <button onClick={onClose} className="text-white/50 shrink-0">
+          <p className={dark ? "text-white font-semibold truncate pr-3" : "text-black font-semibold truncate pr-3"}>{meal.name}</p>
+          <button onClick={onClose} className={dark ? "text-white/50 shrink-0" : "text-black/50 shrink-0"}>
             <X size={20} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 pb-5">
           {meal.photoUrl && <img src={meal.photoUrl} alt="" className="w-full h-40 object-cover rounded-2xl mt-3" />}
 
-          <div className="grid grid-cols-4 gap-2 bg-white/[0.03] border border-white/8 rounded-2xl p-3.5 mt-4">
+          <div className={dark ? "grid grid-cols-4 gap-2 bg-white/[0.03] border border-white/8 rounded-2xl p-3.5 mt-4" : "grid grid-cols-4 gap-2 bg-black/[0.03] border border-black/8 rounded-2xl p-3.5 mt-4"}>
             {[
               ["Cals", meal.cals],
               ["Protein", `${meal.protein}g`],
@@ -2458,32 +2600,49 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
               ["Fat", `${meal.fat}g`],
             ].map(([l, v]) => (
               <div key={l} className="text-center">
-                <p className="text-white font-bold text-sm">{v}</p>
-                <p className="text-white/40 text-[10px] mt-0.5">{l}</p>
+                <p className={dark ? "text-white font-bold text-sm" : "text-black font-bold text-sm"}>{v}</p>
+                <p className={dark ? "text-white/40 text-[10px] mt-0.5" : "text-black/40 text-[10px] mt-0.5"}>{l}</p>
               </div>
             ))}
           </div>
 
           {meal.ingredients?.length > 0 && (
             <div className="mt-4">
-              <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-1.5">INGREDIENTS</p>
+              <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-1.5"}>INGREDIENTS</p>
               <div className="space-y-1">
-                {meal.ingredients.map((ing, i) => (
-                  <div key={i} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2">
-                    <p className="text-white text-sm truncate pr-2">{ing.name}</p>
-                    <p className="text-white/40 text-xs shrink-0">{ing.cals} kcal</p>
-                  </div>
-                ))}
+                {meal.ingredients.map((ing, i) => {
+                  // Ingredient names carry their exact amount as a trailing
+                  // "(150g)"/"(1 cup)" suffix (baked in when the ingredient was
+                  // picked via the food-quantity picker) — split it out into its
+                  // own non-truncating badge so a long food name can never push
+                  // the amount off-screen.
+                  const m = /^(.*)\s\(([^()]+)\)$/.exec(ing.name || "");
+                  const baseName = m ? m[1] : ing.name;
+                  const qtyLabel = m ? m[2] : null;
+                  return (
+                    <div key={i} className={dark ? "flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2" : "flex items-center justify-between bg-black/[0.03] rounded-xl px-3 py-2"}>
+                      <p className={dark ? "text-white text-sm truncate pr-2" : "text-black text-sm truncate pr-2"}>{baseName}</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {qtyLabel && (
+                          <span className={dark ? "text-white/50 text-xs font-semibold bg-white/8 rounded-full px-2 py-0.5" : "text-black/50 text-xs font-semibold bg-black/8 rounded-full px-2 py-0.5"}>
+                            {qtyLabel}
+                          </span>
+                        )}
+                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{ing.cals} kcal</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
           <div className="mt-4">
-            <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-1.5">HOW TO PREPARE</p>
+            <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-1.5"}>HOW TO PREPARE</p>
             {meal.instructions ? (
-              <p className="text-white/70 text-sm whitespace-pre-line leading-relaxed">{meal.instructions}</p>
+              <p className={dark ? "text-white/70 text-sm whitespace-pre-line leading-relaxed" : "text-black/70 text-sm whitespace-pre-line leading-relaxed"}>{meal.instructions}</p>
             ) : (
-              <p className="text-white/30 text-sm">No preparation notes added for this meal.</p>
+              <p className={dark ? "text-white/30 text-sm" : "text-black/30 text-sm"}>No preparation notes added for this meal.</p>
             )}
           </div>
 
@@ -2497,6 +2656,7 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
 }
 
 function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
+  const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal } = useApp();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
@@ -2593,16 +2753,16 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-2 flex items-center justify-between">
-        <h1 className="text-white text-2xl font-bold">Nutrition</h1>
-        <Search size={20} className="text-white/40" />
+        <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Nutrition</h1>
+        <Search size={20} className={dark ? "text-white/40" : "text-black/40"} />
       </div>
 
       <div className="px-3 mt-3">
         <Card dark>
-          <p className="text-white/40 text-xs tracking-wide mb-1">CALORIE TARGET</p>
+          <p className={dark ? "text-white/40 text-xs tracking-wide mb-1" : "text-black/40 text-xs tracking-wide mb-1"}>CALORIE TARGET</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-white text-3xl font-bold">{Math.max(0, targets.calories - nutrition.calories)}</span>
-            <span className="text-white/40 text-sm">remaining of {targets.calories}</span>
+            <span className={dark ? "text-white text-3xl font-bold" : "text-black text-3xl font-bold"}>{Math.max(0, targets.calories - nutrition.calories)}</span>
+            <span className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>remaining of {targets.calories}</span>
           </div>
           <div className="mt-3">
             <ProgressBar trackClassName="bg-black/8"
@@ -2611,7 +2771,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               color={nutrition.calories >= targets.calories ? GOAL_GREEN : MEASURE_BLUE}
             />
           </div>
-          <div className="space-y-3 mt-4 pt-4 border-t border-white/5">
+          <div className={dark ? "space-y-3 mt-4 pt-4 border-t border-white/5" : "space-y-3 mt-4 pt-4 border-t border-black/5"}>
             {[
               { l: "Protein", v: round1(nutrition.protein), t: targets.protein },
               { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs },
@@ -2619,9 +2779,9 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             ].map((m) => (
               <div key={m.l}>
                 <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-white/70 text-sm font-medium">{m.l}</span>
-                  <span className="text-white/40 text-xs">
-                    {m.v}g <span className="text-white/25">/ {m.t}g</span>
+                  <span className={dark ? "text-white/70 text-sm font-medium" : "text-black/70 text-sm font-medium"}>{m.l}</span>
+                  <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
+                    {m.v}g <span className={dark ? "text-white/25" : "text-black/25"}>/ {m.t}g</span>
                   </span>
                 </div>
                 <ProgressBar trackClassName="bg-black/8" value={m.v} max={m.t} height={6} color={m.v >= m.t ? GOAL_GREEN : MEASURE_BLUE} />
@@ -2636,35 +2796,35 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
           <div className="flex items-center gap-4">
             <WaterCup value={nutrition.water} max={targets.water} size={52} />
             <div className="flex-1 min-w-0">
-              <p className="text-white font-semibold flex items-center gap-2">
+              <p className={dark ? "text-white font-semibold flex items-center gap-2" : "text-black font-semibold flex items-center gap-2"}>
                 {nutrition.water >= targets.water ? (
-                  <Droplets size={16} className="text-white" />
+                  <Droplets size={16} className={dark ? "text-white" : "text-black"} />
                 ) : (
-                  <GlassWater size={16} className="text-white/60" />
+                  <GlassWater size={16} className={dark ? "text-white/60" : "text-black/60"} />
                 )}{" "}
                 Water
               </p>
-              <p className="text-white/50 text-sm mt-0.5">
-                <span className="text-white font-semibold">{nutrition.water}L</span> / {targets.water}L
+              <p className={dark ? "text-white/50 text-sm mt-0.5" : "text-black/50 text-sm mt-0.5"}>
+                <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{nutrition.water}L</span> / {targets.water}L
               </p>
             </div>
           </div>
           <div className="flex gap-2 mt-3">
             <button
               onClick={() => onAddWater(0.25)}
-              className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"
+              className={dark ? "flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"}
             >
               +250ml
             </button>
             <button
               onClick={() => onAddWater(0.5)}
-              className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"
+              className={dark ? "flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"}
             >
               +500ml
             </button>
             <button
               onClick={() => setWaterSheetOpen(true)}
-              className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-[0.97] transition-transform"
+              className={dark ? "flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-[0.97] transition-transform" : "flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-[0.97] transition-transform"}
             >
               Custom
             </button>
@@ -2676,16 +2836,16 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         <div className="px-3 mt-7">
           <Card dark>
             <div className="flex items-center justify-between mb-1">
-              <p className="text-white font-semibold">My Meal Plan</p>
-              <span className="text-white/40 text-[11px] font-semibold bg-white/5 px-2 py-0.5 rounded-full shrink-0">
+              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>My Meal Plan</p>
+              <span className={dark ? "text-white/40 text-[11px] font-semibold bg-white/5 px-2 py-0.5 rounded-full shrink-0" : "text-black/40 text-[11px] font-semibold bg-black/5 px-2 py-0.5 rounded-full shrink-0"}>
                 {planWeeksCount === 1 ? "1-week plan" : `Week ${activeWeek + 1} of ${planWeeksCount}`}
               </span>
             </div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <p className="text-white/40 text-xs">Built by your coach — tap any meal to log it now</p>
+              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Built by your coach — tap any meal to log it now</p>
               <button
                 onClick={() => setShoppingListOpen(true)}
-                className="shrink-0 flex items-center gap-1.5 bg-white/8 hover:bg-white/15 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+                className={dark ? "shrink-0 flex items-center gap-1.5 bg-white/8 hover:bg-white/15 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors" : "shrink-0 flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-bold px-3 py-1.5 rounded-full transition-colors"}
               >
                 <ShoppingCart size={12} /> LIST
               </button>
@@ -2700,7 +2860,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                       setMealPlanDayId(null);
                     }}
                     className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      w === activeWeek ? "bg-blue-500 text-white" : "bg-white/5 text-white/50"
+                      w === activeWeek ? "bg-blue-500 text-white" : dark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"
                     }`}
                   >
                     Week {w + 1}
@@ -2728,7 +2888,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                 const mealIds = mealPlanDay.meals?.[slot] || [];
                 return mealIds.length === 0 ? null : (
                   <div key={slot}>
-                    <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-1.5">{slot.toUpperCase()}</p>
+                    <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-1.5"}>{slot.toUpperCase()}</p>
                     <div className="space-y-1.5">
                       {mealIds.map((mealId, i) => {
                         const m = mealsById[mealId];
@@ -2737,12 +2897,12 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                           <div key={`${mealId}_${i}`} className="flex items-center gap-1.5">
                             <button
                               onClick={() => setPlanMealDetail({ meal: m, slot })}
-                              className="flex-1 min-w-0 flex items-center gap-2.5 bg-white/[0.03] rounded-xl px-3 py-2.5 text-left"
+                              className={dark ? "flex-1 min-w-0 flex items-center gap-2.5 bg-white/[0.03] rounded-xl px-3 py-2.5 text-left" : "flex-1 min-w-0 flex items-center gap-2.5 bg-black/[0.03] rounded-xl px-3 py-2.5 text-left"}
                             >
                               {m.photoUrl && <img src={m.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
                               <div className="min-w-0 flex-1">
-                                <p className="text-white text-sm font-medium truncate">{m.name}</p>
-                                <p className="text-white/40 text-xs">
+                                <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
+                                <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
                                   {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                                 </p>
                               </div>
@@ -2750,14 +2910,14 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                             <button
                               onClick={() => logSavedMeal(m, slot)}
                               title="Log this meal now"
-                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] text-white/40 hover:text-white"
+                              className={dark ? "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] text-white/40 hover:text-white" : "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-black/[0.03] text-black/40 hover:text-black"}
                             >
                               <Plus size={14} />
                             </button>
                             <button
                               onClick={() => setSwapping({ slot, index: i, meal: m })}
                               title="Swap for a similar meal"
-                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] text-white/40 hover:text-white"
+                              className={dark ? "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] text-white/40 hover:text-white" : "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-black/[0.03] text-black/40 hover:text-black"}
                             >
                               <Repeat size={14} />
                             </button>
@@ -2786,7 +2946,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </div>
 
       <div className="px-3 mt-7">
-        <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1">TODAY'S MEALS</p>
+        <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>TODAY'S MEALS</p>
         <Card dark className="!p-0 overflow-hidden">
           {mealCategories.map((meal, i) => {
             const items = nutrition.meals[meal] || [];
@@ -2800,14 +2960,14 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="text-white font-semibold">{meal}</p>
-                  <p className="text-white/40 text-xs mt-0.5">
+                  <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{meal}</p>
+                  <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
                     {items.length === 0 ? "No items logged" : `${items.length} item${items.length === 1 ? "" : "s"} logged`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-white/50 text-sm font-medium">{totalCals} kcal</span>
-                  <ChevronRight size={16} className="text-white/25" />
+                  <span className={dark ? "text-white/50 text-sm font-medium" : "text-black/50 text-sm font-medium"}>{totalCals} kcal</span>
+                  <ChevronRight size={16} className={dark ? "text-white/25" : "text-black/25"} />
                 </div>
               </button>
             );
@@ -2825,7 +2985,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             );
             return (
               <div>
-                <div className="bg-white/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mb-4">
+                <div className={dark ? "bg-white/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mb-4" : "bg-black/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mb-4"}>
                   {[
                     ["Cals", Math.round(totals.cals)],
                     ["Protein", `${round1(totals.protein)}g`],
@@ -2833,37 +2993,37 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                     ["Fat", `${round1(totals.fat)}g`],
                   ].map(([l, v]) => (
                     <div key={l} className="text-center">
-                      <p className="text-white font-bold text-sm">{v}</p>
-                      <p className="text-white/40 text-[10px] mt-0.5">{l}</p>
+                      <p className={dark ? "text-white font-bold text-sm" : "text-black font-bold text-sm"}>{v}</p>
+                      <p className={dark ? "text-white/40 text-[10px] mt-0.5" : "text-black/40 text-[10px] mt-0.5"}>{l}</p>
                     </div>
                   ))}
                 </div>
 
                 {items.length === 0 ? (
-                  <p className="text-white/30 text-sm text-center py-4">No items logged yet</p>
+                  <p className={dark ? "text-white/30 text-sm text-center py-4" : "text-black/30 text-sm text-center py-4"}>No items logged yet</p>
                 ) : (
                   <div className="space-y-2 mb-2">
                     {items.map((f) => (
                       <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id)}>
-                        <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5">
+                        <div className={dark ? "flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5" : "flex items-center gap-3 bg-black/[0.02] border border-black/5 rounded-xl px-3 py-2.5"}>
                           {f.photoUrl ? (
                             <img src={f.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                           ) : (
-                            <div className="w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0">
-                              <UtensilsCrossed size={16} className="text-white/30" />
+                            <div className={dark ? "w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-10 h-10 rounded-lg bg-black/8 flex items-center justify-center shrink-0"}>
+                              <UtensilsCrossed size={16} className={dark ? "text-white/30" : "text-black/30"} />
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="text-white text-sm font-semibold truncate">{f.name}</p>
-                            <p className="text-white/40 text-[11px] mt-0.5">
+                            <p className={dark ? "text-white text-sm font-semibold truncate" : "text-black text-sm font-semibold truncate"}>{f.name}</p>
+                            <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
                               {round1(f.protein)}g P · {round1(f.carbs)}g C · {round1(f.fat)}g F
                             </p>
                           </div>
-                          <span className="text-white font-semibold text-sm shrink-0">{f.cals}</span>
+                          <span className={dark ? "text-white font-semibold text-sm shrink-0" : "text-black font-semibold text-sm shrink-0"}>{f.cals}</span>
                         </div>
                       </SwipeableRow>
                     ))}
-                    <p className="text-white/25 text-[10px] text-center pt-0.5">Swipe an item left to remove it</p>
+                    <p className={dark ? "text-white/25 text-[10px] text-center pt-0.5" : "text-black/25 text-[10px] text-center pt-0.5"}>Swipe an item left to remove it</p>
                   </div>
                 )}
 
@@ -2873,7 +3033,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                     setDetailMeal(null);
                     setSheetOpen(true);
                   }}
-                  className="w-full mt-3 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+                  className={dark ? "w-full mt-3 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5" : "w-full mt-3 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"}
                 >
                   <Plus size={14} /> Add food
                 </button>
@@ -2883,13 +3043,13 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </BottomSheet>
 
       <BottomSheet dark open={sheetOpen} onClose={() => setSheetOpen(false)} title={`Add to ${activeMeal}`}>
-        <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3">
-          <Search size={16} className="text-white/40" />
+        <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
+          <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search foods"
-            className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+            className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
           />
         </div>
         <div className="flex gap-2 mb-4">
@@ -2898,7 +3058,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               setSheetOpen(false);
               setBarcodeOpen(true);
             }}
-            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
+            className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
           >
             <ScanLine size={18} />
             Scan barcode
@@ -2908,7 +3068,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               setSheetOpen(false);
               setPhotoOpen(true);
             }}
-            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
+            className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
           >
             <Camera size={18} />
             Photo
@@ -2918,7 +3078,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               setSheetOpen(false);
               setQuickAddOpen(true);
             }}
-            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
+            className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
           >
             <Zap size={18} />
             Quick add
@@ -2926,43 +3086,43 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         </div>
         {!search.trim() && recentFoods.length > 0 && (
           <div className="mb-4">
-            <p className="text-white/30 text-xs mb-2 tracking-wide">RECENTLY LOGGED</p>
+            <p className={dark ? "text-white/30 text-xs mb-2 tracking-wide" : "text-black/30 text-xs mb-2 tracking-wide"}>RECENTLY LOGGED</p>
             <div className="space-y-1">
               {recentFoods.map((f) => (
                 <button
                   key={f.id}
                   onClick={() => addAndClose({ ...f, id: `recent_${Date.now()}` })}
-                  className="w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0"
+                  className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
                 >
                   {f.photoUrl && <img src={f.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
                   <div className="text-left flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{f.name}</p>
-                    <p className="text-white/40 text-xs">
+                    <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
+                    <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
                       P{round1(f.protein)} · C{round1(f.carbs)} · F{round1(f.fat)}
                     </p>
                   </div>
-                  <span className="text-white/50 text-sm shrink-0">{f.cals} kcal</span>
+                  <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{f.cals} kcal</span>
                 </button>
               ))}
             </div>
           </div>
         )}
-        <p className="text-white/30 text-xs mb-2 tracking-wide">SEARCH RESULTS · PER 100G</p>
+        <p className={dark ? "text-white/30 text-xs mb-2 tracking-wide" : "text-black/30 text-xs mb-2 tracking-wide"}>SEARCH RESULTS · PER 100G</p>
         <div className="space-y-1">
           {filteredFoods.map((f) => (
             <button
               key={f.id}
               onClick={() => setPendingFood(f)}
-              className="w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0"
+              className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
             >
               {f.imageUrl && <img src={f.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
               <div className="text-left flex-1 min-w-0">
-                <p className="text-white text-sm font-medium truncate">{f.name}</p>
-                <p className="text-white/40 text-xs">
+                <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
+                <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
                   P{f.protein} · C{f.carbs} · F{f.fat}
                 </p>
               </div>
-              <span className="text-white/50 text-sm shrink-0">{f.cals} kcal</span>
+              <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{f.cals} kcal</span>
             </button>
           ))}
         </div>
@@ -2987,7 +3147,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                 onAddWater(v);
                 setWaterSheetOpen(false);
               }}
-              className="bg-white/8 rounded-xl py-4 text-white font-semibold"
+              className={dark ? "bg-white/8 rounded-xl py-4 text-white font-semibold" : "bg-black/8 rounded-xl py-4 text-black font-semibold"}
             >
               {v * 1000}ml
             </button>
@@ -3075,18 +3235,20 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 ============================================================================ */
 
 function ChartCard({ title, subtitle, children }) {
+  const dark = useClientDark();
   return (
     <Card dark>
-      <p className="text-white font-semibold">{title}</p>
-      {subtitle && <p className="text-white/40 text-xs mt-0.5">{subtitle}</p>}
+      <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{title}</p>
+      {subtitle && <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{subtitle}</p>}
       <div className="h-40 mt-3 -ml-4">{children}</div>
     </Card>
   );
 }
 
-const axisStyle = { fontSize: 11, fill: "rgba(255,255,255,0.35)" };
+const axisStyle = { fontSize: 11, fill: dark ? "rgba(255,255,255,0.35)" : "rgba(10,10,11,0.35)" };
 
 function MetricDetailSheet({ metric, onClose }) {
+  const dark = useClientDark();
   const [range, setRange] = useState("7D");
   if (!metric) return null;
   const n = range === "7D" ? 7 : 30;
@@ -3095,18 +3257,18 @@ function MetricDetailSheet({ metric, onClose }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[95] bg-black flex flex-col">
-        <div className="flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5">
-          <button onClick={onClose} className="text-white/60">
+      <div className={dark ? "fixed inset-0 z-[95] bg-black flex flex-col" : "fixed inset-0 z-[95] bg-white flex flex-col"}>
+        <div className={dark ? "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+          <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
             <X size={20} />
           </button>
-          <span className="text-white font-semibold">{metric.label}</span>
+          <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{metric.label}</span>
           <div className="w-5" />
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-5">
-          <p className="text-white text-3xl font-bold tabular-nums">{valueLabel}</p>
-          <p className="text-white/40 text-xs mt-1">Latest · {metric.date}</p>
+          <p className={dark ? "text-white text-3xl font-bold tabular-nums" : "text-black text-3xl font-bold tabular-nums"}>{valueLabel}</p>
+          <p className={dark ? "text-white/40 text-xs mt-1" : "text-black/40 text-xs mt-1"}>Latest · {metric.date}</p>
 
           <div className="flex gap-2 mt-5">
             {["7D", "30D"].map((r) => (
@@ -3124,9 +3286,9 @@ function MetricDetailSheet({ metric, onClose }) {
 
           <div className="mt-5">
             {!metric.series ? (
-              <p className="text-white/30 text-sm text-center py-16">No detailed history available for this metric.</p>
+              <p className={dark ? "text-white/30 text-sm text-center py-16" : "text-black/30 text-sm text-center py-16"}>No detailed history available for this metric.</p>
             ) : data.length < 2 ? (
-              <p className="text-white/30 text-sm text-center py-16">Not enough history yet for this range.</p>
+              <p className={dark ? "text-white/30 text-sm text-center py-16" : "text-black/30 text-sm text-center py-16"}>Not enough history yet for this range.</p>
             ) : (
               <>
                 <div className="h-64">
@@ -3141,13 +3303,19 @@ function MetricDetailSheet({ metric, onClose }) {
                       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
                       <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
                       <Tooltip
-                        contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }}
+                        contentStyle={{
+                          background: dark ? "#1C1C1C" : "#FFFFFF",
+                          border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.1)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                          color: dark ? "#FFFFFF" : "#0A0A0B",
+                        }}
                       />
                       <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#mdGrad)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-                <p className="text-white/30 text-[11px] text-center mt-4">Showing the last {data.length} recorded entries.</p>
+                <p className={dark ? "text-white/30 text-[11px] text-center mt-4" : "text-black/30 text-[11px] text-center mt-4"}>Showing the last {data.length} recorded entries.</p>
               </>
             )}
           </div>
@@ -3158,6 +3326,7 @@ function MetricDetailSheet({ metric, onClose }) {
 }
 
 function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
+  const dark = useClientDark();
   const [weight, setWeight] = useState("");
 
   useEffect(() => {
@@ -3194,6 +3363,7 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
 }
 
 function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
+  const dark = useClientDark();
   const [logOpen, setLogOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const chartData = weighIns.map((w) => ({
@@ -3206,13 +3376,13 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[95] bg-black flex flex-col">
-        <div className="flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5">
-          <button onClick={onClose} className="text-white/60">
+      <div className={dark ? "fixed inset-0 z-[95] bg-black flex flex-col" : "fixed inset-0 z-[95] bg-white flex flex-col"}>
+        <div className={dark ? "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+          <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
             <X size={20} />
           </button>
-          <span className="text-white font-semibold">Body Weight</span>
-          <button onClick={() => setLogOpen(true)} className="text-white font-bold text-sm">
+          <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Body Weight</span>
+          <button onClick={() => setLogOpen(true)} className={dark ? "text-white font-bold text-sm" : "text-black font-bold text-sm"}>
             + Log
           </button>
         </div>
@@ -3220,16 +3390,16 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
         <div className="flex-1 overflow-y-auto px-3 py-5">
           {weighIns.length === 0 ? (
             <div className="py-16 text-center">
-              <Scale size={28} className="mx-auto text-white/15 mb-3" />
-              <p className="text-white/40 text-sm mb-4">No weigh-ins logged yet.</p>
+              <Scale size={28} className={dark ? "mx-auto text-white/15 mb-3" : "mx-auto text-black/15 mb-3"} />
+              <p className={dark ? "text-white/40 text-sm mb-4" : "text-black/40 text-sm mb-4"}>No weigh-ins logged yet.</p>
               <PrimaryButton dark onClick={() => setLogOpen(true)} className="mx-auto">
                 <Plus size={16} /> LOG YOUR FIRST WEIGHT
               </PrimaryButton>
             </div>
           ) : (
             <>
-              <p className="text-white text-3xl font-bold tabular-nums">{latest.weight} kg</p>
-              <p className="text-white/40 text-xs mt-1">
+              <p className={dark ? "text-white text-3xl font-bold tabular-nums" : "text-black text-3xl font-bold tabular-nums"}>{latest.weight} kg</p>
+              <p className={dark ? "text-white/40 text-xs mt-1" : "text-black/40 text-xs mt-1"}>
                 {weighIns.length > 1 && change != null
                   ? `${change > 0 ? "up" : change < 0 ? "down" : "steady"} ${Math.abs(change)}kg since your first log`
                   : "Your first logged weigh-in"}
@@ -3248,7 +3418,13 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
                       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
                       <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
                       <Tooltip
-                        contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }}
+                        contentStyle={{
+                          background: dark ? "#1C1C1C" : "#FFFFFF",
+                          border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.1)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                          color: dark ? "#FFFFFF" : "#0A0A0B",
+                        }}
                       />
                       <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#whGrad)" />
                     </AreaChart>
@@ -3256,18 +3432,18 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
                 </div>
               )}
 
-              <p className="text-white/30 text-xs tracking-wide mt-6 mb-2">ALL ENTRIES · {weighIns.length}</p>
+              <p className={dark ? "text-white/30 text-xs tracking-wide mt-6 mb-2" : "text-black/30 text-xs tracking-wide mt-6 mb-2"}>ALL ENTRIES · {weighIns.length}</p>
               <div className="space-y-1">
                 {[...weighIns].reverse().map((w) => (
-                  <div key={w.id} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
-                    <span className="text-white/50 text-sm">
+                  <div key={w.id} className={dark ? "flex items-center justify-between py-2.5 border-b border-white/5 last:border-0" : "flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"}>
+                    <span className={dark ? "text-white/50 text-sm" : "text-black/50 text-sm"}>
                       {new Date(w.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-white font-semibold text-sm">{w.weight} kg</span>
+                      <span className={dark ? "text-white font-semibold text-sm" : "text-black font-semibold text-sm"}>{w.weight} kg</span>
                       {confirmDeleteId === w.id ? (
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => setConfirmDeleteId(null)} className="text-white/40 text-xs font-semibold px-2 py-1">
+                          <button onClick={() => setConfirmDeleteId(null)} className={dark ? "text-white/40 text-xs font-semibold px-2 py-1" : "text-black/40 text-xs font-semibold px-2 py-1"}>
                             Cancel
                           </button>
                           <button
@@ -3281,7 +3457,7 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => setConfirmDeleteId(w.id)} className="text-white/25 hover:text-red-500 p-1" aria-label="Delete this entry">
+                        <button onClick={() => setConfirmDeleteId(w.id)} className={dark ? "text-white/25 hover:text-red-500 p-1" : "text-black/25 hover:text-red-500 p-1"} aria-label="Delete this entry">
                           <X size={14} />
                         </button>
                       )}
@@ -3308,18 +3484,19 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
 }
 
 function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
+  const dark = useClientDark();
   const fileRef = useRef(null);
   const [viewing, setViewing] = useState(null);
 
   return (
     <Card dark>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-white font-semibold">Progress Photos</p>
-        <ImageIcon size={16} className="text-white/30" />
+        <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Progress Photos</p>
+        <ImageIcon size={16} className={dark ? "text-white/30" : "text-black/30"} />
       </div>
-      <div className="flex items-start gap-2 mb-3 bg-white/[0.03] rounded-xl p-3">
-        <Info size={14} className="text-white/30 shrink-0 mt-0.5" />
-        <p className="text-white/40 text-[11px] leading-relaxed">
+      <div className={dark ? "flex items-start gap-2 mb-3 bg-white/[0.03] rounded-xl p-3" : "flex items-start gap-2 mb-3 bg-black/[0.03] rounded-xl p-3"}>
+        <Info size={14} className={dark ? "text-white/30 shrink-0 mt-0.5" : "text-black/30 shrink-0 mt-0.5"} />
+        <p className={dark ? "text-white/40 text-[11px] leading-relaxed" : "text-black/40 text-[11px] leading-relaxed"}>
           For photos you can actually compare over time: take them first thing in the morning, in clear/consistent lighting, wearing the
           same clothes (or similar) as your very first set, from the same angles each time.
         </p>
@@ -3339,13 +3516,13 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
         <button
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="aspect-square rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-1 text-white/40 disabled:opacity-40"
+          className={dark ? "aspect-square rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-1 text-white/40 disabled:opacity-40" : "aspect-square rounded-xl border border-dashed border-black/15 bg-black/[0.03] flex flex-col items-center justify-center gap-1 text-black/40 disabled:opacity-40"}
         >
           <Plus size={18} />
           <span className="text-[10px] font-medium">{busy ? "Uploading…" : "Add photo"}</span>
         </button>
         {photos.map((p) => (
-          <button key={p.id} onClick={() => setViewing(p)} className="relative aspect-square rounded-xl overflow-hidden bg-white/5">
+          <button key={p.id} onClick={() => setViewing(p)} className={dark ? "relative aspect-square rounded-xl overflow-hidden bg-white/5" : "relative aspect-square rounded-xl overflow-hidden bg-black/5"}>
             <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
             <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent text-white text-[10px] font-medium px-1.5 py-1 text-center">
               {new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -3353,7 +3530,7 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
           </button>
         ))}
       </div>
-      {photos.length === 0 && <p className="text-white/25 text-xs mt-3">No photos yet — add one to start a visual timeline.</p>}
+      {photos.length === 0 && <p className={dark ? "text-white/25 text-xs mt-3" : "text-black/25 text-xs mt-3"}>No photos yet — add one to start a visual timeline.</p>}
 
       <BottomSheet dark open={!!viewing} onClose={() => setViewing(null)} title={viewing ? new Date(viewing.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : ""}>
         {viewing && (
@@ -3362,11 +3539,11 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
             {(() => {
               const w = closestWeighIn(weighIns, viewing.date);
               return w ? (
-                <p className="text-white/50 text-sm text-center mb-4">
+                <p className={dark ? "text-white/50 text-sm text-center mb-4" : "text-black/50 text-sm text-center mb-4"}>
                   {w.weight} kg around this time
                 </p>
               ) : (
-                <p className="text-white/30 text-xs text-center mb-4">No weigh-in logged near this date.</p>
+                <p className={dark ? "text-white/30 text-xs text-center mb-4" : "text-black/30 text-xs text-center mb-4"}>No weigh-in logged near this date.</p>
               );
             })()}
             <DangerButton dark
@@ -3437,6 +3614,7 @@ const BODY_METRICS_CONFIG = [
 ];
 
 function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey }) {
+  const dark = useClientDark();
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
@@ -3532,15 +3710,15 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-4 flex items-center justify-between">
-        <h1 className="text-white text-2xl font-bold">Progress</h1>
-        <BarChart3 size={20} className="text-white/40" />
+        <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Progress</h1>
+        <BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />
       </div>
 
       <div className="px-3 space-y-4">
         <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} />
 
         <div>
-          <p className="text-white font-semibold mb-3">My Progress</p>
+          <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>My Progress</p>
           <div className="grid grid-cols-2 gap-3">
             {tiles.map((t) => (
               <MetricTile dark
@@ -3556,11 +3734,11 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         </div>
 
         <Card dark>
-          <p className="text-white font-semibold mb-3">Strength Personal Bests</p>
+          <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Strength Personal Bests</p>
           <div className="space-y-2.5">
             {personalBests.map((s) => (
               <div key={s.name} className="flex items-center justify-between">
-                <span className="text-white/70 text-sm flex items-center gap-2">
+                <span className={dark ? "text-white/70 text-sm flex items-center gap-2" : "text-black/70 text-sm flex items-center gap-2"}>
                   <Trophy size={14} className={s.value ? "text-white" : "text-white/25"} /> {s.name}
                 </span>
                 <span className={s.value ? "text-white text-sm font-semibold" : "text-white/30 text-xs"}>
@@ -3578,8 +3756,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         <Card dark>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white font-semibold">Body Weight</p>
-              <p className="text-white/40 text-xs mt-0.5">
+              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Body Weight</p>
+              <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
                 {weighIns.length === 0
                   ? "No weigh-ins logged yet"
                   : weighIns.length === 1
@@ -3591,7 +3769,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             </div>
             <button
               onClick={() => setQuickLogOpen(true)}
-              className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center text-white shrink-0"
+              className={dark ? "w-8 h-8 rounded-full bg-white/8 flex items-center justify-center text-white shrink-0" : "w-8 h-8 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"}
             >
               <Plus size={15} />
             </button>
@@ -3608,7 +3786,13 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
                   </defs>
                   <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
                   <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-                  <Tooltip contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }} />
+                  <Tooltip contentStyle={{
+                          background: dark ? "#1C1C1C" : "#FFFFFF",
+                          border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.1)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                          color: dark ? "#FFFFFF" : "#0A0A0B",
+                        }} />
                   <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#wGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -3616,7 +3800,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           ) : (
             <button
               onClick={() => setWeightHistoryOpen(true)}
-              className="w-full mt-3 text-center text-white/30 text-xs py-6 border border-dashed border-white/10 rounded-xl"
+              className={dark ? "w-full mt-3 text-center text-white/30 text-xs py-6 border border-dashed border-white/10 rounded-xl" : "w-full mt-3 text-center text-black/30 text-xs py-6 border border-dashed border-black/10 rounded-xl"}
             >
               {weighIns.length === 0 ? "Log a weight to start your history" : "Log another weigh-in to see a trend"}
             </button>
@@ -3662,28 +3846,34 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
               <BarChart data={weeklyVolume}>
                 <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
                 <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
-                <Tooltip contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }} />
+                <Tooltip contentStyle={{
+                          background: dark ? "#1C1C1C" : "#FFFFFF",
+                          border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.1)",
+                          borderRadius: 12,
+                          fontSize: 12,
+                          color: dark ? "#FFFFFF" : "#0A0A0B",
+                        }} />
                 <Bar dataKey="volume" fill={MEASURE_BLUE} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         ) : (
           <Card dark>
-            <p className="text-white font-semibold">Weekly Training Volume</p>
-            <p className="text-white/30 text-sm mt-2">Complete a few more weeks of logged workouts to see your volume trend.</p>
+            <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Weekly Training Volume</p>
+            <p className={dark ? "text-white/30 text-sm mt-2" : "text-black/30 text-sm mt-2"}>Complete a few more weeks of logged workouts to see your volume trend.</p>
           </Card>
         )}
 
         <Card dark>
-          <p className="text-white font-semibold mb-3">Achievements</p>
+          <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Achievements</p>
           {achievements.length === 0 ? (
-            <p className="text-white/30 text-sm">Complete workouts to start unlocking milestones here.</p>
+            <p className={dark ? "text-white/30 text-sm" : "text-black/30 text-sm"}>Complete workouts to start unlocking milestones here.</p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {achievements.map((a) => (
-                <div key={a.id} className="bg-white/5 rounded-xl p-3 flex items-center gap-2.5">
+                <div key={a.id} className={dark ? "bg-white/5 rounded-xl p-3 flex items-center gap-2.5" : "bg-black/5 rounded-xl p-3 flex items-center gap-2.5"}>
                   <span className="text-xl grayscale">{a.icon}</span>
-                  <span className="text-white/70 text-xs font-medium">{a.label}</span>
+                  <span className={dark ? "text-white/70 text-xs font-medium" : "text-black/70 text-xs font-medium"}>{a.label}</span>
                 </div>
               ))}
             </div>
@@ -3771,6 +3961,7 @@ const PREF_TITLES = {
 };
 
 function PreferencesSheet({ section, open, onClose, user }) {
+  const dark = useClientDark();
   const { updateUser, notifyCoach } = useApp();
   const prefs = user.preferences || {};
   const [goals, setGoals] = useState(prefs.goals || "");
@@ -3827,7 +4018,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
         )}
         {section === "equipment" && (
           <div>
-            <p className="text-white/40 text-xs tracking-wide mb-2">WHAT DO YOU HAVE ACCESS TO?</p>
+            <p className={dark ? "text-white/40 text-xs tracking-wide mb-2" : "text-black/40 text-xs tracking-wide mb-2"}>WHAT DO YOU HAVE ACCESS TO?</p>
             <div className="flex flex-wrap gap-2">
               {EQUIPMENT_OPTIONS.map((opt) => (
                 <Chip key={opt} active={equipment.includes(opt)} onClick={() => toggle(equipment, setEquipment, opt)}>
@@ -3840,7 +4031,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
         {section === "training" && (
           <>
             <div>
-              <p className="text-white/40 text-xs tracking-wide mb-2">PREFERRED TRAINING DAYS</p>
+              <p className={dark ? "text-white/40 text-xs tracking-wide mb-2" : "text-black/40 text-xs tracking-wide mb-2"}>PREFERRED TRAINING DAYS</p>
               <div className="flex flex-wrap gap-2">
                 {DAY_OPTIONS.map((d) => (
                   <Chip key={d} active={trainingDays.includes(d)} onClick={() => toggle(trainingDays, setTrainingDays, d)}>
@@ -3850,7 +4041,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
               </div>
             </div>
             <div>
-              <p className="text-white/40 text-xs tracking-wide mb-2">PREFERRED SESSION LENGTH</p>
+              <p className={dark ? "text-white/40 text-xs tracking-wide mb-2" : "text-black/40 text-xs tracking-wide mb-2"}>PREFERRED SESSION LENGTH</p>
               <div className="flex flex-wrap gap-2">
                 {SESSION_LENGTH_OPTIONS.map((s) => (
                   <Chip key={s} active={sessionLength === s} onClick={() => setSessionLength(sessionLength === s ? "" : s)}>
@@ -3867,7 +4058,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
         {section === "nutrition" && (
           <>
             <div>
-              <p className="text-white/40 text-xs tracking-wide mb-2">DIET TYPE</p>
+              <p className={dark ? "text-white/40 text-xs tracking-wide mb-2" : "text-black/40 text-xs tracking-wide mb-2"}>DIET TYPE</p>
               <div className="flex flex-wrap gap-2">
                 {DIET_OPTIONS.map((d) => (
                   <Chip key={d} active={dietType === d} onClick={() => setDietType(dietType === d ? "" : d)}>
@@ -3883,7 +4074,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
         )}
         {error && <p className="text-red-500 text-xs">{error}</p>}
       </div>
-      <button onClick={save} disabled={saving} className="w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl disabled:opacity-40">
+      <button onClick={save} disabled={saving} className={dark ? "w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl disabled:opacity-40" : "w-full mt-6 bg-black text-white font-bold py-4 rounded-2xl disabled:opacity-40"}>
         {saving ? "SAVING…" : "SAVE"}
       </button>
     </BottomSheet>
@@ -3891,12 +4082,13 @@ function PreferencesSheet({ section, open, onClose, user }) {
 }
 
 function ConnectedDevicesSheet({ open, onClose }) {
+  const dark = useClientDark();
   return (
     <BottomSheet dark open={open} onClose={onClose} title="Connected devices">
       <div className="text-center py-6">
-        <Heart size={28} className="text-white/20 mx-auto mb-3" />
-        <p className="text-white font-semibold">Not available yet</p>
-        <p className="text-white/40 text-sm mt-1.5 max-w-xs mx-auto">
+        <Heart size={28} className={dark ? "text-white/20 mx-auto mb-3" : "text-black/20 mx-auto mb-3"} />
+        <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Not available yet</p>
+        <p className={dark ? "text-white/40 text-sm mt-1.5 max-w-xs mx-auto" : "text-black/40 text-sm mt-1.5 max-w-xs mx-auto"}>
           Syncing with wearables like Apple Health, Garmin or Whoop isn't built yet — it's on the roadmap for a future update.
         </p>
       </div>
@@ -3905,6 +4097,7 @@ function ConnectedDevicesSheet({ open, onClose }) {
 }
 
 function PushNotificationsSheet({ open, onClose, showToast, userId }) {
+  const dark = useClientDark();
   const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -3933,46 +4126,48 @@ function PushNotificationsSheet({ open, onClose, showToast, userId }) {
 
   return (
     <BottomSheet dark open={open} onClose={onClose} title="Push Notifications">
-      <p className="text-white/50 text-sm mb-4">
+      <p className={dark ? "text-white/50 text-sm mb-4" : "text-black/50 text-sm mb-4"}>
         Get notified on this device when your coach messages you or reviews a check-in — even when the app is closed.
       </p>
-      <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3.5">
-        <span className="text-white font-medium text-sm">{enabled ? "Enabled on this device" : "Turn on"}</span>
+      <div className={dark ? "flex items-center justify-between bg-white/5 rounded-xl px-4 py-3.5" : "flex items-center justify-between bg-black/5 rounded-xl px-4 py-3.5"}>
+        <span className={dark ? "text-white font-medium text-sm" : "text-black font-medium text-sm"}>{enabled ? "Enabled on this device" : "Turn on"}</span>
         <button
           onClick={toggle}
           disabled={busy}
-          className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${enabled ? "bg-blue-500" : "bg-white/15"}`}
+          className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${enabled ? "bg-blue-500" : dark ? "bg-white/15" : "bg-black/15"}`}
           aria-label={enabled ? "Turn off push notifications" : "Turn on push notifications"}
         >
           <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
         </button>
       </div>
       {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
-      <p className="text-white/30 text-[11px] mt-3">This is per-device — turn it on separately on each phone or browser you use.</p>
+      <p className={dark ? "text-white/30 text-[11px] mt-3" : "text-black/30 text-[11px] mt-3"}>This is per-device — turn it on separately on each phone or browser you use.</p>
     </BottomSheet>
   );
 }
 
 function NotificationRow({ icon: Icon, title, subtitle, onClick }) {
+  const dark = useClientDark();
   return (
-    <button onClick={onClick} className="w-full text-left flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-3">
-      <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center shrink-0">
-        <Icon size={16} className="text-white/70" />
+    <button onClick={onClick} className={dark ? "w-full text-left flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-3" : "w-full text-left flex items-center gap-3 bg-black/5 rounded-xl px-3.5 py-3"}>
+      <div className={dark ? "w-9 h-9 rounded-lg bg-black flex items-center justify-center shrink-0" : "w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0"}>
+        <Icon size={16} className={dark ? "text-white/70" : "text-black/70"} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-semibold">{title}</p>
-        <p className="text-white/40 text-xs mt-0.5 truncate">{subtitle}</p>
+        <p className={dark ? "text-white text-sm font-semibold" : "text-black text-sm font-semibold"}>{title}</p>
+        <p className={dark ? "text-white/40 text-xs mt-0.5 truncate" : "text-black/40 text-xs mt-0.5 truncate"}>{subtitle}</p>
       </div>
-      <ChevronRight size={16} className="text-white/25 shrink-0" />
+      <ChevronRight size={16} className={dark ? "text-white/25 shrink-0" : "text-black/25 shrink-0"} />
     </button>
   );
 }
 
 function NotificationsCenterSheet({ open, onClose, items }) {
+  const dark = useClientDark();
   return (
     <BottomSheet dark open={open} onClose={onClose} title="Notifications">
       {items.length === 0 ? (
-        <p className="text-white/40 text-sm text-center py-8">You're all caught up.</p>
+        <p className={dark ? "text-white/40 text-sm text-center py-8" : "text-black/40 text-sm text-center py-8"}>You're all caught up.</p>
       ) : (
         <div className="space-y-2">
           {items.map((it, i) => (
@@ -4005,6 +4200,7 @@ function ProfileScreen({
   dueCheckInsCount,
   onOpenCheckIns,
 }) {
+  const dark = useClientDark();
   const workoutStreak = computeWorkoutStreak(logsForClient, scheduledWorkouts);
   const prsThisMonth = computePRsInLastNDays(logsForClient, 30);
   const [prefSection, setPrefSection] = useState(null);
@@ -4022,31 +4218,31 @@ function ProfileScreen({
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-4">
-        <h1 className="text-white text-2xl font-bold">Profile</h1>
+        <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Profile</h1>
       </div>
       <div className="px-3">
         <Card dark>
           <div className="flex items-center gap-4">
             <AvatarPicker dark name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
             <div>
-              <p className="text-white text-lg font-bold">{user.name}</p>
-              <p className="text-white/40 text-sm">
+              <p className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>{user.name}</p>
+              <p className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>
                 {user.fitnessLevel || "Beginner"} · {user.username}
               </p>
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
-              <p className="text-white font-bold">{workoutStreak}🔥</p>
-              <p className="text-white/40 text-[11px]">workout streak</p>
+            <div className={dark ? "flex-1 bg-white/5 rounded-xl py-2.5 text-center" : "flex-1 bg-black/5 rounded-xl py-2.5 text-center"}>
+              <p className="text-white font-bold">{workoutStreak}🦾</p>
+              <p className={dark ? "text-white/40 text-[11px]" : "text-black/40 text-[11px]"}>workout streak</p>
             </div>
-            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
-              <p className="text-white font-bold">{logsForClient.length}</p>
-              <p className="text-white/40 text-[11px]">total workouts</p>
+            <div className={dark ? "flex-1 bg-white/5 rounded-xl py-2.5 text-center" : "flex-1 bg-black/5 rounded-xl py-2.5 text-center"}>
+              <p className={dark ? "text-white font-bold" : "text-black font-bold"}>{logsForClient.length}</p>
+              <p className={dark ? "text-white/40 text-[11px]" : "text-black/40 text-[11px]"}>total workouts</p>
             </div>
-            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
-              <p className="text-white font-bold">{prsThisMonth}</p>
-              <p className="text-white/40 text-[11px]">PRs this month</p>
+            <div className={dark ? "flex-1 bg-white/5 rounded-xl py-2.5 text-center" : "flex-1 bg-black/5 rounded-xl py-2.5 text-center"}>
+              <p className={dark ? "text-white font-bold" : "text-black font-bold"}>{prsThisMonth}</p>
+              <p className={dark ? "text-white/40 text-[11px]" : "text-black/40 text-[11px]"}>PRs this month</p>
             </div>
           </div>
         </Card>
@@ -4055,50 +4251,50 @@ function ProfileScreen({
       <div className="px-3 mt-4 space-y-3">
         <Card dark onClick={() => setMessagesOpen(true)}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative">
-              <MessageCircle size={18} className="text-white" />
+            <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative"}>
+              <MessageCircle size={18} className={dark ? "text-white" : "text-black"} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
+                <span className={dark ? "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
                   {unreadCount}
                 </span>
               )}
             </div>
             <div className="flex-1">
-              <p className="text-white font-semibold">Messages</p>
-              <p className="text-white/40 text-xs">Chat directly with your coach</p>
+              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Messages</p>
+              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Chat directly with your coach</p>
             </div>
-            <ChevronRight size={18} className="text-white/30" />
+            <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
           </div>
         </Card>
 
         <Card dark onClick={onOpenCheckIns}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative">
-              <CalendarCheck size={18} className="text-white" />
+            <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative"}>
+              <CalendarCheck size={18} className={dark ? "text-white" : "text-black"} />
               {dueCheckInsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
+                <span className={dark ? "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
                   {dueCheckInsCount}
                 </span>
               )}
             </div>
             <div className="flex-1">
-              <p className="text-white font-semibold">Check-ins</p>
-              <p className="text-white/40 text-xs">{dueCheckInsCount > 0 ? `${dueCheckInsCount} due now` : "Fill out forms from your coach"}</p>
+              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Check-ins</p>
+              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{dueCheckInsCount > 0 ? `${dueCheckInsCount} due now` : "Fill out forms from your coach"}</p>
             </div>
-            <ChevronRight size={18} className="text-white/30" />
+            <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
           </div>
         </Card>
 
         <Card dark onClick={() => setCoachOpen(true)}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-              <Activity size={18} className="text-white" />
+            <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center"}>
+              <Activity size={18} className={dark ? "text-white" : "text-black"} />
             </div>
             <div className="flex-1">
-              <p className="text-white font-semibold">Quick Tips</p>
-              <p className="text-white/40 text-xs">Canned answers to common questions</p>
+              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Quick Tips</p>
+              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Canned answers to common questions</p>
             </div>
-            <ChevronRight size={18} className="text-white/30" />
+            <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
           </div>
         </Card>
       </div>
@@ -4111,21 +4307,21 @@ function ProfileScreen({
               onClick={r.onClick}
               className={`w-full flex items-center gap-3 py-3 text-left ${i !== rows.length - 1 ? "border-b border-white/5" : ""}`}
             >
-              <r.icon size={17} className="text-white/40" />
-              <span className="text-white/80 text-sm flex-1">{r.label}</span>
+              <r.icon size={17} className={dark ? "text-white/40" : "text-black/40"} />
+              <span className={dark ? "text-white/80 text-sm flex-1" : "text-black/80 text-sm flex-1"}>{r.label}</span>
               {r.label === "Notifications" && notifCount > 0 && (
-                <span className="w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
+                <span className={dark ? "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
                   {notifCount}
                 </span>
               )}
-              <ChevronRight size={16} className="text-white/20" />
+              <ChevronRight size={16} className={dark ? "text-white/20" : "text-black/20"} />
             </button>
           ))}
         </Card>
       </div>
 
       <div className="px-3 mt-4">
-        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 font-semibold py-3.5 rounded-2xl">
+        <button onClick={onLogout} className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 font-semibold py-3.5 rounded-2xl" : "w-full flex items-center justify-center gap-2 bg-black/5 border border-black/10 text-black/70 font-semibold py-3.5 rounded-2xl"}>
           <LogOut size={15} /> Sign out
         </button>
       </div>
@@ -4142,6 +4338,7 @@ function ProfileScreen({
 }
 
 function CoachSheet({ open, onClose, ctx }) {
+  const dark = useClientDark();
   const [messages, setMessages] = useState([
     {
       role: "coach",
@@ -4181,14 +4378,14 @@ function CoachSheet({ open, onClose, ctx }) {
           return (
             isFoodList &&
             !outOfOptions && (
-              <button onClick={() => send("more")} className="text-xs bg-white text-black px-3 py-1.5 rounded-full font-semibold">
+              <button onClick={() => send("more")} className={dark ? "text-xs bg-white text-black px-3 py-1.5 rounded-full font-semibold" : "text-xs bg-black text-white px-3 py-1.5 rounded-full font-semibold"}>
                 More options
               </button>
             )
           );
         })()}
         {COACH_SUGGESTIONS.map((s) => (
-          <button key={s} onClick={() => send(s)} className="text-xs bg-white/8 text-white/60 px-3 py-1.5 rounded-full">
+          <button key={s} onClick={() => send(s)} className={dark ? "text-xs bg-white/8 text-white/60 px-3 py-1.5 rounded-full" : "text-xs bg-black/8 text-black/60 px-3 py-1.5 rounded-full"}>
             {s}
           </button>
         ))}
@@ -4199,10 +4396,10 @@ function CoachSheet({ open, onClose, ctx }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send(input)}
           placeholder="Ask your coach..."
-          className="flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
+          className={dark ? "flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
         />
-        <button onClick={() => send(input)} className="w-11 h-11 rounded-full bg-white flex items-center justify-center">
-          <ChevronRight size={18} className="text-black" />
+        <button onClick={() => send(input)} className={dark ? "w-11 h-11 rounded-full bg-white flex items-center justify-center" : "w-11 h-11 rounded-full bg-black flex items-center justify-center"}>
+          <ChevronRight size={18} className={dark ? "text-black" : "text-white"} />
         </button>
       </div>
     </BottomSheet>
@@ -4210,6 +4407,7 @@ function CoachSheet({ open, onClose, ctx }) {
 }
 
 function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
+  const dark = useClientDark();
   const [input, setInput] = useState("");
   const [uploadPct, setUploadPct] = useState(null);
   const [uploadError, setUploadError] = useState("");
@@ -4281,7 +4479,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
       <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
         {thread.length === 0 && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-white/8 text-white/85">
+            <div className={dark ? "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-white/8 text-white/85" : "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-black/8 text-black/85"}>
               <p className="whitespace-pre-line">
                 {`Hey, this is your 24/7 coach — ${coachName || "your coach"} will respond within due time. Ask any questions any time!`}
               </p>
@@ -4293,7 +4491,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
             <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-white text-black" : "bg-white/8 text-white/85"}`}>
               {m.text && <p className="whitespace-pre-line">{m.text}</p>}
               {m.attachment && m.attachment.type === "video" ? (
-                <video src={m.attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-white" />
+                <video src={m.attachment.url} controls playsInline className={dark ? "mt-2 w-full max-w-[220px] rounded-lg bg-white" : "mt-2 w-full max-w-[220px] rounded-lg bg-black"} />
               ) : m.attachment && m.attachment.type === "image" ? (
                 <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
                   <img src={m.attachment.url} alt={m.attachment.name || "Photo"} className="w-full max-w-[220px] rounded-lg object-cover" />
@@ -4333,7 +4531,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onClick={() => videoInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a form-check video"
-          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
+          className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
         >
           {uploadPct !== null ? <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span> : <Video size={17} />}
         </button>
@@ -4342,7 +4540,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onClick={() => pdfInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a PDF"
-          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
+          className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
         >
           <Paperclip size={17} />
         </button>
@@ -4351,7 +4549,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onClick={() => imageInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a photo"
-          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
+          className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
         >
           <ImageIcon size={17} />
         </button>
@@ -4360,10 +4558,10 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Message your coach..."
-          className="flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
+          className={dark ? "flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
         />
-        <button onClick={send} className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0">
-          <Send size={16} className="text-black" />
+        <button onClick={send} className={dark ? "w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0" : "w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0"}>
+          <Send size={16} className={dark ? "text-black" : "text-white"} />
         </button>
       </div>
     </BottomSheet>
@@ -4388,6 +4586,7 @@ function isCheckInDue(schedule, responses) {
 }
 
 function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
+  const dark = useClientDark();
   const [answers, setAnswers] = useState({});
   const [uploading, setUploading] = useState(null);
 
@@ -4413,19 +4612,19 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
 
   return (
     <BottomSheet dark open={open} onClose={onClose} title={form.name}>
-      {form.description && <p className="text-white/50 text-sm mb-4">{form.description}</p>}
+      {form.description && <p className={dark ? "text-white/50 text-sm mb-4" : "text-black/50 text-sm mb-4"}>{form.description}</p>}
       <div className="space-y-4">
         {form.questions.map((q) => (
           <div key={q.id}>
-            <p className="text-white/40 text-xs tracking-wide mb-1.5">
-              {q.label || "Untitled question"} {q.required && <span className="text-white/25">*</span>}
+            <p className={dark ? "text-white/40 text-xs tracking-wide mb-1.5" : "text-black/40 text-xs tracking-wide mb-1.5"}>
+              {q.label || "Untitled question"} {q.required && <span className={dark ? "text-white/25" : "text-black/25"}>*</span>}
             </p>
             {q.type === "text" && (
               <textarea
                 value={answers[q.id] || ""}
                 onChange={(e) => set(q.id, e.target.value)}
                 rows={2}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-white/25 resize-none"
+                className={dark ? "w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-white/25 resize-none" : "w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none placeholder:text-black/25 resize-none"}
               />
             )}
             {q.type === "number" && (
@@ -4433,7 +4632,7 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                 type="number"
                 value={answers[q.id] || ""}
                 onChange={(e) => set(q.id, e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none"
+                className={dark ? "w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none" : "w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none"}
               />
             )}
             {q.type === "rating" && (
@@ -4479,9 +4678,9 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                     </button>
                   </div>
                 ) : (
-                  <label className="w-full flex flex-col items-center justify-center gap-1.5 bg-white/5 border border-dashed border-white/15 rounded-xl py-6 cursor-pointer">
-                    <Camera size={18} className="text-white/40" />
-                    <span className="text-white/40 text-xs">{uploading === q.id ? "Uploading…" : "Add a photo"}</span>
+                  <label className={dark ? "w-full flex flex-col items-center justify-center gap-1.5 bg-white/5 border border-dashed border-white/15 rounded-xl py-6 cursor-pointer" : "w-full flex flex-col items-center justify-center gap-1.5 bg-black/5 border border-dashed border-black/15 rounded-xl py-6 cursor-pointer"}>
+                    <Camera size={18} className={dark ? "text-white/40" : "text-black/40"} />
+                    <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{uploading === q.id ? "Uploading…" : "Add a photo"}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhoto(q.id, e.target.files?.[0])} />
                   </label>
                 )}
@@ -4493,7 +4692,7 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
       <button
         onClick={() => onSubmit(answers)}
         disabled={!canSubmit}
-        className="w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30"
+        className={dark ? "w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30" : "w-full mt-6 bg-black text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30"}
       >
         <Check size={18} strokeWidth={3} /> SUBMIT CHECK-IN
       </button>
@@ -4502,28 +4701,30 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
 }
 
 function CheckInCard({ schedule, form, due, onFill }) {
+  const dark = useClientDark();
   if (!form) return null;
   return (
-    <div className="flex items-center gap-3 bg-black border border-white/8 rounded-2xl px-4 py-3.5">
+    <div className={dark ? "flex items-center gap-3 bg-black border border-white/8 rounded-2xl px-4 py-3.5" : "flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5"}>
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${due ? "bg-white" : "bg-white/6"}`}>
         <CalendarCheck size={17} className={due ? "text-black" : "text-white/40"} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white font-semibold text-sm truncate">{form.name}</p>
-        <p className="text-white/40 text-xs mt-0.5">Every {DAY_LABELS[schedule.dayOfWeek]}</p>
+        <p className={dark ? "text-white font-semibold text-sm truncate" : "text-black font-semibold text-sm truncate"}>{form.name}</p>
+        <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>Every {DAY_LABELS[schedule.dayOfWeek]}</p>
       </div>
       {due ? (
-        <button onClick={onFill} className="bg-white text-black text-xs font-bold px-3.5 py-2 rounded-lg shrink-0">
+        <button onClick={onFill} className={dark ? "bg-white text-black text-xs font-bold px-3.5 py-2 rounded-lg shrink-0" : "bg-black text-white text-xs font-bold px-3.5 py-2 rounded-lg shrink-0"}>
           Fill out
         </button>
       ) : (
-        <span className="text-white/30 text-xs shrink-0">Done</span>
+        <span className={dark ? "text-white/30 text-xs shrink-0" : "text-black/30 text-xs shrink-0"}>Done</span>
       )}
     </div>
   );
 }
 
 function CheckInsScreen({ userId, showToast }) {
+  const dark = useClientDark();
   const { db, submitFormResponse } = useApp();
   const [filling, setFilling] = useState(null); // schedule object
 
@@ -4543,21 +4744,21 @@ function CheckInsScreen({ userId, showToast }) {
   return (
     <div className="pb-28 space-y-4">
       <div className="px-3 pt-6 pb-2">
-        <h1 className="text-white text-2xl font-bold">Check-ins</h1>
-        <p className="text-white/40 text-sm mt-0.5">Scheduled by your coach</p>
+        <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Check-ins</h1>
+        <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scheduled by your coach</p>
       </div>
 
       {schedules.length === 0 ? (
         <Card dark className="mx-3 text-center py-10">
-          <CalendarCheck size={26} className="text-white/25 mx-auto mb-3" />
-          <p className="text-white font-semibold">No check-ins scheduled</p>
-          <p className="text-white/40 text-sm mt-1">Your coach hasn't scheduled any check-ins yet.</p>
+          <CalendarCheck size={26} className={dark ? "text-white/25 mx-auto mb-3" : "text-black/25 mx-auto mb-3"} />
+          <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>No check-ins scheduled</p>
+          <p className={dark ? "text-white/40 text-sm mt-1" : "text-black/40 text-sm mt-1"}>Your coach hasn't scheduled any check-ins yet.</p>
         </Card>
       ) : (
         <>
           {due.length > 0 && (
             <div className="px-3 space-y-2.5">
-              <p className="text-white/40 text-xs tracking-wide font-semibold">DUE NOW</p>
+              <p className={dark ? "text-white/40 text-xs tracking-wide font-semibold" : "text-black/40 text-xs tracking-wide font-semibold"}>DUE NOW</p>
               {due.map((s) => (
                 <CheckInCard key={s.id} schedule={s} form={formsById[s.formId]} due onFill={() => setFilling(s)} />
               ))}
@@ -4565,7 +4766,7 @@ function CheckInsScreen({ userId, showToast }) {
           )}
           {upcoming.length > 0 && (
             <div className="px-3 space-y-2.5">
-              <p className="text-white/40 text-xs tracking-wide font-semibold mt-2">UPCOMING</p>
+              <p className={dark ? "text-white/40 text-xs tracking-wide font-semibold mt-2" : "text-black/40 text-xs tracking-wide font-semibold mt-2"}>UPCOMING</p>
               {upcoming.map((s) => (
                 <CheckInCard key={s.id} schedule={s} form={formsById[s.formId]} due={false} />
               ))}
@@ -4576,12 +4777,12 @@ function CheckInsScreen({ userId, showToast }) {
 
       {responses.length > 0 && (
         <div className="px-3">
-          <p className="text-white/40 text-xs tracking-wide font-semibold mt-2 mb-2.5">HISTORY</p>
-          <Card dark className="!p-0 divide-y divide-white/5 overflow-hidden">
+          <p className={dark ? "text-white/40 text-xs tracking-wide font-semibold mt-2 mb-2.5" : "text-black/40 text-xs tracking-wide font-semibold mt-2 mb-2.5"}>HISTORY</p>
+          <Card className={dark ? "!p-0 divide-y divide-white/5 overflow-hidden" : "!p-0 divide-y divide-black/5 overflow-hidden"}>
             {responses.slice(0, 10).map((r) => (
               <div key={r.id} className="flex items-center justify-between px-4 py-3">
-                <span className="text-white/70 text-sm font-medium">{formsById[r.formId]?.name || "Check-in"}</span>
-                <span className="text-white/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                <span className={dark ? "text-white/70 text-sm font-medium" : "text-black/70 text-sm font-medium"}>{formsById[r.formId]?.name || "Check-in"}</span>
+                <span className={dark ? "text-white/35 text-xs" : "text-black/35 text-xs"}>{new Date(r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
               </div>
             ))}
           </Card>
@@ -4604,6 +4805,7 @@ function CheckInsScreen({ userId, showToast }) {
 // card (which for a real client is *every* card, since dragging is coach-only)
 // gets the swipe.
 function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onPointerDown, onPointerMove, onPointerUp, dragging, onDelete }) {
+  const dark = useClientDark();
   const [swipeX, setSwipeX] = useState(0);
   const [swiping, setSwiping] = useState(false);
   const swipeStartRef = useRef(0);
@@ -4657,13 +4859,13 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       }
     >
       <span
-        className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-black"}`}
+        className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : dark ? "bg-black" : "bg-white"}`}
       >
-        {done && <Check size={11} className="text-black" strokeWidth={3} />}
+        {done && <Check size={11} className={dark ? "text-black" : "text-white"} strokeWidth={3} />}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-white font-semibold text-[15px] truncate">{title}</p>
-        {subtitle && <p className="text-white/40 text-[13px] mt-0.5 truncate">{subtitle}</p>}
+        <p className={dark ? "text-white font-semibold text-[15px] truncate" : "text-black font-semibold text-[15px] truncate"}>{title}</p>
+        {subtitle && <p className={dark ? "text-white/40 text-[13px] mt-0.5 truncate" : "text-black/40 text-[13px] mt-0.5 truncate"}>{subtitle}</p>}
       </div>
       {/* A dedicated grab handle, not the whole card, owns the drag gesture
           (touchAction: none, text-selection disabled) — the card body
@@ -4680,13 +4882,13 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="w-11 h-11 -mr-2.5 shrink-0 flex items-center justify-center text-white/40 cursor-grab active:cursor-grabbing select-none"
+          className={dark ? "w-11 h-11 -mr-2.5 shrink-0 flex items-center justify-center text-white/40 cursor-grab active:cursor-grabbing select-none" : "w-11 h-11 -mr-2.5 shrink-0 flex items-center justify-center text-black/40 cursor-grab active:cursor-grabbing select-none"}
           style={{ touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
         >
           <GripVertical size={20} />
         </span>
       ) : (
-        onClick && <ChevronRight size={18} className="text-white/25 shrink-0" />
+        onClick && <ChevronRight size={18} className={dark ? "text-white/25 shrink-0" : "text-black/25 shrink-0"} />
       )}
     </Wrapper>
   );
@@ -4709,19 +4911,20 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
 // until the coach lifts the pause. Messaging stays open so they can sort it
 // out directly rather than being locked out with no way to reach the coach.
 function AccessPausedScreen({ onMessageCoach, onLogout }) {
+  const dark = useClientDark();
   return (
     <div className="flex flex-col items-center justify-center text-center px-6" style={{ minHeight: "70vh" }}>
       <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
         <Lock size={24} className="text-red-600" />
       </div>
-      <p className="text-white font-bold text-lg mb-1.5">Access paused</p>
-      <p className="text-white/50 text-sm max-w-xs mb-6">
+      <p className={dark ? "text-white font-bold text-lg mb-1.5" : "text-black font-bold text-lg mb-1.5"}>Access paused</p>
+      <p className={dark ? "text-white/50 text-sm max-w-xs mb-6" : "text-black/50 text-sm max-w-xs mb-6"}>
         Your coach has temporarily paused your access to your program and profile. Message them to sort it out.
       </p>
-      <button onClick={onMessageCoach} className="bg-white text-black text-sm font-bold px-5 py-3 rounded-xl w-full max-w-xs mb-2.5">
+      <button onClick={onMessageCoach} className={dark ? "bg-white text-black text-sm font-bold px-5 py-3 rounded-xl w-full max-w-xs mb-2.5" : "bg-black text-white text-sm font-bold px-5 py-3 rounded-xl w-full max-w-xs mb-2.5"}>
         Message your coach
       </button>
-      <button onClick={onLogout} className="text-white/40 hover:text-white/60 text-sm font-medium py-2">
+      <button onClick={onLogout} className={dark ? "text-white/40 hover:text-white/60 text-sm font-medium py-2" : "text-black/40 hover:text-black/60 text-sm font-medium py-2"}>
         Log out
       </button>
     </div>
@@ -4750,6 +4953,7 @@ function ClientCalendarScreen({
   onDeleteBodyStatsSchedule,
   onDeleteWeighIn,
 }) {
+  const dark = useClientDark();
   const [daysBack, setDaysBack] = useState(30);
   const [daysForward, setDaysForward] = useState(60);
   const scrollRef = useRef(null);
@@ -4992,10 +5196,10 @@ function ClientCalendarScreen({
     <div className="flex flex-col h-full">
       <div className="px-3 pt-6 pb-3 shrink-0 flex items-center justify-between">
         <div>
-          <h1 className="text-white text-2xl font-bold">Calendar</h1>
-          <p className="text-white/40 text-sm mt-0.5">Scroll to see anything past or upcoming.</p>
+          <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Calendar</h1>
+          <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scroll to see anything past or upcoming.</p>
         </div>
-        <button onClick={jumpToToday} className="text-white/50 hover:text-white text-sm font-semibold shrink-0">
+        <button onClick={jumpToToday} className={dark ? "text-white/50 hover:text-white text-sm font-semibold shrink-0" : "text-black/50 hover:text-black text-sm font-semibold shrink-0"}>
           Today
         </button>
       </div>
@@ -5027,11 +5231,11 @@ function ClientCalendarScreen({
                 isDropTarget && dragOverDate === dateStr ? "bg-blue-50 rounded-2xl ring-2 ring-blue-300" : ""
               }`}
             >
-              <p className={`font-bold text-base mb-2 ${isToday ? "text-blue-600" : "text-white"}`}>
+              <p className={`font-bold text-base mb-2 ${isToday ? "text-blue-600" : dark ? "text-white" : "text-black"}`}>
                 {isToday ? "Today, " : ""}
                 {d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
               </p>
-              <div className="border-b border-white/10 mb-3" />
+              <div className={dark ? "border-b border-white/10 mb-3" : "border-b border-black/10 mb-3"} />
               <div className="space-y-2.5">
                 {scheduledList.map((scheduled) => {
                   const logMatchesScheduled = !!(log && log.dayLabel === scheduled.label);
@@ -5111,7 +5315,7 @@ function ClientCalendarScreen({
                   />
                 )}
                 {!hasContent && (
-                  <p className="text-white/25 text-sm px-1">Nothing scheduled.</p>
+                  <p className={dark ? "text-white/25 text-sm px-1" : "text-black/25 text-sm px-1"}>Nothing scheduled.</p>
                 )}
               </div>
             </div>
@@ -5125,7 +5329,7 @@ function ClientCalendarScreen({
           lookup that finds the day underneath it. */}
       {dragItem && dragPos && (
         <div
-          className="fixed z-[200] pointer-events-none flex items-center gap-2 bg-white text-black text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl"
+          className={dark ? "fixed z-[200] pointer-events-none flex items-center gap-2 bg-white text-black text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl" : "fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl"}
           style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
         >
           {dragItem.label}
@@ -5192,6 +5396,7 @@ export default function ClientApp() {
     unscheduleBodyStatsCheckin,
     dbReady,
   } = useApp();
+  const dark = db.appDesign?.clientDarkMode === true;
   const navigate = useNavigate();
   const [tab, setTab] = useState("home");
   const [activeLog, setActiveLog] = useState(null); // {exerciseId: [sets]} while a session is open
@@ -5602,7 +5807,8 @@ export default function ClientApp() {
   }
 
   return (
-    <div className="w-full h-full min-h-screen font-sans flex justify-center bg-[#090909]">
+    <ClientThemeContext.Provider value={dark}>
+    <div className={`w-full h-full min-h-screen font-sans flex justify-center ${dark ? "bg-[#090909]" : "bg-white"}`}>
       <div className="w-full max-w-md relative">
         {viewingAsClient && (
           <div className="sticky top-0 z-[70] bg-blue-600 text-white flex items-center justify-between gap-2 px-4 py-2 pt-safe">
@@ -5612,7 +5818,7 @@ export default function ClientApp() {
             </button>
           </div>
         )}
-        <BrandBar dark />
+        <BrandBar dark={dark} />
         {currentUser.accessPaused && !viewingAsClient ? (
           <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
         ) : (
@@ -5672,6 +5878,7 @@ export default function ClientApp() {
               showToast(`${cardio.activityLabel} logged`);
             }}
             dbReady={dbReady}
+            showToast={showToast}
           />
         )}
         {tab === "nutrition" && (
@@ -5763,16 +5970,21 @@ export default function ClientApp() {
         {coachUser && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
-          <div className="w-full max-w-md bg-[#0C0C0C]/95 backdrop-blur border-t border-white/8 flex px-2 pb-safe">
+          <div
+            className={`w-full max-w-md backdrop-blur border-t flex px-2 pb-safe ${dark ? "border-white/8" : "border-black/8"}`}
+            style={{ backgroundColor: dark ? "rgba(12,12,12,0.95)" : "rgba(255,255,255,0.95)" }}
+          >
             {TABS.map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
+              const activeClass = dark ? "text-white" : "text-black";
+              const inactiveClass = dark ? "text-white/35" : "text-black/35";
               return (
                 <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3 relative">
-                  <Icon size={21} className={active ? "text-white" : "text-white/35"} strokeWidth={active ? 2.4 : 2} />
-                  <span className={`text-[10px] font-medium ${active ? "text-white" : "text-white/35"}`}>{t.label}</span>
+                  <Icon size={21} className={active ? activeClass : inactiveClass} strokeWidth={active ? 2.4 : 2} />
+                  <span className={`text-[10px] font-medium ${active ? activeClass : inactiveClass}`}>{t.label}</span>
                   {t.id === "profile" && dueCheckInsCount > 0 && (
-                    <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-white" />
+                    <span className={`absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full ${dark ? "bg-white" : "bg-black"}`} />
                   )}
                 </button>
               );
@@ -5847,8 +6059,9 @@ export default function ClientApp() {
           coachName={coachUser?.name}
         />
         <NotificationsCenterSheet open={notifOpen} onClose={() => setNotifOpen(false)} items={notificationItems} />
-        <Toast dark message={toast.message} show={toast.show} />
+        <Toast dark={dark} message={toast.message} show={toast.show} />
       </div>
     </div>
+    </ClientThemeContext.Provider>
   );
 }

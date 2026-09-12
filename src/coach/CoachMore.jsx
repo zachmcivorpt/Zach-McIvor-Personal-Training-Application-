@@ -290,6 +290,17 @@ function DesignAssetRow({
 function DesignSettingsCard() {
   const { db, updateAppDesign, currentUser, updateUser } = useApp();
   const design = db.appDesign || {};
+  const clientDark = design.clientDarkMode === true;
+  const [savingTheme, setSavingTheme] = useState(false);
+
+  async function toggleClientTheme() {
+    setSavingTheme(true);
+    try {
+      await updateAppDesign({ clientDarkMode: !clientDark });
+    } finally {
+      setSavingTheme(false);
+    }
+  }
   const [uploadingBg, setUploadingBg] = useState(false);
   const [bgProgress, setBgProgress] = useState(0);
   const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
@@ -362,6 +373,26 @@ function DesignSettingsCard() {
       </div>
 
       <div className="space-y-5">
+        <div>
+          <p className="text-black/30 text-[11px] mb-1.5">CLIENT APP THEME</p>
+          <div className="flex items-center justify-between bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
+            <div>
+              <p className="text-black text-sm font-medium">{clientDark ? "Dark" : "Light"}</p>
+              <p className="text-black/40 text-xs mt-0.5">Switches every client's app instantly — no update needed</p>
+            </div>
+            <button
+              onClick={toggleClientTheme}
+              disabled={savingTheme}
+              className={`w-11 h-6 rounded-full relative transition-colors shrink-0 disabled:opacity-50 ${clientDark ? "bg-blue-500" : "bg-black/15"}`}
+              aria-label={`Switch client app to ${clientDark ? "light" : "dark"} mode`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${clientDark ? "left-[22px]" : "left-0.5"}`} />
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-black/8" />
+
         <DesignAssetRow
           label="Login Background"
           description="The photo or short video shown behind the sign-in screen"
@@ -402,7 +433,7 @@ function DesignSettingsCard() {
 
         <DesignAssetRow
           label="Logo — Dark Backgrounds"
-          description="Login screen and your coach console header — needs a light-colored mark"
+          description="Login screen, your coach console header, and your client app when its theme is set to Dark above — needs a light-colored mark"
           previewUrl={design.appLogoUrlOnDark}
           previewClassName="max-w-[65%] max-h-[65%] object-contain"
           aspectClassName="h-24 !bg-black"
@@ -415,7 +446,7 @@ function DesignSettingsCard() {
 
         <DesignAssetRow
           label="Logo — Light Backgrounds"
-          description="Your client app — needs a dark-colored mark"
+          description="Your client app when its theme is set to Light above — needs a dark-colored mark"
           previewUrl={design.appLogoUrlOnLight}
           previewClassName="max-w-[65%] max-h-[65%] object-contain"
           aspectClassName="h-24"
