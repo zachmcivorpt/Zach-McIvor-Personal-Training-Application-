@@ -368,18 +368,54 @@ export function computePlateaus(logs, exercisesById) {
   return plateaus.sort((a, b) => b.sessions - a.sessions);
 }
 
-// Milestone badges — only ones actually earned show up.
-export function computeAchievements(logs) {
+// Round-number lift milestones (kg) — the highest one actually crossed
+// shows up as a badge, not every threshold passed along the way.
+const LIFT_WEIGHT_MILESTONES = [60, 100, 140, 180, 220];
+// Same idea for cumulative weight lost since the client's first weigh-in.
+const WEIGHT_LOSS_MILESTONES = [5, 10, 15, 20, 25, 30];
+
+// Milestone badges — only ones actually earned show up. `weighIns` and
+// `exercisesById` are optional so existing callers passing just `logs`
+// keep working; without them, only the workout-count/PR/streak badges
+// (which need no other data) are computed.
+export function computeAchievements(logs, weighIns, exercisesById) {
   const badges = [];
   const total = logs.length;
   const milestone = [100, 50, 25, 10, 5, 1].find((m) => total >= m);
   if (milestone) badges.push({ id: `w${milestone}`, icon: "🏆", label: `${milestone}+ workouts completed` });
+
+  const anyPR = logs.some((l) => (l.entries || []).some((e) => (e.sets || []).some((s) => s.isPR)));
+  if (anyPR) badges.push({ id: "first-pr", icon: "🎯", label: "First PR logged" });
 
   const prsThisWeek = computePRsInLastNDays(logs, 7);
   if (prsThisWeek > 0) badges.push({ id: "pr-week", icon: "💪", label: "New PR this week" });
 
   const streak = computeWeeklyStreak(logs);
   if (streak >= 2) badges.push({ id: `streak${streak}`, icon: "🔥", label: `${streak}-week training streak` });
+
+  if (exercisesById) {
+    const exList = Object.values(exercisesById);
+    KEY_LIFTS.forEach((lift) => {
+      const ex = exList.find((e) => lift.match(e.name.toLowerCase()));
+      if (!ex) return;
+      let heaviest = 0;
+      logs.forEach((log) => {
+        const entry = (log.entries || []).find((e) => e.exerciseId === ex.id);
+        (entry?.sets || []).forEach((s) => {
+          if (s.weight > heaviest) heaviest = s.weight;
+        });
+      });
+      const hit = [...LIFT_WEIGHT_MILESTONES].reverse().find((m) => heaviest >= m);
+      if (hit) badges.push({ id: `lift-${lift.label}-${hit}`, icon: "🏋️", label: `${hit}kg ${lift.label}` });
+    });
+  }
+
+  if (weighIns && weighIns.length >= 2) {
+    const sorted = [...weighIns].sort((a, b) => a.date - b.date);
+    const lost = sorted[0].weight - sorted[sorted.length - 1].weight;
+    const hit = [...WEIGHT_LOSS_MILESTONES].reverse().find((m) => lost >= m);
+    if (hit) badges.push({ id: `weightloss-${hit}`, icon: "📉", label: `${hit}kg lost` });
+  }
 
   return badges;
 }

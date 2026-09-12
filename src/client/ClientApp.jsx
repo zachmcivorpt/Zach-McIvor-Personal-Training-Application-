@@ -3401,7 +3401,10 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
   const weeklyVolume = useMemo(() => computeWeeklyVolume(logsForClient), [logsForClient]);
   const personalBests = useMemo(() => computePersonalBests(logsForClient, exercisesById), [logsForClient, exercisesById]);
-  const achievements = useMemo(() => computeAchievements(logsForClient), [logsForClient]);
+  const achievements = useMemo(
+    () => computeAchievements(logsForClient, weighIns, exercisesById),
+    [logsForClient, weighIns, exercisesById]
+  );
   const timeline = useMemo(
     () => computePerformanceTimeline(logsForClient, weighIns, exercisesById, 30),
     [logsForClient, weighIns, exercisesById]

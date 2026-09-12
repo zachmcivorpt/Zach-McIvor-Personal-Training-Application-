@@ -22,6 +22,9 @@ import {
   StickyNote,
   Flame,
   Utensils,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 
 // The check-in's own Q&A, plus a reply box right there — so reviewing one
@@ -161,6 +164,24 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
       ) : (
         <span className="text-black/25 text-xs shrink-0">All clear</span>
       )}
+    </div>
+  );
+}
+
+const NEEDS_ATTENTION_ICONS = { quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
+
+function NeedsAttentionRow({ alert }) {
+  const Icon = alert.kind === "insight" && alert.direction === "down" ? TrendingDown : NEEDS_ATTENTION_ICONS[alert.kind];
+  return (
+    <div className="flex items-center gap-3 py-3 border-b border-black/5 last:border-0">
+      <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={32} />
+      <div className="flex-1 min-w-0">
+        <p className="text-black/80 text-[13px] leading-snug">
+          <span className="font-semibold text-black">{alert.client.name}</span> — {alert.title}
+        </p>
+        <p className="text-black/40 text-[11px] mt-0.5">{alert.detail}</p>
+      </div>
+      <Icon size={16} className="text-amber-500 shrink-0" />
     </div>
   );
 }
@@ -314,6 +335,65 @@ export default function CoachDashboard({ onNavigate, showToast }) {
     return !last || last.date < sevenDaysAgo;
   });
 
+  // "Needs Attention" — clients going quiet, a missed session that hasn't
+  // been followed up on, or a notable bodyweight swing worth a check-in.
+  // Computed on the fly from data already loaded, same as the segments
+  // above — nothing persisted, so it's always current.
+  const QUIET_DAYS = 5;
+  const KIND_PRIORITY = { quiet: 0, missed: 1, insight: 2 };
+  const needsAttention = [];
+  active.forEach((c) => {
+    const logs = db.workoutLogs[c.id] || [];
+    const daysSinceWorkout = logs[0] ? Math.floor((Date.now() - logs[0].date) / 86400000) : null;
+    const daysSinceLogin = c.lastLoginAt ? Math.floor((Date.now() - c.lastLoginAt) / 86400000) : null;
+
+    if (daysSinceWorkout !== null && daysSinceWorkout >= QUIET_DAYS && (daysSinceLogin === null || daysSinceLogin >= QUIET_DAYS)) {
+      needsAttention.push({
+        id: `quiet-${c.id}`,
+        client: c,
+        kind: "quiet",
+        title: "Gone quiet",
+        detail: `No training logged in ${daysSinceWorkout}d${daysSinceLogin !== null ? ` · last opened the app ${daysSinceLogin}d ago` : ""}.`,
+      });
+    }
+
+    const loggedDateKeys = new Set(logs.map((l) => localDateKey(l.date)));
+    const pastScheduled = (db.scheduledWorkouts[c.id] || []).filter((w) => w.date < todayKey);
+    const missed = [...pastScheduled].reverse().find((w) => !loggedDateKeys.has(w.date));
+    if (missed) {
+      const daysAgo = -daysUntil(missed.date, todayKey);
+      needsAttention.push({
+        id: `missed-${c.id}`,
+        client: c,
+        kind: "missed",
+        title: "Missed session",
+        detail: `${missed.label || "A scheduled session"} (${daysAgo}d ago) wasn't logged — worth a follow-up message.`,
+      });
+    }
+
+    const weighIns = db.weighIns[c.id] || [];
+    if (weighIns.length >= 2) {
+      const latest = weighIns[weighIns.length - 1];
+      const priorOptions = weighIns.filter((w) => latest.date - w.date >= 13 * 86400000);
+      const prior = priorOptions[priorOptions.length - 1];
+      if (prior) {
+        const delta = Math.round((latest.weight - prior.weight) * 10) / 10;
+        if (Math.abs(delta) >= 1.5) {
+          const days = Math.round((latest.date - prior.date) / 86400000);
+          needsAttention.push({
+            id: `weight-${c.id}`,
+            client: c,
+            kind: "insight",
+            direction: delta > 0 ? "up" : "down",
+            title: "Bodyweight change",
+            detail: `${delta > 0 ? "Increased" : "Decreased"} ${Math.abs(delta)}kg over ${days} days.`,
+          });
+        }
+      }
+    }
+  });
+  needsAttention.sort((a, b) => KIND_PRIORITY[a.kind] - KIND_PRIORITY[b.kind]);
+
   const awaitingReply = active.filter((c) => {
     const thread = db.messages[c.id] || [];
     const last = thread[thread.length - 1];
@@ -424,6 +504,25 @@ export default function CoachDashboard({ onNavigate, showToast }) {
         />
         <StatCard icon={MessageCircle} label="MESSAGES TO REPLY TO" value={awaitingReply} onClick={() => onNavigate("messages")} />
       </div>
+
+      <Card className="!p-0 overflow-hidden flex flex-col mb-4">
+        <div className="px-5 pt-5 pb-1 flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
+            <AlertTriangle size={15} className="text-amber-500" />
+          </div>
+          <p className="text-black font-semibold">Needs Attention</p>
+          {needsAttention.length > 0 && (
+            <span className="bg-amber-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">{needsAttention.length}</span>
+          )}
+        </div>
+        <div className="px-5 pb-2">
+          {needsAttention.length === 0 ? (
+            <p className="text-black/30 text-sm text-center py-6">All clients are on track — nothing needs your attention right now.</p>
+          ) : (
+            needsAttention.slice(0, 8).map((a) => <NeedsAttentionRow key={a.id} alert={a} />)
+          )}
+        </div>
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4 items-stretch">
         <Card className="lg:col-span-1 !p-0 overflow-hidden flex flex-col">
