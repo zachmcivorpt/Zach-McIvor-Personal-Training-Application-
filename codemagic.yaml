@@ -46,3 +46,35 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+
+  android-workflow:
+    name: APEX Coaching Platform - Android
+    max_build_duration: 30
+    instance_type: linux_x2
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    environment:
+      vars:
+        PACKAGE_NAME: "com.apexcoaching.platform"
+      groups:
+        - android_signing
+      node: latest
+    scripts:
+      - name: Point Bubblewrap at Codemagic's pre-installed JDK + Android SDK
+        script: |
+          mkdir -p ~/.bubblewrap
+          echo "{\"jdkPath\":\"$JAVA_HOME\",\"androidSdkPath\":\"$ANDROID_SDK_ROOT\"}" > ~/.bubblewrap/config.json
+      - name: Restore the signing keystore from the encrypted env var
+        script: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/android.keystore
+      - name: Build the signed Android App Bundle
+        script: |
+          cd android && npx --yes @bubblewrap/cli build
+    artifacts:
+      - android/app-release-bundle.aab
+

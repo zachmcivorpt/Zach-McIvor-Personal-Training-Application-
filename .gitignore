@@ -13,6 +13,15 @@ dist-ssr
 dev-dist
 *.local
 
+# Android (TWA) build outputs — the signed .aab/.apk and the actual signing
+# keystore never get committed; the keystore lives only in Codemagic's
+# encrypted Android code signing settings.
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/*.keystore
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
