@@ -25,6 +25,7 @@ import {
   AlertTriangle,
   TrendingUp,
   TrendingDown,
+  Trash2,
 } from "lucide-react";
 
 // The check-in's own Q&A, plus a reply box right there — so reviewing one
@@ -170,19 +171,73 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
 
 const NEEDS_ATTENTION_ICONS = { quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
 
-function NeedsAttentionRow({ alert }) {
+// Swipe (or drag) left past the threshold to dismiss — reveals a red trash
+// affordance underneath as it moves. Built on pointer events so it works
+// with touch and mouse alike.
+function SwipeableRow({ onDelete, children }) {
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const startXRef = useRef(0);
+  const widthRef = useRef(0);
+  const rowRef = useRef(null);
+
+  function onPointerDown(e) {
+    startXRef.current = e.clientX;
+    widthRef.current = rowRef.current?.offsetWidth || 300;
+    setDragging(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  }
+  function onPointerMove(e) {
+    if (!dragging) return;
+    const dx = e.clientX - startXRef.current;
+    setDragX(Math.min(0, Math.max(dx, -widthRef.current)));
+  }
+  function onPointerUp(e) {
+    if (!dragging) return;
+    setDragging(false);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    if (dragX < -(widthRef.current * 0.35)) {
+      setDragX(-widthRef.current);
+      setTimeout(onDelete, 150);
+    } else {
+      setDragX(0);
+    }
+  }
+
+  return (
+    <div ref={rowRef} className="relative overflow-hidden">
+      <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-3">
+        <Trash2 size={14} className="text-white" />
+      </div>
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
+        className="relative bg-white touch-pan-y select-none"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function NeedsAttentionRow({ alert, onDismiss }) {
   const Icon = alert.kind === "insight" && alert.direction === "down" ? TrendingDown : NEEDS_ATTENTION_ICONS[alert.kind];
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-black/5 last:border-0">
-      <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={32} />
-      <div className="flex-1 min-w-0">
-        <p className="text-black/80 text-[13px] leading-snug">
-          <span className="font-semibold text-black">{alert.client.name}</span> — {alert.title}
-        </p>
-        <p className="text-black/40 text-[11px] mt-0.5">{alert.detail}</p>
+    <SwipeableRow onDelete={onDismiss}>
+      <div className="flex items-center gap-3 py-3 border-b border-black/5 last:border-0">
+        <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={32} />
+        <div className="flex-1 min-w-0">
+          <p className="text-black/80 text-[13px] leading-snug">
+            <span className="font-semibold text-black">{alert.client.name}</span> — {alert.title}
+          </p>
+          <p className="text-black/40 text-[11px] mt-0.5">{alert.detail}</p>
+        </div>
+        <Icon size={16} className="text-red-500 shrink-0" />
       </div>
-      <Icon size={16} className="text-amber-500 shrink-0" />
-    </div>
+    </SwipeableRow>
   );
 }
 
@@ -394,6 +449,19 @@ export default function CoachDashboard({ onNavigate, showToast }) {
   });
   needsAttention.sort((a, b) => KIND_PRIORITY[a.kind] - KIND_PRIORITY[b.kind]);
 
+  // Swiping an alert away dismisses it for a week — long enough that it
+  // doesn't just reappear on the next refresh, but if the client's still
+  // quiet (or the session's still un-logged) a week later it resurfaces
+  // rather than being silenced forever.
+  const dismissedAlerts = currentUser?.dismissedAlerts || {};
+  const visibleNeedsAttention = needsAttention.filter((a) => {
+    const dismissedAt = dismissedAlerts[a.id];
+    return !dismissedAt || Date.now() - dismissedAt > 7 * 86400000;
+  });
+  function dismissAlert(alertId) {
+    updateUser(currentUser.id, { dismissedAlerts: { [alertId]: Date.now() } });
+  }
+
   const awaitingReply = active.filter((c) => {
     const thread = db.messages[c.id] || [];
     const last = thread[thread.length - 1];
@@ -507,19 +575,24 @@ export default function CoachDashboard({ onNavigate, showToast }) {
 
       <Card className="!p-0 overflow-hidden flex flex-col mb-4">
         <div className="px-5 pt-5 pb-1 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
-            <AlertTriangle size={15} className="text-amber-500" />
+          <div className="w-8 h-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center shrink-0">
+            <AlertTriangle size={15} className="text-red-500" />
           </div>
           <p className="text-black font-semibold">Needs Attention</p>
-          {needsAttention.length > 0 && (
-            <span className="bg-amber-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">{needsAttention.length}</span>
+          {visibleNeedsAttention.length > 0 && (
+            <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">{visibleNeedsAttention.length}</span>
           )}
         </div>
         <div className="px-5 pb-2">
-          {needsAttention.length === 0 ? (
+          {visibleNeedsAttention.length === 0 ? (
             <p className="text-black/30 text-sm text-center py-6">All clients are on track — nothing needs your attention right now.</p>
           ) : (
-            needsAttention.slice(0, 8).map((a) => <NeedsAttentionRow key={a.id} alert={a} />)
+            <>
+              {visibleNeedsAttention.slice(0, 8).map((a) => (
+                <NeedsAttentionRow key={a.id} alert={a} onDismiss={() => dismissAlert(a.id)} />
+              ))}
+              <p className="text-black/25 text-[10px] text-center pt-1 pb-1">Swipe an item left to dismiss it for a week</p>
+            </>
           )}
         </div>
       </Card>
