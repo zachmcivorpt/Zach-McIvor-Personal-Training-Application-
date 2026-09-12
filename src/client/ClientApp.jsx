@@ -1865,12 +1865,13 @@ function WorkoutSession({
   );
 }
 
-function WorkoutSummary({ daySession, activeLog, durationMin = 0, durationSec = 0, onDone }) {
+function WorkoutSummary({ daySession, activeLog, durationMin = 0, durationSec = 0, proteinTarget = 0, proteinSoFar = 0, onDone }) {
   const allSets = Object.values(activeLog).flat();
   const totalVolume = allSets.reduce((a, s) => a + s.weight * s.reps, 0);
   const totalSets = allSets.length;
   const prCount = allSets.filter((s) => s.isPR).length;
   const calories = estimateCalories(totalVolume, durationMin);
+  const proteinRemaining = Math.max(0, Math.round(proteinTarget - proteinSoFar));
 
   return (
     <FullScreenOverlay>
@@ -1905,7 +1906,18 @@ function WorkoutSummary({ daySession, activeLog, durationMin = 0, durationSec = 
           </div>
         </div>
 
-        <button onClick={onDone} className="w-full max-w-sm mt-8 bg-black text-white font-bold py-4 rounded-2xl">
+        <div className="w-full max-w-sm mt-6 flex items-start gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3 text-left">
+          <Utensils size={18} className="text-black/50 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-black/40 text-[10px] font-bold tracking-widest">NEXT OBJECTIVE</p>
+            <p className="text-black text-sm font-semibold mt-0.5">
+              {proteinRemaining > 0 ? `Hit your protein target — ${proteinRemaining}g to go today.` : "Protein target hit — now prioritize recovery."}
+            </p>
+            <p className="text-black/45 text-[13px] mt-0.5 leading-snug">Refuel, hydrate, and get good sleep tonight to lock in today's session.</p>
+          </div>
+        </div>
+
+        <button onClick={onDone} className="w-full max-w-sm mt-4 bg-black text-white font-bold py-4 rounded-2xl">
           DONE
         </button>
       </div>
@@ -5740,6 +5752,8 @@ export default function ClientApp() {
             activeLog={summaryData.activeLog}
             durationMin={summaryData.durationMin}
             durationSec={summaryData.durationSec}
+            proteinTarget={targets.protein}
+            proteinSoFar={nutrition.protein}
             onDone={() => setSummaryOpen(false)}
           />
         )}
