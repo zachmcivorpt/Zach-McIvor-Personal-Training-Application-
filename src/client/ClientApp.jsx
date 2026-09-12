@@ -121,6 +121,7 @@ import { parseVideoUrl } from "../lib/video";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
+import WorkoutEditor from "../coach/WorkoutEditor";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
 import {
   BODY_FAT_CONFIG,
@@ -2223,21 +2224,15 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
 // edit/add/schedule controls, which stay coach-only.
 function ClientProgramTab({ onPreviewDay, showToast }) {
   const dark = useClientDark();
-  const { db, currentUser, notifyCoach } = useApp();
+  const { db, currentUser, viewingAsClient, updateClientPhase } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const todayStr = localDateKey();
   const current = getCurrentPhase(phases, todayStr);
   const [selectedId, setSelectedId] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
-  const logsForClient = db.workoutLogs[currentUser.id] || [];
-
-  function requestWorkout(message) {
-    notifyCoach(currentUser.id, currentUser.name, "workout_request", message);
-    showToast?.("Sent to your coach");
-  }
+  const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
+  const [editingWorkout, setEditingWorkout] = useState(null); // { dayIndex, day }
 
   if (phases.length === 0) {
     return (
@@ -2251,6 +2246,46 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   const phase = phases.find((p) => p.id === selectedId) || current || sorted[sorted.length - 1];
   const days = phase?.weeks?.[0]?.days || [];
+
+  // Add/Import only matter to the coach browsing "as" this client — a real
+  // client's program stays coach-managed, same as everywhere else in the app.
+  function addWorkout() {
+    if (!phase) return;
+    const newDay = { id: `d_${Date.now()}`, label: `Workout ${days.length + 1}`, muscleGroups: [], exercises: [] };
+    setEditingWorkout({ dayIndex: days.length, day: newDay });
+  }
+
+  function addWorkoutFromLibrary(masterWorkout) {
+    if (!phase) return;
+    const copiedExercises = JSON.parse(JSON.stringify(masterWorkout.exercises || [])).map((ex) => ({
+      ...ex,
+      addedAt: Date.now(),
+    }));
+    const newDay = {
+      id: `d_${Date.now()}`,
+      label: masterWorkout.label,
+      muscleGroups: masterWorkout.muscleGroups || [],
+      exercises: copiedExercises,
+      instructions: masterWorkout.instructions || "",
+    };
+    setEditingWorkout({ dayIndex: days.length, day: newDay });
+    setLibraryPickerOpen(false);
+  }
+
+  async function saveWorkout(day) {
+    if (!phase || !editingWorkout) return;
+    const isNewDay = editingWorkout.dayIndex >= days.length;
+    const nextDays = [...days];
+    if (!isNewDay) nextDays[editingWorkout.dayIndex] = day;
+    else nextDays.push(day);
+    try {
+      await updateClientPhase(currentUser.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+      setEditingWorkout(null);
+      showToast?.("Workout saved");
+    } catch (err) {
+      showToast?.("Couldn't save that workout — check your connection and try again");
+    }
+  }
 
   return (
     <div className="px-3 space-y-4">
@@ -2277,14 +2312,16 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
       <div>
         <div className="flex items-center justify-between mb-2 px-1 flex-wrap gap-y-1">
           <p className={dark ? "text-white/40 text-xs tracking-wide" : "text-black/40 text-xs tracking-wide"}>WORKOUTS IN THIS PHASE</p>
-          <div className="flex items-center gap-4">
-            <button onClick={() => setAddOpen(true)} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
-              <Plus size={13} /> Add new workout
-            </button>
-            <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
-              <Upload size={13} /> Import
-            </button>
-          </div>
+          {viewingAsClient && (
+            <div className="flex items-center gap-4">
+              <button onClick={addWorkout} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
+                <Plus size={13} /> Add new workout
+              </button>
+              <button onClick={() => setLibraryPickerOpen(true)} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
+                <Upload size={13} /> Import
+              </button>
+            </div>
+          )}
         </div>
         {days.length === 0 ? (
           <Card dark={dark}>
@@ -2331,84 +2368,45 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
         }}
       />
 
-      <RequestWorkoutSheet open={addOpen} onClose={() => setAddOpen(false)} onSend={requestWorkout} />
-      <ImportPastWorkoutSheet open={importOpen} onClose={() => setImportOpen(false)} logs={logsForClient} onSend={requestWorkout} />
-    </div>
-  );
-}
-
-// Clients can't write to their own program (that stays coach-managed, same
-// as every other phase edit), so "Add new workout" / "Import" send the
-// coach a notification instead of touching clientPhases directly — no new
-// write access needed, and it shows up right in the coach's existing
-// notification bell.
-function RequestWorkoutSheet({ open, onClose, onSend }) {
-  const dark = useClientDark();
-  const [name, setName] = useState("");
-
-  function close() {
-    setName("");
-    onClose();
-  }
-
-  function submit(e) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    onSend(`Requested a new workout: "${name.trim()}"`);
-    close();
-  }
-
-  return (
-    <BottomSheet open={open} onClose={close} title="Add New Workout" dark={dark}>
-      <form onSubmit={submit} className="space-y-4">
-        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-          Tell your coach what you'd like added to your program — they'll build it into your phase.
-        </p>
-        <TextInput dark={dark} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Extra arm day" autoFocus />
-        <PrimaryButton dark={dark} type="submit" className="w-full" disabled={!name.trim()}>
-          <Send size={15} /> SEND TO COACH
-        </PrimaryButton>
-      </form>
-    </BottomSheet>
-  );
-}
-
-function ImportPastWorkoutSheet({ open, onClose, logs, onSend }) {
-  const dark = useClientDark();
-  const past = [...(logs || [])]
-    .filter((l) => !l.cardio)
-    .sort((a, b) => b.date - a.date)
-    .slice(0, 30);
-
-  function pick(log) {
-    onSend(`Asked to re-add a past workout to their program: "${log.dayLabel}" (${new Date(log.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })})`);
-    onClose();
-  }
-
-  return (
-    <BottomSheet open={open} onClose={onClose} title="Import a Past Workout" dark={dark}>
-      <p className={dark ? "text-white/40 text-xs mb-3" : "text-black/40 text-xs mb-3"}>
-        Pick one of your completed workouts to ask your coach to add back into your program.
-      </p>
-      {past.length === 0 ? (
-        <p className={dark ? "text-white/30 text-sm text-center py-8" : "text-black/30 text-sm text-center py-8"}>No completed workouts yet.</p>
-      ) : (
-        <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
-          {past.map((log) => (
-            <button
-              key={log.id}
-              onClick={() => pick(log)}
-              className={`w-full flex items-center justify-between rounded-xl px-3.5 py-2.5 text-left ${dark ? "bg-white/[0.06] hover:bg-white/[0.1]" : "bg-black/[0.03] hover:bg-black/[0.06]"}`}
-            >
-              <span className={dark ? "text-white text-sm truncate pr-2" : "text-black text-sm truncate pr-2"}>{log.dayLabel}</span>
-              <span className={dark ? "text-white/40 text-xs shrink-0" : "text-black/40 text-xs shrink-0"}>
-                {new Date(log.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-              </span>
-            </button>
-          ))}
-        </div>
+      {viewingAsClient && (
+        <>
+          <WorkoutEditor
+            open={!!editingWorkout}
+            day={editingWorkout?.day}
+            exercises={db.exercises}
+            onClose={() => setEditingWorkout(null)}
+            onSave={saveWorkout}
+            showToast={showToast}
+          />
+          <BottomSheet open={libraryPickerOpen} onClose={() => setLibraryPickerOpen(false)} title="Add from Workout Library">
+            {(db.masterWorkouts || []).length === 0 ? (
+              <p className="text-black/30 text-sm text-center py-6">No workout templates yet — build some in Library → Workouts.</p>
+            ) : (
+              <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+                {(db.masterWorkouts || []).map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => addWorkoutFromLibrary(w)}
+                    className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 text-left transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                      <Dumbbell size={15} className="text-blue-500" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-black font-semibold text-sm truncate">{w.label}</p>
+                      <p className="text-black/35 text-xs truncate">
+                        {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
+                        {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </BottomSheet>
+        </>
       )}
-    </BottomSheet>
+    </div>
   );
 }
 

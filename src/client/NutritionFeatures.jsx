@@ -63,7 +63,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
   }
 
   return (
-    <BottomSheet dark open={!!food} onClose={onClose} title={food.name}>
+    <BottomSheet dark={dark} open={!!food} onClose={onClose} title={food.name}>
       {food.fromBarcode && (
         <div className={dark ? "flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
           {food.imageUrl ? (
@@ -153,7 +153,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
         ))}
       </div>
 
-      <PrimaryButton dark className="w-full" disabled={qty <= 0} onClick={() => onConfirm(scaled)}>
+      <PrimaryButton dark={dark} className="w-full" disabled={qty <= 0} onClick={() => onConfirm(scaled)}>
         <Check size={16} /> ADD
       </PrimaryButton>
     </BottomSheet>
@@ -429,7 +429,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
                   placeholder="Barcode digits"
                   className={dark ? "flex-1 bg-white/5 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none placeholder:text-white/30" : "flex-1 bg-black/5 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30"}
                 />
-                <SecondaryButton dark onClick={() => manualCode.trim() && resolveCode(manualCode)} disabled={!manualCode.trim()} className="px-4">
+                <SecondaryButton dark={dark} onClick={() => manualCode.trim() && resolveCode(manualCode)} disabled={!manualCode.trim()} className="px-4">
                   Look up
                 </SecondaryButton>
               </div>
@@ -462,10 +462,10 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
               <p className={dark ? "text-white/25 text-[11px] font-mono break-all bg-white/[0.03] rounded-lg px-3 py-2" : "text-black/25 text-[11px] font-mono break-all bg-black/[0.03] rounded-lg px-3 py-2"}>{errorDetail}</p>
             )}
             <div className="flex gap-2 mt-6">
-              <SecondaryButton dark onClick={scanAgain} className="px-6">
+              <SecondaryButton dark={dark} onClick={scanAgain} className="px-6">
                 Try again
               </SecondaryButton>
-              <SecondaryButton dark onClick={onClose} className="px-6">
+              <SecondaryButton dark={dark} onClick={onClose} className="px-6">
                 Close
               </SecondaryButton>
             </div>
@@ -480,7 +480,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
                   placeholder="Barcode digits"
                   className={dark ? "flex-1 bg-white/5 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none placeholder:text-white/30" : "flex-1 bg-black/5 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30"}
                 />
-                <SecondaryButton dark onClick={() => manualCode.trim() && resolveCode(manualCode)} disabled={!manualCode.trim()} className="px-4">
+                <SecondaryButton dark={dark} onClick={() => manualCode.trim() && resolveCode(manualCode)} disabled={!manualCode.trim()} className="px-4">
                   Look up
                 </SecondaryButton>
               </div>
@@ -493,7 +493,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
             <p className={dark ? "text-white/50 text-sm text-center mb-5 whitespace-pre-line" : "text-black/50 text-sm text-center mb-5 whitespace-pre-line"}>{error}</p>
             <p className={dark ? "text-white/30 text-xs tracking-wide mb-2" : "text-black/30 text-xs tracking-wide mb-2"}>ADD IT MANUALLY — PER 100G</p>
             <div className="space-y-2.5">
-              <TextInput dark
+              <TextInput dark={dark}
                 value={manual.name}
                 onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
                 placeholder="Product name"
@@ -513,7 +513,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
               </div>
             </div>
             <p className={dark ? "text-white/30 text-[11px] mt-3" : "text-black/30 text-[11px] mt-3"}>Saved to the food library automatically — instant next time.</p>
-            <PrimaryButton dark className="w-full mt-4" disabled={!manual.name.trim()} onClick={addManual}>
+            <PrimaryButton dark={dark} className="w-full mt-4" disabled={!manual.name.trim()} onClick={addManual}>
               <Check size={16} /> ADD
             </PrimaryButton>
             <button onClick={scanAgain} className={dark ? "w-full text-center text-white/40 text-sm font-medium py-3" : "w-full text-center text-black/40 text-sm font-medium py-3"}>
@@ -559,10 +559,10 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
   }
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Quick Add">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Quick Add">
       <p className={dark ? "text-white/30 text-xs tracking-wide mb-2" : "text-black/30 text-xs tracking-wide mb-2"}>LOG A FOOD BY NAME</p>
       <div className="space-y-2.5">
-        <TextInput dark
+        <TextInput dark={dark}
           value={manual.name}
           onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
           placeholder="e.g. Honey Chicken Sushi Roll"
@@ -582,7 +582,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
         </div>
       </div>
       <p className={dark ? "text-white/30 text-[11px] mt-3" : "text-black/30 text-[11px] mt-3"}>Saved to the food library automatically — searchable by name next time.</p>
-      <PrimaryButton dark className="w-full mt-4" disabled={!manual.name.trim()} onClick={submit}>
+      <PrimaryButton dark={dark} className="w-full mt-4" disabled={!manual.name.trim()} onClick={submit}>
         <Check size={16} /> Log it
       </PrimaryButton>
     </BottomSheet>
@@ -663,7 +663,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   }
 
   return (
-    <BottomSheet dark open={open} onClose={onClose} title="Log a Meal Photo">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log a Meal Photo">
       {status === "pick" && (
         <div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
@@ -687,8 +687,8 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
         <div>
           {photoUrl && <img src={photoUrl} alt="Your meal" className="w-full h-40 object-cover rounded-2xl mb-4" />}
 
-          <Field dark label="MEAL NAME">
-            <TextInput dark value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Lunch" />
+          <Field dark={dark} label="MEAL NAME">
+            <TextInput dark={dark} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Lunch" />
           </Field>
 
           {ingredients.length > 0 && (
@@ -768,7 +768,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
               </div>
             ) : (
               <div className={dark ? "bg-white/[0.03] rounded-xl p-3 space-y-2" : "bg-black/[0.03] rounded-xl p-3 space-y-2"}>
-                <TextInput dark
+                <TextInput dark={dark}
                   value={manual.name}
                   onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
                   placeholder="Ingredient name"
@@ -787,10 +787,10 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
                   ))}
                 </div>
                 <div className="flex gap-2">
-                  <SecondaryButton dark className="flex-1 !py-2" onClick={() => setManualOpen(false)}>
+                  <SecondaryButton dark={dark} className="flex-1 !py-2" onClick={() => setManualOpen(false)}>
                     Cancel
                   </SecondaryButton>
-                  <PrimaryButton dark className="flex-1 !py-2" onClick={addManual}>
+                  <PrimaryButton dark={dark} className="flex-1 !py-2" onClick={addManual}>
                     Add
                   </PrimaryButton>
                 </div>
@@ -798,11 +798,11 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
             )}
           </div>
 
-          <PrimaryButton dark className="w-full mt-5" disabled={ingredients.length === 0} onClick={() => onAdd(buildResult())}>
+          <PrimaryButton dark={dark} className="w-full mt-5" disabled={ingredients.length === 0} onClick={() => onAdd(buildResult())}>
             <Check size={16} /> ADD TO TODAY
           </PrimaryButton>
           {onSaveAsMeal && (
-            <SecondaryButton dark
+            <SecondaryButton dark={dark}
               className="w-full mt-2.5"
               disabled={!name.trim() || ingredients.length === 0}
               onClick={() => onSaveAsMeal(buildResult())}
@@ -1091,7 +1091,7 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete, dark = 
   const categories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
 
   return (
-    <Card dark>
+    <Card dark={dark}>
       <div className="flex items-center justify-between mb-3">
         <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>My Meals</p>
         <button onClick={onCreateNew} className={dark ? "text-white/60 text-xs font-semibold flex items-center gap-1" : "text-black/60 text-xs font-semibold flex items-center gap-1"}>
@@ -1125,7 +1125,7 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete, dark = 
         </div>
       )}
 
-      <BottomSheet dark open={!!logging} onClose={() => setLogging(null)} title={`Log "${logging?.name}"`}>
+      <BottomSheet dark={dark} open={!!logging} onClose={() => setLogging(null)} title={`Log "${logging?.name}"`}>
         <p className={dark ? "text-white/40 text-sm mb-4" : "text-black/40 text-sm mb-4"}>Add to which meal today?</p>
         <div className="grid grid-cols-2 gap-2">
           {categories.map((c) => (
@@ -1143,7 +1143,7 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete, dark = 
         </div>
       </BottomSheet>
 
-      <BottomSheet dark open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title={confirmDelete?.name}>
+      <BottomSheet dark={dark} open={!!confirmDelete} onClose={() => setConfirmDelete(null)} title={confirmDelete?.name}>
         {confirmDelete && (
           <div>
             <div className="space-y-1.5 mb-4">
@@ -1154,7 +1154,7 @@ export function SavedMealsSection({ meals, onCreateNew, onLog, onDelete, dark = 
                 </div>
               ))}
             </div>
-            <DangerButton dark
+            <DangerButton dark={dark}
               className="w-full"
               onClick={() => {
                 onDelete(confirmDelete.id);
