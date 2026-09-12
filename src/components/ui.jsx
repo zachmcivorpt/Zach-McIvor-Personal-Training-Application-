@@ -2,7 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
 import { X, Check, Camera, Dumbbell, Video, Play, Search } from "lucide-react";
-import { SURFACE, SURFACE_RAISED, BORDER, ACCENT, MEASURE_BLUE, GOAL_GREEN } from "../theme";
+import {
+  SURFACE,
+  SURFACE_RAISED,
+  BORDER,
+  ACCENT,
+  MEASURE_BLUE,
+  GOAL_GREEN,
+  CLIENT_DARK_SURFACE,
+  CLIENT_DARK_SURFACE_2,
+  CLIENT_DARK_BORDER,
+} from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
@@ -56,16 +66,19 @@ export function VideoPlayerSheet({ exerciseName, videoUrl, onClose }) {
 // a generic camera icon standing in for it, and tapping it opens a full
 // player. Falls back to a plain (non-interactive) dumbbell icon when there's
 // no video at all.
-export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", className = "" }) {
+export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", className = "", dark = false }) {
   const [playerOpen, setPlayerOpen] = useState(false);
   const parsed = exercise?.videoUrl ? parseVideoUrl(exercise.videoUrl) : null;
+  const mutedIcon = dark ? "text-white/25" : "text-black/25";
+  const faintIcon = dark ? "text-white/30" : "text-black/30";
+  const boxClass = dark ? "bg-white/8 border border-white/8" : "bg-black/5 border border-black/5";
 
   const content = (
     <>
       {!parsed ? (
-        <Dumbbell size={Math.round(size * 0.4)} className="text-black/25" />
+        <Dumbbell size={Math.round(size * 0.4)} className={mutedIcon} />
       ) : parsed.kind === "search" ? (
-        <Search size={Math.round(size * 0.35)} className="text-black/30" />
+        <Search size={Math.round(size * 0.35)} className={faintIcon} />
       ) : parsed.kind === "file" ? (
         <video src={parsed.src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
       ) : parsed.thumbnail ? (
@@ -74,7 +87,7 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
           <Play size={Math.round(size * 0.3)} className="absolute text-white drop-shadow" fill="white" />
         </>
       ) : (
-        <Video size={Math.round(size * 0.35)} className="text-black/30" />
+        <Video size={Math.round(size * 0.35)} className={faintIcon} />
       )}
     </>
   );
@@ -82,7 +95,7 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
   if (!parsed) {
     return (
       <div
-        className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
+        className={`relative ${boxClass} overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
         style={{ width: size, height: size }}
       >
         {content}
@@ -105,7 +118,7 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
           }
           setPlayerOpen(true);
         }}
-        className={`relative bg-black/5 border border-black/5 overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
+        className={`relative ${boxClass} overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
         style={{ width: size, height: size }}
         aria-label={
           parsed?.kind === "search"
@@ -182,7 +195,7 @@ export function Tagline({ tone = "black", className = "" }) {
 // Shows the uploaded photo when set, otherwise the initial-letter circle
 // used everywhere in the app already — same component for coach and client,
 // own-profile and viewed-by-coach contexts.
-export function Avatar({ name, url, size = 40, className = "", onClick }) {
+export function Avatar({ name, url, size = 40, className = "", onClick, dark = false }) {
   const px = `${size}px`;
   const commonClass = `rounded-full shrink-0 flex items-center justify-center overflow-hidden ${
     onClick ? "cursor-pointer" : ""
@@ -205,7 +218,7 @@ export function Avatar({ name, url, size = 40, className = "", onClick }) {
       type="button"
       onClick={onClick}
       disabled={!onClick}
-      className={`${commonClass} bg-black/10 border border-black/15 text-black font-bold`}
+      className={`${commonClass} ${dark ? "bg-white/10 border border-white/15 text-white" : "bg-black/10 border border-black/15 text-black"} font-bold`}
       style={{ width: px, height: px, fontSize: size * 0.4 }}
     >
       {name?.[0]?.toUpperCase() || "?"}
@@ -215,7 +228,7 @@ export function Avatar({ name, url, size = 40, className = "", onClick }) {
 
 // Avatar + hidden file input + upload/compress in one control. Tap the
 // photo (or the small camera badge) to replace it.
-export function AvatarPicker({ name, url, size = 72, onChange }) {
+export function AvatarPicker({ name, url, size = 72, onChange, dark = false }) {
   const fileRef = useRef(null);
   const [busy, setBusy] = useState(false);
 
@@ -236,17 +249,27 @@ export function AvatarPicker({ name, url, size = 72, onChange }) {
 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <Avatar name={name} url={url} size={size} onClick={() => fileRef.current?.click()} />
+      <Avatar name={name} url={url} size={size} onClick={() => fileRef.current?.click()} dark={dark} />
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
       <div
-        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-black flex items-center justify-center border-2 pointer-events-none"
-        style={{ borderColor: SURFACE }}
+        className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 pointer-events-none ${
+          dark ? "bg-white" : "bg-black"
+        }`}
+        style={{ borderColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
       >
-        <Camera size={12} className="text-white" />
+        <Camera size={12} className={dark ? "text-black" : "text-white"} />
       </div>
       {busy && (
-        <div className="absolute inset-0 rounded-full bg-white/60 flex items-center justify-center pointer-events-none">
-          <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+        <div
+          className={`absolute inset-0 rounded-full flex items-center justify-center pointer-events-none ${
+            dark ? "bg-black/60" : "bg-white/60"
+          }`}
+        >
+          <span
+            className={`w-4 h-4 border-2 rounded-full animate-spin ${
+              dark ? "border-white/30 border-t-white" : "border-black/30 border-t-black"
+            }`}
+          />
         </div>
       )}
     </div>
@@ -295,7 +318,7 @@ export function FullScreenOverlay({ children }) {
   );
 }
 
-export function BottomSheet({ open, onClose, title, children }) {
+export function BottomSheet({ open, onClose, title, children, dark = false }) {
   // Opening already slid up smoothly, but closing just vanished the instant
   // `open` went false — no exit animation at all, which is exactly the kind
   // of "blocky" jump a native app never has. Keeping the sheet mounted for
@@ -324,19 +347,22 @@ export function BottomSheet({ open, onClose, title, children }) {
           onClick={onClose}
         />
         <div
-          className={`relative w-full max-w-md rounded-t-3xl max-h-[88vh] overflow-y-auto border-t border-black/10 transition-transform duration-300 ease-out ${
-            visible ? "translate-y-0" : "translate-y-full"
-          }`}
-          style={{ backgroundColor: SURFACE_RAISED }}
+          className={`relative w-full max-w-md rounded-t-3xl max-h-[88vh] overflow-y-auto border-t transition-transform duration-300 ease-out ${
+            dark ? "border-white/10" : "border-black/10"
+          } ${visible ? "translate-y-0" : "translate-y-full"}`}
+          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
         >
           <div
             className="sticky top-0 pt-3 pb-2 px-5 border-b flex items-center justify-between"
-            style={{ backgroundColor: SURFACE_RAISED, borderColor: BORDER }}
+            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
           >
             <div className="w-8" />
-            <div className="w-10 h-1 rounded-full bg-black/20 absolute left-1/2 -translate-x-1/2 top-2" />
-            <span className="font-semibold text-black tracking-tight">{title}</span>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-black/10">
+            <div className={`w-10 h-1 rounded-full absolute left-1/2 -translate-x-1/2 top-2 ${dark ? "bg-white/20" : "bg-black/20"}`} />
+            <span className={`font-semibold tracking-tight ${dark ? "text-white" : "text-black"}`}>{title}</span>
+            <button
+              onClick={onClose}
+              className={`w-8 h-8 flex items-center justify-center rounded-full ${dark ? "bg-white/10 text-white" : "bg-black/10"}`}
+            >
               <X size={16} />
             </button>
           </div>
@@ -347,7 +373,7 @@ export function BottomSheet({ open, onClose, title, children }) {
   );
 }
 
-export function Toast({ message, show }) {
+export function Toast({ message, show, dark = false }) {
   if (typeof document === "undefined") return null;
   return createPortal(
     <div
@@ -355,7 +381,11 @@ export function Toast({ message, show }) {
         show ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
       }`}
     >
-      <div className="bg-black text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2">
+      <div
+        className={`text-sm font-medium px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 ${
+          dark ? "bg-white text-black" : "bg-black text-white"
+        }`}
+      >
         <Check size={16} strokeWidth={3} />
         {message}
       </div>
@@ -368,10 +398,10 @@ export function Toast({ message, show }) {
    PRIMITIVES
 ============================================================================ */
 
-export function ProgressBar({ value, max, height = 8, dim = false, color }) {
+export function ProgressBar({ value, max, height = 8, dim = false, color, trackClassName = "bg-black/10" }) {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
-    <div className="w-full rounded-full bg-black/10" style={{ height }}>
+    <div className={`w-full rounded-full ${trackClassName}`} style={{ height }}>
       <div
         className="rounded-full transition-all duration-700 ease-out"
         style={{ width: `${pct}%`, height, backgroundColor: color || (dim ? "rgba(10,10,11,0.5)" : ACCENT) }}
@@ -385,7 +415,7 @@ export function ProgressBar({ value, max, height = 8, dim = false, color }) {
 // every log so it reads as "pouring in" rather than jumping, and it never
 // rises past the rim: any amount beyond `max` still just reads as a full
 // glass, it doesn't overflow the drawing.
-export function WaterCup({ value, max, size = 56 }) {
+export function WaterCup({ value, max, size = 56, dark = false }) {
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
   const full = pct >= 1;
   const topY = 8;
@@ -400,7 +430,7 @@ export function WaterCup({ value, max, size = 56 }) {
         </clipPath>
       </defs>
       <g clipPath="url(#waterCupClip)">
-        <rect x="0" y="0" width="64" height="86" fill="rgba(10,10,11,0.04)" />
+        <rect x="0" y="0" width="64" height="86" fill={dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,11,0.04)"} />
         <rect
           x="0"
           y={fillY}
@@ -410,7 +440,7 @@ export function WaterCup({ value, max, size = 56 }) {
           style={{ transition: "y 0.7s cubic-bezier(0.22,1,0.36,1), height 0.7s cubic-bezier(0.22,1,0.36,1), fill 0.4s ease" }}
         />
       </g>
-      <path d={cupPath} fill="none" stroke="rgba(10,10,11,0.35)" strokeWidth="2.5" strokeLinejoin="round" />
+      <path d={cupPath} fill="none" stroke={dark ? "rgba(255,255,255,0.25)" : "rgba(10,10,11,0.35)"} strokeWidth="2.5" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -441,19 +471,19 @@ export function Ring({ value, max, size = 64, stroke = 7, children }) {
   );
 }
 
-export function Card({ children, className = "", onClick, style }) {
+export function Card({ children, className = "", onClick, style, dark = false }) {
   return (
     <div
       onClick={onClick}
       className={`rounded-3xl p-5 border ${onClick ? "active:scale-[0.98] cursor-pointer" : ""} transition-transform ${className}`}
-      style={{ backgroundColor: SURFACE, borderColor: BORDER, ...style }}
+      style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE, borderColor: dark ? CLIENT_DARK_BORDER : BORDER, ...style }}
     >
       {children}
     </div>
   );
 }
 
-export function Pill({ children, tone = "default" }) {
+export function Pill({ children, tone = "default", dark = false }) {
   const tones = {
     default: "bg-black/8 text-black/70",
     outline: "border border-black/20 text-black/80",
@@ -461,20 +491,29 @@ export function Pill({ children, tone = "default" }) {
     muted: "bg-black/[0.04] text-black/40",
     warning: "bg-red-50 text-red-700",
   };
-  return <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${tones[tone]}`}>{children}</span>;
+  const darkTones = {
+    default: "bg-white/8 text-white/70",
+    outline: "border border-white/20 text-white/80",
+    solid: "bg-white text-black",
+    muted: "bg-white/[0.06] text-white/40",
+    warning: "bg-red-500/15 text-red-400",
+  };
+  return (
+    <span className={`text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap ${(dark ? darkTones : tones)[tone]}`}>{children}</span>
+  );
 }
 
 // Center is a real number input — free typing (any weight/reps value, not
 // locked to `step`), with the +/- buttons kept for quick nudges.
-export function NumberStepper({ label, value, setValue, step, min = 0 }) {
+export function NumberStepper({ label, value, setValue, step, min = 0, dark = false }) {
   return (
     <div>
-      <p className="text-black/40 text-xs tracking-wide mb-2">{label}</p>
-      <div className="flex items-center bg-black/5 rounded-xl">
+      <p className={`text-xs tracking-wide mb-2 ${dark ? "text-white/40" : "text-black/40"}`}>{label}</p>
+      <div className={`flex items-center rounded-xl ${dark ? "bg-white/8" : "bg-black/5"}`}>
         <button
           type="button"
           onClick={() => setValue(Math.max(min, +((+value || 0) - step).toFixed(2)))}
-          className="w-11 h-11 shrink-0 flex items-center justify-center text-black/60"
+          className={`w-11 h-11 shrink-0 flex items-center justify-center ${dark ? "text-white/60" : "text-black/60"}`}
         >
           −
         </button>
@@ -487,12 +526,14 @@ export function NumberStepper({ label, value, setValue, step, min = 0 }) {
           onBlur={(e) => {
             if (e.target.value === "" || Number.isNaN(+e.target.value)) setValue(min);
           }}
-          className="flex-1 min-w-0 text-center bg-transparent text-black font-bold text-lg tabular-nums outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className={`flex-1 min-w-0 text-center bg-transparent font-bold text-lg tabular-nums outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+            dark ? "text-white" : "text-black"
+          }`}
         />
         <button
           type="button"
           onClick={() => setValue(+((+value || 0) + step).toFixed(2))}
-          className="w-11 h-11 shrink-0 flex items-center justify-center text-black/60"
+          className={`w-11 h-11 shrink-0 flex items-center justify-center ${dark ? "text-white/60" : "text-black/60"}`}
         >
           +
         </button>
@@ -505,70 +546,86 @@ export function NumberStepper({ label, value, setValue, step, min = 0 }) {
    FORM CONTROLS (shared by coach admin forms)
 ============================================================================ */
 
-export function Field({ label, children, hint }) {
+export function Field({ label, children, hint, dark = false }) {
   return (
     <label className="block">
-      <span className="block text-black/40 text-xs tracking-wide mb-1.5">{label}</span>
+      <span className={`block text-xs tracking-wide mb-1.5 ${dark ? "text-white/40" : "text-black/40"}`}>{label}</span>
       {children}
-      {hint && <span className="block text-black/30 text-xs mt-1">{hint}</span>}
+      {hint && <span className={`block text-xs mt-1 ${dark ? "text-white/30" : "text-black/30"}`}>{hint}</span>}
     </label>
   );
 }
 
-export function TextInput(props) {
+export function TextInput({ dark = false, ...props }) {
   return (
     <input
       {...props}
-      className={`w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none placeholder:text-black/25 focus:border-black/30 transition-colors ${props.className || ""}`}
+      className={`w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors ${
+        dark
+          ? "bg-white/8 border-white/10 text-white placeholder:text-white/25 focus:border-white/30"
+          : "bg-black/5 border-black/10 text-black placeholder:text-black/25 focus:border-black/30"
+      } ${props.className || ""}`}
     />
   );
 }
 
-export function TextArea(props) {
+export function TextArea({ dark = false, ...props }) {
   return (
     <textarea
       {...props}
-      className={`w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none placeholder:text-black/25 focus:border-black/30 transition-colors resize-none ${props.className || ""}`}
+      className={`w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors resize-none ${
+        dark
+          ? "bg-white/8 border-white/10 text-white placeholder:text-white/25 focus:border-white/30"
+          : "bg-black/5 border-black/10 text-black placeholder:text-black/25 focus:border-black/30"
+      } ${props.className || ""}`}
     />
   );
 }
 
-export function Select({ className, ...props }) {
+export function Select({ className, dark = false, ...props }) {
   return (
     <select
       {...props}
-      className={`w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none focus:border-black/30 transition-colors ${className || ""}`}
+      className={`w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors ${
+        dark ? "bg-white/8 border-white/10 text-white focus:border-white/30" : "bg-black/5 border-black/10 text-black focus:border-black/30"
+      } ${className || ""}`}
     />
   );
 }
 
-export function PrimaryButton({ children, className = "", ...props }) {
+export function PrimaryButton({ children, className = "", dark = false, ...props }) {
   return (
     <button
       {...props}
-      className={`bg-black text-white font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-30 disabled:active:scale-100 ${className}`}
+      className={`font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-30 disabled:active:scale-100 ${
+        dark ? "bg-white text-black" : "bg-black text-white"
+      } ${className}`}
     >
       {children}
     </button>
   );
 }
 
-export function SecondaryButton({ children, className = "", ...props }) {
+export function SecondaryButton({ children, className = "", dark = false, ...props }) {
   return (
     <button
       {...props}
-      className={`bg-black/8 text-black font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-30 ${className}`}
+      className={`font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-30 ${
+        dark ? "bg-white/8 text-white" : "bg-black/8 text-black"
+      } ${className}`}
     >
       {children}
     </button>
   );
 }
 
-export function DangerButton({ children, className = "", ...props }) {
+export function DangerButton({ children, className = "", dark = false, ...props }) {
   return (
     <button
       {...props}
-      className={`bg-black/5 border border-black/15 text-black/70 font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${className}`}
+      className={`border font-semibold py-2.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${
+        dark ? "bg-white/5 border-white/15 text-white/70" : "bg-black/5 border-black/15 text-black/70"
+      } ${className}`}
     >
       {children}
     </button>
@@ -602,15 +659,15 @@ export function Sparkline({ data, dataKey = "value", height = 36 }) {
   );
 }
 
-export function MetricTile({ label, value, date, series, onClick }) {
+export function MetricTile({ label, value, date, series, onClick, dark = false }) {
   return (
-    <Card onClick={onClick} className="!p-4 flex flex-col justify-between min-h-[128px]">
+    <Card onClick={onClick} className="!p-4 flex flex-col justify-between min-h-[128px]" dark={dark}>
       <div>
-        <p className="text-black/50 text-[13px] font-medium">{label}</p>
-        {date && <p className="text-black/25 text-[11px] mt-0.5">{date}</p>}
+        <p className={`text-[13px] font-medium ${dark ? "text-white/50" : "text-black/50"}`}>{label}</p>
+        {date && <p className={`text-[11px] mt-0.5 ${dark ? "text-white/25" : "text-black/25"}`}>{date}</p>}
       </div>
       <div>
-        <p className="text-black text-2xl font-bold tabular-nums leading-none mb-2">{value ?? "···"}</p>
+        <p className={`text-2xl font-bold tabular-nums leading-none mb-2 ${dark ? "text-white" : "text-black"}`}>{value ?? "···"}</p>
         {series ? <Sparkline data={series} /> : <div className="h-9" />}
       </div>
     </Card>

@@ -11,6 +11,11 @@ import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
 import { localDateKey } from "../lib/dateKey";
 
 export const axisStyle = { fontSize: 11, fill: "rgba(10,10,11,0.35)" };
+export const axisStyleDark = { fontSize: 11, fill: "rgba(255,255,255,0.35)" };
+const tooltipStyleFor = (dark) =>
+  dark
+    ? { background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }
+    : { background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" };
 
 export const BODY_FAT_CONFIG = { key: "bodyFatPct", label: "Body Fat", unit: "%", icon: Percent, placeholder: "e.g. 18.5" };
 export const LEAN_MASS_CONFIG = { key: "leanMassKg", label: "Lean Body Mass", unit: "kg", icon: Activity, placeholder: "e.g. 65.2" };
@@ -46,7 +51,7 @@ export function buildBodyMetricEntries(bodyMetrics, configs) {
   return out;
 }
 
-export function LogBodyMetricSheet({ open, onClose, config, lastValue, onSave }) {
+export function LogBodyMetricSheet({ open, onClose, config, lastValue, onSave, dark = false }) {
   const [value, setValue] = useState("");
 
   React.useEffect(() => {
@@ -58,11 +63,20 @@ export function LogBodyMetricSheet({ open, onClose, config, lastValue, onSave })
   const valid = value !== "" && !isNaN(parsed) && parsed >= 0;
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={`Log ${config.label}`}>
-      <Field label={`${config.label.toUpperCase()}${config.unit ? ` (${config.unit.toUpperCase()})` : ""}`}>
-        <TextInput type="number" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} placeholder={config.placeholder} autoFocus />
+    <BottomSheet open={open} onClose={onClose} title={`Log ${config.label}`} dark={dark}>
+      <Field label={`${config.label.toUpperCase()}${config.unit ? ` (${config.unit.toUpperCase()})` : ""}`} dark={dark}>
+        <TextInput
+          dark={dark}
+          type="number"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          placeholder={config.placeholder}
+          autoFocus
+        />
       </Field>
       <PrimaryButton
+        dark={dark}
         className="w-full mt-4"
         disabled={!valid}
         onClick={() => {
@@ -76,7 +90,7 @@ export function LogBodyMetricSheet({ open, onClose, config, lastValue, onSave })
   );
 }
 
-export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDelete }) {
+export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDelete, dark = false }) {
   const [logOpen, setLogOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const chartData = entries.map((e) => ({ date: new Date(e.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }), value: e.value }));
@@ -85,16 +99,25 @@ export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDel
   const change = latest && first ? Math.round((latest.value - first.value) * 10) / 10 : null;
   const Icon = config.icon;
   const gradId = `bmGrad-${config.key}`;
+  const primaryText = dark ? "text-white" : "text-black";
+  const muted60 = dark ? "text-white/60" : "text-black/60";
+  const muted50 = dark ? "text-white/50" : "text-black/50";
+  const muted40 = dark ? "text-white/40" : "text-black/40";
+  const muted30 = dark ? "text-white/30" : "text-black/30";
+  const muted25 = dark ? "text-white/25" : "text-black/25";
+  const muted15 = dark ? "text-white/15" : "text-black/15";
+  const divider = dark ? "border-white/8" : "border-black/5";
+  const pageBg = dark ? "#090909" : "#FFFFFF";
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[95] bg-white flex flex-col">
-        <div className="flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5">
-          <button onClick={onClose} className="text-black/60">
+      <div className="fixed inset-0 z-[95] flex flex-col" style={{ backgroundColor: pageBg }}>
+        <div className={`flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b ${divider}`}>
+          <button onClick={onClose} className={muted60}>
             <X size={20} />
           </button>
-          <span className="text-black font-semibold">{config.label}</span>
-          <button onClick={() => setLogOpen(true)} className="text-black font-bold text-sm">
+          <span className={`${primaryText} font-semibold`}>{config.label}</span>
+          <button onClick={() => setLogOpen(true)} className={`${primaryText} font-bold text-sm`}>
             + Log
           </button>
         </div>
@@ -102,19 +125,19 @@ export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDel
         <div className="flex-1 overflow-y-auto px-3 py-5">
           {entries.length === 0 ? (
             <div className="py-16 text-center">
-              <Icon size={28} className="mx-auto text-black/15 mb-3" />
-              <p className="text-black/40 text-sm mb-4">No {config.label.toLowerCase()} logged yet.</p>
-              <PrimaryButton onClick={() => setLogOpen(true)} className="mx-auto">
+              <Icon size={28} className={`mx-auto ${muted15} mb-3`} />
+              <p className={`${muted40} text-sm mb-4`}>No {config.label.toLowerCase()} logged yet.</p>
+              <PrimaryButton dark={dark} onClick={() => setLogOpen(true)} className="mx-auto">
                 <Plus size={16} /> LOG YOUR FIRST ENTRY
               </PrimaryButton>
             </div>
           ) : (
             <>
-              <p className="text-black text-3xl font-bold tabular-nums">
+              <p className={`${primaryText} text-3xl font-bold tabular-nums`}>
                 {latest.value}
                 {config.unit ? <span className="text-lg font-semibold"> {config.unit}</span> : ""}
               </p>
-              <p className="text-black/40 text-xs mt-1">
+              <p className={`${muted40} text-xs mt-1`}>
                 {entries.length > 1 && change != null
                   ? `${change > 0 ? "up" : change < 0 ? "down" : "steady"} ${Math.abs(change)}${config.unit} since your first log`
                   : "Your first logged entry"}
@@ -130,32 +153,36 @@ export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDel
                           <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-                      <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
-                      <Tooltip
-                        contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                      <XAxis dataKey="date" tick={dark ? axisStyleDark : axisStyle} axisLine={false} tickLine={false} />
+                      <YAxis
+                        domain={["dataMin - 1", "dataMax + 1"]}
+                        tick={dark ? axisStyleDark : axisStyle}
+                        axisLine={false}
+                        tickLine={false}
+                        width={34}
                       />
+                      <Tooltip contentStyle={tooltipStyleFor(dark)} />
                       <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill={`url(#${gradId})`} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               )}
 
-              <p className="text-black/30 text-xs tracking-wide mt-6 mb-2">ALL ENTRIES · {entries.length}</p>
+              <p className={`${muted30} text-xs tracking-wide mt-6 mb-2`}>ALL ENTRIES · {entries.length}</p>
               <div className="space-y-1">
                 {[...entries].reverse().map((e) => (
-                  <div key={e.id} className="flex items-center justify-between py-2.5 border-b border-black/5 last:border-0">
-                    <span className="text-black/50 text-sm">
+                  <div key={e.id} className={`flex items-center justify-between py-2.5 border-b ${divider} last:border-0`}>
+                    <span className={`${muted50} text-sm`}>
                       {new Date(e.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-black font-semibold text-sm">
+                      <span className={`${primaryText} font-semibold text-sm`}>
                         {e.value}
                         {config.unit ? ` ${config.unit}` : ""}
                       </span>
                       {confirmDeleteId === e.id ? (
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => setConfirmDeleteId(null)} className="text-black/40 text-xs font-semibold px-2 py-1">
+                          <button onClick={() => setConfirmDeleteId(null)} className={`${muted40} text-xs font-semibold px-2 py-1`}>
                             Cancel
                           </button>
                           <button
@@ -169,13 +196,13 @@ export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDel
                               onDelete?.(e.date, e.id);
                               setConfirmDeleteId(null);
                             }}
-                            className="text-red-600 text-xs font-bold px-2 py-1 bg-red-50 rounded-lg"
+                            className={`text-xs font-bold px-2 py-1 rounded-lg ${dark ? "text-red-400 bg-red-500/15" : "text-red-600 bg-red-50"}`}
                           >
                             Delete
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => setConfirmDeleteId(e.id)} className="text-black/25 hover:text-red-500 p-1" aria-label="Delete this entry">
+                        <button onClick={() => setConfirmDeleteId(e.id)} className={`${muted25} hover:text-red-500 p-1`} aria-label="Delete this entry">
                           <X size={14} />
                         </button>
                       )}
@@ -197,6 +224,7 @@ export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDel
           onLog(v);
           setLogOpen(false);
         }}
+        dark={dark}
       />
     </FullScreenOverlay>
   );
@@ -205,7 +233,7 @@ export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDel
 // Same card/chart treatment as Body Weight — one metric, one inline chart.
 // Used for Body Fat % / Lean Body Mass and the handful of daily wellness
 // metrics (steps/sleep/heart rate) where a single trend line is the point.
-export function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
+export function BodyMetricCard({ config, entries, onLog, onOpenHistory, dark = false }) {
   const chartData = entries.map((e) => ({ date: new Date(e.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }), value: e.value }));
   const latest = entries[entries.length - 1];
   const first = entries[0];
@@ -214,13 +242,13 @@ export function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
   const gradId = `bmcGrad-${config.key}`;
 
   return (
-    <Card>
+    <Card dark={dark}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-black font-semibold flex items-center gap-1.5">
-            <Icon size={14} className="text-black/40" /> {config.label}
+          <p className={`font-semibold flex items-center gap-1.5 ${dark ? "text-white" : "text-black"}`}>
+            <Icon size={14} className={dark ? "text-white/40" : "text-black/40"} /> {config.label}
           </p>
-          <p className="text-black/40 text-xs mt-0.5">
+          <p className={`text-xs mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>
             {entries.length === 0
               ? `No ${config.label.toLowerCase()} logged yet`
               : entries.length === 1
@@ -232,7 +260,9 @@ export function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
         </div>
         <button
           onClick={() => onLog(config)}
-          className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+          className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+            dark ? "bg-white/8 text-white" : "bg-black/8 text-black"
+          }`}
         >
           <Plus size={15} />
         </button>
@@ -247,9 +277,9 @@ export function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
                   <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-              <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-              <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+              <XAxis dataKey="date" tick={dark ? axisStyleDark : axisStyle} axisLine={false} tickLine={false} />
+              <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={dark ? axisStyleDark : axisStyle} axisLine={false} tickLine={false} width={30} />
+              <Tooltip contentStyle={tooltipStyleFor(dark)} />
               <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill={`url(#${gradId})`} />
             </AreaChart>
           </ResponsiveContainer>
@@ -257,7 +287,9 @@ export function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
       ) : (
         <button
           onClick={() => onOpenHistory(config)}
-          className="w-full mt-3 text-center text-black/30 text-xs py-6 border border-dashed border-black/10 rounded-xl"
+          className={`w-full mt-3 text-center text-xs py-6 border border-dashed rounded-xl ${
+            dark ? "text-white/30 border-white/15" : "text-black/30 border-black/10"
+          }`}
         >
           {entries.length === 0 ? `Log your ${config.label.toLowerCase()} to start your history` : "Log another entry to see a trend"}
         </button>
@@ -270,30 +302,34 @@ export function BodyMetricCard({ config, entries, onLog, onOpenHistory }) {
 // separate — it'd take up too much space" ask) — one compact card listing
 // every tape-measure spot with its latest reading, tap through for that
 // one measurement's own history + graph via BodyMetricHistoryScreen.
-export function BodyMeasurementsListCard({ entriesByKey, onOpenHistory, onLog }) {
+export function BodyMeasurementsListCard({ entriesByKey, onOpenHistory, onLog, dark = false }) {
   return (
-    <Card>
-      <p className="text-black font-semibold flex items-center gap-1.5">
-        <Ruler size={14} className="text-black/40" /> Body Measurements
+    <Card dark={dark}>
+      <p className={`font-semibold flex items-center gap-1.5 ${dark ? "text-white" : "text-black"}`}>
+        <Ruler size={14} className={dark ? "text-white/40" : "text-black/40"} /> Body Measurements
       </p>
-      <p className="text-black/40 text-xs mt-0.5 mb-2">Neck, chest, arms, waist & more — each with its own history</p>
-      <div className="divide-y divide-black/5">
+      <p className={`text-xs mt-0.5 mb-2 ${dark ? "text-white/40" : "text-black/40"}`}>
+        Neck, chest, arms, waist & more — each with its own history
+      </p>
+      <div className={dark ? "divide-y divide-white/8" : "divide-y divide-black/5"}>
         {BODY_MEASUREMENTS_CONFIG.map((cfg) => {
           const entries = entriesByKey[cfg.key] || [];
           const latest = entries[entries.length - 1];
           return (
             <div key={cfg.key} className="flex items-center justify-between py-2.5">
               <button onClick={() => onOpenHistory(cfg)} className="flex-1 text-left flex items-center justify-between pr-2">
-                <span className="text-black/70 text-sm">{cfg.label}</span>
-                <span className="flex items-center gap-1.5 text-black/40 text-sm">
+                <span className={`text-sm ${dark ? "text-white/70" : "text-black/70"}`}>{cfg.label}</span>
+                <span className={`flex items-center gap-1.5 text-sm ${dark ? "text-white/40" : "text-black/40"}`}>
                   {latest ? `${latest.value} ${cfg.unit}` : "—"}
-                  <ChevronRight size={14} className="text-black/25" />
+                  <ChevronRight size={14} className={dark ? "text-white/25" : "text-black/25"} />
                 </span>
               </button>
               <button
                 onClick={() => onLog(cfg)}
                 aria-label={`Log ${cfg.label}`}
-                className="w-7 h-7 ml-2 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+                className={`w-7 h-7 ml-2 rounded-full flex items-center justify-center shrink-0 ${
+                  dark ? "bg-white/8 text-white" : "bg-black/8 text-black"
+                }`}
               >
                 <Plus size={13} />
               </button>
@@ -308,7 +344,7 @@ export function BodyMeasurementsListCard({ entriesByKey, onOpenHistory, onLog })
 // 30-day training consistency at a glance — green for a day trained, blue
 // for a day with a PR, grey otherwise. Shared so the coach's web Progress
 // tab shows the exact same heatmap the client sees on their own.
-export function ConsistencyHeatmap({ logs }) {
+export function ConsistencyHeatmap({ logs, dark = false }) {
   const DAYS = 30;
   const days = useMemo(() => {
     const doneDates = new Set(logs.map((l) => localDateKey(l.date)));
@@ -331,9 +367,9 @@ export function ConsistencyHeatmap({ logs }) {
   }, [logs]);
 
   return (
-    <Card>
-      <p className="text-black font-semibold">Consistency Heat Map</p>
-      <p className="text-black/40 text-xs mt-0.5 mb-3">Every day trained, last {DAYS} days</p>
+    <Card dark={dark}>
+      <p className={`font-semibold ${dark ? "text-white" : "text-black"}`}>Consistency Heat Map</p>
+      <p className={`text-xs mt-0.5 mb-3 ${dark ? "text-white/40" : "text-black/40"}`}>Every day trained, last {DAYS} days</p>
       <div className="flex gap-[3px]">
         {days.map((day) => (
           <div
@@ -341,14 +377,14 @@ export function ConsistencyHeatmap({ logs }) {
             title={day.date}
             className="flex-1 aspect-square rounded-[3px]"
             style={{
-              backgroundColor: day.pr ? MEASURE_BLUE : day.done ? GOAL_GREEN : "rgba(10,10,11,0.08)",
+              backgroundColor: day.pr ? MEASURE_BLUE : day.done ? GOAL_GREEN : dark ? "rgba(255,255,255,0.08)" : "rgba(10,10,11,0.08)",
             }}
           />
         ))}
       </div>
-      <div className="flex items-center gap-3 mt-3 text-black/35 text-[11px]">
+      <div className={`flex items-center gap-3 mt-3 text-[11px] ${dark ? "text-white/35" : "text-black/35"}`}>
         <span className="flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-[2px] bg-black/8 inline-block" /> None
+          <span className={`w-2.5 h-2.5 rounded-[2px] inline-block ${dark ? "bg-white/8" : "bg-black/8"}`} /> None
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-[2px] inline-block" style={{ backgroundColor: GOAL_GREEN }} /> Trained
@@ -363,17 +399,25 @@ export function ConsistencyHeatmap({ logs }) {
 
 // Strength PR list — same "name / best lift or Not yet logged" row layout
 // on both the client's own Progress tab and the coach's web view of it.
-export function PersonalBestsCard({ personalBests }) {
+export function PersonalBestsCard({ personalBests, dark = false }) {
   return (
-    <Card>
-      <p className="text-black font-semibold mb-3">Strength Personal Bests</p>
+    <Card dark={dark}>
+      <p className={`font-semibold mb-3 ${dark ? "text-white" : "text-black"}`}>Strength Personal Bests</p>
       <div className="space-y-2.5">
         {personalBests.map((s) => (
           <div key={s.name} className="flex items-center justify-between">
-            <span className="text-black/70 text-sm flex items-center gap-2">
-              <Trophy size={14} className={s.value ? "text-black" : "text-black/25"} /> {s.name}
+            <span className={`text-sm flex items-center gap-2 ${dark ? "text-white/70" : "text-black/70"}`}>
+              <Trophy size={14} className={s.value ? (dark ? "text-white" : "text-black") : dark ? "text-white/25" : "text-black/25"} /> {s.name}
             </span>
-            <span className={s.value ? "text-black text-sm font-semibold" : "text-black/30 text-xs"}>{s.value || "Not yet logged"}</span>
+            <span
+              className={
+                s.value
+                  ? `text-sm font-semibold ${dark ? "text-white" : "text-black"}`
+                  : `text-xs ${dark ? "text-white/30" : "text-black/30"}`
+              }
+            >
+              {s.value || "Not yet logged"}
+            </span>
           </div>
         ))}
       </div>

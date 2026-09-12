@@ -46,3 +46,12 @@ export const MEASURE_BLUE_FAINT = "rgba(47,143,255,0.35)";
 // Goal-reached green — used only where a bar needs to visibly flip on hitting
 // a target (nutrition calorie/macro bars), never as chrome.
 export const GOAL_GREEN = "#22C55E";
+
+// Client app dark theme — the whole client-facing app (every tab) runs on
+// this palette; the coach console stays on the light tokens above.
+export const CLIENT_DARK_BG = "#090909"; // app background
+export const CLIENT_DARK_SURFACE = "#141414"; // card background
+export const CLIENT_DARK_SURFACE_2 = "#1C1C1C"; // nested/elevated surface within a card
+export const CLIENT_DARK_BORDER = "#2A2A2A"; // hairline borders/dividers
+export const CLIENT_DARK_TEXT = "#FFFFFF"; // primary text
+export const CLIENT_DARK_TEXT_MUTED = "#A0A0A0"; // secondary text

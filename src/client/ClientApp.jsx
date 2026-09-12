@@ -375,10 +375,10 @@ function sectionedExercises(list) {
    HOME
 ============================================================================ */
 
-function BrandBar() {
+function BrandBar({ dark = false }) {
   return (
     <div className="flex items-center justify-center pt-3 pb-1">
-      <Logo variant="mark" tone="black" className="h-10 w-auto opacity-95" />
+      <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-9 w-auto ${dark ? "opacity-90" : "opacity-95"}`} />
     </div>
   );
 }
@@ -388,24 +388,23 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
-    <div className="flex items-center justify-between px-3 pt-6 pb-2">
+    <div className="flex items-center justify-between px-4 pt-6 pb-2">
       <div>
-        <p className="text-black text-xl font-semibold flex items-center gap-1.5">
+        <p className="text-white text-xl font-semibold tracking-tight">
           {greeting}, {user.name.split(" ")[0]}
-          <Dumbbell size={18} className="text-black" />
         </p>
-        <p className="text-black/40 text-sm mt-0.5">{dateStr}</p>
+        <p className="text-white/40 text-sm mt-0.5">{dateStr}</p>
       </div>
-      <div className="flex items-center gap-3">
-        <button onClick={onOpenNotifications} className="w-10 h-10 rounded-full bg-black/8 flex items-center justify-center relative">
-          <Bell size={18} className="text-black/80" />
+      <div className="flex items-center gap-2.5">
+        <button onClick={onOpenNotifications} className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center relative active:scale-95 transition-transform">
+          <Bell size={17} className="text-white/80" />
           {notifCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
               {notifCount}
             </span>
           )}
         </button>
-        <Avatar name={user.name} url={user.avatarUrl} size={40} onClick={onAvatarClick} />
+        <Avatar name={user.name} url={user.avatarUrl} size={40} onClick={onAvatarClick} dark />
       </div>
     </div>
   );
@@ -414,76 +413,68 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
 function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById, dbReady = true }) {
   if (!todaySession) {
     return (
-      <Card className="mx-3 text-center py-10">
-        <Dumbbell size={26} className="text-black/25 mx-auto mb-3" />
-        <p className="text-black font-semibold">{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
+      <div className="mx-4 rounded-2xl p-8 border border-white/8 text-center" style={{ backgroundColor: "#141414" }}>
+        <Dumbbell size={22} className="text-white/20 mx-auto mb-3" />
+        <p className="text-white/70 font-medium text-sm">{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
         {dbReady && (
-          <p className="text-black/40 text-sm mt-1">
-            {isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}
-          </p>
+          <p className="text-white/30 text-xs mt-1">{isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}</p>
         )}
-      </Card>
+      </div>
     );
   }
   const completedSets = isToday && activeLog ? Object.values(activeLog).flat().filter((s) => s.completed).length : 0;
   const totalSets = countWorkoutSets(todaySession.exercises);
   const started = isToday && !!activeLog;
-  const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S WORKOUT" : isPastDate ? "MISSED" : "SCHEDULED";
+  const exCount = countExercises(todaySession.exercises);
+  const estMin = estimateWorkoutMinutes(todaySession.exercises);
+  const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S FOCUS" : isPastDate ? "MISSED" : "SCHEDULED";
 
   return (
-    <Card className="mx-3 !p-4 !rounded-none !border-0">
-      <div className="flex items-center justify-between mb-2">
-        <Pill tone="solid">{pillLabel}</Pill>
+    <div className="mx-4 rounded-2xl p-5 border border-white/8" style={{ backgroundColor: "#141414" }}>
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-white/35 text-[11px] font-bold tracking-[0.14em]">{pillLabel}</span>
+        {completedOnDate && !started && <Check size={15} className="text-white/40" />}
       </div>
-      <h2 className="text-black text-lg font-bold border-l-[3px] border-black pl-2.5">{todaySession.label}</h2>
-      <p className="text-black/50 text-xs mt-0.5 pl-2.5">
-        {countExercises(todaySession.exercises)} exercise{countExercises(todaySession.exercises) === 1 ? "" : "s"}
-      </p>
+      <h2 className="text-white text-xl font-bold tracking-tight">{todaySession.label}</h2>
       {(todaySession.muscleGroups || []).length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {todaySession.muscleGroups.map((m) => (
-            <Pill key={m}>{m}</Pill>
-          ))}
-        </div>
+        <p className="text-white/45 text-[13px] mt-1">{todaySession.muscleGroups.join(" & ")} Focus</p>
       )}
+      <p className="text-white/30 text-[12px] mt-2.5 tracking-wide">
+        {exCount} EXERCISE{exCount === 1 ? "" : "S"} · ~{estMin} MIN
+      </p>
 
       {started && (
-        <div className="mt-3">
-          <div className="flex justify-between text-xs text-black/40 mb-1">
+        <div className="mt-4">
+          <div className="flex justify-between text-xs text-white/35 mb-1.5">
             <span>Progress</span>
             <span>
               {completedSets}/{totalSets} sets
             </span>
           </div>
-          <ProgressBar value={completedSets} max={totalSets} />
+          <ProgressBar value={completedSets} max={totalSets} color="#FFFFFF" trackClassName="bg-white/10" />
         </div>
       )}
 
-      {completedOnDate && !started && (
-        <div className="flex items-center gap-2 mt-3 text-black/60 text-sm">
-          <Check size={14} /> Workout completed
-        </div>
-      )}
-      <div className="flex gap-2 mt-3.5">
+      <div className="flex gap-2 mt-4">
         {(!completedOnDate || started) && (
           <button
             onClick={onStart}
-            className="flex-1 bg-black text-white font-bold py-3 rounded-none text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="flex-1 bg-white text-black font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <Play size={16} fill="white" />
-            {started ? "RESUME" : "START WORKOUT"}
+            <Play size={15} fill="black" />
+            {started ? "RESUME WORKOUT" : "START WORKOUT"}
           </button>
         )}
         <button
           onClick={onView}
-          className={`text-black/70 text-sm font-semibold px-4 rounded-none border-2 border-black/15 bg-black/5 ${
-            completedOnDate && !started ? "flex-1 py-3" : ""
+          className={`text-white/70 text-sm font-semibold px-4 rounded-xl border border-white/12 bg-white/5 active:scale-[0.98] transition-transform ${
+            completedOnDate && !started ? "flex-1 py-3.5" : ""
           }`}
         >
           View
         </button>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -496,59 +487,60 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
     { label: "FAT", value: round1(logged.fat), target: targets.fat, unit: "g" },
   ];
   return (
-    <Card className="mx-3 !rounded-none !border-2" style={{ borderColor: BORDER_STRONG }}>
+    <div className="mx-4 rounded-2xl p-5 border border-white/8" style={{ backgroundColor: "#141414" }}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-black font-bold border-l-[3px] border-black pl-2.5">{isToday ? "Nutrition Today" : "Nutrition"}</h3>
-        <Utensils size={16} className="text-black/30" />
+        <h3 className="text-white font-semibold">{isToday ? "Nutrition Today" : "Nutrition"}</h3>
+        <Utensils size={15} className="text-white/25" />
       </div>
       <div className="grid grid-cols-2 gap-4">
         {items.map((it) => (
           <div key={it.label}>
             <div className="flex justify-between text-xs mb-1">
-              <span className="text-black/40 tracking-wide">{it.label}</span>
+              <span className="text-white/35 tracking-wide">{it.label}</span>
             </div>
-            <p className="text-black text-sm font-semibold mb-1.5">
+            <p className="text-white text-sm font-semibold mb-1.5">
               {it.value}
-              {it.unit} <span className="text-black/30 font-normal">/ {it.target}{it.unit}</span>
+              {it.unit} <span className="text-white/30 font-normal">/ {it.target}{it.unit}</span>
             </p>
             <ProgressBar
               value={it.value}
               max={it.target}
               height={6}
               color={it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE}
+              trackClassName="bg-white/8"
             />
           </div>
         ))}
       </div>
-      <div className="mt-4 pt-4 border-t-2 border-black/10 flex items-center gap-3">
-        <WaterCup value={logged.water} max={targets.water} size={36} />
+      <div className="mt-4 pt-4 border-t border-white/8 flex items-center gap-3">
+        <WaterCup value={logged.water} max={targets.water} size={36} dark />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             {logged.water >= targets.water ? (
-              <Droplets size={16} className="text-black shrink-0" />
+              <Droplets size={16} className="text-white shrink-0" />
             ) : (
-              <GlassWater size={16} className="text-black/50 shrink-0" />
+              <GlassWater size={16} className="text-white/50 shrink-0" />
             )}
-            <span className="text-black/70 text-sm">
-              Water: <span className="font-semibold text-black">{logged.water}L</span> / {targets.water}L
+            <span className="text-white/70 text-sm">
+              Water: <span className="font-semibold text-white">{logged.water}L</span> / {targets.water}L
             </span>
           </div>
         </div>
       </div>
       {isToday && (
         <div className="flex gap-2 mt-4">
-          <button onClick={onLogFood} className="flex-1 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform">
+          <button onClick={onLogFood} className="flex-1 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform">
             + LOG FOOD
           </button>
           <button
             onClick={onLogWater}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-black/8 text-black text-sm font-semibold py-3 rounded-xl active:scale-90 transition-transform duration-150"
+            className="flex-1 flex items-center justify-center gap-1.5 bg-white/8 text-white text-sm font-semibold py-3 rounded-xl active:scale-90 transition-transform duration-150"
           >
             <GlassWater size={15} /> + LOG WATER
           </button>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -562,10 +554,10 @@ function DayHeader({ selectedOffset, onJumpToday }) {
   const label = dateForOffset(selectedOffset).toLocaleDateString(undefined, { month: "long", day: "numeric" });
   const isToday = selectedOffset === 0;
   return (
-    <div className="flex items-center justify-between px-3 pt-1 pb-1">
-      <p className="text-black text-lg font-bold">{label}</p>
+    <div className="flex items-center justify-between px-4 pt-1 pb-1">
+      <p className="text-white text-lg font-bold">{label}</p>
       {!isToday && (
-        <button onClick={onJumpToday} className="text-black/50 text-sm font-semibold underline underline-offset-2">
+        <button onClick={onJumpToday} className="text-white/50 text-sm font-semibold underline underline-offset-2">
           Jump to today
         </button>
       )}
@@ -588,7 +580,7 @@ function DateStrip({ selectedOffset, onSelect }) {
   }, []);
 
   return (
-    <div className="px-3">
+    <div className="px-4">
       <div ref={stripRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {offsets.map((offset) => {
           const d = dateForOffset(offset);
@@ -600,14 +592,14 @@ function DateStrip({ selectedOffset, onSelect }) {
               data-offset={offset}
               onClick={() => onSelect(offset)}
               className={`shrink-0 w-[calc((100%-48px)/7)] rounded-xl py-2 flex flex-col items-center gap-0.5 border transition-colors ${
-                isSelected ? "bg-black border-black" : "bg-black/5 border-black/10"
+                isSelected ? "bg-white border-white" : "bg-white/[0.04] border-white/8"
               }`}
             >
-              <span className={`text-sm font-bold leading-none ${isSelected ? "text-white" : "text-black"}`}>{d.getDate()}</span>
-              <span className={`text-[9px] font-semibold tracking-wide ${isSelected ? "text-white/60" : "text-black/40"}`}>
+              <span className={`text-sm font-bold leading-none ${isSelected ? "text-black" : "text-white"}`}>{d.getDate()}</span>
+              <span className={`text-[9px] font-semibold tracking-wide ${isSelected ? "text-black/50" : "text-white/35"}`}>
                 {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
-              {isToday && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white/60" : "bg-black/50"}`} />}
+              {isToday && <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-black/40" : "bg-white/50"}`} />}
             </button>
           );
         })}
@@ -657,16 +649,16 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
   }
 
   return (
-    <Card className="mx-3">
+    <div className="mx-4 rounded-2xl p-5 border border-white/8" style={{ backgroundColor: "#141414" }}>
       <div className="flex items-center justify-between mb-0.5">
-        <h3 className="text-black font-semibold">Daily Execution</h3>
-        <span className="text-black/40 text-xs">
-          {doneCount}/{habits.length}
+        <h3 className="text-white font-semibold">Daily Execution</h3>
+        <span className="text-white/35 text-xs font-medium tracking-wide">
+          {doneCount}/{habits.length} COMPLETE
         </span>
       </div>
-      <p className="text-black/40 text-xs mb-3">The small actions that drive your performance.</p>
+      <p className="text-white/35 text-xs mb-3">The small actions that drive your performance.</p>
       <div className="mb-3">
-        <ProgressBar value={doneCount} max={habits.length} height={6} />
+        <ProgressBar value={doneCount} max={habits.length} height={6} color="#FFFFFF" trackClassName="bg-white/10" />
       </div>
       <div className="space-y-1.5">
         {habits.map((h) => {
@@ -677,30 +669,30 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
               type="button"
               key={h.id}
               onClick={() => (interactive ? handleToggle(h) : showToast?.("Jump to today to update habits"))}
-              className={`w-full flex items-center gap-3 rounded-lg px-3.5 py-3 text-left transition-colors ${
-                done ? "bg-black/[0.04]" : "bg-black/5"
-              } ${interactive ? "active:scale-[0.97]" : "opacity-70"} transition-transform duration-150`}
+              className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors ${
+                done ? "bg-white/[0.06]" : "bg-white/[0.03]"
+              } ${interactive ? "active:scale-[0.97]" : "opacity-60"} transition-transform duration-150`}
             >
               <span
                 className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? "bg-black scale-100" : "bg-black/8 scale-95"
+                  done ? "bg-white scale-100" : "bg-white/8 scale-95"
                 }`}
               >
-                <Icon size={16} className={done ? "text-white" : "text-black/45"} strokeWidth={2.2} />
+                <Icon size={16} className={done ? "text-black" : "text-white/45"} strokeWidth={2.2} />
               </span>
-              <span className={`text-sm flex-1 transition-colors ${done ? "text-black/40 line-through" : "text-black/85"}`}>{h.label}</span>
+              <span className={`text-sm flex-1 transition-colors ${done ? "text-white/35 line-through" : "text-white/85"}`}>{h.label}</span>
               <span
                 className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? "bg-black border-black scale-100" : "border-black/20 scale-90"
+                  done ? "bg-white border-white scale-100" : "border-white/20 scale-90"
                 }`}
               >
-                {done && <Check size={12} className="text-white" strokeWidth={3.5} />}
+                {done && <Check size={12} className="text-black" strokeWidth={3.5} />}
               </span>
             </button>
           );
         })}
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -710,31 +702,31 @@ function ActiveChallengesCard({ challenges, userId }) {
   if (active.length === 0) return null;
 
   return (
-    <div className="px-3 space-y-2.5">
+    <div className="px-4 space-y-2.5">
       {active.map((c) => {
         const snapshot = c.leaderboardSnapshot || [];
         const mine = snapshot.find((r) => r.clientId === userId);
         return (
-          <Card key={c.id} className="!p-4">
+          <div key={c.id} className="rounded-2xl p-4 border border-white/8" style={{ backgroundColor: "#141414" }}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center shrink-0">
-                <Trophy size={17} className="text-black" />
+              <div className="w-10 h-10 rounded-full bg-white/8 flex items-center justify-center shrink-0">
+                <Trophy size={17} className="text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-black font-semibold text-sm truncate">{c.name}</p>
+                <p className="text-white font-semibold text-sm truncate">{c.name}</p>
                 {mine ? (
-                  <p className="text-black/50 text-xs mt-0.5">
+                  <p className="text-white/45 text-xs mt-0.5">
                     You're rank #{mine.rank} of {snapshot.length} · {mine.value}
                   </p>
                 ) : (
-                  <p className="text-black/30 text-xs mt-0.5">Leaderboard updates when your coach checks in</p>
+                  <p className="text-white/30 text-xs mt-0.5">Leaderboard updates when your coach checks in</p>
                 )}
               </div>
               {mine && mine.rank <= 3 && (
                 <span className="text-lg shrink-0">{mine.rank === 1 ? "🥇" : mine.rank === 2 ? "🥈" : "🥉"}</span>
               )}
             </div>
-          </Card>
+          </div>
         );
       })}
     </div>
@@ -828,13 +820,18 @@ function NotificationsPromptCard({ userId, showToast }) {
   }
 
   return (
-    <div className="mx-3 flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
-      <BellRing size={18} className="text-blue-600 shrink-0" />
-      <p className="flex-1 text-blue-800 text-sm font-medium">Turn on notifications so you never miss a message from your coach</p>
-      <button onClick={enable} disabled={busy} className="bg-blue-600 text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0 disabled:opacity-50">
+    <div className="mx-4 flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/8" style={{ backgroundColor: "#141414" }}>
+      <BellRing size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
+      <p className="flex-1 text-white/65 text-[13px] font-medium">Turn on notifications so you never miss a message from your coach</p>
+      <button
+        onClick={enable}
+        disabled={busy}
+        className="text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0 disabled:opacity-50"
+        style={{ backgroundColor: MEASURE_BLUE }}
+      >
         {busy ? "…" : "ENABLE"}
       </button>
-      <button onClick={dismiss} aria-label="Dismiss" className="text-blue-400 hover:text-blue-600 shrink-0">
+      <button onClick={dismiss} aria-label="Dismiss" className="shrink-0 text-white/25 hover:text-white/50">
         <X size={16} />
       </button>
     </div>
@@ -847,15 +844,15 @@ function NotificationsPromptCard({ userId, showToast }) {
 function CardioLogCard({ logs }) {
   if (!logs || logs.length === 0) return null;
   return (
-    <div className="mx-3 space-y-2">
+    <div className="mx-4 space-y-2">
       {logs.map((log) => (
-        <div key={log.id} className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-            <Footprints size={17} className="text-blue-600" />
+        <div key={log.id} className="flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/8" style={{ backgroundColor: "#141414" }}>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.15)" }}>
+            <Footprints size={17} style={{ color: MEASURE_BLUE }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-blue-900 text-sm font-semibold truncate">{log.cardio.activityLabel}</p>
-            <p className="text-blue-700/70 text-xs mt-0.5">
+            <p className="text-white/85 text-sm font-semibold truncate">{log.cardio.activityLabel}</p>
+            <p className="text-white/40 text-xs mt-0.5">
               {[
                 log.cardio.durationMin ? `${log.cardio.durationMin} min` : null,
                 log.cardio.distanceKm ? `${log.cardio.distanceKm} km` : null,
@@ -909,10 +906,10 @@ function HomeScreen({
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
-        <div className="mx-3 flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
-          <Scale size={18} className="text-amber-600 shrink-0" />
-          <p className="flex-1 text-amber-800 text-sm font-medium">Body stats check-in due today</p>
-          <button onClick={onLogWeight} className="bg-amber-600 text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0">
+        <div className="mx-4 flex items-center gap-3 rounded-2xl px-4 py-3 border border-white/8" style={{ backgroundColor: "#141414" }}>
+          <Scale size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
+          <p className="flex-1 text-white/65 text-[13px] font-medium">Body stats check-in due today</p>
+          <button onClick={onLogWeight} className="text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0" style={{ backgroundColor: MEASURE_BLUE }}>
             LOG WEIGHT
           </button>
         </div>
@@ -981,22 +978,22 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-white flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5">
-          <button onClick={onClose} className="text-black/60">
+      <div className="fixed inset-0 z-[90] bg-black flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5">
+          <button onClick={onClose} className="text-white/60">
             <X size={22} />
           </button>
-          <span className="text-black/70 text-sm font-semibold">{session.weekLabel || "Workout Preview"}</span>
-          <ClipboardList size={19} className="text-black/25" />
+          <span className="text-white/70 text-sm font-semibold">{session.weekLabel || "Workout Preview"}</span>
+          <ClipboardList size={19} className="text-white/25" />
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-28">
           <div className="flex items-center gap-2.5 mt-4">
-            <span className="w-9 h-9 rounded-full border-2 border-black/15 shrink-0" />
-            <h1 className="text-black text-2xl font-bold truncate">{session.label}</h1>
+            <span className="w-9 h-9 rounded-full border-2 border-white/15 shrink-0" />
+            <h1 className="text-white text-2xl font-bold truncate">{session.label}</h1>
           </div>
 
-          <div className="flex items-center gap-5 mt-4 text-black/50 text-[13px] font-medium flex-wrap">
+          <div className="flex items-center gap-5 mt-4 text-white/50 text-[13px] font-medium flex-wrap">
             <span className="flex items-center gap-1.5">
               <Target size={15} /> Regular
             </span>
@@ -1010,14 +1007,14 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
 
           {equipment.length > 0 && (
             <div className="mt-5">
-              <p className="text-black/35 text-xs font-semibold tracking-wide mb-2">EQUIPMENT</p>
+              <p className="text-white/35 text-xs font-semibold tracking-wide mb-2">EQUIPMENT</p>
               <div className="flex gap-2.5 flex-wrap">
                 {equipment.map((eq) => (
                   <div key={eq} className="flex flex-col items-center gap-1.5 w-16">
-                    <div className="w-14 h-14 rounded-2xl bg-black/5 border border-black/5 flex items-center justify-center">
-                      <Dumbbell size={20} className="text-black/40" />
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center">
+                      <Dumbbell size={20} className="text-white/40" />
                     </div>
-                    <span className="text-black/45 text-[10px] text-center leading-tight">{eq}</span>
+                    <span className="text-white/45 text-[10px] text-center leading-tight">{eq}</span>
                   </div>
                 ))}
               </div>
@@ -1026,17 +1023,17 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
 
           {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
             <div key={group.key} className="mt-5">
-              {group.showHeader && <p className="text-black/40 text-xs font-bold tracking-wide mb-1">{group.label.toUpperCase()}</p>}
-              <div className="border-t border-black/5">
+              {group.showHeader && <p className="text-white/40 text-xs font-bold tracking-wide mb-1">{group.label.toUpperCase()}</p>}
+              <div className="border-t border-white/5">
                 {group.items.map(({ exMeta: e, i }) => {
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
                   return (
-                    <div key={i} className="flex items-center gap-3 py-3.5 border-b border-black/5">
-                      <ExerciseThumb exercise={ex} size={56} rounded="rounded-lg" className="shadow-sm" />
+                    <div key={i} className="flex items-center gap-3 py-3.5 border-b border-white/5">
+                      <ExerciseThumb dark exercise={ex} size={56} rounded="rounded-lg" className="shadow-sm" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                          <p className="text-white font-semibold text-[15px] truncate">{ex.name}</p>
                           {e.dropSet && (
                             <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                               DROPSET
@@ -1047,25 +1044,29 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                           e.actualSets.length > 0 ? (
                             <div className="mt-1 space-y-0.5">
                               {e.actualSets.map((s, si) => (
-                                <p key={si} className="text-black/60 text-[13px]">
+                                <p key={si} className="text-white/60 text-[13px]">
                                   Set {si + 1} — {s.reps}
                                   {s.weight > 0 ? ` × ${s.weight} kg` : ""}
-                                  {s.isPR && <span className="text-amber-600 font-semibold ml-1">PR</span>}
+                                  {s.isPR && (
+                                    <span className="font-semibold ml-1" style={{ color: GOAL_GREEN }}>
+                                      PR
+                                    </span>
+                                  )}
                                 </p>
                               ))}
                             </div>
                           ) : (
-                            <p className="text-black/35 text-[13px] mt-0.5 italic">No sets logged</p>
+                            <p className="text-white/35 text-[13px] mt-0.5 italic">No sets logged</p>
                           )
                         ) : (
-                          <p className="text-black/45 text-[13px] mt-0.5">
+                          <p className="text-white/45 text-[13px] mt-0.5">
                             {e.targetSets} sets × {formatTargetReps(e)}, {formatRest(e.restSeconds ?? 90)} rest
                             between sets
                           </p>
                         )}
-                        {e.note && <p className="text-black/40 text-[12px] mt-1 italic">"{e.note}"</p>}
+                        {e.note && <p className="text-white/40 text-[12px] mt-1 italic">"{e.note}"</p>}
                       </div>
-                      {e.notes && <ClipboardList size={16} className="text-black/40 shrink-0" />}
+                      {e.notes && <ClipboardList size={16} className="text-white/40 shrink-0" />}
                     </div>
                   );
                 })}
@@ -1075,32 +1076,32 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
 
           {session.workoutLogId && (
             <div className="mt-6">
-              <p className="text-black/35 text-xs font-semibold tracking-wide mb-2 flex items-center gap-1.5">
+              <p className="text-white/35 text-xs font-semibold tracking-wide mb-2 flex items-center gap-1.5">
                 <MessageCircle size={13} /> COMMENTS
               </p>
               <div className="space-y-2">
-                {commentTimeline.length === 0 && <p className="text-black/30 text-[13px]">No comments on this workout yet.</p>}
+                {commentTimeline.length === 0 && <p className="text-white/30 text-[13px]">No comments on this workout yet.</p>}
                 {commentTimeline.map((item) =>
                   item.system ? (
-                    <div key={item.id} className="flex items-start gap-2 text-black/50 text-[12px]">
-                      <Trophy size={13} className="text-amber-500 shrink-0 mt-0.5" />
+                    <div key={item.id} className="flex items-start gap-2 text-white/50 text-[12px]">
+                      <Trophy size={13} className="shrink-0 mt-0.5" style={{ color: GOAL_GREEN }} />
                       <p className="leading-snug">{item.text}</p>
                     </div>
                   ) : (
-                    <div key={item.id} className="bg-black/[0.03] border border-black/5 rounded-lg px-3 py-2">
-                      <p className="text-black/60 text-[11px] font-semibold">
+                    <div key={item.id} className="bg-white/[0.03] border border-white/5 rounded-lg px-3 py-2">
+                      <p className="text-white/60 text-[11px] font-semibold">
                         {item.authorName || (item.from === "coach" ? "Coach" : "You")}
-                        <span className="text-black/30 font-normal ml-1.5">
+                        <span className="text-white/30 font-normal ml-1.5">
                           {new Date(item.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                         </span>
                       </p>
-                      <p className="text-black text-[13px] mt-0.5 whitespace-pre-wrap">{item.text}</p>
+                      <p className="text-white text-[13px] mt-0.5 whitespace-pre-wrap">{item.text}</p>
                     </div>
                   )
                 )}
               </div>
               <div className="flex items-center gap-2 mt-3">
-                <TextInput
+                <TextInput dark
                   value={commentDraft}
                   onChange={(e) => setCommentDraft(e.target.value)}
                   placeholder="Add a comment for your coach…"
@@ -1118,7 +1119,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                     setCommentDraft("");
                   }}
                   disabled={!commentDraft.trim()}
-                  className="shrink-0 w-11 h-11 rounded-xl bg-black text-white flex items-center justify-center disabled:opacity-30"
+                  className="shrink-0 w-11 h-11 rounded-xl bg-white text-black flex items-center justify-center disabled:opacity-30"
                 >
                   <Send size={16} />
                 </button>
@@ -1131,7 +1132,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
           <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
             <button
               onClick={onStart}
-              className="bg-black text-white font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"
+              className="bg-white text-black font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"
             >
               <Play size={16} fill="white" />
               Start Now
@@ -1159,20 +1160,20 @@ const PRE_WORKOUT_REMINDERS = [
 
 function PreWorkoutReadySheet({ open, onClose, onReady }) {
   return (
-    <BottomSheet open={open} onClose={onClose} title="Ready to train?">
+    <BottomSheet dark open={open} onClose={onClose} title="Ready to train?">
       <div className="space-y-3">
         {PRE_WORKOUT_REMINDERS.map((r, i) => (
-          <div key={i} className="flex items-start gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
-            <r.icon size={18} className="text-black/50 shrink-0 mt-0.5" />
+          <div key={i} className="flex items-start gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-3.5 py-3">
+            <r.icon size={18} className="text-white/50 shrink-0 mt-0.5" />
             <div>
-              <p className="text-black text-sm font-semibold">{r.title}</p>
-              <p className="text-black/45 text-[13px] mt-0.5 leading-snug">{r.body}</p>
+              <p className="text-white text-sm font-semibold">{r.title}</p>
+              <p className="text-white/45 text-[13px] mt-0.5 leading-snug">{r.body}</p>
             </div>
           </div>
         ))}
         <button
           onClick={onReady}
-          className="w-full bg-black text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-1"
+          className="w-full bg-white text-black font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform mt-1"
         >
           <Play size={16} fill="white" /> LET'S GO
         </button>
@@ -1185,20 +1186,20 @@ function RestBar({ restTime, restTotal, onSkip, onAdd15 }) {
   const pct = restTotal > 0 ? ((restTotal - restTime) / restTotal) * 100 : 0;
   return (
     <div className="fixed top-0 left-0 right-0 z-[95] flex justify-center pt-safe animate-[slideDown_0.3s_ease-out]">
-      <div className="w-full max-w-md bg-black text-white px-5 py-3.5 flex items-center gap-3 shadow-2xl">
+      <div className="w-full max-w-md bg-white text-black px-5 py-3.5 flex items-center gap-3 shadow-2xl">
         <div className="flex-1 min-w-0">
-          <p className="text-white/50 text-[11px] tracking-wide truncate">RELAX AND HAVE A DRINK</p>
-          <p className="text-white text-xl font-bold tabular-nums">
+          <p className="text-black/50 text-[11px] tracking-wide truncate">RELAX AND HAVE A DRINK</p>
+          <p className="text-black text-xl font-bold tabular-nums">
             {Math.floor(Math.max(restTime, 0) / 60)}:{String(Math.max(restTime, 0) % 60).padStart(2, "0")}
           </p>
-          <div className="h-1 bg-white/15 rounded-full mt-1.5 overflow-hidden">
-            <div className="h-full bg-white rounded-full transition-all" style={{ width: `${pct}%` }} />
+          <div className="h-1 bg-black/15 rounded-full mt-1.5 overflow-hidden">
+            <div className="h-full bg-black rounded-full transition-all" style={{ width: `${pct}%` }} />
           </div>
         </div>
-        <button onClick={onAdd15} className="bg-white/12 text-white text-xs font-semibold px-3 py-2.5 rounded-xl shrink-0">
+        <button onClick={onAdd15} className="bg-black/12 text-black text-xs font-semibold px-3 py-2.5 rounded-xl shrink-0">
           +15s
         </button>
-        <button onClick={onSkip} className="bg-white text-black text-xs font-bold px-3 py-2.5 rounded-xl shrink-0">
+        <button onClick={onSkip} className="bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl shrink-0">
           SKIP
         </button>
       </div>
@@ -1248,12 +1249,12 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[115] bg-white flex flex-col overflow-y-auto">
+      <div className="fixed inset-0 z-[115] bg-black flex flex-col overflow-y-auto">
         <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
-          <button onClick={onClose} className="text-black/60 -ml-1.5">
+          <button onClick={onClose} className="text-white/60 -ml-1.5">
             <ChevronLeft size={24} />
           </button>
-          <ClipboardList size={19} className="text-black/25" />
+          <ClipboardList size={19} className="text-white/25" />
         </div>
 
         {parsed && (
@@ -1274,11 +1275,11 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
         )}
 
         <div className="px-5 py-5">
-          <h1 className="text-black text-2xl font-bold mb-3">{exercise.name}</h1>
+          <h1 className="text-white text-2xl font-bold mb-3">{exercise.name}</h1>
 
           {instructions.length > 0 && (
             <>
-              <ol className={`space-y-2.5 text-black/80 text-[15px] leading-relaxed ${!notesExpanded && isLongInstructions ? "line-clamp-[9]" : ""}`}>
+              <ol className={`space-y-2.5 text-white/80 text-[15px] leading-relaxed ${!notesExpanded && isLongInstructions ? "line-clamp-[9]" : ""}`}>
                 {instructions.map((step, i) => (
                   <li key={i}>
                     {i + 1}. {step}
@@ -1296,7 +1297,7 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
           {exercise.formCues?.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-4">
               {exercise.formCues.map((c, i) => (
-                <Pill key={i} tone="outline">
+                <Pill dark key={i} tone="outline">
                   {c}
                 </Pill>
               ))}
@@ -1305,12 +1306,12 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
         </div>
 
         {best && (
-          <div className="px-5 py-4 bg-black/[0.03] border-y border-black/8 flex items-center justify-between">
+          <div className="px-5 py-4 bg-white/[0.03] border-y border-white/8 flex items-center justify-between">
             <div>
-              <p className="text-black/40 text-xs tracking-wide">PERSONAL BEST TO BEAT</p>
-              <p className="text-black font-bold mt-0.5">{best.reps} rep max</p>
+              <p className="text-white/40 text-xs tracking-wide">PERSONAL BEST TO BEAT</p>
+              <p className="text-white font-bold mt-0.5">{best.reps} rep max</p>
             </div>
-            <p className="text-black text-2xl font-bold">
+            <p className="text-white text-2xl font-bold">
               {best.weight}
               <span className="text-sm font-semibold">kg</span>
             </p>
@@ -1319,14 +1320,14 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 
         {e1rmHistory.length >= 2 && (
           <div className="px-5 pt-5">
-            <p className="text-black/40 text-xs font-semibold tracking-wide mb-3">PROGRESSION</p>
+            <p className="text-white/40 text-xs font-semibold tracking-wide mb-3">PROGRESSION</p>
             <div style={{ height: 140 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={e1rmHistory}>
                   <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
                   <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
                   <Tooltip
-                    contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                    contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }}
                     formatter={(v) => [`${v} kg`, "Est. 1RM"]}
                   />
                   <Line type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2.5} dot={{ r: 3, fill: MEASURE_BLUE }} />
@@ -1337,23 +1338,23 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
         )}
 
         <div className="px-5 py-5">
-          <p className="text-black/40 text-xs font-semibold tracking-wide mb-3">HISTORY</p>
+          <p className="text-white/40 text-xs font-semibold tracking-wide mb-3">HISTORY</p>
           {history.length === 0 ? (
-            <p className="text-black/30 text-sm">No previous sessions logged for this exercise yet.</p>
+            <p className="text-white/30 text-sm">No previous sessions logged for this exercise yet.</p>
           ) : (
             <div className="space-y-5">
               {history.map((h, i) => (
                 <div key={i}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-black font-semibold text-sm">{h.dayLabel}</p>
-                    <p className="text-black/40 text-xs">
+                    <p className="text-white font-semibold text-sm">{h.dayLabel}</p>
+                    <p className="text-white/40 text-xs">
                       {new Date(h.date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
                     </p>
                   </div>
                   {h.sets.map((s, si) => (
-                    <div key={si} className="flex items-center justify-between text-sm py-1.5 border-b border-black/5 last:border-0">
-                      <span className="text-black/50">Set {s.setNumber}</span>
-                      <span className="text-black font-medium">
+                    <div key={si} className="flex items-center justify-between text-sm py-1.5 border-b border-white/5 last:border-0">
+                      <span className="text-white/50">Set {s.setNumber}</span>
+                      <span className="text-white font-medium">
                         {s.reps} x {s.weight} kg
                       </span>
                     </div>
@@ -1379,14 +1380,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const isLongNote = coachNote.length > 90;
 
   return (
-    <div className="pt-1 pb-5 px-1 border-b border-black/10 last:border-b-0">
+    <div className="pt-1 pb-5 px-1 border-b border-white/10 last:border-b-0">
       <div className="flex items-center gap-3">
-        <ExerciseThumb exercise={exercise} size={56} rounded="rounded-lg" className="shadow-sm" />
+        <ExerciseThumb dark exercise={exercise} size={56} rounded="rounded-lg" className="shadow-sm" />
         <button type="button" onClick={() => onOpenDetail?.(exercise, exMeta)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-1.5">
-            <p className="text-black font-bold text-[17px] truncate">{exercise.name}</p>
+            <p className="text-white font-bold text-[17px] truncate">{exercise.name}</p>
             {exMeta.groupType && (
-              <span className="bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+              <span className="bg-white/8 text-white/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                 {exMeta.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
               </span>
             )}
@@ -1396,14 +1397,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
               </span>
             )}
           </div>
-          <p className="text-black/45 text-[14px] mt-0.5">
+          <p className="text-white/45 text-[14px] mt-0.5">
             {exMeta.targetSets} sets × {formatTargetReps(exMeta)}
           </p>
         </button>
         <button
           onClick={onSwap}
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-            swapInfo ? "bg-black text-white" : "text-black/40"
+            swapInfo ? "bg-white text-black" : "text-white/40"
           }`}
         >
           <Repeat size={17} />
@@ -1411,7 +1412,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         <button
           onClick={onToggleNote}
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-            noteOpen || note ? "bg-black text-white" : "text-black/40"
+            noteOpen || note ? "bg-white text-black" : "text-white/40"
           }`}
         >
           <ClipboardList size={17} />
@@ -1419,18 +1420,18 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       </div>
 
       {swapInfo && (
-        <div className="mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5">
-          <p className="text-black/70 text-[13px] leading-snug">
+        <div className="mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5">
+          <p className="text-white/70 text-[13px] leading-snug">
             <span className="font-semibold">Swapped from {swapInfo.fromName}.</span> {swapInfo.reason}
           </p>
         </div>
       )}
 
       {coachNote && (
-        <div className="mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5">
-          <p className="text-black/35 text-[10px] font-semibold tracking-wide mb-1">COACH'S NOTES</p>
+        <div className="mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5">
+          <p className="text-white/35 text-[10px] font-semibold tracking-wide mb-1">COACH'S NOTES</p>
           <div className="flex items-start gap-2">
-            <p className={`text-black/80 text-[14px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
+            <p className={`text-white/80 text-[14px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
             {isLongNote && (
               <button
                 onClick={() => setNotesExpanded((v) => !v)}
@@ -1470,9 +1471,9 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             placeholder="Add your own note on this exercise…"
             rows={2}
             autoFocus
-            className="w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[14px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"
+            className="w-full bg-black border border-white/15 rounded-xl px-3.5 py-2.5 text-white text-[14px] outline-none focus:border-white/30 placeholder:text-white/25 resize-none"
           />
-          <p className="text-[11px] mt-1 px-0.5" style={{ color: noteStatus === "saved" ? "#16A34A" : "rgba(10,10,11,0.3)" }}>
+          <p className="text-[11px] mt-1 px-0.5" style={{ color: noteStatus === "saved" ? "#16A34A" : "rgba(255,255,255,0.3)" }}>
             {noteStatus === "saving" ? "Saving…" : noteStatus === "saved" ? "Saved ✓" : "Autosaves as you type"}
           </p>
         </div>
@@ -1481,14 +1482,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       <button
         type="button"
         onClick={() => onStartRest(exMeta)}
-        className="mt-3 w-full flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"
+        className="mt-3 w-full flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"
       >
         <Hand size={14} style={{ color: MEASURE_BLUE }} className="shrink-0" />
         <span className="text-[13px] font-medium flex-1 text-left" style={{ color: MEASURE_BLUE }}>
           Tap to start rest timer
         </span>
         <span
-          className="bg-white border border-black/10 text-[13px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
+          className="bg-black border border-white/10 text-[13px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"
           style={{ color: MEASURE_BLUE }}
         >
           <Clock size={11} />
@@ -1498,21 +1499,21 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
 
       <div className="mt-3">
         <div className="grid grid-cols-[30px_1fr_84px_64px] gap-2 px-1 mb-1.5">
-          <span className="text-black/70 text-[13px] font-bold">Set</span>
-          <span className="text-black/70 text-[13px] font-bold">Previous</span>
-          <span className="text-black/70 text-[12px] font-bold text-center leading-tight">
+          <span className="text-white/70 text-[13px] font-bold">Set</span>
+          <span className="text-white/70 text-[13px] font-bold">Previous</span>
+          <span className="text-white/70 text-[12px] font-bold text-center leading-tight">
             {exMeta.targetType === "time" ? "Seconds" : "Repetitions"}
           </span>
-          <span className="text-black/70 text-[13px] font-bold text-center">Kg</span>
+          <span className="text-white/70 text-[13px] font-bold text-center">Kg</span>
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           const suggestion = suggestNextSet(prev, exMeta.targetReps);
           return (
             <div key={i} className="grid grid-cols-[30px_1fr_84px_64px] gap-2 items-center px-1 py-1.5">
-              <span className="text-black text-[18px] font-bold">{i + 1}</span>
+              <span className="text-white text-[18px] font-bold">{i + 1}</span>
               <div className="min-w-0">
-                <p className="text-black/40 text-[14px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
+                <p className="text-white/40 text-[14px] truncate">{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
                 {suggestion && !row.weight && !row.reps && (
                   <button
                     type="button"
@@ -1520,7 +1521,8 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                       onChangeField(i, "weight", String(suggestion.weight));
                       onChangeField(i, "reps", String(suggestion.reps));
                     }}
-                    className="flex items-center gap-1 text-amber-600 text-[12px] font-semibold mt-0.5"
+                    className="flex items-center gap-1 text-[12px] font-semibold mt-0.5"
+                    style={{ color: MEASURE_BLUE }}
                   >
                     <TrendingUp size={12} className="shrink-0" />
                     <span className="truncate">Try {suggestion.reps} × {suggestion.weight}kg</span>
@@ -1533,7 +1535,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.reps}
                 onChange={(e) => onChangeField(i, "reps", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"
+                className="w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40"
               />
               <input
                 type="number"
@@ -1541,7 +1543,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className="w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"
+                className="w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40"
               />
             </div>
           );
@@ -1574,17 +1576,17 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
     .slice(0, 40);
 
   return (
-    <BottomSheet open={!!exMeta} onClose={onClose} title={selected ? "Why the swap?" : `Swap ${exercise?.name || "exercise"}`}>
+    <BottomSheet dark open={!!exMeta} onClose={onClose} title={selected ? "Why the swap?" : `Swap ${exercise?.name || "exercise"}`}>
       {!selected ? (
         <div>
-          <div className="flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3">
-            <Search size={16} className="text-black/40" />
+          <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3">
+            <Search size={16} className="text-white/40" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search exercises"
               autoFocus
-              className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
             />
           </div>
           <div className="space-y-1 max-h-72 overflow-y-auto">
@@ -1592,20 +1594,20 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
               <button
                 key={e.id}
                 onClick={() => setSelected(e)}
-                className="w-full flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"
+                className="w-full flex items-center justify-between py-2.5 border-b border-white/5 last:border-0"
               >
-                <span className="text-black text-sm">{e.name}</span>
-                <span className="text-black/30 text-xs">{e.equipment}</span>
+                <span className="text-white text-sm">{e.name}</span>
+                <span className="text-white/30 text-xs">{e.equipment}</span>
               </button>
             ))}
-            {search && filtered.length === 0 && <p className="text-black/30 text-sm text-center py-6">No matching exercises.</p>}
+            {search && filtered.length === 0 && <p className="text-white/30 text-sm text-center py-6">No matching exercises.</p>}
           </div>
         </div>
       ) : (
         <div>
-          <p className="text-black/50 text-sm mb-3">
-            Swapping <span className="font-semibold text-black">{exercise?.name}</span> for{" "}
-            <span className="font-semibold text-black">{selected.name}</span>. Let your coach know why — this note is required and
+          <p className="text-white/50 text-sm mb-3">
+            Swapping <span className="font-semibold text-white">{exercise?.name}</span> for{" "}
+            <span className="font-semibold text-white">{selected.name}</span>. Let your coach know why — this note is required and
             visible to them.
           </p>
           <textarea
@@ -1614,13 +1616,13 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
             rows={3}
             autoFocus
             placeholder="e.g. Shoulder felt tight, swapped for a machine variation"
-            className="w-full bg-black/5 border border-black/10 rounded-2xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30 resize-none"
+            className="w-full bg-white/5 border border-white/10 rounded-2xl px-3.5 py-2.5 text-white text-sm outline-none placeholder:text-white/30 resize-none"
           />
           <div className="flex gap-2 mt-4">
-            <SecondaryButton className="flex-1" onClick={() => setSelected(null)}>
+            <SecondaryButton dark className="flex-1" onClick={() => setSelected(null)}>
               Back
             </SecondaryButton>
-            <PrimaryButton className="flex-1" disabled={!reason.trim()} onClick={() => onConfirm(selected, reason.trim())}>
+            <PrimaryButton dark className="flex-1" disabled={!reason.trim()} onClick={() => onConfirm(selected, reason.trim())}>
               Confirm Swap
             </PrimaryButton>
           </div>
@@ -1630,7 +1632,7 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
   );
 }
 
-const CONFETTI_COLORS = ["#FBBF24", "#3B82F6", "#EF4444", "#10B981", "#8B5CF6", "#EC4899"];
+const CONFETTI_COLORS = ["#FFFFFF", "#3B82F6", "#EF4444", "#10B981", "#8B5CF6", "#EC4899"];
 
 // A one-shot burst of falling confetti pieces, computed once per mount (not
 // per render) so the pieces don't jump to new random positions if the
@@ -1793,13 +1795,13 @@ function WorkoutSession({
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-white flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5">
-          <button onClick={onExit} className="text-black/60 text-sm font-medium">
+      <div className="fixed inset-0 z-[90] bg-black flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5">
+          <button onClick={onExit} className="text-white/60 text-sm font-medium">
             Cancel
           </button>
-          <h1 className="text-black font-bold text-[17px] truncate px-2">{daySession.label}</h1>
-          <button onClick={onFinish} className="text-black font-bold text-sm shrink-0">
+          <h1 className="text-white font-bold text-[17px] truncate px-2">{daySession.label}</h1>
+          <button onClick={onFinish} className="text-white font-bold text-sm shrink-0">
             Save
           </button>
         </div>
@@ -1808,7 +1810,7 @@ function WorkoutSession({
           {sectionedExercises(exercisesForSession).map((group) => (
             <div key={group.key}>
               {group.showHeader && (
-                <p className="text-black/40 text-[11px] font-bold tracking-wide mb-2 mt-1">{group.label.toUpperCase()}</p>
+                <p className="text-white/40 text-[11px] font-bold tracking-wide mb-2 mt-1">{group.label.toUpperCase()}</p>
               )}
               <div className="space-y-4">
                 {group.items.map(({ exMeta, i }) => {
@@ -1870,11 +1872,11 @@ function WorkoutSession({
           <>
             <ConfettiBurst />
             <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[101] w-[88%] max-w-sm animate-[prPop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
-              <div className="bg-black rounded-2xl p-5 shadow-2xl text-center">
+              <div className="bg-white rounded-2xl p-5 shadow-2xl text-center">
                 <p className="text-3xl leading-none mb-1.5">🏆</p>
-                <p className="text-white font-bold text-sm tracking-wide">NEW PERSONAL RECORD</p>
-                <p className="text-white text-xl font-bold mt-1">{prToast.exerciseName}</p>
-                <p className="text-white/70 text-sm mt-0.5">
+                <p className="text-black font-bold text-sm tracking-wide">NEW PERSONAL RECORD</p>
+                <p className="text-black text-xl font-bold mt-1">{prToast.exerciseName}</p>
+                <p className="text-black/70 text-sm mt-0.5">
                   {prToast.weight}kg × {prToast.reps} · Best previous: {prToast.prevWeight}kg × {prToast.prevReps}
                 </p>
               </div>
@@ -1911,45 +1913,45 @@ function WorkoutSummary({
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-white flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10">
+      <div className="fixed inset-0 z-[90] bg-black flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10">
         <Logo variant="mark" tone="black" className="h-8 w-auto opacity-70 mb-1.5" />
-        <Tagline className="mb-6" />
-        <div className="w-20 h-20 rounded-full bg-black/10 border border-black/15 flex items-center justify-center mb-5">
-          <Check size={36} className="text-black" strokeWidth={3} />
+        <Tagline tone="white" className="mb-6" />
+        <div className="w-20 h-20 rounded-full bg-white/10 border border-white/15 flex items-center justify-center mb-5">
+          <Check size={36} className="text-white" strokeWidth={3} />
         </div>
-        <p className="text-black/40 text-xs tracking-widest font-semibold">WORKOUT COMPLETE</p>
-        <h2 className="text-black text-3xl font-bold mt-1">{daySession.label}</h2>
-        <p className="text-black text-4xl font-bold tabular-nums mt-6">
+        <p className="text-white/40 text-xs tracking-widest font-semibold">WORKOUT COMPLETE</p>
+        <h2 className="text-white text-3xl font-bold mt-1">{daySession.label}</h2>
+        <p className="text-white text-4xl font-bold tabular-nums mt-6">
           {durationMin}:{String(durationSec).padStart(2, "0")}
         </p>
 
         <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-6">
-          <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
-            <p className="text-black text-xl font-bold">{totalSets}</p>
-            <p className="text-black/40 text-xs mt-0.5">Sets completed</p>
+          <div className="bg-[#1C1C1C] rounded-2xl p-4 border border-white/8">
+            <p className="text-white text-xl font-bold">{totalSets}</p>
+            <p className="text-white/40 text-xs mt-0.5">Sets completed</p>
           </div>
-          <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
-            <p className="text-black text-xl font-bold">{totalVolume.toLocaleString()} kg</p>
-            <p className="text-black/40 text-xs mt-0.5">Total volume</p>
+          <div className="bg-[#1C1C1C] rounded-2xl p-4 border border-white/8">
+            <p className="text-white text-xl font-bold">{totalVolume.toLocaleString()} kg</p>
+            <p className="text-white/40 text-xs mt-0.5">Total volume</p>
           </div>
-          <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
-            <p className="text-black text-xl font-bold">{calories}</p>
-            <p className="text-black/40 text-xs mt-0.5">Calories burned</p>
+          <div className="bg-[#1C1C1C] rounded-2xl p-4 border border-white/8">
+            <p className="text-white text-xl font-bold">{calories}</p>
+            <p className="text-white/40 text-xs mt-0.5">Calories burned</p>
           </div>
-          <div className="bg-[#F7F7F8] rounded-2xl p-4 border border-black/5">
-            <p className="text-xl font-bold text-black">{prCount} new</p>
-            <p className="text-black/40 text-xs mt-0.5">Personal records</p>
+          <div className="bg-[#1C1C1C] rounded-2xl p-4 border border-white/8">
+            <p className="text-xl font-bold text-white">{prCount} new</p>
+            <p className="text-white/40 text-xs mt-0.5">Personal records</p>
           </div>
         </div>
 
-        <div className="w-full max-w-sm mt-6 flex items-start gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3 text-left">
-          <Utensils size={18} className="text-black/50 shrink-0 mt-0.5" />
+        <div className="w-full max-w-sm mt-6 flex items-start gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-3.5 py-3 text-left">
+          <Utensils size={18} className="text-white/50 shrink-0 mt-0.5" />
           <div>
-            <p className="text-black/40 text-[10px] font-bold tracking-widest">NEXT OBJECTIVE</p>
-            <p className="text-black text-sm font-semibold mt-0.5">
+            <p className="text-white/40 text-[10px] font-bold tracking-widest">NEXT OBJECTIVE</p>
+            <p className="text-white text-sm font-semibold mt-0.5">
               {proteinRemaining > 0 ? `Hit your protein target — ${proteinRemaining}g to go today.` : "Protein target hit — now prioritize recovery."}
             </p>
-            <p className="text-black/45 text-[13px] mt-0.5 leading-snug">Refuel, hydrate, and get good sleep tonight to lock in today's session.</p>
+            <p className="text-white/45 text-[13px] mt-0.5 leading-snug">Refuel, hydrate, and get good sleep tonight to lock in today's session.</p>
           </div>
         </div>
 
@@ -1959,7 +1961,7 @@ function WorkoutSummary({
           </div>
         )}
 
-        <button onClick={onDone} className="w-full max-w-sm mt-4 bg-black text-white font-bold py-4 rounded-2xl">
+        <button onClick={onDone} className="w-full max-w-sm mt-4 bg-white text-black font-bold py-4 rounded-2xl">
           DONE
         </button>
       </div>
@@ -2008,8 +2010,8 @@ function LogCardioSheet({ open, onClose, onSave }) {
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Log Activity">
-      <p className="text-black/40 text-xs tracking-wide mb-2">ACTIVITY</p>
+    <BottomSheet dark open={open} onClose={onClose} title="Log Activity">
+      <p className="text-white/40 text-xs tracking-wide mb-2">ACTIVITY</p>
       <div className="grid grid-cols-3 gap-2 mb-5">
         {CARDIO_ACTIVITIES.map((a) => {
           const Icon = a.icon;
@@ -2019,7 +2021,7 @@ function LogCardioSheet({ open, onClose, onSave }) {
               key={a.id}
               onClick={() => setActivityId(a.id)}
               className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-medium transition-colors ${
-                active ? "bg-black text-white" : "bg-black/5 text-black/60"
+                active ? "bg-white text-black" : "bg-white/5 text-white/60"
               }`}
             >
               <Icon size={17} />
@@ -2030,14 +2032,14 @@ function LogCardioSheet({ open, onClose, onSave }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <NumberStepper label="DURATION (MIN)" value={duration} setValue={setDuration} step={5} min={0} />
-        <NumberStepper label="DISTANCE (KM)" value={distance} setValue={setDistance} step={0.5} min={0} />
+        <NumberStepper dark label="DURATION (MIN)" value={duration} setValue={setDuration} step={5} min={0} />
+        <NumberStepper dark label="DISTANCE (KM)" value={distance} setValue={setDistance} step={0.5} min={0} />
       </div>
       <div className="mb-5">
-        <NumberStepper label="CALORIES BURNED (OPTIONAL)" value={caloriesBurned} setValue={setCaloriesBurned} step={25} min={0} />
+        <NumberStepper dark label="CALORIES BURNED (OPTIONAL)" value={caloriesBurned} setValue={setCaloriesBurned} step={25} min={0} />
       </div>
 
-      <PrimaryButton className="w-full" disabled={duration <= 0} onClick={save}>
+      <PrimaryButton dark className="w-full" disabled={duration <= 0} onClick={save}>
         <Check size={16} /> LOG ACTIVITY
       </PrimaryButton>
     </BottomSheet>
@@ -2047,24 +2049,24 @@ function LogCardioSheet({ open, onClose, onSave }) {
 
 function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId, onSelect }) {
   return (
-    <BottomSheet open={open} onClose={onClose} title="Training Phases">
+    <BottomSheet dark open={open} onClose={onClose} title="Training Phases">
       {phases.length === 0 ? (
-        <p className="text-black/30 text-sm text-center py-6">No phases yet.</p>
+        <p className="text-white/30 text-sm text-center py-6">No phases yet.</p>
       ) : (
         <div className="space-y-1.5">
           {phases.map((p) => (
             <button
               key={p.id}
               onClick={() => onSelect(p.id)}
-              className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${p.id === selectedId ? "bg-black/8" : "hover:bg-black/[0.03]"}`}
+              className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${p.id === selectedId ? "bg-white/8" : "hover:bg-white/[0.03]"}`}
             >
               <div className="flex items-center gap-2">
-                <p className="text-black text-sm font-medium flex-1 truncate">{p.name}</p>
+                <p className="text-white text-sm font-medium flex-1 truncate">{p.name}</p>
                 {p.id === currentId && (
-                  <span className="text-[10px] font-bold text-white bg-black px-2 py-0.5 rounded-full shrink-0">CURRENT</span>
+                  <span className="text-[10px] font-bold text-black bg-white px-2 py-0.5 rounded-full shrink-0">CURRENT</span>
                 )}
               </div>
-              <p className="text-black/35 text-xs mt-0.5">
+              <p className="text-white/35 text-xs mt-0.5">
                 {new Date(p.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
                 {p.endDate
                   ? ` – ${new Date(p.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
@@ -2093,8 +2095,8 @@ function ClientProgramTab({ onPreviewDay }) {
   if (phases.length === 0) {
     return (
       <div className="px-3">
-        <Card>
-          <p className="text-black/40 text-sm text-center py-8">No training program set up yet — your coach will assign one soon.</p>
+        <Card dark>
+          <p className="text-white/40 text-sm text-center py-8">No training program set up yet — your coach will assign one soon.</p>
         </Card>
       </div>
     );
@@ -2105,9 +2107,9 @@ function ClientProgramTab({ onPreviewDay }) {
 
   return (
     <div className="px-3 space-y-4">
-      <Card>
+      <Card dark>
         <div className="flex items-start justify-between gap-3 mb-1">
-          <h2 className="text-black text-lg font-bold min-w-0 truncate">{phase.name}</h2>
+          <h2 className="text-white text-lg font-bold min-w-0 truncate">{phase.name}</h2>
           <button
             onClick={() => setHistoryOpen(true)}
             className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold shrink-0"
@@ -2115,36 +2117,36 @@ function ClientProgramTab({ onPreviewDay }) {
             <Calendar size={14} /> PHASES
           </button>
         </div>
-        <p className="text-black/40 text-xs mb-3">
+        <p className="text-white/40 text-xs mb-3">
           {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
           {phase.endDate
             ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
             : ""}
-          {phase.id === current?.id && <span className="ml-2 text-black font-semibold">· Current</span>}
+          {phase.id === current?.id && <span className="ml-2 text-white font-semibold">· Current</span>}
         </p>
-        {phase.description && <p className="text-black/60 text-sm leading-relaxed whitespace-pre-line">{phase.description}</p>}
+        {phase.description && <p className="text-white/60 text-sm leading-relaxed whitespace-pre-line">{phase.description}</p>}
       </Card>
 
       <div>
-        <p className="text-black/40 text-xs tracking-wide mb-2 px-1">WORKOUTS IN THIS PHASE</p>
+        <p className="text-white/40 text-xs tracking-wide mb-2 px-1">WORKOUTS IN THIS PHASE</p>
         {days.length === 0 ? (
-          <Card>
-            <p className="text-black/30 text-sm text-center py-6">No workouts added to this phase yet.</p>
+          <Card dark>
+            <p className="text-white/30 text-sm text-center py-6">No workouts added to this phase yet.</p>
           </Card>
         ) : (
           <div className="space-y-2">
             {days.map((d, i) => (
               <button key={d.id || i} onClick={() => onPreviewDay(d)} className="w-full text-left">
-                <Card className="!py-3.5">
+                <Card dark className="!py-3.5">
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-black font-semibold text-sm truncate">{d.label}</p>
-                      <p className="text-black/40 text-xs mt-0.5 truncate">
+                      <p className="text-white font-semibold text-sm truncate">{d.label}</p>
+                      <p className="text-white/40 text-xs mt-0.5 truncate">
                         est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
                         {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
                       </p>
                     </div>
-                    <ChevronRight size={16} className="text-black/25 shrink-0" />
+                    <ChevronRight size={16} className="text-white/25 shrink-0" />
                   </div>
                 </Card>
               </button>
@@ -2176,7 +2178,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-4">
-        <h1 className="text-black text-2xl font-bold">Training</h1>
+        <h1 className="text-white text-2xl font-bold">Training</h1>
       </div>
       <div className="flex gap-2 px-3 mb-4 overflow-x-auto no-scrollbar">
         {["today", "program", "history", "upcoming"].map((t) => (
@@ -2184,7 +2186,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-full text-sm font-medium capitalize whitespace-nowrap ${
-              tab === t ? "bg-black text-white" : "bg-black/8 text-black/60"
+              tab === t ? "bg-white text-black" : "bg-white/8 text-white/60"
             }`}
           >
             {t}
@@ -2205,27 +2207,27 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
           />
           <button
             onClick={() => setCardioOpen(true)}
-            className="w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
+            className="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
           >
             <Footprints size={16} /> + Log a cardio session
           </button>
           {todaySession && (
-            <Card>
-              <h3 className="text-black font-semibold mb-3">Exercises</h3>
+            <Card dark>
+              <h3 className="text-white font-semibold mb-3">Exercises</h3>
               <div className="space-y-2">
                 {todaySession.exercises.map((e, i) => {
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
                   return (
-                    <div key={i} className="flex items-center gap-3 py-2 border-b border-black/5 last:border-0">
-                      <span className="w-7 h-7 rounded-full bg-black/8 text-black/50 text-xs font-bold flex items-center justify-center">
+                    <div key={i} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+                      <span className="w-7 h-7 rounded-full bg-white/8 text-white/50 text-xs font-bold flex items-center justify-center">
                         {i + 1}
                       </span>
                       <div className="flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-black text-sm font-medium">{ex.name}</p>
+                          <p className="text-white text-sm font-medium">{ex.name}</p>
                           {e.groupType && (
-                            <span className="bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded">
+                            <span className="bg-white/8 text-white/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded">
                               {e.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
                             </span>
                           )}
@@ -2235,12 +2237,12 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
                             </span>
                           )}
                         </div>
-                        <p className="text-black/40 text-xs">
+                        <p className="text-white/40 text-xs">
                           {e.targetSets} sets × {formatTargetReps(e)} · RIR {e.targetRIR ?? 2}
                         </p>
-                        {e.notes && <p className="text-black/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
+                        {e.notes && <p className="text-white/25 text-[11px] mt-0.5 italic">{e.notes}</p>}
                       </div>
-                      <span className="text-black/30 text-xs">{ex.equipment}</span>
+                      <span className="text-white/30 text-xs">{ex.equipment}</span>
                     </div>
                   );
                 })}
@@ -2255,30 +2257,30 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       {tab === "history" && (
         <div className="px-3 space-y-3">
           {logsForClient.length === 0 && (
-            <Card>
-              <p className="text-black/40 text-sm text-center py-6">No completed workouts yet — finish today's session to see it here.</p>
+            <Card dark>
+              <p className="text-white/40 text-sm text-center py-6">No completed workouts yet — finish today's session to see it here.</p>
             </Card>
           )}
           {logsForClient.map((h) => {
             const volume = h.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + s.weight * s.reps, 0), 0);
             const prCount = h.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
             return (
-              <Card key={h.id}>
+              <Card dark key={h.id}>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-black font-semibold">{h.dayLabel}</p>
-                    <p className="text-black/40 text-xs mt-0.5">{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                    <p className="text-white font-semibold">{h.dayLabel}</p>
+                    <p className="text-white/40 text-xs mt-0.5">{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
                   </div>
                   {h.cardio ? (
-                    <Pill tone="outline">
+                    <Pill dark tone="outline">
                       {h.cardio.durationMin}min{h.cardio.distanceKm > 0 ? ` · ${h.cardio.distanceKm}km` : ""}
                       {h.cardio.caloriesBurned > 0 ? ` · ${h.cardio.caloriesBurned} kcal` : ""}
                     </Pill>
                   ) : (
                     <div className="flex flex-col items-end gap-1">
-                      <Pill tone="outline">{volume.toLocaleString()} kg</Pill>
+                      <Pill dark tone="outline">{volume.toLocaleString()} kg</Pill>
                       {prCount > 0 && (
-                        <span className="text-amber-600 text-[11px] font-semibold">
+                        <span className="text-[11px] font-semibold" style={{ color: GOAL_GREEN }}>
                           {prCount} PR{prCount === 1 ? "" : "s"}
                         </span>
                       )}
@@ -2303,22 +2305,22 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       {tab === "upcoming" && (
         <div className="px-3 space-y-2">
           {upcoming.length === 0 && (
-            <Card>
-              <p className="text-black/40 text-sm text-center py-6">
+            <Card dark>
+              <p className="text-white/40 text-sm text-center py-6">
                 {dbReady ? "Nothing scheduled yet — your coach will set up your upcoming workouts." : "Loading your schedule…"}
               </p>
             </Card>
           )}
           {upcoming.map((w) => (
-            <Card key={w.id} className="!py-3">
+            <Card dark key={w.id} className="!py-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-black font-semibold text-sm">{w.label}</p>
-                  <p className="text-black/40 text-xs mt-0.5">
+                  <p className="text-white font-semibold text-sm">{w.label}</p>
+                  <p className="text-white/40 text-xs mt-0.5">
                     {new Date(w.date + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
                   </p>
                 </div>
-                <span className="text-black/30 text-xs">{countExercises(w.exercises)} ex</span>
+                <span className="text-white/30 text-xs">{countExercises(w.exercises)} ex</span>
               </div>
             </Card>
           ))}
@@ -2380,7 +2382,7 @@ function SwipeableRow({ onDelete, children }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
-        className="relative bg-white touch-pan-y select-none"
+        className="relative bg-black touch-pan-y select-none"
       >
         {children}
       </div>
@@ -2396,31 +2398,31 @@ function SwapMealSheet({ open, onClose, meal, alternatives, onPick }) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[130] bg-black/40 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[75vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-black rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[75vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-1 shrink-0">
-          <p className="text-black font-semibold truncate pr-3">Swap "{meal?.name}"</p>
-          <button onClick={onClose} className="text-black/50 shrink-0">
+          <p className="text-white font-semibold truncate pr-3">Swap "{meal?.name}"</p>
+          <button onClick={onClose} className="text-white/50 shrink-0">
             <X size={20} />
           </button>
         </div>
-        <p className="text-black/40 text-xs px-5 pb-3">Similar options from your Meal Library, closest match first</p>
+        <p className="text-white/40 text-xs px-5 pb-3">Similar options from your Meal Library, closest match first</p>
         <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-1.5">
           {alternatives.length === 0 ? (
-            <p className="text-black/30 text-sm text-center py-8">No similar alternatives available right now.</p>
+            <p className="text-white/30 text-sm text-center py-8">No similar alternatives available right now.</p>
           ) : (
             alternatives.map(({ meal: alt, score }) => (
               <button
                 key={alt.id}
                 onClick={() => onPick(alt.id)}
-                className="w-full flex items-center justify-between gap-2 bg-black/[0.03] rounded-xl px-3.5 py-2.5 text-left"
+                className="w-full flex items-center justify-between gap-2 bg-white/[0.03] rounded-xl px-3.5 py-2.5 text-left"
               >
                 <div className="min-w-0">
-                  <p className="text-black text-sm font-medium truncate">{alt.name}</p>
-                  <p className="text-black/40 text-xs">
+                  <p className="text-white text-sm font-medium truncate">{alt.name}</p>
+                  <p className="text-white/40 text-xs">
                     {alt.cals} kcal · P{alt.protein} C{alt.carbs} F{alt.fat}
                   </p>
                 </div>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-black/5 text-black/50">{matchPct(score)}% match</span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-white/5 text-white/50">{matchPct(score)}% match</span>
               </button>
             ))
           )}
@@ -2438,17 +2440,17 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
   if (!open || !meal) return null;
   return (
     <div className="fixed inset-0 z-[130] bg-black/40 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-black rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-1 shrink-0">
-          <p className="text-black font-semibold truncate pr-3">{meal.name}</p>
-          <button onClick={onClose} className="text-black/50 shrink-0">
+          <p className="text-white font-semibold truncate pr-3">{meal.name}</p>
+          <button onClick={onClose} className="text-white/50 shrink-0">
             <X size={20} />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-5 pb-5">
           {meal.photoUrl && <img src={meal.photoUrl} alt="" className="w-full h-40 object-cover rounded-2xl mt-3" />}
 
-          <div className="grid grid-cols-4 gap-2 bg-black/[0.03] border border-black/8 rounded-2xl p-3.5 mt-4">
+          <div className="grid grid-cols-4 gap-2 bg-white/[0.03] border border-white/8 rounded-2xl p-3.5 mt-4">
             {[
               ["Cals", meal.cals],
               ["Protein", `${meal.protein}g`],
@@ -2456,20 +2458,20 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
               ["Fat", `${meal.fat}g`],
             ].map(([l, v]) => (
               <div key={l} className="text-center">
-                <p className="text-black font-bold text-sm">{v}</p>
-                <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
+                <p className="text-white font-bold text-sm">{v}</p>
+                <p className="text-white/40 text-[10px] mt-0.5">{l}</p>
               </div>
             ))}
           </div>
 
           {meal.ingredients?.length > 0 && (
             <div className="mt-4">
-              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">INGREDIENTS</p>
+              <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-1.5">INGREDIENTS</p>
               <div className="space-y-1">
                 {meal.ingredients.map((ing, i) => (
-                  <div key={i} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-3 py-2">
-                    <p className="text-black text-sm truncate pr-2">{ing.name}</p>
-                    <p className="text-black/40 text-xs shrink-0">{ing.cals} kcal</p>
+                  <div key={i} className="flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2">
+                    <p className="text-white text-sm truncate pr-2">{ing.name}</p>
+                    <p className="text-white/40 text-xs shrink-0">{ing.cals} kcal</p>
                   </div>
                 ))}
               </div>
@@ -2477,15 +2479,15 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
           )}
 
           <div className="mt-4">
-            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">HOW TO PREPARE</p>
+            <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-1.5">HOW TO PREPARE</p>
             {meal.instructions ? (
-              <p className="text-black/70 text-sm whitespace-pre-line leading-relaxed">{meal.instructions}</p>
+              <p className="text-white/70 text-sm whitespace-pre-line leading-relaxed">{meal.instructions}</p>
             ) : (
-              <p className="text-black/30 text-sm">No preparation notes added for this meal.</p>
+              <p className="text-white/30 text-sm">No preparation notes added for this meal.</p>
             )}
           </div>
 
-          <PrimaryButton className="w-full mt-5" onClick={() => onLog(meal, slot)}>
+          <PrimaryButton dark className="w-full mt-5" onClick={() => onLog(meal, slot)}>
             <Plus size={16} /> LOG THIS MEAL
           </PrimaryButton>
         </div>
@@ -2591,25 +2593,25 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-2 flex items-center justify-between">
-        <h1 className="text-black text-2xl font-bold">Nutrition</h1>
-        <Search size={20} className="text-black/40" />
+        <h1 className="text-white text-2xl font-bold">Nutrition</h1>
+        <Search size={20} className="text-white/40" />
       </div>
 
       <div className="px-3 mt-3">
-        <Card>
-          <p className="text-black/40 text-xs tracking-wide mb-1">CALORIE TARGET</p>
+        <Card dark>
+          <p className="text-white/40 text-xs tracking-wide mb-1">CALORIE TARGET</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-black text-3xl font-bold">{Math.max(0, targets.calories - nutrition.calories)}</span>
-            <span className="text-black/40 text-sm">remaining of {targets.calories}</span>
+            <span className="text-white text-3xl font-bold">{Math.max(0, targets.calories - nutrition.calories)}</span>
+            <span className="text-white/40 text-sm">remaining of {targets.calories}</span>
           </div>
           <div className="mt-3">
-            <ProgressBar
+            <ProgressBar trackClassName="bg-black/8"
               value={nutrition.calories}
               max={targets.calories}
               color={nutrition.calories >= targets.calories ? GOAL_GREEN : MEASURE_BLUE}
             />
           </div>
-          <div className="space-y-3 mt-4 pt-4 border-t border-black/5">
+          <div className="space-y-3 mt-4 pt-4 border-t border-white/5">
             {[
               { l: "Protein", v: round1(nutrition.protein), t: targets.protein },
               { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs },
@@ -2617,12 +2619,12 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             ].map((m) => (
               <div key={m.l}>
                 <div className="flex items-baseline justify-between mb-1">
-                  <span className="text-black/70 text-sm font-medium">{m.l}</span>
-                  <span className="text-black/40 text-xs">
-                    {m.v}g <span className="text-black/25">/ {m.t}g</span>
+                  <span className="text-white/70 text-sm font-medium">{m.l}</span>
+                  <span className="text-white/40 text-xs">
+                    {m.v}g <span className="text-white/25">/ {m.t}g</span>
                   </span>
                 </div>
-                <ProgressBar value={m.v} max={m.t} height={6} color={m.v >= m.t ? GOAL_GREEN : MEASURE_BLUE} />
+                <ProgressBar trackClassName="bg-black/8" value={m.v} max={m.t} height={6} color={m.v >= m.t ? GOAL_GREEN : MEASURE_BLUE} />
               </div>
             ))}
           </div>
@@ -2630,39 +2632,39 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </div>
 
       <div className="px-3 mt-4">
-        <Card>
+        <Card dark>
           <div className="flex items-center gap-4">
             <WaterCup value={nutrition.water} max={targets.water} size={52} />
             <div className="flex-1 min-w-0">
-              <p className="text-black font-semibold flex items-center gap-2">
+              <p className="text-white font-semibold flex items-center gap-2">
                 {nutrition.water >= targets.water ? (
-                  <Droplets size={16} className="text-black" />
+                  <Droplets size={16} className="text-white" />
                 ) : (
-                  <GlassWater size={16} className="text-black/60" />
+                  <GlassWater size={16} className="text-white/60" />
                 )}{" "}
                 Water
               </p>
-              <p className="text-black/50 text-sm mt-0.5">
-                <span className="text-black font-semibold">{nutrition.water}L</span> / {targets.water}L
+              <p className="text-white/50 text-sm mt-0.5">
+                <span className="text-white font-semibold">{nutrition.water}L</span> / {targets.water}L
               </p>
             </div>
           </div>
           <div className="flex gap-2 mt-3">
             <button
               onClick={() => onAddWater(0.25)}
-              className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"
+              className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"
             >
               +250ml
             </button>
             <button
               onClick={() => onAddWater(0.5)}
-              className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"
+              className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"
             >
               +500ml
             </button>
             <button
               onClick={() => setWaterSheetOpen(true)}
-              className="flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-[0.97] transition-transform"
+              className="flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-[0.97] transition-transform"
             >
               Custom
             </button>
@@ -2672,18 +2674,18 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 
       {mealPlan && mealPlanDay && (
         <div className="px-3 mt-7">
-          <Card>
+          <Card dark>
             <div className="flex items-center justify-between mb-1">
-              <p className="text-black font-semibold">My Meal Plan</p>
-              <span className="text-black/40 text-[11px] font-semibold bg-black/5 px-2 py-0.5 rounded-full shrink-0">
+              <p className="text-white font-semibold">My Meal Plan</p>
+              <span className="text-white/40 text-[11px] font-semibold bg-white/5 px-2 py-0.5 rounded-full shrink-0">
                 {planWeeksCount === 1 ? "1-week plan" : `Week ${activeWeek + 1} of ${planWeeksCount}`}
               </span>
             </div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <p className="text-black/40 text-xs">Built by your coach — tap any meal to log it now</p>
+              <p className="text-white/40 text-xs">Built by your coach — tap any meal to log it now</p>
               <button
                 onClick={() => setShoppingListOpen(true)}
-                className="shrink-0 flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
+                className="shrink-0 flex items-center gap-1.5 bg-white/8 hover:bg-white/15 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors"
               >
                 <ShoppingCart size={12} /> LIST
               </button>
@@ -2698,7 +2700,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                       setMealPlanDayId(null);
                     }}
                     className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      w === activeWeek ? "bg-blue-500 text-white" : "bg-black/5 text-black/50"
+                      w === activeWeek ? "bg-blue-500 text-white" : "bg-white/5 text-white/50"
                     }`}
                   >
                     Week {w + 1}
@@ -2713,7 +2715,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                     key={d.id}
                     onClick={() => setMealPlanDayId(d.id)}
                     className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      d.id === mealPlanDay.id ? "bg-black text-white" : "bg-black/5 text-black/50"
+                      d.id === mealPlanDay.id ? "bg-white text-black" : "bg-white/5 text-white/50"
                     }`}
                   >
                     {d.label}
@@ -2726,7 +2728,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                 const mealIds = mealPlanDay.meals?.[slot] || [];
                 return mealIds.length === 0 ? null : (
                   <div key={slot}>
-                    <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">{slot.toUpperCase()}</p>
+                    <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-1.5">{slot.toUpperCase()}</p>
                     <div className="space-y-1.5">
                       {mealIds.map((mealId, i) => {
                         const m = mealsById[mealId];
@@ -2735,12 +2737,12 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                           <div key={`${mealId}_${i}`} className="flex items-center gap-1.5">
                             <button
                               onClick={() => setPlanMealDetail({ meal: m, slot })}
-                              className="flex-1 min-w-0 flex items-center gap-2.5 bg-black/[0.03] rounded-xl px-3 py-2.5 text-left"
+                              className="flex-1 min-w-0 flex items-center gap-2.5 bg-white/[0.03] rounded-xl px-3 py-2.5 text-left"
                             >
                               {m.photoUrl && <img src={m.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
                               <div className="min-w-0 flex-1">
-                                <p className="text-black text-sm font-medium truncate">{m.name}</p>
-                                <p className="text-black/40 text-xs">
+                                <p className="text-white text-sm font-medium truncate">{m.name}</p>
+                                <p className="text-white/40 text-xs">
                                   {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                                 </p>
                               </div>
@@ -2748,14 +2750,14 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                             <button
                               onClick={() => logSavedMeal(m, slot)}
                               title="Log this meal now"
-                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-black/[0.03] text-black/40 hover:text-black"
+                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] text-white/40 hover:text-white"
                             >
                               <Plus size={14} />
                             </button>
                             <button
                               onClick={() => setSwapping({ slot, index: i, meal: m })}
                               title="Swap for a similar meal"
-                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-black/[0.03] text-black/40 hover:text-black"
+                              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] text-white/40 hover:text-white"
                             >
                               <Repeat size={14} />
                             </button>
@@ -2784,8 +2786,8 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </div>
 
       <div className="px-3 mt-7">
-        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1">TODAY'S MEALS</p>
-        <Card className="!p-0 overflow-hidden">
+        <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1">TODAY'S MEALS</p>
+        <Card dark className="!p-0 overflow-hidden">
           {mealCategories.map((meal, i) => {
             const items = nutrition.meals[meal] || [];
             const totalCals = items.reduce((a, f) => a + f.cals, 0);
@@ -2793,19 +2795,19 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               <button
                 key={meal}
                 onClick={() => setDetailMeal(meal)}
-                className={`w-full text-left px-5 py-4 flex items-center justify-between active:bg-black/[0.03] transition-colors ${
-                  i > 0 ? "border-t border-black/5" : ""
+                className={`w-full text-left px-5 py-4 flex items-center justify-between active:bg-white/[0.03] transition-colors ${
+                  i > 0 ? "border-t border-white/5" : ""
                 }`}
               >
                 <div className="min-w-0">
-                  <p className="text-black font-semibold">{meal}</p>
-                  <p className="text-black/40 text-xs mt-0.5">
+                  <p className="text-white font-semibold">{meal}</p>
+                  <p className="text-white/40 text-xs mt-0.5">
                     {items.length === 0 ? "No items logged" : `${items.length} item${items.length === 1 ? "" : "s"} logged`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-black/50 text-sm font-medium">{totalCals} kcal</span>
-                  <ChevronRight size={16} className="text-black/25" />
+                  <span className="text-white/50 text-sm font-medium">{totalCals} kcal</span>
+                  <ChevronRight size={16} className="text-white/25" />
                 </div>
               </button>
             );
@@ -2813,7 +2815,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         </Card>
       </div>
 
-      <BottomSheet open={!!detailMeal} onClose={() => setDetailMeal(null)} title={detailMeal || ""}>
+      <BottomSheet dark open={!!detailMeal} onClose={() => setDetailMeal(null)} title={detailMeal || ""}>
         {detailMeal &&
           (() => {
             const items = nutrition.meals[detailMeal] || [];
@@ -2823,7 +2825,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             );
             return (
               <div>
-                <div className="bg-black/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mb-4">
+                <div className="bg-white/8 rounded-2xl p-3.5 grid grid-cols-4 gap-2 mb-4">
                   {[
                     ["Cals", Math.round(totals.cals)],
                     ["Protein", `${round1(totals.protein)}g`],
@@ -2831,37 +2833,37 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                     ["Fat", `${round1(totals.fat)}g`],
                   ].map(([l, v]) => (
                     <div key={l} className="text-center">
-                      <p className="text-black font-bold text-sm">{v}</p>
-                      <p className="text-black/40 text-[10px] mt-0.5">{l}</p>
+                      <p className="text-white font-bold text-sm">{v}</p>
+                      <p className="text-white/40 text-[10px] mt-0.5">{l}</p>
                     </div>
                   ))}
                 </div>
 
                 {items.length === 0 ? (
-                  <p className="text-black/30 text-sm text-center py-4">No items logged yet</p>
+                  <p className="text-white/30 text-sm text-center py-4">No items logged yet</p>
                 ) : (
                   <div className="space-y-2 mb-2">
                     {items.map((f) => (
                       <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id)}>
-                        <div className="flex items-center gap-3 bg-black/[0.02] border border-black/5 rounded-xl px-3 py-2.5">
+                        <div className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5">
                           {f.photoUrl ? (
                             <img src={f.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                           ) : (
-                            <div className="w-10 h-10 rounded-lg bg-black/8 flex items-center justify-center shrink-0">
-                              <UtensilsCrossed size={16} className="text-black/30" />
+                            <div className="w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0">
+                              <UtensilsCrossed size={16} className="text-white/30" />
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <p className="text-black text-sm font-semibold truncate">{f.name}</p>
-                            <p className="text-black/40 text-[11px] mt-0.5">
+                            <p className="text-white text-sm font-semibold truncate">{f.name}</p>
+                            <p className="text-white/40 text-[11px] mt-0.5">
                               {round1(f.protein)}g P · {round1(f.carbs)}g C · {round1(f.fat)}g F
                             </p>
                           </div>
-                          <span className="text-black font-semibold text-sm shrink-0">{f.cals}</span>
+                          <span className="text-white font-semibold text-sm shrink-0">{f.cals}</span>
                         </div>
                       </SwipeableRow>
                     ))}
-                    <p className="text-black/25 text-[10px] text-center pt-0.5">Swipe an item left to remove it</p>
+                    <p className="text-white/25 text-[10px] text-center pt-0.5">Swipe an item left to remove it</p>
                   </div>
                 )}
 
@@ -2871,7 +2873,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                     setDetailMeal(null);
                     setSheetOpen(true);
                   }}
-                  className="w-full mt-3 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"
+                  className="w-full mt-3 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"
                 >
                   <Plus size={14} /> Add food
                 </button>
@@ -2880,14 +2882,14 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
           })()}
       </BottomSheet>
 
-      <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} title={`Add to ${activeMeal}`}>
-        <div className="flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3">
-          <Search size={16} className="text-black/40" />
+      <BottomSheet dark open={sheetOpen} onClose={() => setSheetOpen(false)} title={`Add to ${activeMeal}`}>
+        <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3">
+          <Search size={16} className="text-white/40" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search foods"
-            className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+            className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
           />
         </div>
         <div className="flex gap-2 mb-4">
@@ -2896,7 +2898,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               setSheetOpen(false);
               setBarcodeOpen(true);
             }}
-            className="flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"
+            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
           >
             <ScanLine size={18} />
             Scan barcode
@@ -2906,7 +2908,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               setSheetOpen(false);
               setPhotoOpen(true);
             }}
-            className="flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"
+            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
           >
             <Camera size={18} />
             Photo
@@ -2916,7 +2918,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               setSheetOpen(false);
               setQuickAddOpen(true);
             }}
-            className="flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"
+            className="flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs"
           >
             <Zap size={18} />
             Quick add
@@ -2924,43 +2926,43 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         </div>
         {!search.trim() && recentFoods.length > 0 && (
           <div className="mb-4">
-            <p className="text-black/30 text-xs mb-2 tracking-wide">RECENTLY LOGGED</p>
+            <p className="text-white/30 text-xs mb-2 tracking-wide">RECENTLY LOGGED</p>
             <div className="space-y-1">
               {recentFoods.map((f) => (
                 <button
                   key={f.id}
                   onClick={() => addAndClose({ ...f, id: `recent_${Date.now()}` })}
-                  className="w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"
+                  className="w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0"
                 >
                   {f.photoUrl && <img src={f.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
                   <div className="text-left flex-1 min-w-0">
-                    <p className="text-black text-sm font-medium truncate">{f.name}</p>
-                    <p className="text-black/40 text-xs">
+                    <p className="text-white text-sm font-medium truncate">{f.name}</p>
+                    <p className="text-white/40 text-xs">
                       P{round1(f.protein)} · C{round1(f.carbs)} · F{round1(f.fat)}
                     </p>
                   </div>
-                  <span className="text-black/50 text-sm shrink-0">{f.cals} kcal</span>
+                  <span className="text-white/50 text-sm shrink-0">{f.cals} kcal</span>
                 </button>
               ))}
             </div>
           </div>
         )}
-        <p className="text-black/30 text-xs mb-2 tracking-wide">SEARCH RESULTS · PER 100G</p>
+        <p className="text-white/30 text-xs mb-2 tracking-wide">SEARCH RESULTS · PER 100G</p>
         <div className="space-y-1">
           {filteredFoods.map((f) => (
             <button
               key={f.id}
               onClick={() => setPendingFood(f)}
-              className="w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"
+              className="w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0"
             >
               {f.imageUrl && <img src={f.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
               <div className="text-left flex-1 min-w-0">
-                <p className="text-black text-sm font-medium truncate">{f.name}</p>
-                <p className="text-black/40 text-xs">
+                <p className="text-white text-sm font-medium truncate">{f.name}</p>
+                <p className="text-white/40 text-xs">
                   P{f.protein} · C{f.carbs} · F{f.fat}
                 </p>
               </div>
-              <span className="text-black/50 text-sm shrink-0">{f.cals} kcal</span>
+              <span className="text-white/50 text-sm shrink-0">{f.cals} kcal</span>
             </button>
           ))}
         </div>
@@ -2976,7 +2978,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         }}
       />
 
-      <BottomSheet open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
+      <BottomSheet dark open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
         <div className="grid grid-cols-3 gap-2">
           {[0.1, 0.2, 0.33, 0.5, 0.75, 1.0].map((v) => (
             <button
@@ -2985,7 +2987,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                 onAddWater(v);
                 setWaterSheetOpen(false);
               }}
-              className="bg-black/8 rounded-xl py-4 text-black font-semibold"
+              className="bg-white/8 rounded-xl py-4 text-white font-semibold"
             >
               {v * 1000}ml
             </button>
@@ -3026,6 +3028,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         onSaveAsMeal={saveMealFromEstimate}
       />
       <CreateMealSheet
+        dark
         open={createMealOpen}
         onClose={() => setCreateMealOpen(false)}
         prefill={mealPrefill}
@@ -3056,6 +3059,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       />
 
       <ShoppingListSheet
+        dark
         open={shoppingListOpen}
         onClose={() => setShoppingListOpen(false)}
         plan={mealPlan}
@@ -3072,15 +3076,15 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 
 function ChartCard({ title, subtitle, children }) {
   return (
-    <Card>
-      <p className="text-black font-semibold">{title}</p>
-      {subtitle && <p className="text-black/40 text-xs mt-0.5">{subtitle}</p>}
+    <Card dark>
+      <p className="text-white font-semibold">{title}</p>
+      {subtitle && <p className="text-white/40 text-xs mt-0.5">{subtitle}</p>}
       <div className="h-40 mt-3 -ml-4">{children}</div>
     </Card>
   );
 }
 
-const axisStyle = { fontSize: 11, fill: "rgba(10,10,11,0.35)" };
+const axisStyle = { fontSize: 11, fill: "rgba(255,255,255,0.35)" };
 
 function MetricDetailSheet({ metric, onClose }) {
   const [range, setRange] = useState("7D");
@@ -3091,18 +3095,18 @@ function MetricDetailSheet({ metric, onClose }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[95] bg-white flex flex-col">
-        <div className="flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5">
-          <button onClick={onClose} className="text-black/60">
+      <div className="fixed inset-0 z-[95] bg-black flex flex-col">
+        <div className="flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5">
+          <button onClick={onClose} className="text-white/60">
             <X size={20} />
           </button>
-          <span className="text-black font-semibold">{metric.label}</span>
+          <span className="text-white font-semibold">{metric.label}</span>
           <div className="w-5" />
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-5">
-          <p className="text-black text-3xl font-bold tabular-nums">{valueLabel}</p>
-          <p className="text-black/40 text-xs mt-1">Latest · {metric.date}</p>
+          <p className="text-white text-3xl font-bold tabular-nums">{valueLabel}</p>
+          <p className="text-white/40 text-xs mt-1">Latest · {metric.date}</p>
 
           <div className="flex gap-2 mt-5">
             {["7D", "30D"].map((r) => (
@@ -3110,7 +3114,7 @@ function MetricDetailSheet({ metric, onClose }) {
                 key={r}
                 onClick={() => setRange(r)}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold ${
-                  range === r ? "bg-black text-white" : "bg-black/8 text-black/50"
+                  range === r ? "bg-white text-black" : "bg-white/8 text-white/50"
                 }`}
               >
                 {r}
@@ -3120,9 +3124,9 @@ function MetricDetailSheet({ metric, onClose }) {
 
           <div className="mt-5">
             {!metric.series ? (
-              <p className="text-black/30 text-sm text-center py-16">No detailed history available for this metric.</p>
+              <p className="text-white/30 text-sm text-center py-16">No detailed history available for this metric.</p>
             ) : data.length < 2 ? (
-              <p className="text-black/30 text-sm text-center py-16">Not enough history yet for this range.</p>
+              <p className="text-white/30 text-sm text-center py-16">Not enough history yet for this range.</p>
             ) : (
               <>
                 <div className="h-64">
@@ -3137,13 +3141,13 @@ function MetricDetailSheet({ metric, onClose }) {
                       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
                       <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
                       <Tooltip
-                        contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                        contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }}
                       />
                       <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#mdGrad)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-                <p className="text-black/30 text-[11px] text-center mt-4">Showing the last {data.length} recorded entries.</p>
+                <p className="text-white/30 text-[11px] text-center mt-4">Showing the last {data.length} recorded entries.</p>
               </>
             )}
           </div>
@@ -3164,9 +3168,9 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
   const valid = weight !== "" && !isNaN(parsed) && parsed > 0;
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Log Weight">
-      <Field label="WEIGHT (KG)">
-        <TextInput
+    <BottomSheet dark open={open} onClose={onClose} title="Log Weight">
+      <Field dark label="WEIGHT (KG)">
+        <TextInput dark
           type="number"
           inputMode="decimal"
           value={weight}
@@ -3175,7 +3179,7 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
           autoFocus
         />
       </Field>
-      <PrimaryButton
+      <PrimaryButton dark
         className="w-full mt-4"
         disabled={!valid}
         onClick={() => {
@@ -3202,13 +3206,13 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[95] bg-white flex flex-col">
-        <div className="flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5">
-          <button onClick={onClose} className="text-black/60">
+      <div className="fixed inset-0 z-[95] bg-black flex flex-col">
+        <div className="flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5">
+          <button onClick={onClose} className="text-white/60">
             <X size={20} />
           </button>
-          <span className="text-black font-semibold">Body Weight</span>
-          <button onClick={() => setLogOpen(true)} className="text-black font-bold text-sm">
+          <span className="text-white font-semibold">Body Weight</span>
+          <button onClick={() => setLogOpen(true)} className="text-white font-bold text-sm">
             + Log
           </button>
         </div>
@@ -3216,16 +3220,16 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
         <div className="flex-1 overflow-y-auto px-3 py-5">
           {weighIns.length === 0 ? (
             <div className="py-16 text-center">
-              <Scale size={28} className="mx-auto text-black/15 mb-3" />
-              <p className="text-black/40 text-sm mb-4">No weigh-ins logged yet.</p>
-              <PrimaryButton onClick={() => setLogOpen(true)} className="mx-auto">
+              <Scale size={28} className="mx-auto text-white/15 mb-3" />
+              <p className="text-white/40 text-sm mb-4">No weigh-ins logged yet.</p>
+              <PrimaryButton dark onClick={() => setLogOpen(true)} className="mx-auto">
                 <Plus size={16} /> LOG YOUR FIRST WEIGHT
               </PrimaryButton>
             </div>
           ) : (
             <>
-              <p className="text-black text-3xl font-bold tabular-nums">{latest.weight} kg</p>
-              <p className="text-black/40 text-xs mt-1">
+              <p className="text-white text-3xl font-bold tabular-nums">{latest.weight} kg</p>
+              <p className="text-white/40 text-xs mt-1">
                 {weighIns.length > 1 && change != null
                   ? `${change > 0 ? "up" : change < 0 ? "down" : "steady"} ${Math.abs(change)}kg since your first log`
                   : "Your first logged weigh-in"}
@@ -3244,7 +3248,7 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
                       <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
                       <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={34} />
                       <Tooltip
-                        contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                        contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }}
                       />
                       <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#whGrad)" />
                     </AreaChart>
@@ -3252,18 +3256,18 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
                 </div>
               )}
 
-              <p className="text-black/30 text-xs tracking-wide mt-6 mb-2">ALL ENTRIES · {weighIns.length}</p>
+              <p className="text-white/30 text-xs tracking-wide mt-6 mb-2">ALL ENTRIES · {weighIns.length}</p>
               <div className="space-y-1">
                 {[...weighIns].reverse().map((w) => (
-                  <div key={w.id} className="flex items-center justify-between py-2.5 border-b border-black/5 last:border-0">
-                    <span className="text-black/50 text-sm">
+                  <div key={w.id} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0">
+                    <span className="text-white/50 text-sm">
                       {new Date(w.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-black font-semibold text-sm">{w.weight} kg</span>
+                      <span className="text-white font-semibold text-sm">{w.weight} kg</span>
                       {confirmDeleteId === w.id ? (
                         <div className="flex items-center gap-1.5">
-                          <button onClick={() => setConfirmDeleteId(null)} className="text-black/40 text-xs font-semibold px-2 py-1">
+                          <button onClick={() => setConfirmDeleteId(null)} className="text-white/40 text-xs font-semibold px-2 py-1">
                             Cancel
                           </button>
                           <button
@@ -3277,7 +3281,7 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
                           </button>
                         </div>
                       ) : (
-                        <button onClick={() => setConfirmDeleteId(w.id)} className="text-black/25 hover:text-red-500 p-1" aria-label="Delete this entry">
+                        <button onClick={() => setConfirmDeleteId(w.id)} className="text-white/25 hover:text-red-500 p-1" aria-label="Delete this entry">
                           <X size={14} />
                         </button>
                       )}
@@ -3308,14 +3312,14 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
   const [viewing, setViewing] = useState(null);
 
   return (
-    <Card>
+    <Card dark>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-black font-semibold">Progress Photos</p>
-        <ImageIcon size={16} className="text-black/30" />
+        <p className="text-white font-semibold">Progress Photos</p>
+        <ImageIcon size={16} className="text-white/30" />
       </div>
-      <div className="flex items-start gap-2 mb-3 bg-black/[0.03] rounded-xl p-3">
-        <Info size={14} className="text-black/30 shrink-0 mt-0.5" />
-        <p className="text-black/40 text-[11px] leading-relaxed">
+      <div className="flex items-start gap-2 mb-3 bg-white/[0.03] rounded-xl p-3">
+        <Info size={14} className="text-white/30 shrink-0 mt-0.5" />
+        <p className="text-white/40 text-[11px] leading-relaxed">
           For photos you can actually compare over time: take them first thing in the morning, in clear/consistent lighting, wearing the
           same clothes (or similar) as your very first set, from the same angles each time.
         </p>
@@ -3335,13 +3339,13 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
         <button
           onClick={() => fileRef.current?.click()}
           disabled={busy}
-          className="aspect-square rounded-xl border border-dashed border-black/15 bg-black/[0.03] flex flex-col items-center justify-center gap-1 text-black/40 disabled:opacity-40"
+          className="aspect-square rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-1 text-white/40 disabled:opacity-40"
         >
           <Plus size={18} />
           <span className="text-[10px] font-medium">{busy ? "Uploading…" : "Add photo"}</span>
         </button>
         {photos.map((p) => (
-          <button key={p.id} onClick={() => setViewing(p)} className="relative aspect-square rounded-xl overflow-hidden bg-black/5">
+          <button key={p.id} onClick={() => setViewing(p)} className="relative aspect-square rounded-xl overflow-hidden bg-white/5">
             <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
             <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent text-white text-[10px] font-medium px-1.5 py-1 text-center">
               {new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -3349,23 +3353,23 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
           </button>
         ))}
       </div>
-      {photos.length === 0 && <p className="text-black/25 text-xs mt-3">No photos yet — add one to start a visual timeline.</p>}
+      {photos.length === 0 && <p className="text-white/25 text-xs mt-3">No photos yet — add one to start a visual timeline.</p>}
 
-      <BottomSheet open={!!viewing} onClose={() => setViewing(null)} title={viewing ? new Date(viewing.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : ""}>
+      <BottomSheet dark open={!!viewing} onClose={() => setViewing(null)} title={viewing ? new Date(viewing.date).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) : ""}>
         {viewing && (
           <div>
             <img src={viewing.url} alt="Progress" className="w-full rounded-2xl mb-3" />
             {(() => {
               const w = closestWeighIn(weighIns, viewing.date);
               return w ? (
-                <p className="text-black/50 text-sm text-center mb-4">
+                <p className="text-white/50 text-sm text-center mb-4">
                   {w.weight} kg around this time
                 </p>
               ) : (
-                <p className="text-black/30 text-xs text-center mb-4">No weigh-in logged near this date.</p>
+                <p className="text-white/30 text-xs text-center mb-4">No weigh-in logged near this date.</p>
               );
             })()}
-            <DangerButton
+            <DangerButton dark
               className="w-full"
               onClick={() => {
                 onDelete(viewing.id);
@@ -3404,7 +3408,7 @@ function PerformanceTimelineCard({ timeline, monthlyVolume }) {
     { label: "PRs set", sub: "new heaviest lifts", value: `${timeline.prCount}` },
   ];
   return (
-    <div className="bg-black rounded-2xl p-5">
+    <div className="rounded-2xl p-5 border border-white/8" style={{ backgroundColor: "#141414" }}>
       <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last {timeline.days} Days</p>
       <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
       <p className="text-white/35 text-xs mt-1 mb-4">A quick read on how you've been trending: getting stronger, showing up, hitting new bests.</p>
@@ -3528,18 +3532,18 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-4 flex items-center justify-between">
-        <h1 className="text-black text-2xl font-bold">Progress</h1>
-        <BarChart3 size={20} className="text-black/40" />
+        <h1 className="text-white text-2xl font-bold">Progress</h1>
+        <BarChart3 size={20} className="text-white/40" />
       </div>
 
       <div className="px-3 space-y-4">
         <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} />
 
         <div>
-          <p className="text-black font-semibold mb-3">My Progress</p>
+          <p className="text-white font-semibold mb-3">My Progress</p>
           <div className="grid grid-cols-2 gap-3">
             {tiles.map((t) => (
-              <MetricTile
+              <MetricTile dark
                 key={t.key}
                 label={t.label}
                 date={t.date}
@@ -3551,15 +3555,15 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           </div>
         </div>
 
-        <Card>
-          <p className="text-black font-semibold mb-3">Strength Personal Bests</p>
+        <Card dark>
+          <p className="text-white font-semibold mb-3">Strength Personal Bests</p>
           <div className="space-y-2.5">
             {personalBests.map((s) => (
               <div key={s.name} className="flex items-center justify-between">
-                <span className="text-black/70 text-sm flex items-center gap-2">
-                  <Trophy size={14} className={s.value ? "text-black" : "text-black/25"} /> {s.name}
+                <span className="text-white/70 text-sm flex items-center gap-2">
+                  <Trophy size={14} className={s.value ? "text-white" : "text-white/25"} /> {s.name}
                 </span>
-                <span className={s.value ? "text-black text-sm font-semibold" : "text-black/30 text-xs"}>
+                <span className={s.value ? "text-white text-sm font-semibold" : "text-white/30 text-xs"}>
                   {s.value || "Not yet logged"}
                 </span>
               </div>
@@ -3567,15 +3571,15 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           </div>
         </Card>
 
-        <ConsistencyHeatmap logs={logsForClient} />
+        <ConsistencyHeatmap logs={logsForClient} dark />
 
         <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
 
-        <Card>
+        <Card dark>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-black font-semibold">Body Weight</p>
-              <p className="text-black/40 text-xs mt-0.5">
+              <p className="text-white font-semibold">Body Weight</p>
+              <p className="text-white/40 text-xs mt-0.5">
                 {weighIns.length === 0
                   ? "No weigh-ins logged yet"
                   : weighIns.length === 1
@@ -3587,7 +3591,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             </div>
             <button
               onClick={() => setQuickLogOpen(true)}
-              className="w-8 h-8 rounded-full bg-black/8 flex items-center justify-center text-black shrink-0"
+              className="w-8 h-8 rounded-full bg-white/8 flex items-center justify-center text-white shrink-0"
             >
               <Plus size={15} />
             </button>
@@ -3604,7 +3608,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
                   </defs>
                   <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
                   <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-                  <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+                  <Tooltip contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }} />
                   <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#wGrad)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -3612,7 +3616,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           ) : (
             <button
               onClick={() => setWeightHistoryOpen(true)}
-              className="w-full mt-3 text-center text-black/30 text-xs py-6 border border-dashed border-black/10 rounded-xl"
+              className="w-full mt-3 text-center text-white/30 text-xs py-6 border border-dashed border-white/10 rounded-xl"
             >
               {weighIns.length === 0 ? "Log a weight to start your history" : "Log another weigh-in to see a trend"}
             </button>
@@ -3621,12 +3625,14 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
         <div className="grid grid-cols-2 gap-3">
           <BodyMetricCard
+            dark
             config={BODY_FAT_CONFIG}
             entries={bodyMetricEntries.bodyFatPct}
             onLog={setLogMetricConfig}
             onOpenHistory={setHistoryMetricConfig}
           />
           <BodyMetricCard
+            dark
             config={LEAN_MASS_CONFIG}
             entries={bodyMetricEntries.leanMassKg}
             onLog={setLogMetricConfig}
@@ -3634,10 +3640,11 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           />
         </div>
 
-        <BodyMeasurementsListCard entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
+        <BodyMeasurementsListCard dark entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
 
         {BODY_METRICS_CONFIG.map((cfg) => (
           <BodyMetricCard
+            dark
             key={cfg.key}
             config={cfg}
             entries={bodyMetricEntries[cfg.key]}
@@ -3655,28 +3662,28 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
               <BarChart data={weeklyVolume}>
                 <XAxis dataKey="week" tick={axisStyle} axisLine={false} tickLine={false} />
                 <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
-                <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+                <Tooltip contentStyle={{ background: "#1C1C1C", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12, color: "#FFFFFF" }} />
                 <Bar dataKey="volume" fill={MEASURE_BLUE} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
         ) : (
-          <Card>
-            <p className="text-black font-semibold">Weekly Training Volume</p>
-            <p className="text-black/30 text-sm mt-2">Complete a few more weeks of logged workouts to see your volume trend.</p>
+          <Card dark>
+            <p className="text-white font-semibold">Weekly Training Volume</p>
+            <p className="text-white/30 text-sm mt-2">Complete a few more weeks of logged workouts to see your volume trend.</p>
           </Card>
         )}
 
-        <Card>
-          <p className="text-black font-semibold mb-3">Achievements</p>
+        <Card dark>
+          <p className="text-white font-semibold mb-3">Achievements</p>
           {achievements.length === 0 ? (
-            <p className="text-black/30 text-sm">Complete workouts to start unlocking milestones here.</p>
+            <p className="text-white/30 text-sm">Complete workouts to start unlocking milestones here.</p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {achievements.map((a) => (
-                <div key={a.id} className="bg-black/5 rounded-xl p-3 flex items-center gap-2.5">
+                <div key={a.id} className="bg-white/5 rounded-xl p-3 flex items-center gap-2.5">
                   <span className="text-xl grayscale">{a.icon}</span>
-                  <span className="text-black/70 text-xs font-medium">{a.label}</span>
+                  <span className="text-white/70 text-xs font-medium">{a.label}</span>
                 </div>
               ))}
             </div>
@@ -3700,6 +3707,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
       {historyMetricConfig && (
         <BodyMetricHistoryScreen
+          dark
           config={historyMetricConfig}
           entries={bodyMetricEntries[historyMetricConfig.key]}
           onClose={() => setHistoryMetricConfig(null)}
@@ -3708,6 +3716,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         />
       )}
       <LogBodyMetricSheet
+        dark
         open={!!logMetricConfig}
         config={logMetricConfig}
         lastValue={logMetricConfig ? bodyMetricEntries[logMetricConfig.key]?.[bodyMetricEntries[logMetricConfig.key].length - 1]?.value : null}
@@ -3746,7 +3755,7 @@ function Chip({ active, onClick, children }) {
       type="button"
       onClick={onClick}
       className={`px-3 py-2 rounded-full text-xs font-semibold border ${
-        active ? "bg-black text-white border-black" : "bg-black/5 text-black/60 border-transparent"
+        active ? "bg-white text-black border-white" : "bg-white/5 text-white/60 border-transparent"
       }`}
     >
       {children}
@@ -3809,16 +3818,16 @@ function PreferencesSheet({ section, open, onClose, user }) {
   if (!section) return null;
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={PREF_TITLES[section] || ""}>
+    <BottomSheet dark open={open} onClose={onClose} title={PREF_TITLES[section] || ""}>
       <div className="space-y-4">
         {section === "goals" && (
-          <Field label="YOUR GOALS" hint="Shared with your coach">
-            <TextArea rows={4} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on my main lifts..." />
+          <Field dark label="YOUR GOALS" hint="Shared with your coach">
+            <TextArea dark rows={4} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on my main lifts..." />
           </Field>
         )}
         {section === "equipment" && (
           <div>
-            <p className="text-black/40 text-xs tracking-wide mb-2">WHAT DO YOU HAVE ACCESS TO?</p>
+            <p className="text-white/40 text-xs tracking-wide mb-2">WHAT DO YOU HAVE ACCESS TO?</p>
             <div className="flex flex-wrap gap-2">
               {EQUIPMENT_OPTIONS.map((opt) => (
                 <Chip key={opt} active={equipment.includes(opt)} onClick={() => toggle(equipment, setEquipment, opt)}>
@@ -3831,7 +3840,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
         {section === "training" && (
           <>
             <div>
-              <p className="text-black/40 text-xs tracking-wide mb-2">PREFERRED TRAINING DAYS</p>
+              <p className="text-white/40 text-xs tracking-wide mb-2">PREFERRED TRAINING DAYS</p>
               <div className="flex flex-wrap gap-2">
                 {DAY_OPTIONS.map((d) => (
                   <Chip key={d} active={trainingDays.includes(d)} onClick={() => toggle(trainingDays, setTrainingDays, d)}>
@@ -3841,7 +3850,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
               </div>
             </div>
             <div>
-              <p className="text-black/40 text-xs tracking-wide mb-2">PREFERRED SESSION LENGTH</p>
+              <p className="text-white/40 text-xs tracking-wide mb-2">PREFERRED SESSION LENGTH</p>
               <div className="flex flex-wrap gap-2">
                 {SESSION_LENGTH_OPTIONS.map((s) => (
                   <Chip key={s} active={sessionLength === s} onClick={() => setSessionLength(sessionLength === s ? "" : s)}>
@@ -3850,15 +3859,15 @@ function PreferencesSheet({ section, open, onClose, user }) {
                 ))}
               </div>
             </div>
-            <Field label="ANYTHING ELSE?" hint="Injuries, limitations, preferred exercises...">
-              <TextArea rows={3} value={trainingNotes} onChange={(e) => setTrainingNotes(e.target.value)} placeholder="e.g. Bad left knee, avoid deep squats..." />
+            <Field dark label="ANYTHING ELSE?" hint="Injuries, limitations, preferred exercises...">
+              <TextArea dark rows={3} value={trainingNotes} onChange={(e) => setTrainingNotes(e.target.value)} placeholder="e.g. Bad left knee, avoid deep squats..." />
             </Field>
           </>
         )}
         {section === "nutrition" && (
           <>
             <div>
-              <p className="text-black/40 text-xs tracking-wide mb-2">DIET TYPE</p>
+              <p className="text-white/40 text-xs tracking-wide mb-2">DIET TYPE</p>
               <div className="flex flex-wrap gap-2">
                 {DIET_OPTIONS.map((d) => (
                   <Chip key={d} active={dietType === d} onClick={() => setDietType(dietType === d ? "" : d)}>
@@ -3867,14 +3876,14 @@ function PreferencesSheet({ section, open, onClose, user }) {
                 ))}
               </div>
             </div>
-            <Field label="ALLERGIES / DISLIKES" hint="Anything you can't or won't eat">
-              <TextArea rows={2} value={nutritionNotes} onChange={(e) => setNutritionNotes(e.target.value)} placeholder="e.g. Allergic to peanuts, don't like fish..." />
+            <Field dark label="ALLERGIES / DISLIKES" hint="Anything you can't or won't eat">
+              <TextArea dark rows={2} value={nutritionNotes} onChange={(e) => setNutritionNotes(e.target.value)} placeholder="e.g. Allergic to peanuts, don't like fish..." />
             </Field>
           </>
         )}
         {error && <p className="text-red-500 text-xs">{error}</p>}
       </div>
-      <button onClick={save} disabled={saving} className="w-full mt-6 bg-black text-white font-bold py-4 rounded-2xl disabled:opacity-40">
+      <button onClick={save} disabled={saving} className="w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl disabled:opacity-40">
         {saving ? "SAVING…" : "SAVE"}
       </button>
     </BottomSheet>
@@ -3883,11 +3892,11 @@ function PreferencesSheet({ section, open, onClose, user }) {
 
 function ConnectedDevicesSheet({ open, onClose }) {
   return (
-    <BottomSheet open={open} onClose={onClose} title="Connected devices">
+    <BottomSheet dark open={open} onClose={onClose} title="Connected devices">
       <div className="text-center py-6">
-        <Heart size={28} className="text-black/20 mx-auto mb-3" />
-        <p className="text-black font-semibold">Not available yet</p>
-        <p className="text-black/40 text-sm mt-1.5 max-w-xs mx-auto">
+        <Heart size={28} className="text-white/20 mx-auto mb-3" />
+        <p className="text-white font-semibold">Not available yet</p>
+        <p className="text-white/40 text-sm mt-1.5 max-w-xs mx-auto">
           Syncing with wearables like Apple Health, Garmin or Whoop isn't built yet — it's on the roadmap for a future update.
         </p>
       </div>
@@ -3923,47 +3932,47 @@ function PushNotificationsSheet({ open, onClose, showToast, userId }) {
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Push Notifications">
-      <p className="text-black/50 text-sm mb-4">
+    <BottomSheet dark open={open} onClose={onClose} title="Push Notifications">
+      <p className="text-white/50 text-sm mb-4">
         Get notified on this device when your coach messages you or reviews a check-in — even when the app is closed.
       </p>
-      <div className="flex items-center justify-between bg-black/5 rounded-xl px-4 py-3.5">
-        <span className="text-black font-medium text-sm">{enabled ? "Enabled on this device" : "Turn on"}</span>
+      <div className="flex items-center justify-between bg-white/5 rounded-xl px-4 py-3.5">
+        <span className="text-white font-medium text-sm">{enabled ? "Enabled on this device" : "Turn on"}</span>
         <button
           onClick={toggle}
           disabled={busy}
-          className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${enabled ? "bg-blue-500" : "bg-black/15"}`}
+          className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${enabled ? "bg-blue-500" : "bg-white/15"}`}
           aria-label={enabled ? "Turn off push notifications" : "Turn on push notifications"}
         >
           <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
         </button>
       </div>
       {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
-      <p className="text-black/30 text-[11px] mt-3">This is per-device — turn it on separately on each phone or browser you use.</p>
+      <p className="text-white/30 text-[11px] mt-3">This is per-device — turn it on separately on each phone or browser you use.</p>
     </BottomSheet>
   );
 }
 
 function NotificationRow({ icon: Icon, title, subtitle, onClick }) {
   return (
-    <button onClick={onClick} className="w-full text-left flex items-center gap-3 bg-black/5 rounded-xl px-3.5 py-3">
-      <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center shrink-0">
-        <Icon size={16} className="text-black/70" />
+    <button onClick={onClick} className="w-full text-left flex items-center gap-3 bg-white/5 rounded-xl px-3.5 py-3">
+      <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center shrink-0">
+        <Icon size={16} className="text-white/70" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-black text-sm font-semibold">{title}</p>
-        <p className="text-black/40 text-xs mt-0.5 truncate">{subtitle}</p>
+        <p className="text-white text-sm font-semibold">{title}</p>
+        <p className="text-white/40 text-xs mt-0.5 truncate">{subtitle}</p>
       </div>
-      <ChevronRight size={16} className="text-black/25 shrink-0" />
+      <ChevronRight size={16} className="text-white/25 shrink-0" />
     </button>
   );
 }
 
 function NotificationsCenterSheet({ open, onClose, items }) {
   return (
-    <BottomSheet open={open} onClose={onClose} title="Notifications">
+    <BottomSheet dark open={open} onClose={onClose} title="Notifications">
       {items.length === 0 ? (
-        <p className="text-black/40 text-sm text-center py-8">You're all caught up.</p>
+        <p className="text-white/40 text-sm text-center py-8">You're all caught up.</p>
       ) : (
         <div className="space-y-2">
           {items.map((it, i) => (
@@ -4013,116 +4022,116 @@ function ProfileScreen({
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-4">
-        <h1 className="text-black text-2xl font-bold">Profile</h1>
+        <h1 className="text-white text-2xl font-bold">Profile</h1>
       </div>
       <div className="px-3">
-        <Card>
+        <Card dark>
           <div className="flex items-center gap-4">
-            <AvatarPicker name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
+            <AvatarPicker dark name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
             <div>
-              <p className="text-black text-lg font-bold">{user.name}</p>
-              <p className="text-black/40 text-sm">
+              <p className="text-white text-lg font-bold">{user.name}</p>
+              <p className="text-white/40 text-sm">
                 {user.fitnessLevel || "Beginner"} · {user.username}
               </p>
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
-              <p className="text-black font-bold">{workoutStreak}🔥</p>
-              <p className="text-black/40 text-[11px]">workout streak</p>
+            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
+              <p className="text-white font-bold">{workoutStreak}🔥</p>
+              <p className="text-white/40 text-[11px]">workout streak</p>
             </div>
-            <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
-              <p className="text-black font-bold">{logsForClient.length}</p>
-              <p className="text-black/40 text-[11px]">total workouts</p>
+            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
+              <p className="text-white font-bold">{logsForClient.length}</p>
+              <p className="text-white/40 text-[11px]">total workouts</p>
             </div>
-            <div className="flex-1 bg-black/5 rounded-xl py-2.5 text-center">
-              <p className="text-black font-bold">{prsThisMonth}</p>
-              <p className="text-black/40 text-[11px]">PRs this month</p>
+            <div className="flex-1 bg-white/5 rounded-xl py-2.5 text-center">
+              <p className="text-white font-bold">{prsThisMonth}</p>
+              <p className="text-white/40 text-[11px]">PRs this month</p>
             </div>
           </div>
         </Card>
       </div>
 
       <div className="px-3 mt-4 space-y-3">
-        <Card onClick={() => setMessagesOpen(true)}>
+        <Card dark onClick={() => setMessagesOpen(true)}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative">
-              <MessageCircle size={18} className="text-black" />
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative">
+              <MessageCircle size={18} className="text-white" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
             </div>
             <div className="flex-1">
-              <p className="text-black font-semibold">Messages</p>
-              <p className="text-black/40 text-xs">Chat directly with your coach</p>
+              <p className="text-white font-semibold">Messages</p>
+              <p className="text-white/40 text-xs">Chat directly with your coach</p>
             </div>
-            <ChevronRight size={18} className="text-black/30" />
+            <ChevronRight size={18} className="text-white/30" />
           </div>
         </Card>
 
-        <Card onClick={onOpenCheckIns}>
+        <Card dark onClick={onOpenCheckIns}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative">
-              <CalendarCheck size={18} className="text-black" />
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative">
+              <CalendarCheck size={18} className="text-white" />
               {dueCheckInsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
                   {dueCheckInsCount}
                 </span>
               )}
             </div>
             <div className="flex-1">
-              <p className="text-black font-semibold">Check-ins</p>
-              <p className="text-black/40 text-xs">{dueCheckInsCount > 0 ? `${dueCheckInsCount} due now` : "Fill out forms from your coach"}</p>
+              <p className="text-white font-semibold">Check-ins</p>
+              <p className="text-white/40 text-xs">{dueCheckInsCount > 0 ? `${dueCheckInsCount} due now` : "Fill out forms from your coach"}</p>
             </div>
-            <ChevronRight size={18} className="text-black/30" />
+            <ChevronRight size={18} className="text-white/30" />
           </div>
         </Card>
 
-        <Card onClick={() => setCoachOpen(true)}>
+        <Card dark onClick={() => setCoachOpen(true)}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-black/10 flex items-center justify-center">
-              <Activity size={18} className="text-black" />
+            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+              <Activity size={18} className="text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-black font-semibold">Quick Tips</p>
-              <p className="text-black/40 text-xs">Canned answers to common questions</p>
+              <p className="text-white font-semibold">Quick Tips</p>
+              <p className="text-white/40 text-xs">Canned answers to common questions</p>
             </div>
-            <ChevronRight size={18} className="text-black/30" />
+            <ChevronRight size={18} className="text-white/30" />
           </div>
         </Card>
       </div>
 
       <div className="px-3 mt-4">
-        <Card>
+        <Card dark>
           {rows.map((r, i) => (
             <button
               key={r.label}
               onClick={r.onClick}
-              className={`w-full flex items-center gap-3 py-3 text-left ${i !== rows.length - 1 ? "border-b border-black/5" : ""}`}
+              className={`w-full flex items-center gap-3 py-3 text-left ${i !== rows.length - 1 ? "border-b border-white/5" : ""}`}
             >
-              <r.icon size={17} className="text-black/40" />
-              <span className="text-black/80 text-sm flex-1">{r.label}</span>
+              <r.icon size={17} className="text-white/40" />
+              <span className="text-white/80 text-sm flex-1">{r.label}</span>
               {r.label === "Notifications" && notifCount > 0 && (
-                <span className="w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center">
+                <span className="w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center">
                   {notifCount}
                 </span>
               )}
-              <ChevronRight size={16} className="text-black/20" />
+              <ChevronRight size={16} className="text-white/20" />
             </button>
           ))}
         </Card>
       </div>
 
       <div className="px-3 mt-4">
-        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-black/5 border border-black/10 text-black/70 font-semibold py-3.5 rounded-2xl">
+        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 font-semibold py-3.5 rounded-2xl">
           <LogOut size={15} /> Sign out
         </button>
       </div>
 
       <div className="flex justify-center mt-8">
-        <Tagline />
+        <Tagline tone="white" />
       </div>
 
       <PreferencesSheet section={prefSection} open={!!prefSection} onClose={() => setPrefSection(null)} user={user} />
@@ -4150,13 +4159,13 @@ function CoachSheet({ open, onClose, ctx }) {
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Quick Tips">
+    <BottomSheet dark open={open} onClose={onClose} title="Quick Tips">
       <div className="space-y-3 mb-4 max-h-[45vh] overflow-y-auto">
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line ${
-                m.role === "user" ? "bg-black text-white" : "bg-black/8 text-black/85"
+                m.role === "user" ? "bg-white text-black" : "bg-white/8 text-white/85"
               }`}
             >
               {m.text}
@@ -4172,14 +4181,14 @@ function CoachSheet({ open, onClose, ctx }) {
           return (
             isFoodList &&
             !outOfOptions && (
-              <button onClick={() => send("more")} className="text-xs bg-black text-white px-3 py-1.5 rounded-full font-semibold">
+              <button onClick={() => send("more")} className="text-xs bg-white text-black px-3 py-1.5 rounded-full font-semibold">
                 More options
               </button>
             )
           );
         })()}
         {COACH_SUGGESTIONS.map((s) => (
-          <button key={s} onClick={() => send(s)} className="text-xs bg-black/8 text-black/60 px-3 py-1.5 rounded-full">
+          <button key={s} onClick={() => send(s)} className="text-xs bg-white/8 text-white/60 px-3 py-1.5 rounded-full">
             {s}
           </button>
         ))}
@@ -4190,10 +4199,10 @@ function CoachSheet({ open, onClose, ctx }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send(input)}
           placeholder="Ask your coach..."
-          className="flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
+          className="flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
         />
-        <button onClick={() => send(input)} className="w-11 h-11 rounded-full bg-black flex items-center justify-center">
-          <ChevronRight size={18} className="text-white" />
+        <button onClick={() => send(input)} className="w-11 h-11 rounded-full bg-white flex items-center justify-center">
+          <ChevronRight size={18} className="text-black" />
         </button>
       </div>
     </BottomSheet>
@@ -4268,11 +4277,11 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Messages">
+    <BottomSheet dark open={open} onClose={onClose} title="Messages">
       <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
         {thread.length === 0 && (
           <div className="flex justify-start">
-            <div className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-black/8 text-black/85">
+            <div className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-white/8 text-white/85">
               <p className="whitespace-pre-line">
                 {`Hey, this is your 24/7 coach — ${coachName || "your coach"} will respond within due time. Ask any questions any time!`}
               </p>
@@ -4281,10 +4290,10 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         )}
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "client" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-white text-black" : "bg-white/8 text-white/85"}`}>
               {m.text && <p className="whitespace-pre-line">{m.text}</p>}
               {m.attachment && m.attachment.type === "video" ? (
-                <video src={m.attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />
+                <video src={m.attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-white" />
               ) : m.attachment && m.attachment.type === "image" ? (
                 <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
                   <img src={m.attachment.url} alt={m.attachment.name || "Photo"} className="w-full max-w-[220px] rounded-lg object-cover" />
@@ -4295,14 +4304,14 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
                     href={m.attachment.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${m.from === "client" ? "bg-white/15 text-white" : "bg-black/8 text-black"}`}
+                    className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${m.from === "client" ? "bg-black/15 text-black" : "bg-white/8 text-white"}`}
                   >
                     <FileText size={14} className="shrink-0" />
                     <span className="text-xs font-medium truncate">{m.attachment.name}</span>
                   </a>
                 )
               )}
-              <p className={`text-[10px] mt-1 ${m.from === "client" ? "text-white/40" : "text-black/30"}`}>
+              <p className={`text-[10px] mt-1 ${m.from === "client" ? "text-black/40" : "text-white/30"}`}>
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>
             </div>
@@ -4324,7 +4333,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onClick={() => videoInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a form-check video"
-          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
         >
           {uploadPct !== null ? <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span> : <Video size={17} />}
         </button>
@@ -4333,7 +4342,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onClick={() => pdfInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a PDF"
-          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
         >
           <Paperclip size={17} />
         </button>
@@ -4342,7 +4351,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onClick={() => imageInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a photo"
-          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
         >
           <ImageIcon size={17} />
         </button>
@@ -4351,10 +4360,10 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Message your coach..."
-          className="flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
+          className="flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
         />
-        <button onClick={send} className="w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0">
-          <Send size={16} className="text-white" />
+        <button onClick={send} className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0">
+          <Send size={16} className="text-black" />
         </button>
       </div>
     </BottomSheet>
@@ -4403,20 +4412,20 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
   const canSubmit = form.questions.every((q) => !q.required || (answers[q.id] !== undefined && answers[q.id] !== ""));
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={form.name}>
-      {form.description && <p className="text-black/50 text-sm mb-4">{form.description}</p>}
+    <BottomSheet dark open={open} onClose={onClose} title={form.name}>
+      {form.description && <p className="text-white/50 text-sm mb-4">{form.description}</p>}
       <div className="space-y-4">
         {form.questions.map((q) => (
           <div key={q.id}>
-            <p className="text-black/40 text-xs tracking-wide mb-1.5">
-              {q.label || "Untitled question"} {q.required && <span className="text-black/25">*</span>}
+            <p className="text-white/40 text-xs tracking-wide mb-1.5">
+              {q.label || "Untitled question"} {q.required && <span className="text-white/25">*</span>}
             </p>
             {q.type === "text" && (
               <textarea
                 value={answers[q.id] || ""}
                 onChange={(e) => set(q.id, e.target.value)}
                 rows={2}
-                className="w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none placeholder:text-black/25 resize-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-white/25 resize-none"
               />
             )}
             {q.type === "number" && (
@@ -4424,7 +4433,7 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                 type="number"
                 value={answers[q.id] || ""}
                 onChange={(e) => set(q.id, e.target.value)}
-                className="w-full bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5 text-sm text-black outline-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none"
               />
             )}
             {q.type === "rating" && (
@@ -4434,9 +4443,9 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                     key={n}
                     type="button"
                     onClick={() => set(q.id, n)}
-                    className={`flex-1 flex items-center justify-center py-2.5 rounded-xl ${n <= (answers[q.id] || 0) ? "bg-black" : "bg-black/5"}`}
+                    className={`flex-1 flex items-center justify-center py-2.5 rounded-xl ${n <= (answers[q.id] || 0) ? "bg-white" : "bg-white/5"}`}
                   >
-                    <Star size={16} className={n <= (answers[q.id] || 0) ? "text-white" : "text-black/30"} fill={n <= (answers[q.id] || 0) ? "white" : "none"} />
+                    <Star size={16} className={n <= (answers[q.id] || 0) ? "text-black" : "text-white/30"} fill={n <= (answers[q.id] || 0) ? "black" : "none"} />
                   </button>
                 ))}
               </div>
@@ -4449,7 +4458,7 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                     type="button"
                     onClick={() => set(q.id, opt)}
                     className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium border ${
-                      answers[q.id] === opt ? "bg-black text-white border-black" : "bg-black/5 text-black/70 border-transparent"
+                      answers[q.id] === opt ? "bg-white text-black border-white" : "bg-white/5 text-white/70 border-transparent"
                     }`}
                   >
                     {opt}
@@ -4470,9 +4479,9 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                     </button>
                   </div>
                 ) : (
-                  <label className="w-full flex flex-col items-center justify-center gap-1.5 bg-black/5 border border-dashed border-black/15 rounded-xl py-6 cursor-pointer">
-                    <Camera size={18} className="text-black/40" />
-                    <span className="text-black/40 text-xs">{uploading === q.id ? "Uploading…" : "Add a photo"}</span>
+                  <label className="w-full flex flex-col items-center justify-center gap-1.5 bg-white/5 border border-dashed border-white/15 rounded-xl py-6 cursor-pointer">
+                    <Camera size={18} className="text-white/40" />
+                    <span className="text-white/40 text-xs">{uploading === q.id ? "Uploading…" : "Add a photo"}</span>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhoto(q.id, e.target.files?.[0])} />
                   </label>
                 )}
@@ -4484,7 +4493,7 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
       <button
         onClick={() => onSubmit(answers)}
         disabled={!canSubmit}
-        className="w-full mt-6 bg-black text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30"
+        className="w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30"
       >
         <Check size={18} strokeWidth={3} /> SUBMIT CHECK-IN
       </button>
@@ -4495,20 +4504,20 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
 function CheckInCard({ schedule, form, due, onFill }) {
   if (!form) return null;
   return (
-    <div className="flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${due ? "bg-black" : "bg-black/6"}`}>
-        <CalendarCheck size={17} className={due ? "text-white" : "text-black/40"} />
+    <div className="flex items-center gap-3 bg-black border border-white/8 rounded-2xl px-4 py-3.5">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${due ? "bg-white" : "bg-white/6"}`}>
+        <CalendarCheck size={17} className={due ? "text-black" : "text-white/40"} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-black font-semibold text-sm truncate">{form.name}</p>
-        <p className="text-black/40 text-xs mt-0.5">Every {DAY_LABELS[schedule.dayOfWeek]}</p>
+        <p className="text-white font-semibold text-sm truncate">{form.name}</p>
+        <p className="text-white/40 text-xs mt-0.5">Every {DAY_LABELS[schedule.dayOfWeek]}</p>
       </div>
       {due ? (
-        <button onClick={onFill} className="bg-black text-white text-xs font-bold px-3.5 py-2 rounded-lg shrink-0">
+        <button onClick={onFill} className="bg-white text-black text-xs font-bold px-3.5 py-2 rounded-lg shrink-0">
           Fill out
         </button>
       ) : (
-        <span className="text-black/30 text-xs shrink-0">Done</span>
+        <span className="text-white/30 text-xs shrink-0">Done</span>
       )}
     </div>
   );
@@ -4534,21 +4543,21 @@ function CheckInsScreen({ userId, showToast }) {
   return (
     <div className="pb-28 space-y-4">
       <div className="px-3 pt-6 pb-2">
-        <h1 className="text-black text-2xl font-bold">Check-ins</h1>
-        <p className="text-black/40 text-sm mt-0.5">Scheduled by your coach</p>
+        <h1 className="text-white text-2xl font-bold">Check-ins</h1>
+        <p className="text-white/40 text-sm mt-0.5">Scheduled by your coach</p>
       </div>
 
       {schedules.length === 0 ? (
-        <Card className="mx-3 text-center py-10">
-          <CalendarCheck size={26} className="text-black/25 mx-auto mb-3" />
-          <p className="text-black font-semibold">No check-ins scheduled</p>
-          <p className="text-black/40 text-sm mt-1">Your coach hasn't scheduled any check-ins yet.</p>
+        <Card dark className="mx-3 text-center py-10">
+          <CalendarCheck size={26} className="text-white/25 mx-auto mb-3" />
+          <p className="text-white font-semibold">No check-ins scheduled</p>
+          <p className="text-white/40 text-sm mt-1">Your coach hasn't scheduled any check-ins yet.</p>
         </Card>
       ) : (
         <>
           {due.length > 0 && (
             <div className="px-3 space-y-2.5">
-              <p className="text-black/40 text-xs tracking-wide font-semibold">DUE NOW</p>
+              <p className="text-white/40 text-xs tracking-wide font-semibold">DUE NOW</p>
               {due.map((s) => (
                 <CheckInCard key={s.id} schedule={s} form={formsById[s.formId]} due onFill={() => setFilling(s)} />
               ))}
@@ -4556,7 +4565,7 @@ function CheckInsScreen({ userId, showToast }) {
           )}
           {upcoming.length > 0 && (
             <div className="px-3 space-y-2.5">
-              <p className="text-black/40 text-xs tracking-wide font-semibold mt-2">UPCOMING</p>
+              <p className="text-white/40 text-xs tracking-wide font-semibold mt-2">UPCOMING</p>
               {upcoming.map((s) => (
                 <CheckInCard key={s.id} schedule={s} form={formsById[s.formId]} due={false} />
               ))}
@@ -4567,12 +4576,12 @@ function CheckInsScreen({ userId, showToast }) {
 
       {responses.length > 0 && (
         <div className="px-3">
-          <p className="text-black/40 text-xs tracking-wide font-semibold mt-2 mb-2.5">HISTORY</p>
-          <Card className="!p-0 divide-y divide-black/5 overflow-hidden">
+          <p className="text-white/40 text-xs tracking-wide font-semibold mt-2 mb-2.5">HISTORY</p>
+          <Card dark className="!p-0 divide-y divide-white/5 overflow-hidden">
             {responses.slice(0, 10).map((r) => (
               <div key={r.id} className="flex items-center justify-between px-4 py-3">
-                <span className="text-black/70 text-sm font-medium">{formsById[r.formId]?.name || "Check-in"}</span>
-                <span className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                <span className="text-white/70 text-sm font-medium">{formsById[r.formId]?.name || "Check-in"}</span>
+                <span className="text-white/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
               </div>
             ))}
           </Card>
@@ -4638,8 +4647,8 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       onPointerMove={canSwipe ? swipePointerMove : undefined}
       onPointerUp={canSwipe ? swipePointerUp : undefined}
       onPointerCancel={canSwipe ? swipePointerUp : undefined}
-      className={`w-full flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
-        onClick ? "hover:bg-black/[0.02]" : ""
+      className={`w-full flex items-center gap-3 bg-black border border-white/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
+        onClick ? "hover:bg-white/[0.02]" : ""
       } ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
       style={
         canSwipe
@@ -4648,13 +4657,13 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       }
     >
       <span
-        className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-white"}`}
+        className={`w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center ${dot.border} ${done ? dot.bg : "bg-black"}`}
       >
-        {done && <Check size={11} className="text-white" strokeWidth={3} />}
+        {done && <Check size={11} className="text-black" strokeWidth={3} />}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-black font-semibold text-[15px] truncate">{title}</p>
-        {subtitle && <p className="text-black/40 text-[13px] mt-0.5 truncate">{subtitle}</p>}
+        <p className="text-white font-semibold text-[15px] truncate">{title}</p>
+        {subtitle && <p className="text-white/40 text-[13px] mt-0.5 truncate">{subtitle}</p>}
       </div>
       {/* A dedicated grab handle, not the whole card, owns the drag gesture
           (touchAction: none, text-selection disabled) — the card body
@@ -4671,13 +4680,13 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="w-11 h-11 -mr-2.5 shrink-0 flex items-center justify-center text-black/40 cursor-grab active:cursor-grabbing select-none"
+          className="w-11 h-11 -mr-2.5 shrink-0 flex items-center justify-center text-white/40 cursor-grab active:cursor-grabbing select-none"
           style={{ touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
         >
           <GripVertical size={20} />
         </span>
       ) : (
-        onClick && <ChevronRight size={18} className="text-black/25 shrink-0" />
+        onClick && <ChevronRight size={18} className="text-white/25 shrink-0" />
       )}
     </Wrapper>
   );
@@ -4705,14 +4714,14 @@ function AccessPausedScreen({ onMessageCoach, onLogout }) {
       <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
         <Lock size={24} className="text-red-600" />
       </div>
-      <p className="text-black font-bold text-lg mb-1.5">Access paused</p>
-      <p className="text-black/50 text-sm max-w-xs mb-6">
+      <p className="text-white font-bold text-lg mb-1.5">Access paused</p>
+      <p className="text-white/50 text-sm max-w-xs mb-6">
         Your coach has temporarily paused your access to your program and profile. Message them to sort it out.
       </p>
-      <button onClick={onMessageCoach} className="bg-black text-white text-sm font-bold px-5 py-3 rounded-xl w-full max-w-xs mb-2.5">
+      <button onClick={onMessageCoach} className="bg-white text-black text-sm font-bold px-5 py-3 rounded-xl w-full max-w-xs mb-2.5">
         Message your coach
       </button>
-      <button onClick={onLogout} className="text-black/40 hover:text-black/60 text-sm font-medium py-2">
+      <button onClick={onLogout} className="text-white/40 hover:text-white/60 text-sm font-medium py-2">
         Log out
       </button>
     </div>
@@ -4983,10 +4992,10 @@ function ClientCalendarScreen({
     <div className="flex flex-col h-full">
       <div className="px-3 pt-6 pb-3 shrink-0 flex items-center justify-between">
         <div>
-          <h1 className="text-black text-2xl font-bold">Calendar</h1>
-          <p className="text-black/40 text-sm mt-0.5">Scroll to see anything past or upcoming.</p>
+          <h1 className="text-white text-2xl font-bold">Calendar</h1>
+          <p className="text-white/40 text-sm mt-0.5">Scroll to see anything past or upcoming.</p>
         </div>
-        <button onClick={jumpToToday} className="text-black/50 hover:text-black text-sm font-semibold shrink-0">
+        <button onClick={jumpToToday} className="text-white/50 hover:text-white text-sm font-semibold shrink-0">
           Today
         </button>
       </div>
@@ -5018,11 +5027,11 @@ function ClientCalendarScreen({
                 isDropTarget && dragOverDate === dateStr ? "bg-blue-50 rounded-2xl ring-2 ring-blue-300" : ""
               }`}
             >
-              <p className={`font-bold text-base mb-2 ${isToday ? "text-blue-600" : "text-black"}`}>
+              <p className={`font-bold text-base mb-2 ${isToday ? "text-blue-600" : "text-white"}`}>
                 {isToday ? "Today, " : ""}
                 {d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
               </p>
-              <div className="border-b border-black/10 mb-3" />
+              <div className="border-b border-white/10 mb-3" />
               <div className="space-y-2.5">
                 {scheduledList.map((scheduled) => {
                   const logMatchesScheduled = !!(log && log.dayLabel === scheduled.label);
@@ -5064,7 +5073,7 @@ function ClientCalendarScreen({
                 {dayHabits.map((h) => (
                   <CalendarEventCard
                     key={h.id}
-                    dot={{ border: "border-amber-500", bg: "bg-amber-500" }}
+                    dot={{ border: "border-teal-500", bg: "bg-teal-500" }}
                     done={doneHabitIds.includes(h.id)}
                     title={h.label}
                     subtitle={doneHabitIds.includes(h.id) ? "Done." : "Daily habit."}
@@ -5102,7 +5111,7 @@ function ClientCalendarScreen({
                   />
                 )}
                 {!hasContent && (
-                  <p className="text-black/25 text-sm px-1">Nothing scheduled.</p>
+                  <p className="text-white/25 text-sm px-1">Nothing scheduled.</p>
                 )}
               </div>
             </div>
@@ -5116,7 +5125,7 @@ function ClientCalendarScreen({
           lookup that finds the day underneath it. */}
       {dragItem && dragPos && (
         <div
-          className="fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl"
+          className="fixed z-[200] pointer-events-none flex items-center gap-2 bg-white text-black text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl"
           style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
         >
           {dragItem.label}
@@ -5593,7 +5602,7 @@ export default function ClientApp() {
   }
 
   return (
-    <div className="w-full h-full min-h-screen bg-white font-sans flex justify-center">
+    <div className="w-full h-full min-h-screen font-sans flex justify-center bg-[#090909]">
       <div className="w-full max-w-md relative">
         {viewingAsClient && (
           <div className="sticky top-0 z-[70] bg-blue-600 text-white flex items-center justify-between gap-2 px-4 py-2 pt-safe">
@@ -5603,7 +5612,7 @@ export default function ClientApp() {
             </button>
           </div>
         )}
-        <BrandBar />
+        <BrandBar dark />
         {currentUser.accessPaused && !viewingAsClient ? (
           <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
         ) : (
@@ -5754,16 +5763,16 @@ export default function ClientApp() {
         {coachUser && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
-          <div className="w-full max-w-md bg-[#FAFAFA]/95 backdrop-blur border-t border-black/5 flex px-2 pb-safe">
+          <div className="w-full max-w-md bg-[#0C0C0C]/95 backdrop-blur border-t border-white/8 flex px-2 pb-safe">
             {TABS.map((t) => {
               const Icon = t.icon;
               const active = tab === t.id;
               return (
                 <button key={t.id} onClick={() => setTab(t.id)} className="flex-1 flex flex-col items-center gap-1 py-3 relative">
-                  <Icon size={21} className={active ? "text-black" : "text-black/35"} strokeWidth={active ? 2.4 : 2} />
-                  <span className={`text-[10px] font-medium ${active ? "text-black" : "text-black/35"}`}>{t.label}</span>
+                  <Icon size={21} className={active ? "text-white" : "text-white/35"} strokeWidth={active ? 2.4 : 2} />
+                  <span className={`text-[10px] font-medium ${active ? "text-white" : "text-white/35"}`}>{t.label}</span>
                   {t.id === "profile" && dueCheckInsCount > 0 && (
-                    <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-black" />
+                    <span className="absolute top-1.5 right-[calc(50%-14px)] w-1.5 h-1.5 rounded-full bg-white" />
                   )}
                 </button>
               );
@@ -5838,7 +5847,7 @@ export default function ClientApp() {
           coachName={coachUser?.name}
         />
         <NotificationsCenterSheet open={notifOpen} onClose={() => setNotifOpen(false)} items={notificationItems} />
-        <Toast message={toast.message} show={toast.show} />
+        <Toast dark message={toast.message} show={toast.show} />
       </div>
     </div>
   );
