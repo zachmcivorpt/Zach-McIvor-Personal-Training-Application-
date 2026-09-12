@@ -629,7 +629,7 @@ function habitIcon(label) {
   return Sparkles;
 }
 
-function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true }) {
+function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, showToast }) {
   // Optimistic overrides, keyed by habit id, for taps whose Firestore write
   // hasn't confirmed yet — without this the checkbox only ever changes once
   // the realtime listener echoes the write back, so a slow connection (or a
@@ -672,11 +672,11 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
         {habits.map((h) => {
           const done = isDone(h);
           const Icon = habitIcon(h.label);
-          const Tag = interactive ? "button" : "div";
           return (
-            <Tag
+            <button
+              type="button"
               key={h.id}
-              onClick={interactive ? () => handleToggle(h) : undefined}
+              onClick={() => (interactive ? handleToggle(h) : showToast?.("Jump to today to update habits"))}
               className={`w-full flex items-center gap-3 rounded-lg px-3.5 py-3 text-left transition-colors ${
                 done ? "bg-black/[0.04]" : "bg-black/5"
               } ${interactive ? "active:scale-[0.97]" : "opacity-70"} transition-transform duration-150`}
@@ -696,7 +696,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
               >
                 {done && <Check size={12} className="text-white" strokeWidth={3.5} />}
               </span>
-            </Tag>
+            </button>
           );
         })}
       </div>
@@ -935,6 +935,7 @@ function HomeScreen({
         completedIds={isToday ? completedHabitIds : dayHabitCompletedIds}
         onToggle={onToggleHabit}
         interactive={isToday}
+        showToast={showToast}
       />
       <NutritionSummaryCard nutrition={dayNutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} isToday={isToday} />
     </div>
