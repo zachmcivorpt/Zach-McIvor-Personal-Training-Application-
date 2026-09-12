@@ -1436,11 +1436,17 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "habits", habitId)).catch(console.error);
       },
 
+      // Returns the write promise (rather than swallowing errors internally,
+      // like most other fire-and-forget actions here) so the habit checklist
+      // can optimistically flip the checkbox on tap and revert it — with a
+      // toast — if the save actually failed instead of just silently doing
+      // nothing, which is what made a real permission/network failure here
+      // look identical to the button not working at all.
       toggleHabitToday(clientId, habitId) {
         const dateKey = localDateKey();
         const current = (db.habitLog[clientId] || {})[dateKey] || [];
         const next = current.includes(habitId) ? current.filter((id) => id !== habitId) : [...current, habitId];
-        setDoc(doc(firestore, "habitLog", clientId), { [dateKey]: next }, { merge: true }).catch(console.error);
+        return setDoc(doc(firestore, "habitLog", clientId), { [dateKey]: next }, { merge: true });
       },
 
       // Master workout templates — reusable building blocks, independent of

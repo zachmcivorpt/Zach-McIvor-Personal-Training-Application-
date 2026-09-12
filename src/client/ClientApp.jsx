@@ -630,8 +630,32 @@ function habitIcon(label) {
 }
 
 function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true }) {
+  // Optimistic overrides, keyed by habit id, for taps whose Firestore write
+  // hasn't confirmed yet — without this the checkbox only ever changes once
+  // the realtime listener echoes the write back, so a slow connection (or a
+  // write that silently failed) looked exactly like the tap doing nothing
+  // at all. Cleared once the real completedIds reflects the write (success)
+  // or the write throws (failure — reverts to whatever it was before).
+  const [pending, setPending] = useState({});
   if (habits.length === 0) return null;
-  const doneCount = habits.filter((h) => completedIds.includes(h.id)).length;
+  const isDone = (h) => (h.id in pending ? pending[h.id] : completedIds.includes(h.id));
+  const doneCount = habits.filter((h) => isDone(h)).length;
+
+  async function handleToggle(h) {
+    setPending((p) => ({ ...p, [h.id]: !isDone(h) }));
+    try {
+      await onToggle(h.id);
+    } catch {
+      // Reverts below either way; the caller is responsible for surfacing
+      // a toast if it wants one.
+    } finally {
+      setPending((p) => {
+        const { [h.id]: _dropped, ...rest } = p;
+        return rest;
+      });
+    }
+  }
+
   return (
     <Card className="mx-3">
       <div className="flex items-center justify-between mb-0.5">
@@ -646,13 +670,13 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true })
       </div>
       <div className="space-y-1.5">
         {habits.map((h) => {
-          const done = completedIds.includes(h.id);
+          const done = isDone(h);
           const Icon = habitIcon(h.label);
           const Tag = interactive ? "button" : "div";
           return (
             <Tag
               key={h.id}
-              onClick={interactive ? () => onToggle(h.id) : undefined}
+              onClick={interactive ? () => handleToggle(h) : undefined}
               className={`w-full flex items-center gap-3 rounded-lg px-3.5 py-3 text-left transition-colors ${
                 done ? "bg-black/[0.04]" : "bg-black/5"
               } ${interactive ? "active:scale-[0.97]" : "opacity-70"} transition-transform duration-150`}
@@ -5598,7 +5622,9 @@ export default function ClientApp() {
             showToast={showToast}
             habits={habits}
             completedHabitIds={completedHabitIds}
-            onToggleHabit={(habitId) => toggleHabitToday(currentUser.id, habitId)}
+            onToggleHabit={(habitId) =>
+              toggleHabitToday(currentUser.id, habitId).catch(() => showToast?.("Couldn't save — check your connection"))
+            }
             onAvatarClick={() => setTab("profile")}
             dayOffset={dayOffset}
             onSelectDay={setDayOffset}
@@ -5773,7 +5799,9 @@ export default function ClientApp() {
             proteinSoFar={nutrition.protein}
             habits={habits}
             completedHabitIds={completedHabitIds}
-            onToggleHabit={(habitId) => toggleHabitToday(currentUser.id, habitId)}
+            onToggleHabit={(habitId) =>
+              toggleHabitToday(currentUser.id, habitId).catch(() => showToast?.("Couldn't save — check your connection"))
+            }
             onDone={() => setSummaryOpen(false)}
           />
         )}
