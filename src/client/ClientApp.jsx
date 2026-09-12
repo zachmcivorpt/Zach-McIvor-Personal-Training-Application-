@@ -1865,7 +1865,18 @@ function WorkoutSession({
   );
 }
 
-function WorkoutSummary({ daySession, activeLog, durationMin = 0, durationSec = 0, proteinTarget = 0, proteinSoFar = 0, onDone }) {
+function WorkoutSummary({
+  daySession,
+  activeLog,
+  durationMin = 0,
+  durationSec = 0,
+  proteinTarget = 0,
+  proteinSoFar = 0,
+  habits = [],
+  completedHabitIds = [],
+  onToggleHabit,
+  onDone,
+}) {
   const allSets = Object.values(activeLog).flat();
   const totalVolume = allSets.reduce((a, s) => a + s.weight * s.reps, 0);
   const totalSets = allSets.length;
@@ -1916,6 +1927,12 @@ function WorkoutSummary({ daySession, activeLog, durationMin = 0, durationSec = 
             <p className="text-black/45 text-[13px] mt-0.5 leading-snug">Refuel, hydrate, and get good sleep tonight to lock in today's session.</p>
           </div>
         </div>
+
+        {habits.length > 0 && (
+          <div className="w-full max-w-sm mt-4">
+            <DailyHabitsCard habits={habits} completedIds={completedHabitIds} onToggle={onToggleHabit} />
+          </div>
+        )}
 
         <button onClick={onDone} className="w-full max-w-sm mt-4 bg-black text-white font-bold py-4 rounded-2xl">
           DONE
@@ -5754,6 +5771,9 @@ export default function ClientApp() {
             durationSec={summaryData.durationSec}
             proteinTarget={targets.protein}
             proteinSoFar={nutrition.protein}
+            habits={habits}
+            completedHabitIds={completedHabitIds}
+            onToggleHabit={(habitId) => toggleHabitToday(currentUser.id, habitId)}
             onDone={() => setSummaryOpen(false)}
           />
         )}
