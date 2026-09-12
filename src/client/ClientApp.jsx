@@ -405,7 +405,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
-    <div className="flex items-center justify-between px-4 pt-6 pb-2">
+    <div className="flex items-center justify-between px-4 pt-4 pb-0">
       <div>
         <p className={`text-xl font-semibold tracking-tight ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
@@ -1017,8 +1017,10 @@ function HomeScreen({
   return (
     <div className="pb-28 space-y-5">
       <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
-      <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
-      <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
+      <div className="space-y-1.5">
+        <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
+        <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
+      </div>
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
         <div
@@ -1401,7 +1403,7 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 
           {instructions.length > 0 && (
             <>
-              <ol className={`space-y-2.5 text-white/80 text-[15px] leading-relaxed ${!notesExpanded && isLongInstructions ? "line-clamp-[9]" : ""}`}>
+              <ol className={`space-y-2.5 ${dark ? "text-white/80" : "text-black/80"} text-[15px] leading-relaxed ${!notesExpanded && isLongInstructions ? "line-clamp-[9]" : ""}`}>
                 {instructions.map((step, i) => (
                   <li key={i}>
                     {i + 1}. {step}
@@ -1521,7 +1523,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
               </span>
             )}
             {exMeta.dropSet && (
-              <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+              <span className={dark ? "bg-orange-500/15 text-orange-400 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0" : "bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0"}>
                 DROPSET
               </span>
             )}
@@ -1533,7 +1535,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         <button
           onClick={onSwap}
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-            swapInfo ? "bg-white text-black" : "text-white/40"
+            swapInfo ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white/40" : "text-black/40"
           }`}
         >
           <Repeat size={17} />
@@ -1541,7 +1543,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         <button
           onClick={onToggleNote}
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
-            noteOpen || note ? "bg-white text-black" : "text-white/40"
+            noteOpen || note ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white/40" : "text-black/40"
           }`}
         >
           <ClipboardList size={17} />
@@ -1560,7 +1562,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         <div className={dark ? "mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5" : "mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5"}>
           <p className={dark ? "text-white/35 text-[10px] font-semibold tracking-wide mb-1" : "text-black/35 text-[10px] font-semibold tracking-wide mb-1"}>COACH'S NOTES</p>
           <div className="flex items-start gap-2">
-            <p className={`text-white/80 text-[14px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
+            <p className={`${dark ? "text-white/80" : "text-black/80"} text-[14px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{coachNote}</p>
             {isLongNote && (
               <button
                 onClick={() => setNotesExpanded((v) => !v)}
@@ -2154,7 +2156,7 @@ function LogCardioSheet({ open, onClose, onSave }) {
               key={a.id}
               onClick={() => setActivityId(a.id)}
               className={`flex flex-col items-center gap-1.5 py-3 rounded-xl text-xs font-medium transition-colors ${
-                active ? "bg-white text-black" : "bg-white/5 text-white/60"
+                active ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/5 text-white/60" : "bg-black/5 text-black/60"
               }`}
             >
               <Icon size={17} />
@@ -2425,7 +2427,13 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             key={t}
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-full text-sm font-medium capitalize whitespace-nowrap ${
-              tab === t ? "bg-white text-black" : "bg-white/8 text-white/60"
+              tab === t
+                ? dark
+                  ? "bg-white text-black"
+                  : "bg-black text-white"
+                : dark
+                ? "bg-white/8 text-white/60"
+                : "bg-black/8 text-black/60"
             }`}
           >
             {t}
@@ -2868,7 +2876,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             <span className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>remaining of {targets.calories}</span>
           </div>
           <div className="mt-3">
-            <ProgressBar trackClassName="bg-black/8"
+            <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"}
               value={nutrition.calories}
               max={targets.calories}
               color={nutrition.calories >= targets.calories ? GOAL_GREEN : MEASURE_BLUE}
@@ -2887,7 +2895,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                     {m.v}g <span className={dark ? "text-white/25" : "text-black/25"}>/ {m.t}g</span>
                   </span>
                 </div>
-                <ProgressBar trackClassName="bg-black/8" value={m.v} max={m.t} height={6} color={m.v >= m.t ? GOAL_GREEN : MEASURE_BLUE} />
+                <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"} value={m.v} max={m.t} height={6} color={m.v >= m.t ? GOAL_GREEN : MEASURE_BLUE} />
               </div>
             ))}
           </div>
@@ -2978,7 +2986,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                     key={d.id}
                     onClick={() => setMealPlanDayId(d.id)}
                     className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      d.id === mealPlanDay.id ? "bg-white text-black" : "bg-white/5 text-white/50"
+                      d.id === mealPlanDay.id ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"
                     }`}
                   >
                     {d.label}
@@ -3379,7 +3387,7 @@ function MetricDetailSheet({ metric, onClose }) {
                 key={r}
                 onClick={() => setRange(r)}
                 className={`px-3.5 py-1.5 rounded-full text-xs font-semibold ${
-                  range === r ? "bg-white text-black" : "bg-white/8 text-white/50"
+                  range === r ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/50" : "bg-black/8 text-black/50"
                 }`}
               >
                 {r}
@@ -3669,6 +3677,7 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
 // PRs — the "how's the last month actually gone" view, distinct from the
 // tiles above it which are lifetime/this-week counters.
 function PerformanceTimelineCard({ timeline, monthlyVolume }) {
+  const dark = useClientDark();
   const items = [
     {
       label: "Strength",
@@ -3688,16 +3697,16 @@ function PerformanceTimelineCard({ timeline, monthlyVolume }) {
     { label: "PRs set", sub: "new heaviest lifts", value: `${timeline.prCount}` },
   ];
   return (
-    <div className="rounded-2xl p-5 border border-white/8" style={{ backgroundColor: "#141414" }}>
-      <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last {timeline.days} Days</p>
-      <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
-      <p className="text-white/35 text-xs mt-1 mb-4">A quick read on how you've been trending: getting stronger, showing up, hitting new bests.</p>
+    <div className={`rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
+      <p className={dark ? "text-white/40 text-[11px] font-semibold tracking-wide uppercase" : "text-black/40 text-[11px] font-semibold tracking-wide uppercase"}>Last {timeline.days} Days</p>
+      <p className={dark ? "text-white font-bold text-lg mt-0.5" : "text-black font-bold text-lg mt-0.5"}>Performance Timeline</p>
+      <p className={dark ? "text-white/35 text-xs mt-1 mb-4" : "text-black/35 text-xs mt-1 mb-4"}>A quick read on how you've been trending: getting stronger, showing up, hitting new bests.</p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-4">
         {items.map((it) => (
           <div key={it.label}>
-            <p className="text-white text-xl font-bold tabular-nums">{it.value}</p>
-            <p className="text-white/40 text-[11px] mt-0.5">
-              {it.label} <span className="text-white/25">· {it.sub}</span>
+            <p className={dark ? "text-white text-xl font-bold tabular-nums" : "text-black text-xl font-bold tabular-nums"}>{it.value}</p>
+            <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
+              {it.label} <span className={dark ? "text-white/25" : "text-black/25"}>· {it.sub}</span>
             </p>
           </div>
         ))}
@@ -3842,9 +3851,9 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
             {personalBests.map((s) => (
               <div key={s.name} className="flex items-center justify-between">
                 <span className={dark ? "text-white/70 text-sm flex items-center gap-2" : "text-black/70 text-sm flex items-center gap-2"}>
-                  <Trophy size={14} className={s.value ? "text-white" : "text-white/25"} /> {s.name}
+                  <Trophy size={14} className={s.value ? (dark ? "text-white" : "text-black") : dark ? "text-white/25" : "text-black/25"} /> {s.name}
                 </span>
-                <span className={s.value ? "text-white text-sm font-semibold" : "text-white/30 text-xs"}>
+                <span className={s.value ? (dark ? "text-white text-sm font-semibold" : "text-black text-sm font-semibold") : dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>
                   {s.value || "Not yet logged"}
                 </span>
               </div>
@@ -4043,12 +4052,19 @@ const SESSION_LENGTH_OPTIONS = ["30 min", "45 min", "60 min", "75 min", "90+ min
 const DIET_OPTIONS = ["No restrictions", "Vegetarian", "Vegan", "Halal", "Kosher", "Dairy-free", "Gluten-free", "Low-carb / Keto"];
 
 function Chip({ active, onClick, children }) {
+  const dark = useClientDark();
   return (
     <button
       type="button"
       onClick={onClick}
       className={`px-3 py-2 rounded-full text-xs font-semibold border ${
-        active ? "bg-white text-black border-white" : "bg-white/5 text-white/60 border-transparent"
+        active
+          ? dark
+            ? "bg-white text-black border-white"
+            : "bg-black text-white border-black"
+          : dark
+          ? "bg-white/5 text-white/60 border-transparent"
+          : "bg-black/5 text-black/60 border-transparent"
       }`}
     >
       {children}
@@ -4465,7 +4481,7 @@ function CoachSheet({ open, onClose, ctx }) {
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line ${
-                m.role === "user" ? "bg-white text-black" : "bg-white/8 text-white/85"
+                m.role === "user" ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/85" : "bg-black/8 text-black/85"
               }`}
             >
               {m.text}
@@ -4591,7 +4607,11 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         )}
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "client" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "client" ? "bg-white text-black" : "bg-white/8 text-white/85"}`}>
+            <div
+              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
+                m.from === "client" ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/85" : "bg-black/8 text-black/85"
+              }`}
+            >
               {m.text && <p className="whitespace-pre-line">{m.text}</p>}
               {m.attachment && m.attachment.type === "video" ? (
                 <video src={m.attachment.url} controls playsInline className={dark ? "mt-2 w-full max-w-[220px] rounded-lg bg-white" : "mt-2 w-full max-w-[220px] rounded-lg bg-black"} />
@@ -4605,14 +4625,20 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
                     href={m.attachment.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${m.from === "client" ? "bg-black/15 text-black" : "bg-white/8 text-white"}`}
+                    className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${
+                      m.from === "client" ? (dark ? "bg-black/15 text-black" : "bg-white/15 text-white") : dark ? "bg-white/8 text-white" : "bg-black/8 text-black"
+                    }`}
                   >
                     <FileText size={14} className="shrink-0" />
                     <span className="text-xs font-medium truncate">{m.attachment.name}</span>
                   </a>
                 )
               )}
-              <p className={`text-[10px] mt-1 ${m.from === "client" ? "text-black/40" : "text-white/30"}`}>
+              <p
+                className={`text-[10px] mt-1 ${
+                  m.from === "client" ? (dark ? "text-black/40" : "text-white/40") : dark ? "text-white/30" : "text-black/30"
+                }`}
+              >
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>
             </div>
@@ -4745,9 +4771,15 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                     key={n}
                     type="button"
                     onClick={() => set(q.id, n)}
-                    className={`flex-1 flex items-center justify-center py-2.5 rounded-xl ${n <= (answers[q.id] || 0) ? "bg-white" : "bg-white/5"}`}
+                    className={`flex-1 flex items-center justify-center py-2.5 rounded-xl ${
+                      n <= (answers[q.id] || 0) ? (dark ? "bg-white" : "bg-black") : dark ? "bg-white/5" : "bg-black/5"
+                    }`}
                   >
-                    <Star size={16} className={n <= (answers[q.id] || 0) ? "text-black" : "text-white/30"} fill={n <= (answers[q.id] || 0) ? "black" : "none"} />
+                    <Star
+                      size={16}
+                      className={n <= (answers[q.id] || 0) ? (dark ? "text-black" : "text-white") : dark ? "text-white/30" : "text-black/30"}
+                      fill={n <= (answers[q.id] || 0) ? (dark ? "black" : "white") : "none"}
+                    />
                   </button>
                 ))}
               </div>
@@ -4760,7 +4792,13 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                     type="button"
                     onClick={() => set(q.id, opt)}
                     className={`w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium border ${
-                      answers[q.id] === opt ? "bg-white text-black border-white" : "bg-white/5 text-white/70 border-transparent"
+                      answers[q.id] === opt
+                        ? dark
+                          ? "bg-white text-black border-white"
+                          : "bg-black text-white border-black"
+                        : dark
+                        ? "bg-white/5 text-white/70 border-transparent"
+                        : "bg-black/5 text-black/70 border-transparent"
                     }`}
                   >
                     {opt}
@@ -4952,8 +4990,8 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       onPointerMove={canSwipe ? swipePointerMove : undefined}
       onPointerUp={canSwipe ? swipePointerUp : undefined}
       onPointerCancel={canSwipe ? swipePointerUp : undefined}
-      className={`w-full flex items-center gap-3 bg-black border border-white/8 rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
-        onClick ? "hover:bg-white/[0.02]" : ""
+      className={`w-full flex items-center gap-3 ${dark ? "bg-black border-white/8" : "bg-[#F7F7F8] border-black/8"} border rounded-2xl px-4 py-3.5 text-left transition-all duration-150 ${
+        onClick ? (dark ? "hover:bg-white/[0.02]" : "hover:bg-black/[0.02]") : ""
       } ${dragging ? "opacity-30 scale-[0.97]" : ""}`}
       style={
         canSwipe
