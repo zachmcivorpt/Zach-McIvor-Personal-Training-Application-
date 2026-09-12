@@ -2194,7 +2194,9 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
             <button
               key={p.id}
               onClick={() => onSelect(p.id)}
-              className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${p.id === selectedId ? "bg-white/8" : "hover:bg-white/[0.03]"}`}
+              className={`w-full text-left px-4 py-3 rounded-xl transition-colors ${
+                p.id === selectedId ? (dark ? "bg-white/8" : "bg-black/8") : dark ? "hover:bg-white/[0.03]" : "hover:bg-black/[0.03]"
+              }`}
             >
               <div className="flex items-center gap-2">
                 <p className={dark ? "text-white text-sm font-medium flex-1 truncate" : "text-black text-sm font-medium flex-1 truncate"}>{p.name}</p>
@@ -3046,6 +3048,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
 
       <div className="px-3 mt-7">
         <SavedMealsSection
+          dark={dark}
           meals={savedMeals}
           onCreateNew={() => {
             setMealPrefill(null);
@@ -3066,8 +3069,8 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
               <button
                 key={meal}
                 onClick={() => setDetailMeal(meal)}
-                className={`w-full text-left px-5 py-4 flex items-center justify-between active:bg-white/[0.03] transition-colors ${
-                  i > 0 ? "border-t border-white/5" : ""
+                className={`w-full text-left px-5 py-4 flex items-center justify-between transition-colors ${dark ? "active:bg-white/[0.03]" : "active:bg-black/[0.03]"} ${
+                  i > 0 ? (dark ? "border-t border-white/5" : "border-t border-black/5") : ""
                 }`}
               >
                 <div className="min-w-0">
@@ -3240,6 +3243,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </BottomSheet>
 
       <FoodQuantitySheet
+        dark={dark}
         food={pendingFood}
         onClose={() => setPendingFood(null)}
         onConfirm={(scaled) => {
@@ -3267,6 +3271,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </BottomSheet>
 
       <BarcodeScanSheet
+        dark={dark}
         open={barcodeOpen}
         onClose={() => setBarcodeOpen(false)}
         onAdd={(food) => {
@@ -3275,6 +3280,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         }}
       />
       <QuickAddFoodSheet
+        dark={dark}
         open={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
         onAdd={(food) => {
@@ -3283,6 +3289,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         }}
       />
       <PhotoEstimateSheet
+        dark={dark}
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
         onAdd={(estimate) =>
@@ -4320,8 +4327,6 @@ function ProfileScreen({
   onOpenCheckIns,
 }) {
   const dark = useClientDark();
-  const workoutStreak = computeWorkoutStreak(logsForClient, scheduledWorkouts);
-  const prsThisMonth = computePRsInLastNDays(logsForClient, 30);
   const [prefSection, setPrefSection] = useState(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [pushOpen, setPushOpen] = useState(false);
@@ -4348,20 +4353,6 @@ function ProfileScreen({
               <p className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>
                 {user.fitnessLevel || "Beginner"} · {user.username}
               </p>
-            </div>
-          </div>
-          <div className="flex gap-2 mt-4">
-            <div className={dark ? "flex-1 bg-white/5 rounded-xl py-2.5 text-center" : "flex-1 bg-black/5 rounded-xl py-2.5 text-center"}>
-              <p className="text-white font-bold">{workoutStreak}🦾</p>
-              <p className={dark ? "text-white/40 text-[11px]" : "text-black/40 text-[11px]"}>workout streak</p>
-            </div>
-            <div className={dark ? "flex-1 bg-white/5 rounded-xl py-2.5 text-center" : "flex-1 bg-black/5 rounded-xl py-2.5 text-center"}>
-              <p className={dark ? "text-white font-bold" : "text-black font-bold"}>{logsForClient.length}</p>
-              <p className={dark ? "text-white/40 text-[11px]" : "text-black/40 text-[11px]"}>total workouts</p>
-            </div>
-            <div className={dark ? "flex-1 bg-white/5 rounded-xl py-2.5 text-center" : "flex-1 bg-black/5 rounded-xl py-2.5 text-center"}>
-              <p className={dark ? "text-white font-bold" : "text-black font-bold"}>{prsThisMonth}</p>
-              <p className={dark ? "text-white/40 text-[11px]" : "text-black/40 text-[11px]"}>PRs this month</p>
             </div>
           </div>
         </Card>
@@ -4424,7 +4415,7 @@ function ProfileScreen({
             <button
               key={r.label}
               onClick={r.onClick}
-              className={`w-full flex items-center gap-3 py-3 text-left ${i !== rows.length - 1 ? "border-b border-white/5" : ""}`}
+              className={`w-full flex items-center gap-3 py-3 text-left ${i !== rows.length - 1 ? (dark ? "border-b border-white/5" : "border-b border-black/5") : ""}`}
             >
               <r.icon size={17} className={dark ? "text-white/40" : "text-black/40"} />
               <span className={dark ? "text-white/80 text-sm flex-1" : "text-black/80 text-sm flex-1"}>{r.label}</span>
@@ -4846,8 +4837,8 @@ function CheckInCard({ schedule, form, due, onFill }) {
   if (!form) return null;
   return (
     <div className={dark ? "flex items-center gap-3 bg-black border border-white/8 rounded-2xl px-4 py-3.5" : "flex items-center gap-3 bg-white border border-black/8 rounded-2xl px-4 py-3.5"}>
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${due ? "bg-white" : "bg-white/6"}`}>
-        <CalendarCheck size={17} className={due ? "text-black" : "text-white/40"} />
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${due ? (dark ? "bg-white" : "bg-black") : dark ? "bg-white/6" : "bg-black/6"}`}>
+        <CalendarCheck size={17} className={due ? (dark ? "text-black" : "text-white") : dark ? "text-white/40" : "text-black/40"} />
       </div>
       <div className="flex-1 min-w-0">
         <p className={dark ? "text-white font-semibold text-sm truncate" : "text-black font-semibold text-sm truncate"}>{form.name}</p>

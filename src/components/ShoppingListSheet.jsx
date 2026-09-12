@@ -48,12 +48,10 @@ export function ShoppingListSheet({ open, onClose, plan, mealsById, clientName, 
   }
 
   const sheetBg = dark ? "#141414" : "#FFFFFF";
-  // The header stays a fixed dark bar regardless of the sheet's own theme —
-  // same "always-dark kicker" treatment as the rest bar / PR toast.
-  const headerBg = "bg-black";
-  const headerText = "text-white";
-  const headerMuted = "text-white/50";
-  const headerMutedHover = "hover:text-white";
+  const headerBg = dark ? "bg-white/[0.04]" : "bg-black/[0.03]";
+  const headerText = dark ? "text-white" : "text-black";
+  const headerMuted = dark ? "text-white/50" : "text-black/50";
+  const headerMutedHover = dark ? "hover:text-white" : "hover:text-black";
   const divider = dark ? "border-white/8" : "border-black/8";
   const primaryText = dark ? "text-white" : "text-black";
   const muted40 = dark ? "text-white/40" : "text-black/40";
