@@ -378,7 +378,7 @@ function sectionedExercises(list) {
 function BrandBar() {
   return (
     <div className="flex items-center justify-center pt-3 pb-1">
-      <Logo variant="wordmark" tone="black" className="h-10 w-auto opacity-95" />
+      <Logo variant="mark" tone="black" className="h-10 w-auto opacity-95" />
     </div>
   );
 }
@@ -1887,7 +1887,7 @@ function WorkoutSummary({
   return (
     <FullScreenOverlay>
       <div className="fixed inset-0 z-[90] bg-white flex flex-col items-center justify-center px-6 text-center overflow-y-auto py-10">
-        <Logo variant="wordmark" tone="black" className="h-8 w-auto opacity-70 mb-1.5" />
+        <Logo variant="mark" tone="black" className="h-8 w-auto opacity-70 mb-1.5" />
         <Tagline className="mb-6" />
         <div className="w-20 h-20 rounded-full bg-black/10 border border-black/15 flex items-center justify-center mb-5">
           <Check size={36} className="text-black" strokeWidth={3} />
