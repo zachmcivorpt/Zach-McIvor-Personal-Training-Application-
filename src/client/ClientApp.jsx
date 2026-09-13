@@ -118,6 +118,7 @@ import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
+import { MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
@@ -473,50 +474,74 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const estMin = estimateWorkoutMinutes(todaySession.exercises);
   const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S FOCUS" : isPastDate ? "MISSED" : "SCHEDULED";
 
+  // A still from the session's first exercise gives each workout card its
+  // own identity instead of every day looking like the same grey box — only
+  // a YouTube link has a static thumbnail to grab (an uploaded file/Vimeo
+  // link has no cheap first-frame to pull), so those fall back to a faint
+  // logo mark watermark rather than nothing at all.
+  const firstExercise = exercisesById && (todaySession.exercises || [])[0];
+  const firstEx = firstExercise ? exercisesById[firstExercise.exerciseId] : null;
+  const bgPhoto = firstEx?.videoUrl ? parseVideoUrl(firstEx.videoUrl)?.thumbnail : null;
+
   return (
-    <div className={`${outerMargin} ${outerRadius} p-5 ${border} border`} style={{ backgroundColor: cardBg }}>
-      <div className="flex items-center justify-between mb-2.5">
-        <span className={`${muted35} text-[11px] font-bold tracking-[0.14em]`}>{pillLabel}</span>
-        {completedOnDate && !started && <Check size={15} className={muted40} />}
-      </div>
-      <h2 className={`${primaryText} text-xl font-bold tracking-tight`}>{todaySession.label}</h2>
-      {(todaySession.muscleGroups || []).length > 0 && (
-        <p className={`${muted45} text-[13px] mt-1`}>{todaySession.muscleGroups.join(" & ")} Focus</p>
+    <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 ${border} border`} style={{ backgroundColor: cardBg }}>
+      {bgPhoto ? (
+        <>
+          <img src={bgPhoto} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0" style={{ backgroundColor: cardBg, opacity: 0.82 }} />
+        </>
+      ) : (
+        <img
+          src={dark ? MARK_WHITE : MARK_BLACK}
+          alt=""
+          className="absolute -right-6 -bottom-10 w-40 h-40 object-contain pointer-events-none select-none"
+          style={{ opacity: dark ? 0.06 : 0.05 }}
+        />
       )}
-      <p className={`${muted30} text-[12px] mt-2.5 tracking-wide`}>
-        {exCount} EXERCISE{exCount === 1 ? "" : "S"} · ~{estMin} MIN
-      </p>
-
-      {started && (
-        <div className="mt-4">
-          <div className={`flex justify-between text-xs ${muted35} mb-1.5`}>
-            <span>Progress</span>
-            <span>
-              {completedSets}/{totalSets} sets
-            </span>
-          </div>
-          <ProgressBar value={completedSets} max={totalSets} color={dark ? "#FFFFFF" : "#0A0A0B"} trackClassName={trackClass} />
+      <div className="relative">
+        <div className="flex items-center justify-between mb-2.5">
+          <span className={`${muted35} text-[11px] font-bold tracking-[0.14em]`}>{pillLabel}</span>
+          {completedOnDate && !started && <Check size={15} className={muted40} />}
         </div>
-      )}
-
-      <div className="flex gap-2 mt-4">
-        {(!completedOnDate || started) && (
-          <button
-            onClick={onStart}
-            className={`flex-1 font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${ctaClass}`}
-          >
-            <Play size={15} fill={ctaFill} />
-            {started ? "RESUME WORKOUT" : "START WORKOUT"}
-          </button>
+        <h2 className={`${primaryText} text-xl font-bold tracking-tight`}>{todaySession.label}</h2>
+        {(todaySession.muscleGroups || []).length > 0 && (
+          <p className={`${muted45} text-[13px] mt-1`}>{todaySession.muscleGroups.join(" & ")} Focus</p>
         )}
-        <button
-          onClick={onView}
-          className={`${muted70} text-sm font-semibold px-4 rounded-xl border ${viewBorder} active:scale-[0.98] transition-transform ${
-            completedOnDate && !started ? "flex-1 py-3.5" : ""
-          }`}
-        >
-          View
-        </button>
+        <p className={`${muted30} text-[12px] mt-2.5 tracking-wide`}>
+          {exCount} EXERCISE{exCount === 1 ? "" : "S"} · ~{estMin} MIN
+        </p>
+
+        {started && (
+          <div className="mt-4">
+            <div className={`flex justify-between text-xs ${muted35} mb-1.5`}>
+              <span>Progress</span>
+              <span>
+                {completedSets}/{totalSets} sets
+              </span>
+            </div>
+            <ProgressBar value={completedSets} max={totalSets} color={dark ? "#FFFFFF" : "#0A0A0B"} trackClassName={trackClass} />
+          </div>
+        )}
+
+        <div className="flex gap-2 mt-4">
+          {(!completedOnDate || started) && (
+            <button
+              onClick={onStart}
+              className={`flex-1 font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${ctaClass}`}
+            >
+              <Play size={15} fill={ctaFill} />
+              {started ? "RESUME WORKOUT" : "START WORKOUT"}
+            </button>
+          )}
+          <button
+            onClick={onView}
+            className={`${muted70} text-sm font-semibold px-4 rounded-xl border ${viewBorder} active:scale-[0.98] transition-transform ${
+              completedOnDate && !started ? "flex-1 py-3.5" : ""
+            }`}
+          >
+            View
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -2518,6 +2543,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             onView={onViewWorkout}
             isToday
             completedOnDate={completedOnDate}
+            exercisesById={exercisesById}
             dbReady={dbReady}
             fullWidth
           />
