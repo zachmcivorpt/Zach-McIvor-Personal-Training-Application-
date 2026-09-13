@@ -3084,9 +3084,24 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
   );
 }
 
-function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
+function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal } = useApp();
+  const [navOffset, setNavOffset] = useState(0); // 0 = today, 1 = yesterday, 2 = day before, ...
+  const viewDateKey = useMemo(() => {
+    if (navOffset === 0) return localDateKey();
+    const d = new Date();
+    d.setDate(d.getDate() - navOffset);
+    return localDateKey(d);
+  }, [navOffset]);
+  const nutrition = nutritionByDateKey[viewDateKey] || DEFAULT_NUTRITION;
+  const navLabel = useMemo(() => {
+    if (navOffset === 0) return "Today";
+    if (navOffset === 1) return "Yesterday";
+    const d = new Date();
+    d.setDate(d.getDate() - navOffset);
+    return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  }, [navOffset, viewDateKey]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
   const [detailMeal, setDetailMeal] = useState(null);
@@ -3113,7 +3128,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   const filteredFoods = allFoods.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
 
   function addAndClose(food) {
-    onAddFood(activeMeal, food);
+    onAddFood(activeMeal, food, viewDateKey);
     setBarcodeOpen(false);
     setPhotoOpen(false);
     setSheetOpen(false);
@@ -3135,7 +3150,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
   }
 
   function logSavedMeal(meal, category) {
-    onAddFood(category, { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat });
+    onAddFood(category, { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat }, viewDateKey);
   }
 
   const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
@@ -3186,6 +3201,29 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       <div className="px-3 pt-6 pb-2 flex items-center justify-between">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Nutrition</h1>
         <Search size={20} className={dark ? "text-white/40" : "text-black/40"} />
+      </div>
+
+      <div className="px-3 mt-1 flex items-center justify-center gap-4">
+        <button
+          onClick={() => setNavOffset((o) => o + 1)}
+          className={dark ? "w-8 h-8 flex items-center justify-center rounded-full bg-white/8 text-white/70 active:scale-90 transition-transform" : "w-8 h-8 flex items-center justify-center rounded-full bg-black/8 text-black/60 active:scale-90 transition-transform"}
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span className={dark ? "text-white/70 text-sm font-semibold min-w-[120px] text-center" : "text-black/70 text-sm font-semibold min-w-[120px] text-center"}>{navLabel}</span>
+        <button
+          onClick={() => setNavOffset((o) => Math.max(0, o - 1))}
+          disabled={navOffset === 0}
+          className={
+            navOffset === 0
+              ? "w-8 h-8 flex items-center justify-center rounded-full opacity-0 pointer-events-none"
+              : dark
+              ? "w-8 h-8 flex items-center justify-center rounded-full bg-white/8 text-white/70 active:scale-90 transition-transform"
+              : "w-8 h-8 flex items-center justify-center rounded-full bg-black/8 text-black/60 active:scale-90 transition-transform"
+          }
+        >
+          <ChevronRight size={16} />
+        </button>
       </div>
 
       <div className="px-3 mt-3">
@@ -3245,13 +3283,13 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
           </div>
           <div className="flex gap-1.5 mt-2.5">
             <button
-              onClick={() => onAddWater(0.25)}
+              onClick={() => onAddWater(0.25, viewDateKey)}
               className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
             >
               +250ml
             </button>
             <button
-              onClick={() => onAddWater(0.5)}
+              onClick={() => onAddWater(0.5, viewDateKey)}
               className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
             >
               +500ml
@@ -3368,7 +3406,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       )}
 
       <div className="px-3 mt-7">
-        <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>TODAY'S MEALS</p>
+        <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>{navOffset === 0 ? "TODAY'S MEALS" : `${navLabel.toUpperCase()}'S MEALS`}</p>
         <div className="space-y-2.5">
           {mealCategories.map((meal) => {
             const items = nutrition.meals[meal] || [];
@@ -3435,7 +3473,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                 ) : (
                   <div className="space-y-2 mb-2">
                     {items.map((f) => (
-                      <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id)}>
+                      <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id, viewDateKey)}>
                         <div className={dark ? "flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5" : "flex items-center gap-3 bg-black/[0.02] border border-black/5 rounded-xl px-3 py-2.5"}>
                           {f.photoUrl ? (
                             <img src={f.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
@@ -3683,7 +3721,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
         food={pendingFood}
         onClose={() => setPendingFood(null)}
         onConfirm={(scaled) => {
-          onAddFood(activeMeal, scaled);
+          onAddFood(activeMeal, scaled, viewDateKey);
           setPendingFood(null);
           setSheetOpen(false);
         }}
@@ -3695,7 +3733,7 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             <button
               key={v}
               onClick={() => {
-                onAddWater(v);
+                onAddWater(v, viewDateKey);
                 setWaterSheetOpen(false);
               }}
               className={dark ? "bg-white/8 rounded-xl py-4 text-white font-semibold" : "bg-black/8 rounded-xl py-4 text-black font-semibold"}
@@ -6353,8 +6391,8 @@ export default function ClientApp() {
     setPreviewCanStart(canStart);
   }
 
-  function addFood(meal, food) {
-    setNutritionForDate(currentUser.id, todayDateKey, (n) => {
+  function addFood(meal, food, dateKey = todayDateKey) {
+    setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       const micros = {};
       // Most foods don't carry micronutrient data (only a barcode scan or a
@@ -6379,8 +6417,8 @@ export default function ClientApp() {
     showToast(`${food.name} added to ${meal}`);
   }
 
-  function removeFood(meal, entryId) {
-    setNutritionForDate(currentUser.id, todayDateKey, (n) => {
+  function removeFood(meal, entryId, dateKey = todayDateKey) {
+    setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       const items = base.meals[meal] || [];
       const entry = items.find((f) => f.id === entryId);
@@ -6402,8 +6440,8 @@ export default function ClientApp() {
     showToast("Entry removed");
   }
 
-  function addWater(liters) {
-    setNutritionForDate(currentUser.id, todayDateKey, (n) => {
+  function addWater(liters, dateKey = todayDateKey) {
+    setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       return { ...base, water: Math.round((base.water + liters) * 100) / 100 };
     });
@@ -6527,7 +6565,7 @@ export default function ClientApp() {
         )}
         {tab === "nutrition" && (
           <NutritionScreen
-            nutrition={nutrition}
+            nutritionByDateKey={nutritionByDateKey}
             targets={targets}
             onAddFood={addFood}
             onRemoveFood={removeFood}
