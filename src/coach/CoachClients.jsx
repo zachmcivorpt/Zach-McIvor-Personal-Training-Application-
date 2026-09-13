@@ -221,8 +221,11 @@ function PhaseCell({ phase, needsNewPhase }) {
         {phase.endDate ? `Ends ${new Date(phase.endDate).toLocaleDateString()}` : "No end date"}
       </p>
       {pct !== null && (
-        <div className="mt-1.5 w-28">
-          <ProgressBar value={pct} max={100} height={5} color={MEASURE_BLUE} />
+        <div className="mt-1.5 flex items-center gap-2">
+          <div className="w-28">
+            <ProgressBar value={pct} max={100} height={5} color={MEASURE_BLUE} />
+          </div>
+          <span className="text-black/40 text-[11px] font-semibold tabular-nums shrink-0">{pct}%</span>
         </div>
       )}
       {needsNewPhase && (
