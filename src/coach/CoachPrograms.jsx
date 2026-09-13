@@ -577,17 +577,20 @@ export default function CoachPrograms({ showToast }) {
                 </div>
               ))}
           </div>
-          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+          <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
             {programs.length === 0 && <p className="text-black/30 text-xs px-2 py-4 text-center">No programs yet.</p>}
             {programs.map((p) => {
               const active = p.id === selected?.id;
               const progPhases = active ? phases : programPhases(p);
               return (
-                <div key={p.id}>
+                <div
+                  key={p.id}
+                  className={active ? "rounded-xl bg-white border border-black/10 shadow-sm overflow-hidden" : ""}
+                >
                   <button
                     onClick={() => selectProgram(p.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${
-                      active ? "bg-black text-white" : "hover:bg-black/5 text-black"
+                    className={`w-full text-left px-3 py-2.5 transition-colors ${
+                      active ? "bg-black text-white" : "rounded-xl hover:bg-black/5 text-black"
                     }`}
                   >
                     <p className="text-sm font-semibold truncate">{p.name}</p>
@@ -596,8 +599,8 @@ export default function CoachPrograms({ showToast }) {
                     </p>
                   </button>
                   {active && (
-                    <div className="ml-3 mt-1 mb-2 pl-2.5 border-l border-black/10 space-y-0.5">
-                      <p className="text-black/30 text-[10px] font-bold tracking-wide px-2 pt-1 pb-0.5">TRAINING PHASES</p>
+                    <div className="p-2 space-y-0.5 border-t border-black/8">
+                      <p className="text-black/30 text-[10px] font-bold tracking-wide px-2 pt-0.5 pb-1">TRAINING PHASES</p>
                       {phases.map((ph) => {
                         const phActive = ph.id === selectedPhase?.id;
                         return (
@@ -605,7 +608,7 @@ export default function CoachPrograms({ showToast }) {
                             key={ph.id}
                             onClick={() => selectPhase(ph.id)}
                             className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                              phActive ? "bg-black/10 text-black font-semibold" : "text-black/55 hover:bg-black/5"
+                              phActive ? "bg-black/8 text-black font-semibold" : "text-black/55 hover:bg-black/5"
                             }`}
                           >
                             {ph.name} <span className="text-black/30">· {(ph.days || []).length}</span>
@@ -703,12 +706,25 @@ export default function CoachPrograms({ showToast }) {
           ) : (
             <>
               <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">PROGRAM</p>
-              <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
-                <input
-                  value={programDraft.name}
-                  onChange={(e) => setProgramDraft((d) => ({ ...d, name: e.target.value }))}
-                  className="bg-transparent outline-none text-black text-xl font-bold flex-1 min-w-[140px]"
-                />
+              <input
+                value={programDraft.name}
+                onChange={(e) => setProgramDraft((d) => ({ ...d, name: e.target.value }))}
+                className="bg-transparent outline-none text-black text-xl font-bold w-full truncate mb-2.5"
+              />
+
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Select
+                    value={programDraft.level}
+                    onChange={(e) => setProgramDraft((d) => ({ ...d, level: e.target.value }))}
+                    className="!py-1.5 !text-xs !w-auto"
+                  >
+                    <option>Beginner</option>
+                    <option>Intermediate</option>
+                    <option>Advanced</option>
+                  </Select>
+                  <span className="text-black/30 text-xs whitespace-nowrap">{phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total</span>
+                </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={saveProgramFields}
@@ -744,19 +760,6 @@ export default function CoachPrograms({ showToast }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 mb-4 flex-wrap">
-                <Select
-                  value={programDraft.level}
-                  onChange={(e) => setProgramDraft((d) => ({ ...d, level: e.target.value }))}
-                  className="!py-1.5 !text-xs !w-auto"
-                >
-                  <option>Beginner</option>
-                  <option>Intermediate</option>
-                  <option>Advanced</option>
-                </Select>
-                <span className="text-black/30 text-xs">{phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total</span>
-              </div>
-
               <TextArea
                 rows={2}
                 value={programDraft.description}
@@ -782,7 +785,7 @@ export default function CoachPrograms({ showToast }) {
                           <input
                             value={phaseNameDraft}
                             onChange={(e) => setPhaseNameDraft(e.target.value)}
-                            className="bg-transparent outline-none text-black font-bold text-base min-w-[120px]"
+                            className="bg-transparent outline-none text-black font-bold text-base min-w-0 flex-1 truncate"
                           />
                           {phaseNameDirty && (
                             <button
