@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine } from "lucide-react";
+import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
@@ -174,6 +174,7 @@ const BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.UPC_A,
   Html5QrcodeSupportedFormats.UPC_E,
   Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.ITF,
 ];
 
 // Browsers/devices surface a camera failure in wildly inconsistent shapes
@@ -234,9 +235,24 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   const [manual, setManual] = useState({ name: "", cals: "", protein: "", carbs: "", fat: "" });
   const [codeEntryOpen, setCodeEntryOpen] = useState(false);
   const [manualCode, setManualCode] = useState("");
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
   const lookedUpCodeRef = useRef(""); // the digits actually resolved — tagged onto a food saved to the library so the next scan/entry of the same barcode is instant
   const scannerRef = useRef(null);
   const elId = "barcode-scanner-region";
+
+  function toggleTorch() {
+    if (!scannerRef.current) return;
+    const next = !torchOn;
+    scannerRef.current
+      .applyVideoConstraints({ advanced: [{ torch: next }] })
+      .then(() => setTorchOn(next))
+      .catch(() => {
+        // Some devices report torch support but reject the constraint at
+        // apply-time anyway — leave the toggle where it was rather than
+        // showing it "on" when nothing actually lit up.
+      });
+  }
 
   // Runs a barcode (scanned or typed) through the food library first —
   // a barcode saved to the library on a previous "not found" pass should
@@ -268,6 +284,8 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     setStatus("scanning");
     setError("");
     setErrorDetail("");
+    setTorchSupported(false);
+    setTorchOn(false);
 
     // Fail fast with a specific, actionable message when the browser has no
     // camera API at all here (most commonly: opened from the home-screen
@@ -300,7 +318,22 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       }, 250);
     }
 
-    const scanConfig = { fps: 20, qrbox: { width: 280, height: 130 }, disableFlip: true };
+    // A bigger box is both easier to line a barcode up in (less fiddly
+    // aiming, fewer failed attempts) and gives the decoder more pixels of
+    // the barcode to work with per frame — scale it off the actual
+    // viewfinder instead of a fixed size so it's still comfortably sized
+    // on a narrow phone and doesn't overrun a wider one. A real barcode is
+    // much wider than it is tall, so the box follows that ratio rather
+    // than being square.
+    const scanConfig = {
+      fps: 25,
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        const width = Math.round(Math.min(340, viewfinderWidth * 0.9));
+        const height = Math.round(Math.min(viewfinderHeight * 0.55, width * 0.5));
+        return { width, height };
+      },
+      disableFlip: true,
+    };
     const noop = () => {
       // per-frame "no code found yet" callback — expected, ignore
     };
@@ -313,7 +346,13 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     // could leave its internal state machine mid-transition from the
     // failed attempt and made every retry fail with an unrelated
     // "already under transition" error instead of a real camera error.
+    // The first attempt asks for a sharper feed (1920x1080) than before —
+    // more resolution for the decoder to read a small/distant barcode off
+    // of — falling back to the old 1280x720 ask, then no constraint at all,
+    // so a device that can't deliver 1080p still ends up scanning instead
+    // of failing outright.
     const constraintAttempts = [
+      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
       { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
       { facingMode: "environment" },
       {},
@@ -338,6 +377,16 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
           }
           activeScanner = instance;
           scannerRef.current = instance;
+          // Torch support varies by device/browser and isn't knowable ahead
+          // of a running track — only offer the toggle when this camera
+          // actually reports it, rather than showing a button that does
+          // nothing on devices/browsers that don't support it (most
+          // laptops, some iOS Safari versions).
+          try {
+            if (instance.getRunningTrackCapabilities?.().torch) setTorchSupported(true);
+          } catch {
+            // capability check itself isn't universally supported — treat as unsupported
+          }
           return;
         } catch (err) {
           lastErr = err;
@@ -409,8 +458,19 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
             and that must never race a render that's still showing the
             error/not-found screen from a previous attempt. */}
         <div className={status === "scanning" ? "" : "hidden"}>
-          <div className="px-5">
+          <div className="px-5 relative">
             <div id={elId} className={dark ? "w-full rounded-2xl overflow-hidden bg-black" : "w-full rounded-2xl overflow-hidden bg-white"} />
+            {torchSupported && (
+              <button
+                onClick={toggleTorch}
+                className={`absolute top-3 right-8 w-10 h-10 rounded-full flex items-center justify-center ${
+                  torchOn ? "bg-white text-black" : "bg-black/50 text-white"
+                }`}
+                aria-label="Toggle flashlight"
+              >
+                {torchOn ? <Flashlight size={18} /> : <FlashlightOff size={18} />}
+              </button>
+            )}
           </div>
           <p className={dark ? "text-white/40 text-sm text-center mt-4 px-8" : "text-black/40 text-sm text-center mt-4 px-8"}>Point your camera at a product barcode</p>
           <div className="px-5 mt-4">
