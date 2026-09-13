@@ -734,14 +734,26 @@ export function unitsFor(food) {
   return list;
 }
 
+// Micronutrients a food can optionally carry (per-100g/ml, same convention
+// as cals/protein/carbs/fat) — grams-scale fields first, then mg-scale.
+// Only ever populated from a real source (Open Food Facts' own nutriments,
+// or a coach/client typing in a label's numbers) — never invented, so most
+// of the static built-in database simply omits them rather than guessing.
+export const MICRO_FIELDS_G = ["satFat", "transFat", "fiber", "sugar"];
+export const MICRO_FIELDS_MG = ["sodium", "potassium", "calcium", "iron", "cholesterol", "vitaminC"];
+export const MICRO_FIELDS = [...MICRO_FIELDS_G, ...MICRO_FIELDS_MG];
+
 // Scales a per-100g/ml database entry to a chosen gram/ml quantity, returning
 // a "resolved" food object with absolute macros — the shape the rest of the
-// app already expects (id, name, cals, protein, carbs, fat).
+// app already expects (id, name, cals, protein, carbs, fat). Any micronutrient
+// fields present on the source food are scaled the same way; fields the food
+// doesn't carry are simply left off the result rather than defaulting to 0,
+// so "no data" stays distinguishable from "genuinely zero" downstream.
 export function scaleFood(food, grams) {
   const g = Math.max(0, Number(grams) || 0);
   const factor = g / (food.per || 100);
   const round1 = (n) => Math.round(n * factor * 10) / 10;
-  return {
+  const resolved = {
     id: food.id,
     baseFoodId: food.id,
     name: `${food.name} (${g}g)`,
@@ -751,6 +763,10 @@ export function scaleFood(food, grams) {
     carbs: round1(food.carbs),
     fat: round1(food.fat),
   };
+  MICRO_FIELDS.forEach((key) => {
+    if (food[key] != null) resolved[key] = round1(food[key]);
+  });
+  return resolved;
 }
 
 // Same as scaleFood, but the quantity is expressed in one of a food's

@@ -93,7 +93,7 @@ export async function lookupBarcode(code) {
 
   const servingGrams = parseServingGrams(product);
 
-  return {
+  const food = {
     id: `off_${code}`,
     name,
     brand: product.brands || "",
@@ -109,4 +109,31 @@ export async function lookupBarcode(code) {
     defaultQty: servingGrams || 100,
     fromBarcode: true,
   };
+
+  // Open Food Facts already reports these when the product's label has been
+  // entered in full — real per-100g figures, not estimated — so a scanned
+  // barcode is the one food source in the app that can carry complete
+  // micronutrient data for free. OFF reports sodium/potassium/calcium/iron/
+  // cholesterol/vitamin-c in grams per 100g; the app's own micronutrient
+  // fields use mg for those (matching how a nutrition label reads), hence
+  // the ×1000. A field OFF doesn't have for this product is left off
+  // entirely rather than written as 0 — "unknown" and "none" aren't the
+  // same thing for something like sodium.
+  const microMap = {
+    satFat: n["saturated-fat_100g"],
+    transFat: n["trans-fat_100g"],
+    fiber: n["fiber_100g"],
+    sugar: n["sugars_100g"],
+    sodium: n["sodium_100g"] != null ? n["sodium_100g"] * 1000 : null,
+    potassium: n["potassium_100g"] != null ? n["potassium_100g"] * 1000 : null,
+    calcium: n["calcium_100g"] != null ? n["calcium_100g"] * 1000 : null,
+    iron: n["iron_100g"] != null ? n["iron_100g"] * 1000 : null,
+    cholesterol: n["cholesterol_100g"] != null ? n["cholesterol_100g"] * 1000 : null,
+    vitaminC: n["vitamin-c_100g"] != null ? n["vitamin-c_100g"] * 1000 : null,
+  };
+  Object.entries(microMap).forEach(([key, val]) => {
+    if (val != null && !Number.isNaN(val)) food[key] = Math.round(val * 10) / 10;
+  });
+
+  return food;
 }

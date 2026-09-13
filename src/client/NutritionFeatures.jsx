@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
-import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS } from "../lib/foodDatabase";
+import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
@@ -534,12 +534,47 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
    instead of only after a failed scan.
 ============================================================================ */
 
+const MICRO_LABELS = {
+  satFat: "Saturated Fat",
+  transFat: "Trans Fat",
+  fiber: "Fiber",
+  sugar: "Sugar",
+  sodium: "Sodium",
+  potassium: "Potassium",
+  calcium: "Calcium",
+  iron: "Iron",
+  cholesterol: "Cholesterol",
+  vitaminC: "Vitamin C",
+};
+
+const EMPTY_QUICK_ADD = {
+  name: "",
+  cals: "",
+  protein: "",
+  carbs: "",
+  fat: "",
+  satFat: "",
+  transFat: "",
+  fiber: "",
+  sugar: "",
+  sodium: "",
+  potassium: "",
+  calcium: "",
+  iron: "",
+  cholesterol: "",
+  vitaminC: "",
+};
+
 export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
   const { createFood } = useApp();
-  const [manual, setManual] = useState({ name: "", cals: "", protein: "", carbs: "", fat: "" });
+  const [manual, setManual] = useState(EMPTY_QUICK_ADD);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
-    if (open) setManual({ name: "", cals: "", protein: "", carbs: "", fat: "" });
+    if (open) {
+      setManual(EMPTY_QUICK_ADD);
+      setMoreOpen(false);
+    }
   }, [open]);
 
   function submit() {
@@ -553,6 +588,12 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
       per: 100,
       defaultQty: 100,
     };
+    // A micronutrient field is only ever included when the coach/client
+    // actually typed something in — an untouched field means "unknown", not
+    // "zero", same distinction the barcode-scan path makes.
+    [...MICRO_FIELDS_G, ...MICRO_FIELDS_MG].forEach((key) => {
+      if (manual[key] !== "") data[key] = Number(manual[key]) || 0;
+    });
     // Always saved to the shared food library — a food only needs to be
     // typed in once, then it's searchable by every client from here on.
     onAdd(createFood(data));
@@ -581,6 +622,33 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
           ))}
         </div>
       </div>
+
+      <button
+        onClick={() => setMoreOpen((v) => !v)}
+        className={dark ? "text-white/40 text-xs font-semibold mt-3" : "text-black/40 text-xs font-semibold mt-3"}
+      >
+        {moreOpen ? "− Hide micronutrients" : "+ Add micronutrients (optional)"}
+      </button>
+      {moreOpen && (
+        <div className="grid grid-cols-2 gap-2 mt-2.5">
+          {[...MICRO_FIELDS_G, ...MICRO_FIELDS_MG].map((key) => (
+            <label key={key} className="block">
+              <span className={dark ? "text-white/30 text-[10px]" : "text-black/30 text-[10px]"}>
+                {MICRO_LABELS[key]} ({MICRO_FIELDS_G.includes(key) ? "g" : "mg"})
+              </span>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={manual[key]}
+                onChange={(e) => setManual((m) => ({ ...m, [key]: e.target.value }))}
+                placeholder="0"
+                className={dark ? "w-full bg-white/5 rounded-lg text-white text-xs py-2 px-2.5 mt-0.5 outline-none placeholder:text-white/20" : "w-full bg-black/5 rounded-lg text-black text-xs py-2 px-2.5 mt-0.5 outline-none placeholder:text-black/20"}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+
       <p className={dark ? "text-white/30 text-[11px] mt-3" : "text-black/30 text-[11px] mt-3"}>Saved to the food library automatically — searchable by name next time.</p>
       <PrimaryButton dark={dark} className="w-full mt-4" disabled={!manual.name.trim()} onClick={submit}>
         <Check size={16} /> Log it
