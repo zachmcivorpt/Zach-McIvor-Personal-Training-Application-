@@ -487,7 +487,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
     <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 ${border} border`} style={{ backgroundColor: cardBg }}>
       {bgPhoto ? (
         <>
-          <img src={bgPhoto} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={bgPhoto} alt="" className="absolute inset-0 w-full h-full object-cover grayscale" />
           <div className="absolute inset-0" style={{ backgroundColor: cardBg, opacity: 0.82 }} />
         </>
       ) : (
