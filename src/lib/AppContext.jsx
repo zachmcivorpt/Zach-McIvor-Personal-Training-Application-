@@ -845,8 +845,27 @@ export function AppProvider({ children }) {
         return promise;
       },
 
+      // Deleting a phase also has to clear whatever it already put on the
+      // client's calendar — scheduledWorkouts are standalone date-keyed
+      // snapshots (not a live reference to the phase they came from), so
+      // without this the phase disappears from Program but every day
+      // already scheduled from it keeps showing up on Training/Calendar
+      // forever. Anything scheduled within the phase's own date range is
+      // assumed to have come from it, same assumption the phase-duplicate
+      // flow already makes when re-scheduling a copy.
       deleteClientPhase(clientId, phaseId) {
+        const phase = (db.clientPhases[clientId] || []).find((p) => p.id === phaseId);
         deleteDoc(doc(firestore, "clientPhases", phaseId)).catch(console.error);
+        if (phase) {
+          const start = phase.startDate;
+          const end = phase.endDate || "9999-12-31";
+          const toDelete = (db.scheduledWorkouts[clientId] || []).filter((w) => w.date >= start && w.date <= end);
+          if (toDelete.length) {
+            const batch = writeBatch(firestore);
+            toDelete.forEach((w) => batch.delete(doc(firestore, "scheduledWorkouts", w.id)));
+            batch.commit().catch(console.error);
+          }
+        }
       },
 
       duplicateClientPhase(clientId, phaseId, overrides) {
