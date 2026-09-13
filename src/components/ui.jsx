@@ -8,7 +8,6 @@ import {
   BORDER,
   ACCENT,
   MEASURE_BLUE,
-  GOAL_GREEN,
   CLIENT_DARK_SURFACE,
   CLIENT_DARK_SURFACE_2,
   CLIENT_DARK_BORDER,
@@ -417,7 +416,6 @@ export function ProgressBar({ value, max, height = 8, dim = false, color, trackC
 // glass, it doesn't overflow the drawing.
 export function WaterCup({ value, max, size = 56, dark = false }) {
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
-  const full = pct >= 1;
   // Fill spans the bottle's body only (not the cap/neck), same convention
   // as the old cup version — a real bottle's neck stays clear even full.
   const topY = 16;
@@ -440,8 +438,8 @@ export function WaterCup({ value, max, size = 56, dark = false }) {
           y={fillY}
           width="64"
           height={86 - fillY}
-          fill={full ? GOAL_GREEN : MEASURE_BLUE}
-          style={{ transition: "y 0.7s cubic-bezier(0.22,1,0.36,1), height 0.7s cubic-bezier(0.22,1,0.36,1), fill 0.4s ease" }}
+          fill={MEASURE_BLUE}
+          style={{ transition: "y 0.7s cubic-bezier(0.22,1,0.36,1), height 0.7s cubic-bezier(0.22,1,0.36,1)" }}
         />
       </g>
       <path d={bottlePath} fill="none" stroke={dark ? "rgba(255,255,255,0.25)" : "rgba(10,10,11,0.35)"} strokeWidth="2.5" strokeLinejoin="round" />
