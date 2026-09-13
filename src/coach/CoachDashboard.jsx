@@ -5,6 +5,7 @@ import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
 import WorkoutEditor from "./WorkoutEditor";
 import { clientStatusPill } from "./CoachClients";
+import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { MEASURE_BLUE } from "../theme";
 import {
   Users,
@@ -541,6 +542,37 @@ export default function CoachDashboard({ onNavigate, showToast }) {
         response: r,
         form,
       });
+    });
+    // Nutrition goal hits — derived live from logged totals vs. the
+    // client's own targets, same as everything else in this feed, rather
+    // than a separately-tracked notification doc.
+    const targets = resolveNutritionTargets(c.nutritionTargets);
+    const nutritionDays = (db.nutritionLogs[c.id] || []).slice(-5);
+    nutritionDays.forEach((n) => {
+      const dateMs = new Date(`${n.date}T12:00:00`).getTime();
+      if (Number.isNaN(dateMs)) return;
+      if (targets.calories > 0 && (n.calories || 0) >= targets.calories) {
+        activity.push({
+          type: "nutrition_calories",
+          date: dateMs,
+          clientName: c.name,
+          clientAvatar: c.avatarUrl,
+          verb: "hit",
+          subject: "their daily calorie goal",
+          suffix: ` (${Math.round(n.calories)} / ${targets.calories} kcal).`,
+        });
+      }
+      if (targets.protein > 0 && (n.protein || 0) >= targets.protein) {
+        activity.push({
+          type: "nutrition_protein",
+          date: dateMs,
+          clientName: c.name,
+          clientAvatar: c.avatarUrl,
+          verb: "hit",
+          subject: "their protein goal",
+          suffix: ` (${Math.round(n.protein)}g / ${targets.protein}g).`,
+        });
+      }
     });
   });
   activity.sort((a, b) => b.date - a.date);
