@@ -1511,6 +1511,41 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const coachNote = exMeta.notes || "";
   const isLongNote = coachNote.length > 90;
 
+  // Time-based sets (a plank, a farmer's carry, anything prescribed in
+  // seconds rather than reps) get a real countdown instead of a client
+  // having to eyeball a phone clock and type the number in afterwards —
+  // one row times at once, which matches how a set is actually performed.
+  const [timerRowIndex, setTimerRowIndex] = useState(null);
+  const [timerRemaining, setTimerRemaining] = useState(0);
+  const timerTickRef = useRef(null);
+  const targetSeconds = Number(exMeta.targetReps) || 30;
+
+  useEffect(() => {
+    if (timerRowIndex === null) return;
+    if (timerRemaining <= 0) {
+      playTimerDing();
+      onChangeField(timerRowIndex, "reps", String(targetSeconds));
+      setTimeout(() => onBlurKg(timerRowIndex), 0);
+      setTimerRowIndex(null);
+      return;
+    }
+    timerTickRef.current = setTimeout(() => setTimerRemaining((t) => t - 1), 1000);
+    return () => clearTimeout(timerTickRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timerRowIndex, timerRemaining]);
+
+  function startRowTimer(i) {
+    unlockTimerAudio();
+    setTimerRowIndex(i);
+    setTimerRemaining(targetSeconds);
+  }
+  function stopRowTimer(i) {
+    const elapsed = targetSeconds - timerRemaining;
+    setTimerRowIndex(null);
+    onChangeField(i, "reps", String(Math.max(elapsed, 0)));
+    setTimeout(() => onBlurKg(i), 0);
+  }
+
   return (
     <div className={dark ? "pt-1 pb-5 px-1 border-b border-white/10 last:border-b-0" : "pt-1 pb-5 px-1 border-b border-black/10 last:border-b-0"}>
       <div className="flex items-center gap-3">
@@ -1661,14 +1696,42 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                   </button>
                 )}
               </div>
-              <input
-                type="number"
-                inputMode="numeric"
-                value={row.reps}
-                onChange={(e) => onChangeField(i, "reps", e.target.value)}
-                onBlur={() => onBlurKg(i)}
-                className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"}
-              />
+              {exMeta.targetType === "time" ? (
+                timerRowIndex === i ? (
+                  <button
+                    type="button"
+                    onClick={() => stopRowTimer(i)}
+                    className="w-full rounded-xl text-center text-[19px] font-bold py-2 tabular-nums text-white"
+                    style={{ backgroundColor: MEASURE_BLUE }}
+                  >
+                    {timerRemaining}s
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => startRowTimer(i)}
+                    disabled={timerRowIndex !== null}
+                    className={dark ? "w-full flex items-center justify-center gap-1 bg-black border border-white/15 rounded-xl text-white text-[15px] font-bold py-2 outline-none disabled:opacity-40" : "w-full flex items-center justify-center gap-1 bg-white border border-black/15 rounded-xl text-black text-[15px] font-bold py-2 outline-none disabled:opacity-40"}
+                  >
+                    {row.reps ? (
+                      `${row.reps}s`
+                    ) : (
+                      <>
+                        <Play size={12} fill="currentColor" /> {targetSeconds}s
+                      </>
+                    )}
+                  </button>
+                )
+              ) : (
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={row.reps}
+                  onChange={(e) => onChangeField(i, "reps", e.target.value)}
+                  onBlur={() => onBlurKg(i)}
+                  className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"}
+                />
+              )}
               <input
                 type="number"
                 inputMode="decimal"
@@ -5500,6 +5563,32 @@ const TABS = [
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+// Persisted across a full close/reopen (not just backgrounding, where React
+// state survives on its own) — a client mid-workout who fully quits the PWA
+// should land right back in that same session, and everyone should land on
+// whichever tab they were last looking at, instead of always back on Home.
+function lastTabKey(userId) {
+  return `clientLastTab_${userId}`;
+}
+function activeSessionKey(userId) {
+  return `clientActiveSession_${userId}`;
+}
+function loadLastTab(userId) {
+  try {
+    return localStorage.getItem(lastTabKey(userId)) || "home";
+  } catch {
+    return "home";
+  }
+}
+function loadActiveSession(userId) {
+  try {
+    const raw = localStorage.getItem(activeSessionKey(userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function ClientApp() {
   const {
     currentUser,
@@ -5530,21 +5619,22 @@ export default function ClientApp() {
   } = useApp();
   const dark = db.appDesign?.clientDarkMode === true;
   const navigate = useNavigate();
-  const [tab, setTab] = useState("home");
-  const [activeLog, setActiveLog] = useState(null); // {exerciseId: [sets]} while a session is open
+  const persistedSession = loadActiveSession(currentUser.id);
+  const [tab, setTab] = useState(() => loadLastTab(currentUser.id));
+  const [activeLog, setActiveLog] = useState(persistedSession?.activeLog || null); // {exerciseId: [sets]} while a session is open
   // Which session is actually being run right now — defaults to todaySession
   // (the Home/Training-tab "Start" flow never passes one explicitly) but lets
   // the calendar hand in a DIFFERENT day's workout (e.g. running Friday's
   // plan on a Saturday), so starting isn't locked to whatever's scheduled
   // for today specifically.
-  const [runningSession, setRunningSession] = useState(null);
+  const [runningSession, setRunningSession] = useState(persistedSession?.runningSession || null);
   // {exerciseId: note} — the client's own notes, separate from the coach's.
   // Seeded from any notes saved (and not yet cleared by a finished workout)
   // from a previous session, so a note isn't lost if the app is closed
   // before the workout is finished.
-  const [exerciseNotes, setExerciseNotes] = useState(() => currentUser.draftExerciseNotes || {});
-  const [exerciseSwaps, setExerciseSwaps] = useState({}); // {originalExerciseId: {toExerciseId, toName, fromName, reason}}
-  const [sessionOpen, setSessionOpen] = useState(false);
+  const [exerciseNotes, setExerciseNotes] = useState(() => persistedSession?.exerciseNotes || currentUser.draftExerciseNotes || {});
+  const [exerciseSwaps, setExerciseSwaps] = useState(persistedSession?.exerciseSwaps || {}); // {originalExerciseId: {toExerciseId, toName, fromName, reason}}
+  const [sessionOpen, setSessionOpen] = useState(persistedSession?.sessionOpen || false);
   const [preStartOpen, setPreStartOpen] = useState(false);
   const [previewSession, setPreviewSession] = useState(null);
   const [previewCanStart, setPreviewCanStart] = useState(false);
@@ -5557,7 +5647,36 @@ export default function ClientApp() {
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
   const [autoOpenWeighIn, setAutoOpenWeighIn] = useState(0);
-  const sessionStartedAtRef = useRef(null); // wall-clock time the current session started, for a real WORKOUT COMPLETE duration
+  const sessionStartedAtRef = useRef(persistedSession?.startedAt || null); // wall-clock time the current session started, for a real WORKOUT COMPLETE duration
+
+  // Mirror tab + any in-progress workout to localStorage so fully closing
+  // and reopening the PWA (not just backgrounding it, where React state
+  // survives on its own) lands back on the same tab and, if a workout was
+  // underway, right back inside that session instead of at Home.
+  useEffect(() => {
+    try {
+      localStorage.setItem(lastTabKey(currentUser.id), tab);
+    } catch {}
+  }, [currentUser.id, tab]);
+  useEffect(() => {
+    try {
+      if (runningSession && (sessionOpen || activeLog)) {
+        localStorage.setItem(
+          activeSessionKey(currentUser.id),
+          JSON.stringify({
+            runningSession,
+            activeLog,
+            exerciseNotes,
+            exerciseSwaps,
+            sessionOpen,
+            startedAt: sessionStartedAtRef.current,
+          })
+        );
+      } else {
+        localStorage.removeItem(activeSessionKey(currentUser.id));
+      }
+    } catch {}
+  }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, sessionOpen]);
 
   // An installed PWA is routinely left open (backgrounded, phone locked)
   // across a real calendar-day rollover without ever fully closing — so
