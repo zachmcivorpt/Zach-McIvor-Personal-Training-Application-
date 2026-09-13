@@ -1891,3 +1891,30 @@ export function getPreviousSets(logs, exerciseId) {
   }
   return [];
 }
+
+// True all-time best for this exercise, across every session ever logged —
+// used to flag a set as a PR against your actual best, not just whatever
+// you happened to do last session (which would let a set "PR" simply by
+// beating a weaker previous session, even if it's below what you already
+// hit weeks ago). bestScore/bestSet track the best e1RM (or rep count for
+// bodyweight moves); maxWeight is tracked separately since the single
+// highest-e1RM set isn't necessarily the single heaviest weight ever used.
+export function getBestEverStats(logs, exerciseId) {
+  let bestScore = 0;
+  let bestSet = null;
+  let maxWeight = 0;
+  (logs || []).forEach((log) => {
+    const entry = log.entries?.find((e) => e.exerciseId === exerciseId);
+    if (!entry) return;
+    entry.sets.forEach((s) => {
+      if (!s.reps) return;
+      const score = s.weight > 0 ? estimate1RM(s.weight, s.reps) : s.reps;
+      if (score > bestScore) {
+        bestScore = score;
+        bestSet = s;
+      }
+      if (s.weight > maxWeight) maxWeight = s.weight;
+    });
+  });
+  return { bestScore, bestSet, maxWeight };
+}

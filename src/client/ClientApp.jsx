@@ -73,7 +73,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useApp, estimate1RM, getPreviousPerformance, getPreviousSets, getCurrentPhase } from "../lib/AppContext";
+import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "../lib/workoutStats";
 import {
@@ -1964,10 +1964,13 @@ function WorkoutSession({
     const reps = parseInt(row.reps, 10);
     if (!weight || !reps || isNaN(weight) || isNaN(reps)) return;
 
-    const prevSets = getPreviousSets(logsForClient, exMeta.exerciseId);
-    const previous = prevSets[idx] || getPreviousPerformance(logsForClient, exMeta.exerciseId);
-    const e1rm = estimate1RM(weight, reps);
-    const isPR = previous ? weight > previous.weight || e1rm > estimate1RM(previous.weight, previous.reps) : false;
+    // Judged against the true all-time best for this exercise, not just
+    // whatever was logged last session — otherwise a weak set could "PR"
+    // simply by beating a previous session that was itself below a peak
+    // set weeks earlier.
+    const { bestScore, bestSet, maxWeight } = getBestEverStats(logsForClient, exMeta.exerciseId);
+    const score = weight > 0 ? estimate1RM(weight, reps) : reps;
+    const isPR = bestSet ? weight > maxWeight || score > bestScore : false;
 
     setActiveLog((prev) => {
       const next = [...(prev[exMeta.exerciseId] || [])];
@@ -1976,7 +1979,7 @@ function WorkoutSession({
     });
 
     if (isPR) {
-      setPrToast({ exerciseName: exercisesById[exMeta.exerciseId]?.name, weight, reps, prevWeight: previous.weight, prevReps: previous.reps });
+      setPrToast({ exerciseName: exercisesById[exMeta.exerciseId]?.name, weight, reps, prevWeight: bestSet.weight, prevReps: bestSet.reps });
       setTimeout(() => setPrToast(null), 3200);
     }
   }
