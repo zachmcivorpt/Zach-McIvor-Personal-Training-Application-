@@ -3132,11 +3132,11 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
             return (
               <div
                 key={meal}
-                className="rounded-2xl border flex items-center gap-3 px-4 py-3.5"
+                className="rounded-md border flex items-center gap-3 px-4 py-3.5"
                 style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
               >
                 <button onClick={() => setDetailMeal(meal)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
-                  <div className={dark ? "w-10 h-10 rounded-xl bg-white/8 flex items-center justify-center shrink-0" : "w-10 h-10 rounded-xl bg-black/[0.04] flex items-center justify-center shrink-0"}>
+                  <div className={dark ? "w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-10 h-10 rounded-lg bg-black/[0.04] flex items-center justify-center shrink-0"}>
                     <UtensilsCrossed size={18} className={dark ? "text-white/40" : "text-black/35"} />
                   </div>
                   <div className="min-w-0">
@@ -3151,8 +3151,8 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                     setActiveMeal(meal);
                     setSheetOpen(true);
                   }}
-                  className="shrink-0 text-white text-xs font-bold px-4 py-2 rounded-full active:scale-95 transition-transform"
-                  style={{ backgroundColor: MEASURE_BLUE }}
+                  className="shrink-0 text-xs font-bold px-6 py-1 rounded-full border-[1.5px] active:scale-95 transition-transform"
+                  style={{ borderColor: MEASURE_BLUE, color: MEASURE_BLUE, backgroundColor: "transparent" }}
                 >
                   Log
                 </button>
