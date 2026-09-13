@@ -2969,39 +2969,39 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       </div>
 
       <div className="px-3 mt-4">
-        <Card dark={dark}>
-          <div className="flex items-center gap-4">
-            <WaterCup value={nutrition.water} max={targets.water} size={52} />
+        <Card dark={dark} className="!py-3">
+          <div className="flex items-center gap-3">
+            <WaterCup value={nutrition.water} max={targets.water} size={32} />
             <div className="flex-1 min-w-0">
-              <p className={dark ? "text-white font-semibold flex items-center gap-2" : "text-black font-semibold flex items-center gap-2"}>
+              <p className={dark ? "text-white text-sm font-semibold flex items-center gap-1.5" : "text-black text-sm font-semibold flex items-center gap-1.5"}>
                 {nutrition.water >= targets.water ? (
-                  <Droplets size={16} className={dark ? "text-white" : "text-black"} />
+                  <Droplets size={13} className={dark ? "text-white" : "text-black"} />
                 ) : (
-                  <GlassWater size={16} className={dark ? "text-white/60" : "text-black/60"} />
+                  <GlassWater size={13} className={dark ? "text-white/60" : "text-black/60"} />
                 )}{" "}
                 Water
               </p>
-              <p className={dark ? "text-white/50 text-sm mt-0.5" : "text-black/50 text-sm mt-0.5"}>
+              <p className={dark ? "text-white/50 text-xs mt-0.5" : "text-black/50 text-xs mt-0.5"}>
                 <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{nutrition.water}L</span> / {targets.water}L
               </p>
             </div>
           </div>
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-1.5 mt-2.5">
             <button
               onClick={() => onAddWater(0.25)}
-              className={dark ? "flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
             >
               +250ml
             </button>
             <button
               onClick={() => onAddWater(0.5)}
-              className={dark ? "flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-90 transition-transform duration-150"}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
             >
               +500ml
             </button>
             <button
               onClick={() => setWaterSheetOpen(true)}
-              className={dark ? "flex-1 bg-white/8 text-white text-sm font-semibold py-2.5 rounded-xl active:scale-[0.97] transition-transform" : "flex-1 bg-black/8 text-black text-sm font-semibold py-2.5 rounded-xl active:scale-[0.97] transition-transform"}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform"}
             >
               Custom
             </button>

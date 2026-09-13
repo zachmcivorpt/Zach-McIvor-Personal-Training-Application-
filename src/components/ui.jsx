@@ -418,18 +418,22 @@ export function ProgressBar({ value, max, height = 8, dim = false, color, trackC
 export function WaterCup({ value, max, size = 56, dark = false }) {
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
   const full = pct >= 1;
-  const topY = 8;
-  const baseY = 76;
+  // Fill spans the bottle's body only (not the cap/neck), same convention
+  // as the old cup version — a real bottle's neck stays clear even full.
+  const topY = 16;
+  const baseY = 80;
   const fillY = baseY - pct * (baseY - topY);
-  const cupPath = "M13 8 L51 8 L44.5 74 Q44 78 39.5 78 L24.5 78 Q20 78 19.5 74 Z";
+  const bottlePath =
+    "M26 2 H38 Q40 2 40 4 V11 Q40 13 42 15 L45 20 Q48 24 48 29 V78 Q48 82 44 82 H20 Q16 82 16 78 V29 Q16 24 19 20 L22 15 Q24 13 24 11 V4 Q24 2 26 2 Z";
+  const capPath = "M26 2 H38 Q40 2 40 4 V11 H24 V4 Q24 2 26 2 Z";
   return (
     <svg width={size} height={Math.round(size * (86 / 64))} viewBox="0 0 64 86" className="shrink-0" aria-hidden="true">
       <defs>
-        <clipPath id="waterCupClip">
-          <path d={cupPath} />
+        <clipPath id="waterBottleClip">
+          <path d={bottlePath} />
         </clipPath>
       </defs>
-      <g clipPath="url(#waterCupClip)">
+      <g clipPath="url(#waterBottleClip)">
         <rect x="0" y="0" width="64" height="86" fill={dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,11,0.04)"} />
         <rect
           x="0"
@@ -440,7 +444,8 @@ export function WaterCup({ value, max, size = 56, dark = false }) {
           style={{ transition: "y 0.7s cubic-bezier(0.22,1,0.36,1), height 0.7s cubic-bezier(0.22,1,0.36,1), fill 0.4s ease" }}
         />
       </g>
-      <path d={cupPath} fill="none" stroke={dark ? "rgba(255,255,255,0.25)" : "rgba(10,10,11,0.35)"} strokeWidth="2.5" strokeLinejoin="round" />
+      <path d={bottlePath} fill="none" stroke={dark ? "rgba(255,255,255,0.25)" : "rgba(10,10,11,0.35)"} strokeWidth="2.5" strokeLinejoin="round" />
+      <path d={capPath} fill={dark ? "rgba(255,255,255,0.12)" : "rgba(10,10,11,0.08)"} stroke={dark ? "rgba(255,255,255,0.25)" : "rgba(10,10,11,0.35)"} strokeWidth="2.5" strokeLinejoin="round" />
     </svg>
   );
 }
