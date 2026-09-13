@@ -2937,17 +2937,23 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
         ].filter((d) => d.value > 0)
       : [];
 
+  // Reference amounts are the FDA's general-adult Daily Values (the same
+  // %DV figures printed on every nutrition label) — a fixed public
+  // guideline, not anything personalized to this client, so it's shown as
+  // a plain reference rather than a "target" the app is coaching toward.
+  // Trans fat has no DV at all (guidance is simply "as little as
+  // possible"), so it gets a note instead of a number.
   const microRows = [
-    { key: "satFat", label: "Saturated Fat", unit: "g" },
-    { key: "transFat", label: "Trans Fat", unit: "g" },
-    { key: "fiber", label: "Fiber", unit: "g" },
-    { key: "sugar", label: "Sugar", unit: "g" },
-    { key: "sodium", label: "Sodium", unit: "mg" },
-    { key: "potassium", label: "Potassium", unit: "mg" },
-    { key: "calcium", label: "Calcium", unit: "mg" },
-    { key: "iron", label: "Iron", unit: "mg" },
-    { key: "cholesterol", label: "Cholesterol", unit: "mg" },
-    { key: "vitaminC", label: "Vitamin C", unit: "mg" },
+    { key: "satFat", label: "Saturated Fat", unit: "g", dv: 20, kind: "limit" },
+    { key: "transFat", label: "Trans Fat", unit: "g", dv: null, note: "as little as possible" },
+    { key: "fiber", label: "Fiber", unit: "g", dv: 28, kind: "target" },
+    { key: "sugar", label: "Sugar", unit: "g", dv: 50, kind: "limit" },
+    { key: "sodium", label: "Sodium", unit: "mg", dv: 2300, kind: "limit" },
+    { key: "potassium", label: "Potassium", unit: "mg", dv: 4700, kind: "target" },
+    { key: "calcium", label: "Calcium", unit: "mg", dv: 1300, kind: "target" },
+    { key: "iron", label: "Iron", unit: "mg", dv: 18, kind: "target" },
+    { key: "cholesterol", label: "Cholesterol", unit: "mg", dv: 300, kind: "limit" },
+    { key: "vitaminC", label: "Vitamin C", unit: "mg", dv: 90, kind: "target" },
   ];
 
   return (
@@ -3046,21 +3052,30 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
           <Card dark={dark}>
             <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-2" : "text-black/35 text-[11px] font-bold tracking-wide mb-2"}>OTHER NUTRIENTS TODAY</p>
             <div>
-              {microRows.map((r, i) => (
-                <div
-                  key={r.key}
-                  className={`flex items-center justify-between py-2.5 ${i > 0 ? (dark ? "border-t border-white/5" : "border-t border-black/5") : ""}`}
-                >
-                  <span className={dark ? "text-white/70 text-sm" : "text-black/70 text-sm"}>{r.label}</span>
-                  <span className={dark ? "text-white font-medium text-sm" : "text-black font-medium text-sm"}>
-                    {round1(nutrition[r.key] || 0)}
-                    {r.unit}
-                  </span>
-                </div>
-              ))}
+              {microRows.map((r, i) => {
+                const value = round1(nutrition[r.key] || 0);
+                const over = r.dv != null && r.kind === "limit" && value > r.dv;
+                return (
+                  <div
+                    key={r.key}
+                    className={`flex items-center justify-between py-2.5 ${i > 0 ? (dark ? "border-t border-white/5" : "border-t border-black/5") : ""}`}
+                  >
+                    <span className={dark ? "text-white/70 text-sm" : "text-black/70 text-sm"}>{r.label}</span>
+                    <div className="text-right">
+                      <span className={over ? "text-red-500 font-medium text-sm" : dark ? "text-white font-medium text-sm" : "text-black font-medium text-sm"}>
+                        {value}
+                        {r.unit}
+                      </span>
+                      <span className={dark ? "text-white/30 text-xs ml-1" : "text-black/30 text-xs ml-1"}>
+                        {r.dv != null ? `/ ${r.dv}${r.unit} ${r.kind === "limit" ? "limit" : "DV"}` : r.note}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <p className={dark ? "text-white/25 text-[11px] mt-3" : "text-black/25 text-[11px] mt-3"}>
-              Reflects only foods with detailed nutrition info attached — a scanned barcode carries this automatically; anything else needs it filled in manually.
+              Reflects only foods with detailed nutrition info attached — a scanned barcode carries this automatically; anything else needs it filled in manually. Reference amounts are general adult Daily Values (FDA), not a target personalized to you.
             </p>
           </Card>
         </div>
