@@ -2370,14 +2370,16 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
       {viewingAsClient && (
         <>
-          <WorkoutEditor
-            open={!!editingWorkout}
-            day={editingWorkout?.day}
-            exercises={db.exercises}
-            onClose={() => setEditingWorkout(null)}
-            onSave={saveWorkout}
-            showToast={showToast}
-          />
+          {editingWorkout && (
+            <WorkoutEditor
+              open
+              day={editingWorkout.day}
+              exercises={db.exercises}
+              onClose={() => setEditingWorkout(null)}
+              onSave={saveWorkout}
+              showToast={showToast}
+            />
+          )}
           <BottomSheet open={libraryPickerOpen} onClose={() => setLibraryPickerOpen(false)} title="Add from Workout Library">
             {(db.masterWorkouts || []).length === 0 ? (
               <p className="text-black/30 text-sm text-center py-6">No workout templates yet — build some in Library → Workouts.</p>
