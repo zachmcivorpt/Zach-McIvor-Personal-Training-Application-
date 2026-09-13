@@ -122,7 +122,7 @@ import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
-import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, SavedMealsSection, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
+import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
 import {
   BODY_FAT_CONFIG,
   LEAN_MASS_CONFIG,
@@ -3111,19 +3111,6 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
       )}
 
       <div className="px-3 mt-7">
-        <SavedMealsSection
-          dark={dark}
-          meals={savedMeals}
-          onCreateNew={() => {
-            setMealPrefill(null);
-            setCreateMealOpen(true);
-          }}
-          onLog={logSavedMeal}
-          onDelete={onDeleteSavedMeal}
-        />
-      </div>
-
-      <div className="px-3 mt-7">
         <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>TODAY'S MEALS</p>
         <div className="space-y-2.5">
           {mealCategories.map((meal) => {
@@ -3376,34 +3363,58 @@ function NutritionScreen({ nutrition, targets, onAddFood, onRemoveFood, onAddWat
                   ))}
                 </div>
               )
-            ) : (savedMeals || []).length === 0 ? (
-              <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No saved meals yet — create one from the My Meals card</p>
             ) : (
-              <div className="space-y-1">
-                {savedMeals.map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => {
-                      logSavedMeal(m, activeMeal);
-                      showToast(`Logged "${m.name}" to ${activeMeal}`);
-                      setSheetOpen(false);
-                    }}
-                    className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                  >
-                    {m.photoUrl ? (
-                      <img src={m.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-                    ) : (
-                      <div className={dark ? "w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-9 h-9 rounded-lg bg-black/8 flex items-center justify-center shrink-0"}>
-                        <UtensilsCrossed size={14} className={dark ? "text-white/30" : "text-black/30"} />
-                      </div>
-                    )}
-                    <div className="text-left flex-1 min-w-0">
-                      <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>P{round1(m.protein)} · C{round1(m.carbs)} · F{round1(m.fat)}</p>
-                    </div>
-                    <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{m.cals} kcal</span>
-                  </button>
-                ))}
+              <div>
+                <button
+                  onClick={() => {
+                    setSheetOpen(false);
+                    setMealPrefill(null);
+                    setCreateMealOpen(true);
+                  }}
+                  className={dark ? "w-full flex items-center justify-center gap-2 border border-dashed border-white/15 rounded-xl py-3 mb-3 text-sm font-bold" : "w-full flex items-center justify-center gap-2 border border-dashed border-black/15 rounded-xl py-3 mb-3 text-sm font-bold"}
+                  style={{ color: MEASURE_BLUE }}
+                >
+                  <Plus size={16} /> Create meal
+                </button>
+
+                {(savedMeals || []).length === 0 ? (
+                  <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No saved meals yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {savedMeals.map((m) => (
+                      <SwipeableRow key={m.id} onDelete={() => onDeleteSavedMeal(m.id)}>
+                        <div
+                          className="rounded-xl border flex items-center gap-3 px-3 py-2.5"
+                          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+                        >
+                          {m.photoUrl ? (
+                            <img src={m.photoUrl} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className={dark ? "w-12 h-12 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-12 h-12 rounded-lg bg-black/[0.04] flex items-center justify-center shrink-0"}>
+                              <UtensilsCrossed size={18} className={dark ? "text-white/30" : "text-black/30"} />
+                            </div>
+                          )}
+                          <div className="text-left flex-1 min-w-0">
+                            <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
+                            <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{m.cals} cal · P{round1(m.protein)} C{round1(m.carbs)} F{round1(m.fat)}</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              logSavedMeal(m, activeMeal);
+                              showToast(`Logged "${m.name}" to ${activeMeal}`);
+                              setSheetOpen(false);
+                            }}
+                            className={dark ? "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-white/8" : "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-black/[0.05]"}
+                            style={{ color: MEASURE_BLUE }}
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
+                      </SwipeableRow>
+                    ))}
+                    <p className={dark ? "text-white/25 text-[10px] text-center pt-1" : "text-black/25 text-[10px] text-center pt-1"}>Swipe a meal left to remove it from My Meals</p>
+                  </div>
+                )}
               </div>
             )}
           </>
