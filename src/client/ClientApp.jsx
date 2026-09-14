@@ -2125,7 +2125,7 @@ function WorkoutSession({
           {sectionedExercises(exercisesForSession).map((group) => (
             <div key={group.key}>
               {group.showHeader && (
-                <p className={dark ? "text-white/40 text-[11px] font-bold tracking-wide mb-2 mt-1" : "text-black/40 text-[11px] font-bold tracking-wide mb-2 mt-1"}>{group.label.toUpperCase()}</p>
+                <p className={dark ? "text-white text-[15px] font-extrabold tracking-wide mb-2.5 mt-2 pb-1.5 border-b border-white/15" : "text-black text-[15px] font-extrabold tracking-wide mb-2.5 mt-2 pb-1.5 border-b border-black/15"}>{group.label.toUpperCase()}</p>
               )}
               <div className="space-y-4">
                 {group.items.map(({ exMeta, i }) => {
