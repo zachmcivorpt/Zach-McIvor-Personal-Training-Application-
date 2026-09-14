@@ -3469,6 +3469,10 @@ function NutritionPanel({ client, showToast }) {
         </div>
       </div>
 
+      <div className="mt-6">
+        <ClientFoodPreferencesCard client={client} showToast={showToast} />
+      </div>
+
       {mealPlanOpen && <MealPlanBuilder client={client} onClose={() => setMealPlanOpen(false)} showToast={showToast} />}
       <ShoppingListSheet
         open={shoppingListOpen}
@@ -4743,10 +4747,6 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="mt-6">
-        <ClientFoodPreferencesCard client={client} showToast={showToast} />
       </div>
     </div>
   );
