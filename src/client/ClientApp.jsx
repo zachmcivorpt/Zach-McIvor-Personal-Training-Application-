@@ -452,7 +452,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   );
 }
 
-function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, exercisesById, dbReady = true, fullWidth = false }) {
+function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
   const dark = useClientDark();
   const outerMargin = fullWidth ? "" : "mx-4";
   const outerRadius = fullWidth ? "rounded-none" : "rounded-2xl";
@@ -488,30 +488,14 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const estMin = estimateWorkoutMinutes(todaySession.exercises);
   const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S FOCUS" : isPastDate ? "MISSED" : "SCHEDULED";
 
-  // A still from the session's first exercise gives each workout card its
-  // own identity instead of every day looking like the same grey box — only
-  // a YouTube link has a static thumbnail to grab (an uploaded file/Vimeo
-  // link has no cheap first-frame to pull), so those fall back to a faint
-  // logo mark watermark rather than nothing at all.
-  const firstExercise = exercisesById && (todaySession.exercises || [])[0];
-  const firstEx = firstExercise ? exercisesById[firstExercise.exerciseId] : null;
-  const bgPhoto = firstEx?.videoUrl ? parseVideoUrl(firstEx.videoUrl)?.thumbnail : null;
-
   return (
     <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 ${border} border`} style={{ backgroundColor: cardBg }}>
-      {bgPhoto ? (
-        <>
-          <img src={bgPhoto} alt="" className="absolute inset-0 w-full h-full object-cover grayscale" />
-          <div className="absolute inset-0" style={{ backgroundColor: cardBg, opacity: 0.82 }} />
-        </>
-      ) : (
-        <img
-          src={dark ? MARK_WHITE : MARK_BLACK}
-          alt=""
-          className="absolute -right-6 -bottom-10 w-40 h-40 object-contain pointer-events-none select-none"
-          style={{ opacity: dark ? 0.06 : 0.05 }}
-        />
-      )}
+      <img
+        src={dark ? MARK_WHITE : MARK_BLACK}
+        alt=""
+        className="absolute -right-6 -bottom-10 w-40 h-40 object-contain pointer-events-none select-none"
+        style={{ opacity: dark ? 0.06 : 0.05 }}
+      />
       <div className="relative">
         <div className="flex items-center justify-between mb-2.5">
           <span className={`${muted35} text-[11px] font-bold tracking-[0.14em]`}>{pillLabel}</span>
@@ -1083,7 +1067,6 @@ function HomeScreen({
         isToday={isToday}
         completedOnDate={completedOnDate}
         isPastDate={dayOffset < 0}
-        exercisesById={exercisesById}
         dbReady={dbReady}
       />
       <CardioLogCard logs={cardioLogs} />
@@ -2633,7 +2616,6 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             onView={onViewWorkout}
             isToday
             completedOnDate={completedOnDate}
-            exercisesById={exercisesById}
             dbReady={dbReady}
             fullWidth
           />
