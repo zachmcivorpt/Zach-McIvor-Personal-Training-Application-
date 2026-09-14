@@ -299,11 +299,7 @@ export function AppProvider({ children }) {
       watch("messages", "messages", [where("clientId", "==", uid)]);
       watch("workoutComments", "workoutComments", [where("clientId", "==", uid)]);
       watch("progressPhotos", "progressPhotos", [where("clientId", "==", uid)]);
-      // Unfiltered, unlike every other client-scoped collection here — saved
-      // meals are meant to work as a shared library across every client
-      // (create one "Milo" once, anyone can log it from here on), not a
-      // private list, so this needs every client's docs, not just this one's.
-      watch("savedMeals", "savedMeals");
+      watch("savedMeals", "savedMeals", [where("clientId", "==", uid)]);
       watch("habits", "habits", [where("clientId", "==", uid)]);
       watch("clientPhases", "clientPhases", [where("clientId", "==", uid)]);
       watch("formSchedules", "formSchedules", [where("clientId", "==", uid)]);

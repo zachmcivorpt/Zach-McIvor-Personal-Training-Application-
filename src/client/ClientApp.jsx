@@ -6278,20 +6278,9 @@ export default function ClientApp() {
     return [...seen.values()].slice(0, 10);
   }, [nutritionLogsForClient]);
   const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
-  // Shared across every client, not just the one who created it — a meal
-  // (or single food, via Quick Add/barcode's own library save) only needs
-  // to be built once, then anyone can one-tap log it from here on.
-  // Deduped by name so two clients creating the same thing (e.g. "Milo")
-  // doesn't leave two near-identical entries sitting in the list.
-  const savedMeals = useMemo(() => {
-    const all = Object.values(db.savedMeals || {}).flat();
-    const seen = new Map();
-    for (const m of [...all].sort((a, b) => b.createdAt - a.createdAt)) {
-      const key = (m.name || "").toLowerCase();
-      if (key && !seen.has(key)) seen.set(key, m);
-    }
-    return [...seen.values()];
-  }, [db.savedMeals]);
+  // Each client's own personal "My Meals" list — not shared with other
+  // clients, so a meal one client builds doesn't show up in anyone else's.
+  const savedMeals = (db.savedMeals || {})[currentUser.id] || [];
   const habits = ((db.habits || {})[currentUser.id] || []).filter((h) => !h.endsAt || h.endsAt >= Date.now());
   const todayKey = todayDateKey;
   const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
