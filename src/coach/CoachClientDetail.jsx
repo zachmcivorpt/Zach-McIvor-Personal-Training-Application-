@@ -3,7 +3,7 @@ import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
-import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct, resolveNutritionTargets, MICRO_DV_ROWS } from "../lib/nutritionTargets";
+import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct, resolveNutritionTargets } from "../lib/nutritionTargets";
 import {
   computePerformanceTimeline,
   computePRsInLastNDays,
@@ -3179,50 +3179,26 @@ function NutritionPanel({ client, showToast }) {
         {!nutrition ? (
           <p className="text-black/30 text-sm mb-4">Nothing logged yet.</p>
         ) : (
-          <>
-            <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-              {[
-                ["Calories", Math.round(nutrition.calories || 0), targets.calories, ""],
-                ["Protein", round1(nutrition.protein || 0), targets.protein, "g"],
-                ["Carbs", round1(nutrition.carbs || 0), targets.carbs, "g"],
-                ["Fat", round1(nutrition.fat || 0), targets.fat, "g"],
-              ].map(([l, v, t, unit]) => (
-                <div key={l} className="text-center">
-                  <p className="text-black font-bold">
-                    {v}
+          <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            {[
+              ["Calories", Math.round(nutrition.calories || 0), targets.calories, ""],
+              ["Protein", round1(nutrition.protein || 0), targets.protein, "g"],
+              ["Carbs", round1(nutrition.carbs || 0), targets.carbs, "g"],
+              ["Fat", round1(nutrition.fat || 0), targets.fat, "g"],
+            ].map(([l, v, t, unit]) => (
+              <div key={l} className="text-center">
+                <p className="text-black font-bold">
+                  {v}
+                  {unit}
+                  <span className="text-black/35 font-medium">
+                    /{t}
                     {unit}
-                    <span className="text-black/35 font-medium">
-                      /{t}
-                      {unit}
-                    </span>
-                  </p>
-                  <p className="text-black/40 text-[11px] mt-0.5">{l}</p>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">MICRONUTRIENTS</p>
-            <div className="bg-black/[0.03] border border-black/8 rounded-2xl px-4 mb-4">
-              {MICRO_DV_ROWS.map((r, i) => {
-                const value = round1(nutrition[r.key] || 0);
-                const over = r.dv != null && r.kind === "limit" && value > r.dv;
-                return (
-                  <div key={r.key} className={`flex items-center justify-between py-2.5 ${i > 0 ? "border-t border-black/5" : ""}`}>
-                    <span className="text-black/70 text-sm">{r.label}</span>
-                    <div className="text-right">
-                      <span className={over ? "text-red-500 font-medium text-sm" : "text-black font-medium text-sm"}>
-                        {value}
-                        {r.unit}
-                      </span>
-                      <span className="text-black/30 text-xs ml-1">
-                        {r.dv != null ? `/ ${r.dv}${r.unit} ${r.kind === "limit" ? "limit" : "DV"}` : r.note}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </>
+                  </span>
+                </p>
+                <p className="text-black/40 text-[11px] mt-0.5">{l}</p>
+              </div>
+            ))}
+          </div>
         )}
         {!confirmReset ? (
           <button
