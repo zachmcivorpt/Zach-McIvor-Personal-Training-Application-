@@ -3385,7 +3385,6 @@ function NutritionPanel({ client, showToast }) {
 
       <div className="space-y-6">
         <NutritionTargetsCard client={client} showToast={showToast} />
-        <ClientFoodPreferencesCard client={client} showToast={showToast} />
 
         <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
           <div className="flex items-center justify-between mb-1">
@@ -4688,6 +4687,10 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-6">
+        <ClientFoodPreferencesCard client={client} showToast={showToast} />
       </div>
     </div>
   );
