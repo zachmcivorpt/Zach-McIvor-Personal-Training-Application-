@@ -3068,20 +3068,29 @@ function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
+const NUTRITION_OVERVIEW_PERIODS = [
+  { key: "week", label: "Weekly", noun: "week", days: 7 },
+  { key: "fortnight", label: "Fortnightly", noun: "fortnight", days: 14 },
+  { key: "month", label: "Monthly", noun: "month", days: 30 },
+];
+
 function WeeklyNutritionCard({ client }) {
   const { db } = useApp();
   const targets = resolveNutritionTargets(client.nutritionTargets);
   const logs = db.nutritionLogs[client.id] || [];
+  const [periodKey, setPeriodKey] = useState("week");
+  const period = NUTRITION_OVERVIEW_PERIODS.find((p) => p.key === periodKey);
+  const { days } = period;
 
-  const weekData = useMemo(() => {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
+  const periodData = useMemo(() => {
+    const out = [];
+    for (let i = days - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const key = localDateKey(d);
       const entry = logs.find((n) => n.date === key);
-      days.push({
-        label: d.toLocaleDateString(undefined, { weekday: "short" }),
+      out.push({
+        label: days <= 7 ? d.toLocaleDateString(undefined, { weekday: "short" }) : d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
         calories: entry ? Math.round(entry.calories || 0) : 0,
         protein: entry ? round1(entry.protein || 0) : 0,
         carbs: entry ? round1(entry.carbs || 0) : 0,
@@ -3089,27 +3098,43 @@ function WeeklyNutritionCard({ client }) {
         logged: !!entry,
       });
     }
-    return days;
-  }, [logs]);
+    return out;
+  }, [logs, days]);
 
-  const loggedDays = weekData.filter((d) => d.logged);
+  const loggedDays = periodData.filter((d) => d.logged);
   const avg = (key) => (loggedDays.length ? round1(loggedDays.reduce((a, d) => a + d[key], 0) / loggedDays.length) : 0);
   const avgCalories = loggedDays.length ? Math.round(loggedDays.reduce((a, d) => a + d.calories, 0) / loggedDays.length) : 0;
+  const xInterval = days <= 7 ? 0 : Math.ceil(days / 7) - 1;
 
   return (
     <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
-      <p className="text-black font-semibold mb-1">Weekly Nutrition Overview</p>
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+        <p className="text-black font-semibold">Nutrition Overview</p>
+        <div className="flex gap-1.5">
+          {NUTRITION_OVERVIEW_PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriodKey(p.key)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                periodKey === p.key ? "bg-black text-white" : "bg-black/6 text-black/50"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <p className="text-black/40 text-xs mb-4">
         {loggedDays.length === 0
-          ? "Nothing logged this week yet"
-          : `${loggedDays.length}/7 days logged · avg ${avgCalories}/${targets.calories} cal`}
+          ? `Nothing logged this ${period.noun} yet`
+          : `${loggedDays.length}/${days} days logged · avg ${avgCalories}/${targets.calories} cal`}
       </p>
 
       {loggedDays.length > 0 ? (
         <div className="w-full h-44 -ml-4">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={weekData} barCategoryGap="28%">
-              <XAxis dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} />
+            <BarChart data={periodData} barCategoryGap={days > 14 ? "15%" : "28%"}>
+              <XAxis dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} interval={xInterval} />
               <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={36} />
               <Tooltip
                 cursor={{ fill: "rgba(10,10,11,0.04)" }}
@@ -3117,8 +3142,8 @@ function WeeklyNutritionCard({ client }) {
                 formatter={(value, name, item) => [item?.payload?.logged ? `${value} cal` : "Not logged", "Intake"]}
               />
               <ReferenceLine y={targets.calories} stroke="rgba(10,10,11,0.25)" strokeDasharray="4 4" />
-              <Bar dataKey="calories" radius={[4, 4, 0, 0]} maxBarSize={32}>
-                {weekData.map((d, i) => (
+              <Bar dataKey="calories" radius={[3, 3, 0, 0]} maxBarSize={days > 14 ? 14 : 32}>
+                {periodData.map((d, i) => (
                   <Cell key={i} fill={d.logged ? MEASURE_BLUE : "rgba(10,10,11,0.08)"} />
                 ))}
               </Bar>
@@ -3127,7 +3152,7 @@ function WeeklyNutritionCard({ client }) {
         </div>
       ) : (
         <div className="h-16 flex items-center justify-center">
-          <p className="text-black/25 text-sm">No nutrition logged this week</p>
+          <p className="text-black/25 text-sm">No nutrition logged this {period.noun}</p>
         </div>
       )}
 
