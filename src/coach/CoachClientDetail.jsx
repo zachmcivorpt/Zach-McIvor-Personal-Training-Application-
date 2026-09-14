@@ -2991,6 +2991,10 @@ function ClientFoodPreferencesCard({ client, showToast }) {
   const [dislikes, setDislikes] = useState(info.dislikes || "");
   const [mealsPerDay, setMealsPerDay] = useState(info.mealsPerDay || "");
   const [occupation, setOccupation] = useState(info.occupation || "");
+  const [dietaryStyle, setDietaryStyle] = useState(info.dietaryStyle || []);
+  const [allergies, setAllergies] = useState(info.allergies || "");
+  const [favoriteFoods, setFavoriteFoods] = useState(info.favoriteFoods || "");
+  const [mainChallenge, setMainChallenge] = useState(info.mainChallenge || "");
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
@@ -2998,13 +3002,23 @@ function ClientFoodPreferencesCard({ client, showToast }) {
     setDislikes(info.dislikes || "");
     setMealsPerDay(info.mealsPerDay || "");
     setOccupation(info.occupation || "");
+    setDietaryStyle(info.dietaryStyle || []);
+    setAllergies(info.allergies || "");
+    setFavoriteFoods(info.favoriteFoods || "");
+    setMainChallenge(info.mainChallenge || "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client.id]);
+
+  function toggleDietaryStyle(style) {
+    setDietaryStyle((prev) => (prev.includes(style) ? prev.filter((s) => s !== style) : [...prev, style]));
+  }
 
   async function save() {
     setSaving(true);
     try {
-      await updateUser(client.id, { nutritionProfile: { likes, dislikes, mealsPerDay, occupation } });
+      await updateUser(client.id, {
+        nutritionProfile: { likes, dislikes, mealsPerDay, occupation, dietaryStyle, allergies, favoriteFoods, mainChallenge },
+      });
       showToast("Nutrition info saved");
     } catch (err) {
       showToast(err.message || "Couldn't save");
@@ -3040,7 +3054,27 @@ function ClientFoodPreferencesCard({ client, showToast }) {
           />
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+      <div className="mb-4">
+        <p className="text-black/40 text-[10px] mb-1.5">DIETARY STYLE</p>
+        <div className="flex flex-wrap gap-1.5">
+          {PROFILE_DIET_OPTIONS.map((d) => (
+            <ProfileChip key={d} active={dietaryStyle.includes(d)} onClick={() => toggleDietaryStyle(d)}>
+              {d}
+            </ProfileChip>
+          ))}
+        </div>
+      </div>
+      <div className="mb-4">
+        <p className="text-black/40 text-[10px] mb-1">ALLERGIES / INTOLERANCES</p>
+        <textarea
+          rows={2}
+          value={allergies}
+          onChange={(e) => setAllergies(e.target.value)}
+          placeholder="e.g. Peanuts, shellfish, lactose intolerant"
+          className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+        />
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
           <p className="text-black/40 text-[10px] mb-1">FOODS THEY ENJOY</p>
           <textarea
@@ -3058,6 +3092,28 @@ function ClientFoodPreferencesCard({ client, showToast }) {
             value={dislikes}
             onChange={(e) => setDislikes(e.target.value)}
             placeholder="e.g. Mushrooms, seafood, doesn't like eating breakfast"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">FAVOURITE FOODS</p>
+          <textarea
+            rows={2}
+            value={favoriteFoods}
+            onChange={(e) => setFavoriteFoods(e.target.value)}
+            placeholder="e.g. Go-to meals they'd happily eat every week"
+            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+          />
+        </div>
+        <div>
+          <p className="text-black/40 text-[10px] mb-1">MAIN CHALLENGE</p>
+          <textarea
+            rows={2}
+            value={mainChallenge}
+            onChange={(e) => setMainChallenge(e.target.value)}
+            placeholder="e.g. Late-night snacking, eating out, time constraints"
             className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
           />
         </div>
