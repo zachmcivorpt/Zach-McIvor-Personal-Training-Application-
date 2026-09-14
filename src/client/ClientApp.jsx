@@ -506,7 +506,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
           <p className={`${muted45} text-[13px] mt-1`}>{todaySession.muscleGroups.join(" & ")} Focus</p>
         )}
         <p className={`${muted30} text-[12px] mt-2.5 tracking-wide`}>
-          {exCount} EXERCISE{exCount === 1 ? "" : "S"} · ~{estMin} MIN
+          {exCount} EXERCISE{exCount === 1 ? "" : "S"} · {estMin} MINUTE{estMin === 1 ? "" : "S"}
         </p>
 
         {started && (
