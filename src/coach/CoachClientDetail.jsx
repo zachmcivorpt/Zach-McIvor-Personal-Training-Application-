@@ -3088,9 +3088,8 @@ const NUTRITION_ADHERENCE_PERIODS = [
 const ADHERENCE_MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner"];
 
 function adherenceStatus(score) {
-  if (score >= 85) return { label: "Excellent", color: GOAL_GREEN };
-  if (score >= 70) return { label: "On Track", color: MEASURE_BLUE };
-  if (score >= 50) return { label: "Needs Attention", color: "rgba(10,10,11,0.55)" };
+  if (score >= 80) return { label: "Excellent", color: GOAL_GREEN };
+  if (score >= 40) return { label: "On Track", color: MEASURE_BLUE };
   return { label: "Inconsistent", color: "#EF4444" };
 }
 
