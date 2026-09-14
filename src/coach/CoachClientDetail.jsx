@@ -2103,6 +2103,10 @@ function TrainingProgramPanel({ client, showToast }) {
 
       {/* selected phase detail */}
       <div className="flex-1 min-w-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
+        <PerformanceTimelineCard client={client} />
+
+        <WeeklyCoachReviewCard client={client} showToast={showToast} />
+
         {!phase ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
             <ClipboardList size={28} className="text-black/20 mb-3" />
@@ -4643,10 +4647,6 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <PerformanceTimelineCard client={client} />
-
-      <WeeklyCoachReviewCard client={client} showToast={showToast} />
-
       <PersonalDetailsCard client={client} showToast={showToast} onClose={onClose} onSendLogin={onSendLogin} />
 
       <PlateauAlertCard client={client} />
