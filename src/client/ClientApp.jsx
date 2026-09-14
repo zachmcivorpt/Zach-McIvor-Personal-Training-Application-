@@ -6462,8 +6462,9 @@ export default function ClientApp() {
         // spreading undefined there threw, silently dropping the whole add.
         meals: { ...base.meals, [meal]: [...(base.meals?.[meal] || []), { ...food, id: food.id + "-" + Date.now() }] },
       };
-    });
-    showToast(`${food.name} added to ${meal}`);
+    })
+      .then(() => showToast(`${food.name} added to ${meal}`))
+      .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"));
   }
 
   function removeFood(meal, entryId, dateKey = todayDateKey) {
@@ -6485,16 +6486,18 @@ export default function ClientApp() {
         ...micros,
         meals: { ...base.meals, [meal]: items.filter((f) => f.id !== entryId) },
       };
-    });
-    showToast("Entry removed");
+    })
+      .then(() => showToast("Entry removed"))
+      .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again"));
   }
 
   function addWater(liters, dateKey = todayDateKey) {
     setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       return { ...base, water: Math.round((base.water + liters) * 100) / 100 };
-    });
-    showToast(`+${Math.round(liters * 1000)}ml logged`);
+    })
+      .then(() => showToast(`+${Math.round(liters * 1000)}ml logged`))
+      .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"));
   }
 
   function doLogout() {

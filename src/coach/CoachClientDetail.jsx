@@ -3154,7 +3154,7 @@ function NutritionPanel({ client, showToast }) {
                   fat: 0,
                   water: 0,
                   meals: { Breakfast: [], Lunch: [], Dinner: [], Snacks: [], "Pre-workout": [], "Post-workout": [] },
-                }));
+                })).catch(() => showToast("Couldn't clear — check your connection and try again"));
                 setConfirmReset(false);
                 showToast("Today's nutrition log cleared");
               }}

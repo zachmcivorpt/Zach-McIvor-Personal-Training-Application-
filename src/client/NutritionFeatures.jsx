@@ -240,6 +240,13 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   const lookedUpCodeRef = useRef(""); // the digits actually resolved — tagged onto a food saved to the library so the next scan/entry of the same barcode is instant
   const scannerRef = useRef(null);
   const elId = "barcode-scanner-region";
+  // Set true the instant this sheet closes (or unmounts) — a scan's lookup
+  // is a network round-trip that can easily still be in flight when the
+  // client backs out, and without this, that lookup finishing late would
+  // still call onAdd() and pop the quantity sheet back open on a screen
+  // the client already left, looking like the scan "did nothing" and then
+  // randomly surfaced a food to confirm out of nowhere.
+  const closedRef = useRef(true);
 
   function toggleTorch() {
     if (!scannerRef.current) return;
@@ -270,8 +277,10 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     }
     try {
       const food = await lookupBarcode(digits);
+      if (closedRef.current) return;
       onAdd(food);
     } catch (err) {
+      if (closedRef.current) return;
       setError(err.message);
       setErrorDetail("");
       setManual({ name: err.productName || "", cals: "", protein: "", carbs: "", fat: "" });
@@ -281,6 +290,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
 
   useEffect(() => {
     if (!open) return;
+    closedRef.current = false;
     setStatus("scanning");
     setError("");
     setErrorDetail("");
@@ -407,6 +417,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
 
     return () => {
       cancelled = true;
+      closedRef.current = true;
       // onDecoded may already have stopped (and be mid-lookup on) this exact
       // instance — that's the crash this used to hit: stop() throws
       // synchronously when called on an already-stopped scanner, and that
@@ -417,6 +428,22 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       if (activeScanner && !alreadyStopped) {
         safeStop(activeScanner).finally(() => activeScanner.clear());
       }
+      // Belt-and-braces: on some browsers Html5Qrcode's own stop()/clear()
+      // doesn't fully release the camera hardware (the recording indicator
+      // stays on), which keeps decoding frames — real, continuous CPU/GPU
+      // work — running invisibly in the background for the rest of the
+      // session. That's exactly the kind of load that can make the rest of
+      // the app feel like it's silently not responding to state updates
+      // until something (backgrounding the tab, for one) forces the
+      // browser to actually free the camera. Explicitly stopping any
+      // leftover tracks on the scan region's <video> closes that gap.
+      const region = document.getElementById(elId);
+      const video = region?.querySelector("video");
+      const stream = video?.srcObject;
+      if (stream?.getTracks) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      if (video) video.srcObject = null;
       setStatus("scanning");
     };
   }, [open, scanKey]);

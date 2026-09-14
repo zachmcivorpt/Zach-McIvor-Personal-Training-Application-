@@ -1110,14 +1110,18 @@ export function AppProvider({ children }) {
       // Nutrition logged per calendar day — doc id is deterministic
       // (clientId__date) so each day's log is separate, mirroring the
       // scheduledWorkouts date-keyed pattern.
-      setNutritionForDate(clientId, date, updater) {
+      async setNutritionForDate(clientId, date, updater) {
         const id = `${clientId}__${date}`;
         const current = (db.nutritionLogs[clientId] || []).find((n) => n.date === date);
         const base = current
           ? { calories: current.calories, protein: current.protein, carbs: current.carbs, fat: current.fat, water: current.water, meals: current.meals }
           : null;
         const next = updater(base);
-        setDoc(doc(firestore, "nutritionLogs", id), { id, clientId, date, ...next }).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "nutritionLogs", id), { id, clientId, date, ...next });
+        } catch (err) {
+          throw new Error("Couldn't save — check your connection and try again");
+        }
       },
 
       sendMessage(clientId, from, text, attachment) {
