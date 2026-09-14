@@ -118,7 +118,7 @@ import {
   closestWeighIn,
   suggestNextSet,
 } from "../lib/trainingStats";
-import { resolveNutritionTargets } from "../lib/nutritionTargets";
+import { resolveNutritionTargets, MICRO_DV_ROWS } from "../lib/nutritionTargets";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
@@ -2996,24 +2996,7 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
         ].filter((d) => d.value > 0)
       : [];
 
-  // Reference amounts are the FDA's general-adult Daily Values (the same
-  // %DV figures printed on every nutrition label) — a fixed public
-  // guideline, not anything personalized to this client, so it's shown as
-  // a plain reference rather than a "target" the app is coaching toward.
-  // Trans fat has no DV at all (guidance is simply "as little as
-  // possible"), so it gets a note instead of a number.
-  const microRows = [
-    { key: "satFat", label: "Saturated Fat", unit: "g", dv: 20, kind: "limit" },
-    { key: "transFat", label: "Trans Fat", unit: "g", dv: null, note: "as little as possible" },
-    { key: "fiber", label: "Fiber", unit: "g", dv: 28, kind: "target" },
-    { key: "sugar", label: "Sugar", unit: "g", dv: 50, kind: "limit" },
-    { key: "sodium", label: "Sodium", unit: "mg", dv: 2300, kind: "limit" },
-    { key: "potassium", label: "Potassium", unit: "mg", dv: 4700, kind: "target" },
-    { key: "calcium", label: "Calcium", unit: "mg", dv: 1300, kind: "target" },
-    { key: "iron", label: "Iron", unit: "mg", dv: 18, kind: "target" },
-    { key: "cholesterol", label: "Cholesterol", unit: "mg", dv: 300, kind: "limit" },
-    { key: "vitaminC", label: "Vitamin C", unit: "mg", dv: 90, kind: "target" },
-  ];
+  const microRows = MICRO_DV_ROWS;
 
   return (
     <FullScreenOverlay>

@@ -26,6 +26,26 @@ export function resolveNutritionTargets(stored) {
   };
 }
 
+// Micronutrient reference table — the FDA's general-adult Daily Values
+// (the same %DV figures printed on every nutrition label), not anything
+// personalized to a given client, so these are shown as a plain reference
+// rather than a coached-toward "target". Trans fat has no DV at all
+// (guidance is simply "as little as possible"), so it gets a note instead
+// of a number. Shared by the client's own Nutrition Detail screen and the
+// coach's client Nutrition tab so both read the exact same figures.
+export const MICRO_DV_ROWS = [
+  { key: "satFat", label: "Saturated Fat", unit: "g", dv: 20, kind: "limit" },
+  { key: "transFat", label: "Trans Fat", unit: "g", dv: null, note: "as little as possible" },
+  { key: "fiber", label: "Fiber", unit: "g", dv: 28, kind: "target" },
+  { key: "sugar", label: "Sugar", unit: "g", dv: 50, kind: "limit" },
+  { key: "sodium", label: "Sodium", unit: "mg", dv: 2300, kind: "limit" },
+  { key: "potassium", label: "Potassium", unit: "mg", dv: 4700, kind: "target" },
+  { key: "calcium", label: "Calcium", unit: "mg", dv: 1300, kind: "target" },
+  { key: "iron", label: "Iron", unit: "mg", dv: 18, kind: "target" },
+  { key: "cholesterol", label: "Cholesterol", unit: "mg", dv: 300, kind: "limit" },
+  { key: "vitaminC", label: "Vitamin C", unit: "mg", dv: 90, kind: "target" },
+];
+
 // Adjusts one macro's percentage, redistributing the remainder across the
 // other two proportionally so all three always sum to exactly 100.
 export function adjustMacroPct(pcts, changedKey, rawValue) {

@@ -1,9 +1,9 @@
 import React, { useMemo, useRef, useState } from "react";
-import { useApp, getCurrentPhase, getNextPhase, needsNewPhaseSoon, programPhases } from "../lib/AppContext";
+import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
-import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct } from "../lib/nutritionTargets";
+import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct, resolveNutritionTargets, MICRO_DV_ROWS } from "../lib/nutritionTargets";
 import {
   computePerformanceTimeline,
   computePRsInLastNDays,
@@ -26,7 +26,7 @@ import {
   PersonalBestsCard,
   axisStyle,
 } from "../components/ProgressWidgets";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, BarChart, Bar, Cell, ReferenceLine, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ThreadView } from "./CoachMessages";
 import MealPlanBuilder from "./MealPlanBuilder";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
@@ -71,7 +71,6 @@ import {
   Minus,
   MessageSquare,
   Trophy,
-  AlertTriangle,
   Camera,
 } from "lucide-react";
 import { fileToCompressedDataUrl } from "../lib/image";
@@ -3065,6 +3064,98 @@ function ClientFoodPreferencesCard({ client, showToast }) {
   );
 }
 
+function round1(n) {
+  return Math.round(n * 10) / 10;
+}
+
+function WeeklyNutritionCard({ client }) {
+  const { db } = useApp();
+  const targets = resolveNutritionTargets(client.nutritionTargets);
+  const logs = db.nutritionLogs[client.id] || [];
+
+  const weekData = useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = localDateKey(d);
+      const entry = logs.find((n) => n.date === key);
+      days.push({
+        label: d.toLocaleDateString(undefined, { weekday: "short" }),
+        calories: entry ? Math.round(entry.calories || 0) : 0,
+        protein: entry ? round1(entry.protein || 0) : 0,
+        carbs: entry ? round1(entry.carbs || 0) : 0,
+        fat: entry ? round1(entry.fat || 0) : 0,
+        logged: !!entry,
+      });
+    }
+    return days;
+  }, [logs]);
+
+  const loggedDays = weekData.filter((d) => d.logged);
+  const avg = (key) => (loggedDays.length ? round1(loggedDays.reduce((a, d) => a + d[key], 0) / loggedDays.length) : 0);
+  const avgCalories = loggedDays.length ? Math.round(loggedDays.reduce((a, d) => a + d.calories, 0) / loggedDays.length) : 0;
+
+  return (
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
+      <p className="text-black font-semibold mb-1">Weekly Nutrition Overview</p>
+      <p className="text-black/40 text-xs mb-4">
+        {loggedDays.length === 0
+          ? "Nothing logged this week yet"
+          : `${loggedDays.length}/7 days logged · avg ${avgCalories}/${targets.calories} cal`}
+      </p>
+
+      {loggedDays.length > 0 ? (
+        <div className="w-full h-44 -ml-4">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={weekData} barCategoryGap="28%">
+              <XAxis dataKey="label" tick={axisStyle} axisLine={false} tickLine={false} />
+              <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={36} />
+              <Tooltip
+                cursor={{ fill: "rgba(10,10,11,0.04)" }}
+                contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }}
+                formatter={(value, name, item) => [item?.payload?.logged ? `${value} cal` : "Not logged", "Intake"]}
+              />
+              <ReferenceLine y={targets.calories} stroke="rgba(10,10,11,0.25)" strokeDasharray="4 4" />
+              <Bar dataKey="calories" radius={[4, 4, 0, 0]} maxBarSize={32}>
+                {weekData.map((d, i) => (
+                  <Cell key={i} fill={d.logged ? MEASURE_BLUE : "rgba(10,10,11,0.08)"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        <div className="h-16 flex items-center justify-center">
+          <p className="text-black/25 text-sm">No nutrition logged this week</p>
+        </div>
+      )}
+
+      {loggedDays.length > 0 && (
+        <div className="grid grid-cols-3 gap-3 pt-4 mt-1 border-t border-black/8">
+          {[
+            ["Protein", avg("protein"), targets.protein, "g"],
+            ["Carbs", avg("carbs"), targets.carbs, "g"],
+            ["Fat", avg("fat"), targets.fat, "g"],
+          ].map(([l, v, t, unit]) => (
+            <div key={l} className="text-center">
+              <p className="text-black font-bold text-sm">
+                {v}
+                {unit}
+                <span className="text-black/35 font-medium">
+                  /{t}
+                  {unit}
+                </span>
+              </p>
+              <p className="text-black/40 text-[11px] mt-0.5">avg {l}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NutritionPanel({ client, showToast }) {
   const { db, setNutritionForDate } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -3072,6 +3163,7 @@ function NutritionPanel({ client, showToast }) {
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const todayDateKey = localDateKey();
   const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === todayDateKey);
+  const targets = resolveNutritionTargets(client.nutritionTargets);
   const mealPlan = (db.mealPlans[client.id] || [])[0];
   const mealsById = useMemo(() => Object.fromEntries((db.masterMeals || []).map((m) => [m.id, m])), [db.masterMeals]);
   const mealPlanDayCount = mealPlan?.days?.length || 0;
@@ -3082,55 +3174,55 @@ function NutritionPanel({ client, showToast }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
-      <div className="space-y-6 mb-6">
-        <NutritionTargetsCard client={client} showToast={showToast} />
-        <ClientFoodPreferencesCard client={client} showToast={showToast} />
-
-        <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                <Utensils size={15} className="text-blue-500" />
-              </div>
-              <p className="text-black font-semibold text-sm">Meal Plan</p>
-            </div>
-          </div>
-          <p className="text-black/40 text-xs mb-4 ml-[42px]">
-            {mealPlan
-              ? `${mealPlanWeeks ? `${mealPlanWeeks}-week plan · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
-              : "This client has no meal plan yet — build one from your Meal Library."}
-          </p>
-          <div className="flex gap-2">
-            <PrimaryButton className={mealPlan ? "flex-1" : "w-full"} onClick={() => setMealPlanOpen(true)}>
-              {mealPlan ? "EDIT MEAL PLAN" : "BUILD MEAL PLAN"}
-            </PrimaryButton>
-            {mealPlan && (
-              <SecondaryButton className="flex-1" onClick={() => setShoppingListOpen(true)}>
-                SHOPPING LIST
-              </SecondaryButton>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
         <p className="text-black font-semibold mb-4">Today's Nutrition Log</p>
         {!nutrition ? (
-          <p className="text-black/30 text-sm">Nothing logged yet.</p>
+          <p className="text-black/30 text-sm mb-4">Nothing logged yet.</p>
         ) : (
-          <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            {[
-              ["Cals", nutrition.calories],
-              ["Protein", `${nutrition.protein}g`],
-              ["Carbs", `${nutrition.carbs}g`],
-              ["Fat", `${nutrition.fat}g`],
-            ].map(([l, v]) => (
-              <div key={l} className="text-center">
-                <p className="text-black font-bold">{v}</p>
-                <p className="text-black/40 text-[11px] mt-0.5">{l}</p>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+              {[
+                ["Calories", Math.round(nutrition.calories || 0), targets.calories, ""],
+                ["Protein", round1(nutrition.protein || 0), targets.protein, "g"],
+                ["Carbs", round1(nutrition.carbs || 0), targets.carbs, "g"],
+                ["Fat", round1(nutrition.fat || 0), targets.fat, "g"],
+              ].map(([l, v, t, unit]) => (
+                <div key={l} className="text-center">
+                  <p className="text-black font-bold">
+                    {v}
+                    {unit}
+                    <span className="text-black/35 font-medium">
+                      /{t}
+                      {unit}
+                    </span>
+                  </p>
+                  <p className="text-black/40 text-[11px] mt-0.5">{l}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">MICRONUTRIENTS</p>
+            <div className="bg-black/[0.03] border border-black/8 rounded-2xl px-4 mb-4">
+              {MICRO_DV_ROWS.map((r, i) => {
+                const value = round1(nutrition[r.key] || 0);
+                const over = r.dv != null && r.kind === "limit" && value > r.dv;
+                return (
+                  <div key={r.key} className={`flex items-center justify-between py-2.5 ${i > 0 ? "border-t border-black/5" : ""}`}>
+                    <span className="text-black/70 text-sm">{r.label}</span>
+                    <div className="text-right">
+                      <span className={over ? "text-red-500 font-medium text-sm" : "text-black font-medium text-sm"}>
+                        {value}
+                        {r.unit}
+                      </span>
+                      <span className="text-black/30 text-xs ml-1">
+                        {r.dv != null ? `/ ${r.dv}${r.unit} ${r.kind === "limit" ? "limit" : "DV"}` : r.note}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
         {!confirmReset ? (
           <button
@@ -3163,6 +3255,39 @@ function NutritionPanel({ client, showToast }) {
             </DangerButton>
           </div>
         )}
+      </div>
+
+      <WeeklyNutritionCard client={client} />
+
+      <div className="space-y-6">
+        <NutritionTargetsCard client={client} showToast={showToast} />
+        <ClientFoodPreferencesCard client={client} showToast={showToast} />
+
+        <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                <Utensils size={15} className="text-blue-500" />
+              </div>
+              <p className="text-black font-semibold text-sm">Meal Plan</p>
+            </div>
+          </div>
+          <p className="text-black/40 text-xs mb-4 ml-[42px]">
+            {mealPlan
+              ? `${mealPlanWeeks ? `${mealPlanWeeks}-week plan · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
+              : "This client has no meal plan yet — build one from your Meal Library."}
+          </p>
+          <div className="flex gap-2">
+            <PrimaryButton className={mealPlan ? "flex-1" : "w-full"} onClick={() => setMealPlanOpen(true)}>
+              {mealPlan ? "EDIT MEAL PLAN" : "BUILD MEAL PLAN"}
+            </PrimaryButton>
+            {mealPlan && (
+              <SecondaryButton className="flex-1" onClick={() => setShoppingListOpen(true)}>
+                SHOPPING LIST
+              </SecondaryButton>
+            )}
+          </div>
+        </div>
       </div>
 
       {mealPlanOpen && <MealPlanBuilder client={client} onClose={() => setMealPlanOpen(false)} showToast={showToast} />}
@@ -3916,11 +4041,6 @@ function ProgressPanel({ client }) {
   );
 }
 
-function fmtStatDate(ts) {
-  if (!ts) return "Never";
-  return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
 const SEX_OPTIONS = ["Male", "Female", "Other"];
 
 // A label above a bottom-border-only field — no boxed input, just a clean
@@ -4189,8 +4309,9 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   );
 }
 
-function PersonalDetailsCard({ client, showToast, onClose }) {
-  const { updateUser, updateClientProfile } = useApp();
+function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
+  const { db, updateUser, updateClientProfile, sendMessage, sendPasswordReset } = useApp();
+  const [sendingReset, setSendingReset] = useState(false);
   const [name, setName] = useState(client.name || "");
   const [email, setEmail] = useState(client.email || "");
   const [age, setAge] = useState(client.age || "");
@@ -4244,6 +4365,30 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function sendLoginHelp() {
+    setSendingReset(true);
+    try {
+      await sendPasswordReset(client.email);
+      showToast(`Password reset email sent to ${client.email}`);
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSendingReset(false);
+    }
+  }
+
+  function sendWelcomeNow() {
+    const welcome = db.welcomeMessage;
+    if (!welcome?.text?.trim()) {
+      showToast("Set up a welcome message in Settings first");
+      return;
+    }
+    const text = welcome.text.replace(/\{name\}/gi, client.name.split(" ")[0]);
+    const attachment = welcome.attachmentUrl ? { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl } : undefined;
+    sendMessage(client.id, "coach", text, attachment);
+    showToast("Welcome message sent");
   }
 
   return (
@@ -4345,225 +4490,83 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
           </div>
         </div>
       </div>
+
+      <div className="px-5 py-3.5 border-t border-black/8 flex flex-wrap items-center gap-4">
+        {client.status === "active" ? (
+          <>
+            <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+              <MailCheck size={13} /> Send welcome message now
+            </button>
+            <button
+              onClick={sendLoginHelp}
+              disabled={sendingReset}
+              className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-40"
+            >
+              <Send size={13} /> {sendingReset ? "Sending…" : "Resend login help"}
+            </button>
+          </>
+        ) : (
+          <button onClick={onSendLogin} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+            <Send size={13} /> Send Login Details
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
 function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
-  const { db, addClientTag, removeClientTag, addClientNote, deleteClientNote, sendMessage, sendPasswordReset } = useApp();
-  const [tagInput, setTagInput] = useState("");
+  const { db, addClientNote, deleteClientNote } = useApp();
   const [noteInput, setNoteInput] = useState("");
-  const [sendingReset, setSendingReset] = useState(false);
 
-  async function sendLoginHelp() {
-    setSendingReset(true);
-    try {
-      await sendPasswordReset(client.email);
-      showToast(`Password reset email sent to ${client.email}`);
-    } catch (err) {
-      showToast(err.message);
-    } finally {
-      setSendingReset(false);
-    }
-  }
-
-  const logs = db.workoutLogs[client.id] || [];
-  const totalWorkouts = logs.length;
-  const totalPRs = logs.reduce((a, log) => a + log.entries.reduce((b, e) => b + e.sets.filter((s) => s.isPR).length, 0), 0);
-  const thread = db.messages[client.id] || [];
-  const lastSent = [...thread].reverse().find((m) => m.from === "coach");
-  const lastReceived = [...thread].reverse().find((m) => m.from === "client");
-  const tags = (db.clientTags || {})[client.id] || [];
   const notes = (db.clientNotes || {})[client.id] || [];
-
-  const phases = (db.clientPhases || {})[client.id] || [];
-  const todayKey = localDateKey();
-  const phase = getCurrentPhase(phases, todayKey);
-  const nextPhase = getNextPhase(phases, todayKey);
-  const needsNewPhase = needsNewPhaseSoon(phase, nextPhase, todayKey);
-  const daysPerWeek = phase?.weeks?.[0]?.days?.length || 0;
-
-  const now = Date.now();
-  const thisWeekCount = logs.filter((l) => l.date >= now - 7 * 86400000).length;
-  const prevWeekCount = logs.filter((l) => l.date >= now - 14 * 86400000 && l.date < now - 7 * 86400000).length;
-
-  function sendWelcomeNow() {
-    const welcome = db.welcomeMessage;
-    if (!welcome?.text?.trim()) {
-      showToast("Set up a welcome message in Settings first");
-      return;
-    }
-    const text = welcome.text.replace(/\{name\}/gi, client.name.split(" ")[0]);
-    const attachment = welcome.attachmentUrl ? { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl } : undefined;
-    sendMessage(client.id, "coach", text, attachment);
-    showToast("Welcome message sent");
-  }
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <PersonalDetailsCard client={client} showToast={showToast} onClose={onClose} />
-
       <PerformanceTimelineCard client={client} />
-
-      <PlateauAlertCard client={client} />
 
       <WeeklyCoachReviewCard client={client} showToast={showToast} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* left: stats, tags */}
-        <div className="space-y-5">
-          <div>
-            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">STATS</p>
-            <div className="bg-black/[0.03] border border-black/8 rounded-xl divide-y divide-black/5">
-              {[
-                ["Total workouts", totalWorkouts],
-                ["Personal bests", totalPRs],
-                ["Last signed in", fmtStatDate(client.lastLoginAt)],
-                ["Last message sent", fmtStatDate(lastSent?.date)],
-                ["Last message received", fmtStatDate(lastReceived?.date)],
-              ].map(([label, value]) => (
-                <div key={label} className="flex items-center justify-between text-sm px-3.5 py-2.5">
-                  <span className="text-black/50">{label}</span>
-                  <span className="text-black font-semibold">{value}</span>
-                </div>
-              ))}
-            </div>
-            {client.status === "active" ? (
-              <div className="flex flex-col gap-1.5 mt-2.5">
-                <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
-                  <MailCheck size={13} /> Send welcome message now
-                </button>
-                <button
-                  onClick={sendLoginHelp}
-                  disabled={sendingReset}
-                  className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-40"
-                >
-                  <Send size={13} /> {sendingReset ? "Sending…" : "Resend login help"}
-                </button>
-              </div>
-            ) : (
-              <button onClick={onSendLogin} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold mt-2.5">
-                <Send size={13} /> Send Login Details
-              </button>
-            )}
-          </div>
+      <PersonalDetailsCard client={client} showToast={showToast} onClose={onClose} onSendLogin={onSendLogin} />
 
-          <div>
-            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TAGS</p>
-            <div className="flex flex-wrap gap-1.5 mb-2.5">
-              {needsNewPhase && (
-                <span
-                  title="Their current phase ends within 7 days (or already has) and nothing's scheduled after it"
-                  className="flex items-center gap-1 bg-amber-50 text-amber-700 text-xs font-bold pl-2.5 pr-2 py-1 rounded-full"
-                >
-                  <AlertTriangle size={11} /> Needs new phase
+      <PlateauAlertCard client={client} />
+
+      <div>
+        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINER'S NOTES</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            addClientNote(client.id, noteInput);
+            setNoteInput("");
+          }}
+          className="mb-3"
+        >
+          <textarea
+            value={noteInput}
+            onChange={(e) => setNoteInput(e.target.value)}
+            placeholder="Private note — only you can see this"
+            rows={2}
+            className="w-full bg-black/5 border border-black/10 rounded-xl px-3 py-2 text-sm text-black outline-none placeholder:text-black/25 resize-none mb-2"
+          />
+          <button type="submit" className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-lg">
+            Add note
+          </button>
+        </form>
+        <div className="space-y-2">
+          {notes.length === 0 && <p className="text-black/25 text-xs">No notes yet.</p>}
+          {notes.map((n) => (
+            <div key={n.id} className="bg-black/[0.03] rounded-lg px-3 py-2.5">
+              <p className="text-black text-sm">{n.text}</p>
+              <div className="flex items-center justify-between mt-1.5">
+                <span className="text-black/30 text-[10px]">
+                  {new Date(n.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                 </span>
-              )}
-              {tags.length === 0 && !needsNewPhase && <span className="text-black/25 text-xs">No tags yet.</span>}
-              {tags.map((t) => (
-                <span key={t} className="flex items-center gap-1 bg-black/8 text-black/70 text-xs font-medium pl-2.5 pr-1.5 py-1 rounded-full">
-                  {t}
-                  <button onClick={() => removeClientTag(client.id, t)} className="text-black/30 hover:text-black/60" aria-label={`Remove ${t}`}>
-                    <X size={11} />
-                  </button>
-                </span>
-              ))}
-            </div>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                addClientTag(client.id, tagInput);
-                setTagInput("");
-              }}
-              className="flex gap-1.5"
-            >
-              <input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Add a tag, e.g. Low compliance"
-                className="flex-1 bg-black/5 border border-black/10 rounded-lg px-2.5 py-1.5 text-xs text-black outline-none placeholder:text-black/25"
-              />
-              <button type="submit" className="bg-black text-white text-xs font-semibold px-3 rounded-lg shrink-0">
-                Add
-              </button>
-            </form>
-          </div>
-
-        </div>
-
-        {/* middle: program + session activity */}
-        <div className="space-y-5">
-          <div>
-            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINING PROGRAM</p>
-            {phase ? (
-              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4">
-                <p className="text-black font-semibold text-sm">{phase.name}</p>
-                <p className="text-black/40 text-xs mt-1">
-                  {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                  {phase.endDate ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : ""}
-                </p>
-                {phase.description && <p className="text-black/50 text-xs mt-2">{phase.description}</p>}
-              </div>
-            ) : (
-              <p className="text-black/30 text-sm">No phase scheduled.</p>
-            )}
-          </div>
-
-          <div>
-            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">
-              SESSION ACTIVITY{daysPerWeek > 0 ? ` — program is ${daysPerWeek}/week` : ""}
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 text-center">
-                <p className="text-black text-2xl font-bold">{prevWeekCount}</p>
-                <p className="text-black/40 text-xs mt-1">8–14 days ago</p>
-              </div>
-              <div className="bg-black/[0.03] border border-black/8 rounded-xl p-4 text-center">
-                <p className="text-black text-2xl font-bold">{thisWeekCount}</p>
-                <p className="text-black/40 text-xs mt-1">Last 7 days</p>
+                <button onClick={() => deleteClientNote(client.id, n.id)} className="text-black/25 hover:text-black/50" aria-label="Delete note">
+                  <X size={11} />
+                </button>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* right: trainer notes */}
-        <div>
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINER'S NOTES</p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              addClientNote(client.id, noteInput);
-              setNoteInput("");
-            }}
-            className="mb-3"
-          >
-            <textarea
-              value={noteInput}
-              onChange={(e) => setNoteInput(e.target.value)}
-              placeholder="Private note — only you can see this"
-              rows={2}
-              className="w-full bg-black/5 border border-black/10 rounded-xl px-3 py-2 text-sm text-black outline-none placeholder:text-black/25 resize-none mb-2"
-            />
-            <button type="submit" className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-lg">
-              Add note
-            </button>
-          </form>
-          <div className="space-y-2">
-            {notes.length === 0 && <p className="text-black/25 text-xs">No notes yet.</p>}
-            {notes.map((n) => (
-              <div key={n.id} className="bg-black/[0.03] rounded-lg px-3 py-2.5">
-                <p className="text-black text-sm">{n.text}</p>
-                <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-black/30 text-[10px]">
-                    {new Date(n.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                  </span>
-                  <button onClick={() => deleteClientNote(client.id, n.id)} className="text-black/25 hover:text-black/50" aria-label="Delete note">
-                    <X size={11} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
     </div>
