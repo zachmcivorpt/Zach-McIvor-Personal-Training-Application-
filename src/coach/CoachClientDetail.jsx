@@ -64,6 +64,7 @@ import {
   Lock,
   Unlock,
   TrendingDown,
+  TrendingUp,
   MoreVertical,
   RotateCcw,
   CalendarClock,
@@ -4349,6 +4350,19 @@ function WeeklyCoachReviewCard({ client, showToast }) {
       ),
     [logs, weekAgo]
   );
+  // The week before that, so the Volume tile can show whether load is
+  // trending up or down rather than just a bare number with no context.
+  const twoWeeksAgo = Date.now() - 14 * 86400000;
+  const volumePrevWeek = useMemo(
+    () =>
+      Math.round(
+        logs
+          .filter((l) => l.date >= twoWeeksAgo && l.date < weekAgo)
+          .reduce((a, log) => a + log.entries.reduce((b, e) => b + e.sets.reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0), 0)
+      ),
+    [logs, twoWeeksAgo, weekAgo]
+  );
+  const volumeChangePct = volumePrevWeek > 0 ? Math.round(((volumeThisWeek - volumePrevWeek) / volumePrevWeek) * 100) : null;
   const prCount = useMemo(() => computePRsInLastNDays(logs, 7), [logs]);
 
   const last7Dates = useMemo(
@@ -4415,8 +4429,7 @@ function WeeklyCoachReviewCard({ client, showToast }) {
       sub: weeklyCompletion.expected > 0 ? "completed" : "this week",
       value: weeklyCompletion.expected > 0 ? `${weeklyCompletion.completed}/${weeklyCompletion.expected}` : sessionsThisWeek,
     },
-    { label: "Volume", sub: "kg lifted", value: volumeThisWeek.toLocaleString() },
-    { label: "Nutrition", sub: "days logged", value: `${nutritionAdherencePct}%` },
+    { label: "Volume", sub: "kg lifted", value: volumeThisWeek.toLocaleString(), change: volumeChangePct },
     { label: "Habits", sub: "completion", value: consistencyPct != null ? `${consistencyPct}%` : "—" },
     { label: "PRs", sub: "this week", value: prCount },
   ];
@@ -4426,10 +4439,21 @@ function WeeklyCoachReviewCard({ client, showToast }) {
       <p className="text-black font-semibold mb-1">Weekly Coach Review</p>
       <p className="text-black/40 text-xs mb-4">Training, nutrition, recovery and performance — last 7 days.</p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {stats.map((s) => (
           <div key={s.label}>
-            <p className="text-black text-lg font-bold tabular-nums">{s.value}</p>
+            <p className="text-black text-lg font-bold tabular-nums flex items-center gap-1.5">
+              {s.value}
+              {s.change != null && s.change !== 0 && (
+                <span
+                  className="flex items-center gap-0.5 text-[11px] font-semibold"
+                  style={{ color: s.change > 0 ? GOAL_GREEN : "#EF4444" }}
+                >
+                  {s.change > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                  {Math.abs(s.change)}%
+                </span>
+              )}
+            </p>
             <p className="text-black/40 text-[11px] mt-0.5">
               {s.label} <span className="text-black/25">· {s.sub}</span>
             </p>
