@@ -908,6 +908,7 @@ export function AppProvider({ children }) {
               label: w.label,
               muscleGroups: w.muscleGroups || [],
               exercises: w.exercises,
+              instructions: w.instructions || "",
             });
           });
           batch.commit().catch(console.error);
@@ -1186,9 +1187,9 @@ export function AppProvider({ children }) {
       // Workouts scheduled onto specific calendar dates for a client — the
       // doc id is deterministic (clientId__date) so re-scheduling a date
       // cleanly replaces whatever was there before instead of duplicating.
-      async scheduleWorkout(clientId, { date, label, muscleGroups, exercises }) {
+      async scheduleWorkout(clientId, { date, label, muscleGroups, exercises, instructions }) {
         const id = `${clientId}__${date}`;
-        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises };
+        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises, instructions: instructions || "" };
         try {
           await setDoc(doc(firestore, "scheduledWorkouts", id), entry);
         } catch (err) {
@@ -1197,7 +1198,7 @@ export function AppProvider({ children }) {
         return entry;
       },
 
-      async scheduleWorkoutRecurring(clientId, { startDate, weeks, label, muscleGroups, exercises }) {
+      async scheduleWorkoutRecurring(clientId, { startDate, weeks, label, muscleGroups, exercises, instructions }) {
         const dates = [];
         const d = new Date(startDate);
         for (let i = 0; i < weeks; i++) {
@@ -1207,7 +1208,7 @@ export function AppProvider({ children }) {
         const batch = writeBatch(firestore);
         dates.forEach((date) => {
           const id = `${clientId}__${date}`;
-          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises });
+          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises, instructions: instructions || "" });
         });
         try {
           await batch.commit();
@@ -1220,11 +1221,11 @@ export function AppProvider({ children }) {
       // Same as scheduleWorkout, but for an arbitrary hand-picked set of
       // dates (e.g. every Mon/Wed/Fri circled on a calendar) rather than a
       // fixed weekly cadence.
-      async scheduleWorkoutDates(clientId, { dates, label, muscleGroups, exercises }) {
+      async scheduleWorkoutDates(clientId, { dates, label, muscleGroups, exercises, instructions }) {
         const batch = writeBatch(firestore);
         dates.forEach((date) => {
           const id = `${clientId}__${date}`;
-          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises });
+          batch.set(doc(firestore, "scheduledWorkouts", id), { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises, instructions: instructions || "" });
         });
         try {
           await batch.commit();

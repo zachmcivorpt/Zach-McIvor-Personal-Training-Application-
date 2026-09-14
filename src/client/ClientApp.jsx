@@ -11,6 +11,7 @@ import {
   Check,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Plus,
   Droplet,
   Moon,
@@ -1148,12 +1149,11 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-28">
-          <div className="flex items-center gap-2.5 mt-4">
-            <span className={dark ? "w-9 h-9 rounded-full border-2 border-white/15 shrink-0" : "w-9 h-9 rounded-full border-2 border-black/15 shrink-0"} />
+          <div className="mt-4">
             <h1 className={dark ? "text-white text-2xl font-bold truncate" : "text-black text-2xl font-bold truncate"}>{session.label}</h1>
           </div>
 
-          <div className={dark ? "flex items-center gap-5 mt-4 text-white/50 text-[13px] font-medium flex-wrap" : "flex items-center gap-5 mt-4 text-black/50 text-[13px] font-medium flex-wrap"}>
+          <div className="flex items-center gap-5 mt-4 text-[13px] font-semibold flex-wrap" style={{ color: MEASURE_BLUE }}>
             <span className="flex items-center gap-1.5">
               <Target size={15} /> Regular
             </span>
@@ -1164,6 +1164,13 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
               <Dumbbell size={15} /> {countExercises(session.exercises)} Exercises
             </span>
           </div>
+
+          {session.instructions && (
+            <div className="mt-5">
+              <p className={dark ? "text-white/35 text-xs font-semibold tracking-wide mb-2" : "text-black/35 text-xs font-semibold tracking-wide mb-2"}>INSTRUCTIONS</p>
+              <p className={dark ? "text-white/75 text-[14px] leading-relaxed whitespace-pre-line" : "text-black/75 text-[14px] leading-relaxed whitespace-pre-line"}>{session.instructions}</p>
+            </div>
+          )}
 
           {equipment.length > 0 && (
             <div className="mt-5">
@@ -1193,7 +1200,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
                       <ExerciseThumb dark={dark} exercise={ex} size={56} rounded="rounded-lg" className="shadow-sm" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className={dark ? "text-white font-semibold text-[15px] truncate" : "text-black font-semibold text-[15px] truncate"}>{ex.name}</p>
+                          <p className={dark ? "text-white font-bold text-base tracking-wide truncate" : "text-black font-bold text-base tracking-wide truncate"}>{ex.name}</p>
                           {e.dropSet && (
                             <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                               DROPSET
@@ -1542,6 +1549,12 @@ function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
 
 function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, onNoteSave, swapInfo, onSwap, onStartRest, onOpenDetail }) {
   const dark = useClientDark();
+  // Warm-up exercises are collapsed by default — a session can have a dozen
+  // of them and they rarely need more than a glance, so only the name/set
+  // count show until the client taps the arrow to reveal the actual set
+  // rows (and anything else logged against it).
+  const isWarmup = (exMeta.section || "main") === "warmup";
+  const [expanded, setExpanded] = useState(!isWarmup);
   const [notesExpanded, setNotesExpanded] = useState(false);
   const [noteStatus, setNoteStatus] = useState("idle"); // idle | saving | saved
   const noteSaveTimeout = useRef(null);
@@ -1607,7 +1620,10 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
           </p>
         </button>
         <button
-          onClick={onSwap}
+          onClick={() => {
+            if (isWarmup) setExpanded(true);
+            onSwap();
+          }}
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
             swapInfo ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white/40" : "text-black/40"
           }`}
@@ -1615,16 +1631,28 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
           <Repeat size={17} />
         </button>
         <button
-          onClick={onToggleNote}
+          onClick={() => {
+            if (isWarmup) setExpanded(true);
+            onToggleNote();
+          }}
           className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors ${
             noteOpen || note ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white/40" : "text-black/40"
           }`}
         >
           <ClipboardList size={17} />
         </button>
+        {isWarmup && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className={dark ? "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white/40" : "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-black/40"}
+          >
+            <ChevronDown size={18} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+          </button>
+        )}
       </div>
 
-      {swapInfo && (
+      {expanded && swapInfo && (
         <div className={dark ? "mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5" : "mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5"}>
           <p className={dark ? "text-white/70 text-[13px] leading-snug" : "text-black/70 text-[13px] leading-snug"}>
             <span className="font-semibold">Swapped from {swapInfo.fromName}.</span> {swapInfo.reason}
@@ -1632,7 +1660,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         </div>
       )}
 
-      {coachNote && (
+      {expanded && coachNote && (
         <div className={dark ? "mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5" : "mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5"}>
           <p className={dark ? "text-white/35 text-[10px] font-semibold tracking-wide mb-1" : "text-black/35 text-[10px] font-semibold tracking-wide mb-1"}>COACH'S NOTES</p>
           <div className="flex items-start gap-2">
@@ -1650,7 +1678,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         </div>
       )}
 
-      {noteOpen && (
+      {expanded && noteOpen && (
         <div className="mt-3">
           <textarea
             value={note}
@@ -1684,6 +1712,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         </div>
       )}
 
+      {expanded && (
       <button
         type="button"
         onClick={() => onStartRest(exMeta)}
@@ -1701,7 +1730,9 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
           {formatRest(exMeta.restSeconds ?? 90)}
         </span>
       </button>
+      )}
 
+      {expanded && (
       <div className="mt-3">
         <div className="grid grid-cols-[30px_1fr_84px_64px] gap-2 px-1 mb-1.5">
           <span className={dark ? "text-white/70 text-[13px] font-bold" : "text-black/70 text-[13px] font-bold"}>Set</span>
@@ -1786,6 +1817,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
           <span className="text-[14px] font-semibold">Add new set</span>
         </button>
       </div>
+      )}
     </div>
   );
 }
@@ -1795,18 +1827,25 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState(null);
   const [reason, setReason] = useState("");
+  const [sameMuscle, setSameMuscle] = useState(true);
+  const [sameEquipment, setSameEquipment] = useState(false);
 
   useEffect(() => {
     if (exMeta) {
       setSearch("");
       setSelected(null);
       setReason("");
+      setSameMuscle(true);
+      setSameEquipment(false);
     }
   }, [exMeta]);
 
   if (!exMeta) return null;
+  const primaryMuscle = exercise?.category || (exercise?.primaryMuscles || [])[0];
   const filtered = allExercises
     .filter((e) => e.id !== exMeta.exerciseId && e.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((e) => !sameMuscle || !primaryMuscle || e.category === primaryMuscle)
+    .filter((e) => !sameEquipment || !exercise?.equipment || e.equipment === exercise.equipment)
     .slice(0, 40);
 
   return (
@@ -1823,18 +1862,56 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
               className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
             />
           </div>
-          <div className="space-y-1 max-h-72 overflow-y-auto">
+          <div className="flex items-center gap-2 mb-3">
+            {primaryMuscle && (
+              <button
+                type="button"
+                onClick={() => setSameMuscle((v) => !v)}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors"
+                style={
+                  sameMuscle
+                    ? { backgroundColor: MEASURE_BLUE, borderColor: MEASURE_BLUE, color: "#fff" }
+                    : { borderColor: dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)", color: dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }
+                }
+              >
+                Same muscle group
+              </button>
+            )}
+            {exercise?.equipment && (
+              <button
+                type="button"
+                onClick={() => setSameEquipment((v) => !v)}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors"
+                style={
+                  sameEquipment
+                    ? { backgroundColor: MEASURE_BLUE, borderColor: MEASURE_BLUE, color: "#fff" }
+                    : { borderColor: dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)", color: dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.5)" }
+                }
+              >
+                Same equipment
+              </button>
+            )}
+          </div>
+          <div className="space-y-1.5 max-h-80 overflow-y-auto">
             {filtered.map((e) => (
               <button
                 key={e.id}
                 onClick={() => setSelected(e)}
-                className={dark ? "w-full flex items-center justify-between py-2.5 border-b border-white/5 last:border-0" : "w-full flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"}
+                className={dark ? "w-full flex items-center gap-3 p-2 rounded-xl active:scale-[0.98] active:bg-white/[0.06] transition-all" : "w-full flex items-center gap-3 p-2 rounded-xl active:scale-[0.98] active:bg-black/[0.04] transition-all"}
               >
-                <span className={dark ? "text-white text-sm" : "text-black text-sm"}>{e.name}</span>
-                <span className={dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>{e.equipment}</span>
+                <ExerciseThumb dark={dark} exercise={e} size={48} rounded="rounded-lg" className="shrink-0" />
+                <div className="min-w-0 flex-1 text-left">
+                  <p className={dark ? "text-white text-sm font-bold truncate" : "text-black text-sm font-bold truncate"}>{e.name}</p>
+                  <p className={dark ? "text-white/35 text-xs mt-0.5" : "text-black/35 text-xs mt-0.5"}>{e.equipment}</p>
+                </div>
+                <span
+                  className={dark ? "w-5 h-5 rounded-full border-2 border-white/20 shrink-0" : "w-5 h-5 rounded-full border-2 border-black/15 shrink-0"}
+                />
               </button>
             ))}
-            {search && filtered.length === 0 && <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No matching exercises.</p>}
+            {filtered.length === 0 && (
+              <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No matching exercises.</p>
+            )}
           </div>
         </div>
       ) : (
@@ -6148,7 +6225,7 @@ export default function ClientApp() {
   }, [scheduledWorkoutsForClient]);
   const bodyStatsSchedulesForClient = (db.bodyStatsSchedules || {})[currentUser.id] || [];
   function scheduledToSession(entry) {
-    return entry ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises } : null;
+    return entry ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises, instructions: entry.instructions || "" } : null;
   }
   // A workout done late (e.g. Sunday's session finished Monday) is logged
   // with today's timestamp, not Sunday's — logWorkout always stamps the
@@ -6167,6 +6244,7 @@ export default function ClientApp() {
       return {
         label: completedLog.dayLabel || "Workout",
         muscleGroups: scheduled?.muscleGroups || [],
+        instructions: scheduled?.instructions || "",
         workoutLogId: completedLog.id,
         exercises: completedLog.entries.map((e) => ({
           exerciseId: e.exerciseId,

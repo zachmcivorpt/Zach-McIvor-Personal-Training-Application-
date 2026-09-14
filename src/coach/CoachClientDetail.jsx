@@ -568,10 +568,10 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
     presetPayload ||
     (source === "library"
       ? selectedMaster
-        ? { label: selectedMaster.label, muscleGroups: selectedMaster.muscleGroups || [], exercises: selectedMaster.exercises }
+        ? { label: selectedMaster.label, muscleGroups: selectedMaster.muscleGroups || [], exercises: selectedMaster.exercises, instructions: selectedMaster.instructions || "" }
         : null
       : customDay
-      ? { label: customDay.label, muscleGroups: customDay.muscleGroups || [], exercises: customDay.exercises }
+      ? { label: customDay.label, muscleGroups: customDay.muscleGroups || [], exercises: customDay.exercises, instructions: customDay.instructions || "" }
       : null);
 
   // Dates this exact workout (matched by name) is already scheduled on for
@@ -1304,7 +1304,7 @@ function CalendarPanel({ client, showToast }) {
     // whatever was scheduled there) — no blocking prompt. Delete/swipe
     // gives full manual control to clear a day first if that's not wanted.
     try {
-      await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises });
+      await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises, instructions: entry.instructions });
       unscheduleWorkout(client.id, fromDate);
       showToast(`Moved ${entry.label} to ${label(toDate)}`);
     } catch (err) {
@@ -1901,7 +1901,7 @@ function TrainingProgramPanel({ client, showToast }) {
           (w) => w.label === prevLabel && w.date >= today
         );
         stale.forEach((w) =>
-          scheduleWorkout(client.id, { date: w.date, label: day.label, muscleGroups: day.muscleGroups, exercises: day.exercises })
+          scheduleWorkout(client.id, { date: w.date, label: day.label, muscleGroups: day.muscleGroups, exercises: day.exercises, instructions: day.instructions })
         );
       }
       setEditingWorkout(null);
@@ -2409,7 +2409,7 @@ function TrainingProgramPanel({ client, showToast }) {
         client={client}
         showToast={showToast}
         initialViewDate={phase?.startDate}
-        presetPayload={schedulingDay ? { label: schedulingDay.label, muscleGroups: schedulingDay.muscleGroups || [], exercises: schedulingDay.exercises } : null}
+        presetPayload={schedulingDay ? { label: schedulingDay.label, muscleGroups: schedulingDay.muscleGroups || [], exercises: schedulingDay.exercises, instructions: schedulingDay.instructions || "" } : null}
       />
     </div>
   );
