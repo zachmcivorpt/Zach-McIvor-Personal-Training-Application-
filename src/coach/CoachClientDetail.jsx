@@ -2030,48 +2030,48 @@ function TrainingProgramPanel({ client, showToast }) {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* phase history — a horizontal scroller at the top so the whole width
-          below belongs to the content, instead of a permanent sidebar column
-          that's mostly empty once a client only has one or two phases. */}
-      <div className="shrink-0 border-b border-black/8 px-4 py-3 md:px-6">
-        <div className="flex items-center justify-between mb-2.5">
-          <p className="text-black font-semibold text-sm">Training Program</p>
-          <button
-            onClick={() => setNewPhaseOpen(true)}
-            className="flex items-center gap-1 bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg"
-          >
-            <Plus size={13} /> ADD
-          </button>
-        </div>
-        {sorted.length === 0 ? (
-          <p className="text-black/30 text-xs py-1">No phases yet — add the first one.</p>
-        ) : (
-          <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
-            {sorted.map((p) => {
-              const active = p.id === selectedPhaseId;
-              const isCurrent = getCurrentPhase(phases, todayKey())?.id === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => selectPhase(p.id)}
-                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-colors ${
-                    active ? "bg-black text-white" : "bg-black/8 text-black/60"
-                  }`}
-                >
-                  {p.name}
-                  {isCurrent && <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-white" : "bg-black"}`} />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
       {/* selected phase detail */}
       <div className="flex-1 min-w-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
         <PerformanceTimelineCard client={client} />
 
         <WeeklyCoachReviewCard client={client} showToast={showToast} />
+
+        {/* phase history — sits right above the program it controls, as a
+            horizontal scroller instead of a permanent sidebar column that's
+            mostly empty once a client only has one or two phases. */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <p className="text-black font-semibold text-sm">Training Program</p>
+            <button
+              onClick={() => setNewPhaseOpen(true)}
+              className="flex items-center gap-1 bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg"
+            >
+              <Plus size={13} /> ADD
+            </button>
+          </div>
+          {sorted.length === 0 ? (
+            <p className="text-black/30 text-xs py-1">No phases yet — add the first one.</p>
+          ) : (
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+              {sorted.map((p) => {
+                const active = p.id === selectedPhaseId;
+                const isCurrent = getCurrentPhase(phases, todayKey())?.id === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => selectPhase(p.id)}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-colors ${
+                      active ? "bg-black text-white" : "bg-black/8 text-black/60"
+                    }`}
+                  >
+                    {p.name}
+                    {isCurrent && <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-white" : "bg-black"}`} />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {!phase ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
