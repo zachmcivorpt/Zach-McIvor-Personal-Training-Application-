@@ -26,7 +26,7 @@ import {
   PersonalBestsCard,
   axisStyle,
 } from "../components/ProgressWidgets";
-import { AreaChart, Area, BarChart, Bar, Cell, ReferenceLine, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ReferenceLine, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ThreadView } from "./CoachMessages";
 import MealPlanBuilder from "./MealPlanBuilder";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
@@ -72,6 +72,7 @@ import {
   MessageSquare,
   Trophy,
   Camera,
+  Sparkles,
 } from "lucide-react";
 import { fileToCompressedDataUrl } from "../lib/image";
 
@@ -3074,7 +3075,239 @@ const NUTRITION_OVERVIEW_PERIODS = [
   { key: "month", label: "Monthly", noun: "month", days: 30 },
 ];
 
-function WeeklyNutritionCard({ client }) {
+// ---- Nutrition Adherence ---------------------------------------------
+// A behavioural score, not a calorie/macro readout: it measures whether a
+// client is consistently DOING the things nutrition coaching asks of them
+// (logging, hitting protein, staying near their calorie range, structuring
+// meals) rather than comparing today's numbers to today's target. Because
+// it's built entirely from pass/fail day-by-day checks against whatever the
+// client's CURRENT targets are, changing a client's targets never rewrites
+// history — each past day was scored against the target in force when the
+// score was computed, and only the live view re-scores against the latest
+// targets on every render.
+const NUTRITION_ADHERENCE_PERIODS = [
+  { key: "week", label: "7 Days", days: 7 },
+  { key: "fortnight", label: "14 Days", days: 14 },
+  { key: "month", label: "30 Days", days: 30 },
+];
+
+const ADHERENCE_MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner"];
+
+function adherenceStatus(score) {
+  if (score >= 85) return { label: "Excellent", color: GOAL_GREEN };
+  if (score >= 70) return { label: "On Track", color: MEASURE_BLUE };
+  if (score >= 50) return { label: "Needs Attention", color: "rgba(10,10,11,0.55)" };
+  return { label: "Inconsistent", color: "#EF4444" };
+}
+
+// Scores the `days`-day window ending `endOffset` days ago (0 = ending
+// today), so the same function scores both the current period and the
+// equal-length period right before it, for trend insights.
+function computeNutritionAdherence(logs, targets, days, endOffset = 0) {
+  const byDate = Object.fromEntries((logs || []).map((n) => [n.date, n]));
+  const dayDetails = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i - endOffset);
+    const entry = byDate[localDateKey(d)];
+    const logged = !!entry;
+    const proteinHit = logged && targets.protein > 0 && (entry.protein || 0) >= targets.protein * 0.9;
+    const calorieHit = logged && targets.calories > 0 && Math.abs((entry.calories || 0) - targets.calories) <= targets.calories * 0.12;
+    const mealFrac = logged
+      ? ADHERENCE_MEAL_SLOTS.filter((slot) => ((entry.meals || {})[slot] || []).length > 0).length / ADHERENCE_MEAL_SLOTS.length
+      : 0;
+    dayDetails.push({ logged, proteinHit, calorieHit, mealFrac, calories: entry?.calories || 0, isWeekend: d.getDay() === 0 || d.getDay() === 6 });
+  }
+
+  const loggedCount = dayDetails.filter((d) => d.logged).length;
+  const loggingConsistency = Math.round((loggedCount / days) * 100);
+  const proteinConsistency = Math.round((dayDetails.filter((d) => d.proteinHit).length / days) * 100);
+  const calorieConsistency = Math.round((dayDetails.filter((d) => d.calorieHit).length / days) * 100);
+  const mealFracSum = dayDetails.reduce((a, d) => a + d.mealFrac, 0);
+  const mealStructure = Math.round((mealFracSum / days) * 100);
+  const avgCoreMealsPerDay = Math.round(((mealFracSum / days) * ADHERENCE_MEAL_SLOTS.length) * 10) / 10;
+  // Weighted toward logging first — a coach can't act on data that isn't there.
+  const score = Math.round(loggingConsistency * 0.3 + proteinConsistency * 0.25 + calorieConsistency * 0.25 + mealStructure * 0.2);
+
+  return { days, loggedCount, loggingConsistency, proteinConsistency, calorieConsistency, mealStructure, avgCoreMealsPerDay, score, dayDetails };
+}
+
+// Only ever states what the data shows — never a guess dressed as an insight.
+function buildNutritionInsights(current, previous, days) {
+  if (current.loggedCount < 3) return [];
+  const insights = [];
+
+  if (previous.loggedCount > 0) {
+    const delta = current.loggingConsistency - previous.loggingConsistency;
+    if (delta >= 15) insights.push(`Logging consistency has improved over the last ${days} days.`);
+    else if (delta <= -15) insights.push(`Logging consistency has dropped over the last ${days} days.`);
+  }
+
+  let run = 0;
+  let maxRun = 0;
+  current.dayDetails.forEach((d) => {
+    run = d.logged ? 0 : run + 1;
+    maxRun = Math.max(maxRun, run);
+  });
+  if (maxRun >= 3) insights.push(`${maxRun} days in a row without a nutrition log detected.`);
+
+  const weekend = current.dayDetails.filter((d) => d.isWeekend && d.logged);
+  const weekday = current.dayDetails.filter((d) => !d.isWeekend && d.logged);
+  if (weekend.length >= 1 && weekday.length >= 2) {
+    const weekendRate = weekend.filter((d) => d.proteinHit).length / weekend.length;
+    const weekdayRate = weekday.filter((d) => d.proteinHit).length / weekday.length;
+    if (weekdayRate - weekendRate >= 0.34) insights.push("Protein intake is less consistent on weekends.");
+  }
+
+  const currLogged = current.dayDetails.filter((d) => d.logged);
+  const prevLogged = previous.dayDetails.filter((d) => d.logged);
+  if (currLogged.length >= 2 && prevLogged.length >= 2) {
+    const currAvg = currLogged.reduce((a, d) => a + d.calories, 0) / currLogged.length;
+    const prevAvg = prevLogged.reduce((a, d) => a + d.calories, 0) / prevLogged.length;
+    if (prevAvg > 0 && Math.abs((currAvg - prevAvg) / prevAvg) >= 0.1) {
+      insights.push(`Average calorie intake has ${currAvg > prevAvg ? "increased" : "decreased"} compared to the previous period.`);
+    }
+  }
+
+  return insights.slice(0, 3);
+}
+
+function NutritionAdherenceCard({ client }) {
+  const { db } = useApp();
+  const targets = resolveNutritionTargets(client.nutritionTargets);
+  const logs = db.nutritionLogs[client.id] || [];
+  const [periodKey, setPeriodKey] = useState("fortnight");
+  const period = NUTRITION_ADHERENCE_PERIODS.find((p) => p.key === periodKey);
+  const { days } = period;
+
+  const current = useMemo(() => computeNutritionAdherence(logs, targets, days, 0), [logs, targets, days]);
+  const previous = useMemo(() => computeNutritionAdherence(logs, targets, days, days), [logs, targets, days]);
+  const insights = useMemo(() => buildNutritionInsights(current, previous, days), [current, previous, days]);
+  const status = adherenceStatus(current.score);
+  const ringData = [
+    { name: "score", value: current.score },
+    { name: "rest", value: 100 - current.score },
+  ];
+
+  return (
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+        <div>
+          <p className="text-black font-semibold">Nutrition Adherence</p>
+          <p className="text-black/40 text-xs mt-0.5">A behavioural snapshot, not just calories vs. target</p>
+        </div>
+        <div className="flex gap-1.5">
+          {NUTRITION_ADHERENCE_PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriodKey(p.key)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                periodKey === p.key ? "bg-black text-white" : "bg-black/6 text-black/50"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {current.loggedCount === 0 ? (
+        <div className="py-10 flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center mb-3">
+            <Sparkles size={18} className="text-black/25" />
+          </div>
+          <p className="text-black/50 text-sm font-medium">Not enough data yet</p>
+          <p className="text-black/30 text-xs mt-1 max-w-xs">
+            No nutrition logged in the last {days} days. Adherence unlocks once this client starts logging.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col sm:flex-row items-center gap-6 py-4">
+            <div className="relative w-40 h-40 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={ringData}
+                    dataKey="value"
+                    startAngle={90}
+                    endAngle={-270}
+                    innerRadius="72%"
+                    outerRadius="92%"
+                    stroke="none"
+                    isAnimationActive={false}
+                  >
+                    <Cell fill={status.color} />
+                    <Cell fill="rgba(10,10,11,0.06)" />
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-black text-4xl font-bold tabular-nums">{current.score}%</span>
+                <span className="text-black/35 text-[11px] tracking-wide mt-1">ADHERENCE</span>
+              </div>
+            </div>
+
+            <div className="flex-1 text-center sm:text-left">
+              <span
+                className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold mb-2"
+                style={{ backgroundColor: `${status.color}1A`, color: status.color }}
+              >
+                {status.label}
+              </span>
+              <p className="text-black/50 text-sm">Based on the last {days} days of logged nutrition.</p>
+              {current.loggedCount < 3 && (
+                <p className="text-black/30 text-xs mt-1">
+                  Limited data — only {current.loggedCount} of {days} days logged so far.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+            {[
+              ["Logging Consistency", current.loggingConsistency, `${current.loggedCount} of ${days} days logged`],
+              ["Protein Consistency", current.proteinConsistency, "Days hitting protein target"],
+              ["Calorie Consistency", current.calorieConsistency, "Within target range"],
+              ["Meal Structure", current.mealStructure, `${current.avgCoreMealsPerDay} meals logged per day avg`],
+            ].map(([label, value, sub]) => (
+              <div key={label} className="bg-black/[0.03] border border-black/8 rounded-xl p-3">
+                <p className="text-black font-bold text-lg">{value}%</p>
+                <p className="text-black/60 text-[11px] font-medium mt-0.5">{label}</p>
+                <p className="text-black/35 text-[10px] mt-1 leading-snug">{sub}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 pt-4 border-t border-black/8">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Sparkles size={13} className="text-black/40" />
+              <p className="text-black/35 text-[11px] font-semibold tracking-wide">BEHAVIOUR INSIGHTS</p>
+            </div>
+            {insights.length === 0 ? (
+              <p className="text-black/30 text-sm">
+                {current.loggedCount < 3
+                  ? "Continue logging to unlock nutrition behaviour insights."
+                  : "No significant changes detected this period — consistency looks steady."}
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {insights.map((text, i) => (
+                  <li key={i} className="text-black/70 text-sm flex items-start gap-2">
+                    <span className="w-1 h-1 rounded-full bg-black/30 mt-2 shrink-0" />
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function NutritionOverviewTimelineCard({ client }) {
   const { db } = useApp();
   const targets = resolveNutritionTargets(client.nutritionTargets);
   const logs = db.nutritionLogs[client.id] || [];
@@ -3109,7 +3342,7 @@ function WeeklyNutritionCard({ client }) {
   return (
     <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-        <p className="text-black font-semibold">Nutrition Overview</p>
+        <p className="text-black font-semibold">Nutrition Overview Timeline</p>
         <div className="flex gap-1.5">
           {NUTRITION_OVERVIEW_PERIODS.map((p) => (
             <button
@@ -3258,7 +3491,9 @@ function NutritionPanel({ client, showToast }) {
         )}
       </div>
 
-      <WeeklyNutritionCard client={client} />
+      <NutritionAdherenceCard client={client} />
+
+      <NutritionOverviewTimelineCard client={client} />
 
       <div className="space-y-6">
         <NutritionTargetsCard client={client} showToast={showToast} />
