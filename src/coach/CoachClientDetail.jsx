@@ -2029,45 +2029,11 @@ function TrainingProgramPanel({ client, showToast }) {
   }
 
   return (
-    <div className="flex flex-col md:flex-row md:h-full min-h-0">
-      {/* phase history (desktop) */}
-      <div className="hidden md:flex w-72 shrink-0 border-r border-black/8 flex-col min-h-0">
-        <div className="px-4 pt-5 pb-3 flex items-center justify-between">
-          <p className="text-black font-semibold text-sm">Training Program</p>
-          <button
-            onClick={() => setNewPhaseOpen(true)}
-            className="flex items-center gap-1 bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg"
-          >
-            <Plus size={13} /> ADD
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5">
-          {sorted.length === 0 && <p className="text-black/30 text-xs px-2 py-4">No phases yet — add the first one.</p>}
-          {sorted.map((p) => {
-            const active = p.id === selectedPhaseId;
-            const isCurrent = getCurrentPhase(phases, todayKey())?.id === p.id;
-            return (
-              <button
-                key={p.id}
-                onClick={() => selectPhase(p.id)}
-                className={`w-full text-left px-3 py-2.5 rounded-xl transition-colors ${active ? "bg-black/10" : "hover:bg-black/5"}`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <p className="text-black text-sm font-medium truncate flex-1">{p.name}</p>
-                  {isCurrent && <span className="w-1.5 h-1.5 rounded-full bg-black shrink-0" />}
-                </div>
-                <p className="text-black/35 text-[11px] mt-0.5">
-                  {new Date(p.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                  {p.endDate ? ` - ${new Date(p.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}` : ""}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* phase history (mobile) */}
-      <div className="md:hidden shrink-0 border-b border-black/8 px-4 py-3">
+    <div className="flex flex-col h-full min-h-0">
+      {/* phase history — a horizontal scroller at the top so the whole width
+          below belongs to the content, instead of a permanent sidebar column
+          that's mostly empty once a client only has one or two phases. */}
+      <div className="shrink-0 border-b border-black/8 px-4 py-3 md:px-6">
         <div className="flex items-center justify-between mb-2.5">
           <p className="text-black font-semibold text-sm">Training Program</p>
           <button
