@@ -12,13 +12,16 @@
 
 const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
+const { getAuth } = require("firebase-admin/auth");
 
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
+const adminAuth = getAuth();
 
 // Sends to every device token stored on a user's profile doc, then prunes
 // any token Firebase reports as dead (uninstalled app, revoked
@@ -206,3 +209,66 @@ exports.checkInReminders = onSchedule(
     }
   }
 );
+
+// removeClient (AppContext.jsx) can only ever delete a client's Firestore
+// docs — the client-side Firebase Auth SDK has no way to delete a DIFFERENT
+// user's account, only your own. Every client removed before this function
+// existed left a real Auth account behind with no matching users/{uid} doc:
+// invisible in the app, but still permanently holding their email, so
+// re-inviting them at the same address later fails at the password-setting
+// step with "email already in use" — the account looks live because it
+// technically still is. This deletes the Auth account in the same breath as
+// the Firestore cleanup, for every removal from now on.
+exports.deleteClientAuthAccount = onCall(async (request) => {
+  const callerUid = request.auth?.uid;
+  if (!callerUid) throw new HttpsError("unauthenticated", "Sign in required.");
+  const callerSnap = await db.collection("users").doc(callerUid).get();
+  if (callerSnap.data()?.role !== "coach") {
+    throw new HttpsError("permission-denied", "Only the coach can do this.");
+  }
+  const uid = request.data?.uid;
+  if (!uid || typeof uid !== "string") throw new HttpsError("invalid-argument", "Missing uid.");
+  try {
+    await adminAuth.deleteUser(uid);
+  } catch (err) {
+    // Already gone (e.g. this ran once before, or the client never actually
+    // activated) — not an error worth surfacing to the coach.
+    if (err.code !== "auth/user-not-found") throw new HttpsError("internal", err.message);
+  }
+  return { deleted: true };
+});
+
+// The self-healing counterpart for every account already stuck in that
+// orphaned state from before deleteClientAuthAccount existed (or from any
+// other way a users/{uid} doc could end up deleted out from under a live
+// Auth account). Runs pre-auth, from the Activate Account screen itself, so
+// it needs its own proof the caller is legitimate rather than relying on
+// request.auth — the same proof activateAccount() already checks
+// client-side: a valid, matching invites/{email} doc and its one-time code.
+// Only ever deletes an ORPHANED account (no users/{uid} doc): a genuinely
+// live client account with real data is never touched, even if someone
+// somehow got hold of a matching invite for its email.
+exports.cleanupOrphanedInvite = onCall(async (request) => {
+  const email = (request.data?.email || "").trim().toLowerCase();
+  const code = (request.data?.code || "").trim();
+  if (!email || !code) throw new HttpsError("invalid-argument", "Missing email or code.");
+
+  const inviteSnap = await db.collection("invites").doc(email).get();
+  if (!inviteSnap.exists || inviteSnap.data().code !== code) {
+    throw new HttpsError("permission-denied", "That invite doesn't match.");
+  }
+
+  let existing;
+  try {
+    existing = await adminAuth.getUserByEmail(email);
+  } catch (err) {
+    if (err.code === "auth/user-not-found") return { cleaned: false, reason: "not-found" };
+    throw new HttpsError("internal", err.message);
+  }
+
+  const userDoc = await db.collection("users").doc(existing.uid).get();
+  if (userDoc.exists) return { cleaned: false, reason: "active" };
+
+  await adminAuth.deleteUser(existing.uid);
+  return { cleaned: true };
+});

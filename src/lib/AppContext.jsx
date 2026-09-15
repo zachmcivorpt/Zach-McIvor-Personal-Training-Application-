@@ -23,7 +23,8 @@ import {
   writeBatch,
   deleteField,
 } from "firebase/firestore";
-import { auth, db as firestore } from "./firebase";
+import { httpsCallable } from "firebase/functions";
+import { auth, db as firestore, functions } from "./firebase";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 import { FOOD_DATABASE } from "./foodDatabase";
@@ -581,7 +582,32 @@ export function AppProvider({ children }) {
         try {
           cred = await createUserWithEmailAndPassword(auth, email, newPassword);
         } catch (err) {
-          throw new Error(friendlyAuthError(err));
+          // A client whose users/{uid} doc got removed some other way (e.g.
+          // a client deleted before deleteClientAuthAccount existed, or any
+          // other path that only ever touched Firestore) still has a real,
+          // permanently-taken Firebase Auth account under this same email —
+          // invisible in the app, but very much still blocking a fresh
+          // signup at this exact step. Rather than send the coach hunting
+          // through the Firebase console for an account they can't even see
+          // referenced anywhere, ask the server to check: if that account
+          // truly has no matching users/{uid} doc (a genuine orphan, not
+          // someone's real active login), it clears it and this retries
+          // once, transparently, from the client's own activation attempt.
+          if (err?.code === "auth/email-already-in-use") {
+            try {
+              const cleanup = httpsCallable(functions, "cleanupOrphanedInvite");
+              const result = await cleanup({ email, code: code.trim() });
+              if (result.data?.cleaned) {
+                cred = await createUserWithEmailAndPassword(auth, email, newPassword);
+              } else {
+                throw err;
+              }
+            } catch {
+              throw new Error(friendlyAuthError(err));
+            }
+          } else {
+            throw new Error(friendlyAuthError(err));
+          }
         }
         const uid = cred.user.uid;
         // Before activation, the client was shown to the coach as a
@@ -699,6 +725,17 @@ export function AppProvider({ children }) {
           deleteDoc(doc(firestore, "invites", clientId)).catch(console.error);
           return;
         }
+        // Firestore cleanup below only ever removes THIS app's own data —
+        // the Firebase Auth account underneath it is a separate system the
+        // client SDK can't touch for anyone but the currently signed-in
+        // user, hence a server-side call. Fire-and-forget: an activated
+        // client is always identified below by their own real uid, so this
+        // can run independently of (and doesn't need to block) the
+        // Firestore deletes: if it fails, the account is orphaned exactly
+        // like it always was before this existed, and cleanupOrphanedInvite
+        // (AppContext.jsx's activateAccount) still recovers it automatically
+        // the next time someone tries to re-invite this same email.
+        httpsCallable(functions, "deleteClientAuthAccount")({ uid: clientId }).catch(console.error);
         deleteDoc(doc(firestore, "users", clientId)).catch(console.error);
         deleteDoc(doc(firestore, "habitLog", clientId)).catch(() => {});
         [

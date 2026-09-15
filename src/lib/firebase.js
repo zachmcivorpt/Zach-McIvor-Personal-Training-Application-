@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
 
 // Firebase config values are not secrets — the real access control lives in
 // Firestore/Storage security rules (see FIRESTORE_RULES.txt), not in hiding
@@ -41,3 +42,4 @@ export const db = (() => {
 })();
 
 export const storage = getStorage(firebaseApp);
+export const functions = getFunctions(firebaseApp);
