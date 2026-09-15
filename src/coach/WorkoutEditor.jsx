@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { TextInput, TextArea, Select, ExerciseThumb } from "../components/ui";
+import { TextInput, TextArea, Select, ExerciseThumb, FullScreenOverlay } from "../components/ui";
 import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup, Edit3, Play, Hand, Copy, Trash2 } from "lucide-react";
 import { ExerciseSheet } from "./CoachExercises";
 import { parseVideoUrl } from "../lib/video";
@@ -298,8 +298,19 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
 
   const allIndices = rows.map((_, i) => i);
   const allChecked = rows.length > 0 && rows.every((_, i) => selected.has(i));
+  // While either drag gesture is live (reordering a row, or dragging a card in
+  // from the picker), block native touch-scrolling on BOTH scrollable panes —
+  // not just the element under the finger. Pointer capture keeps events routed
+  // to the drag's origin element regardless of which pane the finger is over,
+  // but the other pane's own touch-action stays "auto" the whole time, so iOS
+  // still tries to start its own scroll gesture there at the same time. That
+  // fight between a captured pointer and a competing native scroll is what
+  // froze the page — the fix is to take scrolling off the table everywhere
+  // for the duration of the drag, not just on the dragged card itself.
+  const isDragging = dragIndex !== null || draggingExerciseId !== null;
 
   return (
+    <FullScreenOverlay>
     <div className="fixed inset-0 z-[95] bg-white flex flex-col">
       {/* top bar */}
       <div className="flex items-center justify-between px-4 md:px-6 py-3.5 border-b border-black/8 shrink-0 gap-2">
@@ -344,6 +355,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           className={`${
             mobilePanel === "picker" ? "hidden" : "flex-1"
           } md:block md:flex-1 overflow-y-auto px-4 md:px-6 py-5 md:border-r border-black/8`}
+          style={isDragging ? { touchAction: "none" } : undefined}
         >
           <p className="text-black/40 text-[11px] font-semibold tracking-wide mb-2">INSTRUCTIONS</p>
           <TextArea
@@ -729,6 +741,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           className={`${
             mobilePanel === "editor" ? "hidden" : "flex-1"
           } md:block md:flex-none md:w-[380px] shrink-0 overflow-y-auto px-4 md:px-5 py-5`}
+          style={isDragging ? { touchAction: "none" } : undefined}
         >
           <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-3">
             <Search size={15} className="text-black/40" />
@@ -852,5 +865,6 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
         showToast={showToast || (() => {})}
       />
     </div>
+    </FullScreenOverlay>
   );
 }
