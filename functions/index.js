@@ -54,9 +54,23 @@ async function notifyUser(uid, { title, body }, prefKey) {
   }
 }
 
+// An account recovery (delete the wrong Firebase Auth user, recreate the
+// coach account fresh) can leave more than one users/{uid} doc with
+// role: "coach" behind — the old one's login is gone, but nothing ever
+// deletes its Firestore doc automatically. A plain `.limit(1)` query has no
+// way to prefer one over the other, so it could just as easily hand push
+// notifications to the dead account as the live one. Ordering by whoever
+// actually logged in most recently picks the real, currently-used account
+// every time, with no manual cleanup required after a recovery like that.
 async function getCoachId() {
-  const snap = await db.collection("users").where("role", "==", "coach").limit(1).get();
-  return snap.empty ? null : snap.docs[0].id;
+  // Sorted in JS rather than via .orderBy() in the query itself — combining
+  // that with the equality filter above would need a composite index, and
+  // there's realistically only ever one or two coach docs to look at, so
+  // there's nothing to gain from pushing the sort into Firestore here.
+  const snap = await db.collection("users").where("role", "==", "coach").get();
+  if (snap.empty) return null;
+  const docs = snap.docs.slice().sort((a, b) => (b.data().lastLoginAt || 0) - (a.data().lastLoginAt || 0));
+  return docs[0].id;
 }
 
 // Every per-client collection keyed by a `clientId` field (see
