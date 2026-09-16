@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, createContext, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Home as HomeIcon,
   Dumbbell,
@@ -4963,12 +4963,12 @@ function ProfileScreen({
       </div>
 
       <div className="px-3 mt-3 flex items-center justify-center gap-4">
-        <a href="/legal/privacy-policy" target="_blank" rel="noreferrer" className={dark ? "text-white/30 text-xs font-medium" : "text-black/30 text-xs font-medium"}>
+        <Link to="/legal/privacy-policy" className={dark ? "text-white/30 text-xs font-medium" : "text-black/30 text-xs font-medium"}>
           Privacy Policy
-        </a>
-        <a href="/legal/terms-of-service" target="_blank" rel="noreferrer" className={dark ? "text-white/30 text-xs font-medium" : "text-black/30 text-xs font-medium"}>
+        </Link>
+        <Link to="/legal/terms-of-service" className={dark ? "text-white/30 text-xs font-medium" : "text-black/30 text-xs font-medium"}>
           Terms of Service
-        </a>
+        </Link>
         <button onClick={() => setDeleteOpen(true)} className="text-red-500/70 text-xs font-medium">
           Delete account
         </button>

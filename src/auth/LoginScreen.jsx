@@ -80,11 +80,11 @@ function CoachSignupForm() {
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 shrink-0 accent-white" />
           <span>
             I agree to the{" "}
-            <Link to="/legal/terms-of-service" target="_blank" className="text-white underline underline-offset-2">
+            <Link to="/legal/terms-of-service" className="text-white underline underline-offset-2">
               Terms of Service
             </Link>{" "}
             and{" "}
-            <Link to="/legal/coach-responsibility-agreement" target="_blank" className="text-white underline underline-offset-2">
+            <Link to="/legal/coach-responsibility-agreement" className="text-white underline underline-offset-2">
               Coach Responsibility Agreement
             </Link>
             .

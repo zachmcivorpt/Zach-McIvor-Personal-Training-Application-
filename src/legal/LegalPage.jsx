@@ -1,5 +1,6 @@
 import React from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import { Logo } from "../components/ui";
 import { LEGAL_DOCS, LEGAL_CONTACT } from "./legalContent";
 
@@ -16,6 +17,7 @@ const NAV = [
 // and by the coach signup / client activation consent checkboxes.
 export default function LegalPage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const doc = LEGAL_DOCS[slug];
 
   if (!doc) {
@@ -29,6 +31,12 @@ export default function LegalPage() {
   return (
     <div className="w-full min-h-screen bg-white font-sans flex justify-center">
       <div className="w-full max-w-2xl px-6 py-10 md:py-16">
+        <button
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/login"))}
+          className="flex items-center gap-1 text-black/50 text-sm font-medium mb-6"
+        >
+          <ChevronLeft size={18} /> Back
+        </button>
         <Logo variant="mark" tone="black" className="w-8 h-8 mb-6" />
         <h1 className="text-black text-2xl font-bold mb-1">{doc.title}</h1>
         <p className="text-black/40 text-sm mb-6">APEX Coaching Platform — effective {doc.effectiveDate}</p>

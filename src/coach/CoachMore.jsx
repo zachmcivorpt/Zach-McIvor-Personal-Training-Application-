@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput, DeleteAccountSheet } from "../components/ui";
 import { fileToDataUrl, removeFlatLogoBackground } from "../lib/image";
@@ -715,12 +716,12 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
       </DangerButton>
 
       <div className="flex items-center justify-center gap-4 pt-1">
-        <a href="/legal/privacy-policy" target="_blank" rel="noreferrer" className="text-black/30 text-xs font-medium">
+        <Link to="/legal/privacy-policy" className="text-black/30 text-xs font-medium">
           Privacy Policy
-        </a>
-        <a href="/legal/terms-of-service" target="_blank" rel="noreferrer" className="text-black/30 text-xs font-medium">
+        </Link>
+        <Link to="/legal/terms-of-service" className="text-black/30 text-xs font-medium">
           Terms of Service
-        </a>
+        </Link>
         <button onClick={() => setDeleteOpen(true)} className="text-red-500/70 text-xs font-medium">
           Delete account
         </button>

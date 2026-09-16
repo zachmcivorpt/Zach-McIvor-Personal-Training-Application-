@@ -95,7 +95,7 @@ export default function ActivateScreen() {
             />
             <span>
               I agree to the{" "}
-              <Link to="/legal/privacy-policy" target="_blank" className="text-white underline underline-offset-2">
+              <Link to="/legal/privacy-policy" className="text-white underline underline-offset-2">
                 Privacy Policy
               </Link>
               .
