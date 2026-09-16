@@ -372,6 +372,78 @@ export function BottomSheet({ open, onClose, title, children, dark = false }) {
   );
 }
 
+// Self-service account deletion (App Store Guideline 5.1.1(v) / Play Data
+// Safety) — shared between the client Profile screen and the coach's More
+// screen since both need the exact same password-confirm-then-delete flow,
+// just with different warning copy for what the coach's specific wording
+// needs to cover (their account only, not their whole client roster).
+export function DeleteAccountSheet({ open, onClose, onConfirm, dark = false, warning }) {
+  const [password, setPassword] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setPassword("");
+      setConfirmText("");
+      setError("");
+    }
+  }, [open]);
+
+  async function handleConfirm() {
+    setError("");
+    setBusy(true);
+    try {
+      await onConfirm(password);
+    } catch (err) {
+      setError(err.message || "Something went wrong.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Delete account" dark={dark}>
+      <p className={`text-sm mb-4 ${dark ? "text-white/70" : "text-black/70"}`}>{warning}</p>
+      <p className={`text-xs font-semibold mb-1.5 ${dark ? "text-white/40" : "text-black/40"}`}>
+        Type DELETE to confirm
+      </p>
+      <TextInput
+        dark={dark}
+        value={confirmText}
+        onChange={(e) => setConfirmText(e.target.value)}
+        placeholder="DELETE"
+        className="mb-3"
+      />
+      <p className={`text-xs font-semibold mb-1.5 ${dark ? "text-white/40" : "text-black/40"}`}>
+        Enter your password
+      </p>
+      <TextInput
+        dark={dark}
+        type="password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="Password"
+        className="mb-1"
+      />
+      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+      <button
+        onClick={handleConfirm}
+        disabled={busy || confirmText !== "DELETE" || !password}
+        className="w-full bg-red-500 disabled:opacity-40 text-white font-bold py-3 rounded-2xl mt-5"
+      >
+        {busy ? "Deleting…" : "Permanently delete my account"}
+      </button>
+      <button
+        onClick={onClose}
+        className={`w-full font-semibold py-3 rounded-2xl mt-2 ${dark ? "text-white/50" : "text-black/50"}`}
+      >
+        Cancel
+      </button>
+    </BottomSheet>
+  );
+}
+
 export function Toast({ message, show, dark = false }) {
   if (typeof document === "undefined") return null;
   return createPortal(

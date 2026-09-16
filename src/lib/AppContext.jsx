@@ -718,6 +718,34 @@ export function AppProvider({ children }) {
         }
       },
 
+      // Self-service account deletion, required by App Store Guideline
+      // 5.1.1(v)/Play's Data Safety policy for any app with account
+      // creation — works for the signed-in coach or client, whoever calls
+      // it. The actual delete runs server-side (deleteMyAccount Cloud
+      // Function): Firestore's own rules never let a client delete their
+      // own users/{uid} doc, and this account's OWN Firebase Auth entry
+      // can only ever be removed by itself or an Admin SDK call, never by
+      // a different signed-in session's client SDK. Re-authenticating here
+      // first is just a safety check against a mis-tap on something this
+      // destructive — Firebase doesn't otherwise require a fresh session
+      // for a call that runs under Admin SDK privileges like this one does.
+      async deleteMyAccount(password) {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Not signed in.");
+        try {
+          const credential = EmailAuthProvider.credential(user.email, password);
+          await reauthenticateWithCredential(user, credential);
+        } catch (err) {
+          throw new Error(friendlyAuthError(err));
+        }
+        try {
+          await httpsCallable(functions, "deleteMyAccount")();
+        } catch (err) {
+          throw new Error(err.message || "Couldn't delete your account — please try again.");
+        }
+        await signOut(auth).catch(() => {});
+      },
+
       removeClient(clientId) {
         const target = db.users.find((u) => u.id === clientId);
         if (!target) return;

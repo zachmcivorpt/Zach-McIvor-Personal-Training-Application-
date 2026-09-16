@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput } from "../components/ui";
+import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput, DeleteAccountSheet } from "../components/ui";
 import { fileToDataUrl, removeFlatLogoBackground } from "../lib/image";
 import { enablePush, disablePush } from "../lib/push";
 import { uploadDesignImage, uploadLoginBackground } from "../lib/storage";
@@ -656,7 +656,8 @@ function DataBackupCard({ db }) {
 }
 
 export default function CoachMore({ onNavigate, onLogout, showToast }) {
-  const { currentUser, updateUser, updateCoachEmail, db } = useApp();
+  const { currentUser, updateUser, updateCoachEmail, db, deleteMyAccount } = useApp();
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
     <div className="max-w-xl px-4 py-5 md:px-8 md:py-8 space-y-4">
@@ -713,9 +714,30 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
         <LogOut size={14} /> Sign out
       </DangerButton>
 
+      <div className="flex items-center justify-center gap-4 pt-1">
+        <a href="/legal/privacy-policy" target="_blank" rel="noreferrer" className="text-black/30 text-xs font-medium">
+          Privacy Policy
+        </a>
+        <a href="/legal/terms-of-service" target="_blank" rel="noreferrer" className="text-black/30 text-xs font-medium">
+          Terms of Service
+        </a>
+        <button onClick={() => setDeleteOpen(true)} className="text-red-500/70 text-xs font-medium">
+          Delete account
+        </button>
+      </div>
+
       <div className="flex justify-center pt-4">
         <Tagline />
       </div>
+
+      <DeleteAccountSheet
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        warning="This permanently deletes your own coach login and profile. It does NOT delete your clients, programs, or library — those stay intact and coach sign-up re-opens so you (or someone else) can create a new coach account and pick everything back up. This can't be undone."
+        onConfirm={async (password) => {
+          await deleteMyAccount(password);
+        }}
+      />
     </div>
   );
 }

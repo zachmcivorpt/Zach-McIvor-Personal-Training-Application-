@@ -252,6 +252,59 @@ exports.deleteClientAuthAccount = onCall(async (request) => {
   return { deleted: true };
 });
 
+// App Store Guideline 5.1.1(v): any app that supports account creation must
+// also offer account deletion within the app, self-service — not "email us
+// to ask." Firestore's own rules only ever let a client's users/{uid} doc be
+// deleted by the coach (see FIRESTORE_RULES.txt), so this can't be a plain
+// client-side deleteDoc() call; it runs here with Admin SDK privileges
+// instead, same as the two functions above. Deliberately takes NO uid
+// parameter from the caller — it only ever acts on request.auth.uid, the
+// signed-in caller's own account, so there is no way to point this at
+// someone else's.
+exports.deleteMyAccount = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+
+  const selfSnap = await db.collection("users").doc(uid).get();
+  const role = selfSnap.data()?.role;
+
+  if (role === "client") {
+    for (const name of CLIENT_ID_COLLECTIONS) {
+      const snap = await db.collection(name).where("clientId", "==", uid).get();
+      if (snap.empty) continue;
+      const batch = db.batch();
+      snap.docs.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+    // habitLog/{uid} and mealPlans/{uid}: doc id IS the uid, not a
+    // `clientId` field, so these two need a direct delete rather than the
+    // where("clientId", ...) query used above.
+    await db.collection("habitLog").doc(uid).delete().catch(() => {});
+    await db.collection("mealPlans").doc(uid).delete().catch(() => {});
+    await db.collection("users").doc(uid).delete();
+  } else if (role === "coach") {
+    // Deletes the coach's own account/profile, not the clients, programs,
+    // and library they manage — that data isn't personal to the coach in
+    // the sense Apple's guideline means, and wiping it out as a side effect
+    // of one person deleting their own login would be actively harmful to
+    // the coach's actual clients. Instead this re-opens coach signup, the
+    // same recovery path used any time the sole coach account is lost, so
+    // the platform doesn't end up permanently stuck with no way to sign up
+    // a coach again.
+    await db.collection("users").doc(uid).delete();
+    await db.collection("settings").doc("appMeta").set({ hasCoach: false }, { merge: true });
+  }
+  // No matching users/{uid} doc at all (role is undefined) — nothing to
+  // clean up in Firestore, but still remove the dangling Auth account below.
+
+  try {
+    await adminAuth.deleteUser(uid);
+  } catch (err) {
+    if (err.code !== "auth/user-not-found") throw new HttpsError("internal", err.message);
+  }
+  return { deleted: true };
+});
+
 // The self-healing counterpart for every account already stuck in that
 // orphaned state from before deleteClientAuthAccount existed (or from any
 // other way a users/{uid} doc could end up deleted out from under a live

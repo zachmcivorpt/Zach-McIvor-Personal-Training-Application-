@@ -102,6 +102,7 @@ import {
   Tagline,
   ExerciseThumb,
   VideoPlayerSheet,
+  DeleteAccountSheet,
 } from "../components/ui";
 import { MEASURE_BLUE, GOAL_GREEN, BORDER_STRONG, SURFACE_RAISED, BORDER, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import {
@@ -4850,9 +4851,11 @@ function ProfileScreen({
   onOpenCheckIns,
 }) {
   const dark = useClientDark();
+  const { deleteMyAccount } = useApp();
   const [prefSection, setPrefSection] = useState(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [pushOpen, setPushOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const rows = [
     { label: "Goals", icon: Target, onClick: () => setPrefSection("goals") },
     { label: "Equipment", icon: Dumbbell, onClick: () => setPrefSection("equipment") },
@@ -4959,6 +4962,18 @@ function ProfileScreen({
         </button>
       </div>
 
+      <div className="px-3 mt-3 flex items-center justify-center gap-4">
+        <a href="/legal/privacy-policy" target="_blank" rel="noreferrer" className={dark ? "text-white/30 text-xs font-medium" : "text-black/30 text-xs font-medium"}>
+          Privacy Policy
+        </a>
+        <a href="/legal/terms-of-service" target="_blank" rel="noreferrer" className={dark ? "text-white/30 text-xs font-medium" : "text-black/30 text-xs font-medium"}>
+          Terms of Service
+        </a>
+        <button onClick={() => setDeleteOpen(true)} className="text-red-500/70 text-xs font-medium">
+          Delete account
+        </button>
+      </div>
+
       <div className="flex justify-center mt-8">
         <Tagline tone="white" />
       </div>
@@ -4966,6 +4981,15 @@ function ProfileScreen({
       <PreferencesSheet section={prefSection} open={!!prefSection} onClose={() => setPrefSection(null)} user={user} />
       <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} />
       <PushNotificationsSheet open={pushOpen} onClose={() => setPushOpen(false)} showToast={showToast} userId={user.id} />
+      <DeleteAccountSheet
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        dark={dark}
+        warning="This permanently deletes your account, training history, nutrition logs, progress photos and messages. Your coach will no longer be able to see your profile. This can't be undone."
+        onConfirm={async (password) => {
+          await deleteMyAccount(password);
+        }}
+      />
     </div>
   );
 }
