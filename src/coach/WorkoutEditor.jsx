@@ -392,7 +392,12 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     const p = pickerPressRef.current;
     if (!p) return;
     if (!p.fired) {
-      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 8) {
+      // A picker card is a whole thumbnail-sized touch target, not a small
+      // precise grip icon — a thumb resting on it naturally drifts more
+      // during the hold than a fingertip pressing a tiny handle, so this
+      // needs a bit more slack than the grip's 8px before it decides "that
+      // was a scroll" and silently cancels with no feedback at all.
+      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 12) {
         clearTimeout(p.timer);
         pickerPressRef.current = null;
       }
@@ -1014,7 +1019,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                   WebkitUserSelect: "none",
                   ...(draggingExerciseId === ex.id ? { touchAction: "none" } : null),
                 }}
-                className={`relative bg-black/[0.03] hover:bg-black/[0.06] border rounded-xl p-3 transition-all select-none ${
+                className={`relative bg-black/[0.03] hover:bg-black/[0.06] active:bg-black/[0.08] active:scale-[0.97] border rounded-xl p-3 transition-all duration-100 select-none ${
                   draggingExerciseId === ex.id ? "opacity-40 scale-[0.97] border-blue-300" : "border-black/8"
                 }`}
               >
