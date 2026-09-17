@@ -661,9 +661,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
 
                               {row.isRest ? (
                                 <div
-                                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
+                                  className={`select-none flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
                                     dragIndex === i ? "opacity-40" : "bg-amber-50 border border-amber-200/70"
                                   }`}
+                                  style={{ WebkitTouchCallout: "none" }}
                                 >
                                   <input type="checkbox" checked={selected.has(i)} onChange={() => toggleSelected(i)} className="w-4 h-4 shrink-0 accent-black" />
                                   <div className="w-7 h-7 rounded-lg bg-amber-400 flex items-center justify-center shrink-0">
@@ -694,9 +695,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                 </div>
                               ) : (
                                 <div
-                                  className={`bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:py-2 md:px-2 transition-colors md:grid md:grid-cols-[20px_1.3fr_56px_200px_1fr_92px_20px] md:gap-3 md:items-center ${
+                                  className={`select-none bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:py-2 md:px-2 transition-colors md:grid md:grid-cols-[20px_1.3fr_56px_200px_1fr_92px_20px] md:gap-3 md:items-center ${
                                     dragIndex === i ? "opacity-40" : "border-black/8"
                                   }`}
+                                  style={{ WebkitTouchCallout: "none" }}
                                 >
                                   {/* checkbox — own column on desktop, inline on mobile */}
                                   <div className="hidden md:flex items-center justify-center">
