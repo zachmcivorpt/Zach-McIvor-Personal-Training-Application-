@@ -5648,7 +5648,7 @@ function ClientCalendarScreen({
   // move to the target day and release.
   const [dragItem, setDragItem] = useState(null); // { date, type: "workout" | "bodystats", label, workoutId }
   const [dragOverDate, setDragOverDate] = useState(null);
-  const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while actively dragging, drives the floating ghost
+  const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position at drag start; live position is driven imperatively (see ghostRef below), not via state
   const pressRef = useRef(null); // { timer, startX, startY, date, type, label, fired }
   // Lets a drag reach days scrolled off-screen: holding near the top/bottom
   // edge of the scrollable list while dragging keeps auto-scrolling that
@@ -5663,21 +5663,42 @@ function ClientCalendarScreen({
   // where the finger ended up) — without this flag that click immediately
   // re-opened the workout/day right after dropping it.
   const suppressClickRef = useRef(false);
+  // The ghost's position is written directly to the DOM from this same rAF
+  // loop instead of through setState on every pointermove — pointermove can
+  // fire much faster than this screen can usefully re-render, and doing a
+  // DOM hit-test + setState on every single event made the drag feel
+  // laggy. See the same fix (with the fuller writeup) in WorkoutEditor.jsx.
+  const ghostRef = useRef(null);
+  const dragOverDateRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (ghostRef.current && dragPos) {
+      ghostRef.current.style.left = `${dragPos.x}px`;
+      ghostRef.current.style.top = `${dragPos.y}px`;
+    }
+  }, [dragPos]);
 
   function recheckDragOverDate() {
     const { x, y } = lastPointerRef.current;
     const target = document.elementFromPoint(x, y);
     const dayEl = target?.closest("[data-date]");
     const overDate = dayEl?.getAttribute("data-date") || null;
-    setDragOverDate(overDate && overDate !== pressRef.current?.date ? overDate : null);
+    const next = overDate && overDate !== pressRef.current?.date ? overDate : null;
+    if (next !== dragOverDateRef.current) {
+      dragOverDateRef.current = next;
+      setDragOverDate(next);
+    }
   }
 
   function autoScrollTick() {
-    const el = scrollRef.current;
-    if (el && scrollSpeedRef.current !== 0) {
-      el.scrollTop += scrollSpeedRef.current;
-      recheckDragOverDate();
+    const { x, y } = lastPointerRef.current;
+    if (ghostRef.current) {
+      ghostRef.current.style.left = `${x}px`;
+      ghostRef.current.style.top = `${y}px`;
     }
+    const el = scrollRef.current;
+    if (el && scrollSpeedRef.current !== 0) el.scrollTop += scrollSpeedRef.current;
+    recheckDragOverDate();
     autoScrollRafRef.current = requestAnimationFrame(autoScrollTick);
   }
 
@@ -5690,20 +5711,22 @@ function ClientCalendarScreen({
     if (clientY < rect.top + edge) speed = -(Math.round((rect.top + edge - clientY) / 3) + 3);
     else if (clientY > rect.bottom - edge) speed = Math.round((clientY - (rect.bottom - edge)) / 3) + 3;
     scrollSpeedRef.current = speed;
-    if (speed !== 0 && !autoScrollRafRef.current) {
-      autoScrollRafRef.current = requestAnimationFrame(autoScrollTick);
-    } else if (speed === 0 && autoScrollRafRef.current) {
-      cancelAnimationFrame(autoScrollRafRef.current);
-      autoScrollRafRef.current = null;
-    }
   }
 
+  // Runs for the whole duration of a drag (not just while auto-scrolling),
+  // so the ghost keeps tracking the finger and the drop target keeps
+  // re-evaluating every frame regardless of whether the list is scrolling.
+  function startDragLoop() {
+    if (autoScrollRafRef.current) return;
+    autoScrollRafRef.current = requestAnimationFrame(autoScrollTick);
+  }
   function stopAutoScroll() {
     scrollSpeedRef.current = 0;
     if (autoScrollRafRef.current) {
       cancelAnimationFrame(autoScrollRafRef.current);
       autoScrollRafRef.current = null;
     }
+    dragOverDateRef.current = null;
   }
 
   function cardPointerDown(e, date, type, label, workoutId) {
@@ -5715,12 +5738,14 @@ function ClientCalendarScreen({
     const timer = setTimeout(() => {
       if (!pressRef.current) return;
       pressRef.current.fired = true;
+      lastPointerRef.current = { x: startX, y: startY };
       setDragItem({ date, type, label, workoutId });
       setDragPos({ x: startX, y: startY });
       try {
         el.setPointerCapture(pointerId);
       } catch {}
       if (navigator.vibrate) navigator.vibrate(10);
+      startDragLoop();
     }, 220);
     pressRef.current = { timer, startX, startY, date, type, label, workoutId, fired: false };
   }
@@ -5737,17 +5762,16 @@ function ClientCalendarScreen({
       return;
     }
     lastPointerRef.current = { x: e.clientX, y: e.clientY };
-    setDragPos({ x: e.clientX, y: e.clientY });
     updateAutoScroll(e.clientY);
-    recheckDragOverDate();
   }
 
   function cardPointerUp() {
     const p = pressRef.current;
     if (p?.fired) {
       suppressClickRef.current = true;
-      if (dragOverDate && dragOverDate !== p.date) {
-        onMoveItem(p.type, p.date, dragOverDate, p.workoutId);
+      const overDate = dragOverDateRef.current;
+      if (overDate && overDate !== p.date) {
+        onMoveItem(p.type, p.date, overDate, p.workoutId);
       }
     }
     if (p?.timer) clearTimeout(p.timer);
@@ -6008,8 +6032,9 @@ function ClientCalendarScreen({
           lookup that finds the day underneath it. */}
       {dragItem && dragPos && (
         <div
+          ref={ghostRef}
           className={dark ? "fixed z-[200] pointer-events-none flex items-center gap-2 bg-white text-black text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl" : "fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl"}
-          style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
+          style={{ transform: "translate(-50%, -130%)" }}
         >
           {dragItem.label}
         </div>

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
@@ -977,13 +977,60 @@ function CalendarPanel({ client, showToast }) {
   // isn't mistaken for a drag), then move to the target day and release.
   const [dragItem, setDragItem] = useState(null); // { date, type, label } — the item's own date + which kind, while dragging it
   const [dragOverDate, setDragOverDate] = useState(null);
-  const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while actively dragging, drives the floating ghost
+  const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position at drag start; live position is driven imperatively (see ghostRef below), not via state
   const pressRef = useRef(null); // { timer, startX, startY, date, type, label, fired }
   // A completed drag still ends in a native "click" on the same element
   // (pointer capture keeps the up-event's target pinned to it regardless of
   // where the finger ended up) — without this flag that click immediately
   // reopened the day detail sheet right after dropping the item.
   const suppressClickRef = useRef(false);
+  // The ghost's position is written directly to the DOM from a rAF loop
+  // instead of through setState on every pointermove — pointermove can
+  // fire much faster than this calendar can usefully re-render, and doing
+  // a DOM hit-test + setState on every single event (as this used to)
+  // makes the drag feel laggy on a full month grid. See the same fix in
+  // WorkoutEditor.jsx's row/picker drag for the fuller writeup.
+  const ghostRef = useRef(null);
+  const lastPointerXRef = useRef(0);
+  const lastPointerYRef = useRef(0);
+  const dragOverDateRef = useRef(null);
+  const dragLoopRafRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (ghostRef.current && dragPos) {
+      ghostRef.current.style.left = `${dragPos.x}px`;
+      ghostRef.current.style.top = `${dragPos.y}px`;
+    }
+  }, [dragPos]);
+
+  function startDragLoop(selfDate) {
+    if (dragLoopRafRef.current) return;
+    const step = () => {
+      const x = lastPointerXRef.current;
+      const y = lastPointerYRef.current;
+      if (ghostRef.current) {
+        ghostRef.current.style.left = `${x}px`;
+        ghostRef.current.style.top = `${y}px`;
+      }
+      const target = document.elementFromPoint(x, y);
+      const dayEl = target?.closest("[data-date]");
+      const overDate = dayEl?.getAttribute("data-date") || null;
+      const next = overDate && overDate !== selfDate ? overDate : null;
+      if (next !== dragOverDateRef.current) {
+        dragOverDateRef.current = next;
+        setDragOverDate(next);
+      }
+      dragLoopRafRef.current = requestAnimationFrame(step);
+    };
+    dragLoopRafRef.current = requestAnimationFrame(step);
+  }
+  function stopDragLoop() {
+    if (dragLoopRafRef.current) {
+      cancelAnimationFrame(dragLoopRafRef.current);
+      dragLoopRafRef.current = null;
+    }
+    dragOverDateRef.current = null;
+  }
 
   function itemPointerDown(e, dateStr, type, label) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -995,12 +1042,15 @@ function CalendarPanel({ client, showToast }) {
     const timer = setTimeout(() => {
       if (!pressRef.current) return;
       pressRef.current.fired = true;
+      lastPointerXRef.current = startX;
+      lastPointerYRef.current = startY;
       setDragItem({ date: dateStr, type, label });
       setDragPos({ x: startX, y: startY });
       try {
         el.setPointerCapture(pointerId);
       } catch {}
       if (navigator.vibrate) navigator.vibrate(10);
+      startDragLoop(dateStr);
     }, 300);
     pressRef.current = { timer, startX, startY, date: dateStr, type, label, fired: false };
   }
@@ -1015,20 +1065,18 @@ function CalendarPanel({ client, showToast }) {
       }
       return;
     }
-    setDragPos({ x: e.clientX, y: e.clientY });
-    const target = document.elementFromPoint(e.clientX, e.clientY);
-    const dayEl = target?.closest("[data-date]");
-    const overDate = dayEl?.getAttribute("data-date") || null;
-    setDragOverDate(overDate && overDate !== p.date ? overDate : null);
+    lastPointerXRef.current = e.clientX;
+    lastPointerYRef.current = e.clientY;
   }
 
   function itemPointerUp() {
     const p = pressRef.current;
     if (p?.fired) {
       suppressClickRef.current = true;
-      if (dragOverDate && dragOverDate !== p.date) {
-        if (p.type === "workout") moveWorkout(p.date, dragOverDate);
-        else if (p.type === "bodystats") moveBodyStats(p.date, dragOverDate);
+      const overDate = dragOverDateRef.current;
+      if (overDate && overDate !== p.date) {
+        if (p.type === "workout") moveWorkout(p.date, overDate);
+        else if (p.type === "bodystats") moveBodyStats(p.date, overDate);
       }
     }
     if (p?.timer) clearTimeout(p.timer);
@@ -1036,6 +1084,7 @@ function CalendarPanel({ client, showToast }) {
     setDragItem(null);
     setDragOverDate(null);
     setDragPos(null);
+    stopDragLoop();
   }
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -1637,8 +1686,9 @@ function CalendarPanel({ client, showToast }) {
           lookup that finds the day underneath it. */}
       {dragItem && dragPos && (
         <div
+          ref={ghostRef}
           className="fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl"
-          style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
+          style={{ transform: "translate(-50%, -130%)" }}
         >
           {dragItem.label}
         </div>
