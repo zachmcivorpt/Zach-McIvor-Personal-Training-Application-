@@ -75,6 +75,18 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const [mobilePanel, setMobilePanel] = useState("editor"); // "editor" | "picker" — mobile-only tab switch
   const [addSection, setAddSection] = useState("main"); // which section new exercises from the picker land in
   const [editingExercise, setEditingExercise] = useState(null); // exercise being edited inline (name/video/etc.)
+  // Refs backing the two hold-then-drag gestures (row reorder + picker
+  // insert) and their shared auto-scroll — declared unconditionally here,
+  // above the `if (!open) return null` below, since this component stays
+  // mounted with `open` toggling true/false rather than being remounted
+  // per use; a hook declared only on the `open === true` branch would shift
+  // React's hook call order between renders.
+  const leftPaneRef = useRef(null);
+  const lastPointerYRef = useRef(0);
+  const autoScrollRafRef = useRef(null);
+  const gripPressRef = useRef(null); // { timer, startX, startY, index, fired }
+  const pickerPressRef = useRef(null); // { timer, startX, startY, exerciseId, fired }
+  const suppressPickerClickRef = useRef(false);
 
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(
@@ -127,6 +139,31 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     setDragIndex(null);
     setOverIndex(null);
   }
+  // Auto-scroll the session list while either drag is live, so dragging an
+  // exercise from the picker (or reordering a row) toward the top/bottom
+  // edge of a long session keeps moving the list instead of stranding the
+  // gesture at whatever was on screen when the drag started.
+  function startAutoScroll() {
+    if (autoScrollRafRef.current) return;
+    const EDGE = 64;
+    const step = () => {
+      const pane = leftPaneRef.current;
+      if (pane) {
+        const rect = pane.getBoundingClientRect();
+        const y = lastPointerYRef.current;
+        if (y < rect.top + EDGE && y >= rect.top - 20) pane.scrollTop -= (EDGE - (y - rect.top)) / 4;
+        else if (y > rect.bottom - EDGE && y <= rect.bottom + 20) pane.scrollTop += (EDGE - (rect.bottom - y)) / 4;
+      }
+      autoScrollRafRef.current = requestAnimationFrame(step);
+    };
+    autoScrollRafRef.current = requestAnimationFrame(step);
+  }
+  function stopAutoScroll() {
+    if (autoScrollRafRef.current) {
+      cancelAnimationFrame(autoScrollRafRef.current);
+      autoScrollRafRef.current = null;
+    }
+  }
   // Built on Pointer Events rather than the HTML5 drag-and-drop API — that
   // API is mouse-only and never fires from a touch gesture, which is why
   // reordering exercises didn't work (or felt "difficult") on an iPad.
@@ -134,7 +171,6 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   // grip handle (so a scroll swipe passing over it isn't mistaken for a
   // drag — if it moves before the hold completes, this backs off and lets
   // the scroll happen untouched), then move to the target row and release.
-  const gripPressRef = useRef(null); // { timer, startX, startY, index, fired }
   function gripPointerDown(e, i) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.stopPropagation();
@@ -151,6 +187,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
         el.setPointerCapture(pointerId);
       } catch {}
       if (navigator.vibrate) navigator.vibrate(10);
+      startAutoScroll();
     }, 150);
     gripPressRef.current = { timer, startX, startY, index: i, fired: false };
   }
@@ -165,6 +202,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       return;
     }
     setDragPos({ x: e.clientX, y: e.clientY });
+    lastPointerYRef.current = e.clientY;
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const rowEl = target?.closest("[data-row-index]");
     const overIdx = rowEl ? Number(rowEl.getAttribute("data-row-index")) : null;
@@ -187,6 +225,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     if (p?.timer) clearTimeout(p.timer);
     gripPressRef.current = null;
     setDragPos(null);
+    stopAutoScroll();
   }
   function toggleSelected(i) {
     setSelected((s) => {
@@ -232,8 +271,6 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   // end of whichever section is selected under "ADDING TO" (the existing
   // onClick), while a brief hold and drag onto a specific row in the
   // session list drops it in right there instead.
-  const pickerPressRef = useRef(null); // { timer, startX, startY, exerciseId, fired }
-  const suppressPickerClickRef = useRef(false);
   function pickerPointerDown(e, exerciseId) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const startX = e.clientX;
@@ -249,7 +286,8 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
         el.setPointerCapture(pointerId);
       } catch {}
       if (navigator.vibrate) navigator.vibrate(10);
-    }, 250);
+      startAutoScroll();
+    }, 150);
     pickerPressRef.current = { timer, startX, startY, exerciseId, fired: false };
   }
   function pickerPointerMove(e) {
@@ -263,6 +301,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       return;
     }
     setDragPos({ x: e.clientX, y: e.clientY });
+    lastPointerYRef.current = e.clientY;
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const rowEl = target?.closest("[data-row-index]");
     setOverIndex(rowEl ? Number(rowEl.getAttribute("data-row-index")) : null);
@@ -278,6 +317,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     setDraggingExerciseId(null);
     setOverIndex(null);
     setDragPos(null);
+    stopAutoScroll();
   }
   function pickerCardClick(exerciseId) {
     if (suppressPickerClickRef.current) {
@@ -369,6 +409,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       <div className="flex-1 flex min-h-0">
         {/* left: instructions + exercise table */}
         <div
+          ref={leftPaneRef}
           className={`${
             mobilePanel === "picker" ? "hidden" : "flex-1"
           } md:block md:flex-1 overflow-y-auto px-4 md:px-6 py-5 md:border-r border-black/8`}
@@ -532,7 +573,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     onPointerMove={gripPointerMove}
                                     onPointerUp={gripPointerUp}
                                     onPointerCancel={gripPointerUp}
-                                    style={{ touchAction: "none" }}
+                                    style={{ touchAction: "none", WebkitTouchCallout: "none" }}
                                     className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing"
                                   >
                                     <GripVertical size={16} />
@@ -563,7 +604,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                       onPointerMove={gripPointerMove}
                                       onPointerUp={gripPointerUp}
                                       onPointerCancel={gripPointerUp}
-                                      style={{ touchAction: "none" }}
+                                      style={{ touchAction: "none", WebkitTouchCallout: "none" }}
                                       className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing md:hidden"
                                     >
                                       <GripVertical size={16} />
@@ -737,7 +778,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     onPointerMove={gripPointerMove}
                                     onPointerUp={gripPointerUp}
                                     onPointerCancel={gripPointerUp}
-                                    style={{ touchAction: "none" }}
+                                    style={{ touchAction: "none", WebkitTouchCallout: "none" }}
                                     className="hidden md:flex items-center justify-center text-black/25 hover:text-black/50 cursor-grab active:cursor-grabbing"
                                   >
                                     <GripVertical size={16} />
@@ -836,7 +877,12 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                 onPointerMove={pickerPointerMove}
                 onPointerUp={pickerPointerUp}
                 onPointerCancel={pickerPointerUp}
-                style={draggingExerciseId === ex.id ? { touchAction: "none" } : undefined}
+                onContextMenu={(e) => e.preventDefault()}
+                style={{
+                  WebkitTouchCallout: "none",
+                  WebkitUserSelect: "none",
+                  ...(draggingExerciseId === ex.id ? { touchAction: "none" } : null),
+                }}
                 className={`relative bg-black/[0.03] hover:bg-black/[0.06] border rounded-xl p-3 transition-all select-none ${
                   draggingExerciseId === ex.id ? "opacity-40 scale-[0.97] border-blue-300" : "border-black/8"
                 }`}
@@ -847,12 +893,27 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                       const parsed = ex.videoUrl ? parseVideoUrl(ex.videoUrl) : null;
                       if (!parsed) return <Dumbbell size={20} className="text-black/35" />;
                       if (parsed.kind === "file") {
-                        return <video src={parsed.src} muted playsInline preload="metadata" className="w-full h-full object-cover" />;
+                        return (
+                          <video
+                            src={parsed.src}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            draggable={false}
+                            className="w-full h-full object-cover pointer-events-none"
+                          />
+                        );
                       }
                       if (parsed.thumbnail) {
                         return (
                           <>
-                            <img src={parsed.thumbnail} alt="" className="w-full h-full object-cover" />
+                            <img
+                              src={parsed.thumbnail}
+                              alt=""
+                              draggable={false}
+                              className="w-full h-full object-cover pointer-events-none"
+                              style={{ WebkitTouchCallout: "none" }}
+                            />
                             <Play size={18} className="absolute text-white drop-shadow" fill="white" />
                           </>
                         );
@@ -891,18 +952,23 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           drag. pointer-events-none so it never blocks the elementFromPoint()
           lookup that finds the row underneath it. Same pattern as the coach
           calendar's drag-drop. */}
-      {dragPos && (dragIndex !== null || draggingExerciseId !== null) && (
+      {dragPos && draggingExerciseId !== null && (
         <div
-          className="fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl max-w-[220px]"
+          className="drag-ghost-pop fixed z-[200] pointer-events-none flex items-center gap-2.5 bg-white text-black text-sm font-semibold pl-2 pr-4 py-2 rounded-2xl shadow-2xl ring-2 ring-blue-400 max-w-[240px]"
+          style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
+        >
+          <ExerciseThumb exercise={exercisesById[draggingExerciseId]} size={32} rounded="rounded-lg" />
+          <span className="truncate">{exercisesById[draggingExerciseId]?.name || "Exercise"}</span>
+        </div>
+      )}
+      {dragPos && dragIndex !== null && (
+        <div
+          className="drag-ghost-pop fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl max-w-[220px]"
           style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
         >
           <GripVertical size={13} className="text-white/50 shrink-0" />
           <span className="truncate">
-            {dragIndex !== null
-              ? rows[dragIndex]?.isRest
-                ? "Rest"
-                : exercisesById[rows[dragIndex]?.exerciseId]?.name || "Exercise"
-              : exercisesById[draggingExerciseId]?.name || "Exercise"}
+            {rows[dragIndex]?.isRest ? "Rest" : exercisesById[rows[dragIndex]?.exerciseId]?.name || "Exercise"}
           </span>
         </div>
       )}

@@ -85,10 +85,24 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
       {!parsed ? (
         <Dumbbell size={Math.round(size * 0.4)} className={mutedIcon} />
       ) : parsed.kind === "file" ? (
-        <video src={parsed.src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
+        <video
+          src={parsed.src}
+          muted
+          playsInline
+          preload="metadata"
+          draggable={false}
+          className="w-full h-full object-cover"
+          style={{ WebkitTouchCallout: "none" }}
+        />
       ) : parsed.thumbnail ? (
         <>
-          <img src={parsed.thumbnail} alt="" className="w-full h-full object-cover" />
+          <img
+            src={parsed.thumbnail}
+            alt=""
+            draggable={false}
+            className="w-full h-full object-cover"
+            style={{ WebkitTouchCallout: "none" }}
+          />
           <Play size={Math.round(size * 0.3)} className="absolute text-white drop-shadow" fill="white" />
         </>
       ) : (

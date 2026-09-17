@@ -69,3 +69,21 @@
   border-color: rgba(255, 255, 255, 0.2) !important;
   color: #fff !important;
 }
+
+/* Quick "picked up" pop for the floating drag ghost in WorkoutEditor —
+   plays once on mount (a fresh element every time a drag starts), giving
+   the pickup a tactile snap instead of the ghost just appearing at full
+   size with no sense of having been grabbed. */
+@keyframes drag-ghost-pop {
+  from {
+    transform: translate(-50%, -130%) scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -130%) scale(1);
+    opacity: 1;
+  }
+}
+.drag-ghost-pop {
+  animation: drag-ghost-pop 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
+}
