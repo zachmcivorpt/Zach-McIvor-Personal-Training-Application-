@@ -67,7 +67,15 @@ export function VideoPlayerSheet({ exerciseName, videoUrl, onClose }) {
 // no video at all.
 export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", className = "", dark = false }) {
   const [playerOpen, setPlayerOpen] = useState(false);
-  const parsed = exercise?.videoUrl ? parseVideoUrl(exercise.videoUrl) : null;
+  const rawParsed = exercise?.videoUrl ? parseVideoUrl(exercise.videoUrl) : null;
+  // A generic "search YouTube for this name" link (the bulk-fill fallback
+  // for exercises with no specific video yet) has nothing to actually show
+  // a preview of — treat it the same as no video at all here rather than
+  // surfacing a magnifying-glass icon on every exercise that's still
+  // waiting on a real one, which read as broken/incomplete at scale across
+  // a large library. The link itself is untouched; it's just not this
+  // thumbnail's job to advertise "not curated yet."
+  const parsed = rawParsed?.kind === "search" ? null : rawParsed;
   const mutedIcon = dark ? "text-white/25" : "text-black/25";
   const faintIcon = dark ? "text-white/30" : "text-black/30";
   const boxClass = dark ? "bg-white/8 border border-white/8" : "bg-black/5 border border-black/5";
@@ -76,8 +84,6 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
     <>
       {!parsed ? (
         <Dumbbell size={Math.round(size * 0.4)} className={mutedIcon} />
-      ) : parsed.kind === "search" ? (
-        <Search size={Math.round(size * 0.35)} className={faintIcon} />
       ) : parsed.kind === "file" ? (
         <video src={parsed.src} muted playsInline preload="metadata" className="w-full h-full object-cover" />
       ) : parsed.thumbnail ? (
@@ -108,22 +114,11 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          // A search link has nothing to embed/play — open it as a plain
-          // link in a new tab instead of the video player sheet, which
-          // would otherwise just show a broken, empty iframe.
-          if (parsed?.kind === "search") {
-            window.open(parsed.url, "_blank", "noopener,noreferrer");
-            return;
-          }
           setPlayerOpen(true);
         }}
         className={`relative ${boxClass} overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
         style={{ width: size, height: size }}
-        aria-label={
-          parsed?.kind === "search"
-            ? `Search YouTube${exercise?.name ? ` for ${exercise.name}` : ""}`
-            : `Play demo video${exercise?.name ? ` for ${exercise.name}` : ""}`
-        }
+        aria-label={`Play demo video${exercise?.name ? ` for ${exercise.name}` : ""}`}
       >
         {content}
       </button>
