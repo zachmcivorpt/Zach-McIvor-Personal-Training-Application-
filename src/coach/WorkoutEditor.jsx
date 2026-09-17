@@ -894,14 +894,25 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                       if (!parsed) return <Dumbbell size={20} className="text-black/35" />;
                       if (parsed.kind === "file") {
                         return (
-                          <video
-                            src={parsed.src}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            draggable={false}
-                            className="w-full h-full object-cover pointer-events-none"
-                          />
+                          <>
+                            <video
+                              src={parsed.src}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              draggable={false}
+                              disableRemotePlayback
+                              className="w-full h-full object-cover pointer-events-none"
+                            />
+                            {/* iOS's long-press "peek" preview + Copy/Save Photos menu on
+                                a <video> element is a native gesture recognizer attached
+                                below the DOM, so pointer-events/touch-callout on the video
+                                itself can't stop it. A plain, fully transparent div on top
+                                — an ordinary element with no native video behavior — is
+                                what actually intercepts the touch before it reaches the
+                                video's native player view. */}
+                            <div className="absolute inset-0" />
+                          </>
                         );
                       }
                       if (parsed.thumbnail) {

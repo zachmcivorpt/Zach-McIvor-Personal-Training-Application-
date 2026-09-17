@@ -85,15 +85,26 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
       {!parsed ? (
         <Dumbbell size={Math.round(size * 0.4)} className={mutedIcon} />
       ) : parsed.kind === "file" ? (
-        <video
-          src={parsed.src}
-          muted
-          playsInline
-          preload="metadata"
-          draggable={false}
-          className="w-full h-full object-cover"
-          style={{ WebkitTouchCallout: "none" }}
-        />
+        <>
+          <video
+            src={parsed.src}
+            muted
+            playsInline
+            preload="metadata"
+            draggable={false}
+            disableRemotePlayback
+            className="w-full h-full object-cover"
+            style={{ WebkitTouchCallout: "none" }}
+          />
+          {/* iOS's long-press "peek" preview + Copy/Save Photos menu on a
+              <video> is a native gesture recognizer below the DOM, so
+              pointer-events/touch-callout on the video itself can't stop
+              it. A plain transparent div on top intercepts the touch
+              before it reaches the video's native player view; the tap
+              that opens the player still bubbles up to the wrapping
+              button normally. */}
+          <div className="absolute inset-0" />
+        </>
       ) : parsed.thumbnail ? (
         <>
           <img
