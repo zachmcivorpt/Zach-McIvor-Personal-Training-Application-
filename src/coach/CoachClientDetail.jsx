@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
@@ -1031,6 +1031,26 @@ function CalendarPanel({ client, showToast }) {
     }
     dragOverDateRef.current = null;
   }
+
+  // Safety net: if a drag is ever left stuck active — most plausibly
+  // because iOS intercepted the touch sequence for its own UI mid-gesture
+  // and never delivered the pointerup/pointercancel this was waiting for
+  // — the very next tap anywhere on the page clears it. A genuinely
+  // still-in-progress drag never produces a fresh pointerdown of its own
+  // (only pointermove/up/cancel do), so this can't interrupt a real one;
+  // it only recovers a lost one.
+  useEffect(() => {
+    if (!dragItem) return;
+    function recover() {
+      setDragItem(null);
+      setDragOverDate(null);
+      setDragPos(null);
+      pressRef.current = null;
+      stopDragLoop();
+    }
+    document.addEventListener("pointerdown", recover, true);
+    return () => document.removeEventListener("pointerdown", recover, true);
+  }, [dragItem]);
 
   function itemPointerDown(e, dateStr, type, label) {
     if (e.pointerType === "mouse" && e.button !== 0) return;

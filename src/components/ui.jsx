@@ -115,6 +115,10 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
             style={{ WebkitTouchCallout: "none" }}
           />
           <Play size={Math.round(size * 0.3)} className="absolute text-white drop-shadow" fill="white" />
+          {/* Same touch-catcher as the video thumbnail above — belt and
+              suspenders against any native iOS image callout that
+              -webkit-touch-callout alone doesn't always catch. */}
+          <div className="absolute inset-0" />
         </>
       ) : (
         <Video size={Math.round(size * 0.35)} className={faintIcon} />

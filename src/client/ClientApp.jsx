@@ -5729,6 +5729,26 @@ function ClientCalendarScreen({
     dragOverDateRef.current = null;
   }
 
+  // Safety net: if a drag is ever left stuck active — most plausibly
+  // because iOS intercepted the touch sequence for its own UI mid-gesture
+  // and never delivered the pointerup/pointercancel this was waiting for
+  // — the very next tap anywhere on the page clears it. A genuinely
+  // still-in-progress drag never produces a fresh pointerdown of its own
+  // (only pointermove/up/cancel do), so this can't interrupt a real one;
+  // it only recovers a lost one.
+  useEffect(() => {
+    if (!dragItem) return;
+    function recover() {
+      setDragItem(null);
+      setDragOverDate(null);
+      setDragPos(null);
+      pressRef.current = null;
+      stopAutoScroll();
+    }
+    document.addEventListener("pointerdown", recover, true);
+    return () => document.removeEventListener("pointerdown", recover, true);
+  }, [dragItem]);
+
   function cardPointerDown(e, date, type, label, workoutId) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const startX = e.clientX;

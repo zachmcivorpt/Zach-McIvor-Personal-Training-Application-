@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { TextInput, TextArea, Select, ExerciseThumb, FullScreenOverlay } from "../components/ui";
 import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup, Edit3, Play, Hand, Copy, Trash2 } from "lucide-react";
@@ -109,6 +109,79 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     }
   }, [dragPos]);
 
+  // Drives everything that needs to track the pointer continuously while
+  // either drag is live: moving the ghost, auto-scrolling the session list
+  // near its top/bottom edge, and figuring out which row is underneath.
+  // Runs once per animation frame off lastPointerXRef/YRef rather than once
+  // per raw pointermove event — pointermove can fire far more often than
+  // the screen actually repaints, and doing a DOM hit-test + setState on
+  // every single one of those was what made the drag feel laggy.
+  function startDragLoop() {
+    if (autoScrollRafRef.current) return;
+    const EDGE = 64;
+    const step = () => {
+      const x = lastPointerXRef.current;
+      const y = lastPointerYRef.current;
+
+      if (ghostRef.current) {
+        ghostRef.current.style.left = `${x}px`;
+        ghostRef.current.style.top = `${y}px`;
+      }
+
+      const pane = leftPaneRef.current;
+      if (pane) {
+        const rect = pane.getBoundingClientRect();
+        if (y < rect.top + EDGE && y >= rect.top - 20) pane.scrollTop -= (EDGE - (y - rect.top)) / 4;
+        else if (y > rect.bottom - EDGE && y <= rect.bottom + 20) pane.scrollTop += (EDGE - (rect.bottom - y)) / 4;
+      }
+
+      const target = document.elementFromPoint(x, y);
+      const rowEl = target?.closest("[data-row-index]");
+      let overIdx = rowEl ? Number(rowEl.getAttribute("data-row-index")) : null;
+      if (overIdx !== null && overIdx === dragMetaRef.current?.selfIndex) overIdx = null;
+      if (overIdx !== overIndexRef.current) {
+        overIndexRef.current = overIdx;
+        setOverIndex(overIdx);
+      }
+
+      autoScrollRafRef.current = requestAnimationFrame(step);
+    };
+    autoScrollRafRef.current = requestAnimationFrame(step);
+  }
+  function stopDragLoop() {
+    if (autoScrollRafRef.current) {
+      cancelAnimationFrame(autoScrollRafRef.current);
+      autoScrollRafRef.current = null;
+    }
+    overIndexRef.current = null;
+    dragMetaRef.current = null;
+  }
+
+  // Safety net: if a drag is ever left stuck active — most plausibly
+  // because iOS intercepted the touch sequence for its own UI (a native
+  // callout, the video "peek" preview, etc.) mid-gesture and never
+  // delivered the pointerup/pointercancel this editor was waiting for —
+  // the very next tap anywhere on the page clears it. A genuinely
+  // still-in-progress drag never produces a fresh pointerdown of its own
+  // (only pointermove/up/cancel do), so this can't interrupt a real one;
+  // it only recovers a lost one, instead of the editor staying stuck
+  // (frozen, unscrollable — both panes get touchAction:none while a drag
+  // is "active") until the coach reloads the page.
+  useEffect(() => {
+    if (dragIndex === null && draggingExerciseId === null) return;
+    function recover() {
+      setDragIndex(null);
+      setDraggingExerciseId(null);
+      setOverIndex(null);
+      setDragPos(null);
+      gripPressRef.current = null;
+      pickerPressRef.current = null;
+      stopDragLoop();
+    }
+    document.addEventListener("pointerdown", recover, true);
+    return () => document.removeEventListener("pointerdown", recover, true);
+  }, [dragIndex, draggingExerciseId]);
+
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(
     () =>
@@ -159,53 +232,6 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     });
     setDragIndex(null);
     setOverIndex(null);
-  }
-  // Drives everything that needs to track the pointer continuously while
-  // either drag is live: moving the ghost, auto-scrolling the session list
-  // near its top/bottom edge, and figuring out which row is underneath.
-  // Runs once per animation frame off lastPointerXRef/YRef rather than once
-  // per raw pointermove event — pointermove can fire far more often than
-  // the screen actually repaints, and doing a DOM hit-test + setState on
-  // every single one of those was what made the drag feel laggy.
-  function startDragLoop() {
-    if (autoScrollRafRef.current) return;
-    const EDGE = 64;
-    const step = () => {
-      const x = lastPointerXRef.current;
-      const y = lastPointerYRef.current;
-
-      if (ghostRef.current) {
-        ghostRef.current.style.left = `${x}px`;
-        ghostRef.current.style.top = `${y}px`;
-      }
-
-      const pane = leftPaneRef.current;
-      if (pane) {
-        const rect = pane.getBoundingClientRect();
-        if (y < rect.top + EDGE && y >= rect.top - 20) pane.scrollTop -= (EDGE - (y - rect.top)) / 4;
-        else if (y > rect.bottom - EDGE && y <= rect.bottom + 20) pane.scrollTop += (EDGE - (rect.bottom - y)) / 4;
-      }
-
-      const target = document.elementFromPoint(x, y);
-      const rowEl = target?.closest("[data-row-index]");
-      let overIdx = rowEl ? Number(rowEl.getAttribute("data-row-index")) : null;
-      if (overIdx !== null && overIdx === dragMetaRef.current?.selfIndex) overIdx = null;
-      if (overIdx !== overIndexRef.current) {
-        overIndexRef.current = overIdx;
-        setOverIndex(overIdx);
-      }
-
-      autoScrollRafRef.current = requestAnimationFrame(step);
-    };
-    autoScrollRafRef.current = requestAnimationFrame(step);
-  }
-  function stopDragLoop() {
-    if (autoScrollRafRef.current) {
-      cancelAnimationFrame(autoScrollRafRef.current);
-      autoScrollRafRef.current = null;
-    }
-    overIndexRef.current = null;
-    dragMetaRef.current = null;
   }
   // Built on Pointer Events rather than the HTML5 drag-and-drop API — that
   // API is mouse-only and never fires from a touch gesture, which is why
@@ -840,16 +866,19 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
               {/* Trailing drop zone below the last row — without it, letting
                   go anywhere past the last exercise (a very natural place to
                   aim for "add to the end") hit no [data-row-index] element
-                  at all, so the drag just silently did nothing. */}
-              {isDragging && (
-                <div
-                  data-row-index={rows.length}
-                  className={`rounded-xl transition-colors ${
-                    overIndex === rows.length ? "bg-black/5 ring-2 ring-inset ring-blue-400" : ""
-                  }`}
-                  style={{ minHeight: 96 }}
-                />
-              )}
+                  at all, so the drag just silently did nothing. Always
+                  mounted (sized to 0 when not dragging) rather than
+                  conditionally rendered — inserting a whole new element into
+                  the page the instant a drag starts, mid-touch, is exactly
+                  the kind of layout shift that can make mobile Safari drop
+                  the rest of that touch sequence. */}
+              <div
+                data-row-index={rows.length}
+                className={`rounded-xl transition-colors ${
+                  overIndex === rows.length ? "bg-black/5 ring-2 ring-inset ring-blue-400" : ""
+                }`}
+                style={{ minHeight: isDragging ? 96 : 0 }}
+              />
             </>
           )}
         </div>
@@ -983,6 +1012,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                               style={{ WebkitTouchCallout: "none" }}
                             />
                             <Play size={18} className="absolute text-white drop-shadow" fill="white" />
+                            {/* Same touch-catcher as the video thumbnail above — belt
+                                and suspenders against any native iOS image callout
+                                that -webkit-touch-callout alone doesn't always catch. */}
+                            <div className="absolute inset-0" />
                           </>
                         );
                       }
