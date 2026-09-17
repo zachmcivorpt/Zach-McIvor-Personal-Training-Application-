@@ -70,6 +70,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
   const [draggingExerciseId, setDraggingExerciseId] = useState(null); // exercise being dragged in from the picker, or null
+  const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while either drag is live, drives the floating ghost
   const [selected, setSelected] = useState(() => new Set());
   const [mobilePanel, setMobilePanel] = useState("editor"); // "editor" | "picker" — mobile-only tab switch
   const [addSection, setAddSection] = useState("main"); // which section new exercises from the picker land in
@@ -115,7 +116,12 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       if (dragIndex === null || dragIndex === i) return r;
       const next = [...r];
       const [moved] = next.splice(dragIndex, 1);
-      next.splice(i, 0, moved);
+      // Adopt the target row's section — otherwise dropping into a
+      // different section (e.g. warm-up onto main) moved the row in the
+      // underlying array but it kept rendering under its old section
+      // header, which looked like the drop had silently failed.
+      const targetSection = r[i]?.section || moved.section;
+      next.splice(dragIndex < i ? i - 1 : i, 0, { ...moved, section: targetSection });
       return next;
     });
     setDragIndex(null);
@@ -140,6 +146,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       if (!gripPressRef.current) return;
       gripPressRef.current.fired = true;
       setDragIndex(i);
+      setDragPos({ x: startX, y: startY });
       try {
         el.setPointerCapture(pointerId);
       } catch {}
@@ -157,11 +164,17 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       }
       return;
     }
+    setDragPos({ x: e.clientX, y: e.clientY });
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const rowEl = target?.closest("[data-row-index]");
     const overIdx = rowEl ? Number(rowEl.getAttribute("data-row-index")) : null;
     setOverIndex(overIdx !== null && overIdx !== p.index ? overIdx : null);
   }
+  // Also wired as onPointerCancel — iOS occasionally cancels an in-progress
+  // pointer gesture rather than ending it with pointerup (an interruption,
+  // a system gesture stepping in). Without handling that too, dragIndex was
+  // left set forever: the row stayed dimmed and nothing else about the
+  // editor responded, which is exactly what read as the drag "playing up".
   function gripPointerUp() {
     const p = gripPressRef.current;
     if (p?.fired) {
@@ -173,6 +186,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     }
     if (p?.timer) clearTimeout(p.timer);
     gripPressRef.current = null;
+    setDragPos(null);
   }
   function toggleSelected(i) {
     setSelected((s) => {
@@ -230,6 +244,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       if (!pickerPressRef.current) return;
       pickerPressRef.current.fired = true;
       setDraggingExerciseId(exerciseId);
+      setDragPos({ x: startX, y: startY });
       try {
         el.setPointerCapture(pointerId);
       } catch {}
@@ -247,6 +262,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       }
       return;
     }
+    setDragPos({ x: e.clientX, y: e.clientY });
     const target = document.elementFromPoint(e.clientX, e.clientY);
     const rowEl = target?.closest("[data-row-index]");
     setOverIndex(rowEl ? Number(rowEl.getAttribute("data-row-index")) : null);
@@ -261,6 +277,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     pickerPressRef.current = null;
     setDraggingExerciseId(null);
     setOverIndex(null);
+    setDragPos(null);
   }
   function pickerCardClick(exerciseId) {
     if (suppressPickerClickRef.current) {
@@ -514,6 +531,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     onPointerDown={(e) => gripPointerDown(e, i)}
                                     onPointerMove={gripPointerMove}
                                     onPointerUp={gripPointerUp}
+                                    onPointerCancel={gripPointerUp}
                                     style={{ touchAction: "none" }}
                                     className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing"
                                   >
@@ -544,6 +562,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                       onPointerDown={(e) => gripPointerDown(e, i)}
                                       onPointerMove={gripPointerMove}
                                       onPointerUp={gripPointerUp}
+                                      onPointerCancel={gripPointerUp}
                                       style={{ touchAction: "none" }}
                                       className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing md:hidden"
                                     >
@@ -717,6 +736,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     onPointerDown={(e) => gripPointerDown(e, i)}
                                     onPointerMove={gripPointerMove}
                                     onPointerUp={gripPointerUp}
+                                    onPointerCancel={gripPointerUp}
                                     style={{ touchAction: "none" }}
                                     className="hidden md:flex items-center justify-center text-black/25 hover:text-black/50 cursor-grab active:cursor-grabbing"
                                   >
@@ -864,6 +884,28 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
         onClose={() => setEditingExercise(null)}
         showToast={showToast || (() => {})}
       />
+
+      {/* Floating "ghost" that tracks the finger/cursor once a drag has
+          started — without this the dragged row/card just sits there dimmed
+          in place, which reads as unresponsive rather than as an active
+          drag. pointer-events-none so it never blocks the elementFromPoint()
+          lookup that finds the row underneath it. Same pattern as the coach
+          calendar's drag-drop. */}
+      {dragPos && (dragIndex !== null || draggingExerciseId !== null) && (
+        <div
+          className="fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl max-w-[220px]"
+          style={{ left: dragPos.x, top: dragPos.y, transform: "translate(-50%, -130%)" }}
+        >
+          <GripVertical size={13} className="text-white/50 shrink-0" />
+          <span className="truncate">
+            {dragIndex !== null
+              ? rows[dragIndex]?.isRest
+                ? "Rest"
+                : exercisesById[rows[dragIndex]?.exerciseId]?.name || "Exercise"
+              : exercisesById[draggingExerciseId]?.name || "Exercise"}
+          </span>
+        </div>
+      )}
     </div>
     </FullScreenOverlay>
   );
