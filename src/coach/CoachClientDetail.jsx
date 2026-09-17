@@ -1781,6 +1781,13 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
   );
 }
 
+// "2026-09-07" -> "7 Sep 2026" — used by the phase date-range pill so it
+// reads the same everywhere instead of each browser's own <input type=date>
+// formatting (which varies and looks inconsistent inside a native wrapper).
+function formatDateRangeLabel(dateStr) {
+  return new Date(dateStr + "T00:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
 function TrainingProgramPanel({ client, showToast }) {
   const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase, createProgram, scheduleWorkout, createMasterWorkout } = useApp();
   const phases = (db.clientPhases || {})[client.id] || [];
@@ -1798,6 +1805,8 @@ function TrainingProgramPanel({ client, showToast }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [renamingId, setRenamingId] = useState(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const startDateRef = useRef(null);
+  const endDateRef = useRef(null);
 
   const phase = phases.find((p) => p.id === selectedPhaseId) || sorted[0] || null;
   const days = phase?.weeks?.[0]?.days || [];
@@ -2096,21 +2105,21 @@ function TrainingProgramPanel({ client, showToast }) {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={saveAsMasterProgram}
-                  className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 bg-black/[0.05] hover:bg-black/10 text-black/70 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
                   title="Save this phase as a reusable Master Program"
                 >
                   <Library size={13} /> Save to Library
                 </button>
                 <button
                   onClick={() => setDuplicating(phase)}
-                  className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-1.5 bg-black/[0.05] hover:bg-black/10 text-black/70 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
                 >
                   <Copy size={13} /> Duplicate
                 </button>
                 {!confirmDeletePhase || confirmDeletePhase !== phase.id ? (
                   <button
                     onClick={() => setConfirmDeletePhase(phase.id)}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/50"
+                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/[0.05] hover:bg-black/10 text-black/40"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -2122,7 +2131,7 @@ function TrainingProgramPanel({ client, showToast }) {
                       setConfirmDeletePhase(null);
                       showToast("Phase deleted");
                     }}
-                    className="bg-red-500/20 text-red-300 text-xs font-semibold px-3 py-2 rounded-lg"
+                    className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
                   >
                     Confirm delete
                   </button>
@@ -2130,20 +2139,40 @@ function TrainingProgramPanel({ client, showToast }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 text-black/40 text-xs mb-5">
-              <Calendar size={13} />
+            <div className="inline-flex items-center gap-2 bg-black/[0.04] rounded-full pl-3 pr-1 py-1 mb-5">
+              <Calendar size={13} className="text-black/35 shrink-0" />
+              <button
+                type="button"
+                onClick={() => startDateRef.current?.showPicker?.() ?? startDateRef.current?.focus()}
+                className="text-black/70 text-xs font-semibold"
+              >
+                {formatDateRangeLabel(phase.startDate)}
+              </button>
+              <span className="text-black/25 text-xs">–</span>
+              <button
+                type="button"
+                onClick={() => endDateRef.current?.showPicker?.() ?? endDateRef.current?.focus()}
+                className="text-black/70 text-xs font-semibold"
+              >
+                {phase.endDate ? formatDateRangeLabel(phase.endDate) : "Set end"}
+              </button>
               <input
+                ref={startDateRef}
                 type="date"
                 value={phase.startDate}
                 onChange={(e) => updateClientPhase(client.id, phase.id, { startDate: e.target.value })}
-                className="bg-transparent outline-none text-black/60"
+                className="w-0 h-0 opacity-0 absolute pointer-events-none"
+                tabIndex={-1}
+                aria-hidden="true"
               />
-              <span>-</span>
               <input
+                ref={endDateRef}
                 type="date"
                 value={phase.endDate || ""}
                 onChange={(e) => updateClientPhase(client.id, phase.id, { endDate: e.target.value })}
-                className="bg-transparent outline-none text-black/60"
+                className="w-0 h-0 opacity-0 absolute pointer-events-none"
+                tabIndex={-1}
+                aria-hidden="true"
               />
             </div>
 
@@ -4943,6 +4972,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
   const [messaging, setMessaging] = useState(!!openMessages);
   const [sendOpen, setSendOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
 
   const client = db.users.find((u) => u.id === clientId);
   if (!client) return null;
@@ -5104,6 +5134,31 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               <Send size={13} /> Send
             </button>
           )}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setHeaderMenuOpen((v) => !v)}
+              aria-label="More options"
+              className="w-9 h-9 rounded-full bg-black/8 flex items-center justify-center"
+            >
+              <MoreVertical size={15} className="text-black/70" />
+            </button>
+            {headerMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setHeaderMenuOpen(false)} />
+                <div className="absolute right-0 top-11 z-20 bg-white border border-black/10 rounded-xl shadow-lg py-1.5 w-44">
+                  <button
+                    onClick={() => {
+                      setHeaderMenuOpen(false);
+                      setConfirmRemove(true);
+                    }}
+                    className="w-full text-left px-3.5 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Remove client
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
         <div className="flex gap-1.5 px-3 pb-2.5 overflow-x-auto no-scrollbar">
           {CLIENT_NAV.map((item) => {
@@ -5122,13 +5177,10 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             );
           })}
         </div>
-        {!confirmRemove ? (
-          <button onClick={() => setConfirmRemove(true)} className="block px-3 pb-2.5 text-black/30 text-[11px] font-medium">
-            Remove client
-          </button>
-        ) : (
-          <div className="flex gap-1.5 px-3 pb-2.5">
-            <button onClick={() => setConfirmRemove(false)} className="flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg">
+        {confirmRemove && (
+          <div className="flex items-center gap-2.5 px-3 pb-3 pt-1">
+            <p className="text-black/50 text-xs font-medium flex-1">Remove {client.name} and all their data?</p>
+            <button onClick={() => setConfirmRemove(false)} className="bg-black/8 text-black text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0">
               Cancel
             </button>
             <button
@@ -5137,9 +5189,9 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
                 showToast("Client removed");
                 onClose();
               }}
-              className="flex-1 bg-red-500/20 text-red-500 text-xs font-semibold py-1.5 rounded-lg"
+              className="bg-red-600 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0"
             >
-              Confirm remove
+              Confirm
             </button>
           </div>
         )}
