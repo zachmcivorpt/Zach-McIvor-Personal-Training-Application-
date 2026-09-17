@@ -24,8 +24,25 @@ function formatRest(seconds) {
   return `${seconds} sec`;
 }
 
+// Every row (exercise or rest) needs an id distinct from exerciseId — the
+// same exercise legitimately appears twice in one session (e.g. as both a
+// warm-up and a main-session set, or via "duplicate"), so exerciseId alone
+// can't tell two rows apart. Before this, the only thing distinguishing two
+// rows was their position in the array, which React was also using as the
+// list key (key={i}) — reordering rows (drag) then reused the same key for
+// a *different* row's data, which let per-row-instance state (a video
+// player's own open/closed state, inside ExerciseThumb) stick to the wrong
+// row after a drag. crypto.randomUUID() is universal in the browsers this
+// PWA targets; the fallback only matters for an unusual runtime that lacks it.
+function makeRowId() {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `row_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
 function newRow(exerciseId, section = "main") {
   return {
+    rowId: makeRowId(),
     exerciseId,
     section,
     targetSets: 3,
@@ -51,7 +68,15 @@ function newRow(exerciseId, section = "main") {
 // above); anything that only reads a specific exercise by id already
 // ignores rows with no exerciseId and is unaffected.
 function newRestRow(section = "main") {
-  return { isRest: true, section, restSeconds: 90 };
+  return { rowId: makeRowId(), isRest: true, section, restSeconds: 90 };
+}
+
+// Rows saved before rowId existed (any workout saved before this fix)
+// won't have one — stamp it on load rather than requiring a data
+// migration. Stable for the lifetime of this editor session since it's
+// only computed once, in useState's lazy initializer.
+function withRowIds(rows) {
+  return (rows || []).map((row) => (row.rowId ? row : { ...row, rowId: makeRowId() }));
 }
 
 // Full-screen desktop editor for one workout (a "day"): instructions +
@@ -63,7 +88,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const [label, setLabel] = useState(day?.label || "");
   const [instructions, setInstructions] = useState(day?.instructions || "");
   const [muscleGroups, setMuscleGroups] = useState((day?.muscleGroups || []).join(", "));
-  const [rows, setRows] = useState(day?.exercises || []);
+  const [rows, setRows] = useState(() => withRowIds(day?.exercises));
   const [search, setSearch] = useState("");
   const [addCustomOpen, setAddCustomOpen] = useState(false);
   const [customForm, setCustomForm] = useState({ name: "", category: "", equipment: "Barbell" });
@@ -75,6 +100,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const [mobilePanel, setMobilePanel] = useState("editor"); // "editor" | "picker" — mobile-only tab switch
   const [addSection, setAddSection] = useState("main"); // which section new exercises from the picker land in
   const [editingExercise, setEditingExercise] = useState(null); // exercise being edited inline (name/video/etc.)
+  const [saving, setSaving] = useState(false); // true while the in-flight save() write hasn't resolved yet
   // Refs backing the two hold-then-drag gestures (row reorder + picker
   // insert) and their shared auto-scroll — declared unconditionally here,
   // above the `if (!open) return null` below, since this component stays
@@ -206,7 +232,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     if (sorted.length === 0) return;
     setRows((r) => {
       const insertAt = sorted[sorted.length - 1] + 1;
-      const clones = sorted.map((i) => ({ ...r[i], groupId: null, groupType: null }));
+      const clones = sorted.map((i) => ({ ...r[i], rowId: makeRowId(), groupId: null, groupType: null }));
       return [...r.slice(0, insertAt), ...clones, ...r.slice(insertAt)];
     });
     setSelected(new Set());
@@ -413,14 +439,27 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       showToast?.(err.message || "Couldn't add that exercise");
     }
   }
-  function save() {
-    onSave({
-      ...day,
-      label: label.trim() || "Untitled workout",
-      instructions,
-      muscleGroups: muscleGroups.split(",").map((s) => s.trim()).filter(Boolean),
-      exercises: rows,
-    });
+  // onSave is async at every call site (it writes to Firestore) — awaiting
+  // it here and disabling the button while it's in flight stops a double
+  // tap from firing two overlapping saves, and — since every call site now
+  // only closes/toasts success after its own write actually resolves —
+  // this button staying on "SAVING…" is the coach's only signal that nothing
+  // has been confirmed yet. A caller that throws leaves the editor open
+  // with the coach's exercises intact rather than losing them.
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onSave({
+        ...day,
+        label: label.trim() || "Untitled workout",
+        instructions,
+        muscleGroups: muscleGroups.split(",").map((s) => s.trim()).filter(Boolean),
+        exercises: rows,
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   const allIndices = rows.map((_, i) => i);
@@ -451,8 +490,12 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           />
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={save} className="bg-black text-white text-sm font-bold px-4 md:px-5 py-2.5 rounded-xl">
-            SAVE
+          <button
+            onClick={save}
+            disabled={saving}
+            className="bg-black text-white text-sm font-bold px-4 md:px-5 py-2.5 rounded-xl disabled:opacity-50"
+          >
+            {saving ? "SAVING…" : "SAVE"}
           </button>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-black/8 text-black/60">
             <X size={18} />
@@ -596,7 +639,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                           const GroupIcon = row.groupType ? GROUP_ICONS[row.groupType] : null;
                           return (
                             <div
-                              key={i}
+                              key={row.rowId}
                               data-row-index={i}
                               className={
                                 overIndex === i && dragIndex !== null && dragIndex !== i

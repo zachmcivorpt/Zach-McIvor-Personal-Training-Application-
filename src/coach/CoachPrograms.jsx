@@ -444,7 +444,13 @@ export default function CoachPrograms({ showToast }) {
     if (!selectedPhase) return;
     setEditingWorkout({ phaseIndex, dayIndex: i, day: selectedPhase.days[i] });
   }
-  function saveWorkout(day) {
+  // Awaited and wrapped in try/catch — this used to fire the Firestore
+  // write, close the editor, and show "Workout saved" all before the write
+  // resolved, so a failure (offline, a permissions hiccup) was completely
+  // invisible: the coach saw success and the exercises they'd just dragged
+  // in were never actually persisted. On failure the editor now stays open
+  // with the work intact instead of silently losing it.
+  async function saveWorkout(day) {
     if (!editingWorkout) return;
     const { phaseIndex: pi, dayIndex: di } = editingWorkout;
     const nextPhases = phases.map((p, idx) => {
@@ -454,7 +460,12 @@ export default function CoachPrograms({ showToast }) {
       else days.push(day);
       return { ...p, days };
     });
-    savePhases(nextPhases);
+    try {
+      await savePhases(nextPhases);
+    } catch (err) {
+      showToast("Couldn't save that workout — check your connection and try again");
+      return;
+    }
     setEditingWorkout(null);
     showToast("Workout saved");
   }

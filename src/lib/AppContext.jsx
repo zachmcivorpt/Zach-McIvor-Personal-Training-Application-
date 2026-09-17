@@ -1536,14 +1536,18 @@ export function AppProvider({ children }) {
 
       // Master workout templates — reusable building blocks, independent of
       // any single program, that can be dropped into a phase.
-      createMasterWorkout(data) {
+      // Both awaited and rejecting on failure (not the earlier fire-and-forget
+      // + console.error-only pattern) so a caller building a workout in the
+      // editor — the exercises the coach just dragged in — can tell a failed
+      // save from a real one instead of showing "Saved" regardless.
+      async createMasterWorkout(data) {
         const id = newDocId("masterWorkouts");
         const workout = { id, label: "New Workout", muscleGroups: [], exercises: [], instructions: "", createdAt: Date.now(), ...data };
-        setDoc(doc(firestore, "masterWorkouts", id), workout).catch(console.error);
+        await setDoc(doc(firestore, "masterWorkouts", id), stripUndefined(workout));
         return workout;
       },
-      updateMasterWorkout(id, data) {
-        updateDoc(doc(firestore, "masterWorkouts", id), data).catch(console.error);
+      async updateMasterWorkout(id, data) {
+        await updateDoc(doc(firestore, "masterWorkouts", id), stripUndefined(data));
       },
       deleteMasterWorkout(id) {
         deleteDoc(doc(firestore, "masterWorkouts", id)).catch(console.error);

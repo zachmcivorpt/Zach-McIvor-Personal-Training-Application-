@@ -10,15 +10,24 @@ export default function CoachWorkoutLibrary({ showToast }) {
   const [editing, setEditing] = useState(null); // { isNew: true } | workout | null
   const workouts = db.masterWorkouts || [];
 
-  function handleSave(day) {
-    if (editing?.id) {
-      updateMasterWorkout(editing.id, day);
-      showToast("Workout template updated");
-    } else {
-      createMasterWorkout(day);
-      showToast("Workout template created");
+  // Awaited and wrapped in try/catch — closing the editor and showing
+  // "Saved" before the write actually resolved meant a failed save (offline,
+  // a permissions hiccup) looked identical to a successful one, and the
+  // exercises the coach just built were gone with no way to tell. On
+  // failure the editor stays open so the work isn't lost.
+  async function handleSave(day) {
+    try {
+      if (editing?.id) {
+        await updateMasterWorkout(editing.id, day);
+        showToast("Workout template updated");
+      } else {
+        await createMasterWorkout(day);
+        showToast("Workout template created");
+      }
+      setEditing(null);
+    } catch (err) {
+      showToast("Couldn't save that workout — check your connection and try again");
     }
-    setEditing(null);
   }
 
   return (
