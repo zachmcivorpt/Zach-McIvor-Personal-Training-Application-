@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
-import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay } from "../components/ui";
+import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay, ExerciseThumb } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct, resolveNutritionTargets } from "../lib/nutritionTargets";
 import {
   computePerformanceTimeline,
@@ -1733,20 +1733,23 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
               return (
                 <div key={i} className="py-3.5 border-b border-black/5">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
-                        {e.dropSet && (
-                          <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
-                            DROPSET
-                          </span>
-                        )}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <ExerciseThumb exercise={ex} size={40} rounded="rounded-lg" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                          {e.dropSet && (
+                            <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                              DROPSET
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-black/45 text-[13px] mt-0.5">
+                          {e.targetSets} sets ×{" "}
+                          {e.targetType === "time" ? `${e.targetReps || 30}s` : e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR{" "}
+                          {e.targetRIR ?? 2}
+                        </p>
                       </div>
-                      <p className="text-black/45 text-[13px] mt-0.5">
-                        {e.targetSets} sets ×{" "}
-                        {e.targetType === "time" ? `${e.targetReps || 30}s` : e.targetReps === "AMRAP" ? "AMRAP" : `${e.targetReps} Repetitions`} · RIR{" "}
-                        {e.targetRIR ?? 2}
-                      </p>
                     </div>
                     <span className="text-black/30 text-xs shrink-0">{ex.equipment}</span>
                   </div>
@@ -2200,7 +2203,7 @@ function TrainingProgramPanel({ client, showToast }) {
                 <p className="text-black/30 text-sm">No workouts in this phase yet.</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {days.map((d, i) => {
                   const selected = selectedDayIds.has(d.id);
                   return (
@@ -2210,70 +2213,49 @@ function TrainingProgramPanel({ client, showToast }) {
                         if (selectMode) toggleDaySelected(d.id);
                         else if (renamingId !== d.id) setPreviewIndex(i);
                       }}
-                      className={`w-full flex items-center gap-3 border rounded-xl px-4 py-3 text-left transition-colors cursor-pointer ${
-                        selected ? "bg-blue-50 border-blue-200" : "bg-black/[0.03] hover:bg-black/[0.06] border-black/8"
+                      className={`w-full border rounded-2xl px-4 py-3.5 text-left transition-colors cursor-pointer shadow-sm ${
+                        selected ? "bg-blue-50 border-blue-200" : "bg-white hover:border-black/15 border-black/8"
                       }`}
                     >
-                      {selectMode && (
-                        <span
-                          className={`w-4 h-4 rounded shrink-0 border-2 flex items-center justify-center ${
-                            selected ? "bg-blue-600 border-blue-600" : "border-black/25 bg-white"
-                          }`}
-                        >
-                          {selected && <Check size={11} className="text-white" strokeWidth={3} />}
-                        </span>
-                      )}
-                      <WorkoutPhotoButton day={d} onPhoto={(url) => setDayPhoto(i, url)} />
-                      <div className="flex-1 min-w-0">
-                        {renamingId === d.id ? (
-                          <input
-                            autoFocus
-                            value={renameDraft}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={(e) => setRenameDraft(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") confirmRename(i);
-                              if (e.key === "Escape") setRenamingId(null);
-                            }}
-                            onBlur={() => confirmRename(i)}
-                            className="bg-white border border-blue-300 rounded-lg px-2 py-1 text-sm font-medium text-black outline-none w-full max-w-xs"
-                          />
-                        ) : (
-                          <p className="text-blue-600 font-bold text-base truncate flex items-center gap-1.5">
-                            {d.label}
-                            {d.exercises.some((e) => isExerciseStale(e, phase?.createdAt)) && (
-                              <span
-                                className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
-                                title="Has an exercise that's been in the program 45+ days"
-                              />
-                            )}
-                          </p>
+                      {/* top row: identity — thumb, name, stale flag, and (out of the way of the title) the overflow menu */}
+                      <div className="flex items-center gap-3">
+                        {selectMode && (
+                          <span
+                            className={`w-4 h-4 rounded shrink-0 border-2 flex items-center justify-center ${
+                              selected ? "bg-blue-600 border-blue-600" : "border-black/25 bg-white"
+                            }`}
+                          >
+                            {selected && <Check size={11} className="text-white" strokeWidth={3} />}
+                          </span>
                         )}
-                        <p className="text-black/35 text-xs truncate mt-0.5">
-                          est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
-                          {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
-                        </p>
-                      </div>
-                      {!selectMode && (
-                        <>
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingWorkout({ dayIndex: i, day: d });
-                            }}
-                            className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors shrink-0"
-                          >
-                            <Edit3 size={13} /> Edit
-                          </span>
-                          <span
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSchedulingDay(d);
-                            }}
-                            className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors shrink-0"
-                          >
-                            <CalendarPlus size={13} /> Schedule
-                          </span>
+                        <WorkoutPhotoButton day={d} onPhoto={(url) => setDayPhoto(i, url)} />
+                        <div className="flex-1 min-w-0">
+                          {renamingId === d.id ? (
+                            <input
+                              autoFocus
+                              value={renameDraft}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => setRenameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") confirmRename(i);
+                                if (e.key === "Escape") setRenamingId(null);
+                              }}
+                              onBlur={() => confirmRename(i)}
+                              className="bg-white border border-blue-300 rounded-lg px-2 py-1 text-sm font-medium text-black outline-none w-full max-w-xs"
+                            />
+                          ) : (
+                            <p className="text-black font-bold text-[15px] leading-snug line-clamp-1 flex items-center gap-1.5">
+                              {d.label}
+                              {d.exercises.some((e) => isExerciseStale(e, phase?.createdAt)) && (
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+                                  title="Has an exercise that's been in the program 45+ days"
+                                />
+                              )}
+                            </p>
+                          )}
+                        </div>
+                        {!selectMode && (
                           <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
                             <span
                               onClick={() => setOpenMenuId(openMenuId === d.id ? null : d.id)}
@@ -2308,8 +2290,45 @@ function TrainingProgramPanel({ client, showToast }) {
                               </>
                             )}
                           </div>
-                        </>
-                      )}
+                        )}
+                      </div>
+
+                      {/* bottom row: meta + muscle-group tags on the left, primary actions on the right — its own row so it never fights the title for space */}
+                      <div className="flex items-center justify-between gap-3 flex-wrap mt-2.5 pl-[52px]">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className="text-black/40 text-xs font-medium whitespace-nowrap">
+                            est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
+                          </span>
+                          {d.muscleGroups?.length > 0 &&
+                            d.muscleGroups.map((mg) => (
+                              <span key={mg} className="bg-black/5 text-black/50 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap">
+                                {mg}
+                              </span>
+                            ))}
+                        </div>
+                        {!selectMode && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingWorkout({ dayIndex: i, day: d });
+                              }}
+                              className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors"
+                            >
+                              <Edit3 size={13} /> Edit
+                            </span>
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSchedulingDay(d);
+                              }}
+                              className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                            >
+                              <CalendarPlus size={13} /> Schedule
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
