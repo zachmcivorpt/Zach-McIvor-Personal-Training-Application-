@@ -6453,7 +6453,14 @@ export default function ClientApp() {
   // editingLogId set and updates this same log instead of creating a new one.
   function continueCompletedWorkout(session) {
     if (!session?.workoutLogId) return;
-    const scheduled = scheduledWorkoutsByDate[todayDateKey];
+    // scheduledWorkoutsByDate only ever keeps ONE entry per date (last one
+    // wins), so on a day with more than one scheduled workout it can easily
+    // resolve to a DIFFERENT workout than the one actually being continued —
+    // silently building a prescription with the wrong (or missing) exercises.
+    // Search every entry scheduled today and only trust one whose label
+    // actually matches what was completed.
+    const todaysScheduled = scheduledWorkoutsListByDate[todayDateKey] || [];
+    const scheduled = todaysScheduled.find((w) => w.label === session.label);
     const prescription = scheduled ? scheduledToSession(scheduled) : session;
     setActiveLog(Object.fromEntries(session.exercises.map((e) => [e.exerciseId, e.actualSets || []])));
     setExerciseNotes(Object.fromEntries(session.exercises.filter((e) => e.note).map((e) => [e.exerciseId, e.note])));
