@@ -480,7 +480,7 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
   );
 }
 
-function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewDate, showToast, presetPayload }) {
+function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewDate, showToast, presetPayload, phaseStart, phaseEnd }) {
   const { db, scheduleWorkoutDates, unscheduleWorkout } = useApp();
   const [source, setSource] = useState("library"); // library | custom
   const [masterWorkoutId, setMasterWorkoutId] = useState("");
@@ -579,12 +579,23 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   // this client — shown circled on the mini calendar below so the coach can
   // see the existing pattern (e.g. every Monday) before adding to it,
   // rather than starting from a blank slate every time this sheet opens.
+  // When opened from within a specific phase (phaseStart/phaseEnd passed),
+  // restrict the match to that phase's own date range — otherwise a
+  // duplicated phase, whose days keep the same labels as the phase it was
+  // copied from, pulls in every already-scheduled date from BOTH phases
+  // (label matching alone can't tell them apart), pre-circling and
+  // counting dates that have nothing to do with the phase actually open.
   const alreadyScheduledDates = useMemo(() => {
     if (!payload?.label) return new Set();
+    const rangeStart = phaseStart || null;
+    const rangeEnd = phaseEnd || "9999-12-31";
     return new Set(
-      ((db.scheduledWorkouts || {})[client.id] || []).filter((w) => w.label === payload.label).map((w) => w.date)
+      ((db.scheduledWorkouts || {})[client.id] || [])
+        .filter((w) => w.label === payload.label)
+        .filter((w) => !rangeStart || (w.date >= rangeStart && w.date <= rangeEnd))
+        .map((w) => w.date)
     );
-  }, [db.scheduledWorkouts, client.id, payload?.label]);
+  }, [db.scheduledWorkouts, client.id, payload?.label, phaseStart, phaseEnd]);
 
   // Whenever the sheet opens, or the coach switches which workout they're
   // scheduling, sync the calendar's checked dates to match reality: every
@@ -2498,6 +2509,8 @@ function TrainingProgramPanel({ client, showToast }) {
         client={client}
         showToast={showToast}
         initialViewDate={phase?.startDate}
+        phaseStart={phase?.startDate}
+        phaseEnd={phase?.endDate}
         presetPayload={schedulingDay ? { label: schedulingDay.label, muscleGroups: schedulingDay.muscleGroups || [], exercises: schedulingDay.exercises, instructions: schedulingDay.instructions || "" } : null}
       />
     </div>
