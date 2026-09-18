@@ -2003,6 +2003,7 @@ function WorkoutSession({
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
   const [restLabel, setRestLabel] = useState("");
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const timerRef = useRef(null);
 
   useEffect(() => {
@@ -2118,16 +2119,40 @@ function WorkoutSession({
             Save
           </button>
         </div>
-        {onDiscard && (
+        {onDiscard && !confirmingDiscard && (
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm("Discard this workout and start over? Anything logged in it will be lost.")) onDiscard();
-            }}
+            onClick={() => setConfirmingDiscard(true)}
             className={dark ? "shrink-0 px-5 py-1.5 text-red-400 text-[12px] font-semibold text-left" : "shrink-0 px-5 py-1.5 text-red-500 text-[12px] font-semibold text-left"}
           >
             Stuck or showing the wrong exercises? Discard and start fresh
           </button>
+        )}
+        {onDiscard && confirmingDiscard && (
+          <div className={dark ? "shrink-0 px-5 py-2 bg-red-500/10 flex items-center justify-between gap-3" : "shrink-0 px-5 py-2 bg-red-50 flex items-center justify-between gap-3"}>
+            <span className={dark ? "text-white/80 text-[12px] font-medium" : "text-black/70 text-[12px] font-medium"}>
+              Discard this workout? Anything logged in it will be lost.
+            </span>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setConfirmingDiscard(false)}
+                className={dark ? "text-white/60 text-[12px] font-semibold" : "text-black/50 text-[12px] font-semibold"}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmingDiscard(false);
+                  onDiscard();
+                }}
+                className={dark ? "text-red-400 text-[12px] font-bold" : "text-red-500 text-[12px] font-bold"}
+              >
+                Yes, discard
+              </button>
+            </div>
+          </div>
         )}
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 pb-28">
@@ -6482,6 +6507,33 @@ export default function ClientApp() {
     setRunningSession(prescription);
     setSessionOpen(true);
   }
+
+  // Self-heals a runningSession that's shaped like a completed log (only
+  // whatever exercises had sets logged, e.g. 2 of a 7-exercise day) instead
+  // of the full prescription — a leftover shape from before
+  // continueCompletedWorkout existed. Without this, that stale localStorage
+  // snapshot keeps coming back looking "stuck" with most of the workout
+  // missing every time the app is reopened, no matter what's deployed,
+  // until Discard is used. This rebuilds the full exercise list and carries
+  // over whatever was already logged, so leaving and returning to a session
+  // keeps all the data intact instead of requiring a manual reset.
+  useEffect(() => {
+    if (!runningSession?.workoutLogId || editingLogId === runningSession.workoutLogId) return;
+    const log = logsForClient.find((l) => l.id === runningSession.workoutLogId);
+    const dateKey = log ? localDateKey(log.date) : todayDateKey;
+    const scheduled = (scheduledWorkoutsListByDate[dateKey] || []).find((w) => w.label === runningSession.label);
+    if (!scheduled) return;
+    setActiveLog((prev) => ({
+      ...Object.fromEntries(runningSession.exercises.map((e) => [e.exerciseId, e.actualSets || []])),
+      ...(prev || {}),
+    }));
+    setExerciseNotes((prev) => ({
+      ...Object.fromEntries(runningSession.exercises.filter((e) => e.note).map((e) => [e.exerciseId, e.note])),
+      ...(prev || {}),
+    }));
+    setEditingLogId(runningSession.workoutLogId);
+    setRunningSession(scheduledToSession(scheduled));
+  }, [runningSession, editingLogId, logsForClient, scheduledWorkoutsListByDate, todayDateKey]);
 
   function beginSession() {
     setActiveLog((prev) => {
