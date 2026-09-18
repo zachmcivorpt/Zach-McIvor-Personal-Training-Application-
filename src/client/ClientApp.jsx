@@ -57,6 +57,7 @@ import {
   Paperclip,
   CheckCircle2,
   GripVertical,
+  MoreVertical,
   Zap,
   Upload,
   Download,
@@ -1092,6 +1093,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onCont
   const dark = useClientDark();
   const { db, currentUser, addWorkoutComment } = useApp();
   const [commentDraft, setCommentDraft] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
   const comments = session.workoutLogId
     ? (db.workoutComments[currentUser.id] || []).filter((c) => c.workoutLogId === session.workoutLogId)
     : [];
@@ -1130,8 +1132,37 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onCont
             <X size={22} />
           </button>
           <span className={dark ? "text-white/70 text-sm font-semibold" : "text-black/70 text-sm font-semibold"}>{session.weekLabel || "Workout Preview"}</span>
-          <ClipboardList size={19} className={dark ? "text-white/25" : "text-black/25"} />
+          {session.workoutLogId && onContinue ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                className={dark ? "w-8 h-8 -mr-1.5 flex items-center justify-center rounded-lg text-white/50" : "w-8 h-8 -mr-1.5 flex items-center justify-center rounded-lg text-black/50"}
+              >
+                <MoreVertical size={19} />
+              </button>
+              {menuOpen && (
+                <div
+                  className={dark ? "absolute right-0 top-9 z-20 w-44 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-1.5 text-left" : "absolute right-0 top-9 z-20 w-44 bg-white border border-black/10 rounded-xl shadow-2xl py-1.5 text-left"}
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onContinue();
+                    }}
+                    className={dark ? "w-full flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium text-white/80 hover:bg-white/5" : "w-full flex items-center gap-2 px-3.5 py-2 text-[13px] font-medium text-black/70 hover:bg-black/[0.04]"}
+                  >
+                    <Edit3 size={14} className={dark ? "text-white/40" : "text-black/40"} /> Edit Stats
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <ClipboardList size={19} className={dark ? "text-white/25" : "text-black/25"} />
+          )}
         </div>
+        {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
 
         <div className="flex-1 overflow-y-auto px-5 pb-28">
           <div className="mt-4">
@@ -1292,17 +1323,6 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onCont
           </div>
         )}
 
-        {!canStart && onContinue && (
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
-            <button
-              onClick={onContinue}
-              className={dark ? "bg-white text-black font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform" : "bg-black text-white font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"}
-            >
-              <Edit3 size={16} />
-              Continue Session
-            </button>
-          </div>
-        )}
       </div>
     </FullScreenOverlay>
   );
