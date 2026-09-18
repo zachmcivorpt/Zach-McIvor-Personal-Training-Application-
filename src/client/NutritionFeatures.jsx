@@ -278,7 +278,16 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     try {
       const food = await lookupBarcode(digits);
       if (closedRef.current) return;
-      onAdd(food);
+      // Save every successful lookup into the shared food library, not just
+      // the manual-entry fallback for a "not found" scan — otherwise a real,
+      // fully-resolved product (found on Open Food Facts) was only ever used
+      // for this one log entry and never became searchable by name for any
+      // other client, defeating the point of a shared library. Strip OFF's
+      // own `off_<code>` id first so createFood mints a real Firestore id
+      // instead of writing under a mismatched one.
+      const { id: _offId, ...foodData } = food;
+      const saved = createFood({ ...foodData, barcode: digits });
+      onAdd(saved);
     } catch (err) {
       if (closedRef.current) return;
       setError(err.message);

@@ -24,12 +24,12 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-Added a `workoutComments` collection — the per-workout comment thread
-(coach + client, plus auto-generated entries like PR/swap notices) shown
-in the "..." menu's Comments view on a completed workout. Same
-read/write pattern as `messages`: both the coach and that workout's
-own client can read and post; only the coach can edit or delete an
-entry (e.g. to remove a stray auto-generated one).
+`scheduledWorkouts` and `bodyStatsSchedules` now let the owning client
+create/update/delete their OWN entries, not just the coach — this is
+what lets a client drag-reschedule sessions on their own calendar (the
+same drag-and-drop the coach already had while viewing as them). Same
+ownership pattern as `workoutLogs`/`weighIns`: a client can never touch
+another client's schedule.
 
 HOW THIS IS DESIGNED
 ---------------------
@@ -231,12 +231,16 @@ service cloud.firestore {
         (isSignedIn() && resource.data.clientId == request.auth.uid && request.resource.data.clientId == resource.data.clientId);
     }
     match /scheduledWorkouts/{id} {
+      // A client can drag-reschedule their own calendar (create the moved
+      // copy + delete the original), same as the coach already could.
       allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
-      allow write: if isCoach();
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /bodyStatsSchedules/{id} {
       allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
-      allow write: if isCoach();
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /messages/{id} {
       allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);

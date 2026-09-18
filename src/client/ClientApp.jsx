@@ -9,6 +9,7 @@ import {
   User,
   Play,
   Check,
+  Edit3,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
@@ -1087,7 +1088,7 @@ function HomeScreen({
    WORKOUT PREVIEW + SESSION FLOW
 ============================================================================ */
 
-function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClose }) {
+function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onContinue, onClose }) {
   const dark = useClientDark();
   const { db, currentUser, addWorkoutComment } = useApp();
   const [commentDraft, setCommentDraft] = useState("");
@@ -1287,6 +1288,18 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onClos
             >
               <Play size={16} fill="white" />
               Start Now
+            </button>
+          </div>
+        )}
+
+        {!canStart && onContinue && (
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
+            <button
+              onClick={onContinue}
+              className={dark ? "bg-white text-black font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform" : "bg-black text-white font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"}
+            >
+              <Edit3 size={16} />
+              Continue Session
             </button>
           </div>
         )}
@@ -1719,19 +1732,19 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
       {expanded && (
       <div className="mt-3">
         <div className="grid grid-cols-[30px_1fr_84px_64px] gap-2 px-1 mb-1.5">
-          <span className={dark ? "text-white/70 text-[13px] font-bold" : "text-black/70 text-[13px] font-bold"}>Set</span>
-          <span className={dark ? "text-white/70 text-[13px] font-bold" : "text-black/70 text-[13px] font-bold"}>Previous</span>
-          <span className={dark ? "text-white/70 text-[12px] font-bold text-center leading-tight" : "text-black/70 text-[12px] font-bold text-center leading-tight"}>
+          <span className={dark ? "text-white/70 text-[11px] font-semibold" : "text-black/70 text-[11px] font-semibold"}>Set</span>
+          <span className={dark ? "text-white/70 text-[11px] font-semibold" : "text-black/70 text-[11px] font-semibold"}>Previous</span>
+          <span className={dark ? "text-white/70 text-[10px] font-semibold text-center leading-tight" : "text-black/70 text-[10px] font-semibold text-center leading-tight"}>
             {exMeta.targetType === "time" ? "Seconds" : "Repetitions"}
           </span>
-          <span className={dark ? "text-white/70 text-[13px] font-bold text-center" : "text-black/70 text-[13px] font-bold text-center"}>Kg</span>
+          <span className={dark ? "text-white/70 text-[11px] font-semibold text-center" : "text-black/70 text-[11px] font-semibold text-center"}>Kg</span>
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           const suggestion = suggestNextSet(prev, exMeta.targetReps);
           return (
             <div key={i} className="grid grid-cols-[30px_1fr_84px_64px] gap-2 items-center px-1 py-1.5">
-              <span className={dark ? "text-white text-[18px] font-bold" : "text-black text-[18px] font-bold"}>{i + 1}</span>
+              <span className={dark ? "text-white text-[15px] font-semibold" : "text-black text-[15px] font-semibold"}>{i + 1}</span>
               <div className="min-w-0">
                 <p className={dark ? "text-white/40 text-[14px] truncate" : "text-black/40 text-[14px] truncate"}>{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
                 {suggestion && !row.weight && !row.reps && (
@@ -1754,7 +1767,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                   <button
                     type="button"
                     onClick={() => stopRowTimer(i)}
-                    className="w-full rounded-xl text-center text-[19px] font-bold py-2 tabular-nums text-white"
+                    className="w-full rounded-xl text-center text-[16px] font-semibold py-2 tabular-nums text-white"
                     style={{ backgroundColor: MEASURE_BLUE }}
                   >
                     {timerRemaining}s
@@ -1764,7 +1777,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                     type="button"
                     onClick={() => startRowTimer(i)}
                     disabled={timerRowIndex !== null}
-                    className={dark ? "w-full flex items-center justify-center gap-1 bg-black border border-white/15 rounded-xl text-white text-[15px] font-bold py-2 outline-none disabled:opacity-40" : "w-full flex items-center justify-center gap-1 bg-white border border-black/15 rounded-xl text-black text-[15px] font-bold py-2 outline-none disabled:opacity-40"}
+                    className={dark ? "w-full flex items-center justify-center gap-1 bg-black border border-white/15 rounded-xl text-white text-[13px] font-semibold py-2 outline-none disabled:opacity-40" : "w-full flex items-center justify-center gap-1 bg-white border border-black/15 rounded-xl text-black text-[13px] font-semibold py-2 outline-none disabled:opacity-40"}
                   >
                     {row.reps ? (
                       `${row.reps}s`
@@ -1782,7 +1795,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                   value={row.reps}
                   onChange={(e) => onChangeField(i, "reps", e.target.value)}
                   onBlur={() => onBlurKg(i)}
-                  className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"}
+                  className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[16px] font-semibold py-2 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[16px] font-semibold py-2 outline-none focus:border-black/40"}
                 />
               )}
               <input
@@ -1791,7 +1804,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[19px] font-bold py-2 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[19px] font-bold py-2 outline-none focus:border-black/40"}
+                className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[16px] font-semibold py-2 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[16px] font-semibold py-2 outline-none focus:border-black/40"}
               />
             </div>
           );
@@ -5638,8 +5651,8 @@ function ClientCalendarScreen({
   const scrollRef = useRef(null);
   const todayRef = useRef(null);
   const scrolledToToday = useRef(false);
-  // Drag-to-reschedule — only ever active for the coach browsing as this
-  // client (see `canEdit`); a real client can't drag their own calendar.
+  // Drag-to-reschedule — available both to the client themselves and to
+  // the coach browsing as them (see `canEdit`).
   // Built on Pointer Events (not the HTML5 drag-and-drop API) because that
   // API is mouse-only — it never fires from a touch gesture at all, which
   // is exactly why this didn't work on a phone. Pointer Events cover mouse
@@ -6135,6 +6148,7 @@ export default function ClientApp() {
     logWeight,
     deleteWeighIn,
     deleteWorkoutLog,
+    updateWorkoutLogEntries,
     logBodyMetric,
     deleteBodyMetric,
     saveExerciseNote,
@@ -6163,10 +6177,15 @@ export default function ClientApp() {
   // before the workout is finished.
   const [exerciseNotes, setExerciseNotes] = useState(() => persistedSession?.exerciseNotes || currentUser.draftExerciseNotes || {});
   const [exerciseSwaps, setExerciseSwaps] = useState(persistedSession?.exerciseSwaps || {}); // {originalExerciseId: {toExerciseId, toName, fromName, reason}}
+  // Set when the client re-opened an already-completed workout (e.g. they
+  // accidentally hit Save mid-session) to keep logging — finishWorkout()
+  // updates this existing log's entries instead of creating a new one.
+  const [editingLogId, setEditingLogId] = useState(persistedSession?.editingLogId || null);
   const [sessionOpen, setSessionOpen] = useState(persistedSession?.sessionOpen || false);
   const [preStartOpen, setPreStartOpen] = useState(false);
   const [previewSession, setPreviewSession] = useState(null);
   const [previewCanStart, setPreviewCanStart] = useState(false);
+  const [previewIsTodayLog, setPreviewIsTodayLog] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
   const [toast, setToast] = useState({ show: false, message: "" });
@@ -6198,6 +6217,7 @@ export default function ClientApp() {
             exerciseNotes,
             exerciseSwaps,
             sessionOpen,
+            editingLogId,
             startedAt: sessionStartedAtRef.current,
           })
         );
@@ -6205,7 +6225,7 @@ export default function ClientApp() {
         localStorage.removeItem(activeSessionKey(currentUser.id));
       }
     } catch {}
-  }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, sessionOpen]);
+  }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, sessionOpen, editingLogId]);
 
   // An installed PWA is routinely left open (backgrounded, phone locked)
   // across a real calendar-day rollover without ever fully closing — so
@@ -6418,8 +6438,30 @@ export default function ClientApp() {
     // they're keyed by exerciseId, and the two days can easily share
     // exercises, so stale numbers would silently show up as already logged.
     if (session !== todaySession) setActiveLog(null);
+    setEditingLogId(null);
     setRunningSession(session);
     setPreStartOpen(true);
+  }
+
+  // Re-opens a workout that's already been logged today (most often an
+  // accidental tap on Save mid-session) so the client can keep adding sets
+  // or fix numbers instead of being locked out for the rest of the day.
+  // Rebuilds the full prescription (target sets/reps/rest) from today's
+  // original scheduled entry — the completed-log view only carries what was
+  // actually done, not the plan — and pre-fills activeLog with whatever was
+  // already logged so nothing already entered is lost. finishWorkout() sees
+  // editingLogId set and updates this same log instead of creating a new one.
+  function continueCompletedWorkout(session) {
+    if (!session?.workoutLogId) return;
+    const scheduled = scheduledWorkoutsByDate[todayDateKey];
+    const prescription = scheduled ? scheduledToSession(scheduled) : session;
+    setActiveLog(Object.fromEntries(session.exercises.map((e) => [e.exerciseId, e.actualSets || []])));
+    setExerciseNotes(Object.fromEntries(session.exercises.filter((e) => e.note).map((e) => [e.exerciseId, e.note])));
+    setExerciseSwaps({});
+    setEditingLogId(session.workoutLogId);
+    sessionStartedAtRef.current = Date.now();
+    setRunningSession(prescription);
+    setSessionOpen(true);
   }
 
   function beginSession() {
@@ -6468,28 +6510,34 @@ export default function ClientApp() {
     // silently vanishing because nothing else referenced that exercise.
     const notedExerciseIds = Object.keys(exerciseNotes).filter((id) => (exerciseNotes[id] || "").trim());
     const allExerciseIds = new Set([...Object.keys(cleanedLog), ...notedExerciseIds]);
-    logWorkout(currentUser.id, {
-      dayLabel: session.label,
-      entries: Array.from(allExerciseIds).map((exerciseId) => ({
-        exerciseId,
-        sets: cleanedLog[exerciseId] || [],
-        note: exerciseNotes[exerciseId] || "",
-        ...(swapByToId[exerciseId] || {}),
-      })),
-    });
+    const entries = Array.from(allExerciseIds).map((exerciseId) => ({
+      exerciseId,
+      sets: cleanedLog[exerciseId] || [],
+      note: exerciseNotes[exerciseId] || "",
+      ...(swapByToId[exerciseId] || {}),
+    }));
+    if (editingLogId) {
+      // Re-opened an already-completed workout — update that same log in
+      // place rather than creating a second entry for the same day.
+      updateWorkoutLogEntries(editingLogId, entries);
+    } else {
+      logWorkout(currentUser.id, { dayLabel: session.label, entries });
+    }
     setSummaryData({ daySession: session, activeLog: cleanedLog, durationMin, durationSec });
     setActiveLog(null);
     setExerciseNotes({});
     setExerciseSwaps({});
+    setEditingLogId(null);
     setSessionOpen(false);
     setSummaryOpen(true);
     setRunningSession(null);
   }
 
-  function openPreview(session, canStart) {
+  function openPreview(session, canStart, isTodayLog = false) {
     if (!session) return;
     setPreviewSession(session);
     setPreviewCanStart(canStart);
+    setPreviewIsTodayLog(isTodayLog);
   }
 
   function addFood(meal, food, dateKey = todayDateKey) {
@@ -6569,16 +6617,15 @@ export default function ClientApp() {
     setMessagesOpen(true);
   }
 
-  // Coach-only (see `canEdit` on ClientCalendarScreen): drag a scheduled
-  // workout or body stats check-in from one day to another right from
-  // inside the client's own calendar, while browsing as them — the same
-  // "reschedule on the fly" the coach already has on their own calendar
-  // view of a client. Dropping a workout onto a day that already has one
+  // Drag a scheduled workout or body stats check-in from one day to
+  // another on the client's own calendar — available to the client
+  // themselves and to the coach browsing as them (see `canEdit` on
+  // ClientCalendarScreen). Dropping a workout onto a day that already has one
   // (or more) never removes/overwrites what's already there — both just
   // coexist on that day afterward. Removing anything is only ever done by
   // explicit swipe-delete, never as a side effect of a drag.
   function moveScheduledItem(type, fromDate, toDate, workoutId) {
-    if (!viewingAsClient || fromDate === toDate) return;
+    if (fromDate === toDate) return;
     if (type === "bodystats") {
       if (!bodyStatsSchedulesForClient.some((s) => s.date === fromDate)) return;
       scheduleBodyStatsCheckin(currentUser.id, { startDate: toDate, weeks: 1 });
@@ -6616,7 +6663,7 @@ export default function ClientApp() {
             todaySession={todaySession}
             activeLog={activeLog}
             onStartWorkout={() => startWorkout(daySession)}
-            onViewWorkout={() => openPreview(daySession, !completedOnDate)}
+            onViewWorkout={() => openPreview(daySession, !completedOnDate, isToday && completedOnDate)}
             dayNutrition={dayNutrition}
             targets={targets}
             onLogFood={() => setTab("nutrition")}
@@ -6655,7 +6702,7 @@ export default function ClientApp() {
             activeLog={activeLog}
             completedOnDate={completedToday}
             onStart={() => startWorkout()}
-            onViewWorkout={() => openPreview(todaySession, !completedToday)}
+            onViewWorkout={() => openPreview(todaySession, !completedToday, completedToday)}
             onPreviewWorkout={(day) => openPreview(day, true)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
@@ -6693,7 +6740,7 @@ export default function ClientApp() {
             formSchedules={(db.formSchedules || {})[currentUser.id] || []}
             forms={db.forms || []}
             onPreviewWorkout={(day) => openPreview(day, true)}
-            canEdit={viewingAsClient}
+            canEdit={true}
             onMoveItem={moveScheduledItem}
             onDeleteScheduledWorkout={(workoutId) => {
               deleteScheduledWorkoutById(workoutId);
@@ -6832,6 +6879,15 @@ export default function ClientApp() {
               setPreviewSession(null);
               startWorkout(session);
             }}
+            onContinue={
+              previewIsTodayLog
+                ? () => {
+                    const session = previewSession;
+                    setPreviewSession(null);
+                    continueCompletedWorkout(session);
+                  }
+                : undefined
+            }
           />
         )}
 
