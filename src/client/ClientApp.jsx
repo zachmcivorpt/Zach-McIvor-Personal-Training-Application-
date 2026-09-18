@@ -1991,6 +1991,7 @@ function WorkoutSession({
   setExerciseSwaps,
   onFinish,
   onExit,
+  onDiscard,
   onSaveNote,
 }) {
   const dark = useClientDark();
@@ -2117,6 +2118,17 @@ function WorkoutSession({
             Save
           </button>
         </div>
+        {onDiscard && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm("Discard this workout and start over? Anything logged in it will be lost.")) onDiscard();
+            }}
+            className={dark ? "shrink-0 px-5 py-1.5 text-red-400 text-[12px] font-semibold text-left" : "shrink-0 px-5 py-1.5 text-red-500 text-[12px] font-semibold text-left"}
+          >
+            Stuck or showing the wrong exercises? Discard and start fresh
+          </button>
+        )}
 
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 pb-28">
           {sectionedExercises(exercisesForSession).map((group) => (
@@ -6540,6 +6552,25 @@ export default function ClientApp() {
     setRunningSession(null);
   }
 
+  // Full escape hatch for a session that's stuck or showing the wrong
+  // exercises — unlike Cancel (which deliberately preserves progress so
+  // backgrounding/reopening the app resumes where you left off), this wipes
+  // activeLog/runningSession/editingLogId entirely, which also clears the
+  // localStorage snapshot those get mirrored into (see the persistence
+  // effect above): a corrupted or incomplete snapshot from an earlier
+  // broken session otherwise keeps coming back on every future "Resume",
+  // no matter what code is deployed, since that snapshot is just data
+  // sitting on the device.
+  function discardWorkout() {
+    setActiveLog(null);
+    setExerciseNotes({});
+    setExerciseSwaps({});
+    setEditingLogId(null);
+    setRunningSession(null);
+    setSessionOpen(false);
+    sessionStartedAtRef.current = null;
+  }
+
   function openPreview(session, canStart, isTodayLog = false) {
     if (!session) return;
     setPreviewSession(session);
@@ -6848,6 +6879,7 @@ export default function ClientApp() {
             setExerciseSwaps={setExerciseSwaps}
             onFinish={finishWorkout}
             onExit={() => setSessionOpen(false)}
+            onDiscard={discardWorkout}
             onSaveNote={(exerciseId, value) => saveExerciseNote(currentUser.id, exerciseId, value)}
           />
         )}
