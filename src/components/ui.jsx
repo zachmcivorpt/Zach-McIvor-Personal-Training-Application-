@@ -66,7 +66,9 @@ export function VideoPlayerSheet({ exerciseName, videoUrl, onClose }) {
 // a generic camera icon standing in for it, and tapping it opens a full
 // player. Falls back to a plain (non-interactive) dumbbell icon when there's
 // no video at all.
-export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", className = "", dark = false }) {
+export function ExerciseThumb({ exercise, size = 56, width, height, rounded = "rounded-2xl", className = "", dark = false }) {
+  const boxWidth = width ?? size;
+  const boxHeight = height ?? size;
   const [playerOpen, setPlayerOpen] = useState(false);
   const rawParsed = exercise?.videoUrl ? parseVideoUrl(exercise.videoUrl) : null;
   // A generic "search YouTube for this name" link (the bulk-fill fallback
@@ -81,10 +83,11 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
   const faintIcon = dark ? "text-white/30" : "text-black/30";
   const boxClass = dark ? "bg-white/8 border border-white/8" : "bg-black/5 border border-black/5";
 
+  const iconBasis = Math.min(boxWidth, boxHeight);
   const content = (
     <>
       {!parsed ? (
-        <Dumbbell size={Math.round(size * 0.4)} className={mutedIcon} />
+        <Dumbbell size={Math.round(iconBasis * 0.4)} className={mutedIcon} />
       ) : parsed.kind === "file" ? (
         <>
           <video
@@ -115,7 +118,7 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
             className="w-full h-full object-cover"
             style={{ WebkitTouchCallout: "none" }}
           />
-          <Play size={Math.round(size * 0.3)} className="absolute text-white drop-shadow" fill="white" />
+          <Play size={Math.round(iconBasis * 0.3)} className="absolute text-white drop-shadow" fill="white" />
           {/* Same touch-catcher as the video thumbnail above — belt and
               suspenders against any native iOS image callout that
               -webkit-touch-callout alone doesn't always catch. */}
@@ -131,7 +134,7 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
     return (
       <div
         className={`relative ${boxClass} overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
-        style={{ width: size, height: size }}
+        style={{ width: boxWidth, height: boxHeight }}
       >
         {content}
       </div>
@@ -147,7 +150,7 @@ export function ExerciseThumb({ exercise, size = 56, rounded = "rounded-2xl", cl
           setPlayerOpen(true);
         }}
         className={`relative ${boxClass} overflow-hidden shrink-0 flex items-center justify-center ${rounded} ${className}`}
-        style={{ width: size, height: size }}
+        style={{ width: boxWidth, height: boxHeight }}
         aria-label={`Play demo video${exercise?.name ? ` for ${exercise.name}` : ""}`}
       >
         {content}

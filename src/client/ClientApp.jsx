@@ -1618,10 +1618,10 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   return (
     <div className={dark ? "pt-1 pb-5 px-1 border-b border-white/10 last:border-b-0" : "pt-1 pb-5 px-1 border-b border-black/10 last:border-b-0"}>
       <div className="flex items-center gap-3">
-        <ExerciseThumb dark={dark} exercise={exercise} size={56} rounded="rounded-lg" className="shadow-sm" />
+        <ExerciseThumb dark={dark} exercise={exercise} width={84} height={56} rounded="rounded-lg" className="shadow-sm" />
         <button type="button" onClick={() => onOpenDetail?.(exercise, exMeta)} className="min-w-0 flex-1 text-left">
           <div className="flex items-center gap-1.5">
-            <p className={dark ? "text-white font-semibold text-[13px] leading-tight" : "text-black font-semibold text-[13px] leading-tight"}>{exercise.name}</p>
+            <p className={dark ? "text-white font-semibold text-[14px] leading-tight" : "text-black font-semibold text-[14px] leading-tight"}>{exercise.name}</p>
             {exMeta.groupType && (
               <span className={dark ? "bg-white/8 text-white/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0" : "bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0"}>
                 {exMeta.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
@@ -1633,7 +1633,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
               </span>
             )}
           </div>
-          <p className={dark ? "text-white/45 text-[11px] mt-0.5" : "text-black/45 text-[11px] mt-0.5"}>
+          <p className={dark ? "text-white/45 text-[12px] mt-0.5" : "text-black/45 text-[12px] mt-0.5"}>
             {exMeta.targetSets} sets × {formatTargetReps(exMeta)}
           </p>
         </button>
@@ -1736,15 +1736,15 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         onClick={() => onStartRest(exMeta)}
         className={dark ? "mt-3 w-full flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors" : "mt-3 w-full flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"}
       >
-        <Hand size={12} style={{ color: MEASURE_BLUE }} className="shrink-0" />
-        <span className="text-[11px] font-medium flex-1 text-left" style={{ color: MEASURE_BLUE }}>
+        <Hand size={13} style={{ color: MEASURE_BLUE }} className="shrink-0" />
+        <span className="text-[12px] font-medium flex-1 text-left" style={{ color: MEASURE_BLUE }}>
           Tap to start rest timer
         </span>
         <span
-          className={dark ? "bg-black border border-white/10 text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1" : "bg-white border border-black/10 text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"}
+          className={dark ? "bg-black border border-white/10 text-[12px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1" : "bg-white border border-black/10 text-[12px] font-semibold px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1"}
           style={{ color: MEASURE_BLUE }}
         >
-          <Clock size={10} />
+          <Clock size={11} />
           {formatRest(exMeta.restSeconds ?? 90)}
         </span>
       </button>
@@ -1752,22 +1752,22 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
 
       {expanded && (
       <div className="mt-3">
-        <div className="grid grid-cols-[22px_1fr_84px_64px] gap-2 px-1 mb-1">
-          <span className={dark ? "text-white/70 text-[9px] font-semibold" : "text-black/70 text-[9px] font-semibold"}>Set</span>
-          <span className={dark ? "text-white/70 text-[9px] font-semibold" : "text-black/70 text-[9px] font-semibold"}>Previous</span>
-          <span className={dark ? "text-white/70 text-[9px] font-semibold text-center leading-tight" : "text-black/70 text-[9px] font-semibold text-center leading-tight"}>
+        <div className="grid grid-cols-[24px_1fr_60px_64px] gap-2 px-1 mb-1">
+          <span className={dark ? "text-white/70 text-[10px] font-semibold" : "text-black/70 text-[10px] font-semibold"}>Set</span>
+          <span className={dark ? "text-white/70 text-[10px] font-semibold" : "text-black/70 text-[10px] font-semibold"}>Previous</span>
+          <span className={dark ? "text-white/70 text-[10px] font-semibold text-center leading-tight" : "text-black/70 text-[10px] font-semibold text-center leading-tight"}>
             {exMeta.targetType === "time" ? "Seconds" : "Reps"}
           </span>
-          <span className={dark ? "text-white/70 text-[9px] font-semibold text-center" : "text-black/70 text-[9px] font-semibold text-center"}>Kg</span>
+          <span className={dark ? "text-white/70 text-[10px] font-semibold text-center" : "text-black/70 text-[10px] font-semibold text-center"}>Kg</span>
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           const suggestion = suggestNextSet(prev, exMeta.targetReps);
           return (
-            <div key={i} className="grid grid-cols-[22px_1fr_84px_64px] gap-2 items-center px-1 py-1">
-              <span className={dark ? "text-white text-[12px] font-semibold" : "text-black text-[12px] font-semibold"}>{i + 1}</span>
+            <div key={i} className="grid grid-cols-[24px_1fr_60px_64px] gap-2 items-center px-1 py-1">
+              <span className={dark ? "text-white text-[13px] font-semibold" : "text-black text-[13px] font-semibold"}>{i + 1}</span>
               <div className="min-w-0">
-                <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
+                <p className={dark ? "text-white/40 text-[12px] truncate" : "text-black/40 text-[12px] truncate"}>{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
                 {suggestion && !row.weight && !row.reps && (
                   <button
                     type="button"
@@ -1775,10 +1775,10 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                       onChangeField(i, "weight", String(suggestion.weight));
                       onChangeField(i, "reps", String(suggestion.reps));
                     }}
-                    className="flex items-center gap-1 text-[10px] font-semibold mt-0.5"
+                    className="flex items-center gap-1 text-[11px] font-semibold mt-0.5"
                     style={{ color: MEASURE_BLUE }}
                   >
-                    <TrendingUp size={10} className="shrink-0" />
+                    <TrendingUp size={11} className="shrink-0" />
                     <span className="truncate">Try {suggestion.reps} × {suggestion.weight}kg</span>
                   </button>
                 )}
@@ -1788,7 +1788,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                   <button
                     type="button"
                     onClick={() => stopRowTimer(i)}
-                    className="w-full rounded-xl text-center text-[13px] font-semibold py-1.5 tabular-nums text-white"
+                    className="w-full rounded-xl text-center text-[14px] font-semibold py-1.5 tabular-nums text-white"
                     style={{ backgroundColor: MEASURE_BLUE }}
                   >
                     {timerRemaining}s
@@ -1798,13 +1798,13 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                     type="button"
                     onClick={() => startRowTimer(i)}
                     disabled={timerRowIndex !== null}
-                    className={dark ? "w-full flex items-center justify-center gap-1 bg-black border border-white/15 rounded-xl text-white text-[11px] font-semibold py-1.5 outline-none disabled:opacity-40" : "w-full flex items-center justify-center gap-1 bg-white border border-black/15 rounded-xl text-black text-[11px] font-semibold py-1.5 outline-none disabled:opacity-40"}
+                    className={dark ? "w-full flex items-center justify-center gap-1 bg-black border border-white/15 rounded-xl text-white text-[12px] font-semibold py-1.5 outline-none disabled:opacity-40" : "w-full flex items-center justify-center gap-1 bg-white border border-black/15 rounded-xl text-black text-[12px] font-semibold py-1.5 outline-none disabled:opacity-40"}
                   >
                     {row.reps ? (
                       `${row.reps}s`
                     ) : (
                       <>
-                        <Play size={10} fill="currentColor" /> {targetSeconds}s
+                        <Play size={11} fill="currentColor" /> {targetSeconds}s
                       </>
                     )}
                   </button>
@@ -1816,7 +1816,7 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                   value={row.reps}
                   onChange={(e) => onChangeField(i, "reps", e.target.value)}
                   onBlur={() => onBlurKg(i)}
-                  className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[13px] font-semibold py-1.5 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[13px] font-semibold py-1.5 outline-none focus:border-black/40"}
+                  className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[14px] font-semibold py-1.5 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[14px] font-semibold py-1.5 outline-none focus:border-black/40"}
                 />
               )}
               <input
@@ -1825,14 +1825,14 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                 value={row.weight}
                 onChange={(e) => onChangeField(i, "weight", e.target.value)}
                 onBlur={() => onBlurKg(i)}
-                className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[13px] font-semibold py-1.5 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[13px] font-semibold py-1.5 outline-none focus:border-black/40"}
+                className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[14px] font-semibold py-1.5 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[14px] font-semibold py-1.5 outline-none focus:border-black/40"}
               />
             </div>
           );
         })}
         <button onClick={onAddSet} className="flex items-center gap-1.5 mt-2 px-1" style={{ color: MEASURE_BLUE }}>
-          <Plus size={12} className="border rounded-full p-0.5 box-content" style={{ borderColor: MEASURE_BLUE }} />
-          <span className="text-[12px] font-semibold">Add new set</span>
+          <Plus size={13} className="border rounded-full p-0.5 box-content" style={{ borderColor: MEASURE_BLUE }} />
+          <span className="text-[13px] font-semibold">Add new set</span>
         </button>
       </div>
       )}
