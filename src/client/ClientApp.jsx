@@ -487,7 +487,12 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   }
   const completedSets = isToday && activeLog ? Object.values(activeLog).flat().filter((s) => s.completed).length : 0;
   const totalSets = countWorkoutSets(todaySession.exercises);
-  const started = isToday && !!activeLog;
+  // completedOnDate (today's log is actually saved) is the source of truth
+  // over a merely-truthy local activeLog — without the extra check, any
+  // stray in-progress draft still sitting in state/localStorage after the
+  // real save (e.g. a race on the write confirming) would keep showing
+  // "RESUME WORKOUT" on a day that's genuinely done.
+  const started = isToday && !!activeLog && !completedOnDate;
   const exCount = countExercises(todaySession.exercises);
   const estMin = estimateWorkoutMinutes(todaySession.exercises);
   const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S FOCUS" : isPastDate ? "MISSED" : "SCHEDULED";
