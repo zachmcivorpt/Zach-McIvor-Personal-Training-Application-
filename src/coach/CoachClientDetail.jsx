@@ -76,13 +76,30 @@ import {
   Sparkles,
 } from "lucide-react";
 import { fileToCompressedDataUrl } from "../lib/image";
+import { parseVideoUrl } from "../lib/video";
+
+// The first exercise in the day that has a YouTube video gives us a real
+// thumbnail to fall back to (vimeo/file videos have no static thumbnail
+// without an extra fetch, so those still fall back to the plain icon).
+function firstExerciseThumbnail(day, exercisesById) {
+  for (const row of day?.exercises || []) {
+    if (row.isRest) continue;
+    const ex = exercisesById[row.exerciseId];
+    const parsed = ex?.videoUrl ? parseVideoUrl(ex.videoUrl) : null;
+    if (parsed?.thumbnail) return parsed.thumbnail;
+  }
+  return null;
+}
 
 // Same paste-a-photo pattern as CoachMealLibrary's per-meal camera button —
 // attaches a small compressed thumbnail directly to a workout day, shown on
-// the client's Training tab program list.
-function WorkoutPhotoButton({ day, onPhoto }) {
+// the client's Training tab program list. Falls back to the first exercise's
+// own video thumbnail when the coach hasn't uploaded a custom photo, rather
+// than a plain camera icon that looks unfinished on every single workout.
+function WorkoutPhotoButton({ day, exercisesById, onPhoto }) {
   const fileRef = useRef(null);
   const [busy, setBusy] = useState(false);
+  const fallbackThumb = day.photoUrl ? null : firstExerciseThumbnail(day, exercisesById);
 
   async function handleFile(e) {
     e.stopPropagation();
@@ -107,12 +124,14 @@ function WorkoutPhotoButton({ day, onPhoto }) {
           fileRef.current?.click();
         }}
         className={`w-9 h-9 rounded-lg overflow-hidden shrink-0 flex items-center justify-center transition-colors ${
-          day.photoUrl ? "" : "bg-black/[0.04] hover:bg-black/8"
+          day.photoUrl || fallbackThumb ? "" : "bg-black/[0.04] hover:bg-black/8"
         } ${busy ? "opacity-40 pointer-events-none" : ""}`}
         title={day.photoUrl ? "Change workout photo" : "Add a workout photo"}
       >
         {day.photoUrl ? (
           <img src={day.photoUrl} alt="" className="w-full h-full object-cover" />
+        ) : fallbackThumb ? (
+          <img src={fallbackThumb} alt="" className="w-full h-full object-cover" />
         ) : (
           <Camera size={14} className="text-black/30" />
         )}
@@ -1871,6 +1890,7 @@ function formatDateRangeLabel(dateStr) {
 
 function TrainingProgramPanel({ client, showToast }) {
   const { db, addClientPhase, updateClientPhase, deleteClientPhase, duplicateClientPhase, createProgram, scheduleWorkout, createMasterWorkout } = useApp();
+  const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
   const phases = (db.clientPhases || {})[client.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const [selectedPhaseId, setSelectedPhaseId] = useState(() => getCurrentPhase(phases, todayKey())?.id || sorted[0]?.id || null);
@@ -2338,7 +2358,7 @@ function TrainingProgramPanel({ client, showToast }) {
                             {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                           </span>
                         )}
-                        <WorkoutPhotoButton day={d} onPhoto={(url) => setDayPhoto(i, url)} />
+                        <WorkoutPhotoButton day={d} exercisesById={exercisesById} onPhoto={(url) => setDayPhoto(i, url)} />
                         <div className="flex-1 min-w-0">
                           {renamingId === d.id ? (
                             <input
