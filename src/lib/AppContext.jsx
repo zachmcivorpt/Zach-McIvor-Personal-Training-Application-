@@ -548,13 +548,21 @@ export function AppProvider({ children }) {
 
       async createInvite({ name, email }) {
         const base = email.trim().toLowerCase();
+        const atIndex = base.indexOf("@");
+        const local = atIndex === -1 ? base : base.slice(0, atIndex);
+        const domain = atIndex === -1 ? "" : base.slice(atIndex);
         let username = base;
         let n = 1;
         // A legacy/malformed user record with no username field shouldn't
         // crash the whole add-client flow — treat it as "doesn't collide"
         // rather than throwing.
         while (db.users.some((u) => u.username && u.username.toLowerCase() === username)) {
-          username = `${base}+${n}`;
+          // The +n has to land before the @ (local+n@domain), not after the
+          // whole address — appending it at the end used to produce
+          // "name@domain.com+3", which isn't a valid email at all and would
+          // fail at Firebase Auth signup the moment the client tried to
+          // activate it.
+          username = `${local}+${n}${domain}`;
           n++;
         }
         const code = inviteCode();
@@ -751,6 +759,15 @@ export function AppProvider({ children }) {
         if (!target) return;
         if (target._source === "invite") {
           deleteDoc(doc(firestore, "invites", clientId)).catch(console.error);
+          // The invite id IS the draft doc's id (see createInvite/updateUser's
+          // comments) — filling in Personal Details before activation writes
+          // to users/{clientId} as a draft. Leaving it behind after removing
+          // the invite orphans it forever: it has no name/email/username of
+          // its own, so the db.users normalizer falls back to its doc id
+          // (the email) for its username — which then permanently blocks
+          // that exact email from ever getting a clean invite again, forcing
+          // every future attempt into an ever-growing "+1", "+2", "+3" chain.
+          deleteDoc(doc(firestore, "users", clientId)).catch(() => {});
           return;
         }
         // Firestore cleanup below only ever removes THIS app's own data —
