@@ -105,6 +105,7 @@ import {
   ExerciseThumb,
   VideoPlayerSheet,
   DeleteAccountSheet,
+  SessionIntelligenceCard,
 } from "../components/ui";
 import { MEASURE_BLUE, GOAL_GREEN, BORDER_STRONG, SURFACE_RAISED, BORDER, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import {
@@ -2138,6 +2139,7 @@ function WorkoutSession({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 pb-28">
+          <SessionIntelligenceCard exercises={exercisesForSession} exercisesById={exercisesById} dark={dark} />
           {sectionedExercises(exercisesForSession).map((group) => (
             <div key={group.key}>
               {group.showHeader && (

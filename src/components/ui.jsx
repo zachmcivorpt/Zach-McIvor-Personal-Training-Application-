@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
-import { X, Check, Camera, Dumbbell, Video, Play, Search } from "lucide-react";
+import { X, Check, Camera, Dumbbell, Video, Play, Search, Sparkles, ChevronDown } from "lucide-react";
 import {
   SURFACE,
   SURFACE_RAISED,
@@ -16,6 +16,7 @@ import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { parseVideoUrl } from "../lib/video";
+import { analyzeSession } from "../lib/sessionIntelligence";
 
 // Full-screen video player — opened by tapping an ExerciseThumb that has a
 // video attached. Handles YouTube/Vimeo embeds and directly-hosted files
@@ -770,5 +771,55 @@ export function MetricTile({ label, value, date, series, onClick, dark = false }
         {series ? <Sparkline data={series} /> : <div className="h-9" />}
       </div>
     </Card>
+  );
+}
+
+// Compact, auto-generated summary shown above a session's exercise list —
+// derived entirely from the exercises already programmed (category, target
+// sets/reps/rest), no coach input required. Recomputes on every render, so
+// it stays in sync with edits (added/removed exercises, changed sets/reps,
+// reordering) without any extra wiring from the caller.
+export function SessionIntelligenceCard({ exercises, exercisesById, dark = false, defaultExpanded = true, className = "" }) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const analysis = useMemo(() => analyzeSession(exercises, exercisesById), [exercises, exercisesById]);
+  if (!analysis) return null;
+  const { briefing, whyItMatters, stats } = analysis;
+
+  return (
+    <div
+      className={`rounded-xl px-3.5 py-3 border ${className}`}
+      style={{ backgroundColor: dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)", borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }}
+    >
+      <button type="button" onClick={() => setExpanded((v) => !v)} className="w-full flex items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5" style={{ color: MEASURE_BLUE }}>
+          <Sparkles size={12} />
+          <span className="text-[9px] font-bold tracking-wide">SESSION INTELLIGENCE</span>
+        </span>
+        <ChevronDown size={14} className={`transition-transform ${dark ? "text-white/40" : "text-black/40"} ${expanded ? "rotate-180" : ""}`} />
+      </button>
+
+      <p className={`mt-1.5 text-[12px] leading-snug ${dark ? "text-white/75" : "text-black/75"}`}>{briefing}</p>
+
+      {expanded && (
+        <>
+          <p className={`mt-2 text-[11px] italic leading-snug ${dark ? "text-white/45" : "text-black/45"}`}>{whyItMatters}</p>
+          <div className={`mt-2.5 pt-2.5 grid grid-cols-2 gap-x-3 gap-y-1.5 border-t ${dark ? "border-white/8" : "border-black/8"}`}>
+            <IntelStat label="Exercises" value={stats.exerciseCount} dark={dark} />
+            <IntelStat label="Working sets" value={stats.workingSets} dark={dark} />
+            <IntelStat label="Est. duration" value={`~${stats.estMinutes} min`} dark={dark} />
+            <IntelStat label="Focus" value={stats.primaryFocus} dark={dark} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function IntelStat({ label, value, dark }) {
+  return (
+    <div className="min-w-0">
+      <p className={`text-[9px] font-semibold tracking-wide ${dark ? "text-white/30" : "text-black/30"}`}>{label.toUpperCase()}</p>
+      <p className={`text-[12px] font-semibold truncate ${dark ? "text-white/85" : "text-black/85"}`}>{value}</p>
+    </div>
   );
 }
