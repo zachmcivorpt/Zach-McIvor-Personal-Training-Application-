@@ -611,7 +611,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           ) : (
             <>
               {/* column header, desktop only */}
-              <div className="hidden md:grid grid-cols-[20px_1.3fr_56px_200px_1fr_92px_20px] gap-3 px-2 mb-1.5">
+              <div className="hidden md:grid grid-cols-[20px_2.2fr_56px_200px_0.85fr_92px_20px] gap-3 px-2 mb-1.5">
                 <span className="col-span-2 text-black/30 text-[10px] font-bold tracking-wide">EXERCISE NAME</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide text-center">SETS</span>
                 <span className="text-black/30 text-[10px] font-bold tracking-wide">TARGET</span>
@@ -700,7 +700,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                 </div>
                               ) : (
                                 <div
-                                  className={`select-none bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:py-2 md:px-2 transition-colors md:grid md:grid-cols-[20px_1.3fr_56px_200px_1fr_92px_20px] md:gap-3 md:items-center ${
+                                  className={`select-none bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:py-2 md:px-2 transition-colors md:grid md:grid-cols-[20px_2.2fr_56px_200px_0.85fr_92px_20px] md:gap-3 md:items-center ${
                                     dragIndex === i ? "opacity-40" : "border-black/8"
                                   }`}
                                   style={{ WebkitTouchCallout: "none" }}
@@ -729,10 +729,10 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     >
                                       <GripVertical size={16} />
                                     </div>
-                                    <ExerciseThumb exercise={ex} size={32} rounded="rounded-lg" />
+                                    <ExerciseThumb exercise={ex} size={52} rounded="rounded-lg" />
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-start gap-1.5">
-                                        <p className="text-black font-semibold text-sm leading-snug line-clamp-2">{ex?.name || "Unknown exercise"}</p>
+                                        <p className="text-black font-semibold text-sm leading-snug">{ex?.name || "Unknown exercise"}</p>
                                         {row.dropSet && (
                                           <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0 mt-0.5">
                                             DROPSET
