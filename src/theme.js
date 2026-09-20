@@ -47,6 +47,10 @@ export const MEASURE_BLUE_FAINT = "rgba(47,143,255,0.35)";
 // a target (nutrition calorie/macro bars), never as chrome.
 export const GOAL_GREEN = "#22C55E";
 
+// Over-limit red — a calorie/macro bar that's exceeded its target by more
+// than 10% (protein excluded, since going over protein isn't a problem).
+export const OVER_RED = "#EF4444";
+
 // Client app dark theme — the whole client-facing app (every tab) runs on
 // this palette; the coach console stays on the light tokens above.
 export const CLIENT_DARK_BG = "#090909"; // app background

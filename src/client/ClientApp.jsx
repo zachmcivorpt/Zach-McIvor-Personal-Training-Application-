@@ -107,7 +107,7 @@ import {
   DeleteAccountSheet,
   SessionIntelligenceCard,
 } from "../components/ui";
-import { MEASURE_BLUE, GOAL_GREEN, BORDER_STRONG, SURFACE_RAISED, BORDER, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
+import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, BORDER_STRONG, SURFACE_RAISED, BORDER, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import {
   computeWeeklyVolume,
   computeWorkoutsSeries,
@@ -2968,6 +2968,16 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
 // rather than the usual gold.
 const MACRO_COLORS = { protein: "#8B5CF6", carbs: "#22B8CF", fat: "#F97316" };
 
+// Blue while under target, green once the target's hit, red once it's
+// overshot by more than 10% — protein is exempt from red since going over
+// protein isn't a problem the way going over calories/carbs/fat is.
+function targetBarColor(value, target, { capped = true } = {}) {
+  if (!target || target <= 0) return MEASURE_BLUE;
+  if (capped && value > target * 1.1) return OVER_RED;
+  if (value >= target) return GOAL_GREEN;
+  return MEASURE_BLUE;
+}
+
 // Percentage callout drawn just outside the donut with its own short leader
 // line — Recharts' hover tooltip alone doesn't help on a touch device, so
 // the split needs to be readable at a glance without tapping a slice.
@@ -3313,14 +3323,14 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
             <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"}
               value={nutrition.calories}
               max={targets.calories}
-              color={nutrition.calories >= targets.calories ? GOAL_GREEN : MEASURE_BLUE}
+              color={targetBarColor(nutrition.calories, targets.calories)}
             />
           </div>
           <div className={dark ? "space-y-3 mt-4 pt-4 border-t border-white/5" : "space-y-3 mt-4 pt-4 border-t border-black/5"}>
             {[
-              { l: "Protein", v: round1(nutrition.protein), t: targets.protein },
-              { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs },
-              { l: "Fat", v: round1(nutrition.fat), t: targets.fat },
+              { l: "Protein", v: round1(nutrition.protein), t: targets.protein, capped: false },
+              { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs, capped: true },
+              { l: "Fat", v: round1(nutrition.fat), t: targets.fat, capped: true },
             ].map((m) => (
               <div key={m.l}>
                 <div className="flex items-baseline justify-between mb-1">
@@ -3329,7 +3339,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
                     {m.v}g <span className={dark ? "text-white/25" : "text-black/25"}>/ {m.t}g</span>
                   </span>
                 </div>
-                <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"} value={m.v} max={m.t} height={6} color={m.v >= m.t ? GOAL_GREEN : MEASURE_BLUE} />
+                <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"} value={m.v} max={m.t} height={6} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
               </div>
             ))}
           </div>
