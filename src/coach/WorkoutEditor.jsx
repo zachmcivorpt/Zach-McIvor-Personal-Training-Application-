@@ -4,6 +4,7 @@ import { TextInput, TextArea, Select, ExerciseThumb, FullScreenOverlay } from ".
 import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup, Edit3, Play, Hand, Copy, Trash2 } from "lucide-react";
 import { ExerciseSheet } from "./CoachExercises";
 import { parseVideoUrl } from "../lib/video";
+import { matchesSearch } from "../lib/search";
 
 const RIR_OPTIONS = [0, 1, 2, 3, 4, 5];
 const REST_PRESETS = [0, 30, 45, 60, 90, 120, 180, 240];
@@ -212,7 +213,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const filtered = useMemo(
     () =>
       exercises
-        .filter((e) => e.name.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()))
+        .filter((e) => matchesSearch(e.name, search) || matchesSearch(e.category, search))
         .sort((a, b) => a.name.localeCompare(b.name)),
     [exercises, search]
   );

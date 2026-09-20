@@ -6,6 +6,7 @@ import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MI
 import { lookupBarcode } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
+import { matchesSearch } from "../lib/search";
 
 // Ingredient macros already carry their own rounding, but summing several
 // of them (each already rounded to 1dp) drifts into floating-point noise
@@ -804,7 +805,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   );
   const totals = { cals: Math.round(rawTotals.cals), protein: round1(rawTotals.protein), carbs: round1(rawTotals.carbs), fat: round1(rawTotals.fat) };
 
-  const filtered = FOOD_DATABASE.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = FOOD_DATABASE.filter((f) => matchesSearch(f.name, search));
 
   function addIngredient(food) {
     setIngredients((list) => [...list, { ...food, id: `ing_${Math.random().toString(36).slice(2, 8)}` }]);
@@ -1036,7 +1037,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   );
   const totals = { cals: Math.round(rawTotals.cals), protein: round1(rawTotals.protein), carbs: round1(rawTotals.carbs), fat: round1(rawTotals.fat) };
 
-  const filtered = FOOD_DATABASE.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = FOOD_DATABASE.filter((f) => matchesSearch(f.name, search));
 
   function addIngredient(food) {
     setIngredients((list) => [...list, { ...food, id: `ing_${Math.random().toString(36).slice(2, 8)}` }]);

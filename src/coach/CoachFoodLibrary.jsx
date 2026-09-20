@@ -3,6 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { Card, BottomSheet, Field, TextInput, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { fileToCompressedDataUrl } from "../lib/image";
+import { matchesSearch } from "../lib/search";
 import { Plus, Search, Apple, Trash2, Camera, Download } from "lucide-react";
 
 function emptyFood() {
@@ -140,9 +141,8 @@ export default function CoachFoodLibrary({ showToast }) {
   // doesn't show up twice (editable version above, locked version below).
   const remainingBuiltIn = FOOD_DATABASE.filter((f) => !customIds.has(f.id));
 
-  const q = search.toLowerCase();
-  const filteredCustom = customFoods.filter((f) => f.name.toLowerCase().includes(q));
-  const filteredBase = remainingBuiltIn.filter((f) => f.name.toLowerCase().includes(q));
+  const filteredCustom = customFoods.filter((f) => matchesSearch(f.name, search));
+  const filteredBase = remainingBuiltIn.filter((f) => matchesSearch(f.name, search));
 
   async function handleImport() {
     setImporting(true);

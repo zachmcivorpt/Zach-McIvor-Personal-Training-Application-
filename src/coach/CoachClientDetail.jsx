@@ -77,6 +77,7 @@ import {
 } from "lucide-react";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
+import { matchesSearch } from "../lib/search";
 
 // The first exercise in the day that has a YouTube video gives us a real
 // thumbnail to fall back to (vimeo/file videos have no static thumbnail
@@ -4026,7 +4027,7 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
 
   const allExercises = useMemo(() => Object.values(exercisesById).sort((a, b) => a.name.localeCompare(b.name)), [exercisesById]);
   const filtered = useMemo(
-    () => allExercises.filter((e) => !search || e.name.toLowerCase().includes(search.toLowerCase())),
+    () => allExercises.filter((e) => matchesSearch(e.name, search)),
     [allExercises, search]
   );
 

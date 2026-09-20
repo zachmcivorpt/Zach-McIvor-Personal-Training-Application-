@@ -4,6 +4,7 @@ import { Card, Pill, BottomSheet, Field, TextInput, TextArea, Select, PrimaryBut
 import { Plus, Upload, Search, Trash2, Download, Copy, Layers } from "lucide-react";
 import { SEED_EXERCISES } from "../lib/seed";
 import { parseVideoUrl } from "../lib/video";
+import { matchesSearch } from "../lib/search";
 
 function emptyExercise() {
   return {
@@ -381,7 +382,7 @@ export default function CoachExercises({ showToast, compact = false }) {
   const [importVideosOpen, setImportVideosOpen] = useState(false);
   const [dedupeOpen, setDedupeOpen] = useState(false);
 
-  const filtered = db.exercises.filter((e) => (e.name || "").toLowerCase().includes(search.toLowerCase()));
+  const filtered = db.exercises.filter((e) => matchesSearch(e.name, search));
   const missingVideoCount = db.exercises.filter((e) => !e.videoUrl).length;
   const needsRealVideoCount = db.exercises.filter((e) => !e.videoUrl || e.videoUrl.includes("youtube.com/results")).length;
   const duplicateExtraCount = (() => {

@@ -15,6 +15,7 @@ import { FullScreenOverlay, PrimaryButton, TextInput } from "../components/ui";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { X, Plus, Search, Utensils, Trash2, Copy, ClipboardPaste, Sparkles, Wand2, Pencil, Check, RefreshCw, ArrowRightLeft } from "lucide-react";
 import { matchPct, bestMatches, eligibleForSlot } from "../lib/mealMatch";
+import { matchesSearch } from "../lib/search";
 
 const MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -88,7 +89,7 @@ function MealPickerSheet({ open, onClose, onPick, meals, target, slot, excludeId
   const [search, setSearch] = useState("");
   if (!open) return null;
   const eligible = meals.filter((m) => !excludeIds?.has(m.id) && eligibleForSlot(m, slot));
-  const filtered = eligible.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = eligible.filter((m) => matchesSearch(m.name, search));
   const ranked = target ? bestMatches(filtered, target) : filtered.map((meal) => ({ meal, score: null }));
 
   return (
@@ -162,7 +163,7 @@ function MealPickerSheet({ open, onClose, onPick, meals, target, slot, excludeId
 function AutoBuildOptionsSheet({ open, onClose, onRun, meals, excludedIds, setExcludedIds, keyword, setKeyword, scopeLabel }) {
   const [search, setSearch] = useState("");
   if (!open) return null;
-  const filtered = search ? meals.filter((m) => m.name.toLowerCase().includes(search.toLowerCase())) : meals;
+  const filtered = search ? meals.filter((m) => matchesSearch(m.name, search)) : meals;
 
   function toggle(id) {
     setExcludedIds((set) => {

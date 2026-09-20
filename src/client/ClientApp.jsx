@@ -129,6 +129,7 @@ import { parseVideoUrl } from "../lib/video";
 import { MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { FOOD_DATABASE, MICRO_FIELDS } from "../lib/foodDatabase";
 import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
+import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
@@ -1866,7 +1867,7 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
   if (!exMeta) return null;
   const primaryMuscle = exercise?.category || (exercise?.primaryMuscles || [])[0];
   const filtered = allExercises
-    .filter((e) => e.id !== exMeta.exerciseId && e.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((e) => e.id !== exMeta.exerciseId && matchesSearch(e.name, search))
     .filter((e) => !sameMuscle || !primaryMuscle || e.category === primaryMuscle)
     .filter((e) => !sameEquipment || !exercise?.equipment || e.equipment === exercise.equipment)
     .slice(0, 40);
@@ -3208,7 +3209,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
   // maybe with a photo now) replaces the static entry rather than
   // duplicating it — same id, so the imported version simply wins.
   const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
-  const filteredFoods = allFoods.filter((f) => f.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredFoods = allFoods.filter((f) => matchesSearch(f.name, search));
 
   function addAndClose(food) {
     onAddFood(activeMeal, food, viewDateKey);
