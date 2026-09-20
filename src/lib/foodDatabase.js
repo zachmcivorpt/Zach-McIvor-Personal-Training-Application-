@@ -933,6 +933,8 @@ export const FOOD_DATABASE = [
   { id: "hj027", name: "Spicy Grilled Chicken (Hungry Jack's)", cals: 332, protein: 22.4, carbs: 27.4, fat: 14.5, per: 164, defaultQty: 164, satFat: 1.6, sugar: 5.5, sodium: 723 },
   { id: "hj028", name: "Napoletana Grilled Chicken (Hungry Jack's)", cals: 421, protein: 32.2, carbs: 33.5, fat: 32.4, per: 221, defaultQty: 221, satFat: 9.2, sugar: 10.2, sodium: 1127 },
   { id: "hj029", name: "Napoletana Jack's Fried Chicken (Hungry Jack's)", cals: 777, protein: 43.1, carbs: 62.7, fat: 53.4, per: 325, defaultQty: 325, satFat: 12.4, sugar: 11.2, sodium: 1728 },
+  { id: "hj145", name: "Grilled Chicken Classic Cheese Bacon (Hungry Jack's)", cals: 418, protein: 28.0, carbs: 27.4, fat: 21.7, per: 195, defaultQty: 195, satFat: 4.5, sugar: 5.1, sodium: 1040 },
+  { id: "hj146", name: "Grilled Chicken Spicy Cheese Bacon (Hungry Jack's)", cals: 402, protein: 28.0, carbs: 28.1, fat: 19.3, per: 195, defaultQty: 195, satFat: 4.2, sugar: 6.0, sodium: 1100 },
   // --- Hungry Jack's Australia — Burgers - Grill Masters Angus ---
   { id: "hj030", name: "Grill Masters Angus Bacon & Cheese (Hungry Jack's)", cals: 810, protein: 50.8, carbs: 31.3, fat: 54.5, per: 282, defaultQty: 282, satFat: 26.7, sugar: 7.6, sodium: 1242 },
   { id: "hj031", name: "Double Grill Masters Angus Bacon & Cheese (Hungry Jack's)", cals: 1307, protein: 89.3, carbs: 32.3, fat: 93.1, per: 434, defaultQty: 434, satFat: 47.4, sugar: 8.2, sodium: 1623 },
