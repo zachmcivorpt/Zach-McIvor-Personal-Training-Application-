@@ -3316,13 +3316,16 @@ function buildNutritionInsights(current, previous, days) {
     else if (delta <= -15) insights.push(`Logging consistency has dropped over the last ${days} days.`);
   }
 
-  let run = 0;
-  let maxRun = 0;
-  current.dayDetails.forEach((d) => {
-    run = d.logged ? 0 : run + 1;
-    maxRun = Math.max(maxRun, run);
-  });
-  if (maxRun >= 3) insights.push(`${maxRun} days in a row without a nutrition log detected.`);
+  // Counts backward from TODAY (the last entry in dayDetails), not the
+  // longest gap anywhere in the window — a gap earlier in the week that's
+  // since been broken by logging today/yesterday is already resolved and
+  // isn't worth flagging as if it were still happening.
+  let currentGap = 0;
+  for (let i = current.dayDetails.length - 1; i >= 0; i--) {
+    if (current.dayDetails[i].logged) break;
+    currentGap++;
+  }
+  if (currentGap >= 3) insights.push(`No nutrition log for the last ${currentGap} days.`);
 
   const weekend = current.dayDetails.filter((d) => d.isWeekend && d.logged);
   const weekday = current.dayDetails.filter((d) => !d.isWeekend && d.logged);
