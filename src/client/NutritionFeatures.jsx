@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
+import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff, Sparkles, Loader2 } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG } from "../lib/foodDatabase";
 import { lookupBarcode } from "../lib/barcodeLookup";
@@ -758,14 +758,17 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
 }
 
 /* ============================================================================
-   PHOTO MEAL — attach a reference photo, then build the meal by hand.
-   There's no safe way to run real food-photo recognition from a public
-   static site (it would mean shipping an API key in the client bundle), so
-   this keeps the photo purely as a personal reference image and lets the
-   client enter ingredients/macros themselves — same builder as Create Meal.
+   PHOTO MEAL — attach a photo, optionally run AI analysis on it (Claude
+   vision, via the analyzeMealPhoto Cloud Function — never called with an
+   API key from the client, since this is a public static site), then build
+   or adjust the ingredient list by hand. AI results are just a starting
+   point: every item it returns lands in the same editable/deletable
+   ingredient list as a manual entry, so a bad estimate is a quick fix, not
+   a blocker.
 ============================================================================ */
 
 export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = false }) {
+  const { analyzeMealPhoto } = useApp();
   const [status, setStatus] = useState("pick"); // pick | build
   const [photoUrl, setPhotoUrl] = useState(null);
   const [name, setName] = useState("");
@@ -775,6 +778,9 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [pendingFood, setPendingFood] = useState(null);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState(null);
+  const [analyzed, setAnalyzed] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -786,6 +792,9 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
       setSearch("");
       setManualOpen(false);
       setBarcodeOpen(false);
+      setAnalyzing(false);
+      setAnalyzeError(null);
+      setAnalyzed(false);
     }
   }, [open]);
 
@@ -793,13 +802,36 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    let dataUrl = null;
     try {
-      const dataUrl = await fileToCompressedDataUrl(file, 900, 0.78);
+      dataUrl = await fileToCompressedDataUrl(file, 900, 0.78);
       setPhotoUrl(dataUrl);
     } catch {
       // bad file — still let them log the meal, just without a photo
     }
     setStatus("build");
+    if (dataUrl) runAnalysis(dataUrl);
+  }
+
+  async function runAnalysis(dataUrl) {
+    setAnalyzing(true);
+    setAnalyzeError(null);
+    try {
+      const items = await analyzeMealPhoto(dataUrl);
+      if (items.length === 0) {
+        setAnalyzeError("Couldn't identify any food in that photo — add ingredients manually below.");
+      } else {
+        setIngredients((list) => [
+          ...list,
+          ...items.map((it) => ({ ...it, id: `ing_${Math.random().toString(36).slice(2, 8)}` })),
+        ]);
+        setAnalyzed(true);
+      }
+    } catch (err) {
+      setAnalyzeError(err.message || "Couldn't analyze that photo — add ingredients manually below.");
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
   const rawTotals = ingredients.reduce(
@@ -845,7 +877,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
           <div className={dark ? "flex items-start gap-2 mt-4 bg-white/[0.03] rounded-xl p-3" : "flex items-start gap-2 mt-4 bg-black/[0.03] rounded-xl p-3"}>
             <UtensilsCrossed size={14} className={dark ? "text-white/30 shrink-0 mt-0.5" : "text-black/30 shrink-0 mt-0.5"} />
             <p className={dark ? "text-white/30 text-[11px] leading-relaxed" : "text-black/30 text-[11px] leading-relaxed"}>
-              We'll keep the photo as a reference — add the ingredients yourself below and we'll total up the macros.
+              We'll use AI to identify what's on your plate and estimate the macros — you can always edit or add to the list after.
             </p>
           </div>
         </div>
@@ -853,7 +885,35 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
 
       {status === "build" && (
         <div>
-          {photoUrl && <img src={photoUrl} alt="Your meal" className="w-full h-40 object-cover rounded-2xl mb-4" />}
+          {photoUrl && <img src={photoUrl} alt="Your meal" className="w-full h-40 object-cover rounded-2xl mb-3" />}
+
+          {photoUrl && (
+            <div className="mb-4">
+              {analyzing ? (
+                <div className={dark ? "flex items-center gap-2 bg-white/[0.03] rounded-xl p-3" : "flex items-center gap-2 bg-black/[0.03] rounded-xl p-3"}>
+                  <Loader2 size={14} className="animate-spin text-blue-500 shrink-0" />
+                  <p className={dark ? "text-white/50 text-[11px] leading-relaxed" : "text-black/50 text-[11px] leading-relaxed"}>
+                    Analyzing your photo with AI — identifying food and estimating macros...
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {analyzeError && (
+                    <div className={dark ? "flex items-start gap-2 bg-white/[0.03] rounded-xl p-3" : "flex items-start gap-2 bg-black/[0.03] rounded-xl p-3"}>
+                      <UtensilsCrossed size={14} className={dark ? "text-white/30 shrink-0 mt-0.5" : "text-black/30 shrink-0 mt-0.5"} />
+                      <p className={dark ? "text-white/40 text-[11px] leading-relaxed" : "text-black/40 text-[11px] leading-relaxed"}>{analyzeError}</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => runAnalysis(photoUrl)}
+                    className={dark ? "w-full flex items-center justify-center gap-1.5 text-blue-400 text-xs font-semibold py-2.5 rounded-xl bg-blue-500/10 mt-2" : "w-full flex items-center justify-center gap-1.5 text-blue-600 text-xs font-semibold py-2.5 rounded-xl bg-blue-500/10 mt-2"}
+                  >
+                    <Sparkles size={13} /> {analyzed ? "Re-analyze with AI" : "Analyze with AI"}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
 
           <Field dark={dark} label="MEAL NAME">
             <TextInput dark={dark} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Lunch" />
@@ -866,7 +926,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
                   <div>
                     <p className={dark ? "text-white text-sm font-medium" : "text-black text-sm font-medium"}>{ing.name}</p>
                     <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                      {ing.cals} kcal · P{ing.protein} C{ing.carbs} F{ing.fat}
+                      {ing.grams ? `~${ing.grams}g · ` : ""}{ing.cals} kcal · P{ing.protein} C{ing.carbs} F{ing.fat}
                     </p>
                   </div>
                   <button onClick={() => removeIngredient(ing.id)} className={dark ? "w-7 h-7 flex items-center justify-center text-white/30" : "w-7 h-7 flex items-center justify-center text-black/30"}>

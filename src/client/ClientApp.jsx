@@ -3666,8 +3666,11 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
             }}
             className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
           >
-            <Camera size={18} />
-            Photo
+            <span className="relative">
+              <Camera size={18} />
+              <Sparkles size={9} className="absolute -top-1 -right-1.5 text-blue-500" />
+            </span>
+            AI Photo
           </button>
           <button
             onClick={() => {
