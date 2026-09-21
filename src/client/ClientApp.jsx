@@ -62,7 +62,6 @@ import {
   Zap,
   Upload,
   Download,
-  Sunrise,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -3224,8 +3223,6 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
   );
 }
 
-const MEAL_PLAN_SLOT_ICONS = { Breakfast: Sunrise, Lunch: Utensils, Dinner: Moon, Snacks: Banana };
-
 function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal } = useApp();
@@ -3497,74 +3494,41 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
                 ))}
               </div>
             )}
-            <div className="space-y-5">
-              {["Breakfast", "Lunch", "Dinner", "Snacks"].map((slot) => {
-                const mealIds = mealPlanDay.meals?.[slot] || [];
-                if (mealIds.length === 0) return null;
-                const SlotIcon = MEAL_PLAN_SLOT_ICONS[slot];
-                return (
-                  <div key={slot}>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <SlotIcon size={12} className={dark ? "text-blue-400" : "text-blue-500"} />
-                      <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide" : "text-black/35 text-[11px] font-bold tracking-wide"}>{slot.toUpperCase()}</p>
-                    </div>
-                    <div className="space-y-2">
-                      {mealIds.map((mealId, i) => {
-                        const m = mealsById[mealId];
-                        if (!m) return null;
-                        return (
-                          <div key={`${mealId}_${i}`} className="flex items-center gap-2">
-                            <button
-                              onClick={() => setPlanMealDetail({ meal: m, slot })}
-                              className={
-                                dark
-                                  ? "flex-1 min-w-0 flex items-center gap-3 bg-white/[0.04] border border-white/8 rounded-lg px-3 py-3 text-left"
-                                  : "flex-1 min-w-0 flex items-center gap-3 bg-black/[0.02] border border-black/8 rounded-lg px-3 py-3 text-left"
-                              }
-                            >
-                              {m.photoUrl ? (
-                                <img src={m.photoUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
-                              ) : (
-                                <div className={dark ? "w-11 h-11 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-11 h-11 rounded-lg bg-black/[0.06] flex items-center justify-center shrink-0"}>
-                                  <UtensilsCrossed size={16} className={dark ? "text-white/30" : "text-black/25"} />
-                                </div>
-                              )}
-                              <div className="min-w-0 flex-1">
-                                <p className={dark ? "text-white text-sm font-semibold truncate" : "text-black text-sm font-semibold truncate"}>{m.name}</p>
-                                <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
-                                  {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
-                                </p>
-                              </div>
-                            </button>
-                            <button
-                              onClick={() => logSavedMeal(m, slot)}
-                              title="Log this meal now"
-                              className={
-                                dark
-                                  ? "shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/8 text-white/40 hover:text-white"
-                                  : "shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-black/[0.02] border border-black/8 text-black/40 hover:text-black"
-                              }
-                            >
-                              <Plus size={15} />
-                            </button>
-                            <button
-                              onClick={() => setSwapping({ slot, index: i, meal: m })}
-                              title="Swap for a similar meal"
-                              className={
-                                dark
-                                  ? "shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/8 text-white/40 hover:text-white"
-                                  : "shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-black/[0.02] border border-black/8 text-black/40 hover:text-black"
-                              }
-                            >
-                              <Repeat size={15} />
-                            </button>
+            <div className="space-y-3">
+              {["Breakfast", "Lunch", "Dinner", "Snacks"]
+                .flatMap((slot) => (mealPlanDay.meals?.[slot] || []).map((mealId, i) => ({ slot, mealId, i })))
+                .map(({ slot, mealId, i }) => {
+                  const m = mealsById[mealId];
+                  if (!m) return null;
+                  return (
+                    <div key={`${mealId}_${i}`} className={dark ? "bg-white/[0.04] border border-white/8 rounded-lg overflow-hidden" : "bg-black/[0.02] border border-black/8 rounded-lg overflow-hidden"}>
+                      <div className="relative">
+                        {m.photoUrl ? (
+                          <img src={m.photoUrl} alt="" className="w-full h-36 object-cover" />
+                        ) : (
+                          <div className={dark ? "w-full h-36 bg-white/8 flex items-center justify-center" : "w-full h-36 bg-black/[0.06] flex items-center justify-center"}>
+                            <UtensilsCrossed size={28} className={dark ? "text-white/20" : "text-black/15"} />
                           </div>
-                        );
-                      })}
+                        )}
+                        <div className="absolute top-2.5 right-2.5 flex gap-1.5">
+                          <button onClick={() => logSavedMeal(m, slot)} title="Log this meal now" className="w-8 h-8 rounded-lg bg-black/55 flex items-center justify-center text-white">
+                            <Plus size={14} />
+                          </button>
+                          <button onClick={() => setSwapping({ slot, index: i, meal: m })} title="Swap for a similar meal" className="w-8 h-8 rounded-lg bg-black/55 flex items-center justify-center text-white">
+                            <Repeat size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <button onClick={() => setPlanMealDetail({ meal: m, slot })} className="block w-full text-left px-3.5 py-3">
+                        <p className="text-blue-500 text-[10px] font-bold tracking-wide uppercase">{slot}</p>
+                        <p className={dark ? "text-white text-sm font-semibold mt-1" : "text-black text-sm font-semibold mt-1"}>{m.name}</p>
+                        <p className={dark ? "text-white/40 text-xs mt-1" : "text-black/40 text-xs mt-1"}>
+                          {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
+                        </p>
+                      </button>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </Card>
         </div>
