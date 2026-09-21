@@ -2926,20 +2926,36 @@ function SwapMealSheet({ open, onClose, meal, alternatives, onPick }) {
 // "+" on the row itself).
 function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
   const dark = useClientDark();
+  const { db } = useApp();
   if (!open || !meal) return null;
+  // The public settings/coachProfile mirror (same source the chat bubble
+  // uses) — real byline, never a placeholder name.
+  const coachName = db.coachProfile?.name || null;
   return (
-    <div className="fixed inset-0 z-[130] bg-black/40 flex items-end sm:items-center sm:justify-center" onClick={onClose}>
-      <div className={dark ? "bg-black rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] flex flex-col" : "bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-md max-h-[85vh] flex flex-col"} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 pt-5 pb-1 shrink-0">
-          <p className={dark ? "text-white font-semibold truncate pr-3" : "text-black font-semibold truncate pr-3"}>{meal.name}</p>
-          <button onClick={onClose} className={dark ? "text-white/50 shrink-0" : "text-black/50 shrink-0"}>
-            <X size={20} />
+    <FullScreenOverlay>
+      <div className={dark ? "fixed inset-0 z-[130] bg-black flex flex-col overflow-y-auto" : "fixed inset-0 z-[130] bg-white flex flex-col overflow-y-auto"}>
+        <div className="relative shrink-0">
+          {meal.photoUrl ? (
+            <img src={meal.photoUrl} alt="" className="w-full h-64 object-cover" />
+          ) : (
+            <div className={dark ? "w-full h-64 bg-white/8 flex items-center justify-center" : "w-full h-64 bg-black/[0.05] flex items-center justify-center"}>
+              <UtensilsCrossed size={40} className={dark ? "text-white/15" : "text-black/10"} />
+            </div>
+          )}
+          <button
+            onClick={onClose}
+            className="absolute top-5 left-4 w-9 h-9 rounded-lg bg-black/50 flex items-center justify-center text-white"
+          >
+            <ChevronLeft size={20} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-5 pb-5">
-          {meal.photoUrl && <img src={meal.photoUrl} alt="" className="w-full h-40 object-cover rounded-2xl mt-3" />}
 
-          <div className={dark ? "grid grid-cols-4 gap-2 bg-white/[0.03] border border-white/8 rounded-2xl p-3.5 mt-4" : "grid grid-cols-4 gap-2 bg-black/[0.03] border border-black/8 rounded-2xl p-3.5 mt-4"}>
+        <div className="px-5 pt-5 pb-6">
+          <p className="text-blue-500 text-[11px] font-bold tracking-wide uppercase">{slot}</p>
+          <h2 className={dark ? "text-white text-xl font-bold mt-1" : "text-black text-xl font-bold mt-1"}>{meal.name}</h2>
+          {coachName && <p className={dark ? "text-white/40 text-xs mt-1" : "text-black/40 text-xs mt-1"}>Picked by {coachName}</p>}
+
+          <div className={dark ? "grid grid-cols-4 gap-2 bg-white/[0.04] border border-white/8 rounded-lg p-3.5 mt-4" : "grid grid-cols-4 gap-2 bg-black/[0.02] border border-black/8 rounded-lg p-3.5 mt-4"}>
             {[
               ["Cals", meal.cals],
               ["Protein", `${meal.protein}g`],
@@ -2953,10 +2969,10 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
             ))}
           </div>
 
-          {meal.ingredients?.length > 0 && (
-            <div className="mt-4">
-              <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-1.5"}>INGREDIENTS</p>
-              <div className="space-y-1">
+          <div className="mt-5">
+            <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-2" : "text-black/35 text-[11px] font-bold tracking-wide mb-2"}>INGREDIENTS</p>
+            {meal.ingredients?.length > 0 ? (
+              <div className="space-y-1.5">
                 {meal.ingredients.map((ing, i) => {
                   // Ingredient names carry their exact amount as a trailing
                   // "(150g)"/"(1 cup)" suffix (baked in when the ingredient was
@@ -2967,11 +2983,11 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
                   const baseName = m ? m[1] : ing.name;
                   const qtyLabel = m ? m[2] : null;
                   return (
-                    <div key={i} className={dark ? "flex items-center justify-between bg-white/[0.03] rounded-xl px-3 py-2" : "flex items-center justify-between bg-black/[0.03] rounded-xl px-3 py-2"}>
+                    <div key={i} className={dark ? "flex items-center justify-between bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2.5" : "flex items-center justify-between bg-black/[0.02] border border-black/8 rounded-lg px-3 py-2.5"}>
                       <p className={dark ? "text-white text-sm truncate pr-2" : "text-black text-sm truncate pr-2"}>{baseName}</p>
                       <div className="flex items-center gap-2 shrink-0">
                         {qtyLabel && (
-                          <span className={dark ? "text-white/50 text-xs font-semibold bg-white/8 rounded-full px-2 py-0.5" : "text-black/50 text-xs font-semibold bg-black/8 rounded-full px-2 py-0.5"}>
+                          <span className={dark ? "text-white/50 text-xs font-semibold bg-white/8 rounded-md px-2 py-0.5" : "text-black/50 text-xs font-semibold bg-black/8 rounded-md px-2 py-0.5"}>
                             {qtyLabel}
                           </span>
                         )}
@@ -2981,11 +2997,13 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className={dark ? "text-white/30 text-sm" : "text-black/30 text-sm"}>No ingredients added for this meal.</p>
+            )}
+          </div>
 
-          <div className="mt-4">
-            <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-1.5"}>HOW TO PREPARE</p>
+          <div className="mt-5">
+            <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-2" : "text-black/35 text-[11px] font-bold tracking-wide mb-2"}>HOW TO PREPARE</p>
             {meal.instructions ? (
               <p className={dark ? "text-white/70 text-sm whitespace-pre-line leading-relaxed" : "text-black/70 text-sm whitespace-pre-line leading-relaxed"}>{meal.instructions}</p>
             ) : (
@@ -2993,12 +3011,12 @@ function PlanMealDetailSheet({ open, onClose, meal, slot, onLog }) {
             )}
           </div>
 
-          <PrimaryButton dark={dark} className="w-full mt-5" onClick={() => onLog(meal, slot)}>
+          <PrimaryButton dark={dark} className="w-full mt-6" onClick={() => onLog(meal, slot)}>
             <Plus size={16} /> LOG THIS MEAL
           </PrimaryButton>
         </div>
       </div>
-    </div>
+    </FullScreenOverlay>
   );
 }
 
