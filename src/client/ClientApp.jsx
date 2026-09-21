@@ -2030,16 +2030,48 @@ function WorkoutSession({
   const [restTotal, setRestTotal] = useState(90);
   const [restLabel, setRestLabel] = useState("");
   const timerRef = useRef(null);
+  // The real wall-clock moment rest ends, not a tick count — a phone
+  // backgrounds this tab the moment a client switches apps or locks the
+  // screen, and mobile browsers throttle/suspend setInterval while
+  // backgrounded, so counting down "one tick per second" silently stalls
+  // and loses however long they were away. Deriving remaining time from
+  // Date.now() vs this deadline on every tick (and immediately on return)
+  // means the timer is always correct regardless of how many ticks the
+  // browser actually let through.
+  const restEndAtRef = useRef(null);
 
   useEffect(() => {
-    if (resting && restTime > 0) {
-      timerRef.current = setTimeout(() => setRestTime((t) => t - 1), 1000);
-    } else if (resting && restTime === 0) {
-      setResting(false);
-      playTimerDing();
+    if (!resting) return;
+    const tick = () => {
+      const remaining = Math.max(0, Math.round((restEndAtRef.current - Date.now()) / 1000));
+      setRestTime(remaining);
+      if (remaining <= 0) {
+        setResting(false);
+        playTimerDing();
+      }
+    };
+    tick();
+    timerRef.current = setInterval(tick, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [resting]);
+
+  // Catch up instantly the moment the client comes back — otherwise they'd
+  // see the stale pre-background number for up to another second until the
+  // next interval tick, or (worse) not realize rest already finished while
+  // they were away since nothing fired the ding for them.
+  useEffect(() => {
+    function onVisible() {
+      if (document.visibilityState !== "visible" || !resting) return;
+      const remaining = Math.max(0, Math.round((restEndAtRef.current - Date.now()) / 1000));
+      setRestTime(remaining);
+      if (remaining <= 0) {
+        setResting(false);
+        playTimerDing();
+      }
     }
-    return () => clearTimeout(timerRef.current);
-  }, [resting, restTime]);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [resting]);
 
   // The exercises actually being performed this session — the original
   // plan, with any swapped exercises substituted in.
@@ -2126,6 +2158,7 @@ function WorkoutSession({
   function handleStartRest(exMeta) {
     unlockTimerAudio();
     const rest = exMeta.restSeconds ?? 90;
+    restEndAtRef.current = Date.now() + rest * 1000;
     setRestTime(rest);
     setRestTotal(rest);
     setRestLabel(exercisesById[exMeta.exerciseId]?.name || "");
@@ -2200,6 +2233,7 @@ function WorkoutSession({
             restTime={restTime}
             restTotal={restTotal}
             onAdd15={() => {
+              restEndAtRef.current += 15000;
               setRestTime((t) => t + 15);
               setRestTotal((t) => t + 15);
             }}
