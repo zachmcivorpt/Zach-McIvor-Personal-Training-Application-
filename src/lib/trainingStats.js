@@ -151,11 +151,19 @@ export function computePRsInLastNDays(logs, days = 30) {
 
 // A single 30(ish)-day snapshot: session frequency, PRs, strength trend
 // (average e1RM % change across whichever key lifts were actually logged
-// both before and inside the window), and bodyweight change. Any figure
-// without enough data to be meaningful comes back null rather than a
-// misleading zero.
+// both in this window and the equal-length window right before it), and
+// bodyweight change. Any figure without enough data to be meaningful comes
+// back null rather than a misleading zero.
 export function computePerformanceTimeline(logs, weighIns, exercisesById, days = 30) {
   const cutoff = Date.now() - days * DAY_MS;
+  // "before" is bounded to the SAME-length window immediately preceding
+  // this one (day 60-31 ago, for a 30-day timeline), not the client's
+  // all-time best before the cutoff. Comparing against an all-time PR set
+  // months or years ago meant an advancing lifter could show as flat or
+  // even negative simply for not re-breaking an old record within this one
+  // window — the period-over-period comparison actually reflects recent
+  // trend, matching what "Last 30 Days" on the card implies.
+  const priorWindowStart = cutoff - days * DAY_MS;
   const sessionsCount = logs.filter((l) => l.date >= cutoff).length;
   const sessionsPerWeek = Math.round((sessionsCount / (days / 7)) * 10) / 10;
   const prCount = computePRsInLastNDays(logs, days);
@@ -173,9 +181,9 @@ export function computePerformanceTimeline(logs, weighIns, exercisesById, days =
       entry.sets.forEach((s) => {
         const e1 = epley1RM(s.weight, s.reps);
         if (e1 <= 0) return;
-        if (log.date < cutoff) {
+        if (log.date >= priorWindowStart && log.date < cutoff) {
           if (e1 > before) before = e1;
-        } else if (e1 > within) {
+        } else if (log.date >= cutoff && e1 > within) {
           within = e1;
         }
       });
