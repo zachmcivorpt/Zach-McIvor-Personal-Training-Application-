@@ -754,21 +754,6 @@ export function AppProvider({ children }) {
         await signOut(auth).catch(() => {});
       },
 
-      // AI meal-photo analysis. Runs server-side (analyzeMealPhoto Cloud
-      // Function) since it calls the Anthropic API with a key that can
-      // never ship in this public static site's client bundle. Returns
-      // whatever the model identified — the caller still treats every item
-      // as an editable, deletable ingredient, same as a manual entry, since
-      // this is an estimate from a photo, not a source of truth.
-      async analyzeMealPhoto(imageDataUrl) {
-        try {
-          const result = await httpsCallable(functions, "analyzeMealPhoto")({ imageDataUrl });
-          return result.data?.items || [];
-        } catch (err) {
-          throw new Error(err.message || "Couldn't analyze that photo — please try again.");
-        }
-      },
-
       removeClient(clientId) {
         const target = db.users.find((u) => u.id === clientId);
         if (!target) return;

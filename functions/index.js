@@ -13,7 +13,6 @@
 const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -23,10 +22,6 @@ initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 const adminAuth = getAuth();
-
-// Set once via `firebase functions:secrets:set ANTHROPIC_API_KEY`, never
-// committed to the repo — see analyzeMealPhoto below.
-const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 
 // Sends to every device token stored on a user's profile doc, then prunes
 // any token Firebase reports as dead (uninstalled app, revoked
@@ -343,94 +338,4 @@ exports.cleanupOrphanedInvite = onCall(async (request) => {
 
   await adminAuth.deleteUser(existing.uid);
   return { cleaned: true };
-});
-
-// AI meal-photo analysis: a client snaps a plate of food and gets back
-// each item identified with an estimated portion + macros. This has to run
-// server-side, not in the browser, because it calls the Anthropic API with
-// a key — shipping that key in the client bundle (a public static site)
-// would let anyone extract it from devtools and run up the bill on it.
-exports.analyzeMealPhoto = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 60 }, async (request) => {
-  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Sign in required.");
-
-  const imageDataUrl = request.data?.imageDataUrl;
-  if (typeof imageDataUrl !== "string") throw new HttpsError("invalid-argument", "Missing photo.");
-  const match = imageDataUrl.match(/^data:(image\/(?:jpeg|png|webp|gif));base64,(.+)$/);
-  if (!match) throw new HttpsError("invalid-argument", "Invalid photo format.");
-  const [, mediaType, base64] = match;
-
-  const apiKey = ANTHROPIC_API_KEY.value();
-  if (!apiKey) {
-    throw new HttpsError("failed-precondition", "AI meal analysis isn't set up yet — ask the coach to configure it.");
-  }
-
-  const prompt = `You are looking at a photo of a meal. Identify each distinct food or ingredient visible, estimate its portion size, and estimate its nutrition based on that portion.
-
-Respond with ONLY a JSON object, no other text before or after it, in this exact shape:
-{"items": [{"name": "Grilled chicken breast", "grams": 150, "cals": 248, "protein": 46.5, "carbs": 0, "fat": 5.4}]}
-
-Rules:
-- "name" is a short, specific, human-readable food name (include cooking method if visible, e.g. "Grilled" or "Fried").
-- "grams" is your best-estimate portion weight, using the plate/plate items and typical serving sizes as visual scale references.
-- "cals"/"protein"/"carbs"/"fat" are your best nutrition estimate for that exact portion — not per 100g.
-- List each distinct food as its own item (e.g. rice, chicken, and broccoli as three items, never combined).
-- If you genuinely can't identify any food in the photo, respond with {"items": []}.`;
-
-  let resp;
-  try {
-    resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 1024,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-              { type: "text", text: prompt },
-            ],
-          },
-        ],
-      }),
-    });
-  } catch {
-    throw new HttpsError("unavailable", "Couldn't reach the AI service — please try again.");
-  }
-
-  if (!resp.ok) {
-    console.error("Anthropic API error:", resp.status, await resp.text().catch(() => ""));
-    throw new HttpsError("internal", "AI analysis failed — please try again.");
-  }
-
-  const data = await resp.json();
-  const text = (data.content || []).map((b) => b.text || "").join("");
-  let parsed;
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-  } catch {
-    console.error("Couldn't parse AI response:", text);
-    throw new HttpsError("internal", "Couldn't understand the AI response — please try again.");
-  }
-
-  const items = Array.isArray(parsed.items) ? parsed.items : [];
-  const clean = items
-    .filter((it) => it && typeof it.name === "string" && it.name.trim())
-    .slice(0, 15)
-    .map((it) => ({
-      name: it.name.trim().slice(0, 80),
-      grams: Number.isFinite(it.grams) ? Math.round(it.grams) : null,
-      cals: Number.isFinite(it.cals) ? Math.round(it.cals) : 0,
-      protein: Number.isFinite(it.protein) ? Math.round(it.protein * 10) / 10 : 0,
-      carbs: Number.isFinite(it.carbs) ? Math.round(it.carbs * 10) / 10 : 0,
-      fat: Number.isFinite(it.fat) ? Math.round(it.fat * 10) / 10 : 0,
-    }));
-
-  return { items: clean };
 });
