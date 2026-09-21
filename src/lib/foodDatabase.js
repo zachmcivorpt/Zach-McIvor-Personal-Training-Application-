@@ -1231,6 +1231,23 @@ export const FOOD_DATABASE = [
   { id: "pr012", name: "True Protein Bar Toasted Coconut", cals: 188, protein: 14.3, carbs: 9.1, fat: 6.4, per: 63, defaultQty: 63, satFat: 2.3, fiber: 11.0, sugar: 7.9, sodium: 96 },
   // --- Protein Bars — Macro Mike (real product, confirmed Woolworths listing; nutrition from brand's own official site) ---
   { id: "pr013", name: "Macro Mike The Game Changer Protein Bar", cals: 164, protein: 10, carbs: 18.3, fat: 5.3, per: 45, defaultQty: 45, satFat: 3.6, fiber: 2.1, sugar: 12.6, sodium: 50 },
+
+  // --- Protein Powders — BSc / Body Science (real product, confirmed at Woolworths; NIP from bscsupplements.com official site) ---
+  { id: "pr101", name: "BSc Whey Protein Powder Vanilla", cals: 166, protein: 30.1, carbs: 8.0, fat: 2.2, per: 42, defaultQty: 42, satFat: 1.5, sugar: 7.6, sodium: 226 },
+  { id: "pr102", name: "BSc Whey Protein Powder Chocolate", cals: 172, protein: 30.0, carbs: 7.5, fat: 2.4, per: 42, defaultQty: 42, satFat: 1.6, sugar: 6.7, sodium: 149 },
+  { id: "pr103", name: "BSc Bodyscience Perform & Recover Protein Powder Chocolate", cals: 224, protein: 22.0, carbs: 32.1, fat: 1.1, per: 60, defaultQty: 60, satFat: 0.5, sugar: 20.2, sodium: 174 },
+  // --- Protein Powders — Coles Perform (Coles own brand, real product, Coles listing) ---
+  { id: "pr104", name: "Coles Perform Whey Protein Powder Chocolate", cals: 116, protein: 22.2, carbs: 1.85, fat: 2.17, per: 35, defaultQty: 35, satFat: 1.54, sugar: 1.5, sodium: 45.5 },
+  { id: "pr105", name: "Coles Perform Whey Protein Powder Vanilla", cals: 118, protein: 22.1, carbs: 2.7, fat: 2, per: 35, defaultQty: 35, satFat: 1.4, sugar: 1.4, sodium: 76 },
+  { id: "pr106", name: "Coles Perform Elite Whey High Protein Powder Vanilla", cals: 152, protein: 30.6, carbs: 3.28, fat: 1.6, per: 40, defaultQty: 40, satFat: 1.12, sugar: 2.44, sodium: 99.2 },
+  { id: "pr107", name: "Coles Perform Plant Protein Powder Chocolate", cals: 123, protein: 22.7, carbs: 1.9, fat: 2.3, per: 35, defaultQty: 35, satFat: 0.6, sugar: 1, sodium: 344 },
+  // --- Protein Powders — Musashi P30 (real product, Coles listing) ---
+  { id: "pr108", name: "Musashi P30 High Protein Powder Chocolate Milkshake", cals: 180, protein: 30.1, carbs: 6.2, fat: 3.4, per: 45, defaultQty: 45, satFat: 2.1, sugar: 5.7, sodium: 96 },
+  { id: "pr109", name: "Musashi P30 High Protein Powder Vanilla Milkshake", cals: 180, protein: 30.0, carbs: 6.9, fat: 3.3, per: 45, defaultQty: 45, satFat: 2.1, sugar: 6.5 },
+  // --- Protein Powders — Vital Strength (real product, Coles listing) ---
+  { id: "pr110", name: "Vital Strength #1 Source Whey V2 Vanilla Ice Cream", cals: 146, protein: 25.1, carbs: 5.5, fat: 2.4, per: 37, defaultQty: 37, satFat: 1.1, sugar: 5.1, sodium: 147 },
+  // --- Protein Powders — Myprotein (real product, Coles listing; NIP from official myprotein.com.au) ---
+  { id: "pr111", name: "Myprotein Clear Whey Isolate Watermelon", cals: 85, protein: 20.1, carbs: 0.7, fat: 0.1, per: 25, defaultQty: 25, satFat: 0, sugar: 0.2, sodium: 10 },
 ];
 
 // Standard weight/volume unit conversions (approximated at water density for
