@@ -2173,9 +2173,7 @@ function WorkoutSession({
             Cancel
           </button>
           <h1 className={dark ? "text-white font-bold text-[17px] truncate px-2" : "text-black font-bold text-[17px] truncate px-2"}>{daySession.label}</h1>
-          <button onClick={onFinish} className={dark ? "text-white font-bold text-sm shrink-0" : "text-black font-bold text-sm shrink-0"}>
-            Save
-          </button>
+          <div className="w-[52px]" />
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 pb-28">
           <SessionIntelligenceCard exercises={exercisesForSession} exercisesById={exercisesById} dark={dark} />
@@ -2214,6 +2212,9 @@ function WorkoutSession({
               </div>
             </div>
           ))}
+          <PrimaryButton dark={dark} className="w-full" onClick={onFinish}>
+            Complete Workout
+          </PrimaryButton>
         </div>
 
         <SwapExerciseSheet
