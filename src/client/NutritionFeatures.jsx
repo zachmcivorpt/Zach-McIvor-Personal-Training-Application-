@@ -278,16 +278,19 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     }
     try {
       const food = await lookupBarcode(digits);
-      if (closedRef.current) return;
-      // Save every successful lookup into the shared food library, not just
-      // the manual-entry fallback for a "not found" scan — otherwise a real,
-      // fully-resolved product (found on Open Food Facts) was only ever used
-      // for this one log entry and never became searchable by name for any
-      // other client, defeating the point of a shared library. Strip OFF's
-      // own `off_<code>` id first so createFood mints a real Firestore id
-      // instead of writing under a mismatched one.
+      // Save every successful lookup into the shared food library — permanently,
+      // for every client, not just the manual-entry fallback for a "not found"
+      // scan — otherwise a real, fully-resolved product (found on Open Food
+      // Facts) was only ever used for this one log entry and never became
+      // searchable by name for anyone else, defeating the point of a shared
+      // library. This write happens even if the client backed out of the
+      // scanner before the lookup finished (closedRef.current) — the library
+      // gain shouldn't depend on them staying on this screen. Strip OFF's own
+      // `off_<code>` id first so createFood mints a real Firestore id instead
+      // of writing under a mismatched one.
       const { id: _offId, ...foodData } = food;
       const saved = createFood({ ...foodData, barcode: digits });
+      if (closedRef.current) return;
       onAdd(saved);
     } catch (err) {
       if (closedRef.current) return;
@@ -463,7 +466,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   }
 
   function addManual() {
-    if (!manual.name.trim()) return;
+    if (!manual.name.trim() || manual.cals === "") return;
     const data = {
       name: manual.name.trim(),
       cals: Math.round(Number(manual.cals) || 0),
@@ -610,7 +613,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
               </div>
             </div>
             <p className={dark ? "text-white/30 text-[11px] mt-3" : "text-black/30 text-[11px] mt-3"}>Saved to the food library automatically — instant next time.</p>
-            <PrimaryButton dark={dark} className="w-full mt-4" disabled={!manual.name.trim()} onClick={addManual}>
+            <PrimaryButton dark={dark} className="w-full mt-4" disabled={!manual.name.trim() || manual.cals === ""} onClick={addManual}>
               <Check size={16} /> ADD
             </PrimaryButton>
             <button onClick={scanAgain} className={dark ? "w-full text-center text-white/40 text-sm font-medium py-3" : "w-full text-center text-black/40 text-sm font-medium py-3"}>
@@ -675,7 +678,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
   }, [open]);
 
   function submit() {
-    if (!manual.name.trim()) return;
+    if (!manual.name.trim() || manual.cals === "") return;
     const data = {
       name: manual.name.trim(),
       cals: Math.round(Number(manual.cals) || 0),
@@ -747,7 +750,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
       )}
 
       <p className={dark ? "text-white/30 text-[11px] mt-3" : "text-black/30 text-[11px] mt-3"}>Saved to the food library automatically — searchable by name next time.</p>
-      <PrimaryButton dark={dark} className="w-full mt-4" disabled={!manual.name.trim()} onClick={submit}>
+      <PrimaryButton dark={dark} className="w-full mt-4" disabled={!manual.name.trim() || manual.cals === ""} onClick={submit}>
         <Check size={16} /> Log it
       </PrimaryButton>
     </BottomSheet>
