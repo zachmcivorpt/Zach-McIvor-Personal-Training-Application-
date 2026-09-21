@@ -1178,6 +1178,35 @@ export const FOOD_DATABASE = [
   { id: "mc105", name: "Iced Latte (Medium, McCafé, Skim Milk) (McDonald's)", cals: 182, protein: 11.6, carbs: 32.6, fat: 0.3, per: 467, defaultQty: 467, satFat: 0.3, sugar: 32.6, sodium: 133 },
   { id: "mc106", name: "Iced Latte (Large, McCafé, Skim Milk) (McDonald's)", cals: 241, protein: 14.1, carbs: 44.5, fat: 0.4, per: 574, defaultQty: 574, satFat: 0.4, sugar: 44.5, sodium: 162 },
 
+
+  // --- Protein Shakes/RTD — Rokeby (real brand, confirmed Woolworths & Coles) ---
+  { id: "pr201", name: "Rokeby Protein Smoothie Dutch Chocolate", cals: 287, protein: 30, carbs: 27.2, fat: 6.4, per: 425, defaultQty: 425, satFat: 4.7, sugar: 25.1, sodium: 106 },
+  { id: "pr202", name: "Rokeby Protein Smoothie Double Espresso", cals: 287, protein: 30, carbs: 27.2, fat: 6.4, per: 425, defaultQty: 425, satFat: 4.7, sugar: 25.1, sodium: 102 },
+  { id: "pr203", name: "Rokeby Protein Smoothie Vanilla Wafer", cals: 241, protein: 30, carbs: 18.3, fat: 6.4, per: 425, defaultQty: 425, satFat: 4.7, sugar: 16.6, sodium: 111 },
+  { id: "pr204", name: "Rokeby Protein Smoothie Banana Honey Cinnamon", cals: 253, protein: 30, carbs: 18.7, fat: 6.4, per: 425, defaultQty: 425, satFat: 4.7, sugar: 16.6, sodium: 111 },
+  { id: "pr205", name: "Rokeby Protein Smoothie Strawberry", cals: 287, protein: 30.2, carbs: 26.8, fat: 6.4, per: 425, defaultQty: 425, sugar: 25.1 },
+  { id: "pr206", name: "Rokeby Protein Smoothie Choc Honeycomb", cals: 253, protein: 30.2, carbs: 18.3, fat: 6.4, per: 425, defaultQty: 425, satFat: 4.7, sugar: 16.6 },
+  // --- Protein Shakes/RTD — Musashi (real product, Coles listing; distinct RTD shake line) ---
+  { id: "pr207", name: "Musashi High Protein Shake Chocolate (99% Fat Free)", cals: 241, protein: 31, carbs: 24.5, fat: 1.6, per: 375, defaultQty: 375, satFat: 1.1, fiber: 1.7, sugar: 21.3, sodium: 209 },
+  { id: "pr208", name: "Musashi High Protein Shake Vanilla", cals: 239, protein: 30.7, carbs: 24.5, fat: 1.4, per: 375, defaultQty: 375, satFat: 1.0, fiber: 1.3, sugar: 21.3, sodium: 209 },
+  // --- Protein Shakes/RTD — BSc (Body Science) (real product, Coles listing) ---
+  { id: "pr209", name: "BSc Premium Protein Shake Chocolate", cals: 184, protein: 30, carbs: 8, fat: 3.4, per: 450, defaultQty: 450, satFat: 2.2, sugar: 6.8, sodium: 304 },
+  { id: "pr210", name: "BSc Premium Protein Shake Vanilla", cals: 199, protein: 30, carbs: 9.9, fat: 4.2, per: 450, defaultQty: 450, satFat: 2.8, sugar: 9.9, sodium: 313 },
+  { id: "pr211", name: "BSc Protein Water Green Apple", cals: 62, protein: 15.2, carbs: 1, fat: 0, per: 355, defaultQty: 355, satFat: 0, sugar: 0, sodium: 15 },
+  // --- Protein Shakes/RTD — Muscle Nation (real product, Coles/Woolworths listing) ---
+  { id: "pr212", name: "Muscle Nation RTD Protein Shake Milk Chocolate", cals: 186, protein: 30, carbs: 9.3, fat: 2.8, per: 400, defaultQty: 400, satFat: 1.9, sugar: 6.8, sodium: 392 },
+  { id: "pr213", name: "Muscle Nation RTD Protein Shake Vanilla", cals: 167, protein: 30, carbs: 7.7, fat: 1.6, per: 400, defaultQty: 400, satFat: 1.1, sugar: 6.6, sodium: 396 },
+  { id: "pr214", name: "Muscle Nation RTD Protein Shake Choc Honeycomb", cals: 176, protein: 30, carbs: 9, fat: 2, per: 400, defaultQty: 400, satFat: 1.3, sugar: 6.3, sodium: 440 },
+  // --- Protein Shakes/RTD — Crankt (real product, Coles listing) ---
+  { id: "pr215", name: "Crankt Premium Protein Shake Chocolate", cals: 177, protein: 20.8, carbs: 12.4, fat: 3.6, per: 400, defaultQty: 400, satFat: 2.4, sugar: 10.8, sodium: 640 },
+  { id: "pr216", name: "Crankt Premium Protein Shake Banana", cals: 183, protein: 20.8, carbs: 12.8, fat: 4.4, per: 400, defaultQty: 400, satFat: 2.8, sugar: 12.4, sodium: 588 },
+  // --- Protein Yoghurt — YoPro (real product, official yopro.com.au panel; additional flavours) ---
+  { id: "pr217", name: "YoPro High Protein Yoghurt Mango", cals: 93, protein: 15.2, carbs: 6.6, fat: 0.5, per: 160, defaultQty: 160, satFat: 0.2, sugar: 3.8, sodium: 40 },
+  { id: "pr218", name: "YoPro High Protein Yoghurt Strawberry", cals: 94, protein: 15.4, carbs: 6.6, fat: 0.5, per: 160, defaultQty: 160, satFat: 0.32, sugar: 5.44, sodium: 66 },
+  { id: "pr219", name: "YoPro High Protein Yoghurt Salted Caramel", cals: 94, protein: 15.2, carbs: 6.1, fat: 0.8, per: 160, defaultQty: 160, satFat: 0.4, sugar: 3.2, sodium: 85 },
+  { id: "pr220", name: "YoPro High Protein Yoghurt Banana", cals: 97, protein: 15.4, carbs: 7.2, fat: 0.5, per: 160, defaultQty: 160 },
+  // --- Protein Yoghurt — Chobani Fit (real product, Coles listing; the AU high-protein line, not "Complete" which is US-only) ---
+  { id: "pr221", name: "Chobani Fit High Protein Greek Yogurt Vanilla", cals: 96, protein: 15.5, carbs: 7.4, fat: 0.3, per: 170, defaultQty: 170, satFat: 0.2, sugar: 5.1, sodium: 64 },
 ];
 
 // Standard weight/volume unit conversions (approximated at water density for
