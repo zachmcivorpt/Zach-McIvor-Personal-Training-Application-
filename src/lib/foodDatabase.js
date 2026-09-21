@@ -1207,6 +1207,30 @@ export const FOOD_DATABASE = [
   { id: "pr220", name: "YoPro High Protein Yoghurt Banana", cals: 97, protein: 15.4, carbs: 7.2, fat: 0.5, per: 160, defaultQty: 160 },
   // --- Protein Yoghurt — Chobani Fit (real product, Coles listing; the AU high-protein line, not "Complete" which is US-only) ---
   { id: "pr221", name: "Chobani Fit High Protein Greek Yogurt Vanilla", cals: 96, protein: 15.5, carbs: 7.4, fat: 0.3, per: 170, defaultQty: 170, satFat: 0.2, sugar: 5.1, sodium: 64 },
+
+  // --- Protein Bars — Grenade (real product, Coles listing) ---
+  { id: "pr001", name: "Grenade Carb Killa Bar Chocolate Chip Salted Caramel", cals: 244, protein: 20.5, carbs: 2.1, fat: 9.5, per: 60, defaultQty: 60, satFat: 5.4, sugar: 1.3, sodium: 131 },
+  // --- Protein Bars — Carman's (real product, Coles listing) ---
+  { id: "pr002", name: "Carman's Protein Bar Cinnamon Scroll", cals: 182, protein: 11.1, carbs: 16.1, fat: 7.9, per: 40, defaultQty: 40, satFat: 3.8, fiber: 0.8, sugar: 11.3, sodium: 120 },
+  // --- Protein Bars — Fodbods (real product, Coles listing) ---
+  { id: "pr003", name: "Fodbods Gut Friendly Protein Bar Lemon Coconut", cals: 238, protein: 15, carbs: 14.8, fat: 13.1, per: 50, defaultQty: 50, satFat: 3, fiber: 1.8, sugar: 10.1, sodium: 129 },
+  // --- Protein Bars — Coles Perform (Coles own brand, real product, Coles listing) ---
+  { id: "pr004", name: "Coles Perform Elite Whey High Protein Bar Milk Chocolate Fudge Brownie", cals: 233, protein: 18, carbs: 4.24, fat: 9.12, per: 60, defaultQty: 60, satFat: 4.26, fiber: 10.1, sugar: 1.92, sodium: 97.9 },
+  // --- Protein Bars — BSc Body Science (real product, Coles listing) ---
+  { id: "pr005", name: "BSc Soft Protein Bar Banana Chocolate", cals: 214, protein: 16.1, carbs: 4.8, fat: 8.9, per: 55, defaultQty: 55, satFat: 5.9, fiber: 6.8, sugar: 1.7, sodium: 152 },
+  // --- Protein Bars — BC Snacks (real product, Coles listing) ---
+  { id: "pr006", name: "BC Snacks Choc Mint Crunch High Protein Bar", cals: 150, protein: 11.4, carbs: 3.5, fat: 5.1, per: 40, defaultQty: 40, satFat: 2.6, sugar: 1.9, sodium: 79 },
+  // --- Protein Bars — Musashi (real product, Coles listing; distinct flavour variants) ---
+  { id: "pr007", name: "Musashi Protein Wafer Bar Vanilla", cals: 210, protein: 11.6, carbs: 9.1, fat: 13.2, per: 40, defaultQty: 40, satFat: 7.3, sugar: 4.2, sodium: 98 },
+  { id: "pr008", name: "Musashi Crisp Protein Bar Vanilla Caramel", cals: 239, protein: 20.1, carbs: 9.4, fat: 8.9, per: 60, defaultQty: 60, satFat: 3.2, fiber: 3.8, sugar: 3.4, sodium: 267 },
+  // --- Protein Bars — Muscle Nation (real product, Coles listing) ---
+  { id: "pr009", name: "Muscle Nation Custard Protein Bar Choc Peanut Butter", cals: 212, protein: 15.6, carbs: 4.4, fat: 8.2, per: 60, defaultQty: 60, satFat: 5.1, fiber: 8.7, sugar: 3.6, sodium: 91 },
+  { id: "pr010", name: "Muscle Nation Crisp Protein Bar Chocolate Peanut Butter", cals: 248, protein: 20.2, carbs: 6.6, fat: 10.6, per: 60, defaultQty: 60, satFat: 5.7, fiber: 6.9, sugar: 1.7, sodium: 278 },
+  // --- Protein Bars — True Protein (real product, confirmed Woolworths/Coles listing; nutrition from brand's own official site) ---
+  { id: "pr011", name: "True Protein Bar Rich Chocolate", cals: 227, protein: 17.2, carbs: 8.5, fat: 10.1, per: 63, defaultQty: 63, satFat: 1.5, fiber: 11.4, sugar: 7.6, sodium: 84 },
+  { id: "pr012", name: "True Protein Bar Toasted Coconut", cals: 188, protein: 14.3, carbs: 9.1, fat: 6.4, per: 63, defaultQty: 63, satFat: 2.3, fiber: 11.0, sugar: 7.9, sodium: 96 },
+  // --- Protein Bars — Macro Mike (real product, confirmed Woolworths listing; nutrition from brand's own official site) ---
+  { id: "pr013", name: "Macro Mike The Game Changer Protein Bar", cals: 164, protein: 10, carbs: 18.3, fat: 5.3, per: 45, defaultQty: 45, satFat: 3.6, fiber: 2.1, sugar: 12.6, sodium: 50 },
 ];
 
 // Standard weight/volume unit conversions (approximated at water density for
