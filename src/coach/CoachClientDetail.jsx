@@ -3479,6 +3479,8 @@ function NutritionAdherenceCard({ client }) {
   );
 }
 
+const NUTRITION_MEAL_CATEGORIES = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
+
 function NutritionPanel({ client, showToast }) {
   const { db, setNutritionForDate } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -3523,6 +3525,39 @@ function NutritionPanel({ client, showToast }) {
             ))}
           </div>
         )}
+        {nutrition &&
+          (() => {
+            const loggedCategories = NUTRITION_MEAL_CATEGORIES.filter((cat) => (nutrition.meals?.[cat] || []).length > 0);
+            if (loggedCategories.length === 0) return null;
+            return (
+              <div className="space-y-2.5 mb-4">
+                {loggedCategories.map((cat) => {
+                  const items = nutrition.meals[cat] || [];
+                  const totalCals = Math.round(items.reduce((a, f) => a + (f.cals || 0), 0));
+                  return (
+                    <div key={cat} className="bg-black/[0.02] border border-black/8 rounded-xl p-3.5">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-black font-semibold text-sm">{cat}</p>
+                        <p className="text-black/40 text-xs">
+                          {totalCals} kcal · {items.length} item{items.length === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                      <div className="space-y-1.5">
+                        {items.map((f) => (
+                          <div key={f.id} className="flex items-center justify-between gap-3">
+                            <p className="text-black/70 text-sm truncate">{f.name}</p>
+                            <p className="text-black/35 text-xs shrink-0 whitespace-nowrap">
+                              {Math.round(f.cals || 0)} kcal · P{round1(f.protein || 0)} C{round1(f.carbs || 0)} F{round1(f.fat || 0)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         {!confirmReset ? (
           <button
             onClick={() => setConfirmReset(true)}
