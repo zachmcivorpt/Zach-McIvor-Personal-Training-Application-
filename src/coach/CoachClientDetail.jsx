@@ -74,6 +74,7 @@ import {
   Trophy,
   Camera,
   Sparkles,
+  ChevronLeft,
 } from "lucide-react";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
@@ -3486,8 +3487,24 @@ function NutritionPanel({ client, showToast }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [mealPlanOpen, setMealPlanOpen] = useState(false);
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
-  const todayDateKey = localDateKey();
-  const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === todayDateKey);
+  // 0 = today, 1 = yesterday, ... 6 = a week ago — matches the client's own
+  // Nutrition tab nav (ClientApp.jsx's NutritionScreen), capped at 6 so the
+  // coach never navigates past what's realistically still useful to review.
+  const [navOffset, setNavOffset] = useState(0);
+  const viewDateKey = useMemo(() => {
+    if (navOffset === 0) return localDateKey();
+    const d = new Date();
+    d.setDate(d.getDate() - navOffset);
+    return localDateKey(d);
+  }, [navOffset]);
+  const navLabel = useMemo(() => {
+    if (navOffset === 0) return "Today";
+    if (navOffset === 1) return "Yesterday";
+    const d = new Date();
+    d.setDate(d.getDate() - navOffset);
+    return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  }, [navOffset]);
+  const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === viewDateKey);
   const targets = resolveNutritionTargets(client.nutritionTargets);
   const mealPlan = (db.mealPlans[client.id] || [])[0];
   const mealsById = useMemo(() => Object.fromEntries((db.masterMeals || []).map((m) => [m.id, m])), [db.masterMeals]);
@@ -3500,7 +3517,34 @@ function NutritionPanel({ client, showToast }) {
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
       <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
-        <p className="text-black font-semibold mb-4">Today's Nutrition Log</p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-black font-semibold">Nutrition Log</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setNavOffset((o) => Math.min(6, o + 1))}
+              disabled={navOffset === 6}
+              className={
+                navOffset === 6
+                  ? "w-7 h-7 flex items-center justify-center rounded-full opacity-0 pointer-events-none"
+                  : "w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
+              }
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <span className="text-black/70 text-sm font-semibold min-w-[90px] text-center">{navLabel}</span>
+            <button
+              onClick={() => setNavOffset((o) => Math.max(0, o - 1))}
+              disabled={navOffset === 0}
+              className={
+                navOffset === 0
+                  ? "w-7 h-7 flex items-center justify-center rounded-full opacity-0 pointer-events-none"
+                  : "w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
+              }
+            >
+              <ChevronLeft size={14} className="rotate-180" />
+            </button>
+          </div>
+        </div>
         {!nutrition ? (
           <p className="text-black/30 text-sm mb-4">Nothing logged yet.</p>
         ) : (
@@ -3563,7 +3607,7 @@ function NutritionPanel({ client, showToast }) {
             onClick={() => setConfirmReset(true)}
             className="flex items-center gap-2 bg-black/5 border border-black/10 text-black/60 text-sm font-medium px-4 py-2.5 rounded-xl"
           >
-            <Trash2 size={13} /> Clear today's log
+            <Trash2 size={13} /> Clear {navOffset === 0 ? "today's" : "this day's"} log
           </button>
         ) : (
           <div className="flex gap-2 max-w-xs">
@@ -3573,7 +3617,7 @@ function NutritionPanel({ client, showToast }) {
             <DangerButton
               className="flex-1"
               onClick={() => {
-                setNutritionForDate(client.id, todayDateKey, () => ({
+                setNutritionForDate(client.id, viewDateKey, () => ({
                   calories: 0,
                   protein: 0,
                   carbs: 0,
@@ -3582,7 +3626,7 @@ function NutritionPanel({ client, showToast }) {
                   meals: { Breakfast: [], Lunch: [], Dinner: [], Snacks: [], "Pre-workout": [], "Post-workout": [] },
                 })).catch(() => showToast("Couldn't clear — check your connection and try again"));
                 setConfirmReset(false);
-                showToast("Today's nutrition log cleared");
+                showToast(`${navOffset === 0 ? "Today's" : navLabel + "'s"} nutrition log cleared`);
               }}
             >
               Confirm clear
