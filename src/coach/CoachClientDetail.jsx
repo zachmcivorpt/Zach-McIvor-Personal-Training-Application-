@@ -8,6 +8,7 @@ import {
   computePerformanceTimeline,
   computePRsInLastNDays,
   computeWeeklySessionCompletion,
+  trendDirection,
   closestWeighIn,
   computePlateaus,
   computePersonalBests,
@@ -4480,6 +4481,14 @@ function PlateauAlertCard({ client }) {
   );
 }
 
+// Small up/down indicator next to a Performance Timeline value — direction
+// only, no green/red judgment call, since "up" isn't universally good (e.g.
+// bodyweight, depending on the client's goal).
+function TimelineTrendArrow({ direction }) {
+  if (!direction) return null;
+  return direction === "up" ? <TrendingUp size={13} className="text-white/40 shrink-0" /> : <TrendingDown size={13} className="text-white/40 shrink-0" />;
+}
+
 // Same 30-day snapshot the client sees on their own Progress tab —
 // strength trend, bodyweight change, consistency, PRs — surfaced here so
 // the coach doesn't have to go dig for it separately.
@@ -4489,26 +4498,36 @@ function PerformanceTimelineCard({ client }) {
   const weighIns = (db.weighIns || {})[client.id] || [];
   const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
-  const timeline = useMemo(() => computePerformanceTimeline(logs, weighIns, exercisesById, 30), [logs, weighIns, exercisesById]);
-  const weekly = useMemo(() => computeWeeklySessionCompletion(logs, scheduledWorkouts), [logs, scheduledWorkouts]);
+  const timeline = useMemo(
+    () => computePerformanceTimeline(logs, weighIns, exercisesById, 30, scheduledWorkouts),
+    [logs, weighIns, exercisesById, scheduledWorkouts]
+  );
 
   const items = [
     {
       label: "Strength",
       sub: "avg. gain on main lifts",
       value: timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
+      trend: timeline.strengthChangePct == null ? null : timeline.strengthChangePct > 0 ? "up" : timeline.strengthChangePct < 0 ? "down" : null,
     },
     {
       label: "Bodyweight",
       sub: "change over 30 days",
       value: timeline.bodyweightChange != null ? `${timeline.bodyweightChange > 0 ? "+" : ""}${timeline.bodyweightChange} kg` : "—",
+      trend: timeline.bodyweightChange == null ? null : timeline.bodyweightChange > 0 ? "up" : timeline.bodyweightChange < 0 ? "down" : null,
     },
     {
       label: "Consistency",
-      sub: weekly.pct != null ? `${weekly.completed} of ${weekly.expected} sessions` : "nothing scheduled this week",
-      value: weekly.pct != null ? `${weekly.pct}%` : "—",
+      sub: timeline.consistencyPct != null ? `${timeline.consistencyCompleted} of ${timeline.consistencyExpected} sessions` : "nothing scheduled in the last 30 days",
+      value: timeline.consistencyPct != null ? `${timeline.consistencyPct}%` : "—",
+      trend: trendDirection(timeline.consistencyPct, timeline.consistencyPrevPct),
     },
-    { label: "PRs set", sub: "new heaviest lifts", value: `${timeline.prCount}` },
+    {
+      label: "PRs set",
+      sub: "new heaviest lifts",
+      value: `${timeline.prCount}`,
+      trend: trendDirection(timeline.prCount, timeline.prCountPrev),
+    },
   ];
 
   return (
@@ -4536,7 +4555,10 @@ function PerformanceTimelineCard({ client }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
         {items.map((it) => (
           <div key={it.label}>
-            <p className="text-white text-xl font-bold tabular-nums">{it.value}</p>
+            <p className="text-white text-xl font-bold tabular-nums flex items-center gap-1">
+              {it.value}
+              <TimelineTrendArrow direction={it.trend} />
+            </p>
             <p className="text-white/40 text-[11px] mt-0.5">
               {it.label} <span className="text-white/25">· {it.sub}</span>
             </p>

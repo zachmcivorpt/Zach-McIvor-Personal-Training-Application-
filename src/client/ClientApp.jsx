@@ -6,6 +6,7 @@ import {
   Utensils,
   UtensilsCrossed,
   TrendingUp,
+  TrendingDown,
   User,
   Play,
   Check,
@@ -119,6 +120,7 @@ import {
   computeMonthlyVolume,
   computeAchievements,
   computePerformanceTimeline,
+  trendDirection,
   closestWeighIn,
   suggestNextSet,
 } from "../lib/trainingStats";
@@ -4280,28 +4282,45 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
   );
 }
 
+// Small up/down indicator next to a Performance Timeline value — direction
+// only, no green/red judgment call, since "up" isn't universally good (e.g.
+// bodyweight, depending on the client's goal).
+function TrendArrow({ direction, dark }) {
+  if (!direction) return null;
+  const cls = dark ? "text-white/40 shrink-0" : "text-black/35 shrink-0";
+  return direction === "up" ? <TrendingUp size={13} className={cls} /> : <TrendingDown size={13} className={cls} />;
+}
+
 // Clean 30-day snapshot — strength trend, bodyweight change, consistency,
 // PRs — the "how's the last month actually gone" view, distinct from the
 // tiles above it which are lifetime/this-week counters.
-function PerformanceTimelineCard({ timeline, monthlyVolume }) {
+function PerformanceTimelineCard({ timeline, monthlyVolume, prevMonthlyVolume }) {
   const dark = useClientDark();
   const items = [
     {
       label: "Strength",
       sub: "avg. gain on main lifts",
       value: timeline.strengthChangePct != null ? `${timeline.strengthChangePct > 0 ? "+" : ""}${timeline.strengthChangePct}%` : "—",
+      trend: timeline.strengthChangePct == null ? null : timeline.strengthChangePct > 0 ? "up" : timeline.strengthChangePct < 0 ? "down" : null,
     },
     {
       label: "Bodyweight",
       sub: "change over 30 days",
       value: timeline.bodyweightChange != null ? `${timeline.bodyweightChange > 0 ? "+" : ""}${timeline.bodyweightChange} kg` : "—",
+      trend: timeline.bodyweightChange == null ? null : timeline.bodyweightChange > 0 ? "up" : timeline.bodyweightChange < 0 ? "down" : null,
     },
     {
       label: "Volume Lifted",
       sub: "this month",
       value: `${monthlyVolume.toLocaleString()} kg`,
+      trend: prevMonthlyVolume > 0 ? trendDirection(monthlyVolume, prevMonthlyVolume) : null,
     },
-    { label: "PRs set", sub: "new heaviest lifts", value: `${timeline.prCount}` },
+    {
+      label: "PRs set",
+      sub: "new heaviest lifts",
+      value: `${timeline.prCount}`,
+      trend: trendDirection(timeline.prCount, timeline.prCountPrev),
+    },
   ];
   return (
     <div className={`rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
@@ -4311,7 +4330,10 @@ function PerformanceTimelineCard({ timeline, monthlyVolume }) {
       <div className="grid grid-cols-2 gap-x-4 gap-y-4">
         {items.map((it) => (
           <div key={it.label}>
-            <p className={dark ? "text-white text-xl font-bold tabular-nums" : "text-black text-xl font-bold tabular-nums"}>{it.value}</p>
+            <p className={dark ? "text-white text-xl font-bold tabular-nums flex items-center gap-1" : "text-black text-xl font-bold tabular-nums flex items-center gap-1"}>
+              {it.value}
+              <TrendArrow direction={it.trend} dark={dark} />
+            </p>
             <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
               {it.label} <span className={dark ? "text-white/25" : "text-black/25"}>· {it.sub}</span>
             </p>
@@ -4361,10 +4383,11 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
     [logsForClient, weighIns, exercisesById]
   );
   const timeline = useMemo(
-    () => computePerformanceTimeline(logsForClient, weighIns, exercisesById, 30),
-    [logsForClient, weighIns, exercisesById]
+    () => computePerformanceTimeline(logsForClient, weighIns, exercisesById, 30, scheduledWorkouts),
+    [logsForClient, weighIns, exercisesById, scheduledWorkouts]
   );
   const monthlyVolume = useMemo(() => computeMonthlyVolume(logsForClient), [logsForClient]);
+  const prevMonthlyVolume = useMemo(() => computeMonthlyVolume(logsForClient, 1), [logsForClient]);
   const monthlyConsistency = useMemo(
     () => computeMonthlyConsistency(logsForClient, scheduledWorkouts),
     [logsForClient, scheduledWorkouts]
@@ -4434,7 +4457,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
       </div>
 
       <div className="px-3 space-y-4">
-        <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} />
+        <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
 
         <div>
           <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>My Progress</p>

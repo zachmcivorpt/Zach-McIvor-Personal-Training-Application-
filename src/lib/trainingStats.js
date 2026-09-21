@@ -6,6 +6,16 @@ import { localDateKey } from "./dateKey";
 
 const DAY_MS = 86400000;
 
+// Shared by any "current vs previous period" tile (Performance Timeline
+// cards, etc.) so every trend arrow in the app agrees on what counts as up,
+// down, or not enough data to say.
+export function trendDirection(current, previous) {
+  if (current == null || previous == null) return null;
+  if (current > previous) return "up";
+  if (current < previous) return "down";
+  return null;
+}
+
 function epley1RM(weight, reps) {
   if (!weight || !reps) return 0;
   return Math.round(weight * (1 + reps / 30) * 10) / 10;
@@ -139,22 +149,48 @@ export function computePersonalBests(logs, exercisesById) {
   }).filter(Boolean);
 }
 
-export function computePRsInLastNDays(logs, days = 30) {
-  const cutoff = Date.now() - days * DAY_MS;
+// `endOffset` shifts the whole window back in time (0 = ending now) so the
+// same function can score both a current window and the equal-length one
+// right before it, for trend comparisons.
+export function computePRsInLastNDays(logs, days = 30, endOffset = 0) {
+  const end = Date.now() - endOffset * DAY_MS;
+  const start = end - days * DAY_MS;
   let count = 0;
   logs.forEach((l) => {
-    if (l.date < cutoff) return;
+    if (l.date < start || l.date >= end) return;
     l.entries.forEach((e) => e.sets.forEach((s) => s.isPR && count++));
   });
   return count;
 }
 
+// Like computeWeeklySessionCompletion/computeMonthlyConsistency but for a
+// rolling N-day window ending `endOffset` days ago (0 = ending today)
+// rather than the current calendar week/month — lets a "Last N Days" card
+// (e.g. Performance Timeline) show a completion rate that actually matches
+// its own window, and lets the prior window get scored the same way for a
+// trend arrow.
+export function computeRollingSessionCompletion(scheduledWorkouts, logs, days, endOffset = 0) {
+  const end = Date.now() - endOffset * DAY_MS;
+  const start = end - days * DAY_MS;
+  const inWindow = (scheduledWorkouts || []).filter((w) => {
+    const ts = new Date(w.date + "T00:00:00").getTime();
+    return ts >= start && ts < end;
+  });
+  if (inWindow.length === 0) return { completed: 0, expected: 0, pct: null };
+  const loggedDates = new Set((logs || []).map((l) => localDateKey(l.date)));
+  const completed = inWindow.filter((w) => loggedDates.has(w.date)).length;
+  return { completed, expected: inWindow.length, pct: Math.round((completed / inWindow.length) * 100) };
+}
+
 // A single 30(ish)-day snapshot: session frequency, PRs, strength trend
 // (average e1RM % change across whichever key lifts were actually logged
-// both in this window and the equal-length window right before it), and
-// bodyweight change. Any figure without enough data to be meaningful comes
-// back null rather than a misleading zero.
-export function computePerformanceTimeline(logs, weighIns, exercisesById, days = 30) {
+// both in this window and the equal-length window right before it),
+// bodyweight change, and rolling session-completion consistency. Any figure
+// without enough data to be meaningful comes back null rather than a
+// misleading zero. `scheduledWorkouts` is optional — omit it and
+// consistencyPct/consistencyPrevPct just come back null, same as any other
+// under-supplied metric here.
+export function computePerformanceTimeline(logs, weighIns, exercisesById, days = 30, scheduledWorkouts = []) {
   const cutoff = Date.now() - days * DAY_MS;
   // "before" is bounded to the SAME-length window immediately preceding
   // this one (day 60-31 ago, for a 30-day timeline), not the client's
@@ -167,6 +203,7 @@ export function computePerformanceTimeline(logs, weighIns, exercisesById, days =
   const sessionsCount = logs.filter((l) => l.date >= cutoff).length;
   const sessionsPerWeek = Math.round((sessionsCount / (days / 7)) * 10) / 10;
   const prCount = computePRsInLastNDays(logs, days);
+  const prCountPrev = computePRsInLastNDays(logs, days, days);
 
   const exList = Object.values(exercisesById || {});
   const liftDeltas = [];
@@ -202,7 +239,22 @@ export function computePerformanceTimeline(logs, weighIns, exercisesById, days =
       ? Math.round((withinOrAfter[withinOrAfter.length - 1].weight - beforeWindow[beforeWindow.length - 1].weight) * 10) / 10
       : null;
 
-  return { days, sessionsCount, sessionsPerWeek, prCount, strengthChangePct, bodyweightChange };
+  const consistency = computeRollingSessionCompletion(scheduledWorkouts, logs, days);
+  const consistencyPrev = computeRollingSessionCompletion(scheduledWorkouts, logs, days, days);
+
+  return {
+    days,
+    sessionsCount,
+    sessionsPerWeek,
+    prCount,
+    prCountPrev,
+    strengthChangePct,
+    bodyweightChange,
+    consistencyPct: consistency.pct,
+    consistencyCompleted: consistency.completed,
+    consistencyExpected: consistency.expected,
+    consistencyPrevPct: consistencyPrev.pct,
+  };
 }
 
 // The weigh-in logged closest to a given timestamp — within 3 days either
@@ -259,12 +311,16 @@ export function computeWeeklySessionCompletion(logs, scheduledWorkouts) {
 // Kg lifted so far this calendar month — sits on the Performance Timeline
 // alongside Strength/Bodyweight/PRs so training volume gets equal billing
 // without needing to dig into the full Weekly Training Volume chart.
-export function computeMonthlyVolume(logs) {
+// `monthOffset` steps back whole calendar months (0 = this month, 1 = last
+// month, ...) so the previous month can be scored the same way for a trend
+// arrow next to "this month"'s figure.
+export function computeMonthlyVolume(logs, monthOffset = 0) {
   const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
   const total = (logs || [])
     .filter((l) => {
       const d = new Date(l.date);
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+      return d.getFullYear() === target.getFullYear() && d.getMonth() === target.getMonth();
     })
     .reduce(
       (a, log) => a + (log.entries || []).reduce((b, e) => b + (e.sets || []).reduce((c, s) => c + (s.weight || 0) * (s.reps || 0), 0), 0),
