@@ -62,6 +62,7 @@ import {
   Zap,
   Upload,
   Download,
+  Sunrise,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -3205,6 +3206,8 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
   );
 }
 
+const MEAL_PLAN_SLOT_ICONS = { Breakfast: Sunrise, Lunch: Utensils, Dinner: Moon, Snacks: Banana };
+
 function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal } = useApp();
@@ -3430,15 +3433,15 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
           <Card dark={dark}>
             <div className="flex items-center justify-between mb-1">
               <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>My Meal Plan</p>
-              <span className={dark ? "text-white/40 text-[11px] font-semibold bg-white/5 px-2 py-0.5 rounded-full shrink-0" : "text-black/40 text-[11px] font-semibold bg-black/5 px-2 py-0.5 rounded-full shrink-0"}>
+              <span className={dark ? "text-white/40 text-[11px] font-semibold bg-white/5 px-2 py-0.5 rounded-md shrink-0" : "text-black/40 text-[11px] font-semibold bg-black/5 px-2 py-0.5 rounded-md shrink-0"}>
                 {planWeeksCount === 1 ? "1-week plan" : `Week ${activeWeek + 1} of ${planWeeksCount}`}
               </span>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center justify-between gap-2 mb-4">
               <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Built by your coach — tap any meal to log it now</p>
               <button
                 onClick={() => setShoppingListOpen(true)}
-                className={dark ? "shrink-0 flex items-center gap-1.5 bg-white/8 hover:bg-white/15 text-white text-xs font-bold px-3 py-1.5 rounded-full transition-colors" : "shrink-0 flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-bold px-3 py-1.5 rounded-full transition-colors"}
+                className={dark ? "shrink-0 flex items-center gap-1.5 bg-white/8 hover:bg-white/15 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors" : "shrink-0 flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"}
               >
                 <ShoppingCart size={12} /> LIST
               </button>
@@ -3452,7 +3455,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
                       setSelectedWeek(w);
                       setMealPlanDayId(null);
                     }}
-                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
+                    className={`shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                       w === activeWeek ? "bg-blue-500 text-white" : dark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"
                     }`}
                   >
@@ -3462,13 +3465,13 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
               </div>
             )}
             {daysInActiveWeek.length > 1 && (
-              <div className="flex items-center gap-2 mb-3 overflow-x-auto">
+              <div className="flex items-center gap-2 mb-4 overflow-x-auto">
                 {daysInActiveWeek.map((d) => (
                   <button
                     key={d.id}
                     onClick={() => setMealPlanDayId(d.id)}
-                    className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                      d.id === mealPlanDay.id ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"
+                    className={`shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                      d.id === mealPlanDay.id ? "bg-blue-500 text-white" : dark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"
                     }`}
                   >
                     {d.label}
@@ -3476,26 +3479,41 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
                 ))}
               </div>
             )}
-            <div className="space-y-3">
+            <div className="space-y-5">
               {["Breakfast", "Lunch", "Dinner", "Snacks"].map((slot) => {
                 const mealIds = mealPlanDay.meals?.[slot] || [];
-                return mealIds.length === 0 ? null : (
+                if (mealIds.length === 0) return null;
+                const SlotIcon = MEAL_PLAN_SLOT_ICONS[slot];
+                return (
                   <div key={slot}>
-                    <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-1.5"}>{slot.toUpperCase()}</p>
-                    <div className="space-y-1.5">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <SlotIcon size={12} className={dark ? "text-blue-400" : "text-blue-500"} />
+                      <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide" : "text-black/35 text-[11px] font-bold tracking-wide"}>{slot.toUpperCase()}</p>
+                    </div>
+                    <div className="space-y-2">
                       {mealIds.map((mealId, i) => {
                         const m = mealsById[mealId];
                         if (!m) return null;
                         return (
-                          <div key={`${mealId}_${i}`} className="flex items-center gap-1.5">
+                          <div key={`${mealId}_${i}`} className="flex items-center gap-2">
                             <button
                               onClick={() => setPlanMealDetail({ meal: m, slot })}
-                              className={dark ? "flex-1 min-w-0 flex items-center gap-2.5 bg-white/[0.03] rounded-xl px-3 py-2.5 text-left" : "flex-1 min-w-0 flex items-center gap-2.5 bg-black/[0.03] rounded-xl px-3 py-2.5 text-left"}
+                              className={
+                                dark
+                                  ? "flex-1 min-w-0 flex items-center gap-3 bg-white/[0.04] border border-white/8 rounded-lg px-3 py-3 text-left"
+                                  : "flex-1 min-w-0 flex items-center gap-3 bg-black/[0.02] border border-black/8 rounded-lg px-3 py-3 text-left"
+                              }
                             >
-                              {m.photoUrl && <img src={m.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
+                              {m.photoUrl ? (
+                                <img src={m.photoUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
+                              ) : (
+                                <div className={dark ? "w-11 h-11 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-11 h-11 rounded-lg bg-black/[0.06] flex items-center justify-center shrink-0"}>
+                                  <UtensilsCrossed size={16} className={dark ? "text-white/30" : "text-black/25"} />
+                                </div>
+                              )}
                               <div className="min-w-0 flex-1">
-                                <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
-                                <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
+                                <p className={dark ? "text-white text-sm font-semibold truncate" : "text-black text-sm font-semibold truncate"}>{m.name}</p>
+                                <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
                                   {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                                 </p>
                               </div>
@@ -3503,16 +3521,24 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
                             <button
                               onClick={() => logSavedMeal(m, slot)}
                               title="Log this meal now"
-                              className={dark ? "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] text-white/40 hover:text-white" : "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-black/[0.03] text-black/40 hover:text-black"}
+                              className={
+                                dark
+                                  ? "shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/8 text-white/40 hover:text-white"
+                                  : "shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-black/[0.02] border border-black/8 text-black/40 hover:text-black"
+                              }
                             >
-                              <Plus size={14} />
+                              <Plus size={15} />
                             </button>
                             <button
                               onClick={() => setSwapping({ slot, index: i, meal: m })}
                               title="Swap for a similar meal"
-                              className={dark ? "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.03] text-white/40 hover:text-white" : "shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-black/[0.03] text-black/40 hover:text-black"}
+                              className={
+                                dark
+                                  ? "shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/8 text-white/40 hover:text-white"
+                                  : "shrink-0 w-11 h-11 flex items-center justify-center rounded-lg bg-black/[0.02] border border-black/8 text-black/40 hover:text-black"
+                              }
                             >
-                              <Repeat size={14} />
+                              <Repeat size={15} />
                             </button>
                           </div>
                         );
