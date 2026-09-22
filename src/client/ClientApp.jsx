@@ -5664,10 +5664,22 @@ function CalendarEventCard({ dot, done, title, subtitle, onClick, draggable, onP
       {draggable ? (
         <span
           onClick={(e) => e.stopPropagation()}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onPointerDown(e);
+          }}
+          onPointerMove={(e) => {
+            e.stopPropagation();
+            onPointerMove(e);
+          }}
+          onPointerUp={(e) => {
+            e.stopPropagation();
+            onPointerUp(e);
+          }}
+          onPointerCancel={(e) => {
+            e.stopPropagation();
+            onPointerUp(e);
+          }}
           className={dark ? "w-11 h-11 -mr-2.5 shrink-0 flex items-center justify-center text-white/40 cursor-grab active:cursor-grabbing select-none" : "w-11 h-11 -mr-2.5 shrink-0 flex items-center justify-center text-black/40 cursor-grab active:cursor-grabbing select-none"}
           style={{ touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
         >
