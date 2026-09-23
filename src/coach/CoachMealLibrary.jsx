@@ -11,8 +11,11 @@ import { Plus, Utensils, Trash2, Camera, Download, Image as ImageIcon, ImageOff,
 // category it lists — matching how a coach actually browses ("what's
 // dinner-suitable" should include lunch/dinner swing meals too).
 const CATEGORY_ORDER = ["Breakfast", "Lunch", "Dinner", "Snacks"];
+// Reuses the app's existing secondary-accent palette (orange/blue/indigo/
+// emerald already appear elsewhere in the coach console) instead of
+// introducing a new color — no yellow/amber anywhere in this set.
 const CATEGORY_STYLE = {
-  Breakfast: { bg: "bg-amber-50", ring: "ring-amber-100", text: "text-amber-600", pill: "bg-amber-50 text-amber-700 border-amber-100" },
+  Breakfast: { bg: "bg-orange-50", ring: "ring-orange-100", text: "text-orange-600", pill: "bg-orange-50 text-orange-700 border-orange-100" },
   Lunch: { bg: "bg-blue-50", ring: "ring-blue-100", text: "text-blue-600", pill: "bg-blue-50 text-blue-700 border-blue-100" },
   Dinner: { bg: "bg-indigo-50", ring: "ring-indigo-100", text: "text-indigo-600", pill: "bg-indigo-50 text-indigo-700 border-indigo-100" },
   Snacks: { bg: "bg-emerald-50", ring: "ring-emerald-100", text: "text-emerald-600", pill: "bg-emerald-50 text-emerald-700 border-emerald-100" },
