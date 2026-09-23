@@ -23,6 +23,28 @@ const MAX_WEEKS = 12;
 // Rough default share of a day's calories/macros per meal slot — used only
 // to give the auto-fill engine a per-slot target to match meals against.
 const SLOT_SPLIT = { Breakfast: 0.25, Lunch: 0.35, Dinner: 0.3, Snacks: 0.1 };
+// Same secondary-accent palette the Meal Library cards use per slot, so a
+// meal placed in the plan reads as the same "thing" a coach already knows
+// from the library, not a re-skinned one-off.
+const SLOT_STYLE = {
+  Breakfast: { bg: "bg-orange-50", text: "text-orange-600" },
+  Lunch: { bg: "bg-blue-50", text: "text-blue-600" },
+  Dinner: { bg: "bg-indigo-50", text: "text-indigo-600" },
+  Snacks: { bg: "bg-emerald-50", text: "text-emerald-600" },
+};
+
+// Small square thumbnail for compact list contexts (the meal picker) —
+// separate from the full-width photo card used in the day's plan itself.
+function MealThumb({ meal, size = "w-11 h-11" }) {
+  if (meal?.photoUrl) {
+    return <img src={meal.photoUrl} alt="" className={`${size} rounded-xl object-cover shrink-0 border border-black/5`} />;
+  }
+  return (
+    <div className={`${size} rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0`}>
+      <Utensils size={14} className="text-blue-500" />
+    </div>
+  );
+}
 
 function emptyDayMeals() {
   return { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
@@ -131,9 +153,7 @@ function MealPickerSheet({ open, onClose, onPick, meals, target, slot, excludeId
                   onClick={() => onPick(m.id)}
                   className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] rounded-xl px-3 py-2.5 text-left transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Utensils size={14} className="text-blue-500" />
-                  </div>
+                  <MealThumb meal={m} size="w-9 h-9" />
                   <div className="flex-1 min-w-0">
                     <p className="text-black text-sm font-medium truncate">{m.name}</p>
                     <p className="text-black/40 text-xs">
@@ -750,9 +770,10 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 }}
               >
                 <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">{slot.toUpperCase()}</p>
-                <div className="space-y-1.5">
+                <div className="space-y-2.5">
                   {(activeDay.meals[slot] || []).map((mealId, i) => {
                     const m = mealsById[mealId];
+                    const style = SLOT_STYLE[slot];
                     return (
                       <div
                         key={`${mealId}_${i}`}
@@ -760,40 +781,53 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                         onDragStart={() => {
                           dragRef.current = { slot, index: i };
                         }}
-                        className="flex items-center gap-3 bg-black/[0.03] rounded-xl px-3 py-2.5"
+                        className="rounded-2xl border border-black/8 bg-white overflow-hidden shadow-sm cursor-grab active:cursor-grabbing"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                          <Utensils size={13} className="text-blue-500" />
+                        <div className={`relative aspect-[16/9] ${style.bg} overflow-hidden`}>
+                          {m?.photoUrl ? (
+                            <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Utensils size={26} className={style.text} strokeWidth={1.5} />
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                            {activeDay.autoSlots?.[slot] && (
+                              <button
+                                onClick={() => regenerateSlot(slot)}
+                                title="Swap for a different suggestion"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-black/60 shadow-sm hover:text-black transition-colors"
+                                aria-label="Regenerate"
+                              >
+                                <RefreshCw size={14} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setMovingMeal({ slot, index: i })}
+                              title="Move to a different slot"
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-black/60 shadow-sm hover:text-black transition-colors"
+                              aria-label="Move"
+                            >
+                              <ArrowRightLeft size={14} />
+                            </button>
+                            <button
+                              onClick={() => removeMeal(slot, i)}
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-black/60 shadow-sm hover:text-red-500 transition-colors"
+                              aria-label="Remove"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-black text-sm font-medium truncate">{m?.name || "Deleted meal"}</p>
+                        <div className="px-3.5 py-3">
+                          <p className={`text-[10px] font-bold tracking-wide uppercase ${style.text}`}>{slot}</p>
+                          <p className="text-black text-sm font-bold mt-0.5 truncate">{m?.name || "Deleted meal"}</p>
                           {m && (
-                            <p className="text-black/40 text-xs">
+                            <p className="text-black/40 text-xs mt-1">
                               {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                             </p>
                           )}
                         </div>
-                        {activeDay.autoSlots?.[slot] && (
-                          <button
-                            onClick={() => regenerateSlot(slot)}
-                            title="Swap for a different suggestion"
-                            className="text-black/25 hover:text-black p-1 shrink-0"
-                            aria-label="Regenerate"
-                          >
-                            <RefreshCw size={13} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => setMovingMeal({ slot, index: i })}
-                          title="Move to a different slot"
-                          className="text-black/25 hover:text-black p-1 shrink-0"
-                          aria-label="Move"
-                        >
-                          <ArrowRightLeft size={13} />
-                        </button>
-                        <button onClick={() => removeMeal(slot, i)} className="text-black/25 hover:text-red-500 p-1 shrink-0" aria-label="Remove">
-                          <Trash2 size={14} />
-                        </button>
                       </div>
                     );
                   })}
