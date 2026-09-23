@@ -13,7 +13,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { FullScreenOverlay, PrimaryButton, TextInput } from "../components/ui";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
-import { X, Plus, Search, Utensils, Trash2, Copy, ClipboardPaste, Sparkles, Wand2, Pencil, Check, RefreshCw, ArrowRightLeft } from "lucide-react";
+import { X, Plus, Search, Utensils, Trash2, Copy, ClipboardPaste, Sparkles, Wand2, Pencil, Check, RefreshCw, ArrowRightLeft, Flame, Beef, Wheat, Droplet } from "lucide-react";
 import { matchPct, bestMatches, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 
@@ -23,6 +23,26 @@ const MAX_WEEKS = 12;
 // Rough default share of a day's calories/macros per meal slot — used only
 // to give the auto-fill engine a per-slot target to match meals against.
 const SLOT_SPLIT = { Breakfast: 0.25, Lunch: 0.35, Dinner: 0.3, Snacks: 0.1 };
+
+// Shared thumbnail: a meal's real photo when the library has one (matches
+// the photos sourced in the Meal Library), falling back to the same
+// blue Utensils placeholder every list used before photos existed.
+function MealThumb({ meal, size = "w-11 h-11" }) {
+  if (meal?.photoUrl) {
+    return (
+      <img
+        src={meal.photoUrl}
+        alt=""
+        className={`${size} rounded-xl object-cover shrink-0 border border-black/5 shadow-sm`}
+      />
+    );
+  }
+  return (
+    <div className={`${size} rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0`}>
+      <Utensils size={size.includes("w-11") ? 15 : 14} className="text-blue-500" />
+    </div>
+  );
+}
 
 function emptyDayMeals() {
   return { Breakfast: [], Lunch: [], Dinner: [], Snacks: [] };
@@ -129,11 +149,9 @@ function MealPickerSheet({ open, onClose, onPick, meals, target, slot, excludeId
                 <button
                   key={m.id}
                   onClick={() => onPick(m.id)}
-                  className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] rounded-xl px-3 py-2.5 text-left transition-colors"
+                  className="w-full flex items-center gap-3 bg-white border border-black/8 hover:border-black/15 hover:shadow-sm rounded-xl px-3 py-2.5 text-left transition-all"
                 >
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Utensils size={14} className="text-blue-500" />
-                  </div>
+                  <MealThumb meal={m} size="w-11 h-11" />
                   <div className="flex-1 min-w-0">
                     <p className="text-black text-sm font-medium truncate">{m.name}</p>
                     <p className="text-black/40 text-xs">
@@ -574,13 +592,29 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
 
   const dayHasAuto = MEAL_SLOTS.some((s) => activeDay.autoSlots?.[s]);
 
-  const ring = (label, value, goal) => (
-    <div className="text-center">
-      <p className="text-black text-lg font-bold tabular-nums">{Math.round(value)}</p>
-      <p className="text-black/40 text-[11px]">{label}</p>
-      <p className="text-black/25 text-[10px] mt-0.5">Goal: {Math.round(goal)}{label !== "Calories" ? "g" : ""}</p>
-    </div>
-  );
+  const MACRO_STYLE = {
+    Calories: { icon: Flame, text: "text-orange-500", bg: "bg-orange-50" },
+    Protein: { icon: Beef, text: "text-blue-500", bg: "bg-blue-50" },
+    Carbs: { icon: Wheat, text: "text-indigo-500", bg: "bg-indigo-50" },
+    Fat: { icon: Droplet, text: "text-purple-500", bg: "bg-purple-50" },
+  };
+  const ring = (label, value, goal) => {
+    const style = MACRO_STYLE[label];
+    const Icon = style.icon;
+    const pct = goal > 0 ? Math.min(100, Math.round((value / goal) * 100)) : 0;
+    return (
+      <div className="text-center">
+        <div className={`w-8 h-8 mx-auto mb-1.5 rounded-full ${style.bg} flex items-center justify-center`}>
+          <Icon size={14} className={style.text} />
+        </div>
+        <p className="text-black text-lg font-bold tabular-nums leading-tight">{Math.round(value)}</p>
+        <p className="text-black/40 text-[11px] font-medium">{label}</p>
+        <p className="text-black/25 text-[10px] mt-0.5">
+          {Math.round(goal)}{label !== "Calories" ? "g" : ""} goal · {pct}%
+        </p>
+      </div>
+    );
+  };
 
   return (
     <FullScreenOverlay>
@@ -686,7 +720,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">
+        <div className="flex-1 overflow-y-auto px-5 py-5 bg-black/[0.015]">
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
             {editingLabel ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -732,7 +766,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 bg-black/[0.03] border border-black/8 rounded-2xl p-4 mb-5">
+          <div className="grid grid-cols-4 gap-2 bg-white border border-black/8 rounded-2xl p-4 mb-5 shadow-sm">
             {ring("Calories", totals.cals, targets.calories)}
             {ring("Protein", totals.protein, targets.protein)}
             {ring("Carbs", totals.carbs, targets.carbs)}
@@ -749,8 +783,8 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                   dragRef.current = null;
                 }}
               >
-                <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">{slot.toUpperCase()}</p>
-                <div className="space-y-1.5">
+                <p className="text-black/35 text-[11px] font-bold tracking-wider mb-2">{slot.toUpperCase()}</p>
+                <div className="space-y-2">
                   {(activeDay.meals[slot] || []).map((mealId, i) => {
                     const m = mealsById[mealId];
                     return (
@@ -760,15 +794,13 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                         onDragStart={() => {
                           dragRef.current = { slot, index: i };
                         }}
-                        className="flex items-center gap-3 bg-black/[0.03] rounded-xl px-3 py-2.5"
+                        className="flex items-center gap-3 bg-white border border-black/8 rounded-xl px-3 py-2.5 shadow-sm hover:shadow transition-shadow cursor-grab active:cursor-grabbing"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                          <Utensils size={13} className="text-blue-500" />
-                        </div>
+                        <MealThumb meal={m} size="w-11 h-11" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-black text-sm font-medium truncate">{m?.name || "Deleted meal"}</p>
+                          <p className="text-black text-sm font-semibold truncate">{m?.name || "Deleted meal"}</p>
                           {m && (
-                            <p className="text-black/40 text-xs">
+                            <p className="text-black/40 text-xs mt-0.5">
                               {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                             </p>
                           )}
@@ -800,14 +832,14 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPickerSlot(slot)}
-                      className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-black/15 rounded-xl py-2.5 text-black/40 text-sm font-medium"
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-black/15 hover:border-black/30 hover:bg-black/[0.02] rounded-xl py-2.5 text-black/40 hover:text-black/60 text-sm font-medium transition-colors"
                     >
                       <Plus size={14} /> Add to {slot}
                     </button>
                     <button
                       onClick={() => quickFillSlot(slot)}
                       title="Add the best-fit meal for this slot automatically"
-                      className="shrink-0 w-10 flex items-center justify-center border border-dashed border-black/15 rounded-xl text-black/40 hover:text-black"
+                      className="shrink-0 w-10 flex items-center justify-center border border-dashed border-black/15 hover:border-black/30 rounded-xl text-black/40 hover:text-black transition-colors"
                     >
                       <Sparkles size={14} />
                     </button>
