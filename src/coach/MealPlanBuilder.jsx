@@ -107,7 +107,7 @@ function candidatesForSlot(meals, slot, { excludedIds, keyword, usedIds }) {
   });
 }
 
-function MealPickerSheet({ open, onClose, onPick, meals, target, slot, excludeIds }) {
+function MealPickerSheet({ open, onClose, onPick, meals, target, slot, excludeIds, title = "Add a meal" }) {
   const [search, setSearch] = useState("");
   if (!open) return null;
   const eligible = meals.filter((m) => !excludeIds?.has(m.id) && eligibleForSlot(m, slot));
@@ -121,7 +121,7 @@ function MealPickerSheet({ open, onClose, onPick, meals, target, slot, excludeId
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
-          <p className="text-black font-semibold">Add a meal</p>
+          <p className="text-black font-semibold">{title}</p>
           <button onClick={onClose} className="text-black/50">
             <X size={20} />
           </button>
@@ -267,8 +267,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
   const [days, setDays] = useState(() => (existing?.days?.length ? withWeekMeta(existing.days) : makeWeekDays(0)));
   const [activeWeek, setActiveWeek] = useState(0);
   const [activeDayId, setActiveDayId] = useState(days[0].id);
-  const [pickerSlot, setPickerSlot] = useState(null); // meal slot name currently adding to, or null
-  const [movingMeal, setMovingMeal] = useState(null); // { slot, index } currently choosing a new slot for
+  const [pickerTarget, setPickerTarget] = useState(null); // { slot, index? } — index present means swap-in-place, absent means add
   const [clipboard, setClipboard] = useState(null); // copied day's meals object, or null
   const [editingLabel, setEditingLabel] = useState(false);
   const [labelDraft, setLabelDraft] = useState("");
@@ -393,7 +392,24 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
       meals: { ...d.meals, [slot]: [...(d.meals[slot] || []), mealId] },
       autoSlots: { ...d.autoSlots, [slot]: false },
     }));
-    setPickerSlot(null);
+    setPickerTarget(null);
+  }
+
+  // Swaps out the meal at this exact slot+index for a different one,
+  // in place — distinct from moveMeal, which relocates an existing meal
+  // to a different time-of-day slot (used by drag-and-drop) rather than
+  // changing which meal is there.
+  function replaceMeal(slot, index, mealId) {
+    if (usedInActiveDay.has(mealId)) {
+      showToast("That meal's already used elsewhere today");
+      return;
+    }
+    updateActiveDay((d) => ({
+      ...d,
+      meals: { ...d.meals, [slot]: d.meals[slot].map((id, i) => (i === index ? mealId : id)) },
+      autoSlots: { ...d.autoSlots, [slot]: false },
+    }));
+    setPickerTarget(null);
   }
 
   function removeMeal(slot, index) {
@@ -404,11 +420,11 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
     }));
   }
 
+  // Relocates an existing meal to a different time-of-day slot — used by
+  // drag-and-drop between slot containers. Distinct from replaceMeal,
+  // which swaps which meal occupies a slot without changing its slot.
   function moveMeal(fromSlot, index, toSlot) {
-    if (fromSlot === toSlot) {
-      setMovingMeal(null);
-      return;
-    }
+    if (fromSlot === toSlot) return;
     updateActiveDay((d) => {
       const mealId = d.meals[fromSlot][index];
       if ((d.meals[toSlot] || []).includes(mealId)) {
@@ -425,7 +441,6 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
         autoSlots: { ...d.autoSlots, [fromSlot]: false, [toSlot]: false },
       };
     });
-    setMovingMeal(null);
   }
 
   // "Remaining budget" targeting: instead of matching every slot to a
@@ -803,10 +818,10 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                               </button>
                             )}
                             <button
-                              onClick={() => setMovingMeal({ slot, index: i })}
-                              title="Move to a different slot"
+                              onClick={() => setPickerTarget({ slot, index: i })}
+                              title="Swap this meal for a different one"
                               className="w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-black/60 shadow-sm hover:text-black transition-colors"
-                              aria-label="Move"
+                              aria-label="Swap"
                             >
                               <ArrowRightLeft size={14} />
                             </button>
@@ -833,7 +848,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                   })}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setPickerSlot(slot)}
+                      onClick={() => setPickerTarget({ slot })}
                       className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-black/15 rounded-xl py-2.5 text-black/40 text-sm font-medium"
                     >
                       <Plus size={14} /> Add to {slot}
@@ -854,13 +869,20 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
       </div>
 
       <MealPickerSheet
-        open={!!pickerSlot}
-        onClose={() => setPickerSlot(null)}
-        onPick={(mealId) => addMeal(pickerSlot, mealId)}
+        open={!!pickerTarget}
+        onClose={() => setPickerTarget(null)}
+        onPick={(mealId) =>
+          pickerTarget.index != null ? replaceMeal(pickerTarget.slot, pickerTarget.index, mealId) : addMeal(pickerTarget.slot, mealId)
+        }
         meals={meals}
-        target={pickerSlot ? remainingTarget(activeDay, [pickerSlot]) : null}
-        slot={pickerSlot}
-        excludeIds={usedInActiveDay}
+        target={pickerTarget ? remainingTarget(activeDay, [pickerTarget.slot]) : null}
+        slot={pickerTarget?.slot}
+        title={pickerTarget?.index != null ? "Swap meal" : "Add a meal"}
+        excludeIds={
+          pickerTarget?.index != null
+            ? new Set([...usedInActiveDay].filter((id) => id !== activeDay.meals[pickerTarget.slot][pickerTarget.index]))
+            : usedInActiveDay
+        }
       />
 
       <AutoBuildOptionsSheet
@@ -875,27 +897,6 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
         scopeLabel={optionsScope === "day" ? `BUILD ${activeDay.label.toUpperCase()}` : "AUTO-BUILD PLAN"}
       />
 
-      {movingMeal && (
-        <div className="fixed inset-0 z-[130] bg-black/40 flex items-center justify-center px-6" onClick={() => setMovingMeal(null)}>
-          <div className="bg-white rounded-2xl p-5 w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
-            <p className="text-black font-semibold mb-3">Move to...</p>
-            <div className="space-y-1.5">
-              {MEAL_SLOTS.filter((s) => s !== movingMeal.slot).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => moveMeal(movingMeal.slot, movingMeal.index, s)}
-                  className="w-full text-left bg-black/5 hover:bg-black/10 rounded-xl px-3.5 py-2.5 text-sm font-medium text-black"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setMovingMeal(null)} className="w-full text-center text-black/40 text-sm font-medium mt-3">
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
     </FullScreenOverlay>
   );
 }
