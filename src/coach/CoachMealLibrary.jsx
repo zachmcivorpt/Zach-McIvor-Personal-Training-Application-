@@ -1,9 +1,29 @@
-import React, { useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { Card, SecondaryButton, DangerButton, BottomSheet, TextArea, PrimaryButton } from "../components/ui";
 import { CreateMealSheet } from "../client/NutritionFeatures";
 import { fileToCompressedDataUrl } from "../lib/image";
-import { Plus, Utensils, Trash2, Camera, Download, Image as ImageIcon, ImageOff } from "lucide-react";
+import { matchesSearch } from "../lib/search";
+import { Plus, Utensils, Trash2, Camera, Download, Image as ImageIcon, ImageOff, Search } from "lucide-react";
+
+// Coach-facing occasion categories, in display order. A meal can belong to
+// more than one (e.g. "Lunch · Dinner"), so it's grouped under every
+// category it lists — matching how a coach actually browses ("what's
+// dinner-suitable" should include lunch/dinner swing meals too).
+const CATEGORY_ORDER = ["Breakfast", "Lunch", "Dinner", "Snacks"];
+const CATEGORY_STYLE = {
+  Breakfast: { bg: "bg-amber-50", ring: "ring-amber-100", text: "text-amber-600", pill: "bg-amber-50 text-amber-700 border-amber-100" },
+  Lunch: { bg: "bg-blue-50", ring: "ring-blue-100", text: "text-blue-600", pill: "bg-blue-50 text-blue-700 border-blue-100" },
+  Dinner: { bg: "bg-indigo-50", ring: "ring-indigo-100", text: "text-indigo-600", pill: "bg-indigo-50 text-indigo-700 border-indigo-100" },
+  Snacks: { bg: "bg-emerald-50", ring: "ring-emerald-100", text: "text-emerald-600", pill: "bg-emerald-50 text-emerald-700 border-emerald-100" },
+  Other: { bg: "bg-black/5", ring: "ring-black/10", text: "text-black/40", pill: "bg-black/5 text-black/50 border-black/10" },
+};
+function categoryStyle(cat) {
+  return CATEGORY_STYLE[cat] || CATEGORY_STYLE.Other;
+}
+function mealCategories(m) {
+  return m.mealTypes?.length > 0 ? m.mealTypes : ["Other"];
+}
 
 // Same "paste Name | URL, match by name" bulk pattern as the exercise
 // library's Import Video List — for pasting a big batch of sourced meal
@@ -117,7 +137,7 @@ function MealPhotoButton({ meal, showToast }) {
           fileRef.current?.click();
         }}
         disabled={busy}
-        className="w-7 h-7 shrink-0 flex items-center justify-center text-black/25 hover:text-black/60 disabled:opacity-40"
+        className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-black/60 shadow-sm hover:text-black disabled:opacity-40 transition-colors"
         aria-label={`${meal.photoUrl ? "Change" : "Add"} photo for ${meal.name}`}
         title={meal.photoUrl ? "Change photo" : "Add a photo"}
       >
@@ -135,8 +155,32 @@ export default function CoachMealLibrary({ showToast }) {
   const [importing, setImporting] = useState(false);
   const [clearingPhotos, setClearingPhotos] = useState(false);
   const [importPhotosOpen, setImportPhotosOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
   const meals = db.masterMeals || [];
   const photoCount = meals.filter((m) => m.photoUrl).length;
+
+  const presentCategories = useMemo(() => {
+    const known = CATEGORY_ORDER.filter((cat) => meals.some((m) => m.mealTypes?.includes(cat)));
+    const hasOther = meals.some((m) => !m.mealTypes || m.mealTypes.length === 0);
+    return hasOther ? [...known, "Other"] : known;
+  }, [meals]);
+
+  const searched = useMemo(() => meals.filter((m) => matchesSearch(m.name, search)), [meals, search]);
+
+  const groups = useMemo(() => {
+    const cats = activeCategory === "All" ? presentCategories : [activeCategory];
+    return cats
+      .map((cat) => ({
+        key: cat,
+        label: cat,
+        style: categoryStyle(cat),
+        meals: searched.filter((m) => mealCategories(m).includes(cat)),
+      }))
+      .filter((g) => g.meals.length > 0);
+  }, [searched, activeCategory, presentCategories]);
+
+  const totalShown = groups.reduce((n, g) => n + g.meals.length, 0);
 
   async function handleClearPhotos() {
     setClearingPhotos(true);
@@ -222,39 +266,114 @@ export default function CoachMealLibrary({ showToast }) {
           <p className="text-black/40 text-sm text-center py-6">No meal templates yet — build your first one, or import the AU meal set above.</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {meals.map((m) => (
-            <Card key={m.id} onClick={() => setEditing(m)}>
-              <div className="flex items-center gap-3">
-                {m.photoUrl ? (
-                  <img src={m.photoUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
-                ) : (
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Utensils size={16} className="text-blue-500" />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-black font-semibold text-sm truncate">{m.name}</p>
-                  <p className="text-black/40 text-xs truncate mt-0.5">
-                    {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
-                  </p>
-                  {m.mealTypes?.length > 0 && <p className="text-blue-500/70 text-[10px] font-semibold truncate mt-0.5">{m.mealTypes.join(" · ")}</p>}
-                </div>
-                <MealPhotoButton meal={m} showToast={showToast} />
+        <>
+          <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-4 md:max-w-sm">
+            <Search size={16} className="text-black/40 shrink-0" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search meals"
+              className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+            <button
+              onClick={() => setActiveCategory("All")}
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
+                activeCategory === "All" ? "bg-black text-white border-black" : "bg-white text-black/50 border-black/10 hover:border-black/25"
+              }`}
+            >
+              All <span className="opacity-60 font-semibold">{meals.length}</span>
+            </button>
+            {presentCategories.map((cat) => {
+              const count = meals.filter((m) => mealCategories(m).includes(cat)).length;
+              const active = activeCategory === cat;
+              return (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConfirmDelete(m);
-                  }}
-                  className="w-7 h-7 shrink-0 flex items-center justify-center text-black/25 hover:text-black/60"
-                  aria-label={`Delete ${m.name}`}
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
+                    active ? "bg-black text-white border-black" : "bg-white text-black/50 border-black/10 hover:border-black/25"
+                  }`}
                 >
-                  <Trash2 size={14} />
+                  {cat} <span className="opacity-60 font-semibold">{count}</span>
                 </button>
-              </div>
+              );
+            })}
+          </div>
+
+          {totalShown === 0 ? (
+            <Card>
+              <p className="text-black/40 text-sm text-center py-6">No meals match "{search}".</p>
             </Card>
-          ))}
-        </div>
+          ) : (
+            <div className="space-y-9">
+              {groups.map((g) => (
+                <div key={g.key}>
+                  {activeCategory === "All" && (
+                    <div className="flex items-center gap-2.5 mb-3.5">
+                      <span className={`w-2 h-2 rounded-full ${g.style.text.replace("text-", "bg-")}`} />
+                      <h3 className="text-black font-extrabold text-base tracking-tight">{g.label}</h3>
+                      <span className="text-black/30 text-sm font-semibold">{g.meals.length}</span>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {g.meals.map((m) => (
+                      <div
+                        key={`${g.key}-${m.id}`}
+                        onClick={() => setEditing(m)}
+                        className="group rounded-3xl border border-black/8 bg-white overflow-hidden cursor-pointer hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5 hover:border-black/15 transition-all"
+                      >
+                        <div className={`relative aspect-[4/3] ${categoryStyle(m.mealTypes?.[0]).bg} overflow-hidden`}>
+                          {m.photoUrl ? (
+                            <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Utensils size={26} className={categoryStyle(m.mealTypes?.[0]).text} strokeWidth={1.5} />
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                            <MealPhotoButton meal={m} showToast={showToast} />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDelete(m);
+                              }}
+                              className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-black/60 shadow-sm hover:text-red-500 transition-colors"
+                              aria-label={`Delete ${m.name}`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="p-3.5">
+                          <p className="text-black font-bold text-sm leading-snug">{m.name}</p>
+                          <div className="flex items-center gap-2.5 mt-2 text-xs">
+                            <span className="text-black font-bold">{m.cals} kcal</span>
+                            <span className="text-black/30">·</span>
+                            <span className="text-black/40 font-semibold">
+                              P{m.protein} C{m.carbs} F{m.fat}
+                            </span>
+                          </div>
+                          {m.mealTypes?.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-2.5">
+                              {m.mealTypes.map((t) => (
+                                <span key={t} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${categoryStyle(t).pill}`}>
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <CreateMealSheet
