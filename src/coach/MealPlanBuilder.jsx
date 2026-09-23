@@ -798,7 +798,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                         }}
                         className="rounded-2xl border border-black/8 bg-white overflow-hidden shadow-sm cursor-grab active:cursor-grabbing"
                       >
-                        <div className={`relative aspect-[16/9] ${style.bg} overflow-hidden`}>
+                        <div className={`relative h-40 sm:h-48 ${style.bg} overflow-hidden`}>
                           {m?.photoUrl ? (
                             <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
                           ) : (
