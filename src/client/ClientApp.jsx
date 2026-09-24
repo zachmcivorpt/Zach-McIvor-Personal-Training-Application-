@@ -2572,20 +2572,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   const phase = phases.find((p) => p.id === selectedId) || current || sorted[sorted.length - 1];
   const days = phase?.weeks?.[0]?.days || [];
 
-  // Completion is scoped to the current calendar week (Mon–Sun), not the
-  // whole phase — clamped to the phase's own bounds so a week that spills
-  // outside it doesn't pull in days the phase was never scheduled for.
-  const today = new Date();
-  const dow = today.getDay(); // 0 = Sun .. 6 = Sat
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + (dow === 0 ? -6 : 1 - dow));
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  const weekStartKey = localDateKey(monday);
-  const weekEndKey = localDateKey(sunday);
-  const weekStart = weekStartKey > phase.startDate ? weekStartKey : phase.startDate;
-  const weekEnd = phase.endDate && phase.endDate < weekEndKey ? phase.endDate : weekEndKey;
-  const completion = computePhaseCompletion(logsForPhase, scheduledForPhase, weekStart, weekEnd);
+  const completion = computePhaseCompletion(logsForPhase, scheduledForPhase, phase.startDate, phase.endDate);
 
   // Add/Import only matter to the coach browsing "as" this client — a real
   // client's program stays coach-managed, same as everywhere else in the app.
@@ -2664,7 +2651,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-1.5">
                 <Target size={13} className="text-blue-500" />
-                <p className={dark ? "text-white/50 text-xs font-bold tracking-wide" : "text-black/50 text-xs font-bold tracking-wide"}>THIS WEEK'S COMPLETION</p>
+                <p className={dark ? "text-white/50 text-xs font-bold tracking-wide" : "text-black/50 text-xs font-bold tracking-wide"}>PROGRAM PHASE COMPLETION</p>
               </div>
               <p className={dark ? "text-white text-sm font-bold tabular-nums" : "text-black text-sm font-bold tabular-nums"}>
                 {completion.pct != null ? `${completion.pct}%` : "—"}
@@ -2678,8 +2665,8 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
             </div>
             <p className={dark ? "text-white/30 text-[11px] mt-1.5" : "text-black/30 text-[11px] mt-1.5"}>
               {completion.expected > 0
-                ? `${completion.completed} of ${completion.expected} scheduled workouts completed this week`
-                : "No workouts scheduled yet this week"}
+                ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
+                : "No workouts scheduled yet in this phase"}
             </p>
           </div>
         </div>
