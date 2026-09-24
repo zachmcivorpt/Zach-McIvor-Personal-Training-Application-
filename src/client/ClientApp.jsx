@@ -1111,15 +1111,6 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
     ? [...autoEntries, ...comments.map((c) => ({ ...c, system: false }))].sort((a, b) => (a.date || 0) - (b.date || 0))
     : [];
 
-  const equipment = useMemo(() => {
-    const set = new Set();
-    session.exercises.forEach((e) => {
-      const ex = exercisesById[e.exerciseId];
-      if (ex?.equipment) set.add(ex.equipment);
-    });
-    return Array.from(set);
-  }, [session, exercisesById]);
-
   const estMinutes = estimateWorkoutMinutes(session.exercises);
 
   return (
@@ -1197,22 +1188,6 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
             </div>
           )}
 
-          {equipment.length > 0 && (
-            <div className="mb-5">
-              <p className={dark ? "text-white/35 text-xs font-semibold tracking-wide mb-2" : "text-black/35 text-xs font-semibold tracking-wide mb-2"}>EQUIPMENT</p>
-              <div className="flex gap-2.5 flex-wrap">
-                {equipment.map((eq) => (
-                  <div key={eq} className="flex flex-col items-center gap-1.5 w-16">
-                    <div className={dark ? "w-14 h-14 rounded-2xl bg-blue-500/15 flex items-center justify-center" : "w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center"}>
-                      <Dumbbell size={20} className="text-blue-500" />
-                    </div>
-                    <span className={dark ? "text-white/45 text-[10px] text-center leading-tight" : "text-black/45 text-[10px] text-center leading-tight"}>{eq}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
             <div key={group.key} className="mb-5">
               {group.showHeader && <p className={dark ? "text-white/40 text-xs font-bold tracking-wide mb-2" : "text-black/40 text-xs font-bold tracking-wide mb-2"}>{group.label.toUpperCase()}</p>}
@@ -1258,7 +1233,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                                   }`}
                                 >
                                   {s.isPR && <Trophy size={10} />}
-                                  {s.reps}
+                                  {s.reps} rep{s.reps === 1 ? "" : "s"}
                                   {s.weight > 0 ? ` × ${s.weight}kg` : ""}
                                 </span>
                               ))}
