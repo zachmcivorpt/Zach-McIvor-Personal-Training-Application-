@@ -735,7 +735,14 @@ export default function CoachDashboard({ onNavigate, showToast }) {
             showToast={showToast}
           />
         ) : (
-          viewingActivity && <WorkoutLogCard log={viewingActivity.log} exercisesById={exercisesById} defaultOpen />
+          viewingActivity && (
+            <WorkoutLogCard
+              log={viewingActivity.log}
+              exercisesById={exercisesById}
+              defaultOpen
+              allLogs={db.workoutLogs[viewingActivity.clientId] || []}
+            />
+          )
         )}
       </BottomSheet>
 

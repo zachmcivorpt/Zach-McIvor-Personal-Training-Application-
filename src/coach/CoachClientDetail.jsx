@@ -12,6 +12,7 @@ import {
   closestWeighIn,
   computePlateaus,
   computePersonalBests,
+  computeSessionInsights,
 } from "../lib/trainingStats";
 import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
 import {
@@ -2156,6 +2157,39 @@ function TrainingProgramPanel({ client, showToast }) {
 
         <WeeklyCoachReviewCard client={client} showToast={showToast} />
 
+        <div className="bg-gradient-to-br from-white to-emerald-50/40 border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mb-4">
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30">
+              <ClipboardList size={16} className="text-white" />
+            </div>
+            <div>
+              <p className="text-black font-bold text-sm">Session History</p>
+              <p className="text-black/40 text-[11px]">Every completed workout, PRs and stalled lifts flagged automatically</p>
+            </div>
+          </div>
+          {workoutLogs.length === 0 ? (
+            <div className="border border-dashed border-black/12 rounded-xl py-8 text-center mt-3">
+              <p className="text-black/30 text-sm">No completed workouts yet.</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2 mt-3">
+                {workoutLogs.slice(0, historyLimit).map((log) => (
+                  <WorkoutLogCard key={log.id} log={log} exercisesById={exercisesById} allLogs={workoutLogs} />
+                ))}
+              </div>
+              {historyLimit < workoutLogs.length && (
+                <button
+                  onClick={() => setHistoryLimit((n) => n + 15)}
+                  className="w-full text-center text-black/40 hover:text-black text-xs font-semibold py-3 mt-1"
+                >
+                  Show more ({workoutLogs.length - historyLimit} more)
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
         {/* phase history — sits right above the program it controls, as a
             horizontal scroller instead of a permanent sidebar column that's
             mostly empty once a client only has one or two phases. */}
@@ -2472,39 +2506,6 @@ function TrainingProgramPanel({ client, showToast }) {
             )}
           </>
         )}
-
-        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mt-4">
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-              <ClipboardList size={15} className="text-emerald-600" />
-            </div>
-            <p className="text-black font-semibold text-sm">Session History</p>
-          </div>
-          <p className="text-black/40 text-xs mb-4 ml-[42px]">
-            Every completed workout, oldest exercises and sets included — tap one to expand. Includes any exercise the client swapped mid-session and their note explaining why.
-          </p>
-          {workoutLogs.length === 0 ? (
-            <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
-              <p className="text-black/30 text-sm">No completed workouts yet.</p>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-2">
-                {workoutLogs.slice(0, historyLimit).map((log) => (
-                  <WorkoutLogCard key={log.id} log={log} exercisesById={exercisesById} />
-                ))}
-              </div>
-              {historyLimit < workoutLogs.length && (
-                <button
-                  onClick={() => setHistoryLimit((n) => n + 15)}
-                  className="w-full text-center text-black/40 hover:text-black text-xs font-semibold py-3 mt-1"
-                >
-                  Show more ({workoutLogs.length - historyLimit} more)
-                </button>
-              )}
-            </>
-          )}
-        </div>
       </div>
 
       <NewPhaseSheet open={newPhaseOpen} onClose={() => setNewPhaseOpen(false)} programs={db.programs} onCreate={createPhase} />
@@ -3723,7 +3724,7 @@ function NutritionPanel({ client, showToast }) {
   );
 }
 
-export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
+export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLogs = null }) {
   const {
     db,
     addClientNote,
@@ -3745,6 +3746,10 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
   const hasFlags = log.entries.some((e) => e.note || e.swapReason) || !!workoutNote;
   const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
   const volume = log.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.weight || 0) * (s.reps || 0), 0), 0);
+  // Only computed when the caller passes the client's full history — a
+  // one-off card (e.g. the calendar day popup) has no need for it and
+  // skips the extra work.
+  const insights = allLogs ? computeSessionInsights(log, allLogs, exercisesById) : { personalBests: [], notProgressed: [] };
 
   if (log.cardio) {
     const details = [
@@ -3755,7 +3760,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
       .filter(Boolean)
       .join(" · ");
     return (
-      <div className="bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm px-3.5 py-3">
         <p className="text-black text-sm font-semibold">{log.cardio.activityLabel || log.dayLabel}</p>
         <p className="text-black/40 text-xs mt-0.5">
           {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
@@ -3767,15 +3772,22 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
 
   return (
     <>
-    <div className="bg-black/[0.03] border border-black/8 rounded-xl overflow-hidden">
-      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center justify-between px-3.5 py-3 text-left">
-        <div>
+    <div className="bg-white border border-black/10 rounded-2xl overflow-hidden shadow-sm">
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center gap-3 px-3.5 py-3 text-left">
+        <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+          <Dumbbell size={15} className="text-blue-500" />
+        </div>
+        <div className="flex-1 min-w-0">
           <p className="text-black text-sm font-semibold">{log.dayLabel}</p>
           <p className="text-black/40 text-xs mt-0.5">
             {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
             {" · "}
             {volume.toLocaleString()} kg lifted
-            {prCount > 0 && <span className="text-amber-600 font-semibold"> · {prCount} PR{prCount === 1 ? "" : "s"}</span>}
+            {prCount > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-emerald-600 font-semibold ml-1">
+                <Trophy size={11} /> {prCount} PR{prCount === 1 ? "" : "s"}
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -3866,14 +3878,49 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
       {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
       {open && (
         <div className="px-3.5 pb-3.5 space-y-2.5">
+          {(insights.personalBests.length > 0 || insights.notProgressed.length > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {insights.personalBests.length > 0 && (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Trophy size={12} className="text-emerald-600" />
+                    <p className="text-emerald-700 text-[10px] font-bold tracking-wide uppercase">Personal Bests</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    {insights.personalBests.map((pb) => (
+                      <p key={pb.exerciseId} className="text-emerald-800 text-xs">
+                        <span className="font-semibold">{pb.exerciseName}</span> — {pb.display}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {insights.notProgressed.length > 0 && (
+                <div className="bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <TrendingDown size={12} className="text-rose-600" />
+                    <p className="text-rose-700 text-[10px] font-bold tracking-wide uppercase">No Progress</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    {insights.notProgressed.map((np) => (
+                      <p key={np.exerciseId} className="text-rose-800 text-xs">
+                        <span className="font-semibold">{np.exerciseName}</span> — {np.current}{" "}
+                        <span className="text-rose-400">(was {np.previous})</span>
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           {log.entries.map((e, i) => {
             const exercise = exercisesById[e.exerciseId];
             return (
-              <div key={i} className="bg-white border border-black/5 rounded-lg px-3 py-2.5">
+              <div key={i} className="bg-black/[0.03] border border-black/5 rounded-lg px-3 py-2.5">
                 <p className="text-black text-sm font-semibold">{exercise?.name || "Exercise"}</p>
                 <p className="text-black/40 text-xs mt-0.5 flex flex-wrap gap-x-1.5 gap-y-0.5">
                   {e.sets.map((s, si) => (
-                    <span key={si} className={s.isPR ? "text-amber-600 font-semibold" : ""}>
+                    <span key={si} className={s.isPR ? "text-emerald-600 font-semibold" : ""}>
                       {s.reps}×{s.weight}kg{s.isPR ? " (PR)" : ""}
                     </span>
                   ))}
@@ -3895,7 +3942,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false }) {
               </div>
             );
           })}
-          <div className="bg-white border border-black/5 rounded-lg px-3 py-2.5">
+          <div className="bg-black/[0.03] border border-black/5 rounded-lg px-3 py-2.5">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5">
                 <NotebookPen size={13} className="text-black/40" />

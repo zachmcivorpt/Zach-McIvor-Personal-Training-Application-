@@ -16,9 +16,28 @@ export function trendDirection(current, previous) {
   return null;
 }
 
-function epley1RM(weight, reps) {
+export function epley1RM(weight, reps) {
   if (!weight || !reps) return 0;
   return Math.round(weight * (1 + reps / 30) * 10) / 10;
+}
+
+function bestSetOf(sets) {
+  let best = null;
+  let bestScore = 0;
+  (sets || []).forEach((s) => {
+    if (!s.reps) return;
+    const score = s.weight > 0 ? epley1RM(s.weight, s.reps) : s.reps;
+    if (score > bestScore) {
+      bestScore = score;
+      best = s;
+    }
+  });
+  return { set: best, score: bestScore };
+}
+
+function formatSet(set) {
+  if (!set) return null;
+  return set.weight > 0 ? `${set.weight}kg × ${set.reps}` : `${set.reps} reps`;
 }
 
 function isoWeekKey(ts) {
@@ -147,6 +166,50 @@ export function computePersonalBests(logs, exercisesById) {
     if (!b) return ALWAYS_SHOW_LIFTS.has(k.label) ? { name: k.label, value: null } : null;
     return { name: k.label, value: b.weight > 0 ? `${b.weight} kg × ${b.reps}` : `${b.reps} Repetitions` };
   }).filter(Boolean);
+}
+
+// Per-session breakdown for a single completed workout: which exercises hit
+// a genuine PR in it (already flagged per-set at logging time), and which
+// were also trained in a prior session but didn't beat that session's best
+// (same or worse best set) — i.e. stalled, worth a coach's attention. An
+// exercise makes neither list the first time it's ever logged (nothing to
+// compare against yet), and note-only entries with no sets are skipped.
+export function computeSessionInsights(log, allLogs, exercisesById) {
+  if (!log || log.cardio) return { personalBests: [], notProgressed: [] };
+  const priorLogs = (allLogs || [])
+    .filter((l) => l.id !== log.id && !l.cardio && l.date < log.date)
+    .sort((a, b) => b.date - a.date);
+
+  const personalBests = [];
+  const notProgressed = [];
+
+  (log.entries || []).forEach((entry) => {
+    const { set: bestSet, score: bestScore } = bestSetOf(entry.sets);
+    if (!bestSet) return;
+    const name = exercisesById[entry.exerciseId]?.name || "Exercise";
+
+    const prSet = (entry.sets || []).find((s) => s.isPR);
+    if (prSet) {
+      personalBests.push({ exerciseId: entry.exerciseId, exerciseName: name, display: formatSet(prSet) });
+    }
+
+    const priorLog = priorLogs.find((pl) =>
+      (pl.entries || []).some((e) => e.exerciseId === entry.exerciseId && bestSetOf(e.sets).set)
+    );
+    if (!priorLog) return; // first time doing this exercise — nothing to compare
+    const priorEntry = priorLog.entries.find((e) => e.exerciseId === entry.exerciseId);
+    const { set: priorBestSet, score: priorBestScore } = bestSetOf(priorEntry.sets);
+    if (priorBestSet && bestScore <= priorBestScore) {
+      notProgressed.push({
+        exerciseId: entry.exerciseId,
+        exerciseName: name,
+        current: formatSet(bestSet),
+        previous: formatSet(priorBestSet),
+      });
+    }
+  });
+
+  return { personalBests, notProgressed };
 }
 
 // `endOffset` shifts the whole window back in time (0 = ending now) so the
