@@ -2918,7 +2918,7 @@ function SwapMealSheet({ open, onClose, meal, alternatives, onPick }) {
   );
 }
 
-// Tapping a meal in "My Meal Plan" opens this instead of logging it
+// Tapping a meal in "My Meal Guide" opens this instead of logging it
 // immediately — shows the full ingredient breakdown and how-to-prepare
 // notes, with logging as an explicit action from here (or via the quick
 // "+" on the row itself).
@@ -3345,7 +3345,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
       <div className="flex gap-2 px-2.5 mb-4">
         {[
           { key: "today", label: "Today" },
-          { key: "plan", label: "My Meal Plan" },
+          { key: "plan", label: "My Meal Guide" },
         ].map((t) => (
           <button
             key={t.key}
@@ -3479,7 +3479,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
       {tab === "plan" && mealPlan && mealPlanDay && (
         <div className="space-y-4">
           <div className="relative h-36 overflow-hidden">
-            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <img src="/brand/nutrition-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
             <button
               onClick={() => setShoppingListOpen(true)}
@@ -3488,10 +3488,10 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
               <ShoppingCart size={12} /> LIST
             </button>
             <span className="absolute top-3 left-3 bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">
-              {planWeeksCount === 1 ? "1-WEEK PLAN" : `WEEK ${activeWeek + 1} OF ${planWeeksCount}`}
+              {planWeeksCount === 1 ? "1-WEEK GUIDE" : `WEEK ${activeWeek + 1} OF ${planWeeksCount}`}
             </span>
             <div className="absolute bottom-0 left-0 right-0 p-4">
-              <h2 className="text-white text-xl font-bold tracking-tight">My Meal Plan</h2>
+              <h2 className="text-white text-xl font-bold tracking-tight">My Meal Guide</h2>
               <p className="text-white/70 text-xs mt-1">Built by your coach — tap any meal to log it now</p>
             </div>
           </div>
@@ -3628,8 +3628,8 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
               <div className={dark ? "w-14 h-14 rounded-2xl bg-white/8 flex items-center justify-center mb-4" : "w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center mb-4"}>
                 <UtensilsCrossed size={22} className={dark ? "text-white/40" : "text-black/30"} />
               </div>
-              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>No meal plan yet</p>
-              <p className={dark ? "text-white/40 text-sm mt-1.5" : "text-black/40 text-sm mt-1.5"}>Your coach hasn't built you a meal plan yet — check back soon.</p>
+              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>No meal guide yet</p>
+              <p className={dark ? "text-white/40 text-sm mt-1.5" : "text-black/40 text-sm mt-1.5"}>Your coach hasn't built you a meal guide yet — check back soon.</p>
             </div>
           </Card>
         </div>

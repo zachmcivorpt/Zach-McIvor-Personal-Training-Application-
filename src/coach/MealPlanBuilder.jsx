@@ -603,7 +603,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
 
   function publish() {
     setMealPlan(client.id, { days, weeks: weeksCount, startDate: existing?.startDate || new Date().toISOString().slice(0, 10) });
-    showToast(`Meal plan saved for ${client.name}`);
+    showToast(`Meal guide saved for ${client.name}`);
     onClose();
   }
 
@@ -624,7 +624,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
           <button onClick={onClose} className="text-black/50 text-sm font-medium">
             Cancel
           </button>
-          <span className="text-black font-semibold">Meal Plan Builder</span>
+          <span className="text-black font-semibold">Meal Guide Builder</span>
           <button onClick={publish} className="text-black font-bold text-sm">
             Publish
           </button>

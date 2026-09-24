@@ -1,6 +1,6 @@
 // A screenshot-friendly weekly shopping list generated live from a
-// client's meal plan — shown to both the client (Nutrition tab, right
-// next to "My Meal Plan") and the coach (client's Nutrition panel). It's
+// client's meal guide — shown to both the client (Nutrition tab, right
+// next to "My Meal Guide") and the coach (client's Nutrition panel). It's
 // computed on every open from the plan's current data, never stored, so
 // it's automatically up to date the instant a coach creates or edits a
 // plan — nothing to regenerate by hand.
@@ -133,7 +133,7 @@ export function ShoppingListSheet({ open, onClose, plan, mealsById, clientName, 
         </div>
 
         <div className={`px-5 py-3 border-t ${divider} shrink-0 text-center`}>
-          <p className={`${muted25} text-[10px] tracking-wide`}>GENERATED FROM YOUR MEAL PLAN · APEX COACHING</p>
+          <p className={`${muted25} text-[10px] tracking-wide`}>GENERATED FROM YOUR MEAL GUIDE · APEX COACHING</p>
         </div>
       </div>
     </div>

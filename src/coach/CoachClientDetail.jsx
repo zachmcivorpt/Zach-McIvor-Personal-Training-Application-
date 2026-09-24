@@ -3687,17 +3687,17 @@ function NutritionPanel({ client, showToast }) {
               <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
                 <Utensils size={15} className="text-blue-500" />
               </div>
-              <p className="text-black font-semibold text-sm">Meal Plan</p>
+              <p className="text-black font-semibold text-sm">Meal Guide</p>
             </div>
           </div>
           <p className="text-black/40 text-xs mb-4 ml-[42px]">
             {mealPlan
-              ? `${mealPlanWeeks ? `${mealPlanWeeks}-week plan · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
-              : "This client has no meal plan yet — build one from your Meal Library."}
+              ? `${mealPlanWeeks ? `${mealPlanWeeks}-week guide · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
+              : "This client has no meal guide yet — build one from your Meal Library."}
           </p>
           <div className="flex gap-2">
             <PrimaryButton className={mealPlan ? "flex-1" : "w-full"} onClick={() => setMealPlanOpen(true)}>
-              {mealPlan ? "EDIT MEAL PLAN" : "BUILD MEAL PLAN"}
+              {mealPlan ? "EDIT MEAL GUIDE" : "BUILD MEAL GUIDE"}
             </PrimaryButton>
             {mealPlan && (
               <SecondaryButton className="flex-1" onClick={() => setShoppingListOpen(true)}>
