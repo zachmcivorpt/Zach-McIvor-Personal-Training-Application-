@@ -62,6 +62,7 @@ import {
   Zap,
   Upload,
   Download,
+  Flame,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -2776,6 +2777,114 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   );
 }
 
+// Replaces a flat re-listing of today's already-visible exercises with a
+// glanceable read on momentum: current streak, a 7-day rhythm strip, and
+// this week's session/PR counts — all derived from the client's own real
+// logs and scheduled workouts, nothing illustrative.
+function TrainingPulseCard({ logsForClient, scheduledWorkouts, dark }) {
+  const streak = computeWorkoutStreak(logsForClient, scheduledWorkouts);
+  const prsThisWeek = computePRsInLastNDays(logsForClient, 7);
+
+  const { weekDays, sessionsThisWeek } = useMemo(() => {
+    const todayKey = localDateKey();
+    const today = new Date();
+    const dow = today.getDay(); // 0 = Sun .. 6 = Sat
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + (dow === 0 ? -6 : 1 - dow));
+    const completedDates = new Set(logsForClient.map((l) => localDateKey(l.date)));
+    const scheduledDates = new Set((scheduledWorkouts || []).map((w) => w.date));
+    const labels = ["M", "T", "W", "T", "F", "S", "S"];
+    const days = labels.map((label, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const key = localDateKey(d);
+      const isDone = completedDates.has(key);
+      const isScheduled = scheduledDates.has(key);
+      let status = "rest";
+      if (isDone) status = "done";
+      else if (isScheduled && key < todayKey) status = "missed";
+      else if (isScheduled) status = "upcoming";
+      return { key, label, status, isToday: key === todayKey };
+    });
+    return { weekDays: days, sessionsThisWeek: days.filter((d) => d.status === "done").length };
+  }, [logsForClient, scheduledWorkouts]);
+
+  return (
+    <div
+      className={
+        dark
+          ? "bg-gradient-to-br from-white/[0.04] to-orange-500/[0.06] border border-white/10 rounded-2xl p-4 md:p-5"
+          : "bg-gradient-to-br from-white to-orange-50/50 border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm"
+      }
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/30">
+            <Flame size={16} className="text-white" />
+          </div>
+          <div className="min-w-0">
+            <p className={dark ? "text-white font-bold text-sm" : "text-black font-bold text-sm"}>Training Pulse</p>
+            <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>
+              {streak > 0 ? "Keep the streak alive" : "Complete a session to start a streak"}
+            </p>
+          </div>
+        </div>
+        {streak > 0 && (
+          <div className="text-right shrink-0 pl-2">
+            <p className="text-orange-500 text-2xl font-black tabular-nums leading-none">{streak}</p>
+            <p className={dark ? "text-white/30 text-[9px] font-bold tracking-wide" : "text-black/30 text-[9px] font-bold tracking-wide"}>
+              DAY{streak === 1 ? "" : "S"}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-1.5 mb-4">
+        {weekDays.map((d) => (
+          <div key={d.key} className="flex flex-col items-center gap-1.5 flex-1">
+            <span className={dark ? "text-white/25 text-[10px] font-bold" : "text-black/25 text-[10px] font-bold"}>{d.label}</span>
+            <div
+              className={`w-full aspect-square max-w-[34px] rounded-full flex items-center justify-center border-2 ${
+                d.status === "done"
+                  ? "bg-blue-500 border-blue-500"
+                  : d.status === "missed"
+                  ? "border-rose-400/60"
+                  : d.status === "upcoming"
+                  ? dark
+                    ? "border-blue-400/40"
+                    : "border-blue-300"
+                  : dark
+                  ? "border-white/10"
+                  : "border-black/8"
+              } ${d.isToday ? `ring-2 ${dark ? "ring-orange-400/70" : "ring-orange-400"} ring-offset-2 ${dark ? "ring-offset-[#111318]" : "ring-offset-white"}` : ""}`}
+            >
+              {d.status === "done" && <Check size={13} className="text-white" strokeWidth={3} />}
+              {d.status === "missed" && <X size={11} className="text-rose-400" strokeWidth={3} />}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className={`flex items-center justify-between pt-3 border-t ${dark ? "border-white/10" : "border-black/8"}`}>
+        <div className="flex items-center gap-1.5">
+          <CheckCircle2 size={13} className="text-blue-500" />
+          <p className={dark ? "text-white/60 text-xs" : "text-black/60 text-xs"}>
+            <span className="font-bold">{sessionsThisWeek}</span> session{sessionsThisWeek === 1 ? "" : "s"} this week
+          </p>
+        </div>
+        {prsThisWeek > 0 && (
+          <div className="flex items-center gap-1.5">
+            <Trophy size={13} style={{ color: GOAL_GREEN }} />
+            <p className={dark ? "text-white/60 text-xs" : "text-black/60 text-xs"}>
+              <span className="font-bold">{prsThisWeek}</span> PR{prsThisWeek === 1 ? "" : "s"} this week
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
   const dark = useClientDark();
   const [tab, setTab] = useState("today");
@@ -2826,44 +2935,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
           >
             <Footprints size={16} /> + Log a cardio session
           </button>
-          {todaySession && (
-            <Card dark={dark}>
-              <h3 className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Exercises</h3>
-              <div className="space-y-2">
-                {todaySession.exercises.map((e, i) => {
-                  const ex = exercisesById[e.exerciseId];
-                  if (!ex) return null;
-                  return (
-                    <div key={i} className={dark ? "flex items-center gap-3 py-2 border-b border-white/5 last:border-0" : "flex items-center gap-3 py-2 border-b border-black/5 last:border-0"}>
-                      <span className={dark ? "w-7 h-7 rounded-full bg-white/8 text-white/50 text-xs font-bold flex items-center justify-center" : "w-7 h-7 rounded-full bg-black/8 text-black/50 text-xs font-bold flex items-center justify-center"}>
-                        {i + 1}
-                      </span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <p className={dark ? "text-white text-sm font-medium" : "text-black text-sm font-medium"}>{ex.name}</p>
-                          {e.groupType && (
-                            <span className={dark ? "bg-white/8 text-white/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded" : "bg-black/8 text-black/50 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded"}>
-                              {e.groupType === "superset" ? "SUPERSET" : "CIRCUIT"}
-                            </span>
-                          )}
-                          {e.dropSet && (
-                            <span className={dark ? "bg-orange-500/15 text-orange-400 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded" : "bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded"}>
-                              DROPSET
-                            </span>
-                          )}
-                        </div>
-                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                          {e.targetSets} sets × {formatTargetReps(e)} · RIR {e.targetRIR ?? 2}
-                        </p>
-                        {e.notes && <p className={dark ? "text-white/25 text-[11px] mt-0.5 italic" : "text-black/25 text-[11px] mt-0.5 italic"}>{e.notes}</p>}
-                      </div>
-                      <span className={dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>{ex.equipment}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
-          )}
+          <TrainingPulseCard logsForClient={logsForClient} scheduledWorkouts={scheduledWorkouts} dark={dark} />
           </div>
         </div>
       )}
