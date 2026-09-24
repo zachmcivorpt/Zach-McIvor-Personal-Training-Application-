@@ -429,7 +429,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
-    <div className="flex items-center justify-between px-4 pt-4 pb-0">
+    <div className="flex items-center justify-between px-3 pt-4 pb-0">
       <div>
         <p className={`text-xl font-semibold tracking-tight ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
@@ -462,7 +462,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
 
 function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
   const dark = useClientDark();
-  const outerMargin = fullWidth ? "" : "mx-4";
+  const outerMargin = fullWidth ? "" : "mx-3";
   const outerRadius = fullWidth ? "rounded-none" : "rounded-2xl";
   const cardBg = dark ? "#141414" : "#F7F7F8";
   const border = dark ? "border-white/8" : "border-black/8";
@@ -565,7 +565,7 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
   const trackClass = dark ? "bg-white/8" : "bg-black/8";
   const actionBtn = dark ? "bg-white/8 text-white" : "bg-black/8 text-black";
   return (
-    <div className={`mx-4 rounded-2xl p-5 ${border} border`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
+    <div className={`mx-3 rounded-2xl p-5 ${border} border`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className={`${primaryText} font-semibold`}>{isToday ? "Nutrition Today" : "Nutrition"}</h3>
         <Utensils size={15} className={muted25} />
@@ -632,7 +632,7 @@ function DayHeader({ selectedOffset, onJumpToday }) {
   const dark = useClientDark();
   if (selectedOffset === 0) return null;
   return (
-    <div className="flex items-center justify-end px-4 pt-1 pb-1">
+    <div className="flex items-center justify-end px-3 pt-1 pb-1">
       <button
         onClick={onJumpToday}
         className={`text-sm font-semibold underline underline-offset-2 ${dark ? "text-white/50" : "text-black/50"}`}
@@ -659,7 +659,7 @@ function DateStrip({ selectedOffset, onSelect }) {
   }, []);
 
   return (
-    <div className="px-4">
+    <div className="px-3">
       <div ref={stripRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {offsets.map((offset) => {
           const d = dateForOffset(offset);
@@ -762,7 +762,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
   const notDoneCheckBorder = dark ? "border-white/20" : "border-black/20";
   const checkIconColor = dark ? "text-black" : "text-white";
   return (
-    <div className={`mx-4 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
+    <div className={`mx-3 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
       <div className="flex items-center justify-between mb-0.5">
         <h3 className={`font-semibold ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
         <span className={`text-xs font-medium tracking-wide ${dark ? "text-white/35" : "text-black/35"}`}>
@@ -822,7 +822,7 @@ function ActiveChallengesCard({ challenges, userId }) {
   if (active.length === 0) return null;
 
   return (
-    <div className="px-4 space-y-2.5">
+    <div className="px-3 space-y-2.5">
       {active.map((c) => {
         const snapshot = c.leaderboardSnapshot || [];
         const mine = snapshot.find((r) => r.clientId === userId);
@@ -946,7 +946,7 @@ function NotificationsPromptCard({ userId, showToast }) {
 
   return (
     <div
-      className={`mx-4 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
+      className={`mx-3 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
       style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
     >
       <BellRing size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
@@ -979,7 +979,7 @@ function CardioLogCard({ logs }) {
   const dark = useClientDark();
   if (!logs || logs.length === 0) return null;
   return (
-    <div className="mx-4 space-y-2">
+    <div className="mx-3 space-y-2">
       {logs.map((log) => (
         <div
           key={log.id}
@@ -1049,7 +1049,7 @@ function HomeScreen({
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
         <div
-          className={`mx-4 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
+          className={`mx-3 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
           style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
         >
           <Scale size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
