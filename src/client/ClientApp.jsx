@@ -3396,10 +3396,8 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
       <div className="px-2.5 mt-3">
         <Card dark={dark} onClick={() => setNutritionDetailOpen(true)} className="shadow-sm">
           <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/30">
-              <Flame size={16} className="text-white" />
-            </div>
-            <p className={dark ? "text-white/50 text-xs font-bold tracking-wide flex-1" : "text-black/50 text-xs font-bold tracking-wide flex-1"}>CALORIE TARGET</p>
+            <Flame size={20} strokeWidth={2} className="text-orange-500 shrink-0" />
+            <p className={dark ? "text-white/50 text-xs font-bold tracking-wide flex-1" : "text-black/50 text-xs font-bold tracking-wide flex-1"}>YOUR CALORIE TARGET</p>
             <ChevronRight size={15} className={dark ? "text-white/25" : "text-black/25"} />
           </div>
           <div className="flex items-baseline gap-2">
