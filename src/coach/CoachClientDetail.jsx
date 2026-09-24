@@ -1909,8 +1909,11 @@ function TrainingProgramPanel({ client, showToast }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [renamingId, setRenamingId] = useState(null);
   const [renameDraft, setRenameDraft] = useState("");
+  const [historyLimit, setHistoryLimit] = useState(15);
   const startDateRef = useRef(null);
   const endDateRef = useRef(null);
+
+  const workoutLogs = db.workoutLogs[client.id] || [];
 
   const phase = phases.find((p) => p.id === selectedPhaseId) || sorted[0] || null;
   const days = phase?.weeks?.[0]?.days || [];
@@ -2469,6 +2472,39 @@ function TrainingProgramPanel({ client, showToast }) {
             )}
           </>
         )}
+
+        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mt-4">
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+              <ClipboardList size={15} className="text-emerald-600" />
+            </div>
+            <p className="text-black font-semibold text-sm">Session History</p>
+          </div>
+          <p className="text-black/40 text-xs mb-4 ml-[42px]">
+            Every completed workout, oldest exercises and sets included — tap one to expand. Includes any exercise the client swapped mid-session and their note explaining why.
+          </p>
+          {workoutLogs.length === 0 ? (
+            <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
+              <p className="text-black/30 text-sm">No completed workouts yet.</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {workoutLogs.slice(0, historyLimit).map((log) => (
+                  <WorkoutLogCard key={log.id} log={log} exercisesById={exercisesById} />
+                ))}
+              </div>
+              {historyLimit < workoutLogs.length && (
+                <button
+                  onClick={() => setHistoryLimit((n) => n + 15)}
+                  className="w-full text-center text-black/40 hover:text-black text-xs font-semibold py-3 mt-1"
+                >
+                  Show more ({workoutLogs.length - historyLimit} more)
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <NewPhaseSheet open={newPhaseOpen} onClose={() => setNewPhaseOpen(false)} programs={db.programs} onCreate={createPhase} />
@@ -4366,29 +4402,6 @@ function ProgressPanel({ client }) {
                 </div>
               );
             })}
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
-        <div className="flex items-center gap-2.5 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-            <ClipboardList size={15} className="text-emerald-600" />
-          </div>
-          <p className="text-black font-semibold text-sm">Training Log</p>
-        </div>
-        <p className="text-black/40 text-xs mb-4 ml-[42px]">
-          Recent completed sessions — includes any exercise the client swapped mid-session and their note explaining why.
-        </p>
-        {logs.length === 0 ? (
-          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
-            <p className="text-black/30 text-sm">No completed workouts yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {logs.slice(0, 12).map((log) => (
-              <WorkoutLogCard key={log.id} log={log} exercisesById={exercisesById} />
-            ))}
           </div>
         )}
       </div>
