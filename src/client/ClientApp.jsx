@@ -3253,6 +3253,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
   const [pendingFood, setPendingFood] = useState(null);
   const [logTab, setLogTab] = useState("history"); // "history" | "mymeals"
   const [nutritionDetailOpen, setNutritionDetailOpen] = useState(false);
+  const [tab, setTab] = useState("today"); // "today" | "plan"
 
   const mealCategories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
   // Coach-added and barcode-discovered foods (db.customFoods) are searched
@@ -3336,12 +3337,36 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-6 pb-2 flex items-center justify-between">
+      <div className="px-2.5 pt-6 pb-4 flex items-center justify-between">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Nutrition</h1>
-        <Search size={20} className={dark ? "text-white/40" : "text-black/40"} />
+        {tab === "today" && <Search size={20} className={dark ? "text-white/40" : "text-black/40"} />}
       </div>
 
-      <div className="px-2.5 mt-2 mb-1">
+      <div className="flex gap-2 px-2.5 mb-4">
+        {[
+          { key: "today", label: "Today" },
+          { key: "plan", label: "My Meal Plan" },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex-1 px-4 py-2 rounded-full text-sm font-medium text-center ${
+              tab === t.key
+                ? dark
+                  ? "bg-white text-black"
+                  : "bg-black text-white"
+                : dark
+                ? "bg-white/8 text-white/60"
+                : "bg-black/8 text-black/60"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "today" && (
+      <div className="px-2.5 mb-1">
         <div className={dark ? "inline-flex items-center rounded-full border border-white/10 bg-white/5" : "inline-flex items-center rounded-full border border-black/10 bg-black/5"}>
           <button
             onClick={() => setNavOffset((o) => o + 1)}
@@ -3364,7 +3389,10 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
           </button>
         </div>
       </div>
+      )}
 
+      {tab === "today" && (
+      <>
       <div className="px-2.5 mt-3">
         <Card dark={dark} onClick={() => setNutritionDetailOpen(true)} className="shadow-sm">
           <div className="flex items-center gap-2.5 mb-3">
@@ -3445,98 +3473,169 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
           </div>
         </Card>
       </div>
+      </>
+      )}
 
-      {mealPlan && mealPlanDay && (
-        <div className="px-2.5 mt-7">
-          <Card dark={dark} className="shadow-sm">
-            <div className="flex items-center justify-between mb-1">
-              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>My Meal Plan</p>
-              <span className={dark ? "text-white/40 text-[11px] font-semibold bg-white/5 px-2 py-0.5 rounded-md shrink-0" : "text-black/40 text-[11px] font-semibold bg-black/5 px-2 py-0.5 rounded-md shrink-0"}>
-                {planWeeksCount === 1 ? "1-week plan" : `Week ${activeWeek + 1} of ${planWeeksCount}`}
-              </span>
+      {tab === "plan" && mealPlan && mealPlanDay && (
+        <div className="space-y-4">
+          <div className="relative h-36 overflow-hidden">
+            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
+            <button
+              onClick={() => setShoppingListOpen(true)}
+              className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full active:scale-[0.96] transition-transform"
+            >
+              <ShoppingCart size={12} /> LIST
+            </button>
+            <span className="absolute top-3 left-3 bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">
+              {planWeeksCount === 1 ? "1-WEEK PLAN" : `WEEK ${activeWeek + 1} OF ${planWeeksCount}`}
+            </span>
+            <div className="absolute bottom-0 left-0 right-0 p-4">
+              <h2 className="text-white text-xl font-bold tracking-tight">My Meal Plan</h2>
+              <p className="text-white/70 text-xs mt-1">Built by your coach — tap any meal to log it now</p>
             </div>
-            <div className="flex items-center justify-between gap-2 mb-4">
-              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Built by your coach — tap any meal to log it now</p>
-              <button
-                onClick={() => setShoppingListOpen(true)}
-                className={dark ? "shrink-0 flex items-center gap-1.5 bg-white/8 hover:bg-white/15 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors" : "shrink-0 flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"}
-              >
-                <ShoppingCart size={12} /> LIST
-              </button>
-            </div>
-            {planWeeksCount > 1 && (
-              <div className="flex items-center gap-2 mb-2 overflow-x-auto">
-                {Array.from({ length: planWeeksCount }, (_, w) => w).map((w) => (
-                  <button
-                    key={w}
-                    onClick={() => {
-                      setSelectedWeek(w);
-                      setMealPlanDayId(null);
-                    }}
-                    className={`shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                      w === activeWeek ? "bg-blue-500 text-white" : dark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"
-                    }`}
-                  >
-                    Week {w + 1}
-                  </button>
-                ))}
-              </div>
-            )}
-            {daysInActiveWeek.length > 1 && (
-              <div className="flex items-center gap-2 mb-4 overflow-x-auto">
-                {daysInActiveWeek.map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => setMealPlanDayId(d.id)}
-                    className={`shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                      d.id === mealPlanDay.id ? "bg-blue-500 text-white" : dark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="space-y-3">
-              {["Breakfast", "Lunch", "Dinner", "Snacks"]
-                .flatMap((slot) => (mealPlanDay.meals?.[slot] || []).map((mealId, i) => ({ slot, mealId, i })))
-                .map(({ slot, mealId, i }) => {
-                  const m = mealsById[mealId];
-                  if (!m) return null;
-                  return (
-                    <div key={`${mealId}_${i}`} className={dark ? "bg-white/[0.04] border border-white/8 rounded-2xl overflow-hidden shadow-sm" : "bg-black/[0.02] border border-black/8 rounded-2xl overflow-hidden shadow-sm"}>
-                      <div className="relative">
-                        {m.photoUrl ? (
-                          <img src={m.photoUrl} alt="" className="w-full h-36 object-cover" />
-                        ) : (
-                          <div className={dark ? "w-full h-36 bg-white/8 flex items-center justify-center" : "w-full h-36 bg-black/[0.06] flex items-center justify-center"}>
-                            <UtensilsCrossed size={28} className={dark ? "text-white/20" : "text-black/15"} />
-                          </div>
-                        )}
-                        <div className="absolute top-2.5 right-2.5 flex gap-1.5">
-                          <button onClick={() => logSavedMeal(m, slot)} title="Log this meal now" className="w-8 h-8 rounded-lg bg-black/55 flex items-center justify-center text-white">
-                            <Plus size={14} />
-                          </button>
-                          <button onClick={() => setSwapping({ slot, index: i, meal: m })} title="Swap for a similar meal" className="w-8 h-8 rounded-lg bg-black/55 flex items-center justify-center text-white">
-                            <Repeat size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      <button onClick={() => setPlanMealDetail({ meal: m, slot })} className="block w-full text-left px-3.5 py-3">
-                        <p className="text-blue-500 text-[10px] font-bold tracking-wide uppercase">{slot}</p>
-                        <p className={dark ? "text-white text-sm font-semibold mt-1" : "text-black text-sm font-semibold mt-1"}>{m.name}</p>
-                        <p className={dark ? "text-white/40 text-xs mt-1" : "text-black/40 text-xs mt-1"}>
-                          {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
-                        </p>
+          </div>
+
+          <div className="px-2.5 space-y-4">
+            {(planWeeksCount > 1 || daysInActiveWeek.length > 1) && (
+              <div className="space-y-2">
+                {planWeeksCount > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto">
+                    {Array.from({ length: planWeeksCount }, (_, w) => w).map((w) => (
+                      <button
+                        key={w}
+                        onClick={() => {
+                          setSelectedWeek(w);
+                          setMealPlanDayId(null);
+                        }}
+                        className={`shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                          w === activeWeek ? "bg-blue-500 text-white" : dark ? "bg-white/5 text-white/50" : "bg-black/5 text-black/50"
+                        }`}
+                      >
+                        Week {w + 1}
                       </button>
+                    ))}
+                  </div>
+                )}
+                {daysInActiveWeek.length > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto">
+                    {daysInActiveWeek.map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => setMealPlanDayId(d.id)}
+                        className={`shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                          d.id === mealPlanDay.id ? "bg-black text-white" : dark ? "bg-white/8 text-white/60" : "bg-black/8 text-black/60"
+                        } ${dark && d.id === mealPlanDay.id ? "!bg-white !text-black" : ""}`}
+                      >
+                        {d.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(() => {
+              const dayMeals = ["Breakfast", "Lunch", "Dinner", "Snacks"].flatMap((slot) =>
+                (mealPlanDay.meals?.[slot] || []).map((mealId, i) => ({ slot, mealId, i, m: mealsById[mealId] })).filter((x) => x.m)
+              );
+              const dayTotals = dayMeals.reduce(
+                (a, { m }) => ({
+                  cals: a.cals + (m.cals || 0),
+                  protein: a.protein + (m.protein || 0),
+                  carbs: a.carbs + (m.carbs || 0),
+                  fat: a.fat + (m.fat || 0),
+                }),
+                { cals: 0, protein: 0, carbs: 0, fat: 0 }
+              );
+              return (
+                <>
+                  <Card dark={dark} className="!py-3.5 shadow-sm">
+                    <p className={dark ? "text-white/40 text-[11px] font-bold tracking-wide mb-2.5" : "text-black/40 text-[11px] font-bold tracking-wide mb-2.5"}>
+                      {mealPlanDay.label?.toUpperCase() || "THIS DAY"} · PLAN TOTALS
+                    </p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        ["Cals", Math.round(dayTotals.cals), ""],
+                        ["Protein", round1(dayTotals.protein), "g"],
+                        ["Carbs", round1(dayTotals.carbs), "g"],
+                        ["Fat", round1(dayTotals.fat), "g"],
+                      ].map(([l, v, u]) => (
+                        <div key={l} className="text-center">
+                          <p className={dark ? "text-white font-bold text-sm" : "text-black font-bold text-sm"}>
+                            {v}
+                            {u}
+                          </p>
+                          <p className={dark ? "text-white/40 text-[10px] mt-0.5" : "text-black/40 text-[10px] mt-0.5"}>{l}</p>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
+                  </Card>
+
+                  {dayMeals.length === 0 ? (
+                    <p className={dark ? "text-white/30 text-sm text-center py-8" : "text-black/30 text-sm text-center py-8"}>No meals set for this day.</p>
+                  ) : (
+                    ["Breakfast", "Lunch", "Dinner", "Snacks"].map((slot) => {
+                      const items = dayMeals.filter((x) => x.slot === slot);
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={slot}>
+                          <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-bold tracking-wide mb-2 ml-1"}>{slot.toUpperCase()}</p>
+                          <div className="space-y-3">
+                            {items.map(({ mealId, i, m }) => (
+                              <div key={`${mealId}_${i}`} className={dark ? "bg-white/[0.04] border border-white/8 rounded-2xl overflow-hidden shadow-sm" : "bg-black/[0.02] border border-black/8 rounded-2xl overflow-hidden shadow-sm"}>
+                                <div className="relative">
+                                  {m.photoUrl ? (
+                                    <img src={m.photoUrl} alt="" className="w-full h-40 object-cover" />
+                                  ) : (
+                                    <div className={dark ? "w-full h-40 bg-white/8 flex items-center justify-center" : "w-full h-40 bg-black/[0.06] flex items-center justify-center"}>
+                                      <UtensilsCrossed size={28} className={dark ? "text-white/20" : "text-black/15"} />
+                                    </div>
+                                  )}
+                                  <div className="absolute top-2.5 right-2.5 flex gap-1.5">
+                                    <button onClick={() => logSavedMeal(m, slot)} title="Log this meal now" className="w-8 h-8 rounded-lg bg-black/55 flex items-center justify-center text-white">
+                                      <Plus size={14} />
+                                    </button>
+                                    <button onClick={() => setSwapping({ slot, index: i, meal: m })} title="Swap for a similar meal" className="w-8 h-8 rounded-lg bg-black/55 flex items-center justify-center text-white">
+                                      <Repeat size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <button onClick={() => setPlanMealDetail({ meal: m, slot })} className="block w-full text-left px-3.5 py-3">
+                                  <p className={dark ? "text-white text-sm font-semibold" : "text-black text-sm font-semibold"}>{m.name}</p>
+                                  <p className={dark ? "text-white/40 text-xs mt-1" : "text-black/40 text-xs mt-1"}>
+                                    {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
+                                  </p>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {tab === "plan" && !mealPlan && (
+        <div className="px-2.5">
+          <Card dark={dark}>
+            <div className="flex flex-col items-center text-center py-10 px-4">
+              <div className={dark ? "w-14 h-14 rounded-2xl bg-white/8 flex items-center justify-center mb-4" : "w-14 h-14 rounded-2xl bg-black/5 flex items-center justify-center mb-4"}>
+                <UtensilsCrossed size={22} className={dark ? "text-white/40" : "text-black/30"} />
+              </div>
+              <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>No meal plan yet</p>
+              <p className={dark ? "text-white/40 text-sm mt-1.5" : "text-black/40 text-sm mt-1.5"}>Your coach hasn't built you a meal plan yet — check back soon.</p>
             </div>
           </Card>
         </div>
       )}
 
+      {tab === "today" && (
       <div className="px-2.5 mt-7">
         <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>{navOffset === 0 ? "TODAY'S MEALS" : `${navLabel.toUpperCase()}'S MEALS`}</p>
         <div className="space-y-2.5">
@@ -3575,6 +3674,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
           })}
         </div>
       </div>
+      )}
 
       <BottomSheet dark={dark} open={!!detailMeal} onClose={() => setDetailMeal(null)} title={detailMeal || ""}>
         {detailMeal &&
