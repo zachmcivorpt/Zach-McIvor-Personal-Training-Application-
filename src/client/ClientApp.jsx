@@ -117,6 +117,7 @@ import {
   computePRsInLastNDays,
   computeWorkoutStreak,
   computeMonthlyConsistency,
+  computePhaseCompletion,
   computeMonthlyVolume,
   computeAchievements,
   computePerformanceTimeline,
@@ -2548,6 +2549,8 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, viewingAsClient, updateClientPhase } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
+  const logsForPhase = db.workoutLogs[currentUser.id] || [];
+  const scheduledForPhase = (db.scheduledWorkouts || {})[currentUser.id] || [];
   const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
   const todayStr = localDateKey();
   const current = getCurrentPhase(phases, todayStr);
@@ -2568,6 +2571,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   const phase = phases.find((p) => p.id === selectedId) || current || sorted[sorted.length - 1];
   const days = phase?.weeks?.[0]?.days || [];
+  const completion = computePhaseCompletion(logsForPhase, scheduledForPhase, phase.startDate, phase.endDate);
 
   // Add/Import only matter to the coach browsing "as" this client — a real
   // client's program stays coach-managed, same as everywhere else in the app.
@@ -2611,24 +2615,62 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   return (
     <div className="px-3 space-y-4">
-      <Card dark={dark}>
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <h2 className={dark ? "text-white text-lg font-bold min-w-0 truncate" : "text-black text-lg font-bold min-w-0 truncate"}>{phase.name}</h2>
-          <button
-            onClick={() => setHistoryOpen(true)}
-            className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold shrink-0"
-          >
-            <Calendar size={14} /> PHASES
-          </button>
+      <Card dark={dark} className="shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className={dark ? "w-11 h-11 rounded-2xl bg-blue-500/15 flex items-center justify-center shrink-0" : "w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0"}>
+            <Dumbbell size={19} className="text-blue-500" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className={dark ? "text-white text-lg font-bold min-w-0 truncate" : "text-black text-lg font-bold min-w-0 truncate"}>{phase.name}</h2>
+              <button
+                onClick={() => setHistoryOpen(true)}
+                className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold shrink-0"
+              >
+                <Calendar size={14} /> PHASES
+              </button>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
+                {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                {phase.endDate
+                  ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                  : ""}
+              </p>
+              {phase.id === current?.id && (
+                <span className="bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">CURRENT</span>
+              )}
+            </div>
+          </div>
         </div>
-        <p className={dark ? "text-white/40 text-xs mb-3" : "text-black/40 text-xs mb-3"}>
-          {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-          {phase.endDate
-            ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-            : ""}
-          {phase.id === current?.id && <span className={dark ? "ml-2 text-white font-semibold" : "ml-2 text-black font-semibold"}>· Current</span>}
-        </p>
-        {phase.description && <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line" : "text-black/60 text-sm leading-relaxed whitespace-pre-line"}>{phase.description}</p>}
+        {phase.description && (
+          <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line mt-3" : "text-black/60 text-sm leading-relaxed whitespace-pre-line mt-3"}>
+            {phase.description}
+          </p>
+        )}
+
+        <div className={`mt-4 pt-4 border-t ${dark ? "border-white/10" : "border-black/8"}`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <Target size={13} className="text-blue-500" />
+              <p className={dark ? "text-white/50 text-xs font-bold tracking-wide" : "text-black/50 text-xs font-bold tracking-wide"}>COMPLETION RATE</p>
+            </div>
+            <p className={dark ? "text-white text-sm font-bold tabular-nums" : "text-black text-sm font-bold tabular-nums"}>
+              {completion.pct != null ? `${completion.pct}%` : "—"}
+            </p>
+          </div>
+          <div className={`h-2 rounded-full overflow-hidden ${dark ? "bg-white/10" : "bg-black/8"}`}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${completion.pct ?? 0}%`, backgroundColor: MEASURE_BLUE }}
+            />
+          </div>
+          <p className={dark ? "text-white/30 text-[11px] mt-1.5" : "text-black/30 text-[11px] mt-1.5"}>
+            {completion.expected > 0
+              ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
+              : "No workouts scheduled yet in this phase"}
+          </p>
+        </div>
       </Card>
 
       <div>
@@ -2653,13 +2695,13 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
           <div className="space-y-2">
             {days.map((d, i) => (
               <button key={d.id || i} onClick={() => onPreviewDay(d)} className="w-full text-left">
-                <Card dark={dark} className="!py-3.5">
+                <Card dark={dark} className="!py-3.5 shadow-sm">
                   <div className="flex items-center gap-3">
                     {d.photoUrl ? (
                       <img src={d.photoUrl} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
                     ) : (
-                      <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${dark ? "bg-white/8" : "bg-black/5"}`}>
-                        <Dumbbell size={20} className={dark ? "text-white/25" : "text-black/20"} />
+                      <div className={dark ? "w-14 h-14 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0" : "w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"}>
+                        <Dumbbell size={20} className="text-blue-500" />
                       </div>
                     )}
                     <div className="min-w-0 flex-1">

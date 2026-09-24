@@ -406,6 +406,23 @@ export function computeMonthlyConsistency(logs, scheduledWorkouts) {
   return { completed, expected: scheduledThisMonth.length, pct: Math.round((completed / scheduledThisMonth.length) * 100) };
 }
 
+// Same shape as computeMonthlyConsistency/computeWeeklySessionCompletion,
+// but scoped to an arbitrary date range — a training phase's own
+// start/end dates rather than a calendar week or month. Only counts
+// scheduled days that have actually arrived (capped at today, or the
+// phase's own end date if that's already passed), so a phase that
+// still has weeks left to run doesn't read as "incomplete" against
+// days that haven't happened yet.
+export function computePhaseCompletion(logs, scheduledWorkouts, startDate, endDate) {
+  const todayKey = localDateKey();
+  const rangeEnd = endDate && endDate < todayKey ? endDate : todayKey;
+  const inRange = (scheduledWorkouts || []).filter((w) => w.date >= startDate && w.date <= rangeEnd);
+  if (inRange.length === 0) return { completed: 0, expected: 0, pct: null };
+  const loggedDates = new Set((logs || []).map((l) => localDateKey(l.date)));
+  const completed = inRange.filter((w) => loggedDates.has(w.date)).length;
+  return { completed, expected: inRange.length, pct: Math.round((completed / inRange.length) * 100) };
+}
+
 // Consecutive weeks (most recent first) with at least one logged workout.
 // A week that's still in progress (this week) doesn't break the streak if
 // it simply has no logs yet.
