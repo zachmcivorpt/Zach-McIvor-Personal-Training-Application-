@@ -649,6 +649,7 @@ const MICRO_LABELS = {
 
 const EMPTY_QUICK_ADD = {
   name: "",
+  per: "100",
   cals: "",
   protein: "",
   carbs: "",
@@ -679,14 +680,20 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
 
   function submit() {
     if (!manual.name.trim() || manual.cals === "") return;
+    // The macros typed in are for whatever serving size is entered here —
+    // not always 100g. Saving `per` as that same size means logging this
+    // food again later (at that size, or scaled up/down) stays accurate,
+    // instead of silently treating a 250g serving's macros as if they were
+    // per 100g and scaling everything wrong from there.
+    const per = Math.round(Number(manual.per)) || 100;
     const data = {
       name: manual.name.trim(),
       cals: Math.round(Number(manual.cals) || 0),
       protein: Number(manual.protein) || 0,
       carbs: Number(manual.carbs) || 0,
       fat: Number(manual.fat) || 0,
-      per: 100,
-      defaultQty: 100,
+      per,
+      defaultQty: per,
     };
     // A micronutrient field is only ever included when the coach/client
     // actually typed something in — an untouched field means "unknown", not
@@ -708,6 +715,22 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
           onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
           placeholder="e.g. Honey Chicken Sushi Roll"
         />
+        <label className="block">
+          <span className={dark ? "text-white/30 text-[10px] tracking-wide" : "text-black/30 text-[10px] tracking-wide"}>
+            SERVING SIZE THE MACROS BELOW ARE FOR
+          </span>
+          <div className="flex items-center gap-2 mt-1">
+            <input
+              type="number"
+              inputMode="decimal"
+              value={manual.per}
+              onChange={(e) => setManual((m) => ({ ...m, per: e.target.value }))}
+              placeholder="100"
+              className={dark ? "w-24 bg-white/5 rounded-lg text-center text-white text-xs py-2.5 outline-none placeholder:text-white/25" : "w-24 bg-black/5 rounded-lg text-center text-black text-xs py-2.5 outline-none placeholder:text-black/25"}
+            />
+            <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>grams</span>
+          </div>
+        </label>
         <div className="grid grid-cols-4 gap-1.5">
           {["cals", "protein", "carbs", "fat"].map((k) => (
             <input
@@ -721,6 +744,9 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
             />
           ))}
         </div>
+        <p className={dark ? "text-white/25 text-[11px]" : "text-black/25 text-[11px]"}>
+          e.g. if the pack says 450 kcal per 250g serving, set serving size to 250 and calories to 450 — logging more or less will scale automatically.
+        </p>
       </div>
 
       <button
