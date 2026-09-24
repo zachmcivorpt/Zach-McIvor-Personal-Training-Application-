@@ -5246,7 +5246,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
 
   return (
     <BottomSheet dark={dark} open={open} onClose={onClose} title="Messages">
-      <div className="space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
+      <div className="space-y-3 pb-3">
         {thread.length === 0 && (
           <div className="flex justify-start">
             <div className={dark ? "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-white/8 text-white/85" : "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-black/8 text-black/85"}>
@@ -5297,15 +5297,19 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         ))}
         <div ref={endRef} />
       </div>
-      {uploadError && (
-        <div className="mb-2 flex items-center justify-between gap-2 bg-red-50 border border-red-100 text-red-700 text-xs px-3 py-2 rounded-lg">
-          <span>{uploadError}</span>
-          <button onClick={() => setUploadError("")} aria-label="Dismiss">
-            <X size={13} />
-          </button>
-        </div>
-      )}
-      <div className="flex gap-2">
+      <div
+        className="sticky bottom-0 -mx-5 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+        style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
+      >
+        {uploadError && (
+          <div className="mb-2 flex items-center justify-between gap-2 bg-red-50 border border-red-100 text-red-700 text-xs px-3 py-2 rounded-lg">
+            <span>{uploadError}</span>
+            <button onClick={() => setUploadError("")} aria-label="Dismiss">
+              <X size={13} />
+            </button>
+          </div>
+        )}
+        <div className="flex gap-2">
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
         <button
           onClick={() => videoInputRef.current?.click()}
@@ -5343,6 +5347,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         <button onClick={send} className={dark ? "w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0" : "w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0"}>
           <Send size={16} className={dark ? "text-black" : "text-white"} />
         </button>
+        </div>
       </div>
     </BottomSheet>
   );
