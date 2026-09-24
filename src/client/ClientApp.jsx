@@ -2589,7 +2589,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   return (
     <div className="px-2.5 space-y-4">
-      <div className={`rounded-3xl overflow-hidden border shadow-sm ${dark ? "" : ""}`} style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
+      <div className={`rounded-2xl overflow-hidden border shadow-sm ${dark ? "" : ""}`} style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
         <div className="relative h-40">
           <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
@@ -3341,27 +3341,28 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         <Search size={20} className={dark ? "text-white/40" : "text-black/40"} />
       </div>
 
-      <div className="px-2.5 mt-1 flex items-center justify-center gap-4">
-        <button
-          onClick={() => setNavOffset((o) => o + 1)}
-          className={dark ? "w-8 h-8 flex items-center justify-center rounded-full bg-white/8 text-white/70 active:scale-90 transition-transform" : "w-8 h-8 flex items-center justify-center rounded-full bg-black/8 text-black/60 active:scale-90 transition-transform"}
-        >
-          <ChevronLeft size={16} />
-        </button>
-        <span className={dark ? "text-white/70 text-sm font-semibold min-w-[120px] text-center" : "text-black/70 text-sm font-semibold min-w-[120px] text-center"}>{navLabel}</span>
-        <button
-          onClick={() => setNavOffset((o) => Math.max(0, o - 1))}
-          disabled={navOffset === 0}
-          className={
-            navOffset === 0
-              ? "w-8 h-8 flex items-center justify-center rounded-full opacity-0 pointer-events-none"
-              : dark
-              ? "w-8 h-8 flex items-center justify-center rounded-full bg-white/8 text-white/70 active:scale-90 transition-transform"
-              : "w-8 h-8 flex items-center justify-center rounded-full bg-black/8 text-black/60 active:scale-90 transition-transform"
-          }
-        >
-          <ChevronRight size={16} />
-        </button>
+      <div className="px-2.5 mt-2 mb-1">
+        <div className={dark ? "inline-flex items-center rounded-full border border-white/10 bg-white/5" : "inline-flex items-center rounded-full border border-black/10 bg-black/5"}>
+          <button
+            onClick={() => setNavOffset((o) => o + 1)}
+            className={dark ? "w-8 h-8 flex items-center justify-center shrink-0 text-white/70 active:scale-90 transition-transform" : "w-8 h-8 flex items-center justify-center shrink-0 text-black/60 active:scale-90 transition-transform"}
+          >
+            <ChevronLeft size={15} />
+          </button>
+          <span className={dark ? "flex items-center justify-center gap-1.5 px-1 min-w-[100px] text-white text-[13px] font-bold" : "flex items-center justify-center gap-1.5 px-1 min-w-[100px] text-black text-[13px] font-bold"}>
+            <Calendar size={12} className="text-blue-500" />
+            {navLabel}
+          </span>
+          <button
+            onClick={() => setNavOffset((o) => Math.max(0, o - 1))}
+            disabled={navOffset === 0}
+            className={`w-8 h-8 flex items-center justify-center shrink-0 active:scale-90 transition-transform ${
+              navOffset === 0 ? "opacity-25 pointer-events-none" : dark ? "text-white/70" : "text-black/60"
+            }`}
+          >
+            <ChevronRight size={15} />
+          </button>
+        </div>
       </div>
 
       <div className="px-2.5 mt-3">
