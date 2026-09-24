@@ -3888,7 +3888,10 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         onClose={() => setQuickAddOpen(false)}
         onAdd={(food) => {
           setQuickAddOpen(false);
-          addAndClose(food);
+          // Same next step as picking a food from search or a barcode scan
+          // — the quantity sheet opens defaulted to the serving size just
+          // entered, and lets it be scaled up or down before logging.
+          setPendingFood(food);
         }}
       />
       <PhotoEstimateSheet
