@@ -1117,7 +1117,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
   return (
     <FullScreenOverlay>
       <div className={dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"}>
-        <div className={dark ? "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+        <div className={dark ? "flex items-center justify-between px-5 pt-4 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-4 pb-3 shrink-0 border-b border-black/5"}>
           <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
             <X size={22} />
           </button>
@@ -1192,7 +1192,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
           {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
             <div key={group.key} className="mb-5">
               {group.showHeader && <p className={dark ? "text-white/40 text-xs font-bold tracking-wide mb-2" : "text-black/40 text-xs font-bold tracking-wide mb-2"}>{group.label.toUpperCase()}</p>}
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {group.items.map(({ exMeta: e, i }) => {
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
@@ -1203,11 +1203,11 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       onClick={() => setDetailExercise(ex)}
                       className={
                         dark
-                          ? "w-full flex items-center gap-3.5 text-left bg-white/[0.04] border border-white/8 rounded-2xl p-3.5"
-                          : "w-full flex items-center gap-3.5 text-left bg-black/[0.02] border border-black/6 rounded-2xl p-3.5 shadow-sm"
+                          ? "w-full flex items-center gap-4 text-left bg-white/[0.04] border border-white/8 rounded-2xl p-4"
+                          : "w-full flex items-center gap-4 text-left bg-black/[0.02] border border-black/6 rounded-2xl p-4 shadow-sm"
                       }
                     >
-                      <ExerciseThumb dark={dark} exercise={ex} size={64} rounded="rounded-xl" className="shadow-sm shrink-0" />
+                      <ExerciseThumb dark={dark} exercise={ex} size={60} rounded="rounded-full" className="shadow-sm shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className={dark ? "text-white font-bold text-base tracking-wide truncate" : "text-black font-bold text-base tracking-wide truncate"}>{ex.name}</p>
@@ -1219,11 +1219,11 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                         </div>
                         {e.actualSets ? (
                           e.actualSets.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5 mt-2">
+                            <div className="flex flex-wrap gap-1.5 mt-2.5">
                               {e.actualSets.map((s, si) => (
                                 <span
                                   key={si}
-                                  className={`inline-flex items-center gap-1 text-[12px] font-semibold px-2.5 py-1 rounded-lg ${
+                                  className={`inline-flex items-center gap-1 text-[12px] font-semibold px-2.5 py-1 rounded-md ${
                                     s.isPR
                                       ? dark
                                         ? "bg-emerald-500/15 text-emerald-400"
@@ -1243,11 +1243,11 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                             <p className={dark ? "text-white/35 text-[13px] mt-1.5 italic" : "text-black/35 text-[13px] mt-1.5 italic"}>No sets logged</p>
                           )
                         ) : (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            <span className={dark ? "text-[12px] font-semibold px-2.5 py-1 rounded-lg bg-white/8 text-white/70" : "text-[12px] font-semibold px-2.5 py-1 rounded-lg bg-black/6 text-black/70"}>
+                          <div className="flex flex-wrap gap-1.5 mt-2.5">
+                            <span className={dark ? "text-[12px] font-semibold px-2.5 py-1 rounded-md bg-white/8 text-white/70" : "text-[12px] font-semibold px-2.5 py-1 rounded-md bg-black/6 text-black/70"}>
                               {e.targetSets} × {formatTargetReps(e)}
                             </span>
-                            <span className={dark ? "text-[12px] font-semibold px-2.5 py-1 rounded-lg bg-white/8 text-white/70" : "text-[12px] font-semibold px-2.5 py-1 rounded-lg bg-black/6 text-black/70"}>
+                            <span className={dark ? "text-[12px] font-semibold px-2.5 py-1 rounded-md bg-white/8 text-white/70" : "text-[12px] font-semibold px-2.5 py-1 rounded-md bg-black/6 text-black/70"}>
                               {formatRest(e.restSeconds ?? 90)} rest
                             </span>
                           </div>
