@@ -1098,11 +1098,12 @@ function HomeScreen({
    WORKOUT PREVIEW + SESSION FLOW
 ============================================================================ */
 
-function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onContinue, onClose }) {
+function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, onStart, onContinue, onClose }) {
   const dark = useClientDark();
   const { db, currentUser, addWorkoutComment } = useApp();
   const [commentDraft, setCommentDraft] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [detailExercise, setDetailExercise] = useState(null);
   const comments = session.workoutLogId
     ? (db.workoutComments[currentUser.id] || []).filter((c) => c.workoutLogId === session.workoutLogId)
     : [];
@@ -1221,7 +1222,12 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onCont
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
                   return (
-                    <div key={i} className={dark ? "flex items-center gap-3 py-3.5 border-b border-white/5" : "flex items-center gap-3 py-3.5 border-b border-black/5"}>
+                    <button
+                      type="button"
+                      key={i}
+                      onClick={() => setDetailExercise(ex)}
+                      className={dark ? "w-full flex items-center gap-3 py-3.5 border-b border-white/5 text-left" : "w-full flex items-center gap-3 py-3.5 border-b border-black/5 text-left"}
+                    >
                       <ExerciseThumb dark={dark} exercise={ex} size={56} rounded="rounded-lg" className="shadow-sm" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
@@ -1259,7 +1265,7 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onCont
                         {e.note && <p className={dark ? "text-white/40 text-[12px] mt-1 italic" : "text-black/40 text-[12px] mt-1 italic"}>"{e.note}"</p>}
                       </div>
                       {e.notes && <ClipboardList size={16} className={dark ? "text-white/40 shrink-0" : "text-black/40 shrink-0"} />}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1333,6 +1339,9 @@ function WorkoutPreviewSheet({ session, exercisesById, canStart, onStart, onCont
         )}
 
       </div>
+      {detailExercise && (
+        <ExerciseDetailSheet exercise={detailExercise} logsForClient={logsForClient} onClose={() => setDetailExercise(null)} />
+      )}
     </FullScreenOverlay>
   );
 }
@@ -7064,6 +7073,7 @@ export default function ClientApp() {
           <WorkoutPreviewSheet
             session={previewSession}
             exercisesById={exercisesById}
+            logsForClient={logsForClient}
             canStart={previewCanStart}
             onClose={() => setPreviewSession(null)}
             onStart={() => {
