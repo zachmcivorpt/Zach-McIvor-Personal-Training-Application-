@@ -2588,8 +2588,8 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   }
 
   return (
-    <div className="px-2.5 space-y-4">
-      <div className={`rounded-2xl overflow-hidden border shadow-sm ${dark ? "" : ""}`} style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
+    <div className="space-y-4">
+      <div className={`overflow-hidden border ${dark ? "" : ""}`} style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
         <div className="relative h-40">
           <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
@@ -2645,7 +2645,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
         </div>
       </div>
 
-      <div>
+      <div className="px-2.5">
         <div className="flex items-center justify-between mb-2 px-1 flex-wrap gap-y-1">
           <p className={dark ? "text-white/40 text-xs tracking-wide" : "text-black/40 text-xs tracking-wide"}>WORKOUTS IN THIS PHASE</p>
           {viewingAsClient && (
