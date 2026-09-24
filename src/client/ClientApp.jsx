@@ -129,7 +129,6 @@ import { resolveNutritionTargets, MICRO_DV_ROWS } from "../lib/nutritionTargets"
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
-import { MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { FOOD_DATABASE, MICRO_FIELDS } from "../lib/foodDatabase";
 import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
@@ -468,15 +467,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const border = dark ? "border-white/8" : "border-black/8";
   const muted20 = dark ? "text-white/20" : "text-black/20";
   const muted30 = dark ? "text-white/45" : "text-black/45";
-  const muted35 = dark ? "text-white/50" : "text-black/50";
-  const muted40 = dark ? "text-white/40" : "text-black/40";
-  const muted45 = dark ? "text-white/55" : "text-black/55";
   const muted70 = dark ? "text-white/70" : "text-black/70";
-  const primaryText = dark ? "text-white" : "text-black";
-  const trackClass = dark ? "bg-white/10" : "bg-black/10";
-  const ctaClass = dark ? "bg-white text-black" : "bg-black text-white";
-  const ctaFill = dark ? "black" : "white";
-  const viewBorder = dark ? "border-white/12 bg-white/5" : "border-black/12 bg-black/5";
 
   if (!todaySession) {
     return (
@@ -502,35 +493,31 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S FOCUS" : isPastDate ? "MISSED" : "SCHEDULED";
 
   return (
-    <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 ${border} border`} style={{ backgroundColor: cardBg }}>
-      <img
-        src={dark ? MARK_WHITE : MARK_BLACK}
-        alt=""
-        className="absolute -right-6 -bottom-10 w-40 h-40 object-contain pointer-events-none select-none"
-        style={{ opacity: dark ? 0.06 : 0.05 }}
-      />
+    <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 border ${dark ? "border-white/10" : "border-black/10"}`}>
+      <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-black/75" />
       <div className="relative">
         <div className="flex items-center justify-between mb-2.5">
-          <span className={`${muted35} text-[11px] font-bold tracking-[0.14em]`}>{pillLabel}</span>
-          {completedOnDate && !started && <Check size={15} className={muted40} />}
+          <span className="text-white/70 text-[11px] font-bold tracking-[0.14em]">{pillLabel}</span>
+          {completedOnDate && !started && <Check size={15} className="text-white/80" />}
         </div>
-        <h2 className={`${primaryText} text-xl font-bold tracking-tight`}>{todaySession.label}</h2>
+        <h2 className="text-white text-xl font-bold tracking-tight">{todaySession.label}</h2>
         {(todaySession.muscleGroups || []).length > 0 && (
-          <p className={`${muted45} text-[13px] mt-1`}>{todaySession.muscleGroups.join(" & ")} Focus</p>
+          <p className="text-white/70 text-[13px] mt-1">{todaySession.muscleGroups.join(" & ")} Focus</p>
         )}
-        <p className={`${muted30} text-[12px] mt-2.5 tracking-wide`}>
+        <p className="text-white/50 text-[12px] mt-2.5 tracking-wide">
           {exCount} EXERCISE{exCount === 1 ? "" : "S"} · {estMin} MINUTE{estMin === 1 ? "" : "S"}
         </p>
 
         {started && (
           <div className="mt-4">
-            <div className={`flex justify-between text-xs ${muted35} mb-1.5`}>
+            <div className="flex justify-between text-xs text-white/70 mb-1.5">
               <span>Progress</span>
               <span>
                 {completedSets}/{totalSets} sets
               </span>
             </div>
-            <ProgressBar value={completedSets} max={totalSets} color={dark ? "#FFFFFF" : "#0A0A0B"} trackClassName={trackClass} />
+            <ProgressBar value={completedSets} max={totalSets} color="#FFFFFF" trackClassName="bg-white/20" />
           </div>
         )}
 
@@ -538,15 +525,15 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
           {(!completedOnDate || started) && (
             <button
               onClick={onStart}
-              className={`flex-1 font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${ctaClass}`}
+              className="flex-1 font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform bg-white text-black"
             >
-              <Play size={15} fill={ctaFill} />
+              <Play size={15} fill="black" />
               {started ? "RESUME WORKOUT" : "START WORKOUT"}
             </button>
           )}
           <button
             onClick={onView}
-            className={`${muted70} text-sm font-semibold px-4 rounded-xl border ${viewBorder} active:scale-[0.98] transition-transform ${
+            className={`text-white text-sm font-semibold px-4 rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm active:scale-[0.98] transition-transform ${
               completedOnDate && !started ? "flex-1 py-3.5" : ""
             }`}
           >
