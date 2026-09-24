@@ -62,6 +62,7 @@ import {
   Zap,
   Upload,
   Download,
+  Flame,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -3382,9 +3383,12 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
       </div>
 
       <div className="px-3 mt-3">
-        <Card dark={dark} onClick={() => setNutritionDetailOpen(true)}>
-          <div className="flex items-center justify-between mb-1">
-            <p className={dark ? "text-white/40 text-xs tracking-wide" : "text-black/40 text-xs tracking-wide"}>CALORIE TARGET</p>
+        <Card dark={dark} onClick={() => setNutritionDetailOpen(true)} className="shadow-sm">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/30">
+              <Flame size={16} className="text-white" />
+            </div>
+            <p className={dark ? "text-white/50 text-xs font-bold tracking-wide flex-1" : "text-black/50 text-xs font-bold tracking-wide flex-1"}>CALORIE TARGET</p>
             <ChevronRight size={15} className={dark ? "text-white/25" : "text-black/25"} />
           </div>
           <div className="flex items-baseline gap-2">
@@ -3419,7 +3423,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
       </div>
 
       <div className="px-3 mt-4">
-        <Card dark={dark} className="!py-3">
+        <Card dark={dark} className="!py-3 shadow-sm">
           <div className="flex items-center gap-3">
             <WaterCup value={nutrition.water} max={targets.water} size={32} />
             <div className="flex-1 min-w-0">
@@ -3461,7 +3465,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
 
       {mealPlan && mealPlanDay && (
         <div className="px-3 mt-7">
-          <Card dark={dark}>
+          <Card dark={dark} className="shadow-sm">
             <div className="flex items-center justify-between mb-1">
               <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>My Meal Plan</p>
               <span className={dark ? "text-white/40 text-[11px] font-semibold bg-white/5 px-2 py-0.5 rounded-md shrink-0" : "text-black/40 text-[11px] font-semibold bg-black/5 px-2 py-0.5 rounded-md shrink-0"}>
@@ -3517,7 +3521,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
                   const m = mealsById[mealId];
                   if (!m) return null;
                   return (
-                    <div key={`${mealId}_${i}`} className={dark ? "bg-white/[0.04] border border-white/8 rounded-lg overflow-hidden" : "bg-black/[0.02] border border-black/8 rounded-lg overflow-hidden"}>
+                    <div key={`${mealId}_${i}`} className={dark ? "bg-white/[0.04] border border-white/8 rounded-2xl overflow-hidden shadow-sm" : "bg-black/[0.02] border border-black/8 rounded-2xl overflow-hidden shadow-sm"}>
                       <div className="relative">
                         {m.photoUrl ? (
                           <img src={m.photoUrl} alt="" className="w-full h-36 object-cover" />
@@ -3559,12 +3563,12 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
             return (
               <div
                 key={meal}
-                className="rounded-md border flex items-center gap-3 px-4 py-3.5"
+                className="rounded-2xl border shadow-sm flex items-center gap-3 px-4 py-3.5"
                 style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
               >
                 <button onClick={() => setDetailMeal(meal)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
-                  <div className={dark ? "w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-10 h-10 rounded-lg bg-black/[0.04] flex items-center justify-center shrink-0"}>
-                    <UtensilsCrossed size={18} className={dark ? "text-white/40" : "text-black/35"} />
+                  <div className={dark ? "w-11 h-11 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0" : "w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"}>
+                    <UtensilsCrossed size={18} className="text-blue-500" />
                   </div>
                   <div className="min-w-0">
                     <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{meal}</p>
