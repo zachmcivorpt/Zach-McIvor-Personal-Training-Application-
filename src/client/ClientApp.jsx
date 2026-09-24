@@ -2771,12 +2771,12 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       <div className="px-3 pt-6 pb-4">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Training</h1>
       </div>
-      <div className="flex gap-2 px-3 mb-4 overflow-x-auto no-scrollbar">
-        {["today", "program", "history"].map((t) => (
+      <div className="flex gap-2 px-3 mb-4">
+        {["today", "program"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-full text-sm font-medium capitalize whitespace-nowrap ${
+            className={`flex-1 px-4 py-2 rounded-full text-sm font-medium capitalize text-center ${
               tab === t
                 ? dark
                   ? "bg-white text-black"
@@ -2815,45 +2815,6 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       )}
 
       {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} showToast={showToast} />}
-
-      {tab === "history" && (
-        <div className="px-3 space-y-3">
-          {logsForClient.length === 0 && (
-            <Card dark={dark}>
-              <p className={dark ? "text-white/40 text-sm text-center py-6" : "text-black/40 text-sm text-center py-6"}>No completed workouts yet — finish today's session to see it here.</p>
-            </Card>
-          )}
-          {logsForClient.map((h) => {
-            const volume = h.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + s.weight * s.reps, 0), 0);
-            const prCount = h.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
-            return (
-              <Card dark={dark} key={h.id}>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{h.dayLabel}</p>
-                    <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{new Date(h.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
-                  </div>
-                  {h.cardio ? (
-                    <Pill dark={dark} tone="outline">
-                      {h.cardio.durationMin}min{h.cardio.distanceKm > 0 ? ` · ${h.cardio.distanceKm}km` : ""}
-                      {h.cardio.caloriesBurned > 0 ? ` · ${h.cardio.caloriesBurned} kcal` : ""}
-                    </Pill>
-                  ) : (
-                    <div className="flex flex-col items-end gap-1">
-                      <Pill dark={dark} tone="outline">{volume.toLocaleString()} kg</Pill>
-                      {prCount > 0 && (
-                        <span className="text-[11px] font-semibold" style={{ color: GOAL_GREEN }}>
-                          {prCount} PR{prCount === 1 ? "" : "s"}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
 
       <LogCardioSheet
         open={cardioOpen}
