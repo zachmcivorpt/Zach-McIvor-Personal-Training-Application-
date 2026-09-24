@@ -429,7 +429,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
-    <div className="flex items-center justify-between px-3 pt-4 pb-0">
+    <div className="flex items-center justify-between px-2.5 pt-4 pb-0">
       <div>
         <p className={`text-xl font-semibold tracking-tight ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
@@ -462,7 +462,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
 
 function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
   const dark = useClientDark();
-  const outerMargin = fullWidth ? "" : "mx-3";
+  const outerMargin = fullWidth ? "" : "mx-2.5";
   const outerRadius = fullWidth ? "rounded-none" : "rounded-2xl";
   const cardBg = dark ? "#141414" : "#F7F7F8";
   const border = dark ? "border-white/8" : "border-black/8";
@@ -565,7 +565,7 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
   const trackClass = dark ? "bg-white/8" : "bg-black/8";
   const actionBtn = dark ? "bg-white/8 text-white" : "bg-black/8 text-black";
   return (
-    <div className={`mx-3 rounded-2xl p-5 ${border} border`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
+    <div className={`mx-2.5 rounded-2xl p-5 ${border} border`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
       <div className="flex items-center justify-between mb-4">
         <h3 className={`${primaryText} font-semibold`}>{isToday ? "Nutrition Today" : "Nutrition"}</h3>
         <Utensils size={15} className={muted25} />
@@ -644,7 +644,7 @@ function DateStrip({ selectedOffset, onSelect }) {
   }, []);
 
   return (
-    <div className="px-3">
+    <div className="px-2.5">
       <div ref={stripRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
         {offsets.map((offset) => {
           const d = dateForOffset(offset);
@@ -747,7 +747,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
   const notDoneCheckBorder = dark ? "border-white/20" : "border-black/20";
   const checkIconColor = dark ? "text-black" : "text-white";
   return (
-    <div className={`mx-3 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
+    <div className={`mx-2.5 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
       <div className="flex items-center justify-between mb-0.5">
         <h3 className={`font-semibold ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
         <span className={`text-xs font-medium tracking-wide ${dark ? "text-white/35" : "text-black/35"}`}>
@@ -807,7 +807,7 @@ function ActiveChallengesCard({ challenges, userId }) {
   if (active.length === 0) return null;
 
   return (
-    <div className="px-3 space-y-2.5">
+    <div className="px-2.5 space-y-2.5">
       {active.map((c) => {
         const snapshot = c.leaderboardSnapshot || [];
         const mine = snapshot.find((r) => r.clientId === userId);
@@ -931,7 +931,7 @@ function NotificationsPromptCard({ userId, showToast }) {
 
   return (
     <div
-      className={`mx-3 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
+      className={`mx-2.5 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
       style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
     >
       <BellRing size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
@@ -964,7 +964,7 @@ function CardioLogCard({ logs }) {
   const dark = useClientDark();
   if (!logs || logs.length === 0) return null;
   return (
-    <div className="mx-3 space-y-2">
+    <div className="mx-2.5 space-y-2">
       {logs.map((log) => (
         <div
           key={log.id}
@@ -1031,7 +1031,7 @@ function HomeScreen({
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
         <div
-          className={`mx-3 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
+          className={`mx-2.5 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
           style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
         >
           <Scale size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
@@ -2224,7 +2224,7 @@ function WorkoutSession({
           <h1 className={dark ? "text-white font-bold text-[17px] truncate px-2" : "text-black font-bold text-[17px] truncate px-2"}>{daySession.label}</h1>
           <div className="w-[52px]" />
         </div>
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-5 pb-28">
+        <div className="flex-1 overflow-y-auto px-2.5 py-4 space-y-5 pb-28">
           <SessionIntelligenceCard exercises={exercisesForSession} exercisesById={exercisesById} dark={dark} />
           {sectionedExercises(exercisesForSession).map((group) => (
             <div key={group.key}>
@@ -2534,7 +2534,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   if (phases.length === 0) {
     return (
-      <div className="px-3">
+      <div className="px-2.5">
         <Card dark={dark}>
           <p className={dark ? "text-white/40 text-sm text-center py-8" : "text-black/40 text-sm text-center py-8"}>No training program set up yet — your coach will assign one soon.</p>
         </Card>
@@ -2588,7 +2588,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   }
 
   return (
-    <div className="px-3 space-y-4">
+    <div className="px-2.5 space-y-4">
       <div className={`rounded-3xl overflow-hidden border shadow-sm ${dark ? "" : ""}`} style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
         <div className="relative h-40">
           <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -2754,10 +2754,10 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
   const [cardioOpen, setCardioOpen] = useState(false);
   return (
     <div className="pb-28">
-      <div className="px-3 pt-6 pb-4">
+      <div className="px-2.5 pt-6 pb-4">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Training</h1>
       </div>
-      <div className="flex gap-2 px-3 mb-4">
+      <div className="flex gap-2 px-2.5 mb-4">
         {["today", "program"].map((t) => (
           <button
             key={t}
@@ -2778,7 +2778,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       </div>
 
       {tab === "today" && (
-        <div className={dark ? "space-y-4" : "px-3 space-y-4"}>
+        <div className={dark ? "space-y-4" : "px-2.5 space-y-4"}>
           <TodayWorkoutCard
             todaySession={todaySession}
             activeLog={activeLog}
@@ -2789,7 +2789,7 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             dbReady={dbReady}
             fullWidth
           />
-          <div className="px-3 space-y-4">
+          <div className="px-2.5 space-y-4">
           <button
             onClick={() => setCardioOpen(true)}
             className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform" : "w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"}
@@ -3097,7 +3097,7 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
   return (
     <FullScreenOverlay>
       <div className={dark ? "fixed inset-0 z-[95] bg-black flex flex-col" : "fixed inset-0 z-[95] bg-white flex flex-col"}>
-        <div className={dark ? "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+        <div className={dark ? "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
           <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
             <X size={20} />
           </button>
@@ -3105,7 +3105,7 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
           <div className="w-5" />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-5 space-y-4">
+        <div className="flex-1 overflow-y-auto px-2.5 py-5 space-y-4">
           <Card dark={dark}>
             <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-4" : "text-black/35 text-[11px] font-bold tracking-wide mb-4"}>NUTRITION GOAL</p>
             <div className="space-y-4">
@@ -3336,12 +3336,12 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
 
   return (
     <div className="pb-28">
-      <div className="px-3 pt-6 pb-2 flex items-center justify-between">
+      <div className="px-2.5 pt-6 pb-2 flex items-center justify-between">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Nutrition</h1>
         <Search size={20} className={dark ? "text-white/40" : "text-black/40"} />
       </div>
 
-      <div className="px-3 mt-1 flex items-center justify-center gap-4">
+      <div className="px-2.5 mt-1 flex items-center justify-center gap-4">
         <button
           onClick={() => setNavOffset((o) => o + 1)}
           className={dark ? "w-8 h-8 flex items-center justify-center rounded-full bg-white/8 text-white/70 active:scale-90 transition-transform" : "w-8 h-8 flex items-center justify-center rounded-full bg-black/8 text-black/60 active:scale-90 transition-transform"}
@@ -3364,7 +3364,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         </button>
       </div>
 
-      <div className="px-3 mt-3">
+      <div className="px-2.5 mt-3">
         <Card dark={dark} onClick={() => setNutritionDetailOpen(true)} className="shadow-sm">
           <div className="flex items-center gap-2.5 mb-3">
             <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/30">
@@ -3404,7 +3404,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         </Card>
       </div>
 
-      <div className="px-3 mt-4">
+      <div className="px-2.5 mt-4">
         <Card dark={dark} className="!py-3 shadow-sm">
           <div className="flex items-center gap-3">
             <WaterCup value={nutrition.water} max={targets.water} size={32} />
@@ -3446,7 +3446,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
       </div>
 
       {mealPlan && mealPlanDay && (
-        <div className="px-3 mt-7">
+        <div className="px-2.5 mt-7">
           <Card dark={dark} className="shadow-sm">
             <div className="flex items-center justify-between mb-1">
               <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>My Meal Plan</p>
@@ -3536,7 +3536,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         </div>
       )}
 
-      <div className="px-3 mt-7">
+      <div className="px-2.5 mt-7">
         <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>{navOffset === 0 ? "TODAY'S MEALS" : `${navLabel.toUpperCase()}'S MEALS`}</p>
         <div className="space-y-2.5">
           {mealCategories.map((meal) => {
@@ -3991,7 +3991,7 @@ function MetricDetailSheet({ metric, onClose }) {
   return (
     <FullScreenOverlay>
       <div className={dark ? "fixed inset-0 z-[95] bg-black flex flex-col" : "fixed inset-0 z-[95] bg-white flex flex-col"}>
-        <div className={dark ? "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+        <div className={dark ? "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
           <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
             <X size={20} />
           </button>
@@ -3999,7 +3999,7 @@ function MetricDetailSheet({ metric, onClose }) {
           <div className="w-5" />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-5">
+        <div className="flex-1 overflow-y-auto px-2.5 py-5">
           <p className={dark ? "text-white text-3xl font-bold tabular-nums" : "text-black text-3xl font-bold tabular-nums"}>{valueLabel}</p>
           <p className={dark ? "text-white/40 text-xs mt-1" : "text-black/40 text-xs mt-1"}>Latest · {metric.date}</p>
 
@@ -4110,7 +4110,7 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
   return (
     <FullScreenOverlay>
       <div className={dark ? "fixed inset-0 z-[95] bg-black flex flex-col" : "fixed inset-0 z-[95] bg-white flex flex-col"}>
-        <div className={dark ? "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-3 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+        <div className={dark ? "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
           <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
             <X size={20} />
           </button>
@@ -4120,7 +4120,7 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-5">
+        <div className="flex-1 overflow-y-auto px-2.5 py-5">
           {weighIns.length === 0 ? (
             <div className="py-16 text-center">
               <Scale size={28} className={dark ? "mx-auto text-white/15 mb-3" : "mx-auto text-black/15 mb-3"} />
@@ -4464,12 +4464,12 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
   return (
     <div className="pb-28">
-      <div className="px-3 pt-6 pb-4 flex items-center justify-between">
+      <div className="px-2.5 pt-6 pb-4 flex items-center justify-between">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Progress</h1>
         <BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />
       </div>
 
-      <div className="px-3 space-y-4">
+      <div className="px-2.5 space-y-4">
         <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
 
         <div>
@@ -4979,10 +4979,10 @@ function ProfileScreen({
   ];
   return (
     <div className="pb-28">
-      <div className="px-3 pt-6 pb-4">
+      <div className="px-2.5 pt-6 pb-4">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Profile</h1>
       </div>
-      <div className="px-3">
+      <div className="px-2.5">
         <Card dark={dark}>
           <div className="flex items-center gap-4">
             <AvatarPicker dark={dark} name={user.name} url={user.avatarUrl} size={64} onChange={onAvatarChange} />
@@ -4996,7 +4996,7 @@ function ProfileScreen({
         </Card>
       </div>
 
-      <div className="px-3 mt-4 space-y-3">
+      <div className="px-2.5 mt-4 space-y-3">
         <Card dark={dark} onClick={() => setMessagesOpen(true)}>
           <div className="flex items-center gap-3">
             <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center relative" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center relative"}>
@@ -5047,7 +5047,7 @@ function ProfileScreen({
         </Card>
       </div>
 
-      <div className="px-3 mt-4">
+      <div className="px-2.5 mt-4">
         <Card dark={dark}>
           {rows.map((r, i) => (
             <button
@@ -5068,13 +5068,13 @@ function ProfileScreen({
         </Card>
       </div>
 
-      <div className="px-3 mt-4">
+      <div className="px-2.5 mt-4">
         <button onClick={onLogout} className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-white/70 font-semibold py-3.5 rounded-2xl" : "w-full flex items-center justify-center gap-2 bg-black/5 border border-black/10 text-black/70 font-semibold py-3.5 rounded-2xl"}>
           <LogOut size={15} /> Sign out
         </button>
       </div>
 
-      <div className="px-3 mt-3 flex items-center justify-center gap-4">
+      <div className="px-2.5 mt-3 flex items-center justify-center gap-4">
         <Link to="/legal/privacy-policy" className={dark ? "text-white/30 text-xs font-medium" : "text-black/30 text-xs font-medium"}>
           Privacy Policy
         </Link>
@@ -5534,13 +5534,13 @@ function CheckInsScreen({ userId, showToast }) {
 
   return (
     <div className="pb-28 space-y-4">
-      <div className="px-3 pt-6 pb-2">
+      <div className="px-2.5 pt-6 pb-2">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Check-ins</h1>
         <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scheduled by your coach</p>
       </div>
 
       {schedules.length === 0 ? (
-        <Card dark={dark} className="mx-3 text-center py-10">
+        <Card dark={dark} className="mx-2.5 text-center py-10">
           <CalendarCheck size={26} className={dark ? "text-white/25 mx-auto mb-3" : "text-black/25 mx-auto mb-3"} />
           <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>No check-ins scheduled</p>
           <p className={dark ? "text-white/40 text-sm mt-1" : "text-black/40 text-sm mt-1"}>Your coach hasn't scheduled any check-ins yet.</p>
@@ -5548,7 +5548,7 @@ function CheckInsScreen({ userId, showToast }) {
       ) : (
         <>
           {due.length > 0 && (
-            <div className="px-3 space-y-2.5">
+            <div className="px-2.5 space-y-2.5">
               <p className={dark ? "text-white/40 text-xs tracking-wide font-semibold" : "text-black/40 text-xs tracking-wide font-semibold"}>DUE NOW</p>
               {due.map((s) => (
                 <CheckInCard key={s.id} schedule={s} form={formsById[s.formId]} due onFill={() => setFilling(s)} />
@@ -5556,7 +5556,7 @@ function CheckInsScreen({ userId, showToast }) {
             </div>
           )}
           {upcoming.length > 0 && (
-            <div className="px-3 space-y-2.5">
+            <div className="px-2.5 space-y-2.5">
               <p className={dark ? "text-white/40 text-xs tracking-wide font-semibold mt-2" : "text-black/40 text-xs tracking-wide font-semibold mt-2"}>UPCOMING</p>
               {upcoming.map((s) => (
                 <CheckInCard key={s.id} schedule={s} form={formsById[s.formId]} due={false} />
@@ -5567,7 +5567,7 @@ function CheckInsScreen({ userId, showToast }) {
       )}
 
       {responses.length > 0 && (
-        <div className="px-3">
+        <div className="px-2.5">
           <p className={dark ? "text-white/40 text-xs tracking-wide font-semibold mt-2 mb-2.5" : "text-black/40 text-xs tracking-wide font-semibold mt-2 mb-2.5"}>HISTORY</p>
           <Card className={dark ? "!p-0 divide-y divide-white/5 overflow-hidden" : "!p-0 divide-y divide-black/5 overflow-hidden"}>
             {responses.slice(0, 10).map((r) => (
@@ -6041,7 +6041,7 @@ function ClientCalendarScreen({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 pt-6 pb-3 shrink-0 flex items-center justify-between">
+      <div className="px-2.5 pt-6 pb-3 shrink-0 flex items-center justify-between">
         <div>
           <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Calendar</h1>
           <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scroll to see anything past or upcoming.</p>
@@ -6050,7 +6050,7 @@ function ClientCalendarScreen({
           Today
         </button>
       </div>
-      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-3 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-2.5 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
         {days.map(({ date: d, dateStr, scheduledList, log, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
           const isToday = dateStr === todayStr;
           const doneHabitIds = habitLogForClient[dateStr] || [];
