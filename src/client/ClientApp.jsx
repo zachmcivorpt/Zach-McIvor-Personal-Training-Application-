@@ -6258,6 +6258,7 @@ export default function ClientApp() {
     logBodyMetric,
     deleteBodyMetric,
     saveExerciseNote,
+    clearExerciseNotes,
     viewingAsClient,
     stopViewAsClient,
     deleteScheduledWorkoutById,
@@ -6301,7 +6302,45 @@ export default function ClientApp() {
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
   const [autoOpenWeighIn, setAutoOpenWeighIn] = useState(0);
-  const sessionStartedAtRef = useRef(persistedSession?.startedAt || null); // wall-clock time the current session started, for a real WORKOUT COMPLETE duration
+  // Tracks only the time actually spent IN the session — the workout
+  // screen open and the tab in the foreground — not wall-clock time since
+  // the workout was first started. Exiting to another tab, backgrounding
+  // the app, or closing it entirely all pause the clock; reopening the
+  // session resumes it. Without this, a client who starts a workout,
+  // closes the app, and finishes it hours later would rack up hours of
+  // "duration" and a wildly inflated calories-burned estimate.
+  const sessionActiveMsRef = useRef(persistedSession?.activeMs || 0); // accumulated active ms, not counting the current still-running segment
+  const segmentStartRef = useRef(null); // wall-clock moment the current active segment began, or null while paused
+  const [activeMsTick, setActiveMsTick] = useState(0); // bumped on every pause so the persist effect below picks up the fresh total
+
+  function pauseActiveSegment() {
+    if (segmentStartRef.current != null) {
+      sessionActiveMsRef.current += Date.now() - segmentStartRef.current;
+      segmentStartRef.current = null;
+      setActiveMsTick((n) => n + 1);
+    }
+  }
+  function resumeActiveSegment() {
+    if (segmentStartRef.current == null) segmentStartRef.current = Date.now();
+  }
+
+  // The session is only "active" while its screen is open AND the tab is
+  // actually in the foreground — resume/pause the clock as either changes.
+  useEffect(() => {
+    function sync() {
+      if (sessionOpen && document.visibilityState === "visible") resumeActiveSegment();
+      else pauseActiveSegment();
+    }
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("blur", sync);
+    window.addEventListener("focus", sync);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("blur", sync);
+      window.removeEventListener("focus", sync);
+    };
+  }, [sessionOpen]);
 
   // Mirror tab + any in-progress workout to localStorage so fully closing
   // and reopening the PWA (not just backgrounding it, where React state
@@ -6324,14 +6363,14 @@ export default function ClientApp() {
             exerciseSwaps,
             sessionOpen,
             editingLogId,
-            startedAt: sessionStartedAtRef.current,
+            activeMs: sessionActiveMsRef.current,
           })
         );
       } else {
         localStorage.removeItem(activeSessionKey(currentUser.id));
       }
     } catch {}
-  }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, sessionOpen, editingLogId]);
+  }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, sessionOpen, editingLogId, activeMsTick]);
 
   // An installed PWA is routinely left open (backgrounded, phone locked)
   // across a real calendar-day rollover without ever fully closing — so
@@ -6572,7 +6611,7 @@ export default function ClientApp() {
     setExerciseNotes(Object.fromEntries(session.exercises.filter((e) => e.note).map((e) => [e.exerciseId, e.note])));
     setExerciseSwaps({});
     setEditingLogId(session.workoutLogId);
-    sessionStartedAtRef.current = Date.now();
+    sessionActiveMsRef.current = 0;
     setRunningSession(prescription);
     setSessionOpen(true);
   }
@@ -6606,7 +6645,7 @@ export default function ClientApp() {
 
   function beginSession() {
     setActiveLog((prev) => {
-      if (!prev) sessionStartedAtRef.current = Date.now();
+      if (!prev) sessionActiveMsRef.current = 0;
       return prev || {};
     });
     setSessionOpen(true);
@@ -6614,10 +6653,11 @@ export default function ClientApp() {
 
   function finishWorkout() {
     const session = runningSession || todaySession;
-    const elapsedMs = Date.now() - (sessionStartedAtRef.current || Date.now());
+    pauseActiveSegment(); // stop the clock the instant Finish is hit, before reading the total
+    const elapsedMs = sessionActiveMsRef.current;
     const durationMin = Math.floor(elapsedMs / 60000);
     const durationSec = Math.floor((elapsedMs % 60000) / 1000);
-    sessionStartedAtRef.current = null;
+    sessionActiveMsRef.current = 0;
     const raw = activeLog || {};
     const cleanedLog = {};
     Object.entries(raw).forEach(([exerciseId, sets]) => {
@@ -6642,14 +6682,28 @@ export default function ClientApp() {
     const swapByToId = Object.fromEntries(
       Object.entries(exerciseSwaps).map(([fromId, s]) => [s.toExerciseId, { swappedFrom: fromId, swappedFromName: s.fromName, swapReason: s.reason }])
     );
+    // exerciseNotes seeds itself from the client's Firestore draft notes on
+    // every fresh app load (so an in-progress note survives a refresh) —
+    // without restricting to exercises actually in THIS session, a note
+    // left on an exercise from a completely different, unrelated workout
+    // (never cleared because nothing used to clear it — see
+    // clearExerciseNotes below) would resurface as a bogus "no sets
+    // logged" entry in today's log.
+    const sessionExerciseIds = new Set([
+      ...(session.exercises || []).map((e) => e.exerciseId),
+      ...Object.values(exerciseSwaps).map((s) => s.toExerciseId),
+    ]);
     // An exercise only ends up in cleanedLog if it has at least one
     // completed set — but a client can leave a note (e.g. "skipped, knee
     // felt off") on an exercise they never logged sets for at all. Build
     // the saved entries from the union of both, so a note-only exercise
     // still gets an entry (with an empty sets array) instead of the note
     // silently vanishing because nothing else referenced that exercise.
-    const notedExerciseIds = Object.keys(exerciseNotes).filter((id) => (exerciseNotes[id] || "").trim());
+    const notedExerciseIds = Object.keys(exerciseNotes).filter(
+      (id) => (exerciseNotes[id] || "").trim() && sessionExerciseIds.has(id)
+    );
     const allExerciseIds = new Set([...Object.keys(cleanedLog), ...notedExerciseIds]);
+    clearExerciseNotes(currentUser.id, Array.from(allExerciseIds));
     const entries = Array.from(allExerciseIds).map((exerciseId) => ({
       exerciseId,
       sets: cleanedLog[exerciseId] || [],

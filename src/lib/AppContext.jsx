@@ -1189,6 +1189,16 @@ export function AppProvider({ children }) {
         updateDoc(doc(firestore, "users", clientId), { [`draftExerciseNotes.${exerciseId}`]: note }).catch(console.error);
       },
 
+      // Once a workout finishes, its exercises' draft notes have been baked
+      // into that log — clear them so they don't resurface as a stale,
+      // unrelated note the next time the client does that same exercise on
+      // a different day.
+      clearExerciseNotes(clientId, exerciseIds) {
+        if (!exerciseIds.length) return;
+        const updates = Object.fromEntries(exerciseIds.map((id) => [`draftExerciseNotes.${id}`, deleteField()]));
+        updateDoc(doc(firestore, "users", clientId), updates).catch(console.error);
+      },
+
       // Nutrition logged per calendar day — doc id is deterministic
       // (clientId__date) so each day's log is separate, mirroring the
       // scheduledWorkouts date-keyed pattern.
