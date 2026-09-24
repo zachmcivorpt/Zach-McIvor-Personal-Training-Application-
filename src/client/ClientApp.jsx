@@ -628,21 +628,6 @@ function dateForOffset(offset) {
   return d;
 }
 
-function DayHeader({ selectedOffset, onJumpToday }) {
-  const dark = useClientDark();
-  if (selectedOffset === 0) return null;
-  return (
-    <div className="flex items-center justify-end px-3 pt-1 pb-1">
-      <button
-        onClick={onJumpToday}
-        className={`text-sm font-semibold underline underline-offset-2 ${dark ? "text-white/50" : "text-black/50"}`}
-      >
-        Jump to today
-      </button>
-    </div>
-  );
-}
-
 function DateStrip({ selectedOffset, onSelect }) {
   const dark = useClientDark();
   const offsets = useMemo(() => {
@@ -1042,10 +1027,7 @@ function HomeScreen({
   return (
     <div className="pb-28 space-y-5">
       <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
-      <div className="space-y-1.5">
-        <DayHeader selectedOffset={dayOffset} onJumpToday={() => onSelectDay(0)} />
-        <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
-      </div>
+      <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
         <div
