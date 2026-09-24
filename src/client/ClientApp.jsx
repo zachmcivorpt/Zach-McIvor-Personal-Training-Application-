@@ -1978,6 +1978,56 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
   );
 }
 
+// Adds an extra exercise into the current session — distinct from swapping
+// (which replaces a planned exercise and requires a reason for the coach):
+// this is purely additive, for when a client wants to do something the
+// program didn't prescribe, so no reason is needed, just a pick.
+function AddExerciseSheet({ open, allExercises, excludeIds, onClose, onConfirm }) {
+  const dark = useClientDark();
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (open) setSearch("");
+  }, [open]);
+
+  if (!open) return null;
+  const filtered = allExercises.filter((e) => !excludeIds.has(e.id) && matchesSearch(e.name, search)).slice(0, 40);
+
+  return (
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Add Exercise">
+      <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
+        <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search exercises"
+          autoFocus
+          className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
+        />
+      </div>
+      <div className="space-y-1.5 max-h-80 overflow-y-auto">
+        {filtered.map((e) => (
+          <button
+            key={e.id}
+            onClick={() => onConfirm(e)}
+            className={dark ? "w-full flex items-center gap-3 p-2 rounded-xl active:scale-[0.98] active:bg-white/[0.06] transition-all" : "w-full flex items-center gap-3 p-2 rounded-xl active:scale-[0.98] active:bg-black/[0.04] transition-all"}
+          >
+            <ExerciseThumb dark={dark} exercise={e} size={48} rounded="rounded-lg" className="shrink-0" />
+            <div className="min-w-0 flex-1 text-left">
+              <p className={dark ? "text-white text-sm font-bold truncate" : "text-black text-sm font-bold truncate"}>{e.name}</p>
+              <p className={dark ? "text-white/35 text-xs mt-0.5" : "text-black/35 text-xs mt-0.5"}>{e.equipment}</p>
+            </div>
+            <Plus size={16} className={dark ? "text-white/40 shrink-0" : "text-black/40 shrink-0"} />
+          </button>
+        ))}
+        {filtered.length === 0 && (
+          <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No matching exercises.</p>
+        )}
+      </div>
+    </BottomSheet>
+  );
+}
+
 const CONFETTI_COLORS = ["#FFFFFF", "#3B82F6", "#EF4444", "#10B981", "#8B5CF6", "#EC4899"];
 
 // A one-shot burst of falling confetti pieces, computed once per mount (not
@@ -2027,6 +2077,8 @@ function WorkoutSession({
   allExercises,
   exerciseSwaps,
   setExerciseSwaps,
+  extraExercises,
+  setExtraExercises,
   onFinish,
   onExit,
   onSaveNote,
@@ -2034,6 +2086,7 @@ function WorkoutSession({
   const dark = useClientDark();
   const [noteOpenFor, setNoteOpenFor] = useState(null);
   const [swapFor, setSwapFor] = useState(null); // the original exMeta currently being swapped
+  const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
   const [prToast, setPrToast] = useState(null);
   const [resting, setResting] = useState(false);
@@ -2085,16 +2138,27 @@ function WorkoutSession({
   }, [resting]);
 
   // The exercises actually being performed this session — the original
-  // plan, with any swapped exercises substituted in.
+  // plan (with any swapped exercises substituted in), plus anything the
+  // client inserted mid-session that wasn't in the plan at all.
   const exercisesForSession = useMemo(
     () =>
-      daySession.exercises.map((exMeta) => {
-        const swap = exerciseSwaps[exMeta.exerciseId];
-        if (!swap) return exMeta;
-        return { ...exMeta, exerciseId: swap.toExerciseId, originalExerciseId: exMeta.exerciseId };
-      }),
-    [daySession, exerciseSwaps]
+      daySession.exercises
+        .map((exMeta) => {
+          const swap = exerciseSwaps[exMeta.exerciseId];
+          if (!swap) return exMeta;
+          return { ...exMeta, exerciseId: swap.toExerciseId, originalExerciseId: exMeta.exerciseId };
+        })
+        .concat(extraExercises || []),
+    [daySession, exerciseSwaps, extraExercises]
   );
+
+  function addExtraExercise(exercise) {
+    setExtraExercises((prev) => [
+      ...(prev || []),
+      { exerciseId: exercise.id, targetSets: 3, targetReps: 10, targetType: "reps", targetRIR: 2, restSeconds: 90, section: "main" },
+    ]);
+    setAddExerciseOpen(false);
+  }
 
   function confirmSwap(newExercise, reason) {
     const original = swapFor;
@@ -2223,6 +2287,14 @@ function WorkoutSession({
               </div>
             </div>
           ))}
+          <button
+            type="button"
+            onClick={() => setAddExerciseOpen(true)}
+            className={dark ? "w-full flex items-center justify-center gap-2 text-white font-semibold text-sm py-3" : "w-full flex items-center justify-center gap-2 text-black font-semibold text-sm py-3"}
+          >
+            <Plus size={16} />
+            Add Exercise
+          </button>
           <PrimaryButton dark={dark} className="w-full" onClick={onFinish}>
             Complete Workout
           </PrimaryButton>
@@ -2234,6 +2306,14 @@ function WorkoutSession({
           allExercises={allExercises}
           onClose={() => setSwapFor(null)}
           onConfirm={confirmSwap}
+        />
+
+        <AddExerciseSheet
+          open={addExerciseOpen}
+          allExercises={allExercises}
+          excludeIds={new Set(exercisesForSession.map((e) => e.exerciseId))}
+          onClose={() => setAddExerciseOpen(false)}
+          onConfirm={addExtraExercise}
         />
 
         {detailExercise && (
@@ -6296,6 +6376,7 @@ export default function ClientApp() {
   // before the workout is finished.
   const [exerciseNotes, setExerciseNotes] = useState(() => persistedSession?.exerciseNotes || currentUser.draftExerciseNotes || {});
   const [exerciseSwaps, setExerciseSwaps] = useState(persistedSession?.exerciseSwaps || {}); // {originalExerciseId: {toExerciseId, toName, fromName, reason}}
+  const [extraExercises, setExtraExercises] = useState(persistedSession?.extraExercises || []); // exMeta objects the client inserted mid-session, not part of the original plan
   // Set when the client re-opened an already-completed workout (e.g. they
   // accidentally hit Save mid-session) to keep logging — finishWorkout()
   // updates this existing log's entries instead of creating a new one.
@@ -6373,6 +6454,7 @@ export default function ClientApp() {
             activeLog,
             exerciseNotes,
             exerciseSwaps,
+            extraExercises,
             sessionOpen,
             editingLogId,
             activeMs: sessionActiveMsRef.current,
@@ -6382,7 +6464,7 @@ export default function ClientApp() {
         localStorage.removeItem(activeSessionKey(currentUser.id));
       }
     } catch {}
-  }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, sessionOpen, editingLogId, activeMsTick]);
+  }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, extraExercises, sessionOpen, editingLogId, activeMsTick]);
 
   // An installed PWA is routinely left open (backgrounded, phone locked)
   // across a real calendar-day rollover without ever fully closing — so
@@ -6622,6 +6704,7 @@ export default function ClientApp() {
     setActiveLog(Object.fromEntries(session.exercises.map((e) => [e.exerciseId, e.actualSets || []])));
     setExerciseNotes(Object.fromEntries(session.exercises.filter((e) => e.note).map((e) => [e.exerciseId, e.note])));
     setExerciseSwaps({});
+    setExtraExercises([]);
     setEditingLogId(session.workoutLogId);
     sessionActiveMsRef.current = 0;
     setRunningSession(prescription);
@@ -6704,6 +6787,7 @@ export default function ClientApp() {
     const sessionExerciseIds = new Set([
       ...(session.exercises || []).map((e) => e.exerciseId),
       ...Object.values(exerciseSwaps).map((s) => s.toExerciseId),
+      ...extraExercises.map((e) => e.exerciseId),
     ]);
     // An exercise only ends up in cleanedLog if it has at least one
     // completed set — but a client can leave a note (e.g. "skipped, knee
@@ -6733,6 +6817,7 @@ export default function ClientApp() {
     setActiveLog(null);
     setExerciseNotes({});
     setExerciseSwaps({});
+    setExtraExercises([]);
     setEditingLogId(null);
     setSessionOpen(false);
     setSummaryOpen(true);
@@ -7045,6 +7130,8 @@ export default function ClientApp() {
             allExercises={db.exercises}
             exerciseSwaps={exerciseSwaps}
             setExerciseSwaps={setExerciseSwaps}
+            extraExercises={extraExercises}
+            setExtraExercises={setExtraExercises}
             onFinish={finishWorkout}
             onExit={() => setSessionOpen(false)}
             onSaveNote={(exerciseId, value) => saveExerciseNote(currentUser.id, exerciseId, value)}
