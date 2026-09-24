@@ -62,7 +62,6 @@ import {
   Zap,
   Upload,
   Download,
-  Flame,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -109,7 +108,7 @@ import {
   DeleteAccountSheet,
   SessionIntelligenceCard,
 } from "../components/ui";
-import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, BORDER_STRONG, SURFACE_RAISED, BORDER, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
+import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, BORDER_STRONG, SURFACE_RAISED, SURFACE, BORDER, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import {
   computeWeeklyVolume,
   computeWorkoutsSeries,
@@ -2572,7 +2571,21 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   const phase = phases.find((p) => p.id === selectedId) || current || sorted[sorted.length - 1];
   const days = phase?.weeks?.[0]?.days || [];
-  const completion = computePhaseCompletion(logsForPhase, scheduledForPhase, phase.startDate, phase.endDate);
+
+  // Completion is scoped to the current calendar week (Mon–Sun), not the
+  // whole phase — clamped to the phase's own bounds so a week that spills
+  // outside it doesn't pull in days the phase was never scheduled for.
+  const today = new Date();
+  const dow = today.getDay(); // 0 = Sun .. 6 = Sat
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + (dow === 0 ? -6 : 1 - dow));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const weekStartKey = localDateKey(monday);
+  const weekEndKey = localDateKey(sunday);
+  const weekStart = weekStartKey > phase.startDate ? weekStartKey : phase.startDate;
+  const weekEnd = phase.endDate && phase.endDate < weekEndKey ? phase.endDate : weekEndKey;
+  const completion = computePhaseCompletion(logsForPhase, scheduledForPhase, weekStart, weekEnd);
 
   // Add/Import only matter to the coach browsing "as" this client — a real
   // client's program stays coach-managed, same as everywhere else in the app.
@@ -2616,63 +2629,61 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   return (
     <div className="px-3 space-y-4">
-      <Card dark={dark} className="shadow-sm">
-        <div className="flex items-start gap-3">
-          <div className={dark ? "w-11 h-11 rounded-2xl bg-blue-500/15 flex items-center justify-center shrink-0" : "w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center shrink-0"}>
-            <Dumbbell size={19} className="text-blue-500" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <h2 className={dark ? "text-white text-lg font-bold min-w-0 truncate" : "text-black text-lg font-bold min-w-0 truncate"}>{phase.name}</h2>
-              <button
-                onClick={() => setHistoryOpen(true)}
-                className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold shrink-0"
-              >
-                <Calendar size={14} /> PHASES
-              </button>
-            </div>
-            <div className="flex items-center gap-2 flex-wrap mt-0.5">
-              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-                {phase.endDate
-                  ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-                  : ""}
-              </p>
-              {phase.id === current?.id && (
-                <span className="bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">CURRENT</span>
-              )}
-            </div>
-          </div>
-        </div>
-        {phase.description && (
-          <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line mt-3" : "text-black/60 text-sm leading-relaxed whitespace-pre-line mt-3"}>
-            {phase.description}
-          </p>
-        )}
-
-        <div className={`mt-4 pt-4 border-t ${dark ? "border-white/10" : "border-black/8"}`}>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <Target size={13} className="text-blue-500" />
-              <p className={dark ? "text-white/50 text-xs font-bold tracking-wide" : "text-black/50 text-xs font-bold tracking-wide"}>COMPLETION RATE</p>
-            </div>
-            <p className={dark ? "text-white text-sm font-bold tabular-nums" : "text-black text-sm font-bold tabular-nums"}>
-              {completion.pct != null ? `${completion.pct}%` : "—"}
+      <div className={`rounded-3xl overflow-hidden border shadow-sm ${dark ? "" : ""}`} style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
+        <div className="relative h-40">
+          <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
+          <button
+            onClick={() => setHistoryOpen(true)}
+            className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full active:scale-[0.96] transition-transform"
+          >
+            <Calendar size={12} /> PHASES
+          </button>
+          {phase.id === current?.id && (
+            <span className="absolute top-3 left-3 bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">CURRENT</span>
+          )}
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <h2 className="text-white text-xl font-bold tracking-tight truncate">{phase.name}</h2>
+            <p className="text-white/70 text-xs mt-1">
+              {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+              {phase.endDate
+                ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                : ""}
             </p>
           </div>
-          <div className={`h-2 rounded-full overflow-hidden ${dark ? "bg-white/10" : "bg-black/8"}`}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${completion.pct ?? 0}%`, backgroundColor: MEASURE_BLUE }}
-            />
-          </div>
-          <p className={dark ? "text-white/30 text-[11px] mt-1.5" : "text-black/30 text-[11px] mt-1.5"}>
-            {completion.expected > 0
-              ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
-              : "No workouts scheduled yet in this phase"}
-          </p>
         </div>
-      </Card>
+
+        <div className="p-4 md:p-5" style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}>
+          {phase.description && (
+            <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line" : "text-black/60 text-sm leading-relaxed whitespace-pre-line"}>
+              {phase.description}
+            </p>
+          )}
+
+          <div className={phase.description ? `mt-4 pt-4 border-t ${dark ? "border-white/10" : "border-black/8"}` : ""}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Target size={13} className="text-blue-500" />
+                <p className={dark ? "text-white/50 text-xs font-bold tracking-wide" : "text-black/50 text-xs font-bold tracking-wide"}>THIS WEEK'S COMPLETION</p>
+              </div>
+              <p className={dark ? "text-white text-sm font-bold tabular-nums" : "text-black text-sm font-bold tabular-nums"}>
+                {completion.pct != null ? `${completion.pct}%` : "—"}
+              </p>
+            </div>
+            <div className={`h-2 rounded-full overflow-hidden ${dark ? "bg-white/10" : "bg-black/8"}`}>
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${completion.pct ?? 0}%`, backgroundColor: MEASURE_BLUE }}
+              />
+            </div>
+            <p className={dark ? "text-white/30 text-[11px] mt-1.5" : "text-black/30 text-[11px] mt-1.5"}>
+              {completion.expected > 0
+                ? `${completion.completed} of ${completion.expected} scheduled workouts completed this week`
+                : "No workouts scheduled yet this week"}
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div>
         <div className="flex items-center justify-between mb-2 px-1 flex-wrap gap-y-1">
@@ -2777,127 +2788,17 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   );
 }
 
-// Replaces a flat re-listing of today's already-visible exercises with a
-// glanceable read on momentum: current streak, a 7-day rhythm strip, and
-// this week's session/PR counts — all derived from the client's own real
-// logs and scheduled workouts, nothing illustrative.
-function TrainingPulseCard({ logsForClient, scheduledWorkouts, dark }) {
-  const streak = computeWorkoutStreak(logsForClient, scheduledWorkouts);
-  const prsThisWeek = computePRsInLastNDays(logsForClient, 7);
-
-  const { weekDays, sessionsThisWeek } = useMemo(() => {
-    const todayKey = localDateKey();
-    const today = new Date();
-    const dow = today.getDay(); // 0 = Sun .. 6 = Sat
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + (dow === 0 ? -6 : 1 - dow));
-    const completedDates = new Set(logsForClient.map((l) => localDateKey(l.date)));
-    const scheduledDates = new Set((scheduledWorkouts || []).map((w) => w.date));
-    const labels = ["M", "T", "W", "T", "F", "S", "S"];
-    const days = labels.map((label, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      const key = localDateKey(d);
-      const isDone = completedDates.has(key);
-      const isScheduled = scheduledDates.has(key);
-      let status = "rest";
-      if (isDone) status = "done";
-      else if (isScheduled && key < todayKey) status = "missed";
-      else if (isScheduled) status = "upcoming";
-      return { key, label, status, isToday: key === todayKey };
-    });
-    return { weekDays: days, sessionsThisWeek: days.filter((d) => d.status === "done").length };
-  }, [logsForClient, scheduledWorkouts]);
-
-  return (
-    <div
-      className={
-        dark
-          ? "bg-gradient-to-br from-white/[0.04] to-orange-500/[0.06] border border-white/10 rounded-2xl p-4 md:p-5"
-          : "bg-gradient-to-br from-white to-orange-50/50 border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm"
-      }
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-orange-500 flex items-center justify-center shrink-0 shadow-sm shadow-orange-500/30">
-            <Flame size={16} className="text-white" />
-          </div>
-          <div className="min-w-0">
-            <p className={dark ? "text-white font-bold text-sm" : "text-black font-bold text-sm"}>Training Pulse</p>
-            <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>
-              {streak > 0 ? "Keep the streak alive" : "Complete a session to start a streak"}
-            </p>
-          </div>
-        </div>
-        {streak > 0 && (
-          <div className="text-right shrink-0 pl-2">
-            <p className="text-orange-500 text-2xl font-black tabular-nums leading-none">{streak}</p>
-            <p className={dark ? "text-white/30 text-[9px] font-bold tracking-wide" : "text-black/30 text-[9px] font-bold tracking-wide"}>
-              DAY{streak === 1 ? "" : "S"}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-1.5 mb-4">
-        {weekDays.map((d) => (
-          <div key={d.key} className="flex flex-col items-center gap-1.5 flex-1">
-            <span className={dark ? "text-white/25 text-[10px] font-bold" : "text-black/25 text-[10px] font-bold"}>{d.label}</span>
-            <div
-              className={`w-full aspect-square max-w-[34px] rounded-full flex items-center justify-center border-2 ${
-                d.status === "done"
-                  ? "bg-blue-500 border-blue-500"
-                  : d.status === "missed"
-                  ? "border-rose-400/60"
-                  : d.status === "upcoming"
-                  ? dark
-                    ? "border-blue-400/40"
-                    : "border-blue-300"
-                  : dark
-                  ? "border-white/10"
-                  : "border-black/8"
-              } ${d.isToday ? `ring-2 ${dark ? "ring-orange-400/70" : "ring-orange-400"} ring-offset-2 ${dark ? "ring-offset-[#111318]" : "ring-offset-white"}` : ""}`}
-            >
-              {d.status === "done" && <Check size={13} className="text-white" strokeWidth={3} />}
-              {d.status === "missed" && <X size={11} className="text-rose-400" strokeWidth={3} />}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className={`flex items-center justify-between pt-3 border-t ${dark ? "border-white/10" : "border-black/8"}`}>
-        <div className="flex items-center gap-1.5">
-          <CheckCircle2 size={13} className="text-blue-500" />
-          <p className={dark ? "text-white/60 text-xs" : "text-black/60 text-xs"}>
-            <span className="font-bold">{sessionsThisWeek}</span> session{sessionsThisWeek === 1 ? "" : "s"} this week
-          </p>
-        </div>
-        {prsThisWeek > 0 && (
-          <div className="flex items-center gap-1.5">
-            <Trophy size={13} style={{ color: GOAL_GREEN }} />
-            <p className={dark ? "text-white/60 text-xs" : "text-black/60 text-xs"}>
-              <span className="font-bold">{prsThisWeek}</span> PR{prsThisWeek === 1 ? "" : "s"} this week
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
   const dark = useClientDark();
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
-  const todayStr = localDateKey();
-  const upcoming = scheduledWorkouts.filter((w) => w.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
   return (
     <div className="pb-28">
       <div className="px-3 pt-6 pb-4">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Training</h1>
       </div>
       <div className="flex gap-2 px-3 mb-4 overflow-x-auto no-scrollbar">
-        {["today", "program", "history", "upcoming"].map((t) => (
+        {["today", "program", "history"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -2935,7 +2836,6 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
           >
             <Footprints size={16} /> + Log a cardio session
           </button>
-          <TrainingPulseCard logsForClient={logsForClient} scheduledWorkouts={scheduledWorkouts} dark={dark} />
           </div>
         </div>
       )}
@@ -2989,31 +2889,6 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
           setCardioOpen(false);
         }}
       />
-
-      {tab === "upcoming" && (
-        <div className="px-3 space-y-2">
-          {upcoming.length === 0 && (
-            <Card dark={dark}>
-              <p className={dark ? "text-white/40 text-sm text-center py-6" : "text-black/40 text-sm text-center py-6"}>
-                {dbReady ? "Nothing scheduled yet — your coach will set up your upcoming workouts." : "Loading your schedule…"}
-              </p>
-            </Card>
-          )}
-          {upcoming.map((w) => (
-            <Card dark={dark} key={w.id} className="!py-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className={dark ? "text-white font-semibold text-sm" : "text-black font-semibold text-sm"}>{w.label}</p>
-                  <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
-                    {new Date(w.date + "T00:00:00Z").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" })}
-                  </p>
-                </div>
-                <span className={dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>{countExercises(w.exercises)} ex</span>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
