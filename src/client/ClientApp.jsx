@@ -2008,39 +2008,52 @@ function AddExerciseSheet({ open, allExercises, excludeIds, onClose, onConfirm }
   );
 }
 
-const CONFETTI_COLORS = ["#FFFFFF", "#3B82F6", "#EF4444", "#10B981", "#8B5CF6", "#EC4899"];
+const FIREWORK_BLUES = ["#3B82F6", "#60A5FA", "#93C5FD", "#2563EB", "#BFDBFE", "#DBEAFE"];
 
-// A one-shot burst of falling confetti pieces, computed once per mount (not
-// per render) so the pieces don't jump to new random positions if the
-// parent re-renders while the burst is still playing out.
-function ConfettiBurst() {
-  const pieces = useMemo(
+// A few staggered radial bursts (real fireworks, not falling streamers) —
+// each one a ring of sparks launched outward from its own point and computed
+// once per mount so they don't jump to new random positions if the parent
+// re-renders mid-burst.
+function FireworksBurst() {
+  const bursts = useMemo(
     () =>
-      Array.from({ length: 28 }, (_, i) => ({
-        id: i,
-        left: Math.random() * 100,
-        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-        delay: Math.random() * 0.2,
-        duration: 1.4 + Math.random() * 0.7,
-        rotate: 180 + Math.random() * 540,
-        drift: (Math.random() - 0.5) * 120,
+      Array.from({ length: 3 }, (_, b) => ({
+        id: b,
+        cx: 22 + Math.random() * 56,
+        cy: 20 + Math.random() * 26,
+        delay: b * 0.18,
+        particles: Array.from({ length: 18 }, (_, i) => {
+          const angle = (Math.PI * 2 * i) / 18 + Math.random() * 0.25;
+          const dist = 55 + Math.random() * 55;
+          return {
+            id: i,
+            dx: Math.cos(angle) * dist,
+            dy: Math.sin(angle) * dist,
+            color: FIREWORK_BLUES[i % FIREWORK_BLUES.length],
+            duration: 0.75 + Math.random() * 0.45,
+          };
+        }),
       })),
     []
   );
   return (
     <div className="fixed inset-0 z-[100] pointer-events-none overflow-hidden">
-      {pieces.map((p) => (
-        <span
-          key={p.id}
-          className="absolute top-0 w-2 h-2.5 rounded-sm"
-          style={{
-            left: `${p.left}%`,
-            backgroundColor: p.color,
-            animation: `confettiFall ${p.duration}s cubic-bezier(0.25,0.46,0.45,0.94) ${p.delay}s forwards`,
-            "--drift": `${p.drift}px`,
-            "--rotate": `${p.rotate}deg`,
-          }}
-        />
+      {bursts.map((burst) => (
+        <div key={burst.id} className="absolute" style={{ left: `${burst.cx}%`, top: `${burst.cy}%` }}>
+          {burst.particles.map((p) => (
+            <span
+              key={p.id}
+              className="absolute w-1.5 h-1.5 rounded-full"
+              style={{
+                backgroundColor: p.color,
+                boxShadow: `0 0 6px 1.5px ${p.color}`,
+                animation: `fireworkPop ${p.duration}s ease-out ${burst.delay}s forwards`,
+                "--dx": `${p.dx}px`,
+                "--dy": `${p.dy}px`,
+              }}
+            />
+          ))}
+        </div>
       ))}
     </div>
   );
@@ -2315,9 +2328,10 @@ function WorkoutSession({
 
         {prToast && (
           <>
-            <ConfettiBurst />
+            <FireworksBurst />
             <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[101] w-[88%] max-w-sm animate-[prPop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
-              <div className="bg-black/65 backdrop-blur-2xl border border-white/15 rounded-2xl p-5 shadow-2xl text-center">
+              <div className="relative bg-black/30 backdrop-blur-[32px] border border-white/10 rounded-2xl p-5 text-center shadow-[0_20px_60px_-12px_rgba(0,0,0,0.55)] overflow-hidden">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                 <div className="flex items-center justify-center gap-2 mb-1.5">
                   <span className="w-4 h-0.5 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />
                   <p className="text-white font-bold text-xs tracking-[0.15em]">NEW PERSONAL RECORD</p>
@@ -2333,7 +2347,7 @@ function WorkoutSession({
         )}
         <style>{`
           @keyframes prPop{0%{opacity:0;transform:translate(-50%,-10px) scale(0.85)}60%{opacity:1;transform:translate(-50%,2px) scale(1.03)}100%{opacity:1;transform:translate(-50%,0) scale(1)}}
-          @keyframes confettiFall{0%{transform:translate(0,-10px) rotate(0deg);opacity:1}100%{transform:translate(var(--drift),100vh) rotate(var(--rotate));opacity:0}}
+          @keyframes fireworkPop{0%{transform:translate(0,0) scale(1);opacity:1}70%{opacity:0.9}100%{transform:translate(var(--dx),calc(var(--dy) + 36px)) scale(0.3);opacity:0}}
         `}</style>
       </div>
     </FullScreenOverlay>
