@@ -2329,7 +2329,7 @@ function WorkoutSession({
         {prToast && (
           <>
             <FireworksBurst />
-            <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[101] w-[88%] max-w-sm animate-[prPop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
+            <div className="fixed top-16 inset-x-0 mx-auto z-[101] w-[88%] max-w-sm animate-[prPop_0.3s_ease-out]">
               <div className="relative bg-black/30 backdrop-blur-[32px] border border-white/10 rounded-2xl p-5 text-center shadow-[0_20px_60px_-12px_rgba(0,0,0,0.55)] overflow-hidden">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
                 <div className="flex items-center justify-center gap-2 mb-1.5">
@@ -2346,7 +2346,7 @@ function WorkoutSession({
           </>
         )}
         <style>{`
-          @keyframes prPop{0%{opacity:0;transform:translate(-50%,-10px) scale(0.85)}60%{opacity:1;transform:translate(-50%,2px) scale(1.03)}100%{opacity:1;transform:translate(-50%,0) scale(1)}}
+          @keyframes prPop{0%{opacity:0;transform:scale(0.94)}100%{opacity:1;transform:scale(1)}}
           @keyframes fireworkPop{0%{transform:translate(0,0) scale(1);opacity:1}70%{opacity:0.9}100%{transform:translate(var(--dx),calc(var(--dy) + 36px)) scale(0.3);opacity:0}}
         `}</style>
       </div>
