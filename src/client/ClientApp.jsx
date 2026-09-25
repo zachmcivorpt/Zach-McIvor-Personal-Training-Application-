@@ -2017,20 +2017,20 @@ const FIREWORK_BLUES = ["#3B82F6", "#60A5FA", "#93C5FD", "#2563EB", "#BFDBFE", "
 function FireworksBurst() {
   const bursts = useMemo(
     () =>
-      Array.from({ length: 3 }, (_, b) => ({
+      Array.from({ length: 6 }, (_, b) => ({
         id: b,
-        cx: 22 + Math.random() * 56,
-        cy: 20 + Math.random() * 26,
-        delay: b * 0.18,
-        particles: Array.from({ length: 18 }, (_, i) => {
-          const angle = (Math.PI * 2 * i) / 18 + Math.random() * 0.25;
-          const dist = 55 + Math.random() * 55;
+        cx: 15 + Math.random() * 70,
+        cy: 14 + Math.random() * 38,
+        delay: b * 0.4 + Math.random() * 0.15,
+        particles: Array.from({ length: 24 }, (_, i) => {
+          const angle = (Math.PI * 2 * i) / 24 + Math.random() * 0.25;
+          const dist = 60 + Math.random() * 70;
           return {
             id: i,
             dx: Math.cos(angle) * dist,
             dy: Math.sin(angle) * dist,
             color: FIREWORK_BLUES[i % FIREWORK_BLUES.length],
-            duration: 0.75 + Math.random() * 0.45,
+            duration: 1 + Math.random() * 0.6,
           };
         }),
       })),
@@ -2219,7 +2219,7 @@ function WorkoutSession({
 
     if (isPR) {
       setPrToast({ exerciseName: exercisesById[exMeta.exerciseId]?.name, weight, reps, prevWeight: bestSet.weight, prevReps: bestSet.reps });
-      setTimeout(() => setPrToast(null), 3200);
+      setTimeout(() => setPrToast(null), 5000);
     }
   }
 
