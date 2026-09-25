@@ -1841,10 +1841,17 @@ export function AppProvider({ children }) {
 
       // Coach-customizable branding — login background photo + app logo.
       // Public/pre-auth read (see the watchDoc above), coach-only write.
+      //
+      // This used to rebuild the whole doc from local `db.appDesign` and
+      // setDoc it with no merge — a lost-update race. Saving any one design
+      // field (say, a new logo) while the local copy of another field (say,
+      // clientDarkMode) was even briefly stale silently reverted that other
+      // field for every client, with nothing on screen to suggest why.
+      // merge:true against Firestore's own current doc removes the race
+      // entirely — no need to know or resend fields this call isn't touching.
       async updateAppDesign(patch) {
-        const next = { ...(db.appDesign || { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null }), ...patch };
         try {
-          await setDoc(doc(firestore, "settings", "appDesign"), next);
+          await setDoc(doc(firestore, "settings", "appDesign"), patch, { merge: true });
         } catch (err) {
           throw new Error("Couldn't save — " + (err.message || "please try again."));
         }
