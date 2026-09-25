@@ -5241,6 +5241,11 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
   const [sendOpen, setSendOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
+  // Pausing cuts the client off from the app immediately, and this button
+  // sits right next to "View as Client"/"Message" in a tight row of
+  // same-size icons — an easy mis-tap. Un-pausing stays instant since it
+  // only ever restores access, never removes it.
+  const [confirmPause, setConfirmPause] = useState(false);
 
   const client = db.users.find((u) => u.id === clientId);
   if (!client) return null;
@@ -5286,7 +5291,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           )}
           {client.status === "active" && (
             <button
-              onClick={() => setClientAccessPaused(client.id, !client.accessPaused)}
+              onClick={() => (client.accessPaused ? setClientAccessPaused(client.id, false) : setConfirmPause(true))}
               className={`w-full mt-2 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors ${
                 client.accessPaused ? "bg-red-50 hover:bg-red-100 text-red-700" : "bg-black/5 hover:bg-black/10 text-black/60"
               }`}
@@ -5380,7 +5385,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
                 <Repeat size={15} className="text-blue-700" />
               </button>
               <button
-                onClick={() => setClientAccessPaused(client.id, !client.accessPaused)}
+                onClick={() => (client.accessPaused ? setClientAccessPaused(client.id, false) : setConfirmPause(true))}
                 aria-label={client.accessPaused ? "Resume access" : "Pause access"}
                 title={client.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
                 className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${client.accessPaused ? "bg-red-50" : "bg-black/8"}`}
@@ -5481,6 +5486,20 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
 
       {messaging && <ThreadView client={client} onClose={() => setMessaging(false)} />}
       <SendLoginSheet open={sendOpen} onClose={() => setSendOpen(false)} client={client} showToast={showToast} />
+      {confirmPause && (
+        <ConfirmActionSheet
+          title="Pause This Client's Access?"
+          body={`${client.name} won't be able to open their program, nutrition, or progress until you resume access. You can undo this any time.`}
+          confirmLabel="Pause Access"
+          danger
+          onConfirm={() => {
+            setClientAccessPaused(client.id, true);
+            showToast("Access paused");
+            setConfirmPause(false);
+          }}
+          onClose={() => setConfirmPause(false)}
+        />
+      )}
     </div>
   );
 }

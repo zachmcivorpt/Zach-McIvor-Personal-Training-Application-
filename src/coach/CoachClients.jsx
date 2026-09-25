@@ -370,6 +370,13 @@ export default function CoachClients({ showToast, search, setSearch }) {
   // with zero chance to back out. Now it opens this same kind of
   // are-you-sure sheet first, just like bulk remove already does.
   const [confirmRemoveId, setConfirmRemoveId] = useState(null);
+  // Pausing cuts the client off from the app immediately. It used to fire
+  // the instant the lock icon was tapped — same "one stray tap" problem
+  // "Remove client" had, except this button sits right next to the equally
+  // common "View as Client" icon in the mobile card row, so a mis-tap is a
+  // real risk. Un-pausing (restoring access) stays instant since it only
+  // ever helps a client, never hurts one.
+  const [confirmPauseId, setConfirmPauseId] = useState(null);
   // Extra friction on top of the sheet itself: typing the exact name (like
   // GitHub's "type the repo name to confirm") means even opening this sheet
   // and tapping through it fast can't delete anyone by accident — the
@@ -542,7 +549,9 @@ export default function CoachClients({ showToast, search, setSearch }) {
                         onRemove={() => setConfirmRemoveId(c.id)}
                         paused={!!c.accessPaused}
                         onTogglePause={
-                          c.status === "active" ? () => setClientAccessPaused(c.id, !c.accessPaused) : undefined
+                          c.status === "active"
+                            ? () => (c.accessPaused ? setClientAccessPaused(c.id, false) : setConfirmPauseId(c.id))
+                            : undefined
                         }
                       />
                     </div>
@@ -602,7 +611,8 @@ export default function CoachClients({ showToast, search, setSearch }) {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setClientAccessPaused(c.id, !c.accessPaused);
+                      if (c.accessPaused) setClientAccessPaused(c.id, false);
+                      else setConfirmPauseId(c.id);
                     }}
                     title={c.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
                     aria-label={c.accessPaused ? `Resume access for ${c.name}` : `Pause access for ${c.name}`}
@@ -710,6 +720,23 @@ export default function CoachClients({ showToast, search, setSearch }) {
           }}
         >
           <Trash2 size={14} /> Remove client
+        </DangerButton>
+      </BottomSheet>
+
+      <BottomSheet open={!!confirmPauseId} onClose={() => setConfirmPauseId(null)} title="Pause this client's access?">
+        <p className="text-black/50 text-sm mb-4">
+          {db.users.find((u) => u.id === confirmPauseId)?.name || "This client"} won't be able to open their program,
+          nutrition, or progress until you resume access. You can undo this any time.
+        </p>
+        <DangerButton
+          className="w-full"
+          onClick={() => {
+            setClientAccessPaused(confirmPauseId, true);
+            showToast("Access paused");
+            setConfirmPauseId(null);
+          }}
+        >
+          <Lock size={14} /> Pause access
         </DangerButton>
       </BottomSheet>
     </div>
