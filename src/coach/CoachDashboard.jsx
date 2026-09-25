@@ -368,15 +368,17 @@ export default function CoachDashboard({ onNavigate, showToast }) {
   });
 
   // A meal plan's last day = startDate + (weeksCount * 7 - 1) days.
-  // Flagged once there are 2 or fewer days left, so a coach can duplicate
-  // the current week (or build a fresh one) before the client runs out.
+  // Flagged within a week of running out, same lead time as "phase ending
+  // soon" below — a 2-day window (the old threshold) left no real time to
+  // duplicate the current week or build a fresh one before the client
+  // actually ran out.
   const mealPlanEndingSoon = active.filter((c) => {
     const plan = (db.mealPlans[c.id] || [])[0];
     if (!plan?.startDate || !plan.days?.length) return false;
     const weeksCount = Math.max(...plan.days.map((d, i) => d.weekIndex ?? Math.floor(i / 7))) + 1;
     const endDateKey = addDaysISO(plan.startDate, weeksCount * 7 - 1);
     const days = daysUntil(endDateKey, todayKey);
-    return days >= 0 && days <= 2;
+    return days >= 0 && days <= 7;
   });
 
   const sevenDaysAgo = Date.now() - 7 * 86400000;
