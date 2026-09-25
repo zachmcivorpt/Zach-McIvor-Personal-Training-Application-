@@ -1758,7 +1758,13 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             <div key={i} className="grid grid-cols-[22px_1fr_64px_64px] gap-2 items-center px-1 py-1">
               <span className={dark ? "text-white text-[12px] font-semibold" : "text-black text-[12px] font-semibold"}>{i + 1}</span>
               <div className="min-w-0">
-                <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>{prev ? `${prev.reps} x ${prev.weight} kg` : "-"}</p>
+                <button
+                  type="button"
+                  onClick={() => onOpenDetail?.(exercise, exMeta)}
+                  className={dark ? "text-white/40 text-[11px] truncate text-left" : "text-black/40 text-[11px] truncate text-left"}
+                >
+                  {prev ? `${prev.reps} x ${prev.weight} kg` : "-"}
+                </button>
                 {suggestion && !row.weight && !row.reps && (
                   <button
                     type="button"
