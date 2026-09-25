@@ -2317,11 +2317,14 @@ function WorkoutSession({
           <>
             <ConfettiBurst />
             <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[101] w-[88%] max-w-sm animate-[prPop_0.4s_cubic-bezier(0.34,1.56,0.64,1)]">
-              <div className={dark ? "bg-white rounded-2xl p-5 shadow-2xl text-center" : "bg-black rounded-2xl p-5 shadow-2xl text-center"}>
-                <p className="text-3xl leading-none mb-1.5">🏆</p>
-                <p className={dark ? "text-black font-bold text-sm tracking-wide" : "text-white font-bold text-sm tracking-wide"}>NEW PERSONAL RECORD</p>
-                <p className={dark ? "text-black text-xl font-bold mt-1" : "text-white text-xl font-bold mt-1"}>{prToast.exerciseName}</p>
-                <p className={dark ? "text-black/70 text-sm mt-0.5" : "text-white/70 text-sm mt-0.5"}>
+              <div className="bg-black/65 backdrop-blur-2xl border border-white/15 rounded-2xl p-5 shadow-2xl text-center">
+                <div className="flex items-center justify-center gap-2 mb-1.5">
+                  <span className="w-4 h-0.5 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />
+                  <p className="text-white font-bold text-xs tracking-[0.15em]">NEW PERSONAL RECORD</p>
+                  <span className="w-4 h-0.5 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />
+                </div>
+                <p className="text-white text-xl font-bold mt-1">{prToast.exerciseName}</p>
+                <p className="text-white/70 text-sm mt-0.5">
                   {prToast.weight}kg × {prToast.reps} · Best previous: {prToast.prevWeight}kg × {prToast.prevReps}
                 </p>
               </div>
