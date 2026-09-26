@@ -170,7 +170,7 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
   );
 }
 
-const NEEDS_ATTENTION_ICONS = { quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
+const NEEDS_ATTENTION_ICONS = { mealPlan: Utensils, quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
 
 // Swipe (or drag) left past the threshold to dismiss — reveals a red trash
 // affordance underneath as it moves. Built on pointer events so it works
@@ -367,18 +367,23 @@ export default function CoachDashboard({ onNavigate, showToast }) {
     return days >= 0 && days <= 7;
   });
 
-  // A meal plan's last day = startDate + (weeksCount * 7 - 1) days.
-  // Flagged within a week of running out, same lead time as "phase ending
-  // soon" below — a 2-day window (the old threshold) left no real time to
-  // duplicate the current week or build a fresh one before the client
-  // actually ran out.
-  const mealPlanEndingSoon = active.filter((c) => {
+  // A meal plan's last day = startDate + (weeksCount * 7 - 1) days. Shared
+  // by the "ending soon" segment below (a week's lead time to build a
+  // replacement) and the urgent Needs Attention entry further down (a
+  // tighter 2-day window, since by then it's not just "plan ahead" — it's
+  // "the client runs out very soon").
+  function mealPlanDaysLeft(c) {
     const plan = (db.mealPlans[c.id] || [])[0];
-    if (!plan?.startDate || !plan.days?.length) return false;
+    if (!plan?.startDate || !plan.days?.length) return null;
     const weeksCount = Math.max(...plan.days.map((d, i) => d.weekIndex ?? Math.floor(i / 7))) + 1;
     const endDateKey = addDaysISO(plan.startDate, weeksCount * 7 - 1);
     const days = daysUntil(endDateKey, todayKey);
-    return days >= 0 && days <= 7;
+    return days >= 0 ? days : null;
+  }
+
+  const mealPlanEndingSoon = active.filter((c) => {
+    const days = mealPlanDaysLeft(c);
+    return days !== null && days <= 7;
   });
 
   const sevenDaysAgo = Date.now() - 7 * 86400000;
@@ -398,9 +403,23 @@ export default function CoachDashboard({ onNavigate, showToast }) {
   // Computed on the fly from data already loaded, same as the segments
   // above — nothing persisted, so it's always current.
   const QUIET_DAYS = 5;
-  const KIND_PRIORITY = { quiet: 0, missed: 1, insight: 2 };
+  const KIND_PRIORITY = { mealPlan: 0, quiet: 1, missed: 2, insight: 3 };
   const needsAttention = [];
   active.forEach((c) => {
+    const mealPlanDays = mealPlanDaysLeft(c);
+    if (mealPlanDays !== null && mealPlanDays <= 2) {
+      needsAttention.push({
+        id: `mealplan-${c.id}`,
+        client: c,
+        kind: "mealPlan",
+        title: "Meal guide running out",
+        detail:
+          mealPlanDays === 0
+            ? "Ends today — build or duplicate their next week before they run out."
+            : `Ends in ${mealPlanDays}d — build or duplicate their next week before they run out.`,
+      });
+    }
+
     const logs = db.workoutLogs[c.id] || [];
     const daysSinceWorkout = logs[0] ? Math.floor((Date.now() - logs[0].date) / 86400000) : null;
     const daysSinceLogin = c.lastLoginAt ? Math.floor((Date.now() - c.lastLoginAt) / 86400000) : null;

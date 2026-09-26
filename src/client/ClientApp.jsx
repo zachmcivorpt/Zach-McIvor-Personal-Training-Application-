@@ -177,6 +177,14 @@ function playTimerDing() {
     if (!Ctx) return;
     if (!sharedAudioCtx) sharedAudioCtx = new Ctx();
     const ctx = sharedAudioCtx;
+    // ctx.resume() here is a best-effort last resort, not the real fix —
+    // by the time this fires (a setTimeout/setInterval tick, or a
+    // visibilitychange callback), it's too late to count as a user gesture
+    // on iOS Safari, so a context iOS already suspended can silently fail
+    // to resume with no error thrown. The actual fix is armRestTimerAudio
+    // below, wired to fire on every real tap during a session so the
+    // context practically never gets the chance to go stale in the first
+    // place.
     if (ctx.state === "suspended") ctx.resume();
     [880, 1175].forEach((freq, i) => {
       const start = ctx.currentTime + i * 0.16;
@@ -185,17 +193,27 @@ function playTimerDing() {
       osc.type = "sine";
       osc.frequency.value = freq;
       gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.35, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.65, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.35);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(start);
-      osc.stop(start + 0.32);
+      osc.stop(start + 0.38);
     });
     if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
   } catch {
     // ignore — audio is a nice-to-have, never worth breaking the timer over
   }
+}
+
+// Keeps the shared AudioContext resumed by re-arming it on every real user
+// tap for as long as a rest/row timer could be counting down — not just the
+// one tap that started it. Without this, a client who locks their phone or
+// backgrounds the app mid-rest (extremely common — that's the whole point
+// of a rest timer) comes back to a context iOS silently suspended, and the
+// ding never plays even though nothing errored.
+function armRestTimerAudio() {
+  unlockTimerAudio();
 }
 
 // Repeated float addition/subtraction on macro grams drifts into ugly
@@ -2119,6 +2137,12 @@ function WorkoutSession({
   useEffect(() => {
     function onVisible() {
       if (document.visibilityState !== "visible" || !resting) return;
+      // The tap/unlock that just brought the tab back to "visible" is as
+      // close to a real user gesture as this handler ever gets — re-arm
+      // right here, before checking whether rest already finished while
+      // the client was away, since that's exactly the moment iOS is most
+      // likely to have suspended the shared context.
+      armRestTimerAudio();
       const remaining = Math.max(0, Math.round((restEndAtRef.current - Date.now()) / 1000));
       setRestTime(remaining);
       if (remaining <= 0) {
@@ -2129,6 +2153,17 @@ function WorkoutSession({
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [resting]);
+
+  // Re-arms the shared AudioContext on every real tap anywhere in the
+  // session, not just the one tap that started a given rest period — a
+  // client who taps around (adjusting a weight, scrolling) while resting
+  // keeps the context alive the whole time, so by the time the ding
+  // actually needs to fire, iOS has had far fewer chances to have quietly
+  // suspended it in the background.
+  useEffect(() => {
+    document.addEventListener("pointerdown", armRestTimerAudio);
+    return () => document.removeEventListener("pointerdown", armRestTimerAudio);
+  }, []);
 
   // The exercises actually being performed this session — the original
   // plan (with any swapped exercises substituted in), plus anything the
@@ -6636,6 +6671,7 @@ export default function ClientApp() {
   const todayKey = todayDateKey;
   const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
   const bodyStatsDueToday = bodyStatsSchedulesForClient.some((s) => s.date === todayDateKey) && !weighIns.some((w) => localDateKey(w.date) === todayDateKey);
+  const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
 
   const isToday = dayOffset === 0;
   const selectedDateKey = useMemo(() => {
@@ -6701,8 +6737,24 @@ export default function ClientApp() {
         },
       });
     }
+    // Fires whenever the coach saves a newer meal guide than the one this
+    // client last acknowledged — mealPlanSeenAt is a real Firestore field
+    // (not session-local state) so it survives a full close/reopen and
+    // stays correct across devices, unlike the message-unread count above.
+    if (mealPlan?.updatedAt && mealPlan.updatedAt > (currentUser.mealPlanSeenAt || 0)) {
+      items.push({
+        icon: Utensils,
+        title: "Your meal guide was updated",
+        subtitle: "Your coach has refreshed your meal plan",
+        onClick: () => {
+          setNotifOpen(false);
+          updateUser(currentUser.id, { mealPlanSeenAt: mealPlan.updatedAt });
+          setTab("nutrition");
+        },
+      });
+    }
     return items;
-  }, [unreadCount, thread, todaySession, completedOnDate, dueCheckInsCount, bodyStatsDueToday]);
+  }, [unreadCount, thread, todaySession, completedOnDate, dueCheckInsCount, bodyStatsDueToday, mealPlan, currentUser.id, currentUser.mealPlanSeenAt]);
 
   function showToast(message) {
     setToast({ show: true, message });
