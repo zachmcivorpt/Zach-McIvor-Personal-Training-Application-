@@ -15,6 +15,7 @@ import {
   computeSessionInsights,
 } from "../lib/trainingStats";
 import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
+import { detectNoteContext, CLIENT_CONTEXT_CATEGORIES } from "../lib/apexInsights";
 import {
   BODY_FAT_CONFIG,
   LEAN_MASS_CONFIG,
@@ -5005,10 +5006,22 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
 }
 
 function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
-  const { db, addClientNote, deleteClientNote } = useApp();
+  const { db, addClientNote, deleteClientNote, addClientContext, deleteClientContext } = useApp();
   const [noteInput, setNoteInput] = useState("");
+  // Suggestions APEX detected in the note just submitted, awaiting the
+  // coach's explicit approve/reject — never saved to clientContext until
+  // the coach clicks "Save to Client Profile" below.
+  const [pendingContext, setPendingContext] = useState(null); // { noteId, items: [{category, suggestion}] }
 
   const notes = (db.clientNotes || {})[client.id] || [];
+  const context = (db.clientContext || {})[client.id] || [];
+  const contextByCategory = useMemo(() => {
+    const grouped = {};
+    context.forEach((c) => {
+      (grouped[c.category] ||= []).push(c);
+    });
+    return grouped;
+  }, [context]);
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
@@ -5016,12 +5029,16 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
       <PlateauAlertCard client={client} />
 
-      <div>
+      <div className="mb-6">
         <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINER'S NOTES</p>
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            addClientNote(client.id, noteInput);
+            const text = noteInput.trim();
+            if (!text) return;
+            const note = addClientNote(client.id, text);
+            const detected = detectNoteContext(text);
+            if (detected.length) setPendingContext({ noteId: note?.id, items: detected });
             setNoteInput("");
           }}
           className="mb-3"
@@ -5037,6 +5054,42 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
             Add note
           </button>
         </form>
+
+        {pendingContext?.items.length > 0 && (
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3.5 py-3 mb-3">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Sparkles size={12} className="text-indigo-600" />
+              <p className="text-indigo-900 text-xs font-semibold">APEX detected potentially useful client context</p>
+            </div>
+            <div className="space-y-2">
+              {pendingContext.items.map((item, i) => (
+                <div key={i} className="bg-white/70 rounded-lg px-3 py-2">
+                  <p className="text-indigo-900/50 text-[10px] font-semibold tracking-wide mb-0.5">{item.category.toUpperCase()}</p>
+                  <p className="text-indigo-950 text-sm mb-2">{item.suggestion}</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        addClientContext(client.id, item.category, item.suggestion, pendingContext.noteId);
+                        setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }));
+                        showToast?.("Saved to client profile");
+                      }}
+                      className="text-xs font-semibold bg-indigo-600 text-white px-3 py-1.5 rounded-lg"
+                    >
+                      Save to Client Profile
+                    </button>
+                    <button
+                      onClick={() => setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))}
+                      className="text-xs font-semibold text-indigo-900/60 px-3 py-1.5"
+                    >
+                      Don't Save
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-2">
           {notes.length === 0 && <p className="text-black/25 text-xs">No notes yet.</p>}
           {notes.map((n) => (
@@ -5053,6 +5106,37 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
             </div>
           ))}
         </div>
+      </div>
+
+      <div>
+        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">CLIENT CONTEXT</p>
+        {context.length === 0 ? (
+          <p className="text-black/25 text-xs">
+            No saved context yet — approve an APEX suggestion above, or context saved here helps APEX Insights understand this client.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {CLIENT_CONTEXT_CATEGORIES.filter((cat) => contextByCategory[cat]?.length).map((cat) => (
+              <div key={cat}>
+                <p className="text-black/30 text-[10px] font-semibold tracking-wide mb-1.5">{cat.toUpperCase()}</p>
+                <div className="space-y-1.5">
+                  {contextByCategory[cat].map((c) => (
+                    <div key={c.id} className="bg-black/[0.03] rounded-lg px-3 py-2 flex items-start justify-between gap-2">
+                      <p className="text-black/80 text-sm">{c.text}</p>
+                      <button
+                        onClick={() => deleteClientContext(client.id, c.id)}
+                        className="text-black/25 hover:text-black/50 shrink-0 mt-0.5"
+                        aria-label="Remove context"
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

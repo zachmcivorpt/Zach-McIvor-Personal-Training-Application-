@@ -285,6 +285,7 @@ export function AppProvider({ children }) {
       watch("formSchedules", "formSchedules");
       watch("formResponses", "formResponses");
       watch("clientNotes", "clientNotes");
+      watch("clientContext", "clientContext");
       watch("habitLog", "habitLog");
       watch("weighIns", "weighIns");
       watch("scheduledWorkouts", "scheduledWorkouts");
@@ -312,8 +313,9 @@ export function AppProvider({ children }) {
       watch("bodyMetrics", "bodyMetrics", [where("clientId", "==", uid)]);
       watch("mealPlans", "mealPlans", [where("clientId", "==", uid)]);
       watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
-      // clientNotes intentionally NOT synced here — they're the coach's
-      // private notes about the client, never shown in the client app.
+      // clientNotes/clientContext intentionally NOT synced here — they're
+      // the coach's private notes (and APEX's approved context derived from
+      // them) about the client, never shown in the client app.
       pendingKeys.add("habitLog");
       subscribeWithRetry((onOk, onErr) =>
         onSnapshot(
@@ -427,6 +429,7 @@ export function AppProvider({ children }) {
       welcomeMessage: raw.welcomeMessage || DEFAULT_WELCOME_MESSAGE,
       clientTags: Object.fromEntries(users.filter((u) => u.role === "client").map((u) => [u.id, u.clientTags || []])),
       clientNotes: bucket(raw.clientNotes, (a, b) => b.date - a.date),
+      clientContext: bucket(raw.clientContext, (a, b) => b.createdAt - a.createdAt),
       weighIns: bucket(raw.weighIns, (a, b) => a.date - b.date),
       scheduledWorkouts: bucket(raw.scheduledWorkouts, (a, b) => a.date.localeCompare(b.date)),
       bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
@@ -1811,21 +1814,45 @@ export function AppProvider({ children }) {
       // it just being a general note about the client.
       addClientNote(clientId, text, workoutLogId) {
         const trimmed = text.trim();
-        if (!trimmed) return;
+        if (!trimmed) return null;
         const id = newDocId("clientNotes");
-        setDoc(doc(firestore, "clientNotes", id), {
+        const note = {
           id,
           clientId,
           text: trimmed,
           date: Date.now(),
           ...(workoutLogId ? { workoutLogId } : {}),
-        }).catch(console.error);
+        };
+        setDoc(doc(firestore, "clientNotes", id), note).catch(console.error);
+        return note;
       },
       updateClientNote(noteId, text) {
         updateDoc(doc(firestore, "clientNotes", noteId), { text: text.trim() }).catch(console.error);
       },
       deleteClientNote(clientId, noteId) {
         deleteDoc(doc(firestore, "clientNotes", noteId)).catch(console.error);
+      },
+
+      // APEX-detected context a coach has explicitly approved from a
+      // freeform note (see detectNoteContext in lib/apexInsights.js) —
+      // structured enough for the insight engine to reference, but only
+      // ever created here, from a coach's own click. Nothing writes this
+      // collection automatically.
+      addClientContext(clientId, category, text, noteId) {
+        const trimmed = (text || "").trim();
+        if (!trimmed) return;
+        const id = newDocId("clientContext");
+        setDoc(doc(firestore, "clientContext", id), {
+          id,
+          clientId,
+          category,
+          text: trimmed,
+          createdAt: Date.now(),
+          ...(noteId ? { noteId } : {}),
+        }).catch(console.error);
+      },
+      deleteClientContext(clientId, contextId) {
+        deleteDoc(doc(firestore, "clientContext", contextId)).catch(console.error);
       },
 
       // The coach's automated welcome message template (text + optional PDF),

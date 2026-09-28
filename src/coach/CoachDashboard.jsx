@@ -6,6 +6,7 @@ import { WorkoutLogCard } from "./CoachClientDetail";
 import WorkoutEditor from "./WorkoutEditor";
 import { clientStatusPill } from "./CoachClients";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
+import { computeApexInsights } from "../lib/apexInsights";
 import { MEASURE_BLUE } from "../theme";
 import {
   Users,
@@ -27,6 +28,7 @@ import {
   TrendingUp,
   TrendingDown,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 
 // The check-in's own Q&A, plus a reply box right there — so reviewing one
@@ -170,7 +172,7 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
   );
 }
 
-const NEEDS_ATTENTION_ICONS = { mealPlan: Utensils, nutrition: Utensils, quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
+const NEEDS_ATTENTION_ICONS = { mealPlan: Utensils, apex: Sparkles, nutrition: Utensils, quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
 
 // Swipe (or drag) left past the threshold to dismiss — reveals a red trash
 // affordance underneath as it moves. Built on pointer events so it works
@@ -224,21 +226,140 @@ function SwipeableRow({ onDelete, children }) {
   );
 }
 
-function NeedsAttentionRow({ alert, onDismiss }) {
+function NeedsAttentionRow({ alert, onDismiss, onOpen }) {
+  const isApex = alert.kind === "apex";
   const Icon = alert.kind === "insight" && alert.direction === "down" ? TrendingDown : NEEDS_ATTENTION_ICONS[alert.kind];
   return (
     <SwipeableRow onDelete={onDismiss}>
-      <div className="flex items-center gap-3 py-3 border-b border-black/5 last:border-0">
+      <div
+        onClick={isApex ? () => onOpen(alert) : undefined}
+        className={`flex items-center gap-3 py-3 border-b border-black/5 last:border-0 ${isApex ? "cursor-pointer hover:bg-black/[0.02] -mx-1 px-1 rounded-lg" : ""}`}
+      >
         <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={32} />
         <div className="flex-1 min-w-0">
           <p className="text-black/80 text-[13px] leading-snug">
+            {isApex && (
+              <span className="inline-flex items-center gap-1 text-indigo-600 font-semibold text-[10px] tracking-wide uppercase mr-1.5 align-middle">
+                <Sparkles size={10} /> Apex Insight
+              </span>
+            )}
             <span className="font-semibold text-black">{alert.client.name}</span> — {alert.title}
           </p>
           <p className="text-black/40 text-[11px] mt-0.5">{alert.detail}</p>
         </div>
-        <Icon size={16} className="text-red-500 shrink-0" />
+        <Icon size={16} className={isApex ? "text-indigo-500 shrink-0" : "text-red-500 shrink-0"} />
       </div>
     </SwipeableRow>
+  );
+}
+
+// Coach Overview → Needs Attention → APEX Insight → Why you're seeing this →
+// Relevant client context → APEX Suggestion → coach takes action. Every
+// value shown here comes straight off the alert object computeApexInsights
+// built, i.e. straight off real client data — nothing is generated inside
+// this component.
+function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessage, showToast }) {
+  const [messaging, setMessaging] = useState(false);
+  const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
+  if (!alert) return null;
+
+  function send() {
+    const text = message.trim();
+    if (!text) return;
+    sendMessage(alert.client.id, "coach", text);
+    setSent(true);
+    showToast?.(`Message sent to ${alert.client.name?.split(" ")[0] || "your client"}`);
+    setTimeout(() => {
+      setMessage("");
+      setMessaging(false);
+      setSent(false);
+    }, 1200);
+  }
+
+  return (
+    <BottomSheet open={!!alert} onClose={onClose} title={alert.title}>
+      <div className="flex items-center gap-2.5 mb-4">
+        <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={36} />
+        <div>
+          <p className="text-black font-semibold text-sm">{alert.client.name}</p>
+          <span className="inline-flex items-center gap-1 text-indigo-600 font-semibold text-[10px] tracking-wide uppercase">
+            <Sparkles size={10} /> Apex Insight
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">WHY YOU'RE SEEING THIS</p>
+        <div className="space-y-1.5">
+          {alert.reasons.map((r, i) => (
+            <div key={i} className="bg-black/[0.03] rounded-lg px-3 py-2">
+              <p className="text-black/80 text-sm">{r}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {alert.relevantContext?.length > 0 && (
+        <div className="mb-4">
+          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">RELEVANT CLIENT CONTEXT</p>
+          <div className="space-y-1.5">
+            {alert.relevantContext.map((c) => (
+              <div key={c.id} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
+                <p className="text-indigo-900 text-sm">
+                  {c.source === "note" ? "Previous coach note: " : ""}
+                  {c.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mb-5">
+        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">APEX SUGGESTION</p>
+        <div className="bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-3">
+          <p className="text-blue-900 text-sm">{alert.suggestion}</p>
+        </div>
+        <p className="text-black/25 text-[10px] mt-2">Advisory only — APEX never changes a client's program, targets, or goals. You decide what to do next.</p>
+      </div>
+
+      {messaging ? (
+        <div className="border-t border-black/8 pt-3 mb-2">
+          <p className="text-black/40 text-xs font-semibold tracking-wide mb-2">MESSAGE {(alert.client.name?.split(" ")[0] || "CLIENT").toUpperCase()}</p>
+          <div className="flex gap-2">
+            <input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder="Type a message..."
+              autoFocus
+              className="flex-1 bg-black/5 rounded-full px-4 py-2.5 text-sm text-black outline-none placeholder:text-black/30"
+            />
+            <button
+              onClick={send}
+              disabled={!message.trim()}
+              className="w-10 h-10 rounded-full bg-black flex items-center justify-center disabled:opacity-30 shrink-0"
+              aria-label="Send message"
+            >
+              {sent ? <Check size={16} className="text-white" /> : <Send size={15} className="text-white" />}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <button onClick={onReviewClient} className="w-full bg-black text-white text-sm font-semibold py-2.5 rounded-xl">
+            Review Client
+          </button>
+          <button onClick={() => setMessaging(true)} className="w-full bg-black/5 text-black text-sm font-semibold py-2.5 rounded-xl">
+            Message Client
+          </button>
+          <button onClick={onDismiss} className="w-full text-black/40 text-sm font-medium py-2">
+            Dismiss
+          </button>
+        </div>
+      )}
+    </BottomSheet>
   );
 }
 
@@ -351,6 +472,7 @@ export default function CoachDashboard({ onNavigate, showToast }) {
   const todayKey = localDateKey();
   const [viewingActivity, setViewingActivity] = useState(null); // the clicked Recent Activity item (workout or check-in) for the detail sheet
   const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [viewingApexAlert, setViewingApexAlert] = useState(null); // the tapped APEX Insight row, for its detail sheet
   const exercisesById = useMemo(() => Object.fromEntries((db.exercises || []).map((e) => [e.id, e])), [db.exercises]);
 
   // ---- smart segments ----
@@ -404,9 +526,15 @@ export default function CoachDashboard({ onNavigate, showToast }) {
   // above — nothing persisted, so it's always current.
   const QUIET_DAYS = 5;
   const NUTRITION_QUIET_DAYS = 3;
-  const KIND_PRIORITY = { mealPlan: 0, nutrition: 1, quiet: 2, missed: 3, insight: 4 };
+  const KIND_PRIORITY = { mealPlan: 0, apex: 1, nutrition: 2, quiet: 3, missed: 4, insight: 5 };
   const needsAttention = [];
   active.forEach((c) => {
+    // APEX AI Insights — cross-referenced patterns across training,
+    // check-ins, body metrics and nutrition (see lib/apexInsights.js for
+    // the rules and why each one only fires on a genuine, multi-signal
+    // pattern rather than a single noisy data point).
+    computeApexInsights(c, db).forEach((apexAlert) => needsAttention.push(apexAlert));
+
     const mealPlanDays = mealPlanDaysLeft(c);
     if (mealPlanDays !== null && mealPlanDays <= 2) {
       needsAttention.push({
@@ -665,7 +793,7 @@ export default function CoachDashboard({ onNavigate, showToast }) {
           ) : (
             <>
               {visibleNeedsAttention.slice(0, 8).map((a) => (
-                <NeedsAttentionRow key={a.id} alert={a} onDismiss={() => dismissAlert(a.id)} />
+                <NeedsAttentionRow key={a.id} alert={a} onDismiss={() => dismissAlert(a.id)} onOpen={setViewingApexAlert} />
               ))}
               <p className="text-black/25 text-[10px] text-center pt-1 pb-1">Swipe an item left to dismiss it for a week</p>
             </>
@@ -789,6 +917,21 @@ export default function CoachDashboard({ onNavigate, showToast }) {
           )
         )}
       </BottomSheet>
+
+      <ApexInsightSheet
+        alert={viewingApexAlert}
+        onClose={() => setViewingApexAlert(null)}
+        sendMessage={sendMessage}
+        showToast={showToast}
+        onReviewClient={() => {
+          setViewingApexAlert(null);
+          onNavigate("clients");
+        }}
+        onDismiss={() => {
+          dismissAlert(viewingApexAlert.id);
+          setViewingApexAlert(null);
+        }}
+      />
 
       {broadcastOpen && (
         <WorkoutEditor

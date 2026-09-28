@@ -294,6 +294,14 @@ service cloud.firestore {
       allow read, write: if isCoach();
     }
 
+    // --- clientContext: structured client context, either entered by the
+    //     coach directly or approved by the coach from an APEX-detected
+    //     suggestion on a note. Same private-to-coach exposure as
+    //     clientNotes above — the client app never reads it. ---
+    match /clientContext/{id} {
+      allow read, write: if isCoach();
+    }
+
     // --- habitLog/{clientId}: doc id IS the client's uid --------------
     match /habitLog/{clientId} {
       allow read, write: if isCoach() || ownsClientId(clientId);
