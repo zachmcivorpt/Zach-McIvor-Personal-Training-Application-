@@ -31,6 +31,7 @@ import { FOOD_DATABASE } from "./foodDatabase";
 import { FITNESS_MEALS_AU } from "./fitnessMealsAU";
 import { COACH_SETUP_CODE } from "./config";
 import { localDateKey } from "./dateKey";
+import { detectNoteContext } from "./apexInsights";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -1853,6 +1854,38 @@ export function AppProvider({ children }) {
       },
       deleteClientContext(clientId, contextId) {
         deleteDoc(doc(firestore, "clientContext", contextId)).catch(console.error);
+      },
+
+      // Server-side LLM call (see functions/index.js) that replaces the
+      // local keyword heuristic in lib/apexInsights.js's detectNoteContext
+      // with real language understanding — same return shape either way
+      // ({ items: [{category, suggestion}] }), so callers don't need to
+      // know which one actually ran. Falls back to the local heuristic on
+      // any failure (network issue, or simply that the coach hasn't set
+      // the ANTHROPIC_API_KEY secret yet) rather than surfacing an error
+      // for what's an optional, advisory suggestion anyway.
+      async analyzeNoteContext(text) {
+        try {
+          const result = await httpsCallable(functions, "analyzeNoteContext")({ text });
+          return result.data?.items || [];
+        } catch (err) {
+          console.warn("analyzeNoteContext Cloud Function unavailable, using local heuristic:", err.message);
+          return detectNoteContext(text);
+        }
+      },
+
+      // Same fallback pattern as analyzeNoteContext above, but for
+      // rephrasing an already-fired insight rule's reasons into one
+      // sentence — the rule's own static `suggestion` string is the
+      // fallback, so an insight is never left without one.
+      async phraseApexSuggestion(title, reasons, fallback) {
+        try {
+          const result = await httpsCallable(functions, "phraseApexSuggestion")({ title, reasons });
+          return result.data?.suggestion || fallback;
+        } catch (err) {
+          console.warn("phraseApexSuggestion Cloud Function unavailable, using static suggestion:", err.message);
+          return fallback;
+        }
       },
 
       // The coach's automated welcome message template (text + optional PDF),

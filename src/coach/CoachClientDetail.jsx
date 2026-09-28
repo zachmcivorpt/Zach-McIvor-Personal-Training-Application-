@@ -15,7 +15,7 @@ import {
   computeSessionInsights,
 } from "../lib/trainingStats";
 import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
-import { detectNoteContext, CLIENT_CONTEXT_CATEGORIES } from "../lib/apexInsights";
+import { CLIENT_CONTEXT_CATEGORIES } from "../lib/apexInsights";
 import {
   BODY_FAT_CONFIG,
   LEAN_MASS_CONFIG,
@@ -5006,12 +5006,13 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
 }
 
 function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
-  const { db, addClientNote, deleteClientNote, addClientContext, deleteClientContext } = useApp();
+  const { db, addClientNote, deleteClientNote, addClientContext, deleteClientContext, analyzeNoteContext } = useApp();
   const [noteInput, setNoteInput] = useState("");
   // Suggestions APEX detected in the note just submitted, awaiting the
   // coach's explicit approve/reject — never saved to clientContext until
   // the coach clicks "Save to Client Profile" below.
   const [pendingContext, setPendingContext] = useState(null); // { noteId, items: [{category, suggestion}] }
+  const [detecting, setDetecting] = useState(false);
 
   const notes = (db.clientNotes || {})[client.id] || [];
   const context = (db.clientContext || {})[client.id] || [];
@@ -5032,14 +5033,24 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
       <div className="mb-6">
         <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINER'S NOTES</p>
         <form
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
             const text = noteInput.trim();
             if (!text) return;
             const note = addClientNote(client.id, text);
-            const detected = detectNoteContext(text);
-            if (detected.length) setPendingContext({ noteId: note?.id, items: detected });
             setNoteInput("");
+            setDetecting(true);
+            try {
+              // Tries the server-side LLM call first (real language
+              // understanding), falling back to the local keyword
+              // heuristic if it's unavailable — see analyzeNoteContext in
+              // AppContext.jsx. Either way this only ever returns
+              // suggestions for the coach to approve, nothing is saved yet.
+              const detected = await analyzeNoteContext(text);
+              if (detected.length) setPendingContext({ noteId: note?.id, items: detected });
+            } finally {
+              setDetecting(false);
+            }
           }}
           className="mb-3"
         >
@@ -5054,6 +5065,13 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
             Add note
           </button>
         </form>
+
+        {detecting && (
+          <div className="flex items-center gap-1.5 mb-3 px-1">
+            <Sparkles size={11} className="text-indigo-400 animate-pulse" />
+            <p className="text-black/30 text-xs">APEX is checking for useful context…</p>
+          </div>
+        )}
 
         {pendingContext?.items.length > 0 && (
           <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3.5 py-3 mb-3">

@@ -258,10 +258,29 @@ function NeedsAttentionRow({ alert, onDismiss, onOpen }) {
 // value shown here comes straight off the alert object computeApexInsights
 // built, i.e. straight off real client data — nothing is generated inside
 // this component.
-function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessage, showToast }) {
+function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessage, showToast, phraseApexSuggestion }) {
   const [messaging, setMessaging] = useState(false);
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
+  // Starts as the rule's own static suggestion, then — if the coach has
+  // the server-side LLM call configured (see phraseApexSuggestion in
+  // AppContext.jsx) — gets replaced with a version phrased from the exact
+  // same reasons. It never introduces a new fact: the reasons array (real
+  // data the rule already verified) is all either version can draw from.
+  const [suggestion, setSuggestion] = useState(alert?.suggestion || "");
+
+  useEffect(() => {
+    if (!alert) return;
+    setSuggestion(alert.suggestion);
+    let cancelled = false;
+    phraseApexSuggestion(alert.title, alert.reasons, alert.suggestion).then((s) => {
+      if (!cancelled) setSuggestion(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [alert?.id]);
+
   if (!alert) return null;
 
   function send() {
@@ -319,7 +338,7 @@ function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessa
       <div className="mb-5">
         <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">APEX SUGGESTION</p>
         <div className="bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-3">
-          <p className="text-blue-900 text-sm">{alert.suggestion}</p>
+          <p className="text-blue-900 text-sm">{suggestion}</p>
         </div>
         <p className="text-black/25 text-[10px] mt-2">Advisory only — APEX never changes a client's program, targets, or goals. You decide what to do next.</p>
       </div>
@@ -466,7 +485,7 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
 }
 
 export default function CoachDashboard({ onNavigate, onOpenClient, showToast }) {
-  const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout } = useApp();
+  const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout, phraseApexSuggestion } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = localDateKey();
@@ -923,6 +942,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, showToast }) 
         onClose={() => setViewingApexAlert(null)}
         sendMessage={sendMessage}
         showToast={showToast}
+        phraseApexSuggestion={phraseApexSuggestion}
         onReviewClient={() => {
           const clientId = viewingApexAlert?.client.id;
           setViewingApexAlert(null);

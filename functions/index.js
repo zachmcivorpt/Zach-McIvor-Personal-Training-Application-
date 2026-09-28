@@ -13,6 +13,7 @@
 const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -338,4 +339,129 @@ exports.cleanupOrphanedInvite = onCall(async (request) => {
 
   await adminAuth.deleteUser(existing.uid);
   return { cleaned: true };
+});
+
+// ---------------------------------------------------------------------
+// APEX AI Insights / Coach Notes — the two Cloud Functions that let the
+// rule-based engine in src/lib/apexInsights.js hand off to a real LLM
+// call instead of its local keyword heuristics, without ever putting an
+// API key in client-side code. This preserves the split described at the
+// top of apexInsights.js: WHETHER an insight fires, and what real data
+// backs it, always stays a deterministic rule running client-side against
+// the coach's own Firestore data; only the natural-language PHRASING is
+// delegated here, and only ever from data the rule already verified.
+//
+// Requires an ANTHROPIC_API_KEY secret before either of these do
+// anything real:
+//   firebase functions:secrets:set ANTHROPIC_API_KEY
+// then redeploy (`firebase deploy --only functions`). Until that's set,
+// both throw and the client-side callers in AppContext.jsx catch the
+// error and fall back to their existing local heuristics — nothing in
+// the app breaks, APEX just stays on keyword-matching until the key
+// exists.
+// ---------------------------------------------------------------------
+const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
+const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
+
+// Must match CLIENT_CONTEXT_CATEGORIES in src/lib/apexInsights.js — kept
+// as a literal here rather than imported since functions/ is a separate
+// CommonJS package with no build step pulling in the web app's ES modules.
+const CONTEXT_CATEGORIES = ["Training", "Lifestyle", "Nutrition", "Coaching Considerations", "Personal Preferences"];
+
+async function callClaude(apiKey, system, userText, maxTokens) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: "user", content: userText }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Claude API returned ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return (data.content || []).map((c) => c.text || "").join("").trim();
+}
+
+async function requireCoach(uid) {
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  const snap = await db.collection("users").doc(uid).get();
+  if (snap.data()?.role !== "coach") throw new HttpsError("permission-denied", "Only the coach can do this.");
+}
+
+// Replaces the client-side detectNoteContext() keyword heuristic with
+// real language understanding — returns the exact same shape
+// ({ items: [{category, suggestion}] }) so the coach's approve/reject UI
+// in SummaryPanel needs no changes either way. The model is explicitly
+// told to invent nothing beyond what the note says and to return an
+// empty array rather than reach for something to flag.
+exports.analyzeNoteContext = onCall({ secrets: [ANTHROPIC_API_KEY] }, async (request) => {
+  await requireCoach(request.auth?.uid);
+  const text = (request.data?.text || "").trim();
+  if (!text) return { items: [] };
+
+  const system = `You help a personal trainer extract useful, ALREADY-STATED client context from a private note they just wrote about a client. You are not a medical professional and must never diagnose or speculate beyond what the note literally says.
+
+Rules:
+- Only report something the note actually says or clearly implies — never invent details, dates, or severity that aren't there.
+- Each item must fit exactly one of these categories: ${CONTEXT_CATEGORIES.join(", ")}.
+- Phrase "suggestion" as a short, hedged, reusable note for the client's profile (e.g. "Morning training consistency may currently be affected by disrupted sleep."), never as a command or a diagnosis.
+- If the note has nothing clearly useful for future coaching context, return an empty array.
+- Respond with ONLY a JSON array, no prose, no markdown fences. Example: [{"category":"Lifestyle","suggestion":"..."}]`;
+
+  let raw;
+  try {
+    raw = await callClaude(ANTHROPIC_API_KEY.value(), system, text, 400);
+  } catch (err) {
+    throw new HttpsError("internal", err.message);
+  }
+
+  let items;
+  try {
+    const jsonMatch = raw.match(/\[[\s\S]*\]/);
+    items = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+  } catch {
+    throw new HttpsError("internal", "Couldn't parse the model's response.");
+  }
+  if (!Array.isArray(items)) throw new HttpsError("internal", "Unexpected response shape.");
+
+  return {
+    items: items.filter((i) => i && typeof i.suggestion === "string" && CONTEXT_CATEGORIES.includes(i.category)).slice(0, 5),
+  };
+});
+
+// Turns a fired insight rule's already-computed, real-data reasons into
+// one natural sentence of coaching consideration. Never asked to decide
+// WHETHER to flag anything (that's a deterministic rule in
+// apexInsights.js already run before this is ever called) and given
+// nothing beyond the reasons array it's handed, so it cannot introduce a
+// fact, number, or cause the rule didn't already verify against real data.
+exports.phraseApexSuggestion = onCall({ secrets: [ANTHROPIC_API_KEY] }, async (request) => {
+  await requireCoach(request.auth?.uid);
+  const title = (request.data?.title || "").trim();
+  const reasons = Array.isArray(request.data?.reasons) ? request.data.reasons.filter((r) => typeof r === "string") : [];
+  if (!title || reasons.length === 0) throw new HttpsError("invalid-argument", "Missing title or reasons.");
+
+  const system = `You write one short, neutral coaching-consideration sentence for a personal trainer's dashboard, based ONLY on the flagged pattern and reasons given to you.
+
+Rules:
+- Use only the facts in the reasons provided — never add a fact, number, or cause that isn't there.
+- Never diagnose, and never state a conclusion as certain. Use hedged language: "Consider reviewing...", "May be worth...", "Possible contributing factor...".
+- Never instruct a specific change to a program, sets/reps, calories, or macros — only suggest reviewing or checking in.
+- Respond with exactly one plain-text sentence. No markdown, no quotes around it, no preamble.`;
+
+  const userText = `Flagged pattern: ${title}\nReasons:\n${reasons.map((r) => `- ${r}`).join("\n")}`;
+
+  let suggestion;
+  try {
+    suggestion = await callClaude(ANTHROPIC_API_KEY.value(), system, userText, 120);
+  } catch (err) {
+    throw new HttpsError("internal", err.message);
+  }
+  return { suggestion: suggestion.replace(/^"|"$/g, "") };
 });

@@ -279,7 +279,63 @@ function nutritionSelfReportInsight(client, db) {
   };
 }
 
-const RULES = [recoveryConflictInsight, bodyweightTrendInsight, nutritionSelfReportInsight];
+// Rule 4 — Stress/energy pattern: a check-in question about stress trending
+// up (or one about mental state/energy trending down) alongside a genuine
+// drop in how many sessions actually got logged — the two signals a coach
+// would themselves cross-reference before wondering if life stress is
+// spilling into training, rather than reading either signal alone (a
+// single high-stress week, or one quiet week, happens to everyone).
+function stressAdherenceInsight(client, db) {
+  const stressQuestions = findQuestionsByKeyword(db.forms, ["stress"]).filter((q) => q.type === "rating");
+  const moodQuestions = findQuestionsByKeyword(db.forms, ["mentally", "energy", "motivation"]).filter((q) => q.type === "rating");
+
+  const stressAnswers = recentAnswers(client.id, db, stressQuestions, 3);
+  const moodAnswers = recentAnswers(client.id, db, moodQuestions, 3);
+
+  let checkInReason = null;
+  if (stressAnswers.length >= 2) {
+    const last2 = stressAnswers.slice(-2);
+    const rise = last2[1].value - last2[0].value;
+    if (rise >= 2 || (last2[0].value >= 4 && last2[1].value >= 4)) {
+      checkInReason = `"${last2[0].label}" — ${last2[0].value}/${RATING_SCALE_MAX} (${fmtDate(last2[0].date)}) → ${last2[1].value}/${RATING_SCALE_MAX} (${fmtDate(last2[1].date)}).`;
+    }
+  }
+  if (!checkInReason && moodAnswers.length >= 2) {
+    const last2 = moodAnswers.slice(-2);
+    const drop = last2[0].value - last2[1].value;
+    if (drop >= 2) {
+      checkInReason = `"${last2[0].label}" — ${last2[0].value}/${RATING_SCALE_MAX} (${fmtDate(last2[0].date)}) → ${last2[1].value}/${RATING_SCALE_MAX} (${fmtDate(last2[1].date)}).`;
+    }
+  }
+  if (!checkInReason) return null;
+
+  const logs = (db.workoutLogs || {})[client.id] || [];
+  const now = Date.now();
+  const recentSessions = logs.filter((l) => l.date >= now - 14 * DAY_MS).length;
+  const priorSessions = logs.filter((l) => l.date >= now - 28 * DAY_MS && l.date < now - 14 * DAY_MS).length;
+  // Only a real, meaningful drop counts — needs a real prior baseline
+  // (2+ sessions) to drop from, not just "fewer than a single session".
+  if (priorSessions < 2 || recentSessions > priorSessions - 2) return null;
+
+  const relevantContext = findRelevantContext(client.id, db, ["stress", "energy", "motivation", "busy", "overwhelm", "work", "schedule"]);
+
+  return {
+    id: `apex-stress-${client.id}`,
+    client,
+    kind: "apex",
+    category: "recovery",
+    title: "Possible stress-related dip",
+    detail: "Reported stress/energy has shifted alongside fewer logged sessions recently.",
+    reasons: [
+      checkInReason,
+      `Sessions logged: ${priorSessions} in the prior 2 weeks → ${recentSessions} in the last 2 weeks.`,
+    ],
+    relevantContext,
+    suggestion: "May be worth checking in on how they're managing stress and training load together.",
+  };
+}
+
+const RULES = [recoveryConflictInsight, bodyweightTrendInsight, nutritionSelfReportInsight, stressAdherenceInsight];
 
 // Runs every rule for one client and returns whichever genuinely fired.
 // Deliberately not memoized/cached here — CoachDashboard already only calls
