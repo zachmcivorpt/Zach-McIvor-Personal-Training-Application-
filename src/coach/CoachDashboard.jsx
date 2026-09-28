@@ -170,7 +170,7 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
   );
 }
 
-const NEEDS_ATTENTION_ICONS = { mealPlan: Utensils, quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
+const NEEDS_ATTENTION_ICONS = { mealPlan: Utensils, nutrition: Utensils, quiet: AlertTriangle, missed: CalendarClock, insight: TrendingUp };
 
 // Swipe (or drag) left past the threshold to dismiss — reveals a red trash
 // affordance underneath as it moves. Built on pointer events so it works
@@ -403,7 +403,8 @@ export default function CoachDashboard({ onNavigate, showToast }) {
   // Computed on the fly from data already loaded, same as the segments
   // above — nothing persisted, so it's always current.
   const QUIET_DAYS = 5;
-  const KIND_PRIORITY = { mealPlan: 0, quiet: 1, missed: 2, insight: 3 };
+  const NUTRITION_QUIET_DAYS = 3;
+  const KIND_PRIORITY = { mealPlan: 0, nutrition: 1, quiet: 2, missed: 3, insight: 4 };
   const needsAttention = [];
   active.forEach((c) => {
     const mealPlanDays = mealPlanDaysLeft(c);
@@ -417,6 +418,28 @@ export default function CoachDashboard({ onNavigate, showToast }) {
           mealPlanDays === 0
             ? "Ends today — build or duplicate their next week before they run out."
             : `Ends in ${mealPlanDays}d — build or duplicate their next week before they run out.`,
+      });
+    }
+
+    // "Tracked food" means at least one item in some meal slot — logging
+    // water alone still writes a nutritionLogs doc for that date, so an
+    // empty `meals` object doesn't count as nutrition actually logged.
+    const nutritionLogs = db.nutritionLogs[c.id] || [];
+    const lastFoodLog = [...nutritionLogs].reverse().find((n) => n.meals && Object.values(n.meals).some((items) => items && items.length));
+    const daysSinceFood = lastFoodLog
+      ? -daysUntil(lastFoodLog.date, todayKey)
+      : c.createdAt
+        ? Math.floor((Date.now() - c.createdAt) / 86400000)
+        : null;
+    if (daysSinceFood !== null && daysSinceFood >= NUTRITION_QUIET_DAYS) {
+      needsAttention.push({
+        id: `nutrition-${c.id}`,
+        client: c,
+        kind: "nutrition",
+        title: "Not tracking nutrition",
+        detail: lastFoodLog
+          ? `No food logged in ${daysSinceFood}d — worth a check-in on their nutrition.`
+          : `Hasn't logged any food since joining ${daysSinceFood}d ago.`,
       });
     }
 
