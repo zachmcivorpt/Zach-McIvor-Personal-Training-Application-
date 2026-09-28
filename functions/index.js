@@ -13,7 +13,6 @@
 const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -351,16 +350,13 @@ exports.cleanupOrphanedInvite = onCall(async (request) => {
 // the coach's own Firestore data; only the natural-language PHRASING is
 // delegated here, and only ever from data the rule already verified.
 //
-// Requires an ANTHROPIC_API_KEY secret before either of these do
-// anything real:
-//   firebase functions:secrets:set ANTHROPIC_API_KEY
-// then redeploy (`firebase deploy --only functions`). Until that's set,
-// both throw and the client-side callers in AppContext.jsx catch the
-// error and fall back to their existing local heuristics — nothing in
-// the app breaks, APEX just stays on keyword-matching until the key
-// exists.
+// Requires ANTHROPIC_API_KEY to be set as a runtime env var (see
+// .env.zach-mcivor-pt-app in this directory — NOT committed to git) before
+// either of these do anything real. Until it's a genuine key, both throw
+// and the client-side callers in AppContext.jsx catch the error and fall
+// back to their existing local heuristics — nothing in the app breaks,
+// APEX just stays on keyword-matching until a real key is in place.
 // ---------------------------------------------------------------------
-const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
 // Must match CLIENT_CONTEXT_CATEGORIES in src/lib/apexInsights.js — kept
@@ -369,6 +365,7 @@ const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 const CONTEXT_CATEGORIES = ["Training", "Lifestyle", "Nutrition", "Coaching Considerations", "Personal Preferences"];
 
 async function callClaude(apiKey, system, userText, maxTokens) {
+  if (!apiKey || apiKey === "not-configured-yet") throw new Error("ANTHROPIC_API_KEY isn't set yet");
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -400,7 +397,7 @@ async function requireCoach(uid) {
 // in SummaryPanel needs no changes either way. The model is explicitly
 // told to invent nothing beyond what the note says and to return an
 // empty array rather than reach for something to flag.
-exports.analyzeNoteContext = onCall({ secrets: [ANTHROPIC_API_KEY] }, async (request) => {
+exports.analyzeNoteContext = onCall(async (request) => {
   await requireCoach(request.auth?.uid);
   const text = (request.data?.text || "").trim();
   if (!text) return { items: [] };
@@ -416,7 +413,7 @@ Rules:
 
   let raw;
   try {
-    raw = await callClaude(ANTHROPIC_API_KEY.value(), system, text, 400);
+    raw = await callClaude(process.env.ANTHROPIC_API_KEY, system, text, 400);
   } catch (err) {
     throw new HttpsError("internal", err.message);
   }
@@ -441,7 +438,7 @@ Rules:
 // apexInsights.js already run before this is ever called) and given
 // nothing beyond the reasons array it's handed, so it cannot introduce a
 // fact, number, or cause the rule didn't already verify against real data.
-exports.phraseApexSuggestion = onCall({ secrets: [ANTHROPIC_API_KEY] }, async (request) => {
+exports.phraseApexSuggestion = onCall(async (request) => {
   await requireCoach(request.auth?.uid);
   const title = (request.data?.title || "").trim();
   const reasons = Array.isArray(request.data?.reasons) ? request.data.reasons.filter((r) => typeof r === "string") : [];
@@ -459,7 +456,7 @@ Rules:
 
   let suggestion;
   try {
-    suggestion = await callClaude(ANTHROPIC_API_KEY.value(), system, userText, 120);
+    suggestion = await callClaude(process.env.ANTHROPIC_API_KEY, system, userText, 120);
   } catch (err) {
     throw new HttpsError("internal", err.message);
   }
