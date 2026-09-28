@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp, getCurrentPhase, getNextPhase, needsNewPhaseSoon } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
@@ -347,7 +347,7 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
   );
 }
 
-export default function CoachClients({ showToast, search, setSearch }) {
+export default function CoachClients({ showToast, search, setSearch, openClientId, onOpenClientHandled }) {
   const { db, removeClient, startViewAsClient, setClientAccessPaused, usersReady: dbReady } = useApp();
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -361,6 +361,16 @@ export default function CoachClients({ showToast, search, setSearch }) {
     setSelectedId(id);
     setOpenAction(action);
   }
+
+  // A caller outside this tab (e.g. "Review Client" on an APEX Insight in
+  // Coach Overview) asked to jump straight into one specific client rather
+  // than landing on the roster list — open it the same way a row click
+  // would, then tell the parent it's been handled so this doesn't re-fire.
+  useEffect(() => {
+    if (!openClientId) return;
+    openClient(openClientId);
+    onOpenClientHandled?.();
+  }, [openClientId]);
   const [checkedIds, setCheckedIds] = useState(() => new Set());
   const [confirmRemove, setConfirmRemove] = useState(false);
   // Single-row "Remove client" (the desktop table's ... dropdown) used to

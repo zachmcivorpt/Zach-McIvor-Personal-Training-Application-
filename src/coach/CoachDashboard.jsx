@@ -465,7 +465,7 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
   );
 }
 
-export default function CoachDashboard({ onNavigate, showToast }) {
+export default function CoachDashboard({ onNavigate, onOpenClient, showToast }) {
   const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
@@ -924,8 +924,10 @@ export default function CoachDashboard({ onNavigate, showToast }) {
         sendMessage={sendMessage}
         showToast={showToast}
         onReviewClient={() => {
+          const clientId = viewingApexAlert?.client.id;
           setViewingApexAlert(null);
-          onNavigate("clients");
+          if (onOpenClient) onOpenClient(clientId);
+          else onNavigate("clients");
         }}
         onDismiss={() => {
           dismissAlert(viewingApexAlert.id);

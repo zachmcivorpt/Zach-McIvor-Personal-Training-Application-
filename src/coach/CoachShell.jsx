@@ -84,6 +84,15 @@ export default function CoachShell() {
   const [clientSearch, setClientSearch] = useState("");
   const [toast, setToast] = useState({ show: false, message: "" });
   const [notifOpen, setNotifOpen] = useState(false);
+  // Set when something outside the Clients tab (e.g. "Review Client" on an
+  // APEX Insight) needs to jump straight into one specific client's detail
+  // view rather than just landing on the roster list.
+  const [pendingClientId, setPendingClientId] = useState(null);
+
+  function openClient(clientId) {
+    setPendingClientId(clientId);
+    setTab("clients");
+  }
 
   const notifications = db.notifications || [];
   const unreadNotifCount = notifications.filter((n) => !n.read).length;
@@ -184,8 +193,16 @@ export default function CoachShell() {
 
       {/* main content */}
       <div className="flex-1 min-w-0 pt-14 pb-16 md:pt-0 md:pb-0">
-        {tab === "dashboard" && <CoachDashboard onNavigate={setTab} showToast={showToast} />}
-        {tab === "clients" && <CoachClients showToast={showToast} search={clientSearch} setSearch={setClientSearch} />}
+        {tab === "dashboard" && <CoachDashboard onNavigate={setTab} onOpenClient={openClient} showToast={showToast} />}
+        {tab === "clients" && (
+          <CoachClients
+            showToast={showToast}
+            search={clientSearch}
+            setSearch={setClientSearch}
+            openClientId={pendingClientId}
+            onOpenClientHandled={() => setPendingClientId(null)}
+          />
+        )}
         {tab === "programs" && <CoachPrograms showToast={showToast} />}
         {tab === "library" && <CoachLibrary showToast={showToast} />}
         {tab === "challenges" && <CoachChallenges showToast={showToast} />}
