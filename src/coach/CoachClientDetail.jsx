@@ -1222,7 +1222,13 @@ function CalendarPanel({ client, showToast }) {
     const scheduledThisMonth = scheduledWorkouts.filter(
       (w) => w.date.startsWith(monthPrefix) && (!isCurrentMonth || w.date <= todayStr)
     );
-    const trainingCompleted = scheduledThisMonth.filter((w) => completedWorkoutsByDate[w.date]).length;
+    // A log only fulfills a SCHEDULED day if it's actually that day's
+    // workout (dayLabel matches) — logging a different session on a
+    // scheduled day (e.g. Pull Day on a day scheduled as Leg Day) doesn't
+    // count as that day being completed, same identity check the client's
+    // own Home screen already uses to decide whether today's scheduled
+    // workout still needs doing.
+    const trainingCompleted = scheduledThisMonth.filter((w) => completedWorkoutsByDate[w.date]?.dayLabel === w.label).length;
 
     let habitExpected = 0;
     let habitCompleted = 0;
@@ -1258,16 +1264,28 @@ function CalendarPanel({ client, showToast }) {
     const items = [];
     const completedLog = completedWorkoutsByDate[dateStr];
     const w = workoutsByDate[dateStr];
+    // A log only fulfills what was SCHEDULED that day if it's actually
+    // that day's workout (dayLabel matches the scheduled label) — the same
+    // identity check the client's own Home screen uses. Logging a
+    // different session on a scheduled day (e.g. Pull Day on a day
+    // scheduled as Leg Day) used to show up here as "Leg Day — completed"
+    // using the scheduled name instead of what was really done.
+    const matchesScheduled = !!(w && completedLog && completedLog.dayLabel === w.label);
     if (w) {
       items.push({
         type: "workout",
         label: w.label,
-        done: !!completedLog,
-        log: completedLog,
-        category: completedLog?.cardio ? "cardio" : "workout",
-        key: completedLog ? `log:${completedLog.id}` : `sched:${dateStr}`,
+        done: matchesScheduled,
+        log: matchesScheduled ? completedLog : null,
+        category: matchesScheduled && completedLog.cardio ? "cardio" : "workout",
+        key: matchesScheduled ? `log:${completedLog.id}` : `sched:${dateStr}`,
       });
-    } else if (completedLog) {
+    }
+    // A completed workout that doesn't match what was scheduled that day
+    // (a different day's session logged instead, or nothing was scheduled
+    // at all) still shows up — as its own item, under its own real label,
+    // never borrowing the scheduled day's name for something else.
+    if (completedLog && !matchesScheduled) {
       items.push({
         type: "workout",
         label: completedLog.dayLabel || "Workout Completed",
