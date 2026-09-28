@@ -1,0 +1,261 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isCoach() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "coach";
+    }
+
+    function ownsClientId(clientId) {
+      return isSignedIn() && request.auth.uid == clientId;
+    }
+
+    // --- users/{uid} -------------------------------------------------
+    match /users/{userId} {
+      allow read: if isCoach() || (isSignedIn() && request.auth.uid == userId);
+
+      // Every account (coach or client) creates its OWN doc, right after
+      // Firebase Auth confirms the credential. The coach can ALSO create
+      // a doc for any userId directly — this is what lets a coach save
+      // Personal Details/tags/nutrition targets for a client who hasn't
+      // activated yet: that first save is a Firestore "create" (there's
+      // no existing users/{email} doc for a still-pending invite), and
+      // without this the coach's own write was rejected outright with
+      // "Missing or insufficient permissions."
+      allow create: if isCoach() ||
+        (isSignedIn() && request.auth.uid == userId &&
+          (
+            // Creating the coach account: only ever allowed once, ever.
+            (request.resource.data.role == "coach" &&
+              (!exists(/databases/$(database)/documents/settings/appMeta) ||
+               get(/databases/$(database)/documents/settings/appMeta).data.hasCoach != true))
+            ||
+            // Creating a client account: only if a matching invite exists.
+            (request.resource.data.role == "client" &&
+              exists(/databases/$(database)/documents/invites/$(request.resource.data.email)))
+          )
+        );
+
+      // Coach can edit anyone. A client can edit their own profile fields
+      // but never change their own role.
+      allow update: if isCoach() ||
+        (isSignedIn() && request.auth.uid == userId &&
+         request.resource.data.role == resource.data.role);
+
+      allow delete: if isCoach();
+    }
+
+    // --- invites/{email} ----------------------------------------------
+    match /invites/{email} {
+      // Looking up ONE invite by its known email (pre-auth activation) is
+      // fine — but browsing the full list is coach-only.
+      allow get: if true;
+      allow list: if isCoach();
+      allow create, update: if isCoach();
+      // Coach can cancel any invite; a freshly-activated client can clean
+      // up their own now-used invite (their new profile's email must
+      // match this invite's id).
+      allow delete: if isCoach() ||
+        (isSignedIn() &&
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == email);
+    }
+
+    // --- settings/appMeta, settings/welcomeMessage ---------------------
+    match /settings/appMeta {
+      // Public so the login screen can tell "no coach yet" from "signed
+      // in as who?" before anyone is authenticated.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    match /settings/welcomeMessage {
+      // Readable pre-auth too, so a brand new client's auto-welcome
+      // message can be sent the moment their account is created.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    match /settings/coachProfile {
+      // Public mirror of the coach's name/avatar — lets a client's app
+      // (e.g. the chat bubble) show who their coach is without needing
+      // broad read access to the users collection. Kept in sync
+      // automatically whenever the coach's own profile changes.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    match /settings/appDesign {
+      // Coach-customizable branding (login background photo, app logo).
+      // Public so the login screen can load the background before anyone
+      // signs in.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    // --- shared library data: any signed-in user reads, coach writes ---
+    match /exercises/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /programs/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /masterWorkouts/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /masterMeals/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /customFoods/{id} {
+      allow read: if isSignedIn();
+      // Any signed-in client can add a food discovered via barcode lookup
+      // (manual entry when a scan/lookup comes up empty) so it's saved for
+      // next time — only the coach can edit or remove library entries.
+      allow create: if isSignedIn();
+      allow update, delete: if isCoach();
+    }
+    match /habitPresets/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+    match /forms/{id} {
+      allow read: if isSignedIn();
+      allow write: if isCoach();
+    }
+
+    // --- per-client data: coach reads/writes all, client reads/writes
+    //     only their own (matched by the clientId field on each doc) ---
+    match /workoutLogs/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /weighIns/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /nutritionLogs/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /bodyMetrics/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /mealPlans/{id} {
+      // Doc id == clientId. Only the coach creates/deletes a plan; a
+      // client may update() their own doc (used by the "swap this meal"
+      // feature) but can never reassign it to a different clientId.
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create, delete: if isCoach();
+      allow update: if isCoach() ||
+        (isSignedIn() && resource.data.clientId == request.auth.uid && request.resource.data.clientId == resource.data.clientId);
+    }
+    match /scheduledWorkouts/{id} {
+      // A client can drag-reschedule their own calendar (create the moved
+      // copy + delete the original), same as the coach already could.
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /bodyStatsSchedules/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /messages/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach();
+    }
+    // --- workoutComments/{id}: the per-workout comment thread shown from
+    //     a completed workout's "..." menu — both the coach and that
+    //     workout's own client can read/post; only the coach can edit or
+    //     delete an entry (mirrors messages). ---
+    match /workoutComments/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach();
+    }
+    match /progressPhotos/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /savedMeals/{id} {
+      // "My Meals" is each client's own personal saved-meal list — not a
+      // shared library, so read is scoped to the creating client (or the
+      // coach, who can see every client's), same as progressPhotos.
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /habits/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+    }
+    match /clientPhases/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow write: if isCoach();
+    }
+    match /formSchedules/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow write: if isCoach();
+    }
+    match /formResponses/{id} {
+      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach();
+    }
+
+    // --- clientNotes: private trainer notes. The client app never reads
+    //     this collection — keep it that way at the rules level too. ---
+    match /clientNotes/{id} {
+      allow read, write: if isCoach();
+    }
+
+    // --- clientContext: structured client context, either entered by the
+    //     coach directly or approved by the coach from an APEX-detected
+    //     suggestion on a note. Same private-to-coach exposure as
+    //     clientNotes above — the client app never reads it. ---
+    match /clientContext/{id} {
+      allow read, write: if isCoach();
+    }
+
+    // --- habitLog/{clientId}: doc id IS the client's uid --------------
+    match /habitLog/{clientId} {
+      allow read, write: if isCoach() || ownsClientId(clientId);
+    }
+
+    // --- notifications/{id}: coach-facing alerts (e.g. a client updated
+    //     their preferences). A client can create one about themselves,
+    //     but never read the list back or edit/delete one. ---
+    match /notifications/{id} {
+      allow read: if isCoach();
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach();
+    }
+
+    // --- challenges/{id}: coach creates/manages; a client can read one
+    //     only while they're listed as a participant. ---
+    match /challenges/{id} {
+      allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.participantIds);
+      allow write: if isCoach();
+    }
+  }
+}
