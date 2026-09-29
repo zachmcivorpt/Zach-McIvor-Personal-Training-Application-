@@ -52,12 +52,38 @@ function codeVariants(code) {
   return [...new Set(variants)];
 }
 
+// Fires every code variant's lookup at once instead of one-after-another —
+// a UPC-A scan needing its zero-padded EAN-13 form (the common case for
+// most US-origin products, since that's how Open Food Facts catalogues
+// them) used to pay for two full network round-trips in sequence before
+// resolving. Running them in parallel means the total wait is however long
+// the SLOWEST variant takes, not the sum of all of them, since the first
+// one to come back with an actual product wins immediately rather than
+// waiting for a previous attempt to fail first.
+async function fetchFirstMatch(variants) {
+  return new Promise((resolve) => {
+    let pending = variants.length;
+    let settled = false;
+    variants.forEach((variant) => {
+      fetchProduct(variant).then((product) => {
+        if (settled) return;
+        if (product) {
+          settled = true;
+          resolve(product);
+          return;
+        }
+        pending -= 1;
+        if (pending === 0 && !settled) {
+          settled = true;
+          resolve(null);
+        }
+      });
+    });
+  });
+}
+
 export async function lookupBarcode(code) {
-  let product = null;
-  for (const variant of codeVariants(code)) {
-    product = await fetchProduct(variant);
-    if (product) break;
-  }
+  const product = await fetchFirstMatch(codeVariants(code));
 
   if (!product) {
     const digits = String(code).replace(/\D/g, "");

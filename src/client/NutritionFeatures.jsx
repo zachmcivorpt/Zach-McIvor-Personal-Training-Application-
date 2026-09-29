@@ -336,9 +336,14 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       // turns up next, per the "clear feedback when detected" requirement.
       setDetectedCode(decodedText.replace(/\D/g, ""));
       setStatus("detected");
+      // Just long enough to register as a deliberate "got it" beat, not a
+      // pause — every extra ms here is dead time tacked onto every single
+      // scan before the lookup even starts. 250ms used to be spent doing
+      // nothing; a real product lookup (or an instant hit off the local
+      // food library) can easily finish before a slower flash would have.
       setTimeout(() => {
         if (!cancelled) resolveCode(decodedText);
-      }, 250);
+      }, 120);
     }
 
     // A bigger box is both easier to line a barcode up in (less fiddly
@@ -349,7 +354,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     // much wider than it is tall, so the box follows that ratio rather
     // than being square.
     const scanConfig = {
-      fps: 25,
+      fps: 30,
       qrbox: (viewfinderWidth, viewfinderHeight) => {
         const width = Math.round(Math.min(340, viewfinderWidth * 0.9));
         const height = Math.round(Math.min(viewfinderHeight * 0.55, width * 0.5));
