@@ -44,6 +44,33 @@ async function fetchProduct(code, timeoutMs = 8000) {
 // zero-padded and leading-zero-stripped variants before giving up — this
 // alone recovers a meaningful share of "not found" results that are
 // actually a formatting mismatch, not a missing product.
+// In-store scale barcodes — printed at the deli/meat/produce counter for a
+// randomly-weighed item — use GS1's "restricted circulation number" range
+// (a 13-digit EAN starting with "2", the convention Australian/NZ
+// supermarkets including IGA use for these). Unlike a real product barcode,
+// most of the digits after the store's item code aren't identity at all —
+// they're that day's price or weight baked into the barcode, per GS1
+// Australia's variable-measure item spec: digit 1 is the "2" flag, digits
+// 2-6 are the item's own code, and digits 7-12 are the variable
+// price/weight + a check digit that's different literally every time the
+// same product is weighed and re-printed.
+export function isVariableWeightBarcode(code) {
+  const digits = String(code).replace(/\D/g, "");
+  return digits.length === 13 && digits[0] === "2";
+}
+
+// The part of a variable-weight barcode that actually identifies the
+// product — just the "2" flag plus the 5-digit item code — so the SAME
+// deli item scanned on two different days (two different weights, two
+// completely different full barcodes) still resolves to the one saved
+// library entry instead of demanding a fresh manual entry every single
+// time. A normal product barcode is returned unchanged; there's nothing
+// variable in it to strip.
+export function stableBarcodeKey(code) {
+  const digits = String(code).replace(/\D/g, "");
+  return isVariableWeightBarcode(digits) ? digits.slice(0, 6) : digits;
+}
+
 function codeVariants(code) {
   const digits = String(code).replace(/\D/g, "");
   const variants = [digits];

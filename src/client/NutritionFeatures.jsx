@@ -3,7 +3,7 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG } from "../lib/foodDatabase";
-import { lookupBarcode } from "../lib/barcodeLookup";
+import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { matchesSearch } from "../lib/search";
@@ -268,12 +268,35 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   // then falls back to the real network lookup.
   async function resolveCode(code) {
     const digits = String(code).replace(/\D/g, "");
-    lookedUpCodeRef.current = digits;
+    // A deli/meat/produce scale barcode bakes that day's price or weight
+    // into the code itself — the SAME item comes out as a different full
+    // barcode every time it's weighed. Cache and re-look-up by just its
+    // stable store-item-code portion instead, or every purchase of the
+    // exact same product would miss the library and demand a fresh manual
+    // entry forever. A normal product barcode is unaffected — its "stable
+    // key" is just the whole code.
+    const cacheKey = stableBarcodeKey(digits);
+    lookedUpCodeRef.current = cacheKey;
     setCodeEntryOpen(false);
     setStatus("looking-up");
-    const known = (db.customFoods || []).find((f) => f.barcode === digits);
+    const known = (db.customFoods || []).find((f) => f.barcode === cacheKey);
     if (known) {
       onAdd({ ...known, per: known.per ?? 100, defaultQty: known.defaultQty ?? 100 });
+      return;
+    }
+    if (isVariableWeightBarcode(digits)) {
+      // This exact code will never be a real Open Food Facts product —
+      // it's store-specific and different every time it's printed — so
+      // skip the network round-trip that can only ever come back empty
+      // and go straight to manual entry, saved under the stable key above
+      // so this same deli item is a one-time entry, not a repeat chore.
+      if (closedRef.current) return;
+      setError(
+        `Barcode scanned: ${digits}\nThis looks like an in-store scale label (deli/meat/produce) — add its nutrition once below and it'll be remembered next time you scan this item.`
+      );
+      setErrorDetail("");
+      setManual({ name: "", cals: "", protein: "", carbs: "", fat: "" });
+      setStatus("not-found");
       return;
     }
     try {
@@ -289,7 +312,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       // `off_<code>` id first so createFood mints a real Firestore id instead
       // of writing under a mismatched one.
       const { id: _offId, ...foodData } = food;
-      const saved = createFood({ ...foodData, barcode: digits });
+      const saved = createFood({ ...foodData, barcode: cacheKey });
       if (closedRef.current) return;
       onAdd(saved);
     } catch (err) {
