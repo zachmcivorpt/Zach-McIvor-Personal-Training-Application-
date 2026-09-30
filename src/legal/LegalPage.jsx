@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import { Logo } from "../components/ui";
+import { MARK_BLACK } from "../lib/brand";
 import { LEGAL_DOCS, LEGAL_CONTACT } from "./legalContent";
 
 const NAV = [
@@ -37,7 +37,14 @@ export default function LegalPage() {
         >
           <ChevronLeft size={18} /> Back
         </button>
-        <Logo variant="mark" tone="black" className="w-8 h-8 mb-6" />
+        {/* Always the default APEX mark — deliberately NOT the shared Logo
+            component, which lets a coach override the brand image
+            everywhere else in the app. A legal document has to keep
+            showing who actually operates the platform regardless of
+            whatever a coach uploads in Design Settings, so this is
+            hardcoded to the static asset with no Firestore/customization
+            path at all. */}
+        <img src={MARK_BLACK} alt="APEX Coaching Platform" className="w-8 h-8 mb-6" draggable={false} />
         <h1 className="text-black text-2xl font-bold mb-1">{doc.title}</h1>
         <p className="text-black/40 text-sm mb-6">APEX Coaching Platform — effective {doc.effectiveDate}</p>
 
