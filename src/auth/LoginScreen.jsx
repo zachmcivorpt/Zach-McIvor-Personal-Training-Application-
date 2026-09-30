@@ -177,7 +177,7 @@ export default function LoginScreen() {
   const showCoachSignup = role === "coach" && !hasCoach;
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden bg-[#0A0A0B]">
+    <div className="min-h-dvh w-full relative overflow-hidden bg-[#0A0A0B]">
       {/* Background — plain black by default, so the logo reads clean and
           sharp. Coach-customizable via Settings -> Design Settings
           (db.appDesign.loginBackgroundUrl), a photo OR a short looping
@@ -213,7 +213,7 @@ export default function LoginScreen() {
       ) : null}
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
 
-      <div className="relative min-h-screen w-full flex flex-col px-6 py-8">
+      <div className="relative min-h-dvh w-full flex flex-col px-6 py-8">
         <div className="flex justify-center pt-2">
           <Logo variant="mark" tone="white" className="h-14 w-auto" />
         </div>

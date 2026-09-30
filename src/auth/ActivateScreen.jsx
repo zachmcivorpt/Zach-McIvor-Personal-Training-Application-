@@ -45,7 +45,7 @@ export default function ActivateScreen() {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0A0A0B] px-6">
+    <div className="min-h-dvh w-full flex flex-col items-center justify-center bg-[#0A0A0B] px-6">
       <div className="w-full max-w-sm">
         <Link to="/login" className="flex items-center gap-1 text-white/40 text-sm mb-8">
           <ChevronLeft size={16} /> Back to sign in
