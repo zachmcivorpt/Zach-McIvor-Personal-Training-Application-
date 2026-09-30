@@ -18,6 +18,9 @@ import {
   User,
   Palette,
   Image as ImageIcon,
+  ZoomIn,
+  ZoomOut,
+  Check,
 } from "lucide-react";
 
 // Small on/off row shared by the two per-type notification toggles — same
@@ -278,6 +281,135 @@ function DesignAssetRow({
   );
 }
 
+const CROP_FRAME = 280; // on-screen square crop frame, in px
+const CROP_OUTPUT = 1024; // exported square canvas, in px
+
+// Lets a coach pan and zoom their uploaded logo within a square frame before
+// it's saved. The most common reason an uploaded mark "comes out too small"
+// is a source file with a lot of empty padding baked in around it — the
+// logo ends up occupying a small fraction of its own canvas everywhere the
+// app displays it. This gives direct control to scale the mark up and
+// recenter it so it actually fills the frame, instead of only being able to
+// upload the file exactly as exported.
+function LogoCropModal({ file, onCancel, onDone }) {
+  const [imgEl, setImgEl] = useState(null);
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef(null);
+  const objectUrlRef = useRef(null);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    objectUrlRef.current = url;
+    const img = new Image();
+    img.onload = () => setImgEl(img);
+    img.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  // "Cover" scale — the smallest scale that still fills the whole square
+  // frame with no gaps — so zoom starts at a fully-filled frame rather than
+  // a small image floating in empty space.
+  const baseScale = imgEl ? Math.max(CROP_FRAME / imgEl.width, CROP_FRAME / imgEl.height) : 1;
+  const dispW = imgEl ? imgEl.width * baseScale * zoom : 0;
+  const dispH = imgEl ? imgEl.height * baseScale * zoom : 0;
+
+  function clamp(o, w, h) {
+    const minX = Math.min(0, CROP_FRAME - w);
+    const minY = Math.min(0, CROP_FRAME - h);
+    return { x: Math.min(0, Math.max(minX, o.x)), y: Math.min(0, Math.max(minY, o.y)) };
+  }
+
+  function onPointerDown(e) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origin: offset };
+  }
+  function onPointerMove(e) {
+    if (!dragRef.current) return;
+    const { startX, startY, origin } = dragRef.current;
+    setOffset(clamp({ x: origin.x + (e.clientX - startX), y: origin.y + (e.clientY - startY) }, dispW, dispH));
+  }
+  function onPointerUp() {
+    dragRef.current = null;
+  }
+
+  function changeZoom(next) {
+    const clamped = Math.min(4, Math.max(1, next));
+    const newW = imgEl.width * baseScale * clamped;
+    const newH = imgEl.height * baseScale * clamped;
+    setZoom(clamped);
+    setOffset((o) => clamp(o, newW, newH));
+  }
+
+  function confirm() {
+    const canvas = document.createElement("canvas");
+    canvas.width = CROP_OUTPUT;
+    canvas.height = CROP_OUTPUT;
+    const ctx = canvas.getContext("2d");
+    const k = CROP_OUTPUT / CROP_FRAME;
+    ctx.drawImage(imgEl, offset.x * k, offset.y * k, dispW * k, dispH * k);
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      onDone(new File([blob], (file.name || "logo").replace(/\.\w+$/, "") + ".png", { type: "image/png" }));
+    }, "image/png");
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl p-5 w-full max-w-sm">
+        <p className="text-black font-semibold text-sm mb-1">Position your logo</p>
+        <p className="text-black/40 text-xs mb-4">Drag to reposition, use the slider to zoom in so it fills the frame</p>
+
+        <div
+          className="relative mx-auto rounded-xl overflow-hidden bg-black/[0.06] border border-black/10 touch-none select-none"
+          style={{ width: CROP_FRAME, height: CROP_FRAME }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
+        >
+          {imgEl && (
+            <img
+              src={objectUrlRef.current}
+              alt=""
+              draggable={false}
+              className="absolute top-0 left-0 pointer-events-none"
+              style={{ width: dispW, height: dispH, transform: `translate(${offset.x}px, ${offset.y}px)` }}
+            />
+          )}
+        </div>
+
+        <div className="flex items-center gap-2.5 mt-4">
+          <ZoomOut size={15} className="text-black/30 shrink-0" />
+          <input
+            type="range"
+            min={1}
+            max={4}
+            step={0.01}
+            value={zoom}
+            onChange={(e) => changeZoom(Number(e.target.value))}
+            className="flex-1 accent-blue-500"
+          />
+          <ZoomIn size={15} className="text-black/30 shrink-0" />
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <button onClick={onCancel} className="flex-1 bg-black/5 border border-black/10 text-black text-sm font-semibold py-2.5 rounded-xl">
+            Cancel
+          </button>
+          <button
+            onClick={confirm}
+            disabled={!imgEl}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-blue-500 text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50"
+          >
+            <Check size={15} /> Use This
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Lets the coach customize the app's branding: the login screen's
 // background (a photo, or a short looping video), their own profile
 // picture, and the logo shown at the top of every page. Login background +
@@ -309,6 +441,10 @@ function DesignSettingsCard() {
   const [uploadingLogoLight, setUploadingLogoLight] = useState(false);
   const [logoLightProgress, setLogoLightProgress] = useState(0);
   const [error, setError] = useState("");
+  // A logo file goes through the crop/zoom modal first — see LogoCropModal —
+  // before it's actually uploaded, so a coach can scale it up to fill the
+  // frame rather than uploading it exactly as exported.
+  const [cropRequest, setCropRequest] = useState(null);
 
   // Cuts out a flat/solid background (a white canvas, a single brand
   // color) so the mark sits cleanly on the target surface instead of
@@ -441,7 +577,7 @@ function DesignSettingsCard() {
           iconClassName="text-white/25"
           uploading={uploadingLogoDark}
           progress={logoDarkProgress}
-          onUpload={(file) => handleLogoUpload("appLogoUrlOnDark", setUploadingLogoDark, setLogoDarkProgress, file)}
+          onUpload={(file) => setCropRequest({ field: "appLogoUrlOnDark", setUploading: setUploadingLogoDark, setProgress: setLogoDarkProgress, file })}
           onRemove={() => handleRemove("appLogoUrlOnDark")}
         />
 
@@ -453,12 +589,24 @@ function DesignSettingsCard() {
           aspectClassName="h-24"
           uploading={uploadingLogoLight}
           progress={logoLightProgress}
-          onUpload={(file) => handleLogoUpload("appLogoUrlOnLight", setUploadingLogoLight, setLogoLightProgress, file)}
+          onUpload={(file) => setCropRequest({ field: "appLogoUrlOnLight", setUploading: setUploadingLogoLight, setProgress: setLogoLightProgress, file })}
           onRemove={() => handleRemove("appLogoUrlOnLight")}
         />
       </div>
 
       {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-4">{error}</p>}
+
+      {cropRequest && (
+        <LogoCropModal
+          file={cropRequest.file}
+          onCancel={() => setCropRequest(null)}
+          onDone={(croppedFile) => {
+            const { field, setUploading, setProgress } = cropRequest;
+            setCropRequest(null);
+            handleLogoUpload(field, setUploading, setProgress, croppedFile);
+          }}
+        />
+      )}
     </Card>
   );
 }
