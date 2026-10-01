@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useApp } from "../lib/AppContext";
 import { TextInput, TextArea, Select, ExerciseThumb, FullScreenOverlay } from "../components/ui";
 import { X, Plus, GripVertical, Search, Video, Dumbbell, Link2, RefreshCw, Ungroup, Edit3, Play, Hand, Copy, Trash2 } from "lucide-react";
@@ -99,7 +100,6 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const [addCustomOpen, setAddCustomOpen] = useState(false);
   const [customForm, setCustomForm] = useState({ name: "", category: "", equipment: "Barbell" });
   const [dragIndex, setDragIndex] = useState(null);
-  const [overIndex, setOverIndex] = useState(null);
   const [draggingExerciseId, setDraggingExerciseId] = useState(null); // exercise being dragged in from the picker, or null
   const [dragPos, setDragPos] = useState(null); // { x, y } — pointer position while either drag is live, drives the floating ghost
   const [selected, setSelected] = useState(() => new Set());
@@ -107,6 +107,11 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const [addSection, setAddSection] = useState("main"); // which section new exercises from the picker land in
   const [editingExercise, setEditingExercise] = useState(null); // exercise being edited inline (name/video/etc.)
   const [saving, setSaving] = useState(false); // true while the in-flight save() write hasn't resolved yet
+  // While an exercise is being reordered, every row collapses to a compact
+  // one-line bar — on a phone a full exercise card is nearly a screen tall,
+  // so dragging one past others meant dragging blind across several
+  // screens. Compact, the whole workout fits on screen at once.
+  const [compact, setCompact] = useState(false);
   // Refs backing the two hold-then-drag gestures (row reorder + picker
   // insert) and their shared auto-scroll — declared unconditionally here,
   // above the `if (!open) return null` below, since this component stays
@@ -124,16 +129,18 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   const ghostRef = useRef(null);
   const lastPointerXRef = useRef(0);
   const lastPointerYRef = useRef(0);
-  const overIndexRef = useRef(null); // mirrors overIndex state for the rAF loop below, which can't read stale render-time state
-  const dragMetaRef = useRef(null); // { selfIndex } — the row being reordered, excluded from being its own drop target
+  // Everything about the live drag lives in this one ref and is applied to
+  // the DOM directly each animation frame — rows sliding out of the way,
+  // the lifted copy following the finger, auto-scroll — so a drag never
+  // re-renders this (large, image-heavy) editor until the drop itself.
+  const dragRef = useRef(null);
   const autoScrollRafRef = useRef(null);
   const gripPressRef = useRef(null); // { timer, startX, startY, index, fired }
   const pickerPressRef = useRef(null); // { timer, startX, startY, exerciseId, fired }
   const suppressPickerClickRef = useRef(false);
 
-  // Positions the ghost the instant it mounts (before paint, so there's no
-  // flash at the wrong spot) — every frame after that is handled by the
-  // rAF loop in startDragLoop() below, writing directly to the DOM.
+  // Positions the picker's floating pill the instant it mounts (before
+  // paint) — every frame after that is handled by the rAF loop below.
   useLayoutEffect(() => {
     if (ghostRef.current && dragPos) {
       ghostRef.current.style.left = `${dragPos.x}px`;
@@ -141,21 +148,109 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     }
   }, [dragPos]);
 
-  // Drives everything that needs to track the pointer continuously while
-  // either drag is live: moving the ghost, auto-scrolling the session list
-  // near its top/bottom edge, and figuring out which row is underneath.
-  // Runs once per animation frame off lastPointerXRef/YRef rather than once
-  // per raw pointermove event — pointermove can fire far more often than
-  // the screen actually repaints, and doing a DOM hit-test + setState on
-  // every single one of those was what made the drag feel laggy.
+  /* --------------------------------------------------------------------
+     DRAG ENGINE
+     Reorder: press the grip and move — the row lifts out (a copy follows
+     your finger) and the rows around it slide apart live to show exactly
+     where it will land. Insert from the picker: hold a card, drag it over
+     the session list, and a gap opens at the drop spot.
+
+     Positions are measured once at pickup (in the scroll pane's content
+     coordinates) and the slot is worked out from those, so the sliding
+     rows never feed back into the maths. Sections (warm-up / main / cool
+     down) render in their own blocks, so everything works in on-screen
+     order, and section headers slide along with the rows.
+  -------------------------------------------------------------------- */
+  function measureItems() {
+    const pane = leftPaneRef.current;
+    if (!pane) return [];
+    const paneTop = pane.getBoundingClientRect().top - pane.scrollTop;
+    return [...pane.querySelectorAll("[data-row-index],[data-drag-shift]")]
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        const idx = el.getAttribute("data-row-index");
+        return {
+          el,
+          index: idx == null ? null : Number(idx),
+          section: el.getAttribute("data-section") || "main",
+          top: r.top - paneTop,
+          height: r.height,
+          shift: 0,
+        };
+      })
+      .sort((a, b) => a.top - b.top);
+  }
+
+  // Which slot the pointer is over, from the pickup-time layout.
+  function computeSlot(d, contentY) {
+    const cands = d.items.filter((it) => it.index !== null && it.index !== d.fromIndex);
+    let k = 0;
+    while (k < cands.length && cands[k].top + cands[k].height / 2 < contentY) k++;
+    const prev = cands[k - 1] || null;
+    const next = cands[k] || null;
+    // Between two sections, the drop joins whichever neighbour the pointer
+    // is closer to — so the end of warm-up and the start of main are both
+    // reachable.
+    let joinPrev = !next;
+    if (prev && next && prev.section !== next.section) {
+      joinPrev = contentY - (prev.top + prev.height) < next.top - contentY;
+    }
+    if (!prev && !next) return { mode: "end", boundary: Infinity, section: d.ownSection || addSection };
+    if (joinPrev) return { mode: "after", afterIndex: prev.index, boundary: prev.top + prev.height + 0.5, section: prev.section };
+    return { mode: "before", beforeIndex: next.index, boundary: next.top, section: next.section };
+  }
+
+  function applyShifts(d, slot) {
+    for (const it of d.items) {
+      if (it.index !== null && it.index === d.fromIndex) continue;
+      let shift = 0;
+      if (slot) {
+        if (d.kind === "row") {
+          if (slot.boundary > d.fromTop) shift = it.top > d.fromTop && it.top < slot.boundary ? -d.gapH : 0;
+          else shift = it.top >= slot.boundary && it.top < d.fromTop ? d.gapH : 0;
+        } else {
+          shift = it.top >= slot.boundary ? d.gapH : 0;
+        }
+      }
+      if (shift !== it.shift) {
+        it.shift = shift;
+        it.el.style.transform = shift ? `translate3d(0, ${shift}px, 0)` : "";
+      }
+    }
+  }
+
+  function beginDrag(d) {
+    d.items = measureItems();
+    for (const it of d.items) {
+      it.el.style.transition = "transform 180ms cubic-bezier(0.2, 0, 0, 1)";
+      it.el.style.willChange = "transform";
+    }
+    // iOS decides whether a touch scrolls when it STARTS, so toggling
+    // touch-action mid-gesture isn't enough — a non-passive touchmove
+    // blocker is the only thing that reliably stops the page scrolling
+    // underneath an active drag.
+    d.blockScroll = (ev) => ev.cancelable && ev.preventDefault();
+    document.addEventListener("touchmove", d.blockScroll, { passive: false });
+    dragRef.current = d;
+    startDragLoop();
+  }
+
   function startDragLoop() {
     if (autoScrollRafRef.current) return;
-    const EDGE = 64;
+    const EDGE = 56;
     const step = () => {
+      const d = dragRef.current;
+      if (!d) {
+        autoScrollRafRef.current = null;
+        return;
+      }
       const x = lastPointerXRef.current;
       const y = lastPointerYRef.current;
 
-      if (ghostRef.current) {
+      if (d.kind === "row" && d.ghost) {
+        // Locked to vertical movement — it's a list, not a canvas.
+        d.ghost.style.transform = `translate3d(0, ${y - d.startY}px, 0) scale(1.02)`;
+      } else if (ghostRef.current) {
         ghostRef.current.style.left = `${x}px`;
         ghostRef.current.style.top = `${y}px`;
       }
@@ -163,56 +258,64 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       const pane = leftPaneRef.current;
       if (pane) {
         const rect = pane.getBoundingClientRect();
-        if (y < rect.top + EDGE && y >= rect.top - 20) pane.scrollTop -= (EDGE - (y - rect.top)) / 4;
-        else if (y > rect.bottom - EDGE && y <= rect.bottom + 20) pane.scrollTop += (EDGE - (rect.bottom - y)) / 4;
-      }
+        // Auto-scroll near the top/bottom edge, faster the closer you get.
+        if (y < rect.top + EDGE && y >= rect.top - 40) pane.scrollTop -= Math.ceil((EDGE - (y - rect.top)) / 5);
+        else if (y > rect.bottom - EDGE && y <= rect.bottom + 40) pane.scrollTop += Math.ceil((EDGE - (rect.bottom - y)) / 5);
 
-      const target = document.elementFromPoint(x, y);
-      const rowEl = target?.closest("[data-row-index]");
-      let overIdx = rowEl ? Number(rowEl.getAttribute("data-row-index")) : null;
-      if (overIdx !== null && overIdx === dragMetaRef.current?.selfIndex) overIdx = null;
-      if (overIdx !== overIndexRef.current) {
-        overIndexRef.current = overIdx;
-        setOverIndex(overIdx);
+        const overPane = x >= rect.left && x <= rect.right && y >= rect.top - 40 && y <= rect.bottom + 40;
+        const slot = d.kind === "row" || overPane ? computeSlot(d, y - rect.top + pane.scrollTop) : null;
+        d.slot = slot;
+        applyShifts(d, slot);
       }
-
       autoScrollRafRef.current = requestAnimationFrame(step);
     };
     autoScrollRafRef.current = requestAnimationFrame(step);
   }
-  function stopDragLoop() {
+
+  // Tears down everything the drag put on the DOM. Called right before the
+  // drop's state update, so React renders the new order in the same frame
+  // the rows snap back — no flicker.
+  function endDrag() {
+    const d = dragRef.current;
     if (autoScrollRafRef.current) {
       cancelAnimationFrame(autoScrollRafRef.current);
       autoScrollRafRef.current = null;
     }
-    overIndexRef.current = null;
-    dragMetaRef.current = null;
+    if (d) {
+      for (const it of d.items || []) {
+        it.el.style.transition = "";
+        it.el.style.transform = "";
+        it.el.style.willChange = "";
+      }
+      d.ghost?.remove();
+      if (d.blockScroll) document.removeEventListener("touchmove", d.blockScroll);
+      if (d.sourceEl) d.sourceEl.style.visibility = "";
+    }
+    dragRef.current = null;
+    return d;
   }
 
-  // Safety net: if a drag is ever left stuck active — most plausibly
-  // because iOS intercepted the touch sequence for its own UI (a native
-  // callout, the video "peek" preview, etc.) mid-gesture and never
-  // delivered the pointerup/pointercancel this editor was waiting for —
-  // the very next tap anywhere on the page clears it. A genuinely
-  // still-in-progress drag never produces a fresh pointerdown of its own
-  // (only pointermove/up/cancel do), so this can't interrupt a real one;
-  // it only recovers a lost one, instead of the editor staying stuck
-  // (frozen, unscrollable — both panes get touchAction:none while a drag
-  // is "active") until the coach reloads the page.
+  // Safety net: if iOS ever swallows the end of a touch mid-drag (a system
+  // gesture, a callout) and never sends pointerup/pointercancel, the very
+  // next tap anywhere clears it instead of leaving the editor frozen.
   useEffect(() => {
     if (dragIndex === null && draggingExerciseId === null) return;
     function recover() {
+      endDrag();
+      setCompact(false);
       setDragIndex(null);
       setDraggingExerciseId(null);
-      setOverIndex(null);
       setDragPos(null);
       gripPressRef.current = null;
       pickerPressRef.current = null;
-      stopDragLoop();
     }
     document.addEventListener("pointerdown", recover, true);
     return () => document.removeEventListener("pointerdown", recover, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dragIndex, draggingExerciseId]);
+
+  // Make sure nothing is left behind if the editor closes mid-drag.
+  useEffect(() => () => endDrag(), []);
 
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(
@@ -249,84 +352,141 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
       return [...r.slice(0, insertAt), newRestRow(addSection), ...r.slice(insertAt)];
     });
   }
-  function handleDrop(i) {
-    setRows((r) => {
-      if (dragIndex === null || dragIndex === i) return r;
-      const next = [...r];
-      const [moved] = next.splice(dragIndex, 1);
-      // Adopt the target row's section — otherwise dropping into a
-      // different section (e.g. warm-up onto main) moved the row in the
-      // underlying array but it kept rendering under its old section
-      // header, which looked like the drop had silently failed.
-      const targetSection = r[i]?.section || moved.section;
-      next.splice(dragIndex < i ? i - 1 : i, 0, { ...moved, section: targetSection });
-      return next;
-    });
-    setDragIndex(null);
-    setOverIndex(null);
+  // Where in the rows array a slot lands, once `fromIndex` (the row being
+  // moved, if any) has been taken out.
+  function slotToArrayIndex(slot, fromIndex, length) {
+    const adj = (i) => (fromIndex != null && i > fromIndex ? i - 1 : i);
+    if (slot.mode === "before") return adj(slot.beforeIndex);
+    if (slot.mode === "after") return adj(slot.afterIndex) + 1;
+    return length;
   }
-  // Built on Pointer Events rather than the HTML5 drag-and-drop API — that
-  // API is mouse-only and never fires from a touch gesture, which is why
-  // reordering exercises didn't work (or felt "difficult") on an iPad.
-  // Same pattern as the coach calendar's drag-drop: hold briefly on the
-  // grip handle (so a scroll swipe passing over it isn't mistaken for a
-  // drag — if it moves before the hold completes, this backs off and lets
-  // the scroll happen untouched), then move to the target row and release.
+
+  // Reorder grip. The grip itself never scrolls (touch-action: none), so
+  // there's no hold delay — it picks up as soon as the finger moves a few
+  // pixels, and the pointer is captured on press so a fast flick can't
+  // slip off the small handle and get lost.
   function gripPointerDown(e, i) {
     if (e.pointerType === "mouse" && e.button !== 0) return;
     e.stopPropagation();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const el = e.currentTarget;
-    const pointerId = e.pointerId;
-    const timer = setTimeout(() => {
-      if (!gripPressRef.current) return;
-      gripPressRef.current.fired = true;
-      dragMetaRef.current = { selfIndex: i };
-      lastPointerXRef.current = startX;
-      lastPointerYRef.current = startY;
-      setDragIndex(i);
-      setDragPos({ x: startX, y: startY });
-      try {
-        el.setPointerCapture(pointerId);
-      } catch {}
-      if (navigator.vibrate) navigator.vibrate(10);
-      startDragLoop();
-    }, 150);
-    gripPressRef.current = { timer, startX, startY, index: i, fired: false };
+    e.preventDefault();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+    const endAnywhere = () => gripPointerUp();
+    window.addEventListener("pointerup", endAnywhere, true);
+    window.addEventListener("pointercancel", endAnywhere, true);
+    gripPressRef.current = {
+      cleanup: () => {
+        window.removeEventListener("pointerup", endAnywhere, true);
+        window.removeEventListener("pointercancel", endAnywhere, true);
+      },
+      index: i,
+      startX: e.clientX,
+      startY: e.clientY,
+      handleEl: e.currentTarget,
+      fired: false,
+    };
   }
   function gripPointerMove(e) {
     const p = gripPressRef.current;
     if (!p) return;
-    if (!p.fired) {
-      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 8) {
-        clearTimeout(p.timer);
-        gripPressRef.current = null;
-      }
-      return;
-    }
     lastPointerXRef.current = e.clientX;
     lastPointerYRef.current = e.clientY;
+    if (p.fired) return;
+    if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) < 4) return;
+    p.fired = true;
+
+    const pane = leftPaneRef.current;
+    if (!pane) return;
+    const fingerY = e.clientY;
+    const movedRowId = rows[p.index]?.rowId;
+
+    // Collapse the list synchronously, then scroll so the picked-up row
+    // sits right under the finger — it never jumps away from your thumb.
+    flushSync(() => {
+      setCompact(true);
+      setDragIndex(p.index);
+    });
+    let rowEl = pane.querySelector(`[data-row-id="${movedRowId}"]`);
+    if (!rowEl) return;
+    let rect = rowEl.getBoundingClientRect();
+    pane.scrollTop += rect.top + rect.height / 2 - fingerY;
+    rect = rowEl.getBoundingClientRect();
+    const paneTop = pane.getBoundingClientRect().top - pane.scrollTop;
+
+    // The lifted copy that follows the finger.
+    const ghost = rowEl.cloneNode(true);
+    ghost.removeAttribute("data-row-index");
+    ghost.removeAttribute("data-row-id");
+    // Centred on the finger — at the very top/bottom of a list the pane
+    // can't always scroll far enough to bring the row itself there.
+    Object.assign(ghost.style, {
+      position: "fixed",
+      left: `${rect.left}px`,
+      top: `${fingerY - rect.height / 2}px`,
+      width: `${rect.width}px`,
+      margin: "0",
+      zIndex: "200",
+      pointerEvents: "none",
+      borderRadius: "14px",
+      boxShadow: "0 18px 40px -12px rgba(0,0,0,0.35), 0 0 0 2px rgba(59,130,246,0.6)",
+      transform: "translate3d(0,0,0) scale(1.03)",
+    });
+    document.body.appendChild(ghost);
+    rowEl.style.visibility = "hidden"; // its space becomes the moving gap
+
+    // Gap = the row's height plus the spacing to its neighbour.
+    let spacing = 8;
+    const sib = rowEl.nextElementSibling || rowEl.previousElementSibling;
+    if (sib) {
+      const sr = sib.getBoundingClientRect();
+      spacing = sr.top > rect.bottom ? sr.top - rect.bottom : rect.top - sr.bottom;
+      if (!(spacing >= 0 && spacing < 40)) spacing = 8;
+    }
+
+    if (navigator.vibrate) navigator.vibrate(8);
+    lastPointerYRef.current = fingerY;
+    beginDrag({
+      kind: "row",
+      fromIndex: p.index,
+      fromTop: rect.top - paneTop,
+      ownSection: rows[p.index]?.section || "main",
+      gapH: rect.height + spacing,
+      startY: fingerY,
+      ghost,
+      sourceEl: rowEl,
+      movedRowId,
+    });
   }
-  // Also wired as onPointerCancel — iOS occasionally cancels an in-progress
-  // pointer gesture rather than ending it with pointerup (an interruption,
-  // a system gesture stepping in). Without handling that too, dragIndex was
-  // left set forever: the row stayed dimmed and nothing else about the
-  // editor responded, which is exactly what read as the drag "playing up".
+  // Also wired as onPointerCancel.
   function gripPointerUp() {
     const p = gripPressRef.current;
-    if (p?.fired) {
-      const dropIndex = overIndexRef.current;
-      if (dropIndex !== null && dropIndex !== p.index) handleDrop(dropIndex);
-      else {
-        setDragIndex(null);
-        setOverIndex(null);
-      }
-    }
-    if (p?.timer) clearTimeout(p.timer);
     gripPressRef.current = null;
-    setDragPos(null);
-    stopDragLoop();
+    p?.cleanup?.();
+    if (!p?.fired) return;
+    const d = endDrag();
+    const slot = d?.slot;
+    if (slot) {
+      setRows((r) => {
+        const from = p.index;
+        if (!r[from]) return r;
+        const moved = r[from];
+        const next = r.filter((_, idx) => idx !== from);
+        const at = Math.max(0, Math.min(next.length, slotToArrayIndex(slot, from, r.length - 1)));
+        next.splice(at, 0, { ...moved, section: slot.section || moved.section });
+        return next;
+      });
+      setSelected(new Set());
+    }
+    setDragIndex(null);
+    setCompact(false);
+    // After the full cards are back, keep the exercise you just moved on
+    // screen rather than leaving you wherever the expanded list ends up.
+    const movedId = d?.movedRowId;
+    requestAnimationFrame(() => {
+      const el = movedId && leftPaneRef.current?.querySelector(`[data-row-id="${movedId}"]`);
+      el?.scrollIntoView({ block: "center" });
+    });
   }
   function toggleSelected(i) {
     setSelected((s) => {
@@ -361,12 +521,6 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     setRows((r) => [...r, newRow(exerciseId, addSection)]);
     setMobilePanel("editor");
   }
-  function insertExerciseAt(i, exerciseId) {
-    setRows((r) => {
-      const section = r[i]?.section || addSection;
-      return [...r.slice(0, i), newRow(exerciseId, section), ...r.slice(i)];
-    });
-  }
   // Same hold-then-drag pattern as the row-reorder grip handle, applied to
   // a whole exercise card in the picker — a plain tap still adds it to the
   // end of whichever section is selected under "ADDING TO" (the existing
@@ -378,32 +532,47 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     const startY = e.clientY;
     const el = e.currentTarget;
     const pointerId = e.pointerId;
-    const timer = setTimeout(() => {
-      if (!pickerPressRef.current) return;
-      pickerPressRef.current.fired = true;
-      dragMetaRef.current = { selfIndex: null };
-      lastPointerXRef.current = startX;
-      lastPointerYRef.current = startY;
-      setDraggingExerciseId(exerciseId);
-      setDragPos({ x: startX, y: startY });
+    // Mouse can capture straight away (no scrolling to protect); touch has
+    // to wait out the hold so a normal swipe still scrolls the picker.
+    if (e.pointerType === "mouse") {
       try {
         el.setPointerCapture(pointerId);
       } catch {}
-      if (navigator.vibrate) navigator.vibrate(10);
-      startDragLoop();
-    }, 150);
-    pickerPressRef.current = { timer, startX, startY, exerciseId, fired: false };
+    }
+    const timer = setTimeout(() => {
+      const p = pickerPressRef.current;
+      if (!p) return;
+      p.fired = true;
+      lastPointerXRef.current = p.lastX ?? startX;
+      lastPointerYRef.current = p.lastY ?? startY;
+      try {
+        el.setPointerCapture(pointerId);
+      } catch {}
+      if (navigator.vibrate) navigator.vibrate(8);
+      setDraggingExerciseId(exerciseId);
+      setDragPos({ x: lastPointerXRef.current, y: lastPointerYRef.current });
+      beginDrag({ kind: "picker", fromIndex: null, gapH: 72, exerciseId });
+    }, e.pointerType === "mouse" ? 120 : 220);
+    pickerPressRef.current = { timer, startX, startY, exerciseId, fired: false, mouse: e.pointerType === "mouse" };
   }
   function pickerPointerMove(e) {
     const p = pickerPressRef.current;
     if (!p) return;
+    p.lastX = e.clientX;
+    p.lastY = e.clientY;
     if (!p.fired) {
-      // A picker card is a whole thumbnail-sized touch target, not a small
-      // precise grip icon — a thumb resting on it naturally drifts more
-      // during the hold than a fingertip pressing a tiny handle, so this
-      // needs a bit more slack than the grip's 8px before it decides "that
-      // was a scroll" and silently cancels with no feedback at all.
-      if (Math.hypot(e.clientX - p.startX, e.clientY - p.startY) > 12) {
+      // Mouse: moving starts the drag right away. Touch: moving before the
+      // hold completes means "scroll", so back off.
+      const dist = Math.hypot(e.clientX - p.startX, e.clientY - p.startY);
+      if (p.mouse && dist > 5) {
+        clearTimeout(p.timer);
+        p.fired = true;
+        lastPointerXRef.current = e.clientX;
+        lastPointerYRef.current = e.clientY;
+        setDraggingExerciseId(p.exerciseId);
+        setDragPos({ x: e.clientX, y: e.clientY });
+        beginDrag({ kind: "picker", fromIndex: null, gapH: 72, exerciseId: p.exerciseId });
+      } else if (!p.mouse && dist > 12) {
         clearTimeout(p.timer);
         pickerPressRef.current = null;
       }
@@ -414,17 +583,21 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
   }
   function pickerPointerUp() {
     const p = pickerPressRef.current;
+    pickerPressRef.current = null;
+    if (p?.timer) clearTimeout(p.timer);
     if (p?.fired) {
       suppressPickerClickRef.current = true;
-      const dropIndex = overIndexRef.current;
-      if (dropIndex !== null) insertExerciseAt(dropIndex, p.exerciseId);
+      const d = endDrag();
+      const slot = d?.slot;
+      if (slot) {
+        setRows((r) => {
+          const at = Math.max(0, Math.min(r.length, slotToArrayIndex(slot, null, r.length)));
+          return [...r.slice(0, at), newRow(p.exerciseId, slot.section || addSection), ...r.slice(at)];
+        });
+      }
     }
-    if (p?.timer) clearTimeout(p.timer);
-    pickerPressRef.current = null;
     setDraggingExerciseId(null);
-    setOverIndex(null);
     setDragPos(null);
-    stopDragLoop();
   }
   function pickerCardClick(exerciseId) {
     if (suppressPickerClickRef.current) {
@@ -644,7 +817,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                 return (
                   <div key={section.key} className="mb-6">
                     {rows.some((r) => (r.section || "main") !== "main") && (
-                      <div className="flex items-center justify-between mb-2">
+                      <div data-drag-shift className="flex items-center justify-between mb-2">
                         <p className="text-black/40 text-[11px] font-bold tracking-wide">
                           {section.label.toUpperCase()} {sectionRows.length > 0 && `(${sectionRows.length})`}
                         </p>
@@ -661,17 +834,35 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                           const ex = row.isRest ? null : exercisesById[row.exerciseId];
                           const GroupIcon = row.groupType ? GROUP_ICONS[row.groupType] : null;
                           return (
-                            <div
-                              key={row.rowId}
-                              data-row-index={i}
-                              className={
-                                overIndex === i && dragIndex !== null && dragIndex !== i
-                                  ? "border-t-2 border-black/40"
-                                  : overIndex === i && draggingExerciseId !== null
-                                  ? "border-t-2 border-blue-400"
-                                  : ""
-                              }
-                            >
+                            <div key={row.rowId} data-row-index={i} data-row-id={row.rowId} data-section={row.section || "main"}>
+                              {compact && (
+                                <div
+                                  className={`select-none flex items-center gap-3 rounded-xl border px-3 py-2 ${
+                                    row.isRest ? "bg-orange-50 border-orange-200" : "bg-white border-black/10"
+                                  }`}
+                                >
+                                  <GripVertical size={18} className="text-black/35 shrink-0" />
+                                  {row.isRest ? (
+                                    <div className="w-9 h-9 rounded-lg bg-orange-400 flex items-center justify-center shrink-0">
+                                      <Hand size={14} className="text-white" />
+                                    </div>
+                                  ) : (
+                                    <ExerciseThumb exercise={ex} size={36} rounded="rounded-lg" />
+                                  )}
+                                  <p className="text-black font-semibold text-sm truncate flex-1 min-w-0">
+                                    {row.isRest ? `Rest · ${formatRest(row.restSeconds ?? 90)}` : ex?.name || "Unknown exercise"}
+                                  </p>
+                                  {!row.isRest && (
+                                    <span className="text-black/35 text-xs shrink-0">
+                                      {row.targetSets ?? 3} × {row.targetReps ?? 10}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {/* Full card stays mounted (just hidden) in compact mode — the
+                                  grip being held lives in here, and unmounting it mid-drag
+                                  made the browser lose the finger entirely. */}
+                              <div className={compact ? "hidden" : undefined}>
                               {row.groupType && (
                                 <div className="flex items-center gap-1.5 mt-2 mb-1">
                                   <GroupIcon size={11} className="text-black/50" />
@@ -685,7 +876,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                               {row.isRest ? (
                                 <div
                                   className={`select-none flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
-                                    dragIndex === i ? "opacity-40" : "bg-amber-50 border border-amber-200/70"
+                                    "bg-amber-50 border border-amber-200/70"
                                   }`}
                                   style={{ WebkitTouchCallout: "none" }}
                                 >
@@ -711,15 +902,15 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     onPointerUp={gripPointerUp}
                                     onPointerCancel={gripPointerUp}
                                     style={{ touchAction: "none", WebkitTouchCallout: "none" }}
-                                    className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing"
+                                    className="text-black/30 hover:text-black/60 shrink-0 cursor-grab active:cursor-grabbing p-2.5 -m-2.5 rounded-lg active:bg-black/5"
                                   >
-                                    <GripVertical size={16} />
+                                    <GripVertical size={18} />
                                   </div>
                                 </div>
                               ) : (
                                 <div
                                   className={`select-none bg-black/[0.03] border rounded-2xl p-3.5 md:rounded-xl md:py-2 md:px-2 transition-colors md:grid md:grid-cols-[20px_2.2fr_56px_200px_0.85fr_92px_20px] md:gap-3 md:items-center ${
-                                    dragIndex === i ? "opacity-40" : "border-black/8"
+                                    "border-black/8"
                                   }`}
                                   style={{ WebkitTouchCallout: "none" }}
                                 >
@@ -743,9 +934,9 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                       onPointerUp={gripPointerUp}
                                       onPointerCancel={gripPointerUp}
                                       style={{ touchAction: "none", WebkitTouchCallout: "none" }}
-                                      className="text-black/25 hover:text-black/50 shrink-0 cursor-grab active:cursor-grabbing md:hidden"
+                                      className="text-black/30 hover:text-black/60 shrink-0 cursor-grab active:cursor-grabbing md:hidden p-2.5 -m-2.5 rounded-lg active:bg-black/5"
                                     >
-                                      <GripVertical size={16} />
+                                      <GripVertical size={18} />
                                     </div>
                                     <ExerciseThumb exercise={ex} size={52} rounded="rounded-lg" />
                                     <div className="flex-1 min-w-0">
@@ -917,12 +1108,13 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                                     onPointerUp={gripPointerUp}
                                     onPointerCancel={gripPointerUp}
                                     style={{ touchAction: "none", WebkitTouchCallout: "none" }}
-                                    className="hidden md:flex items-center justify-center text-black/25 hover:text-black/50 cursor-grab active:cursor-grabbing"
+                                    className="hidden md:flex items-center justify-center text-black/30 hover:text-black/60 cursor-grab active:cursor-grabbing self-stretch rounded-lg hover:bg-black/5"
                                   >
                                     <GripVertical size={16} />
                                   </div>
                                 </div>
                               )}
+                              </div>
                             </div>
                           );
                         })}
@@ -940,13 +1132,7 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
                   the page the instant a drag starts, mid-touch, is exactly
                   the kind of layout shift that can make mobile Safari drop
                   the rest of that touch sequence. */}
-              <div
-                data-row-index={rows.length}
-                className={`rounded-xl transition-colors ${
-                  overIndex === rows.length ? "bg-black/5 ring-2 ring-inset ring-blue-400" : ""
-                }`}
-                style={{ minHeight: isDragging ? 96 : 0 }}
-              />
+              <div style={{ minHeight: isDragging ? 96 : 0 }} />
             </>
           )}
         </div>
@@ -1129,18 +1315,6 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
         >
           <ExerciseThumb exercise={exercisesById[draggingExerciseId]} size={32} rounded="rounded-lg" />
           <span className="truncate">{exercisesById[draggingExerciseId]?.name || "Exercise"}</span>
-        </div>
-      )}
-      {dragPos && dragIndex !== null && (
-        <div
-          ref={ghostRef}
-          className="drag-ghost-pop fixed z-[200] pointer-events-none flex items-center gap-2 bg-black text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-2xl max-w-[220px]"
-          style={{ transform: "translate(-50%, -130%)" }}
-        >
-          <GripVertical size={13} className="text-white/50 shrink-0" />
-          <span className="truncate">
-            {rows[dragIndex]?.isRest ? "Rest" : exercisesById[rows[dragIndex]?.exerciseId]?.name || "Exercise"}
-          </span>
         </div>
       )}
     </div>
