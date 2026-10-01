@@ -6,6 +6,8 @@ import CoachClientDetail from "./CoachClientDetail";
 import { MEASURE_BLUE } from "../theme";
 import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat, Lock, Unlock, AlertTriangle } from "lucide-react";
 
+const APP_STORE_URL = "https://apps.apple.com/app/id6810194114";
+
 export function inviteMailto({ email, name, username, code, coachName }) {
   const activateUrl = `${window.location.origin}/activate`;
   const subject = "Welcome to Zach McIvor Personal Training — Your Login Details";
@@ -16,11 +18,14 @@ export function inviteMailto({ email, name, username, code, coachName }) {
     "",
     "I've set you up on the training app, where you'll be able to access your personalised training program, workouts, track your progress, and keep everything in one place throughout your journey.",
     "",
-    "Here are your login details:",
+    `First, download the app from the App Store: ${APP_STORE_URL}`,
     "",
-    `App: ${activateUrl}`,
+    "Once it's installed, open it and tap \"Activate your account\" on the login screen, then enter these details:",
+    "",
     `Email: ${username}`,
     `Code: ${code}`,
+    "",
+    `(Prefer to activate from a browser first? You can also use: ${activateUrl})`,
     "",
     "When you get a chance, have a look through the app and familiarise yourself with everything. I'll be keeping your program updated and using the app to help keep you on track and progressing towards your goals.",
     "",
