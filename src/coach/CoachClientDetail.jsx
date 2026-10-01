@@ -303,7 +303,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
       if (end) newStart.setDate(newStart.getDate() + 1);
       const weeks = Math.max(1, Math.round(spanDays / 7));
       const newEnd = new Date(newStart);
-      newEnd.setDate(newEnd.getDate() + weeks * 7);
+      newEnd.setDate(newEnd.getDate() + weeks * 7 - 1);
       setForm({
         name: `${phase.name} (copy)`,
         startDate: localDateKey(newStart),
@@ -318,7 +318,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
   function setStartDate(startDate) {
     setForm((f) => {
       const newEnd = new Date(startDate);
-      newEnd.setDate(newEnd.getDate() + f.weeks * 7);
+      newEnd.setDate(newEnd.getDate() + f.weeks * 7 - 1);
       return { ...f, startDate, endDate: localDateKey(newEnd) };
     });
   }
@@ -326,7 +326,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
   function setWeeks(weeks) {
     setForm((f) => {
       const newEnd = new Date(f.startDate);
-      newEnd.setDate(newEnd.getDate() + weeks * 7);
+      newEnd.setDate(newEnd.getDate() + weeks * 7 - 1);
       return { ...f, weeks, endDate: localDateKey(newEnd) };
     });
   }
@@ -433,16 +433,23 @@ function buildMonthGrid(year, month) {
 // pass, the same interaction as the source layout's scheduling popover.
 // Renders in the client's local month; navigable and reusable at a
 // compact size inside a sheet.
-function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth, alreadyScheduledDates }) {
+// minDate/maxDate (YYYY-MM-DD, inclusive) lock the picker to a window —
+// e.g. a program phase's own weeks. Days outside it are greyed out and
+// can't be tapped, and the month arrows stop at the window's edges.
+function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth, alreadyScheduledDates, minDate, maxDate }) {
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = localDateKey();
+  const monthKey = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
+  const canGoBack = !minDate || monthKey > minDate.slice(0, 7);
+  const canGoForward = !maxDate || monthKey < maxDate.slice(0, 7);
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <button
           type="button"
           onClick={() => onShiftMonth(-1)}
-          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60"
+          disabled={!canGoBack}
+          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60 disabled:opacity-25 disabled:hover:bg-black/8"
         >
           <ChevronRight size={13} className="rotate-180" />
         </button>
@@ -452,7 +459,8 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
         <button
           type="button"
           onClick={() => onShiftMonth(1)}
-          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60"
+          disabled={!canGoForward}
+          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60 disabled:opacity-25 disabled:hover:bg-black/8"
         >
           <ChevronRight size={13} />
         </button>
@@ -477,13 +485,17 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
               // the filled circle marking what's newly picked in this
               // session, same as Trainerize's own "Schedule" calendar.
               const alreadyScheduled = !selected && alreadyScheduledDates?.has(dateStr);
+              const outOfRange = (minDate && dateStr < minDate) || (maxDate && dateStr > maxDate);
               return (
                 <button
                   key={dateStr}
                   type="button"
+                  disabled={outOfRange}
                   onClick={() => onToggle(dateStr)}
                   className={`aspect-square rounded-full text-xs font-medium transition-colors ${
-                    selected
+                    outOfRange
+                      ? "text-black/15 line-through cursor-not-allowed"
+                      : selected
                       ? "bg-blue-500 text-white"
                       : alreadyScheduled
                       ? "border-2 border-blue-400 text-black"
@@ -517,6 +529,16 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   const [weeklyWeekday, setWeeklyWeekday] = useState(null); // 0=Mon..6=Sun, or null
   const [weeklyWeeks, setWeeklyWeeks] = useState(4);
   const [saving, setSaving] = useState(false);
+  // Scheduling from inside a program phase is locked to that phase's own
+  // dates (start → end, inclusive) — sessions can't be put before it
+  // starts or after its last week. Outside a phase, nothing is restricted.
+  const inPhase = !!phaseStart;
+  const inPhaseRange = (d) => (!phaseStart || d >= phaseStart) && (!phaseEnd || d <= phaseEnd);
+  const phaseWeeks =
+    phaseStart && phaseEnd
+      ? Math.max(1, Math.round((Date.parse(phaseEnd + "T00:00:00Z") - Date.parse(phaseStart + "T00:00:00Z")) / 86400000 / 7 + 1 / 7))
+      : null;
+  const fmtShort = (d) => new Date(d + "T00:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "short", timeZone: "UTC" });
   // Snapshot of which dates were ALREADY scheduled with this exact workout
   // the moment the calendar last synced to it — diffed against
   // selectedDates on submit so unchecking a circled (already-scheduled)
@@ -545,7 +567,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
       setViewYear(dateForView ? base.getUTCFullYear() : base.getFullYear());
       setViewMonth(dateForView ? base.getUTCMonth() : base.getMonth());
       setWeeklyWeekday(null);
-      setWeeklyWeeks(4);
+      setWeeklyWeeks(phaseWeeks || 4);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialDate, initialViewDate]);
@@ -568,7 +590,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
     setSelectedDates((prev) => {
       const next = new Set(prev);
       if (next.has(dateStr)) next.delete(dateStr);
-      else next.add(dateStr);
+      else if (inPhaseRange(dateStr)) next.add(dateStr);
       return next;
     });
   }
@@ -576,14 +598,18 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   // Quick-add convenience: fill in every occurrence of a chosen weekday for
   // the next N weeks, starting from today — still just adds circles to the
   // same set, so any of them can be individually removed afterward.
+  // Inside a phase it runs from the phase's first day (not today) and
+  // never past its last day, whatever number of weeks is typed.
   function applyWeeklyPattern() {
     if (weeklyWeekday === null) return;
     const dates = [];
-    const d = new Date();
+    const d = inPhase ? new Date(phaseStart + "T12:00:00") : new Date();
     // advance to the first matching weekday (Mon=0..Sun=6)
     while ((d.getDay() + 6) % 7 !== weeklyWeekday) d.setDate(d.getDate() + 1);
     for (let i = 0; i < weeklyWeeks; i++) {
-      dates.push(localDateKey(d));
+      const key = localDateKey(d);
+      if (!inPhaseRange(key)) break;
+      dates.push(key);
       d.setDate(d.getDate() + 7);
     }
     setSelectedDates((prev) => new Set([...prev, ...dates]));
@@ -632,7 +658,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   React.useEffect(() => {
     if (!open) return;
     const next = new Set(alreadyScheduledDates);
-    if (initialDate) next.add(initialDate);
+    if (initialDate && inPhaseRange(initialDate)) next.add(initialDate);
     setSelectedDates(next);
     baselineScheduledRef.current = new Set(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -641,7 +667,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   async function submit(e) {
     e.preventDefault();
     const baseline = baselineScheduledRef.current;
-    const toAdd = [...selectedDates].filter((d) => !baseline.has(d)).sort();
+    const toAdd = [...selectedDates].filter((d) => !baseline.has(d) && inPhaseRange(d)).sort();
     const toRemove = [...baseline].filter((d) => !selectedDates.has(d));
     if (!payload || (toAdd.length === 0 && toRemove.length === 0)) return;
     setSaving(true);
@@ -742,9 +768,15 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
               viewMonth={viewMonth}
               onShiftMonth={shiftMonth}
               alreadyScheduledDates={alreadyScheduledDates}
+              minDate={phaseStart || undefined}
+              maxDate={phaseEnd || undefined}
             />
           </div>
-          <p className="text-black/30 text-[11px] mt-1.5">Tap any dates to circle them — pick as many as you like.</p>
+          <p className="text-black/30 text-[11px] mt-1.5">
+            {inPhase && phaseEnd
+              ? `This phase runs ${fmtShort(phaseStart)} – ${fmtShort(phaseEnd)}${phaseWeeks ? ` (${phaseWeeks} week${phaseWeeks === 1 ? "" : "s"})` : ""} — only dates inside it can be picked.`
+              : "Tap any dates to circle them — pick as many as you like."}
+          </p>
         </div>
 
         <div className="bg-black/[0.03] rounded-xl p-3">
@@ -767,12 +799,12 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
             <input
               type="number"
               min={1}
-              max={52}
+              max={phaseWeeks || 52}
               value={weeklyWeeks}
-              onChange={(e) => setWeeklyWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
+              onChange={(e) => setWeeklyWeeks(Math.max(1, Math.min(phaseWeeks || 52, Number(e.target.value) || 1)))}
               className="w-16 bg-white border border-black/10 rounded-lg px-2 py-1.5 text-black text-sm outline-none text-center"
             />
-            <span className="text-black/40 text-xs flex-1">weeks, starting this week</span>
+            <span className="text-black/40 text-xs flex-1">{inPhase ? "weeks, from the start of this phase" : "weeks, starting this week"}</span>
             <button
               type="button"
               disabled={weeklyWeekday === null}
