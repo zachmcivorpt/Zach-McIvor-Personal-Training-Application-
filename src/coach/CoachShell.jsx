@@ -2,10 +2,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
-import { LayoutDashboard, Users, ClipboardList, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell } from "lucide-react";
+import { LayoutDashboard, Users, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
-import CoachPrograms from "./CoachPrograms";
 import CoachLibrary from "./CoachLibrary";
 import CoachMessages from "./CoachMessages";
 import CoachChallenges from "./CoachChallenges";
@@ -15,7 +14,6 @@ const MAIN_MENU = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
   { id: "messages", label: "Messages", icon: MessageCircle },
   { id: "clients", label: "Clients", icon: Users },
-  { id: "programs", label: "Programs", icon: ClipboardList },
   { id: "library", label: "Library", icon: Library },
   { id: "challenges", label: "Challenges", icon: Trophy },
 ];
@@ -92,6 +90,16 @@ export default function CoachShell() {
   function openClient(clientId) {
     setPendingClientId(clientId);
     setTab("clients");
+  }
+
+  // Same idea for jumping straight into one of Library's sub-tabs (e.g.
+  // the Overview "Build a program template" quick action) — Programs now
+  // lives inside Library rather than as its own top-level tab.
+  const [pendingLibraryTab, setPendingLibraryTab] = useState(null);
+
+  function openLibrary(subTab) {
+    setPendingLibraryTab(subTab);
+    setTab("library");
   }
 
   const notifications = db.notifications || [];
@@ -197,7 +205,9 @@ export default function CoachShell() {
 
       {/* main content */}
       <div className="flex-1 min-w-0 pt-14 pb-16 md:pt-0 md:pb-0">
-        {tab === "dashboard" && <CoachDashboard onNavigate={setTab} onOpenClient={openClient} showToast={showToast} />}
+        {tab === "dashboard" && (
+          <CoachDashboard onNavigate={setTab} onOpenClient={openClient} onOpenLibrary={openLibrary} showToast={showToast} />
+        )}
         {tab === "clients" && (
           <CoachClients
             showToast={showToast}
@@ -207,8 +217,9 @@ export default function CoachShell() {
             onOpenClientHandled={() => setPendingClientId(null)}
           />
         )}
-        {tab === "programs" && <CoachPrograms showToast={showToast} />}
-        {tab === "library" && <CoachLibrary showToast={showToast} />}
+        {tab === "library" && (
+          <CoachLibrary showToast={showToast} openTab={pendingLibraryTab} onOpenTabHandled={() => setPendingLibraryTab(null)} />
+        )}
         {tab === "challenges" && <CoachChallenges showToast={showToast} />}
         {tab === "messages" && <CoachMessages />}
         {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} showToast={showToast} />}

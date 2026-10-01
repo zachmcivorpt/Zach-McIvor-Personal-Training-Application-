@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApp, programPhases } from "../lib/AppContext";
 import { newId } from "../lib/id";
 import { Field, TextInput, TextArea, Select, PrimaryButton, BottomSheet, ExerciseThumb } from "../components/ui";
-import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVertical, ChevronDown } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVertical, ChevronDown, ChevronLeft } from "lucide-react";
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
@@ -466,6 +466,12 @@ export default function CoachPrograms({ showToast }) {
   const [programPickerOpen, setProgramPickerOpen] = useState(false);
   const [phasePickerOpen, setPhasePickerOpen] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
+  // Mobile only — desktop always shows the program list and the detail
+  // panel side by side, but on a phone that's the exact clutter this
+  // screen kept getting flagged for. Mobile now browses a plain list
+  // first (matching Library's other tabs) and only shows one program's
+  // detail at a time, with a way back to the list.
+  const [mobileView, setMobileView] = useState("list"); // "list" | "detail"
 
   const exercises = db.exercises;
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
@@ -694,13 +700,10 @@ export default function CoachPrograms({ showToast }) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8">
-      <div className="mb-5">
-        <h1 className="text-black text-2xl font-bold">Program Templates</h1>
-        <p className="text-black/40 text-sm mt-0.5">{programs.length} total · reusable phase-based programs for a client's training</p>
-      </div>
+    <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
+      <p className="text-black/40 text-sm mb-4 md:mb-0">{programs.length} total · reusable phase-based programs for a client's training</p>
 
-      <div className="flex flex-col md:flex-row md:h-[calc(100vh-200px)] md:min-h-[600px] border border-black/8 rounded-2xl overflow-hidden">
+      <div className="flex flex-col md:flex-row md:h-[calc(100vh-200px)] md:min-h-[600px] md:mt-4 md:border md:border-black/8 md:rounded-2xl md:overflow-hidden">
         {/* left: program list, with the active program's phases nested right below it */}
         <div className="hidden md:flex w-80 shrink-0 border-r border-black/8 flex-col bg-[#F7F7F8]">
           <div className="p-3 border-b border-black/8 flex items-center gap-1.5">
@@ -769,30 +772,63 @@ export default function CoachPrograms({ showToast }) {
           </div>
         </div>
 
-        {/* mobile: just the two actions that have nowhere else to live —
-            switching program/phase now happens via the chevron next to
-            each name below instead of a separate summary card repeating
-            the same name a second time */}
-        <div className="md:hidden border-b border-black/8 p-3 flex items-center gap-1.5">
-          <button
-            onClick={() => setNewProgramOpen(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl"
-          >
-            <Plus size={14} /> NEW PROGRAM
-          </button>
-          <OverflowMenu
-            label="More program actions"
-            items={[
-              { icon: Download, label: importing ? "Importing…" : "Import starters", onClick: importStarterTemplates, disabled: importing },
-              ...(programs.length > 0
-                ? [{ icon: Trash2, label: "Delete all programs", onClick: () => setConfirmDeleteAll(true), danger: true }]
-                : []),
-            ]}
-          />
+        {/* mobile: plain browse list first, matching every other Library
+            tab, instead of always jumping straight into one program's full
+            detail — tap a program to drill into it, with a way back. */}
+        <div className={`md:hidden ${mobileView === "list" ? "block" : "hidden"}`}>
+          <div className="flex items-center gap-1.5 mb-3">
+            <button
+              onClick={() => setNewProgramOpen(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl"
+            >
+              <Plus size={14} /> NEW PROGRAM
+            </button>
+            <OverflowMenu
+              label="More program actions"
+              items={[
+                { icon: Download, label: importing ? "Importing…" : "Import starters", onClick: importStarterTemplates, disabled: importing },
+                ...(programs.length > 0
+                  ? [{ icon: Trash2, label: "Delete all programs", onClick: () => setConfirmDeleteAll(true), danger: true }]
+                  : []),
+              ]}
+            />
+          </div>
+          {programs.length === 0 ? (
+            <p className="text-black/30 text-sm text-center py-10">No programs yet.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {programs.map((p) => {
+                const progPhases = p.id === selected?.id ? phases : programPhases(p);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      selectProgram(p.id);
+                      setMobileView("detail");
+                    }}
+                    className="w-full text-left px-3.5 py-3 rounded-xl bg-black/[0.03] hover:bg-black/[0.06] transition-colors"
+                  >
+                    <p className="text-black text-sm font-semibold truncate">{p.name}</p>
+                    <p className="text-black/40 text-xs mt-0.5">
+                      {progPhases.length} phase{progPhases.length === 1 ? "" : "s"}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* right: selected phase's summary + workouts table */}
-        <div className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6">
+        {/* right: selected phase's summary + workouts table — shared by
+            desktop (always visible) and mobile (only once a program's
+            been tapped from the list above) */}
+        <div className={`${mobileView === "detail" ? "block" : "hidden"} md:block flex-1 min-w-0 overflow-y-auto p-4 md:p-6`}>
+          <button
+            onClick={() => setMobileView("list")}
+            className="md:hidden flex items-center gap-1 text-black/50 hover:text-black text-sm font-semibold mb-4"
+          >
+            <ChevronLeft size={16} /> Programs
+          </button>
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
               <ClipboardList size={28} className="text-black/20 mb-3" />

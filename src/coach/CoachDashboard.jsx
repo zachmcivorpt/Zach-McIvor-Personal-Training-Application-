@@ -484,7 +484,7 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
   );
 }
 
-export default function CoachDashboard({ onNavigate, onOpenClient, showToast }) {
+export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary, showToast }) {
   const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout, phraseApexSuggestion } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
@@ -866,7 +866,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, showToast }) 
               <UserPlus size={16} className="text-black/60" />
               <span className="text-black/80 text-sm font-medium flex-1 text-left">Add a new client</span>
             </button>
-            <button onClick={() => onNavigate("programs")} className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 rounded-xl px-4 py-3 transition-colors">
+            <button onClick={() => onOpenLibrary("programs")} className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 rounded-xl px-4 py-3 transition-colors">
               <FilePlus size={16} className="text-black/60" />
               <span className="text-black/80 text-sm font-medium flex-1 text-left">Build a program template</span>
             </button>

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import CoachPrograms from "./CoachPrograms";
 import CoachWorkoutLibrary from "./CoachWorkoutLibrary";
 import CoachExercises from "./CoachExercises";
 import CoachMealLibrary from "./CoachMealLibrary";
@@ -7,6 +8,7 @@ import CoachHabitLibrary from "./CoachHabitLibrary";
 import CoachForms from "./CoachForms";
 
 const LIB_TABS = [
+  { id: "programs", label: "Programs" },
   { id: "workouts", label: "Workouts" },
   { id: "exercises", label: "Exercises" },
   { id: "meals", label: "Meals" },
@@ -15,14 +17,23 @@ const LIB_TABS = [
   { id: "forms", label: "Forms" },
 ];
 
-export default function CoachLibrary({ showToast }) {
-  const [tab, setTab] = useState("workouts");
+export default function CoachLibrary({ showToast, openTab, onOpenTabHandled }) {
+  const [tab, setTab] = useState("programs");
+
+  // Lets something outside this screen (e.g. Overview's "Build a program
+  // template" quick action) land directly on a specific sub-tab instead of
+  // whatever this screen last happened to be showing.
+  useEffect(() => {
+    if (!openTab) return;
+    setTab(openTab);
+    onOpenTabHandled?.();
+  }, [openTab]);
 
   return (
     <div>
       <div className="max-w-6xl mx-auto px-4 pt-5 md:px-8 md:pt-8">
         <h1 className="text-black text-2xl font-bold mb-1">Library</h1>
-        <p className="text-black/40 text-sm mb-5">Master workouts, exercises, meals, foods, habits and check-in forms — build once, reuse everywhere.</p>
+        <p className="text-black/40 text-sm mb-5">Programs, master workouts, exercises, meals, foods, habits and check-in forms — build once, reuse everywhere.</p>
         <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
           {LIB_TABS.map((t) => (
             <button
@@ -38,6 +49,7 @@ export default function CoachLibrary({ showToast }) {
         </div>
       </div>
 
+      {tab === "programs" && <CoachPrograms showToast={showToast} />}
       {tab === "workouts" && <CoachWorkoutLibrary showToast={showToast} />}
       {tab === "exercises" && <CoachExercises showToast={showToast} compact />}
       {tab === "meals" && <CoachMealLibrary showToast={showToast} />}
