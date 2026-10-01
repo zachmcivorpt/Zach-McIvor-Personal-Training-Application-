@@ -1328,8 +1328,8 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
         {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
 
         <div className="flex-1 overflow-y-auto pb-28">
-          <div className="relative h-48 shrink-0 overflow-hidden rounded-b-[28px]">
-            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover contrast-110 saturate-110" />
+          <div className="relative h-48 shrink-0 overflow-hidden">
+            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover contrast-110 saturate-110 blur-[2px] scale-105" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/80" />
             <div className="absolute bottom-0 inset-x-0 p-4 pb-6">
               <span
