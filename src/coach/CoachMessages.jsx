@@ -129,7 +129,7 @@ function ThreadMessages({ client }) {
           </button>
         </div>
       )}
-      <div className="flex gap-2 px-5 pb-5 pt-2 border-t border-black/5">
+      <div className="flex gap-2 px-5 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-black/5">
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
         <button
           onClick={() => videoInputRef.current?.click()}
@@ -166,7 +166,7 @@ function ThreadMessages({ client }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder={`Message ${client.name?.split(" ")[0] || "your client"}...`}
-          className="flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
+          className="flex-1 min-w-0 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
         />
         <button onClick={send} className="w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0">
           <Send size={16} className="text-white" />
