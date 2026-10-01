@@ -3647,6 +3647,7 @@ function NutritionPanel({ client, showToast }) {
     d.setDate(d.getDate() - navOffset);
     return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
   }, [navOffset]);
+  const navTitle = navOffset <= 1 ? `${navLabel}'s Nutrition Log` : `${navLabel} Nutrition Log`;
   const nutrition = (db.nutritionLogs[client.id] || []).find((n) => n.date === viewDateKey);
   const targets = resolveNutritionTargets(client.nutritionTargets);
   const mealPlan = (db.mealPlans[client.id] || [])[0];
@@ -3661,32 +3662,14 @@ function NutritionPanel({ client, showToast }) {
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
       <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6 -mx-4 md:-mx-6">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-black font-semibold">Nutrition Log</p>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setNavOffset((o) => Math.min(6, o + 1))}
-              disabled={navOffset === 6}
-              className={
-                navOffset === 6
-                  ? "w-7 h-7 flex items-center justify-center rounded-full opacity-0 pointer-events-none"
-                  : "w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
-              }
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <span className="text-black/70 text-sm font-semibold min-w-[90px] text-center">{navLabel}</span>
-            <button
-              onClick={() => setNavOffset((o) => Math.max(0, o - 1))}
-              disabled={navOffset === 0}
-              className={
-                navOffset === 0
-                  ? "w-7 h-7 flex items-center justify-center rounded-full opacity-0 pointer-events-none"
-                  : "w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
-              }
-            >
-              <ChevronLeft size={14} className="rotate-180" />
-            </button>
-          </div>
+          <p className="text-black font-semibold">{navTitle}</p>
+          <button
+            onClick={() => setNavOffset((o) => (o + 1) % 7)}
+            aria-label={navOffset === 0 ? "View an earlier day" : "Step back a day"}
+            className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
+          >
+            <ChevronLeft size={14} />
+          </button>
         </div>
         {!nutrition ? (
           <p className="text-black/30 text-sm py-6 text-center">Nothing logged yet.</p>
