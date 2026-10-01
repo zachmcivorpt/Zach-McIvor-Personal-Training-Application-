@@ -1385,10 +1385,10 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       onClick={() => setDetailExercise(ex)}
                       className="w-full flex items-center gap-3 text-left px-5 py-3.5"
                     >
-                      <span className={`text-[24px] font-light tabular-nums leading-none shrink-0 w-7 ${dark ? "text-white/25" : "text-black/20"}`}>
+                      <span className={`text-[24px] font-light tabular-nums leading-none shrink-0 w-7 ${dark ? "text-white/45" : "text-black/40"}`}>
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      <ExerciseThumb dark={dark} exercise={ex} size={44} rounded="rounded-lg" className="shrink-0" />
+                      <ExerciseThumb dark={dark} exercise={ex} width={64} height={64} rounded="rounded-lg" className="shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className={`${dark ? "text-white" : "text-black"} font-semibold text-[12px] tracking-wide uppercase truncate`}>
