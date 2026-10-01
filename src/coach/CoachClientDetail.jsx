@@ -5354,7 +5354,7 @@ function ProfilePanel({ client, showToast }) {
         </div>
       </div>
 
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm divide-y divide-black/8 mb-5">
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm divide-y divide-black/8 mb-5 -mx-4 md:-mx-6">
         <div className="p-4 md:p-5">
           <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3 flex items-center gap-1.5">
             <Target size={12} /> GOALS
