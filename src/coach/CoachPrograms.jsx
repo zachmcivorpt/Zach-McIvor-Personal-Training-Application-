@@ -465,6 +465,7 @@ export default function CoachPrograms({ showToast }) {
   const [savingPhaseName, setSavingPhaseName] = useState(false);
   const [programPickerOpen, setProgramPickerOpen] = useState(false);
   const [phasePickerOpen, setPhasePickerOpen] = useState(false);
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
 
   const exercises = db.exercises;
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
@@ -527,6 +528,7 @@ export default function CoachPrograms({ showToast }) {
     setSelectedId(id);
     setSelectedPhaseId(null);
     setConfirmDeletePhase(false);
+    setDescriptionOpen(false);
   }
   function selectPhase(id) {
     if (phaseNameDirty) savePhaseName();
@@ -852,13 +854,25 @@ export default function CoachPrograms({ showToast }) {
                 <span className="text-black/30 text-xs whitespace-nowrap">{phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total</span>
               </div>
 
-              <TextArea
-                rows={3}
-                value={programDraft.description}
-                onChange={(e) => setProgramDraft((d) => ({ ...d, description: e.target.value }))}
-                placeholder="What this program is for, who it suits..."
-                className="mb-5"
-              />
+              <button
+                onClick={() => setDescriptionOpen((v) => !v)}
+                className={`w-full flex items-center justify-between gap-2 text-black/40 hover:text-black/60 text-xs font-semibold py-1 ${
+                  descriptionOpen ? "mb-2" : "mb-5"
+                }`}
+              >
+                <span>{descriptionOpen ? "Hide description" : programDraft.description ? "Show description" : "Add a description"}</span>
+                <ChevronDown size={14} className={`transition-transform ${descriptionOpen ? "rotate-180" : ""}`} />
+              </button>
+              {descriptionOpen && (
+                <TextArea
+                  rows={3}
+                  value={programDraft.description}
+                  onChange={(e) => setProgramDraft((d) => ({ ...d, description: e.target.value }))}
+                  placeholder="What this program is for, who it suits..."
+                  className="mb-5"
+                  autoFocus
+                />
+              )}
 
               {!selectedPhase ? (
                 <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
