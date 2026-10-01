@@ -4605,8 +4605,8 @@ const SEX_OPTIONS = ["Male", "Female", "Other"];
 function UnderlineField({ label, children }) {
   return (
     <label className="block">
-      <p className="text-black/35 text-[10px] font-semibold tracking-wide mb-1.5">{label.toUpperCase()}</p>
-      <div className="border-b border-black/10 focus-within:border-blue-500 pb-1.5 transition-colors">{children}</div>
+      <p className="text-black/35 text-[9.5px] font-semibold tracking-wide mb-1">{label.toUpperCase()}</p>
+      <div className="border-b border-black/10 focus-within:border-blue-500 pb-1 transition-colors">{children}</div>
     </label>
   );
 }
@@ -5024,94 +5024,96 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-8px_rgba(0,0,0,0.10)] mb-5 overflow-hidden -mx-4 md:-mx-6">
-      <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/6">
-        <div>
-          <p className="text-black font-bold text-[16px] tracking-tight">Personal Details</p>
-          <p className="text-black/35 text-xs mt-0.5">The essentials for planning their training and nutrition</p>
+      <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3.5 border-b border-black/6">
+        <div className="min-w-0">
+          <p className="text-black font-bold text-[15px] tracking-tight">Personal Details</p>
+          <p className="text-black/35 text-[11px] mt-0.5 leading-snug">The essentials for planning their training and nutrition</p>
         </div>
-        {dirty ? (
-          <button
-            onClick={save}
-            disabled={saving}
-            className="bg-black text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm disabled:opacity-50 shrink-0 transition-all active:scale-95"
-          >
-            {saving ? "SAVING…" : "SAVE"}
-          </button>
-        ) : (
-          <span className="flex items-center gap-1 text-black/25 text-xs font-semibold shrink-0">
-            <Check size={13} /> Saved
-          </span>
-        )}
+        <button
+          onClick={save}
+          disabled={saving || !dirty}
+          className={`shrink-0 flex items-center gap-1 text-[11px] font-bold px-3.5 py-1.5 rounded-full transition-all active:scale-95 ${
+            dirty ? "bg-black text-white shadow-sm" : "bg-black/[0.05] text-black/35"
+          } disabled:active:scale-100`}
+        >
+          {saving ? "Saving…" : dirty ? "Save" : (<><Check size={12} /> Saved</>)}
+        </button>
       </div>
 
       <div className="grid grid-cols-3 divide-x divide-black/6 border-b border-black/6 bg-blue-50/40">
-        <div className="text-center py-3.5 px-2">
+        <div className="flex flex-col items-center justify-center py-3 px-2">
           <input
             type="number"
+            inputMode="numeric"
             min={0}
             value={age}
             onChange={(e) => setAge(e.target.value)}
             placeholder="—"
-            className="w-full bg-transparent outline-none text-blue-600 font-bold text-lg tabular-nums text-center placeholder:text-black/15"
+            className="w-full bg-transparent outline-none text-blue-600 font-bold text-[15px] leading-5 tabular-nums text-center placeholder:text-black/15"
           />
-          <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1">Age</p>
+          <p className="text-black/40 text-[9px] font-semibold tracking-wider uppercase mt-0.5">Age</p>
         </div>
-        <div className="text-center py-3.5 px-2">
-          <select
-            value={sex}
-            onChange={(e) => setSex(e.target.value)}
-            className="w-full bg-transparent outline-none text-blue-600 font-bold text-lg text-center appearance-none"
-          >
-            <option value="" className="text-black/30 font-normal text-sm">
-              —
-            </option>
-            {SEX_OPTIONS.map((s) => (
-              <option key={s} value={s} className="text-black font-normal text-sm">
-                {s}
-              </option>
-            ))}
-          </select>
-          <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1">Sex</p>
+        <div className="flex flex-col items-center justify-center py-3 px-2">
+          {/* iOS ignores text-align on <select>, so show a centred label and lay the real select invisibly on top */}
+          <div className="relative w-full text-center">
+            <span className={`block font-bold text-[15px] leading-5 ${sex ? "text-blue-600" : "text-black/15"}`}>{sex || "—"}</span>
+            <select
+              value={sex}
+              onChange={(e) => setSex(e.target.value)}
+              aria-label="Sex"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            >
+              <option value="">—</option>
+              {SEX_OPTIONS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className="text-black/40 text-[9px] font-semibold tracking-wider uppercase mt-0.5">Sex</p>
         </div>
-        <div className="text-center py-3.5 px-2">
-          <div className="flex items-baseline justify-center gap-0.5">
+        <div className="flex flex-col items-center justify-center py-3 px-2">
+          <div className="flex items-baseline justify-center">
             <input
               type="number"
+              inputMode="numeric"
               min={0}
               value={heightCm}
               onChange={(e) => setHeightCm(e.target.value)}
               placeholder="—"
-              className="w-full max-w-[3.5rem] bg-transparent outline-none text-blue-600 font-bold text-lg tabular-nums text-right placeholder:text-black/15"
+              style={{ width: `${Math.max(String(heightCm || "").length, 1) + 0.6}ch` }}
+              className="bg-transparent outline-none text-blue-600 font-bold text-[15px] leading-5 tabular-nums text-center placeholder:text-black/15 p-0"
             />
-            {heightCm && <span className="text-blue-600/50 font-semibold text-xs">cm</span>}
+            {heightCm !== "" && heightCm != null && <span className="text-blue-600/60 font-semibold text-[10px] ml-0.5">cm</span>}
           </div>
-          <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1">Height</p>
+          <p className="text-black/40 text-[9px] font-semibold tracking-wider uppercase mt-0.5">Height</p>
         </div>
       </div>
 
-      <div className="px-5 py-5">
-        <div className="grid grid-cols-2 gap-6 mb-5">
-          <UnderlineField label="Name">
-            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-transparent outline-none text-black text-sm" />
-          </UnderlineField>
+      <div className="px-5 py-4 space-y-4">
+        <UnderlineField label="Name">
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-transparent outline-none text-black text-[13px]" />
+        </UnderlineField>
+        <div>
           <UnderlineField label="Email">
             <input
               type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent outline-none text-black text-sm"
+              className="w-full bg-transparent outline-none text-black text-[13px]"
             />
           </UnderlineField>
-        </div>
-        {client._source === "invite" ? (
-          <p className="text-black/35 text-xs -mt-3 mb-5">This is who they'll activate their account as — no login exists yet.</p>
-        ) : (
-          <p className="text-black/35 text-xs -mt-3 mb-5">
-            Changing email here updates their profile everywhere in the app, but not what they log in with — only they can
-            change that themselves, from their own account.
+          <p className="text-black/35 text-[10.5px] leading-snug mt-1.5">
+            {client._source === "invite"
+              ? "This is who they'll activate their account as — no login exists yet."
+              : "Changing email here updates their profile everywhere in the app, but not what they log in with — only they can change that themselves, from their own account."}
           </p>
-        )}
-        <div className="grid grid-cols-2 gap-6 mb-5">
+        </div>
+        <div className="grid grid-cols-2 gap-5">
           <UnderlineField label="Date of birth">
             <input
               type="date"
@@ -5123,7 +5125,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
                 if (computed != null) setAge(String(computed));
               }}
               max={localDateKey()}
-              className="w-full bg-transparent outline-none text-black text-sm [color-scheme:light]"
+              className="w-full min-w-0 bg-transparent outline-none text-black text-[13px] text-left [color-scheme:light]"
             />
           </UnderlineField>
           <UnderlineField label="Phone">
@@ -5132,18 +5134,18 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 0412 345 678"
-              className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25"
+              className="w-full bg-transparent outline-none text-black text-[13px] placeholder:text-black/25"
             />
           </UnderlineField>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <UnderlineField label="Goals">
             <textarea
               rows={2}
               value={goals}
               onChange={(e) => setGoals(e.target.value)}
               placeholder="e.g. Build muscle, lose fat, improve strength on main lifts..."
-              className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+              className="w-full bg-transparent outline-none text-black text-[13px] leading-snug placeholder:text-black/25 resize-none"
             />
           </UnderlineField>
           <UnderlineField label="Training history">
@@ -5152,7 +5154,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
               value={trainingHistory}
               onChange={(e) => setTrainingHistory(e.target.value)}
               placeholder="e.g. 2 years lifting on and off, new to structured programming"
-              className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+              className="w-full bg-transparent outline-none text-black text-[13px] leading-snug placeholder:text-black/25 resize-none"
             />
           </UnderlineField>
           <UnderlineField label="Injuries / limitations">
@@ -5161,7 +5163,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
               value={injuries}
               onChange={(e) => setInjuries(e.target.value)}
               placeholder="e.g. Bad left knee, avoid deep squats"
-              className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+              className="w-full bg-transparent outline-none text-black text-[13px] leading-snug placeholder:text-black/25 resize-none"
             />
           </UnderlineField>
           <div className="md:col-span-2">
@@ -5171,11 +5173,18 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
                 value={otherInfo}
                 onChange={(e) => setOtherInfo(e.target.value)}
                 placeholder="Anything else worth knowing about this client"
-                className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+                className="w-full bg-transparent outline-none text-black text-[13px] leading-snug placeholder:text-black/25 resize-none"
               />
             </UnderlineField>
           </div>
         </div>
+        <button
+          onClick={save}
+          disabled={saving || !dirty}
+          className="w-full bg-black text-white text-[12px] font-bold py-2.5 rounded-xl transition-all active:scale-[0.98] disabled:bg-black/[0.05] disabled:text-black/30 disabled:active:scale-100"
+        >
+          {saving ? "Saving…" : dirty ? "Save changes" : "All changes saved"}
+        </button>
       </div>
 
       <div className="px-5 py-3.5 border-t border-black/6 flex flex-wrap items-center gap-4">
