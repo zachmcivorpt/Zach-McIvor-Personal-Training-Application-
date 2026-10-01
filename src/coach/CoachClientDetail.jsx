@@ -5354,15 +5354,15 @@ function ProfilePanel({ client, showToast }) {
         </div>
       </div>
 
-      <div className="space-y-5">
-        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm divide-y divide-black/8 mb-5">
+        <div className="p-4 md:p-5">
           <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3 flex items-center gap-1.5">
             <Target size={12} /> GOALS
           </p>
           <TextArea rows={3} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on main lifts..." />
         </div>
 
-        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="p-4 md:p-5">
           <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3 flex items-center gap-1.5">
             <Dumbbell size={12} /> EQUIPMENT ACCESS
           </p>
@@ -5375,7 +5375,7 @@ function ProfilePanel({ client, showToast }) {
           </div>
         </div>
 
-        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="p-4 md:p-5">
           <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3">TRAINING PREFERENCES</p>
           <div className="space-y-3">
             <div>
@@ -5407,7 +5407,7 @@ function ProfilePanel({ client, showToast }) {
           </div>
         </div>
 
-        <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
+        <div className="p-4 md:p-5">
           <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3">NUTRITION PREFERENCES</p>
           <div className="space-y-3">
             <div>
@@ -5423,11 +5423,11 @@ function ProfilePanel({ client, showToast }) {
             <TextArea rows={2} value={nutritionNotes} onChange={(e) => setNutritionNotes(e.target.value)} placeholder="Allergies, intolerances, other notes..." />
           </div>
         </div>
-
-        <PrimaryButton onClick={save} disabled={saving} className="w-full">
-          {saving ? "Saving…" : "Save Profile"}
-        </PrimaryButton>
       </div>
+
+      <PrimaryButton onClick={save} disabled={saving} className="w-full">
+        {saving ? "Saving…" : "Save Profile"}
+      </PrimaryButton>
     </div>
   );
 }
