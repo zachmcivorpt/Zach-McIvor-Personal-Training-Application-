@@ -6101,11 +6101,12 @@ function ClientCalendarScreen({
     };
   }
 
+  // Every log per date — two sessions on one day (Pull + Push) both show.
   const logsByDate = useMemo(() => {
     const map = {};
     logsForClient.forEach((l) => {
       const key = localDateKey(l.date);
-      if (!map[key]) map[key] = l;
+      (map[key] = map[key] || []).push(l);
     });
     return map;
   }, [logsForClient]);
@@ -6133,7 +6134,7 @@ function ClientCalendarScreen({
       d.setDate(start.getDate() + i);
       const dateStr = localDateKey(d);
       const scheduledList = scheduledWorkoutsListByDate[dateStr] || [];
-      const log = logsByDate[dateStr];
+      const dayLogs = logsByDate[dateStr] || [];
       const dayHabits = habits.filter((h) => {
         const createdKey = localDateKey(h.createdAt);
         if (dateStr < createdKey) return false;
@@ -6142,9 +6143,9 @@ function ClientCalendarScreen({
       });
       const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
       const bodyStatsToday = (bodyStatsSchedules || []).some((b) => b.date === dateStr);
-      const hasContent = scheduledList.length > 0 || !!log || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
+      const hasContent = scheduledList.length > 0 || dayLogs.length > 0 || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
       if (!hasContent && dateStr !== todayStr) continue;
-      list.push({ date: d, dateStr, scheduledList, log, dayHabits, checkinsToday, bodyStatsToday, hasContent });
+      list.push({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent });
     }
     return list;
   }, [daysBack, daysForward, scheduledWorkoutsListByDate, logsByDate, habits, activeFormSchedules, bodyStatsSchedules, todayStr]);
@@ -6213,7 +6214,7 @@ function ClientCalendarScreen({
         </button>
       </div>
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-2.5 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
-        {days.map(({ date: d, dateStr, scheduledList, log, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
+        {days.map(({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
           const isToday = dateStr === todayStr;
           const doneHabitIds = habitLogForClient[dateStr] || [];
           const habitsDone = dayHabits.filter((h) => doneHabitIds.includes(h.id)).length;
@@ -6227,7 +6228,8 @@ function ClientCalendarScreen({
           // to do with the leftover scheduled item themselves (drag or
           // delete). The standalone "completed" card below only shows when
           // the log doesn't match ANY scheduled item on this day.
-          const anyLogMatchesScheduled = !!(log && scheduledList.some((s) => log.dayLabel === s.label));
+          const scheduledLabels = new Set(scheduledList.map((s) => s.label));
+          const unmatchedLogs = dayLogs.filter((l) => !scheduledLabels.has(l.dayLabel));
           const canDragBodyStats = canEdit && !!bodyStatsToday && !bodyStatsDone;
           const isDropTarget = canEdit && dragItem && dragItem.date !== dateStr;
 
@@ -6247,7 +6249,7 @@ function ClientCalendarScreen({
               <div className={dark ? "border-b border-white/10 mb-3" : "border-b border-black/10 mb-3"} />
               <div className="space-y-2.5">
                 {scheduledList.map((scheduled) => {
-                  const logMatchesScheduled = !!(log && log.dayLabel === scheduled.label);
+                  const logMatchesScheduled = dayLogs.some((l) => l.dayLabel === scheduled.label);
                   const canDragWorkout = canEdit && !logMatchesScheduled;
                   return (
                     <CalendarEventCard
@@ -6274,15 +6276,16 @@ function ClientCalendarScreen({
                     />
                   );
                 })}
-                {log && !anyLogMatchesScheduled && (
+                {unmatchedLogs.map((log) => (
                   <CalendarEventCard
+                    key={log.id}
                     dot={{ border: "border-emerald-500", bg: "bg-emerald-500" }}
                     done
                     title={log.dayLabel}
                     subtitle="Completed."
                     onDelete={canEdit ? () => onDeleteWorkoutLog(log.id) : undefined}
                   />
-                )}
+                ))}
                 {dayHabits.map((h) => (
                   <CalendarEventCard
                     key={h.id}
@@ -6607,23 +6610,29 @@ export default function ClientApp() {
   // instead), leave that scheduled workout showing as-is rather than
   // replacing it with the catch-up session — the client decides whether
   // to remove it (swipe on the calendar), not the app.
+  // The completed-log view of one specific log — its OWN label and sets.
+  function logToSession(log, scheduled = null) {
+    return {
+      label: log.dayLabel || "Workout",
+      muscleGroups: scheduled?.muscleGroups || [],
+      instructions: scheduled?.instructions || "",
+      workoutLogId: log.id,
+      exercises: (log.entries || []).map((e) => ({
+        exerciseId: e.exerciseId,
+        targetSets: (e.sets || []).length,
+        actualSets: e.sets || [],
+        note: e.note || "",
+      })),
+    };
+  }
   function sessionForDate(dateKey, logs) {
     const scheduled = scheduledWorkoutsByDate[dateKey];
-    const completedLog = logs.find((l) => !l.cardio && localDateKey(l.date) === dateKey);
-    if (completedLog && (!scheduled || scheduled.label === completedLog.dayLabel)) {
-      return {
-        label: completedLog.dayLabel || "Workout",
-        muscleGroups: scheduled?.muscleGroups || [],
-        instructions: scheduled?.instructions || "",
-        workoutLogId: completedLog.id,
-        exercises: completedLog.entries.map((e) => ({
-          exerciseId: e.exerciseId,
-          targetSets: (e.sets || []).length,
-          actualSets: e.sets || [],
-          note: e.note || "",
-        })),
-      };
-    }
+    // With two sessions logged on one day (e.g. Pull Day + Push Day), the
+    // first log found isn't necessarily the scheduled day's own — look for
+    // the one whose label actually matches before falling back.
+    const dayLogs = logs.filter((l) => !l.cardio && localDateKey(l.date) === dateKey);
+    const completedLog = scheduled ? dayLogs.find((l) => l.dayLabel === scheduled.label) : dayLogs[0];
+    if (completedLog) return logToSession(completedLog, scheduled);
     return scheduledToSession(scheduled);
   }
   // "Completed" for a date means a log exists AND it's actually that
@@ -6815,8 +6824,29 @@ export default function ClientApp() {
   // that same day again themselves.
   useEffect(() => {
     if (!pendingCoachDate) return;
-    const dateKey = pendingCoachDate;
+    // Either a bare date (older call sites) or { date, logId, label } —
+    // the exact workout the coach tapped on their calendar.
+    const target = typeof pendingCoachDate === "string" ? { date: pendingCoachDate } : pendingCoachDate;
+    const dateKey = target.date;
     clearPendingCoachDate();
+    // "Edit" on a specific completed session: re-open THAT log, under its
+    // own name — never whatever else happens to be scheduled that day.
+    if (target.logId) {
+      const log = logsForClient.find((l) => l.id === target.logId);
+      if (log && !log.cardio) {
+        const scheduled = (scheduledWorkoutsListByDate[dateKey] || []).find((w) => w.label === log.dayLabel) || null;
+        continueCompletedWorkout(logToSession(log, scheduled), dateKey);
+        return;
+      }
+    }
+    // "Log" on a specific scheduled workout: start exactly that one.
+    if (target.label) {
+      const scheduled = (scheduledWorkoutsListByDate[dateKey] || []).find((w) => w.label === target.label);
+      if (scheduled) {
+        startWorkout(scheduledToSession(scheduled));
+        return;
+      }
+    }
     const session = sessionForDate(dateKey, logsForClient);
     if (!session) {
       setTab("calendar");
@@ -6867,6 +6897,7 @@ export default function ClientApp() {
 
   function finishWorkout() {
     const session = runningSession || todaySession;
+    if (!session) return;
     pauseActiveSegment(); // stop the clock the instant Finish is hit, before reading the total
     const elapsedMs = sessionActiveMsRef.current;
     const durationMin = Math.floor(elapsedMs / 60000);

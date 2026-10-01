@@ -952,7 +952,7 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onLogWorkout();
+                          onLogWorkout(it);
                         }}
                         title="Log this session for them — same as them completing it themselves"
                         className="flex items-center gap-1 bg-blue-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
@@ -974,7 +974,7 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onLogWorkout();
+                        onLogWorkout(it);
                       }}
                       title="Edit their logged sets/reps/weight"
                       className="flex items-center gap-1 bg-black/5 border border-black/10 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
@@ -1200,11 +1200,14 @@ function CalendarPanel({ client, showToast }) {
   const workoutsByDate = useMemo(() => Object.fromEntries(scheduledWorkouts.map((w) => [w.date, w])), [scheduledWorkouts]);
   const bodyStatsByDate = useMemo(() => Object.fromEntries(bodyStatsSchedules.map((b) => [b.date, b])), [bodyStatsSchedules]);
   const weighInDates = useMemo(() => new Set(weighIns.map((w) => localDateKey(w.date))), [weighIns]);
-  const completedWorkoutsByDate = useMemo(() => {
+  // EVERY log per date (a coach can log a Pull Day and a Push Day on the
+  // same day) — keeping only the first one used to hide the second session
+  // entirely, or pair the scheduled day with the wrong log.
+  const completedLogsByDate = useMemo(() => {
     const map = {};
     workoutLogs.forEach((log) => {
       const key = localDateKey(log.date);
-      if (!map[key]) map[key] = log;
+      (map[key] = map[key] || []).push(log);
     });
     return map;
   }, [workoutLogs]);
@@ -1262,7 +1265,7 @@ function CalendarPanel({ client, showToast }) {
     // count as that day being completed, same identity check the client's
     // own Home screen already uses to decide whether today's scheduled
     // workout still needs doing.
-    const trainingCompleted = scheduledThisMonth.filter((w) => completedWorkoutsByDate[w.date]?.dayLabel === w.label).length;
+    const trainingCompleted = scheduledThisMonth.filter((w) => (completedLogsByDate[w.date] || []).some((l) => l.dayLabel === w.label)).length;
 
     let habitExpected = 0;
     let habitCompleted = 0;
@@ -1291,44 +1294,44 @@ function CalendarPanel({ client, showToast }) {
       habits: { completed: habitCompleted, expected: habitExpected, pct: pct(habitCompleted, habitExpected) },
       nutrition: { completed: nutritionCompleted, expected: nutritionExpected, pct: pct(nutritionCompleted, nutritionExpected) },
     };
-  }, [viewYear, viewMonth, scheduledWorkouts, completedWorkoutsByDate, habits, habitLogForClient, nutritionByDate, now, todayStr]);
+  }, [viewYear, viewMonth, scheduledWorkouts, completedLogsByDate, habits, habitLogForClient, nutritionByDate, now, todayStr]);
 
   function itemsForDate(date) {
     const dateStr = dKey(date);
     const items = [];
-    const completedLog = completedWorkoutsByDate[dateStr];
+    const dayLogs = completedLogsByDate[dateStr] || [];
     const w = workoutsByDate[dateStr];
     // A log only fulfills what was SCHEDULED that day if it's actually
     // that day's workout (dayLabel matches the scheduled label) — the same
-    // identity check the client's own Home screen uses. Logging a
-    // different session on a scheduled day (e.g. Pull Day on a day
-    // scheduled as Leg Day) used to show up here as "Leg Day — completed"
-    // using the scheduled name instead of what was really done.
-    const matchesScheduled = !!(w && completedLog && completedLog.dayLabel === w.label);
+    // identity check the client's own Home screen uses. Search every log on
+    // the date (not just the first) so a second session logged the same
+    // day can't knock the scheduled one back to "not done".
+    const matchedLog = w ? dayLogs.find((l) => l.dayLabel === w.label) || null : null;
     if (w) {
       items.push({
         type: "workout",
         label: w.label,
-        done: matchesScheduled,
-        log: matchesScheduled ? completedLog : null,
-        category: matchesScheduled && completedLog.cardio ? "cardio" : "workout",
-        key: matchesScheduled ? `log:${completedLog.id}` : `sched:${dateStr}`,
+        done: !!matchedLog,
+        log: matchedLog,
+        category: matchedLog?.cardio ? "cardio" : "workout",
+        key: matchedLog ? `log:${matchedLog.id}` : `sched:${dateStr}`,
       });
     }
-    // A completed workout that doesn't match what was scheduled that day
-    // (a different day's session logged instead, or nothing was scheduled
-    // at all) still shows up — as its own item, under its own real label,
-    // never borrowing the scheduled day's name for something else.
-    if (completedLog && !matchesScheduled) {
-      items.push({
-        type: "workout",
-        label: completedLog.dayLabel || "Workout Completed",
-        done: true,
-        log: completedLog,
-        category: completedLog.cardio ? "cardio" : "workout",
-        key: `log:${completedLog.id}`,
+    // Every other completed session that day (a different workout logged
+    // instead of / as well as the scheduled one) shows up as its own item,
+    // under its own real label, never borrowing the scheduled day's name.
+    dayLogs
+      .filter((l) => l !== matchedLog)
+      .forEach((l) => {
+        items.push({
+          type: "workout",
+          label: l.dayLabel || "Workout Completed",
+          done: true,
+          log: l,
+          category: l.cardio ? "cardio" : "workout",
+          key: `log:${l.id}`,
+        });
       });
-    }
     const b = bodyStatsByDate[dateStr];
     if (b) items.push({ type: "bodystats", label: "Track Body Stats", done: weighInDates.has(dateStr), key: `bodystats:${dateStr}` });
     activeFormSchedules
@@ -1760,8 +1763,13 @@ function CalendarPanel({ client, showToast }) {
         exercisesById={exercisesById}
         onClose={() => setSelectedDate(null)}
         onSchedule={(kind) => setScheduleKind(kind)}
-        onLogWorkout={() => {
-          startViewAsClient(client.id, selectedDate);
+        onLogWorkout={(item) => {
+          // Hand over WHICH workout was tapped, not just the date — on a
+          // day holding more than one (e.g. scheduled Pull Day + a logged
+          // Push Day) the date alone made the client app guess, and "Edit"
+          // on the Push session opened a fresh Pull Day instead, saving the
+          // push numbers under the wrong name.
+          startViewAsClient(client.id, { date: selectedDate, logId: item?.log?.id || null, label: item?.label || null });
           setSelectedDate(null);
         }}
         onRemoveWorkout={() => {
@@ -4247,6 +4255,7 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [dateDraft, setDateDraft] = useState(() => localDateKey(log.date));
+  const [labelDraft, setLabelDraft] = useState(log.dayLabel || "");
 
   const allExercises = useMemo(() => Object.values(exercisesById).sort((a, b) => a.name.localeCompare(b.name)), [exercisesById]);
   const filtered = useMemo(
@@ -4279,7 +4288,8 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
         ...e,
         sets: e.sets.map((s, i) => ({ ...s, setNumber: i + 1, weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, completed: true })),
       }));
-    updateWorkoutLogEntries(log.id, cleaned);
+    const nextLabel = labelDraft.trim();
+    updateWorkoutLogEntries(log.id, cleaned, nextLabel && nextLabel !== log.dayLabel ? { dayLabel: nextLabel } : undefined);
     onClose();
   }
 
@@ -4310,6 +4320,10 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
   return (
     <BottomSheet open title="Edit Workout" onClose={onClose}>
       <div className="px-4 pb-4 space-y-3 max-h-[70vh] overflow-y-auto">
+        <div>
+          <p className="text-black/40 text-[11px] font-semibold tracking-wide mb-1.5">WORKOUT NAME</p>
+          <TextInput value={labelDraft} onChange={(e) => setLabelDraft(e.target.value)} placeholder="e.g. Push Day" />
+        </div>
         {entries.map((e, ei) => {
           const exercise = exercisesById[e.exerciseId];
           return (

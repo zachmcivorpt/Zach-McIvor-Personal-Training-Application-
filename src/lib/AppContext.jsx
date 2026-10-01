@@ -1407,8 +1407,10 @@ export function AppProvider({ children }) {
       // Coach corrections to an already-completed session — editing the
       // logged sets/reps or which exercises were done, from the "..." menu
       // on a workout log (Trainerize's Edit Stats / Edit This Workout).
-      updateWorkoutLogEntries(logId, entries) {
-        updateDoc(doc(firestore, "workoutLogs", logId), { entries }).catch(console.error);
+      // `extra` lets the same save also fix the session's name (dayLabel)
+      // when it was logged under the wrong workout.
+      updateWorkoutLogEntries(logId, entries, extra) {
+        updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) }).catch(console.error);
       },
 
       // Moves a completed log onto a different calendar date, keeping the
