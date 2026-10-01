@@ -5023,8 +5023,8 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
   }
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden -mx-4 md:-mx-6">
-      <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/8">
+    <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-8px_rgba(0,0,0,0.10)] mb-5 overflow-hidden -mx-4 md:-mx-6">
+      <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/6">
         <div>
           <p className="text-black font-bold text-[16px] tracking-tight">Personal Details</p>
           <p className="text-black/35 text-xs mt-0.5">The essentials for planning their training and nutrition</p>
@@ -5033,7 +5033,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
           <button
             onClick={save}
             disabled={saving}
-            className="bg-black text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-50 shrink-0 transition-opacity"
+            className="bg-black text-white text-xs font-bold px-4 py-2 rounded-full shadow-sm disabled:opacity-50 shrink-0 transition-all active:scale-95"
           >
             {saving ? "SAVING…" : "SAVE"}
           </button>
@@ -5044,8 +5044,8 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
         )}
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-black/8 border-b border-black/8">
-        <div className="text-center py-3 px-2">
+      <div className="grid grid-cols-3 divide-x divide-black/6 border-b border-black/6 bg-blue-50/40">
+        <div className="text-center py-3.5 px-2">
           <input
             type="number"
             min={0}
@@ -5056,7 +5056,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
           />
           <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1">Age</p>
         </div>
-        <div className="text-center py-3 px-2">
+        <div className="text-center py-3.5 px-2">
           <select
             value={sex}
             onChange={(e) => setSex(e.target.value)}
@@ -5073,7 +5073,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
           </select>
           <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1">Sex</p>
         </div>
-        <div className="text-center py-3 px-2">
+        <div className="text-center py-3.5 px-2">
           <div className="flex items-baseline justify-center gap-0.5">
             <input
               type="number"
@@ -5178,7 +5178,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
         </div>
       </div>
 
-      <div className="px-5 py-3.5 border-t border-black/8 flex flex-wrap items-center gap-4">
+      <div className="px-5 py-3.5 border-t border-black/6 flex flex-wrap items-center gap-4">
         {client.status === "active" ? (
           <>
             <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
@@ -5227,8 +5227,8 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
       <PlateauAlertCard client={client} />
 
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden -mx-4 md:-mx-6">
-        <div className="px-5 pt-5 pb-4 border-b border-black/8">
+      <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-8px_rgba(0,0,0,0.10)] mb-5 overflow-hidden -mx-4 md:-mx-6">
+        <div className="px-5 pt-5 pb-4 border-b border-black/6">
           <p className="text-black font-bold text-[16px] tracking-tight">Trainer's Notes</p>
           <p className="text-black/35 text-xs mt-0.5">Private — only you can see these</p>
         </div>
@@ -5331,8 +5331,8 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
         </div>
       </div>
 
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm overflow-hidden -mx-4 md:-mx-6">
-        <div className="px-5 pt-5 pb-4 border-b border-black/8">
+      <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-8px_rgba(0,0,0,0.10)] overflow-hidden -mx-4 md:-mx-6">
+        <div className="px-5 pt-5 pb-4 border-b border-black/6">
           <p className="text-black font-bold text-[16px] tracking-tight">Client Context</p>
           <p className="text-black/35 text-xs mt-0.5">What APEX Insights uses to understand this client</p>
         </div>
@@ -5638,7 +5638,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
       </div>
 
       {/* main panel */}
-      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-[#F7F7F8]">
         {clientTab === "summary" && (
           <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} onClose={onClose} />
         )}
