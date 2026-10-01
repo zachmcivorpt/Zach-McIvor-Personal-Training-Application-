@@ -509,7 +509,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const started = isToday && !!activeLog && !completedOnDate;
   const exCount = countExercises(todaySession.exercises);
   const estMin = estimateWorkoutMinutes(todaySession.exercises);
-  const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S FOCUS" : isPastDate ? "MISSED" : "SCHEDULED";
+  const pillLabel = completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : todaySession.wod ? "WORKOUT OF THE DAY" : isToday ? "TODAY'S FOCUS" : "SCHEDULED";
 
   return (
     <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 border ${dark ? "border-white/10" : "border-black/10"}`}>
@@ -2806,10 +2806,88 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   );
 }
 
-function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
+function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsByDate, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
   const dark = useClientDark();
+  const { db, currentUser, viewingAsClient, saveScheduledWorkout, deleteScheduledWorkoutById } = useApp();
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
+  // Coach-only (View as Client): build a one-off "workout of the day" or
+  // edit/move today's scheduled workout. Saved as an ordinary scheduled
+  // workout on the client's calendar, so starting it, logging sets, PBs,
+  // history and calendar drag/move all behave exactly like any other day.
+  const [wodPickerOpen, setWodPickerOpen] = useState(false);
+  const [wodEditing, setWodEditing] = useState(null); // { day, previousId } while the editor is open
+  const [wodRemoveOpen, setWodRemoveOpen] = useState(false);
+  const todayStr = localDateKey();
+
+  function startWod(template) {
+    const exercisesCopy = template ? JSON.parse(JSON.stringify(template.exercises || [])).map((ex) => ({ ...ex, addedAt: Date.now() })) : [];
+    setWodEditing({
+      previousId: null,
+      day: {
+        id: `wod_${Date.now()}`,
+        date: todayStr,
+        label: template?.label || "Workout of the Day",
+        muscleGroups: template?.muscleGroups || [],
+        instructions: template?.instructions || "",
+        exercises: exercisesCopy,
+        wod: true,
+      },
+    });
+    setWodPickerOpen(false);
+  }
+
+  function editScheduled(entry) {
+    setWodEditing({
+      previousId: entry.id,
+      day: {
+        id: entry.id,
+        date: entry.date,
+        label: entry.label,
+        muscleGroups: entry.muscleGroups || [],
+        instructions: entry.instructions || "",
+        exercises: entry.exercises || [],
+        wod: !!entry.wod,
+      },
+    });
+  }
+
+  // Warns before a save would replace a different workout already on that
+  // date — each calendar day holds one scheduled workout per client.
+  function dateHint(date) {
+    if (!date || !wodEditing) return "";
+    const existing = scheduledWorkoutsByDate?.[date];
+    if (!existing || existing.id === wodEditing.previousId) return "";
+    return `This will replace "${existing.label}" already scheduled for this date.`;
+  }
+
+  async function saveWod(day) {
+    try {
+      await saveScheduledWorkout(currentUser.id, {
+        previousId: wodEditing?.previousId || null,
+        date: day.date,
+        label: day.label,
+        muscleGroups: day.muscleGroups,
+        exercises: day.exercises,
+        instructions: day.instructions,
+        wod: day.wod,
+      });
+      const moved = wodEditing?.previousId && day.date !== wodEditing.day.date;
+      setWodEditing(null);
+      showToast?.(
+        moved
+          ? `Moved to ${new Date(day.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`
+          : day.date === todayStr
+          ? "Workout saved for today"
+          : `Workout saved for ${new Date(day.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`
+      );
+    } catch (err) {
+      // Editor stays open (wodEditing untouched) so nothing built is lost.
+      showToast?.(err.message || "Couldn't save that workout — check your connection and try again");
+    }
+  }
+
+  const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
   return (
     <div className="pb-28">
       <div className="px-2.5 pt-6 pb-4">
@@ -2848,6 +2926,32 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             fullWidth
           />
           <div className="px-2.5 space-y-4">
+          {viewingAsClient && (
+            <div className="space-y-2">
+              {canEditToday && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => editScheduled(todayScheduledEntry)}
+                    className={dark ? "flex-1 flex items-center justify-center gap-1.5 bg-white/5 text-white/80 text-sm font-semibold py-3 rounded-2xl" : "flex-1 flex items-center justify-center gap-1.5 bg-black/5 text-black/80 text-sm font-semibold py-3 rounded-2xl"}
+                  >
+                    <Edit3 size={14} /> Edit / move
+                  </button>
+                  <button
+                    onClick={() => setWodRemoveOpen(true)}
+                    className={dark ? "px-4 flex items-center justify-center gap-1.5 bg-white/5 text-white/60 text-sm font-semibold py-3 rounded-2xl" : "px-4 flex items-center justify-center gap-1.5 bg-black/5 text-black/60 text-sm font-semibold py-3 rounded-2xl"}
+                  >
+                    <X size={14} /> Remove
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={() => setWodPickerOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
+              >
+                <Plus size={16} /> Create workout of the day
+              </button>
+            </div>
+          )}
           <button
             onClick={() => setCardioOpen(true)}
             className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform" : "w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"}
@@ -2859,6 +2963,84 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       )}
 
       {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} showToast={showToast} />}
+
+      {viewingAsClient && (
+        <>
+          <BottomSheet open={wodPickerOpen} onClose={() => setWodPickerOpen(false)} title="Workout of the Day">
+            <div className="space-y-2 max-h-[65vh] overflow-y-auto">
+              <button
+                onClick={() => startWod(null)}
+                className="w-full flex items-center gap-3 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl px-3.5 py-3 text-left transition-colors"
+              >
+                <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+                  <Plus size={16} className="text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-black font-semibold text-sm">Build from scratch</p>
+                  <p className="text-black/40 text-xs">Pick exercises, sets and reps</p>
+                </div>
+              </button>
+              {(db.masterWorkouts || []).length > 0 && (
+                <p className="text-black/40 text-[11px] font-semibold tracking-wide pt-2 px-1">OR START FROM YOUR LIBRARY</p>
+              )}
+              {(db.masterWorkouts || []).map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => startWod(w)}
+                  className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 text-left transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                    <Dumbbell size={15} className="text-blue-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-black font-semibold text-sm truncate">{w.label}</p>
+                    <p className="text-black/35 text-xs truncate">
+                      {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
+                      {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </BottomSheet>
+
+          {wodEditing && (
+            <WorkoutEditor
+              open
+              day={wodEditing.day}
+              exercises={db.exercises}
+              onClose={() => setWodEditing(null)}
+              onSave={saveWod}
+              showToast={showToast}
+              showDate
+              dateHint={dateHint}
+            />
+          )}
+
+          <BottomSheet open={wodRemoveOpen} onClose={() => setWodRemoveOpen(false)} title="Remove today's workout?">
+            <div className="space-y-4">
+              <p className="text-black/60 text-sm leading-snug">
+                Takes {todayScheduledEntry?.label ? `"${todayScheduledEntry.label}"` : "this workout"} off {currentUser.name?.split(" ")[0] || "the client"}'s calendar for today. Logged sessions and PBs aren't affected.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    if (todayScheduledEntry) deleteScheduledWorkoutById(todayScheduledEntry.id);
+                    setWodRemoveOpen(false);
+                    showToast?.("Workout removed");
+                  }}
+                  className="flex-1 bg-red-600 text-white text-sm font-semibold py-3 rounded-xl"
+                >
+                  Remove
+                </button>
+                <button onClick={() => setWodRemoveOpen(false)} className="flex-1 bg-black/8 text-black/70 text-sm font-semibold py-3 rounded-xl">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </BottomSheet>
+        </>
+      )}
 
       <LogCardioSheet
         open={cardioOpen}
@@ -6598,7 +6780,9 @@ export default function ClientApp() {
   }, [scheduledWorkoutsForClient]);
   const bodyStatsSchedulesForClient = (db.bodyStatsSchedules || {})[currentUser.id] || [];
   function scheduledToSession(entry) {
-    return entry ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises, instructions: entry.instructions || "" } : null;
+    return entry
+      ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises, instructions: entry.instructions || "", ...(entry.wod ? { wod: true } : {}) }
+      : null;
   }
   // A workout done late (e.g. Sunday's session finished Monday) is logged
   // with today's timestamp, not Sunday's — logWorkout always stamps the
@@ -7146,7 +7330,8 @@ export default function ClientApp() {
         {tab === "workouts" && (
           <WorkoutsScreen
             todaySession={todaySession}
-            scheduledWorkouts={scheduledWorkoutsForClient}
+            todayScheduledEntry={scheduledWorkoutsByDate[todayDateKey] || null}
+            scheduledWorkoutsByDate={scheduledWorkoutsByDate}
             activeLog={activeLog}
             completedOnDate={completedToday}
             onStart={() => startWorkout()}

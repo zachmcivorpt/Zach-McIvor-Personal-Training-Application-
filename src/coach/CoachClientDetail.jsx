@@ -1033,6 +1033,7 @@ function CalendarPanel({ client, showToast }) {
     db,
     scheduleWorkout,
     unscheduleWorkout,
+    deleteScheduledWorkoutById,
     scheduleBodyStatsCheckin,
     unscheduleBodyStatsCheckin,
     deleteWorkoutLog,
@@ -1464,8 +1465,12 @@ function CalendarPanel({ client, showToast }) {
     // whatever was scheduled there) — no blocking prompt. Delete/swipe
     // gives full manual control to clear a day first if that's not wanted.
     try {
-      await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises, instructions: entry.instructions });
-      unscheduleWorkout(client.id, fromDate);
+      await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises, instructions: entry.instructions, wod: entry.wod });
+      // Remove by the entry's real doc id — one moved on the client's own
+      // calendar has a fresh id, not clientId__date, and unscheduling by
+      // date alone left the original behind as a duplicate.
+      if (entry.id && entry.id !== `${client.id}__${toDate}`) deleteScheduledWorkoutById(entry.id);
+      else if (!entry.id) unscheduleWorkout(client.id, fromDate);
       showToast(`Moved ${entry.label} to ${label(toDate)}`);
     } catch (err) {
       showToast(err.message || "Couldn't move that workout — check your connection and try again");

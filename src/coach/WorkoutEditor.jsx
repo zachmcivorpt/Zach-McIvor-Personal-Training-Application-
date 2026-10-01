@@ -84,9 +84,14 @@ function withRowIds(rows) {
 // an exercise table on the left, a searchable exercise picker on the right.
 // Used both for a client's own phase workouts and the shared program
 // template library, so sets/reps/RIR/rest/notes only need building once.
-export default function WorkoutEditor({ open, day, exercises, onClose, onSave, showToast }) {
+// `showDate` adds a calendar-date field (used for a client's "workout of
+// the day"): the picked date is included in onSave's payload as `date`,
+// and `dateHint(date)` can return a short warning shown under it (e.g.
+// that the date already has another workout scheduled).
+export default function WorkoutEditor({ open, day, exercises, onClose, onSave, showToast, showDate = false, dateHint }) {
   const { createExercise } = useApp();
   const [label, setLabel] = useState(day?.label || "");
+  const [date, setDate] = useState(day?.date || "");
   const [instructions, setInstructions] = useState(day?.instructions || "");
   const [muscleGroups, setMuscleGroups] = useState((day?.muscleGroups || []).join(", "));
   const [rows, setRows] = useState(() => withRowIds(day?.exercises));
@@ -456,8 +461,13 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
     if (saving) return;
     setSaving(true);
     try {
+      if (showDate && !date) {
+        showToast?.("Pick a date for this workout");
+        return;
+      }
       await onSave({
         ...day,
+        ...(showDate ? { date } : {}),
         label: label.trim() || "Untitled workout",
         instructions,
         muscleGroups: muscleGroups.split(",").map((s) => s.trim()).filter(Boolean),
@@ -534,6 +544,13 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
           } md:block md:flex-1 overflow-y-auto px-4 md:px-6 py-5 md:border-r border-black/8`}
           style={isDragging ? { touchAction: "none" } : undefined}
         >
+          {showDate && (
+            <div className="mb-4">
+              <p className="text-black/40 text-[11px] font-semibold tracking-wide mb-2">DATE</p>
+              <TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} className="text-sm" />
+              {dateHint?.(date) && <p className="text-orange-600 text-xs mt-1.5 leading-snug">{dateHint(date)}</p>}
+            </div>
+          )}
           <p className="text-black/40 text-[11px] font-semibold tracking-wide mb-2">INSTRUCTIONS</p>
           <TextArea
             rows={2}

@@ -1289,9 +1289,9 @@ export function AppProvider({ children }) {
       // Workouts scheduled onto specific calendar dates for a client — the
       // doc id is deterministic (clientId__date) so re-scheduling a date
       // cleanly replaces whatever was there before instead of duplicating.
-      async scheduleWorkout(clientId, { date, label, muscleGroups, exercises, instructions }) {
+      async scheduleWorkout(clientId, { date, label, muscleGroups, exercises, instructions, wod }) {
         const id = `${clientId}__${date}`;
-        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises, instructions: instructions || "" };
+        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises, instructions: instructions || "", ...(wod ? { wod: true } : {}) };
         try {
           await setDoc(doc(firestore, "scheduledWorkouts", id), entry);
         } catch (err) {
@@ -1335,6 +1335,26 @@ export function AppProvider({ children }) {
           throw new Error("Couldn't schedule that workout — " + (err.message || "please try again."));
         }
         return dates;
+      },
+
+      // Saves a coach-built "workout of the day" (or an edit to any
+      // scheduled workout) onto a client's calendar, under the same
+      // deterministic clientId__date id every scheduled day uses — so it
+      // shows on the Training tab and both calendars, drags/moves, and
+      // logs into history + PBs exactly like a program workout. When an
+      // edit changes the date (or the entry had a non-deterministic id
+      // from a calendar drag), the old doc is removed only after the new
+      // one is written, so the workout moves rather than duplicates.
+      async saveScheduledWorkout(clientId, { previousId, date, label, muscleGroups, exercises, instructions, wod }) {
+        const id = `${clientId}__${date}`;
+        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises: exercises || [], instructions: instructions || "", ...(wod ? { wod: true } : {}) };
+        try {
+          await setDoc(doc(firestore, "scheduledWorkouts", id), entry);
+          if (previousId && previousId !== id) await deleteDoc(doc(firestore, "scheduledWorkouts", previousId));
+        } catch (err) {
+          throw new Error("Couldn't save that workout — " + (err.message || "please try again."));
+        }
+        return entry;
       },
 
       unscheduleWorkout(clientId, date) {
@@ -1390,6 +1410,8 @@ export function AppProvider({ children }) {
             label: entry.label,
             muscleGroups: entry.muscleGroups || [],
             exercises: entry.exercises,
+            instructions: entry.instructions || "",
+            ...(entry.wod ? { wod: true } : {}),
           });
           await deleteDoc(doc(firestore, "scheduledWorkouts", workoutId));
         } catch (err) {
