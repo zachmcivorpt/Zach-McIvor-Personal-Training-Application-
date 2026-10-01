@@ -6575,10 +6575,16 @@ function ClientCalendarScreen({
   }
 
   // Every log per date — two sessions on one day (Pull + Push) both show.
+  // A log's own scheduledDate (set when an overdue day's workout is
+  // finished late) takes priority over its actual completion date, so it
+  // lands on the day it was FOR rather than the day it happened to be
+  // finished — otherwise a Monday session done on Thursday would only ever
+  // appear under Thursday, leaving Monday's card stuck on "Start Workout"
+  // even though it's genuinely done.
   const logsByDate = useMemo(() => {
     const map = {};
     logsForClient.forEach((l) => {
-      const key = localDateKey(l.date);
+      const key = l.scheduledDate || localDateKey(l.date);
       (map[key] = map[key] || []).push(l);
     });
     return map;
@@ -7116,13 +7122,23 @@ export default function ClientApp() {
       })),
     };
   }
+  // A log's scheduledDate (the day it actually fulfills, stamped when the
+  // workout was started — see finishWorkout) is the authoritative match
+  // when present: it's how an overdue day finished late still flips THAT
+  // day to completed instead of only ever showing up under the day it was
+  // actually pressed "finish" on. Logs saved before this existed (or any
+  // ad hoc workout with nothing scheduled) have no scheduledDate, so they
+  // fall back to matching on their own completion date + label.
+  function logFulfillsDate(log, dateKey, scheduled) {
+    if (log.scheduledDate) return log.scheduledDate === dateKey;
+    return localDateKey(log.date) === dateKey && (!scheduled || scheduled.label === log.dayLabel);
+  }
   function sessionForDate(dateKey, logs) {
     const scheduled = scheduledWorkoutsByDate[dateKey];
     // With two sessions logged on one day (e.g. Pull Day + Push Day), the
     // first log found isn't necessarily the scheduled day's own — look for
     // the one whose label actually matches before falling back.
-    const dayLogs = logs.filter((l) => !l.cardio && localDateKey(l.date) === dateKey);
-    const completedLog = scheduled ? dayLogs.find((l) => l.dayLabel === scheduled.label) : dayLogs[0];
+    const completedLog = logs.find((l) => !l.cardio && logFulfillsDate(l, dateKey, scheduled));
     if (completedLog) return logToSession(completedLog, scheduled);
     return scheduledToSession(scheduled);
   }
@@ -7132,9 +7148,7 @@ export default function ClientApp() {
   // different, overdue day doesn't mark today's own workout done.
   function isDateActuallyCompleted(dateKey, logs) {
     const scheduled = scheduledWorkoutsByDate[dateKey];
-    return logs.some(
-      (l) => !l.cardio && localDateKey(l.date) === dateKey && (!scheduled || scheduled.label === l.dayLabel)
-    );
+    return logs.some((l) => !l.cardio && logFulfillsDate(l, dateKey, scheduled));
   }
   const todayDateKey = localDateKey();
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
@@ -7454,7 +7468,12 @@ export default function ClientApp() {
       // however long this quick edit took.
       updateWorkoutLogEntries(editingLogId, entries);
     } else {
-      logWorkout(currentUser.id, { dayLabel: session.label, entries, durationMin });
+      // session.date (present for anything started from a specific
+      // scheduled day — today's own, or an overdue day picked up late from
+      // the calendar) ties this log to the day it actually fulfills, so
+      // finishing an overdue workout today still flips THAT day to
+      // completed rather than only ever showing up under today's date.
+      logWorkout(currentUser.id, { dayLabel: session.label, entries, durationMin, ...(session.date ? { scheduledDate: session.date } : {}) });
     }
     setSummaryData({ daySession: session, activeLog: cleanedLog, durationMin, durationSec });
     setActiveLog(null);
