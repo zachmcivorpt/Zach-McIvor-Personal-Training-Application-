@@ -3875,24 +3875,26 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
   return (
     <>
     <div className="bg-white border border-black/10 rounded-2xl overflow-hidden shadow-sm">
-      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center gap-3 px-3.5 py-3 text-left">
-        <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-          <Dumbbell size={15} className="text-blue-500" />
+      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left">
+        <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+          <Dumbbell size={17} className="text-blue-500" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-black text-sm font-semibold">{log.dayLabel}</p>
-          <p className="text-black/40 text-xs mt-0.5">
-            {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
-            {" · "}
-            {volume.toLocaleString()} kg lifted
+          <p className="text-black text-[15px] font-semibold">{log.dayLabel}</p>
+          <p className="text-black/40 text-xs mt-1 flex items-center flex-wrap gap-x-1.5 gap-y-1">
+            <span>
+              {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+              {" · "}
+              {volume.toLocaleString()} kg lifted
+            </span>
             {prCount > 0 && (
-              <span className="inline-flex items-center gap-0.5 text-emerald-600 font-semibold ml-1">
-                <Trophy size={11} /> {prCount} PR{prCount === 1 ? "" : "s"}
+              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold px-1.5 py-0.5 rounded-md">
+                <Trophy size={10} /> {prCount} PR{prCount === 1 ? "" : "s"}
               </span>
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {hasFlags && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
           <span
             role="button"
@@ -3901,7 +3903,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
               ev.stopPropagation();
               setCommentsOpen(true);
             }}
-            className="relative w-7 h-7 flex items-center justify-center rounded-lg text-black/40 hover:bg-black/5 hover:text-black/70"
+            className="relative w-8 h-8 flex items-center justify-center rounded-lg text-black/40 hover:bg-black/5 hover:text-black/70"
           >
             <MessageSquare size={16} />
             {comments.length > 0 && (
@@ -3917,7 +3919,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
               ev.stopPropagation();
               setMenuOpen((v) => !v);
             }}
-            className="relative w-7 h-7 -mr-1 flex items-center justify-center rounded-lg text-black/40 hover:bg-black/5 hover:text-black/70"
+            className="relative w-8 h-8 -mr-1 flex items-center justify-center rounded-lg text-black/40 hover:bg-black/5 hover:text-black/70"
           >
             <MoreVertical size={16} />
             {menuOpen && (
@@ -3979,18 +3981,18 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
       </button>
       {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
       {open && (
-        <div className="px-3.5 pb-3.5 space-y-2.5">
+        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-black/5">
           {(insights.personalBests.length > 0 || insights.notProgressed.length > 0) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
               {insights.personalBests.length > 0 && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Trophy size={12} className="text-emerald-600" />
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Trophy size={13} className="text-emerald-600" />
                     <p className="text-emerald-700 text-[10px] font-bold tracking-wide uppercase">Personal Bests</p>
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1.5">
                     {insights.personalBests.map((pb) => (
-                      <p key={pb.exerciseId} className="text-emerald-800 text-xs">
+                      <p key={pb.exerciseId} className="text-emerald-800 text-[13px] leading-snug">
                         <span className="font-semibold">{pb.exerciseName}</span> — {pb.display}
                       </p>
                     ))}
@@ -3998,14 +4000,14 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                 </div>
               )}
               {insights.notProgressed.length > 0 && (
-                <div className="bg-rose-50 border border-rose-100 rounded-lg px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <TrendingDown size={12} className="text-rose-600" />
+                <div className="bg-rose-50 border border-rose-100 rounded-xl px-3.5 py-3">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <TrendingDown size={13} className="text-rose-600" />
                     <p className="text-rose-700 text-[10px] font-bold tracking-wide uppercase">No Progress</p>
                   </div>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1.5">
                     {insights.notProgressed.map((np) => (
-                      <p key={np.exerciseId} className="text-rose-800 text-xs">
+                      <p key={np.exerciseId} className="text-rose-800 text-[13px] leading-snug">
                         <span className="font-semibold">{np.exerciseName}</span> — {np.current}{" "}
                         <span className="text-rose-400">(was {np.previous})</span>
                       </p>
@@ -4015,37 +4017,50 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
               )}
             </div>
           )}
-          {log.entries.map((e, i) => {
-            const exercise = exercisesById[e.exerciseId];
-            return (
-              <div key={i} className="bg-black/[0.03] border border-black/5 rounded-lg px-3 py-2.5">
-                <p className="text-black text-sm font-semibold">{exercise?.name || "Exercise"}</p>
-                <p className="text-black/40 text-xs mt-0.5 flex flex-wrap gap-x-1.5 gap-y-0.5">
-                  {e.sets.map((s, si) => (
-                    <span key={si} className={s.isPR ? "text-emerald-600 font-semibold" : ""}>
-                      {s.reps}×{s.weight}kg{s.isPR ? " (PR)" : ""}
-                    </span>
-                  ))}
-                </p>
-                {e.swapReason && (
-                  <div className="mt-2 flex items-start gap-1.5 bg-blue-50 rounded-lg px-2.5 py-2">
-                    <Repeat size={12} className="text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-blue-700 text-xs leading-snug">
-                      <span className="font-semibold">Swapped from {e.swappedFromName || "planned exercise"}.</span> {e.swapReason}
-                    </p>
+          <div className="space-y-2.5">
+            {log.entries.map((e, i) => {
+              const exercise = exercisesById[e.exerciseId];
+              return (
+                <div key={i} className="bg-white border border-black/8 rounded-xl px-4 py-3.5 shadow-sm">
+                  <p className="text-black text-sm font-semibold mb-2">{exercise?.name || "Exercise"}</p>
+                  <div className="space-y-1.5">
+                    {e.sets.map((s, si) => (
+                      <div
+                        key={si}
+                        className={`flex items-center gap-3 text-[13px] ${s.isPR ? "text-emerald-700 font-semibold" : "text-black/55"}`}
+                      >
+                        <span className={`w-12 shrink-0 font-medium ${s.isPR ? "text-emerald-600" : "text-black/30"}`}>Set {si + 1}</span>
+                        <span>
+                          {s.reps} × {s.weight}kg
+                        </span>
+                        {s.isPR && (
+                          <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-[11px] ml-auto">
+                            <Trophy size={11} /> PR
+                          </span>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                )}
-                {e.note && (
-                  <div className="mt-2 flex items-start gap-1.5 bg-black/[0.04] rounded-lg px-2.5 py-2">
-                    <NotebookPen size={12} className="text-black/40 shrink-0 mt-0.5" />
-                    <p className="text-black/60 text-xs leading-snug">{e.note}</p>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <div className="bg-black/[0.03] border border-black/5 rounded-lg px-3 py-2.5">
-            <div className="flex items-center justify-between mb-1.5">
+                  {e.swapReason && (
+                    <div className="mt-3 bg-blue-50 rounded-lg px-3 py-2.5">
+                      <p className="text-blue-700 text-xs font-semibold flex items-center gap-1.5 mb-1">
+                        <Repeat size={12} /> Swapped from {e.swappedFromName || "planned exercise"}
+                      </p>
+                      <p className="text-blue-600/80 text-xs leading-relaxed">{e.swapReason}</p>
+                    </div>
+                  )}
+                  {e.note && (
+                    <div className="mt-3 flex items-start gap-1.5 bg-black/[0.04] rounded-lg px-3 py-2.5">
+                      <NotebookPen size={12} className="text-black/40 shrink-0 mt-0.5" />
+                      <p className="text-black/60 text-xs leading-relaxed">{e.note}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
               <div className="flex items-center gap-1.5">
                 <NotebookPen size={13} className="text-black/40" />
                 <p className="text-black/60 text-xs font-semibold">This Workout's Note</p>
