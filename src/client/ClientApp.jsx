@@ -1246,6 +1246,12 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
     : [];
 
   const estMinutes = estimateWorkoutMinutes(session.exercises);
+  // Once a workout's done, show how long it actually took (tracked live
+  // during the session) rather than the pre-workout estimate — older logs
+  // saved before this was tracked fall back to the estimate, so they don't
+  // show a blank.
+  const hasActualDuration = !!session.workoutLogId && session.durationMin != null;
+  const displayMinutes = hasActualDuration ? session.durationMin : estMinutes;
 
   return (
     <FullScreenOverlay>
@@ -1315,7 +1321,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                   <Target size={11} /> Regular
                 </span>
                 <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
-                  <Clock size={11} /> ~{estMinutes} min
+                  <Clock size={11} /> {hasActualDuration ? `${displayMinutes} min` : `~${displayMinutes} min`}
                 </span>
                 <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
                   <Dumbbell size={11} /> {countExercises(session.exercises)} Exercises
@@ -7027,6 +7033,7 @@ export default function ClientApp() {
       muscleGroups: scheduled?.muscleGroups || [],
       instructions: scheduled?.instructions || "",
       workoutLogId: log.id,
+      durationMin: log.durationMin,
       exercises: (log.entries || []).map((e) => ({
         exerciseId: e.exerciseId,
         targetSets: (e.sets || []).length,
@@ -7367,11 +7374,13 @@ export default function ClientApp() {
       ...(swapByToId[exerciseId] || {}),
     }));
     if (editingLogId) {
-      // Re-opened an already-completed workout — update that same log in
-      // place rather than creating a second entry for the same day.
+      // Re-opened an already-completed workout to fix a stat — the
+      // original duration (the real time actually spent training) still
+      // stands, so it's left untouched here rather than overwritten with
+      // however long this quick edit took.
       updateWorkoutLogEntries(editingLogId, entries);
     } else {
-      logWorkout(currentUser.id, { dayLabel: session.label, entries });
+      logWorkout(currentUser.id, { dayLabel: session.label, entries, durationMin });
     }
     setSummaryData({ daySession: session, activeLog: cleanedLog, durationMin, durationSec });
     setActiveLog(null);
