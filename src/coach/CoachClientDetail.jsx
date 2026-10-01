@@ -2339,30 +2339,49 @@ function TrainingProgramPanel({ client, showToast }) {
           </div>
         ) : (
           <>
-            <div className="flex items-start justify-between gap-3 mb-1 flex-wrap">
-              <input
-                value={phase.name}
-                onChange={(e) => updateClientPhase(client.id, phase.id, { name: e.target.value })}
-                className="bg-transparent outline-none text-black text-xl font-bold flex-1 min-w-[140px]"
-              />
-              <div className="flex items-center gap-2 shrink-0">
+            <input
+              value={phase.name}
+              onChange={(e) => updateClientPhase(client.id, phase.id, { name: e.target.value })}
+              className="bg-transparent outline-none text-black text-lg font-bold w-full min-w-0 mb-3"
+            />
+
+            <div className="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
+              <div className="inline-flex items-center gap-2 bg-black/[0.04] rounded-full pl-3 pr-1 py-1.5 shrink-0">
+                <Calendar size={13} className="text-black/35 shrink-0" />
+                <button
+                  type="button"
+                  onClick={() => startDateRef.current?.showPicker?.() ?? startDateRef.current?.focus()}
+                  className="text-black/70 text-xs font-semibold whitespace-nowrap"
+                >
+                  {formatDateRangeLabel(phase.startDate)}
+                </button>
+                <span className="text-black/25 text-xs">–</span>
+                <button
+                  type="button"
+                  onClick={() => endDateRef.current?.showPicker?.() ?? endDateRef.current?.focus()}
+                  className="text-black/70 text-xs font-semibold whitespace-nowrap"
+                >
+                  {phase.endDate ? formatDateRangeLabel(phase.endDate) : "Set end"}
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={saveAsMasterProgram}
-                  className="flex items-center gap-1.5 bg-black/[0.05] hover:bg-black/10 text-black/70 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+                  className="flex items-center gap-1.5 text-black/50 hover:text-black text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
                   title="Save this phase as a reusable Master Program"
                 >
-                  <Library size={13} /> Save to Library
+                  <Library size={13} /> Save
                 </button>
                 <button
                   onClick={() => setDuplicating(phase)}
-                  className="flex items-center gap-1.5 bg-black/[0.05] hover:bg-black/10 text-black/70 text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+                  className="flex items-center gap-1.5 text-black/50 hover:text-black text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
                 >
                   <Copy size={13} /> Duplicate
                 </button>
                 {!confirmDeletePhase || confirmDeletePhase !== phase.id ? (
                   <button
                     onClick={() => setConfirmDeletePhase(phase.id)}
-                    className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/[0.05] hover:bg-black/10 text-black/40"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-black/35 hover:text-red-500 shrink-0"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -2374,7 +2393,7 @@ function TrainingProgramPanel({ client, showToast }) {
                       setConfirmDeletePhase(null);
                       showToast("Phase deleted");
                     }}
-                    className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-colors"
+                    className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap shrink-0"
                   >
                     Confirm delete
                   </button>
@@ -2382,42 +2401,24 @@ function TrainingProgramPanel({ client, showToast }) {
               </div>
             </div>
 
-            <div className="inline-flex items-center gap-2 bg-black/[0.04] rounded-full pl-3 pr-1 py-1 mb-5">
-              <Calendar size={13} className="text-black/35 shrink-0" />
-              <button
-                type="button"
-                onClick={() => startDateRef.current?.showPicker?.() ?? startDateRef.current?.focus()}
-                className="text-black/70 text-xs font-semibold"
-              >
-                {formatDateRangeLabel(phase.startDate)}
-              </button>
-              <span className="text-black/25 text-xs">–</span>
-              <button
-                type="button"
-                onClick={() => endDateRef.current?.showPicker?.() ?? endDateRef.current?.focus()}
-                className="text-black/70 text-xs font-semibold"
-              >
-                {phase.endDate ? formatDateRangeLabel(phase.endDate) : "Set end"}
-              </button>
-              <input
-                ref={startDateRef}
-                type="date"
-                value={phase.startDate}
-                onChange={(e) => updateClientPhase(client.id, phase.id, { startDate: e.target.value })}
-                className="w-0 h-0 opacity-0 absolute pointer-events-none"
-                tabIndex={-1}
-                aria-hidden="true"
-              />
-              <input
-                ref={endDateRef}
-                type="date"
-                value={phase.endDate || ""}
-                onChange={(e) => updateClientPhase(client.id, phase.id, { endDate: e.target.value })}
-                className="w-0 h-0 opacity-0 absolute pointer-events-none"
-                tabIndex={-1}
-                aria-hidden="true"
-              />
-            </div>
+            <input
+              ref={startDateRef}
+              type="date"
+              value={phase.startDate}
+              onChange={(e) => updateClientPhase(client.id, phase.id, { startDate: e.target.value })}
+              className="w-0 h-0 opacity-0 absolute pointer-events-none"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+            <input
+              ref={endDateRef}
+              type="date"
+              value={phase.endDate || ""}
+              onChange={(e) => updateClientPhase(client.id, phase.id, { endDate: e.target.value })}
+              className="w-0 h-0 opacity-0 absolute pointer-events-none"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
 
             <TextArea
               rows={2}
