@@ -102,8 +102,12 @@ export default function CoachShell() {
     setTimeout(() => setToast({ show: false, message: "" }), 1800);
   }
 
-  function doLogout() {
-    logout();
+  async function doLogout() {
+    // See the client app's doLogout for why this is awaited before
+    // navigating — navigating first could race a same-moment service
+    // worker update reload against an auth state that hadn't actually
+    // cleared yet, landing on a blank screen instead of sign-in.
+    await logout();
     navigate("/login", { replace: true });
   }
 

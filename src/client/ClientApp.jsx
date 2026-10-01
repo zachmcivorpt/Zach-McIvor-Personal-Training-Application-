@@ -6983,7 +6983,7 @@ export default function ClientApp() {
       .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"));
   }
 
-  function doLogout() {
+  async function doLogout() {
     // If a coach is browsing as this client, "log out" here must only end
     // the impersonation — actually signing out would kill their own real
     // session too.
@@ -6991,7 +6991,14 @@ export default function ClientApp() {
       stopViewAsClient();
       return;
     }
-    logout();
+    // Navigating before Firebase has actually finished signing out left
+    // `currentUser` briefly stale on the screen underneath — LoginScreen's
+    // own "already signed in, bounce to /app" redirect could then fire
+    // against that stale value, or a same-moment service worker update
+    // reload could catch the auth state mid-clear, landing on a blank
+    // screen instead of the sign-in screen. Awaiting it first guarantees
+    // the session is actually gone before anything navigates.
+    await logout();
     navigate("/login", { replace: true });
   }
 
