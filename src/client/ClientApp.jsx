@@ -63,6 +63,7 @@ import {
   Upload,
   Download,
   Flame,
+  ArrowRight,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -1221,19 +1222,20 @@ function RescheduleSheet({ open, onClose, currentDate, onPick }) {
 // instead of a row of filled pill badges competing with the photo below it.
 function PreviewStat({ icon: Icon, value, label, dark, accent }) {
   return (
-    <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2.5 px-1.5">
-      <div className={`flex items-center gap-1 ${accent ? "text-emerald-500" : dark ? "text-white" : "text-black"}`}>
-        <Icon size={11} />
-        <span className="text-[13px] font-bold tabular-nums truncate">{value}</span>
-      </div>
-      <span className={dark ? "text-white/35 text-[8px] font-semibold tracking-wide uppercase" : "text-black/35 text-[8px] font-semibold tracking-wide uppercase"}>{label}</span>
+    <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-3 px-1.5">
+      {Icon && value == null ? (
+        <Icon size={16} className={accent ? "text-blue-500" : dark ? "text-white/80" : "text-black/70"} />
+      ) : (
+        <span className={`text-[15px] font-bold tabular-nums truncate ${accent ? "text-blue-500" : dark ? "text-white" : "text-black"}`}>{value}</span>
+      )}
+      <span className={dark ? "text-white/35 text-[9px] font-semibold tracking-wide uppercase" : "text-black/35 text-[9px] font-semibold tracking-wide uppercase"}>{label}</span>
     </div>
   );
 }
 
 function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, onStart, onContinue, onClose, showToast }) {
   const dark = useClientDark();
-  const { db, currentUser, addWorkoutComment, moveScheduledWorkout, viewingAsClient } = useApp();
+  const { db, currentUser, addWorkoutComment, moveScheduledWorkout } = useApp();
   const [commentDraft, setCommentDraft] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null);
@@ -1329,40 +1331,35 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
         {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
 
         <div className="flex-1 overflow-y-auto pb-28">
-          <div className="relative h-44 shrink-0 overflow-hidden">
-            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover contrast-110 saturate-110 blur-[2px] scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/80" />
-            <div className="absolute bottom-0 inset-x-0 p-4">
-              <span
-                className={`inline-block text-[9px] font-bold tracking-wide px-2 py-0.5 rounded-full mb-1.5 ${
-                  session.workoutLogId ? "bg-emerald-500 text-white" : "bg-blue-500 text-white"
-                }`}
-              >
-                {session.workoutLogId ? "COMPLETED" : "SCHEDULED"}
-              </span>
-              <h1 className="text-white text-2xl font-extrabold tracking-tight truncate">{session.label}</h1>
+          <div className="relative h-56 shrink-0 overflow-hidden">
+            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/10 to-black/85" />
+            <div className="absolute bottom-0 inset-x-0 p-5">
+              <p className="text-white/65 text-[11px] font-bold tracking-[0.15em] uppercase mb-1.5">
+                {session.date
+                  ? new Date(session.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })
+                  : session.workoutLogId
+                  ? "Completed"
+                  : "Scheduled"}
+              </p>
+              <h1 className="text-white text-[26px] font-extrabold tracking-tight uppercase leading-[1.1] truncate">{session.label}</h1>
             </div>
           </div>
 
-          <div className="px-5 mt-4 relative z-10">
-            <div
-              className={`flex items-stretch divide-x rounded-2xl shadow-lg overflow-hidden ${
-                dark ? "bg-[#161616] border border-white/8 divide-white/8" : "bg-white border border-black/6 divide-black/6"
-              }`}
-            >
+          <div className="px-5 mt-5">
+            <div className={`flex items-stretch border-y divide-x ${dark ? "border-white/10 divide-white/10" : "border-black/10 divide-black/10"}`}>
               <PreviewStat
-                icon={Clock}
-                value={hasActualDuration ? `${displayMinutes}m` : `~${displayMinutes}m`}
+                value={hasActualDuration ? `${displayMinutes}m` : `${displayMinutes}m`}
                 label={hasActualDuration ? "Done In" : "Est. Time"}
                 dark={dark}
               />
-              <PreviewStat icon={Dumbbell} value={countExercises(session.exercises)} label="Exercises" dark={dark} />
+              <PreviewStat value={countExercises(session.exercises)} label="Exercises" dark={dark} />
               {session.workoutLogId ? (
-                <PreviewStat icon={BarChart3} value={`${Math.round(totalVolume).toLocaleString()}kg`} label="Volume" dark={dark} />
+                <PreviewStat value={`${Math.round(totalVolume).toLocaleString()}kg`} label="Volume" dark={dark} />
               ) : (
-                <PreviewStat icon={Target} value="Regular" label="Type" dark={dark} />
+                <PreviewStat icon={BarChart3} label="Strength" dark={dark} />
               )}
-              {session.workoutLogId && prCount > 0 && <PreviewStat icon={Trophy} value={prCount} label="PRs" dark={dark} accent />}
+              {session.workoutLogId && prCount > 0 && <PreviewStat value={prCount} label="PRs" dark={dark} accent />}
             </div>
           </div>
 
@@ -1377,19 +1374,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
           {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
             <div key={group.key} className="mb-4">
               {group.showHeader && <p className={dark ? "text-white/40 text-[11px] font-bold tracking-wide mb-1.5" : "text-black/40 text-[11px] font-bold tracking-wide mb-1.5"}>{group.label.toUpperCase()}</p>}
-              <div
-                className={
-                  // Coach reviewing in View as Client: one continuous
-                  // edge-to-edge table (single top/bottom border, a
-                  // hairline between rows) instead of a stack of separate
-                  // rounded cards with gaps and margins either side.
-                  viewingAsClient
-                    ? dark
-                      ? "-mx-5 border-y border-white/8 divide-y divide-white/8"
-                      : "-mx-5 border-y border-black/6 divide-y divide-black/6"
-                    : "space-y-3"
-                }
-              >
+              <div className={`-mx-5 border-y divide-y ${dark ? "border-white/10 divide-white/10" : "border-black/10 divide-black/10"}`}>
                 {group.items.map(({ exMeta: e, i }) => {
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
@@ -1398,28 +1383,19 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       type="button"
                       key={i}
                       onClick={() => setDetailExercise(ex)}
-                      className={
-                        viewingAsClient
-                          ? dark
-                            ? "w-full flex items-center gap-3 text-left bg-white/[0.04] px-5 py-3"
-                            : "w-full flex items-center gap-3 text-left bg-black/[0.02] px-5 py-3"
-                          : dark
-                          ? "w-full flex items-center gap-3 text-left bg-white/[0.04] border border-white/8 rounded-xl p-3"
-                          : "w-full flex items-center gap-3 text-left bg-black/[0.02] border border-black/6 rounded-xl p-3"
-                      }
+                      className="w-full flex items-center gap-3 text-left px-5 py-3.5"
                     >
-                      <ExerciseThumb dark={dark} exercise={ex} size={48} rounded="rounded-full" className="shrink-0" />
+                      <span className={`text-[24px] font-light tabular-nums leading-none shrink-0 w-7 ${dark ? "text-white/25" : "text-black/20"}`}>
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      <ExerciseThumb dark={dark} exercise={ex} size={44} rounded="rounded-lg" className="shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p
-                            className={`${dark ? "text-white" : "text-black"} font-semibold ${
-                              viewingAsClient ? "text-[12px]" : "text-[13px]"
-                            } truncate`}
-                          >
+                          <p className={`${dark ? "text-white" : "text-black"} font-semibold text-[12px] tracking-wide uppercase truncate`}>
                             {ex.name}
                           </p>
                           {e.dropSet && (
-                            <span className="bg-orange-100 text-orange-600 text-[8px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                            <span className={`text-[8px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0 border ${dark ? "border-white/20 text-white/50" : "border-black/15 text-black/45"}`}>
                               DROPSET
                             </span>
                           )}
@@ -1433,8 +1409,8 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                                   className={`inline-flex items-center gap-0.5 ${
                                     s.isPR
                                       ? dark
-                                        ? "text-emerald-400 font-semibold"
-                                        : "text-emerald-600 font-semibold"
+                                        ? "text-blue-400 font-semibold"
+                                        : "text-blue-600 font-semibold"
                                       : dark
                                       ? "text-white/50"
                                       : "text-black/45"
@@ -1522,13 +1498,13 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
         </div>
 
         {canStart && (
-          <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
+          <div className="absolute bottom-6 left-0 right-0 flex justify-center px-5">
             <button
               onClick={onStart}
-              className={dark ? "bg-white text-black font-bold text-sm py-3.5 px-9 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform" : "bg-black text-white font-bold text-sm py-3.5 px-9 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"}
+              className={dark ? "w-full border border-white/25 text-white font-bold text-[13px] tracking-[0.1em] uppercase py-4 rounded-full flex items-center justify-center gap-2 active:scale-[0.98] transition-transform backdrop-blur-sm" : "w-full border border-black/25 text-black font-bold text-[13px] tracking-[0.1em] uppercase py-4 rounded-full flex items-center justify-center gap-2 active:scale-[0.98] transition-transform backdrop-blur-sm"}
             >
-              <Play size={15} fill="white" />
-              Start Now
+              Start Session
+              <ArrowRight size={15} />
             </button>
           </div>
         )}
