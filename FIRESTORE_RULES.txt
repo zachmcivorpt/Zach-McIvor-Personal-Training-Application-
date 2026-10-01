@@ -24,12 +24,21 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-`scheduledWorkouts` and `bodyStatsSchedules` now let the owning client
-create/update/delete their OWN entries, not just the coach — this is
-what lets a client drag-reschedule sessions on their own calendar (the
-same drag-and-drop the coach already had while viewing as them). Same
-ownership pattern as `workoutLogs`/`weighIns`: a client can never touch
-another client's schedule.
+New `whoopTokens` collection, for the WHOOP wearable integration — holds
+each connected client's OAuth access/refresh tokens. It has NO allow
+rules at all, on purpose: every read and write to it happens from Cloud
+Functions using the Admin SDK (which bypasses these rules entirely), and
+a token should never be reachable from the browser in the first place.
+The explicit deny-everything block below exists for documentation, not
+because it changes behavior — Firestore already defaults to denying
+anything with no matching rule.
+
+Older change: `scheduledWorkouts` and `bodyStatsSchedules` now let the
+owning client create/update/delete their OWN entries, not just the coach
+— this is what lets a client drag-reschedule sessions on their own
+calendar (the same drag-and-drop the coach already had while viewing as
+them). Same ownership pattern as `workoutLogs`/`weighIns`: a client can
+never touch another client's schedule.
 
 HOW THIS IS DESIGNED
 ---------------------
@@ -321,6 +330,17 @@ service cloud.firestore {
     match /challenges/{id} {
       allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.participantIds);
       allow write: if isCoach();
+    }
+
+    // --- whoopTokens/{clientId}: a connected client's WHOOP OAuth
+    //     access/refresh tokens. Deliberately NO allow rules — only
+    //     Cloud Functions (Admin SDK, bypasses these rules) ever touch
+    //     this collection. Not even the coach can read it from the app;
+    //     there's nothing in here a coach dashboard needs; the synced
+    //     recovery/sleep/strain numbers themselves land in the already-
+    //     readable bodyMetrics collection instead. ---
+    match /whoopTokens/{clientId} {
+      allow read, write: if false;
     }
   }
 }

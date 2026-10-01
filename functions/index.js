@@ -462,3 +462,194 @@ Rules:
   }
   return { suggestion: suggestion.replace(/^"|"$/g, "") };
 });
+
+// ---------------------------------------------------------------------
+// WHOOP integration — a client connects their own WHOOP account (OAuth)
+// so their recovery/sleep/strain show up automatically instead of being
+// typed in by hand. The access/refresh tokens are the one piece of this
+// that must never reach the browser (a leaked refresh token is a standing
+// way into someone's real WHOOP account), so the whole OAuth code
+// exchange and every WHOOP API call happen here. whoopTokens/{uid} holds
+// them and has no client-readable rule at all (see FIRESTORE_RULES.txt) —
+// this file's Admin SDK access is the only thing that ever reads it.
+//
+// Requires WHOOP_CLIENT_ID and WHOOP_CLIENT_SECRET as runtime env vars
+// (see .env.zach-mcivor-pt-app in this directory — NOT committed to git,
+// same as ANTHROPIC_API_KEY above). Until they're real values,
+// whoopConnect throws and the client-side Connect button in Profile shows
+// that as an error toast rather than silently doing nothing.
+// ---------------------------------------------------------------------
+const WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token";
+const WHOOP_API_BASE = "https://api.prod.whoop.com/developer/v2";
+
+function whoopConfigured() {
+  return (
+    process.env.WHOOP_CLIENT_ID &&
+    process.env.WHOOP_CLIENT_ID !== "not-configured-yet" &&
+    process.env.WHOOP_CLIENT_SECRET &&
+    process.env.WHOOP_CLIENT_SECRET !== "not-configured-yet"
+  );
+}
+
+async function whoopTokenRequest(params) {
+  const res = await fetch(WHOOP_TOKEN_URL, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(params),
+  });
+  if (!res.ok) throw new Error(`WHOOP token request failed (${res.status}): ${await res.text()}`);
+  return res.json();
+}
+
+async function whoopApiGet(accessToken, path) {
+  const res = await fetch(`${WHOOP_API_BASE}${path}`, {
+    headers: { authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`WHOOP API ${path} failed (${res.status}): ${await res.text()}`);
+  return res.json();
+}
+
+// Refreshes an access token whenever it's expired or about to be (a 60s
+// buffer so a sync mid-call never gets cut off), persisting the new pair
+// back onto whoopTokens/{uid} so the next call doesn't have to refresh
+// again. Returns the token data to actually use for this call.
+async function ensureFreshWhoopToken(uid, tokenData) {
+  if (tokenData.expiresAt > Date.now() + 60000) return tokenData;
+  const refreshed = await whoopTokenRequest({
+    grant_type: "refresh_token",
+    refresh_token: tokenData.refreshToken,
+    client_id: process.env.WHOOP_CLIENT_ID,
+    client_secret: process.env.WHOOP_CLIENT_SECRET,
+    scope: "offline",
+  });
+  const next = {
+    accessToken: refreshed.access_token,
+    refreshToken: refreshed.refresh_token || tokenData.refreshToken,
+    expiresAt: Date.now() + refreshed.expires_in * 1000,
+  };
+  await db.collection("whoopTokens").doc(uid).update(next);
+  return { ...tokenData, ...next };
+}
+
+// Most-recent-first by whichever date field a WHOOP collection response
+// uses — fetched with a small limit rather than trusting the API's
+// default ordering, since that's undocumented and worth not relying on.
+function mostRecent(records, dateField) {
+  return [...(records || [])].sort((a, b) => new Date(b[dateField]) - new Date(a[dateField]))[0] || null;
+}
+
+// Pulls the latest recovery, sleep, and cycle (strain) entries and merges
+// them into one bodyMetrics doc — the exact same per-day collection the
+// client's manual Steps/Sleep/Resting Heart Rate logging already uses, so
+// the Progress screen needs no separate storage for WHOOP-sourced numbers.
+async function syncWhoopData(uid, tokenData) {
+  const fresh = await ensureFreshWhoopToken(uid, tokenData);
+
+  const [recovery, sleep, cycle] = await Promise.all([
+    whoopApiGet(fresh.accessToken, "/recovery?limit=5").catch(() => null),
+    whoopApiGet(fresh.accessToken, "/activity/sleep?limit=5").catch(() => null),
+    whoopApiGet(fresh.accessToken, "/cycle?limit=5").catch(() => null),
+  ]);
+
+  const recoveryRecord = mostRecent(recovery?.records, "created_at");
+  const sleepRecord = mostRecent(sleep?.records, "end");
+  const cycleRecord = mostRecent(cycle?.records, "start");
+  if (!recoveryRecord && !sleepRecord && !cycleRecord) return;
+
+  // WHOOP timestamps a sleep/cycle by when it STARTED, which for an
+  // overnight sleep is the previous evening — bucket by that date, not
+  // today's, so a recovery score computed from last night's sleep lands
+  // on the day it's actually "for". Same idea as scheduledDate on
+  // workoutLogs, applied here to wearable data instead of a late-finished
+  // workout.
+  const anchor = recoveryRecord?.created_at || sleepRecord?.end || cycleRecord?.start;
+  const dateKey = new Date(anchor).toISOString().slice(0, 10);
+
+  const patch = { id: `${uid}_${dateKey}`, clientId: uid, date: dateKey };
+  if (recoveryRecord?.score) {
+    patch.whoopRecoveryScore = recoveryRecord.score.recovery_score;
+    patch.whoopHrvMilli = recoveryRecord.score.hrv_rmssd_milli;
+    // Shares the same field the client can also type in by hand — WHOOP's
+    // own reading is strictly more accurate once connected, so it's fine
+    // for a sync to keep this current rather than needing a second field.
+    if (recoveryRecord.score.resting_heart_rate != null) patch.restingHeartRate = recoveryRecord.score.resting_heart_rate;
+  }
+  if (sleepRecord?.score) {
+    patch.whoopSleepPerformance = sleepRecord.score.sleep_performance_percentage;
+  }
+  if (cycleRecord?.score) {
+    patch.whoopStrain = cycleRecord.score.strain;
+  }
+  await db.collection("bodyMetrics").doc(patch.id).set(patch, { merge: true });
+}
+
+// Finishes the OAuth redirect — the client already sent the user to
+// WHOOP and got a `code` back (see connectWhoop in AppContext.jsx); this
+// exchanges it for tokens (needs client_secret, so it can only happen
+// here) and does an immediate first sync so Progress has something to
+// show right away instead of waiting for the next scheduled run.
+exports.whoopConnect = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  if (!whoopConfigured()) throw new HttpsError("failed-precondition", "WHOOP isn't set up on this server yet — ask your coach.");
+
+  const code = (request.data?.code || "").trim();
+  const redirectUri = (request.data?.redirectUri || "").trim();
+  if (!code || !redirectUri) throw new HttpsError("invalid-argument", "Missing code or redirectUri.");
+
+  let tokenRes;
+  try {
+    tokenRes = await whoopTokenRequest({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
+      client_id: process.env.WHOOP_CLIENT_ID,
+      client_secret: process.env.WHOOP_CLIENT_SECRET,
+    });
+  } catch (err) {
+    throw new HttpsError("internal", "Couldn't connect to WHOOP — " + err.message);
+  }
+
+  const tokenData = {
+    accessToken: tokenRes.access_token,
+    refreshToken: tokenRes.refresh_token,
+    expiresAt: Date.now() + tokenRes.expires_in * 1000,
+    connectedAt: Date.now(),
+  };
+  await db.collection("whoopTokens").doc(uid).set(tokenData);
+  await db.collection("users").doc(uid).update({ whoopConnected: true });
+
+  try {
+    await syncWhoopData(uid, tokenData);
+  } catch (err) {
+    // The connection itself succeeded — a sync hiccup (e.g. no WHOOP data
+    // recorded yet) shouldn't fail the whole connect flow. The scheduled
+    // sync below will pick it up once there's something to fetch.
+    console.error(`Initial WHOOP sync failed for ${uid}:`, err.message);
+  }
+
+  return { connected: true };
+});
+
+exports.whoopDisconnect = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  await db.collection("whoopTokens").doc(uid).delete();
+  await db.collection("users").doc(uid).update({ whoopConnected: false });
+  return { connected: false };
+});
+
+// Every 4 hours, refreshes WHOOP's latest recovery/sleep/strain for every
+// connected client — keeps Progress current without a client needing to
+// open the app right after waking up for their recovery score to appear.
+exports.whoopSync = onSchedule({ schedule: "0 */4 * * *", timeZone: "UTC" }, async () => {
+  if (!whoopConfigured()) return;
+  const snap = await db.collection("whoopTokens").get();
+  for (const tokenDoc of snap.docs) {
+    try {
+      await syncWhoopData(tokenDoc.id, tokenDoc.data());
+    } catch (err) {
+      console.error(`WHOOP sync failed for ${tokenDoc.id}:`, err.message);
+    }
+  }
+});

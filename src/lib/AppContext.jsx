@@ -2004,6 +2004,27 @@ export function AppProvider({ children }) {
         }
       },
 
+      // Finishes a WHOOP OAuth connect — the client was just sent to
+      // WHOOP's own sign-in page and came back with a `code` in the URL
+      // (see the redirect flow in ClientApp.jsx). The actual token
+      // exchange only happens server-side (functions/index.js) since it
+      // needs the WHOOP client secret, which must never reach the browser.
+      async connectWhoop(code, redirectUri) {
+        try {
+          await httpsCallable(functions, "whoopConnect")({ code, redirectUri });
+        } catch (err) {
+          throw new Error(err.message || "Couldn't connect WHOOP — please try again.");
+        }
+      },
+
+      async disconnectWhoop() {
+        try {
+          await httpsCallable(functions, "whoopDisconnect")();
+        } catch (err) {
+          throw new Error(err.message || "Couldn't disconnect WHOOP — please try again.");
+        }
+      },
+
       // The coach's automated welcome message template (text + optional PDF),
       // auto-sent when a client activates their account.
       async updateWelcomeMessage(patch) {

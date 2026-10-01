@@ -83,6 +83,7 @@ import {
 } from "recharts";
 import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
+import { WHOOP_CLIENT_ID } from "../lib/config";
 import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "../lib/workoutStats";
 import {
   Card,
@@ -4990,6 +4991,67 @@ const BODY_METRICS_CONFIG = [
   { key: "restingHeartRate", label: "Resting Heart Rate", unit: "bpm", icon: Heart, placeholder: "e.g. 58" },
 ];
 
+// The most recent day with any synced WHOOP data — read-only, since this
+// is pulled in automatically from the client's own WHOOP account rather
+// than something to type in here (see onAddPhoto-style LogBodyMetricSheet
+// for the manual version of this pattern). Nothing renders until there's
+// at least one day of synced data, so a client who hasn't connected WHOOP
+// sees no trace of this card.
+function WhoopCard({ bodyMetrics, dark }) {
+  const latest = useMemo(() => {
+    return [...(bodyMetrics || [])]
+      .filter((m) => m.whoopRecoveryScore != null || m.whoopStrain != null || m.whoopSleepPerformance != null)
+      .sort((a, b) => b.date.localeCompare(a.date))[0];
+  }, [bodyMetrics]);
+
+  if (!latest) return null;
+
+  const recoveryColor =
+    latest.whoopRecoveryScore == null
+      ? dark
+        ? "text-white/40"
+        : "text-black/40"
+      : latest.whoopRecoveryScore >= 67
+      ? "text-emerald-500"
+      : latest.whoopRecoveryScore >= 34
+      ? "text-orange-500"
+      : "text-red-500";
+
+  return (
+    <Card dark={dark}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Heart size={15} className={dark ? "text-white/50" : "text-black/50"} />
+          <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>WHOOP</p>
+        </div>
+        <p className={dark ? "text-white/30 text-xs" : "text-black/30 text-xs"}>
+          {new Date(`${latest.date}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+        </p>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <p className={`text-xl font-bold tabular-nums ${recoveryColor}`}>
+            {latest.whoopRecoveryScore != null ? `${latest.whoopRecoveryScore}%` : "—"}
+          </p>
+          <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>Recovery</p>
+        </div>
+        <div>
+          <p className={dark ? "text-white text-xl font-bold tabular-nums" : "text-black text-xl font-bold tabular-nums"}>
+            {latest.whoopStrain != null ? latest.whoopStrain.toFixed(1) : "—"}
+          </p>
+          <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>Strain</p>
+        </div>
+        <div>
+          <p className={dark ? "text-white text-xl font-bold tabular-nums" : "text-black text-xl font-bold tabular-nums"}>
+            {latest.whoopSleepPerformance != null ? `${Math.round(latest.whoopSleepPerformance)}%` : "—"}
+          </p>
+          <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>Sleep</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey }) {
   const dark = useClientDark();
   const [uploading, setUploading] = useState(false);
@@ -5101,6 +5163,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
       <div className="px-2.5 space-y-4">
         <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
+        <WhoopCard bodyMetrics={bodyMetrics} dark={dark} />
 
         <div>
           <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>My Progress</p>
@@ -5473,17 +5536,77 @@ function PreferencesSheet({ section, open, onClose, user }) {
   );
 }
 
-function ConnectedDevicesSheet({ open, onClose }) {
+// Kicks off the WHOOP OAuth flow — a full-page redirect to WHOOP's own
+// sign-in (not a popup, which the native app's WKWebView wrapper would
+// just hand off to Safari anyway — see ViewController.swift). A random
+// `state` is stashed in sessionStorage before leaving so the redirect
+// handler in ClientApp (below) can confirm the `code` that comes back is
+// really from a flow this tab started, not a forged callback URL.
+function startWhoopConnect() {
+  const state = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  const redirectUri = `${window.location.origin}/app`;
+  sessionStorage.setItem("whoopOAuthState", state);
+  sessionStorage.setItem("whoopRedirectUri", redirectUri);
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: WHOOP_CLIENT_ID,
+    redirect_uri: redirectUri,
+    scope: "read:recovery read:cycles read:sleep read:profile offline",
+    state,
+  });
+  window.location.href = `https://api.prod.whoop.com/oauth/oauth2/auth?${params.toString()}`;
+}
+
+function ConnectedDevicesSheet({ open, onClose, connected, showToast }) {
   const dark = useClientDark();
+  const { disconnectWhoop } = useApp();
+  const [busy, setBusy] = useState(false);
+  const whoopSetUp = WHOOP_CLIENT_ID !== "not-configured-yet";
+
+  async function disconnect() {
+    setBusy(true);
+    try {
+      await disconnectWhoop();
+      showToast?.("WHOOP disconnected");
+    } catch (err) {
+      showToast?.(err.message || "Couldn't disconnect — check your connection and try again");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <BottomSheet dark={dark} open={open} onClose={onClose} title="Connected devices">
-      <div className="text-center py-6">
-        <Heart size={28} className={dark ? "text-white/20 mx-auto mb-3" : "text-black/20 mx-auto mb-3"} />
-        <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Not available yet</p>
-        <p className={dark ? "text-white/40 text-sm mt-1.5 max-w-xs mx-auto" : "text-black/40 text-sm mt-1.5 max-w-xs mx-auto"}>
-          Syncing with wearables like Apple Health, Garmin or Whoop isn't built yet — it's on the roadmap for a future update.
-        </p>
+      <div className={dark ? "flex items-center gap-3 bg-white/5 border border-white/8 rounded-xl px-4 py-3.5" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3.5"}>
+        <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center shrink-0">
+          <Heart size={18} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={dark ? "text-white font-semibold text-sm" : "text-black font-semibold text-sm"}>WHOOP</p>
+          <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
+            {connected ? "Connected — recovery, strain & sleep sync automatically" : "Sync recovery, strain & sleep automatically"}
+          </p>
+        </div>
+        {connected ? (
+          <button
+            onClick={disconnect}
+            disabled={busy}
+            className="bg-red-50 border border-red-100 text-red-600 text-xs font-semibold px-3 py-2 rounded-lg shrink-0 disabled:opacity-50"
+          >
+            {busy ? "…" : "Disconnect"}
+          </button>
+        ) : (
+          <button
+            onClick={() => (whoopSetUp ? startWhoopConnect() : showToast?.("WHOOP isn't set up yet — ask your coach"))}
+            className="bg-black text-white text-xs font-semibold px-3 py-2 rounded-lg shrink-0"
+          >
+            Connect
+          </button>
+        )}
       </div>
+      <p className={dark ? "text-white/30 text-xs mt-4 text-center" : "text-black/30 text-xs mt-4 text-center"}>
+        Apple Health and Garmin syncing isn't built yet — on the roadmap for a future update.
+      </p>
     </BottomSheet>
   );
 }
@@ -5721,7 +5844,7 @@ function ProfileScreen({
       </div>
 
       <PreferencesSheet section={prefSection} open={!!prefSection} onClose={() => setPrefSection(null)} user={user} />
-      <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} />
+      <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} connected={!!user.whoopConnected} showToast={showToast} />
       <PushNotificationsSheet open={pushOpen} onClose={() => setPushOpen(false)} showToast={showToast} userId={user.id} />
       <DeleteAccountSheet
         open={deleteOpen}
@@ -6923,6 +7046,7 @@ export default function ClientApp() {
     moveScheduledWorkout,
     scheduleBodyStatsCheckin,
     unscheduleBodyStatsCheckin,
+    connectWhoop,
     dbReady,
   } = useApp();
   const dark = db.appDesign?.clientDarkMode === true;
@@ -6961,6 +7085,34 @@ export default function ClientApp() {
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
   const [autoOpenWeighIn, setAutoOpenWeighIn] = useState(0);
+
+  // Finishes a WHOOP OAuth connect — WHOOP just redirected the whole page
+  // back here with ?code=...&state=... after the client signed in on
+  // WHOOP's own site (see startWhoopConnect in ConnectedDevicesSheet).
+  // The `state` round-trips through sessionStorage so a stray/forged
+  // callback URL (anyone could craft one with a fake `code`) is ignored
+  // rather than acted on. Runs once on mount — by the time any of this
+  // app's own navigation happens, the query string is already gone.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const state = params.get("state");
+    if (!code || !state) return;
+    const expectedState = sessionStorage.getItem("whoopOAuthState");
+    const redirectUri = sessionStorage.getItem("whoopRedirectUri");
+    sessionStorage.removeItem("whoopOAuthState");
+    sessionStorage.removeItem("whoopRedirectUri");
+    // Always strip the OAuth params from the URL, even on a mismatch —
+    // leaving a `code` sitting in the address bar is a replay risk, and a
+    // mismatched state means this isn't a flow worth retrying anyway.
+    window.history.replaceState(null, "", window.location.pathname);
+    if (state !== expectedState || !redirectUri) return;
+    connectWhoop(code, redirectUri)
+      .then(() => showToast("WHOOP connected"))
+      .catch((err) => showToast(err.message || "Couldn't connect WHOOP — please try again"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Tracks only the time actually spent IN the session — the workout
   // screen open and the tab in the foreground — not wall-clock time since
   // the workout was first started. Exiting to another tab, backgrounding
