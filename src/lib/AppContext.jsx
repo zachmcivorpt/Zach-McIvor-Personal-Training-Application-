@@ -119,6 +119,64 @@ async function deleteWhereClientId(collectionName, clientId) {
   }
 }
 
+// Every collection that tags its rows with a plain `clientId` field (as
+// opposed to using the id as the doc's own key, or an array like
+// challenges' participantIds) — used by migrateClientId below.
+const CLIENT_ID_COLLECTIONS = [
+  "workoutLogs",
+  "messages",
+  "workoutComments",
+  "progressPhotos",
+  "savedMeals",
+  "habits",
+  "clientPhases",
+  "formSchedules",
+  "formResponses",
+  "clientNotes",
+  "clientContext",
+  "weighIns",
+  "scheduledWorkouts",
+  "bodyStatsSchedules",
+  "notifications",
+  "nutritionLogs",
+  "bodyMetrics",
+  "mealPlans",
+];
+
+// A not-yet-activated client's doc id is their email — the only id that
+// can exist before Firebase Auth mints their real uid (see
+// activateAccount's comment below). If a coach uses "View as Client" to
+// log something for them before then, and then renames that pending
+// invite's email, the id changes again and that history needs to follow —
+// a plain field update works here since this always runs under the
+// coach's own already-fully-privileged session. (Activation itself —
+// email id -> real uid — is migrated separately, server-side with the
+// Admin SDK, by functions/index.js's onClientActivated: this client-side
+// helper can't be reused there because that migration has to run in the
+// brand new client's own session, which most of these collections don't
+// grant write access to at all.) Best-effort: never blocks the rename.
+async function migrateClientId(oldId, newId) {
+  if (!oldId || !newId || oldId === newId) return;
+  try {
+    for (const name of CLIENT_ID_COLLECTIONS) {
+      const snap = await getDocs(query(collection(firestore, name), where("clientId", "==", oldId)));
+      if (!snap.docs.length) continue;
+      const batch = writeBatch(firestore);
+      snap.docs.forEach((d) => batch.update(d.ref, { clientId: newId }));
+      await batch.commit();
+    }
+    // habitLog is one doc PER CLIENT, keyed by doc id rather than a
+    // clientId field, so it needs an actual copy instead of a field update.
+    const habitLogSnap = await getDoc(doc(firestore, "habitLog", oldId));
+    if (habitLogSnap.exists()) {
+      await setDoc(doc(firestore, "habitLog", newId), habitLogSnap.data(), { merge: true });
+      await deleteDoc(doc(firestore, "habitLog", oldId));
+    }
+  } catch (err) {
+    console.error(`migrateClientId ${oldId} -> ${newId} failed:`, err);
+  }
+}
+
 const AppCtx = createContext(null);
 
 export function AppProvider({ children }) {
@@ -663,6 +721,14 @@ export function AppProvider({ children }) {
         await setDoc(doc(firestore, "users", uid), client);
         deleteDoc(draftRef).catch(() => {});
         await deleteDoc(inviteRef);
+        // Anything a coach already logged for this client pre-activation
+        // (e.g. an in-person session via "View as Client") gets carried
+        // over to this new uid server-side — functions/index.js's
+        // onClientActivated trigger does this with the Admin SDK the
+        // instant this users/{uid} doc is created. It can't be done from
+        // here: this code is running as the client's own brand new
+        // session, which most of these collections don't grant it write
+        // access to at all.
         const welcome = raw.welcomeMessage;
         if (welcome?.autoSend && welcome.text?.trim()) {
           const text = welcome.text.replace(/\{name\}/gi, invite.name.split(" ")[0]);
@@ -848,6 +914,9 @@ export function AppProvider({ children }) {
                 await deleteDoc(doc(firestore, "users", clientId));
               }
               await deleteDoc(doc(firestore, "invites", clientId));
+              // Carries over anything already logged against their old
+              // email-keyed id (see migrateClientId's comment) to the new one.
+              migrateClientId(clientId, trimmedEmail);
             } else {
               await updateDoc(doc(firestore, "invites", clientId), { name: trimmedName });
             }

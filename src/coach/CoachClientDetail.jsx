@@ -5438,15 +5438,13 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               <Send size={15} /> Send Login Details
             </button>
           )}
-          {client.status === "active" && (
-            <button
-              onClick={() => startViewAsClient(client.id)}
-              className="w-full mt-2 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold py-2.5 rounded-xl transition-colors"
-              title="Browse and act in the app exactly as this client"
-            >
-              <Repeat size={15} /> View as Client
-            </button>
-          )}
+          <button
+            onClick={() => startViewAsClient(client.id)}
+            className="w-full mt-2 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold py-2.5 rounded-xl transition-colors"
+            title="Browse and act in the app exactly as this client — works even before they've activated"
+          >
+            <Repeat size={15} /> View as Client
+          </button>
           {client.status === "active" && (
             <button
               onClick={() => (client.accessPaused ? setClientAccessPaused(client.id, false) : setConfirmPause(true))}
@@ -5532,16 +5530,16 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               {client.accessPaused && <Pill tone="warning">Paused</Pill>}
             </div>
           </div>
+          <button
+            onClick={() => startViewAsClient(client.id)}
+            aria-label="View as client"
+            title="Browse and act in the app exactly as this client — works even before they've activated"
+            className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0"
+          >
+            <Repeat size={15} className="text-blue-700" />
+          </button>
           {client.status === "active" ? (
             <>
-              <button
-                onClick={() => startViewAsClient(client.id)}
-                aria-label="View as client"
-                title="Browse and act in the app exactly as this client"
-                className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0"
-              >
-                <Repeat size={15} className="text-blue-700" />
-              </button>
               <button
                 onClick={() => (client.accessPaused ? setClientAccessPaused(client.id, false) : setConfirmPause(true))}
                 aria-label={client.accessPaused ? "Resume access" : "Pause access"}

@@ -544,16 +544,14 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                   </td>
                   <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
-                      {c.status === "active" && (
-                        <button
-                          onClick={() => startViewAsClient(c.id)}
-                          title="Browse and act in the app exactly as this client"
-                          aria-label={`View as ${c.name}`}
-                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors shrink-0"
-                        >
-                          <Repeat size={14} />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => startViewAsClient(c.id)}
+                        title="Browse and act in the app exactly as this client — works even before they've activated"
+                        aria-label={`View as ${c.name}`}
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors shrink-0"
+                      >
+                        <Repeat size={14} />
+                      </button>
                       <RowActions
                         onOpen={() => openClient(c.id)}
                         onRemove={() => setConfirmRemoveId(c.id)}
@@ -604,19 +602,17 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                   <p className="text-black font-semibold text-sm truncate">{c.name}</p>
                   <p className="text-black/35 text-xs truncate">{mainProgramLabel(c)}</p>
                 </div>
-                {c.status === "active" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      startViewAsClient(c.id);
-                    }}
-                    title="Browse and act in the app exactly as this client"
-                    aria-label={`View as ${c.name}`}
-                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-700 shrink-0"
-                  >
-                    <Repeat size={14} />
-                  </button>
-                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startViewAsClient(c.id);
+                  }}
+                  title="Browse and act in the app exactly as this client — works even before they've activated"
+                  aria-label={`View as ${c.name}`}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-700 shrink-0"
+                >
+                  <Repeat size={14} />
+                </button>
                 {c.status === "active" && (
                   <button
                     onClick={(e) => {
