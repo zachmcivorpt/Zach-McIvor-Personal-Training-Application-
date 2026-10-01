@@ -1215,6 +1215,21 @@ function RescheduleSheet({ open, onClose, currentDate, onPick }) {
   );
 }
 
+// One cell of the floating stat card under the Workout Preview hero —
+// a bold number with a small caps label, Apple-Fitness-summary style,
+// instead of a row of filled pill badges competing with the photo below it.
+function PreviewStat({ icon: Icon, value, label, dark, accent }) {
+  return (
+    <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-3.5 px-1.5">
+      <div className={`flex items-center gap-1 ${accent ? "text-emerald-500" : dark ? "text-white" : "text-black"}`}>
+        <Icon size={12} />
+        <span className="text-[15px] font-bold tabular-nums truncate">{value}</span>
+      </div>
+      <span className={dark ? "text-white/35 text-[9px] font-semibold tracking-wide uppercase" : "text-black/35 text-[9px] font-semibold tracking-wide uppercase"}>{label}</span>
+    </div>
+  );
+}
+
 function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, onStart, onContinue, onClose, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, addWorkoutComment, moveScheduledWorkout, viewingAsClient } = useApp();
@@ -1252,6 +1267,15 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
   // show a blank.
   const hasActualDuration = !!session.workoutLogId && session.durationMin != null;
   const displayMinutes = hasActualDuration ? session.durationMin : estMinutes;
+  const totalVolume = session.workoutLogId
+    ? session.exercises.reduce(
+        (sum, e) => sum + (e.actualSets || []).reduce((s, set) => s + (set.weight || 0) * (set.reps || 0), 0),
+        0
+      )
+    : 0;
+  const prCount = session.workoutLogId
+    ? session.exercises.reduce((sum, e) => sum + (e.actualSets || []).filter((s) => s.isPR).length, 0)
+    : 0;
 
   return (
     <FullScreenOverlay>
@@ -1304,10 +1328,10 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
         {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
 
         <div className="flex-1 overflow-y-auto pb-28">
-          <div className="relative h-44 shrink-0">
+          <div className="relative h-48 shrink-0 overflow-hidden rounded-b-[28px]">
             <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover contrast-110 saturate-110" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/85" />
-            <div className="absolute bottom-0 inset-x-0 p-4">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/80" />
+            <div className="absolute bottom-0 inset-x-0 p-4 pb-6">
               <span
                 className={`inline-block text-[9px] font-bold tracking-wide px-2 py-0.5 rounded-full mb-1.5 ${
                   session.workoutLogId ? "bg-emerald-500 text-white" : "bg-blue-500 text-white"
@@ -1315,22 +1339,33 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
               >
                 {session.workoutLogId ? "COMPLETED" : "SCHEDULED"}
               </span>
-              <h1 className="text-white text-xl font-extrabold tracking-tight truncate">{session.label}</h1>
-              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
-                  <Target size={11} /> Regular
-                </span>
-                <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
-                  <Clock size={11} /> {hasActualDuration ? `${displayMinutes} min` : `~${displayMinutes} min`}
-                </span>
-                <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
-                  <Dumbbell size={11} /> {countExercises(session.exercises)} Exercises
-                </span>
-              </div>
+              <h1 className="text-white text-2xl font-extrabold tracking-tight truncate">{session.label}</h1>
             </div>
           </div>
 
-          <div className="px-5 pt-4">
+          <div className="px-5 -mt-6 relative z-10">
+            <div
+              className={`flex items-stretch divide-x rounded-2xl shadow-lg overflow-hidden ${
+                dark ? "bg-[#161616] border border-white/8 divide-white/8" : "bg-white border border-black/6 divide-black/6"
+              }`}
+            >
+              <PreviewStat
+                icon={Clock}
+                value={hasActualDuration ? `${displayMinutes}m` : `~${displayMinutes}m`}
+                label={hasActualDuration ? "Done In" : "Est. Time"}
+                dark={dark}
+              />
+              <PreviewStat icon={Dumbbell} value={countExercises(session.exercises)} label="Exercises" dark={dark} />
+              {session.workoutLogId ? (
+                <PreviewStat icon={BarChart3} value={`${Math.round(totalVolume).toLocaleString()}kg`} label="Volume" dark={dark} />
+              ) : (
+                <PreviewStat icon={Target} value="Regular" label="Type" dark={dark} />
+              )}
+              {session.workoutLogId && prCount > 0 && <PreviewStat icon={Trophy} value={prCount} label="PRs" dark={dark} accent />}
+            </div>
+          </div>
+
+          <div className="px-5 pt-5">
           {session.instructions && (
             <div className="mb-4">
               <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-1.5"}>INSTRUCTIONS</p>
