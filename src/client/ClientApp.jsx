@@ -1335,7 +1335,19 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
           {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
             <div key={group.key} className="mb-4">
               {group.showHeader && <p className={dark ? "text-white/40 text-[11px] font-bold tracking-wide mb-1.5" : "text-black/40 text-[11px] font-bold tracking-wide mb-1.5"}>{group.label.toUpperCase()}</p>}
-              <div className="space-y-3">
+              <div
+                className={
+                  // Coach reviewing in View as Client: one continuous
+                  // edge-to-edge table (single top/bottom border, a
+                  // hairline between rows) instead of a stack of separate
+                  // rounded cards with gaps and margins either side.
+                  viewingAsClient
+                    ? dark
+                      ? "-mx-5 border-y border-white/8 divide-y divide-white/8"
+                      : "-mx-5 border-y border-black/6 divide-y divide-black/6"
+                    : "space-y-3"
+                }
+              >
                 {group.items.map(({ exMeta: e, i }) => {
                   const ex = exercisesById[e.exerciseId];
                   if (!ex) return null;
@@ -1345,14 +1357,10 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       key={i}
                       onClick={() => setDetailExercise(ex)}
                       className={
-                        // Coach reviewing in View as Client: a denser,
-                        // edge-to-edge row reads better across lots of
-                        // clients' sessions than the client's own rounded
-                        // cards with margins either side.
                         viewingAsClient
                           ? dark
-                            ? "w-full flex items-center gap-3 text-left bg-white/[0.04] border-y border-white/8 -mx-5 px-5 py-3"
-                            : "w-full flex items-center gap-3 text-left bg-black/[0.02] border-y border-black/6 -mx-5 px-5 py-3"
+                            ? "w-full flex items-center gap-3 text-left bg-white/[0.04] px-5 py-3"
+                            : "w-full flex items-center gap-3 text-left bg-black/[0.02] px-5 py-3"
                           : dark
                           ? "w-full flex items-center gap-3 text-left bg-white/[0.04] border border-white/8 rounded-xl p-3"
                           : "w-full flex items-center gap-3 text-left bg-black/[0.02] border border-black/6 rounded-xl p-3"
