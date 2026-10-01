@@ -1250,11 +1250,11 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
   return (
     <FullScreenOverlay>
       <div className={dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"}>
-        <div className={dark ? "flex items-center justify-between px-5 pt-4 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-4 pb-3 shrink-0 border-b border-black/5"}>
+        <div className={dark ? "flex items-center justify-between px-5 pt-3.5 pb-2.5 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-3.5 pb-2.5 shrink-0 border-b border-black/5"}>
           <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
-            <X size={22} />
+            <X size={20} />
           </button>
-          <span className={dark ? "text-white/70 text-sm font-semibold" : "text-black/70 text-sm font-semibold"}>{session.weekLabel || "Workout Preview"}</span>
+          <span className={dark ? "text-white/60 text-[13px] font-semibold" : "text-black/60 text-[13px] font-semibold"}>{session.weekLabel || "Workout Preview"}</span>
           {session.workoutLogId && onContinue ? (
             <div className="relative">
               <button
@@ -1298,43 +1298,43 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
         {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
 
         <div className="flex-1 overflow-y-auto pb-28">
-          <div className="relative h-60 shrink-0">
-            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/90" />
-            <div className="absolute bottom-0 inset-x-0 p-5">
+          <div className="relative h-44 shrink-0">
+            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover contrast-110 saturate-110" />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/85" />
+            <div className="absolute bottom-0 inset-x-0 p-4">
               <span
-                className={`inline-block text-[10px] font-bold tracking-wide px-2.5 py-1 rounded-full mb-2 ${
+                className={`inline-block text-[9px] font-bold tracking-wide px-2 py-0.5 rounded-full mb-1.5 ${
                   session.workoutLogId ? "bg-emerald-500 text-white" : "bg-blue-500 text-white"
                 }`}
               >
                 {session.workoutLogId ? "COMPLETED" : "SCHEDULED"}
               </span>
-              <h1 className="text-white text-3xl font-black tracking-tight truncate">{session.label}</h1>
-              <div className="flex items-center gap-2 mt-3 flex-wrap">
-                <span className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-                  <Target size={13} /> Regular
+              <h1 className="text-white text-xl font-extrabold tracking-tight truncate">{session.label}</h1>
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                  <Target size={11} /> Regular
                 </span>
-                <span className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-                  <Clock size={13} /> ~{estMinutes} min
+                <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                  <Clock size={11} /> ~{estMinutes} min
                 </span>
-                <span className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full">
-                  <Dumbbell size={13} /> {countExercises(session.exercises)} Exercises
+                <span className="flex items-center gap-1 bg-white/15 backdrop-blur-sm text-white text-[11px] font-semibold px-2.5 py-1 rounded-full">
+                  <Dumbbell size={11} /> {countExercises(session.exercises)} Exercises
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="px-5 pt-5">
+          <div className="px-5 pt-4">
           {session.instructions && (
-            <div className="mb-5">
-              <p className={dark ? "text-white/35 text-xs font-semibold tracking-wide mb-2" : "text-black/35 text-xs font-semibold tracking-wide mb-2"}>INSTRUCTIONS</p>
-              <p className={dark ? "text-white/75 text-[14px] leading-relaxed whitespace-pre-line" : "text-black/75 text-[14px] leading-relaxed whitespace-pre-line"}>{session.instructions}</p>
+            <div className="mb-4">
+              <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-1.5"}>INSTRUCTIONS</p>
+              <p className={dark ? "text-white/70 text-[13px] leading-relaxed whitespace-pre-line" : "text-black/70 text-[13px] leading-relaxed whitespace-pre-line"}>{session.instructions}</p>
             </div>
           )}
 
           {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
-            <div key={group.key} className="mb-5">
-              {group.showHeader && <p className={dark ? "text-white/40 text-xs font-bold tracking-wide mb-2" : "text-black/40 text-xs font-bold tracking-wide mb-2"}>{group.label.toUpperCase()}</p>}
+            <div key={group.key} className="mb-4">
+              {group.showHeader && <p className={dark ? "text-white/40 text-[11px] font-bold tracking-wide mb-1.5" : "text-black/40 text-[11px] font-bold tracking-wide mb-1.5"}>{group.label.toUpperCase()}</p>}
               <div className="space-y-3">
                 {group.items.map(({ exMeta: e, i }) => {
                   const ex = exercisesById[e.exerciseId];
@@ -1351,68 +1351,64 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                         // cards with margins either side.
                         viewingAsClient
                           ? dark
-                            ? "w-full flex items-center gap-4 text-left bg-white/[0.04] border-y border-white/8 -mx-5 px-5 py-4"
-                            : "w-full flex items-center gap-4 text-left bg-black/[0.02] border-y border-black/6 -mx-5 px-5 py-4"
+                            ? "w-full flex items-center gap-3 text-left bg-white/[0.04] border-y border-white/8 -mx-5 px-5 py-3"
+                            : "w-full flex items-center gap-3 text-left bg-black/[0.02] border-y border-black/6 -mx-5 px-5 py-3"
                           : dark
-                          ? "w-full flex items-center gap-4 text-left bg-white/[0.04] border border-white/8 rounded-2xl p-4"
-                          : "w-full flex items-center gap-4 text-left bg-black/[0.02] border border-black/6 rounded-2xl p-4 shadow-sm"
+                          ? "w-full flex items-center gap-3 text-left bg-white/[0.04] border border-white/8 rounded-xl p-3"
+                          : "w-full flex items-center gap-3 text-left bg-black/[0.02] border border-black/6 rounded-xl p-3"
                       }
                     >
-                      <ExerciseThumb dark={dark} exercise={ex} size={60} rounded="rounded-full" className="shadow-sm shrink-0" />
+                      <ExerciseThumb dark={dark} exercise={ex} size={48} rounded="rounded-full" className="shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p
-                            className={`${dark ? "text-white" : "text-black"} font-bold ${
-                              viewingAsClient ? "text-sm" : "text-base"
-                            } tracking-wide truncate`}
+                            className={`${dark ? "text-white" : "text-black"} font-semibold ${
+                              viewingAsClient ? "text-[12px]" : "text-[13px]"
+                            } truncate`}
                           >
                             {ex.name}
                           </p>
                           {e.dropSet && (
-                            <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
+                            <span className="bg-orange-100 text-orange-600 text-[8px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                               DROPSET
                             </span>
                           )}
                         </div>
                         {e.actualSets ? (
                           e.actualSets.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5 mt-2.5">
+                            <p className="flex flex-wrap items-center gap-x-1 gap-y-0.5 mt-1 text-[11px] font-medium">
                               {e.actualSets.map((s, si) => (
                                 <span
                                   key={si}
-                                  className={`inline-flex items-center gap-1 text-[12px] font-semibold px-2.5 py-1 rounded-md ${
+                                  className={`inline-flex items-center gap-0.5 ${
                                     s.isPR
                                       ? dark
-                                        ? "bg-emerald-500/15 text-emerald-400"
-                                        : "bg-emerald-50 text-emerald-600"
+                                        ? "text-emerald-400 font-semibold"
+                                        : "text-emerald-600 font-semibold"
                                       : dark
-                                      ? "bg-white/8 text-white/70"
-                                      : "bg-black/6 text-black/70"
+                                      ? "text-white/50"
+                                      : "text-black/45"
                                   }`}
                                 >
-                                  {s.isPR && <Trophy size={10} />}
+                                  {s.isPR && <Trophy size={9} />}
                                   {s.reps} rep{s.reps === 1 ? "" : "s"}
                                   {s.weight > 0 ? ` × ${s.weight}kg` : ""}
+                                  {si < e.actualSets.length - 1 ? "," : ""}
                                 </span>
                               ))}
-                            </div>
+                            </p>
                           ) : (
-                            <p className={dark ? "text-white/35 text-[13px] mt-1.5 italic" : "text-black/35 text-[13px] mt-1.5 italic"}>No sets logged</p>
+                            <p className={dark ? "text-white/35 text-[11px] mt-1 italic" : "text-black/35 text-[11px] mt-1 italic"}>No sets logged</p>
                           )
                         ) : (
-                          <div className="flex flex-wrap gap-1.5 mt-2.5">
-                            <span className={dark ? "text-[12px] font-semibold px-2.5 py-1 rounded-md bg-white/8 text-white/70" : "text-[12px] font-semibold px-2.5 py-1 rounded-md bg-black/6 text-black/70"}>
-                              {e.targetSets} × {formatTargetReps(e)}
-                            </span>
-                            <span className={dark ? "text-[12px] font-semibold px-2.5 py-1 rounded-md bg-white/8 text-white/70" : "text-[12px] font-semibold px-2.5 py-1 rounded-md bg-black/6 text-black/70"}>
-                              {formatRest(e.restSeconds ?? 90)} rest
-                            </span>
-                          </div>
+                          <p className={dark ? "text-white/45 text-[11px] font-medium mt-1" : "text-black/40 text-[11px] font-medium mt-1"}>
+                            {e.targetSets} × {formatTargetReps(e)} · {formatRest(e.restSeconds ?? 90)} rest
+                          </p>
                         )}
-                        {e.note && <p className={dark ? "text-white/40 text-[12px] mt-1.5 italic" : "text-black/40 text-[12px] mt-1.5 italic"}>"{e.note}"</p>}
+                        {e.note && <p className={dark ? "text-white/40 text-[11px] mt-1 italic" : "text-black/40 text-[11px] mt-1 italic"}>"{e.note}"</p>}
                       </div>
-                      {e.notes && <ClipboardList size={16} className={dark ? "text-white/40 shrink-0" : "text-black/40 shrink-0"} />}
-                      <ChevronRight size={16} className={dark ? "text-white/25 shrink-0" : "text-black/25 shrink-0"} />
+                      {e.notes && <ClipboardList size={14} className={dark ? "text-white/40 shrink-0" : "text-black/40 shrink-0"} />}
+                      <ChevronRight size={14} className={dark ? "text-white/25 shrink-0" : "text-black/25 shrink-0"} />
                     </button>
                   );
                 })}
@@ -1421,9 +1417,9 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
           ))}
 
           {session.workoutLogId && (
-            <div className="mb-6">
-              <p className={dark ? "text-white/35 text-xs font-semibold tracking-wide mb-2 flex items-center gap-1.5" : "text-black/35 text-xs font-semibold tracking-wide mb-2 flex items-center gap-1.5"}>
-                <MessageCircle size={13} /> COMMENTS
+            <div className="mb-5">
+              <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 flex items-center gap-1.5"}>
+                <MessageCircle size={12} /> COMMENTS
               </p>
               <div className="space-y-2">
                 {commentTimeline.length === 0 && <p className={dark ? "text-white/30 text-[13px]" : "text-black/30 text-[13px]"}>No comments on this workout yet.</p>}
@@ -1479,9 +1475,9 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
           <div className="absolute bottom-6 left-0 right-0 flex justify-center px-6">
             <button
               onClick={onStart}
-              className={dark ? "bg-white text-black font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform" : "bg-black text-white font-bold py-4 px-10 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"}
+              className={dark ? "bg-white text-black font-bold text-sm py-3.5 px-9 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform" : "bg-black text-white font-bold text-sm py-3.5 px-9 rounded-full shadow-2xl flex items-center gap-2 active:scale-[0.98] transition-transform"}
             >
-              <Play size={16} fill="white" />
+              <Play size={15} fill="white" />
               Start Now
             </button>
           </div>
