@@ -2,21 +2,32 @@
 
 ## Visual design conventions
 
-Target look: dark, restrained, technical, premium.
+Target look: dark, restrained, technical, premium. Applies identically in
+both of the app's existing modes — the client app's own light/dark toggle
+(`ClientThemeContext`/`useClientDark`) and the coach console's single light
+theme — by expressing it through the existing tokens in `src/theme.js`
+rather than inventing new colors per screen:
 
-- **Palette**: black, off-white, charcoal, plus **one** restrained accent
-  color used deliberately — not a rotating cast of secondary accents.
-  Red stays reserved for destructive/danger states only.
+- **Light surfaces**: `BG`/`SURFACE` (off-white, not stark white), `TEXT`
+  (near-black charcoal), dividers via `BORDER`/`BORDER_STRONG`.
+- **Dark surfaces**: `CLIENT_DARK_BG` (near-black), `CLIENT_DARK_SURFACE`/
+  `CLIENT_DARK_SURFACE_2` (charcoal, for the rare case something truly
+  needs to sit "above" the background), `CLIENT_DARK_TEXT` (off-white),
+  dividers via `CLIENT_DARK_BORDER`.
+- **One accent, not a rotating cast**: `MEASURE_BLUE`. Don't reach for
+  orange/indigo/emerald/purple/rose as general-purpose UI color — those
+  were a prior direction and are retired for anything but a narrowly
+  justified one-off (and even then, ask first). Red stays reserved for
+  destructive/danger states only.
 - **No yellow/amber anywhere in the UI.** Not on new components, not as a
-  restyle of existing ones unless asked. It's not part of this app's color
-  language.
-- **Stop putting everything inside rounded white boxes.** A white
-  `rounded-2xl` card with a border and `shadow-sm` is not the default
-  container for every piece of content — reach for it only when something
-  genuinely needs to read as a distinct, elevated object, not as the
-  default way to group information.
-- Minimal gradients. Minimal rounded cards. Thin dividers instead of boxed
-  sections where a divider will do.
+  restyle of existing ones unless asked.
+- **Stop putting everything inside rounded white (or charcoal) boxes.** A
+  `bg-SURFACE border rounded-2xl shadow-sm` card is not the default
+  container for every piece of content. Default to a thin divider
+  (`border-t`/`divide-y` using `BORDER`/`CLIENT_DARK_BORDER`) between
+  sections on the page's own background; reach for an actual card only
+  when something genuinely needs to read as a distinct, elevated object.
+- Minimal gradients, minimal rounded cards.
 - Strong typography carries hierarchy — lean on type weight/size/spacing
   before reaching for a background tint or a border to separate things.
 - Lots of negative space; don't fill it with decoration.
