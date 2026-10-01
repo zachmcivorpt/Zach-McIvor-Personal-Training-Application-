@@ -1335,17 +1335,17 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
         <div className="flex-1 overflow-y-auto pb-28">
           <div className="relative h-56 shrink-0 overflow-hidden">
             <img src={dark ? "/brand/login-bg.jpg" : "/brand/login-bg-light.jpg"} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className={dark ? "absolute inset-0 bg-gradient-to-b from-black/10 via-black/10 to-black/85" : "absolute inset-0 bg-gradient-to-b from-white/5 via-white/5 to-white/90"} />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/10 to-black/85" />
             <div className="absolute bottom-0 inset-x-0 p-5">
-              <p className={dark ? "text-white/65 text-[11px] font-bold tracking-[0.15em] uppercase mb-1.5" : "text-black/55 text-[11px] font-bold tracking-[0.15em] uppercase mb-1.5"}>
+              <p className="text-white/65 text-[11px] font-bold tracking-[0.15em] uppercase mb-1.5">
                 {session.date
                   ? new Date(session.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })
                   : session.workoutLogId
                   ? "Completed"
                   : "Scheduled"}
               </p>
-              <h1 className={dark ? "text-white text-[26px] font-extrabold tracking-tight uppercase leading-[1.1] truncate" : "text-black text-[26px] font-extrabold tracking-tight uppercase leading-[1.1] truncate"}>{session.label}</h1>
-              <p className={dark ? "text-white/50 text-[11px] font-bold tracking-[0.1em] uppercase mt-1.5" : "text-black/45 text-[11px] font-bold tracking-[0.1em] uppercase mt-1.5"}>
+              <h1 className="text-white text-[26px] font-extrabold tracking-tight uppercase leading-[1.1] truncate">{session.label}</h1>
+              <p className="text-white/50 text-[11px] font-bold tracking-[0.1em] uppercase mt-1.5">
                 Strength · {displayMinutes} Min
               </p>
             </div>
@@ -1391,7 +1391,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       className="w-full flex items-center gap-3 text-left px-5 py-3.5"
                     >
                       <ExerciseThumb dark={dark} exercise={ex} width={64} height={64} rounded="rounded-lg" className="shrink-0" />
-                      <span className={`text-[24px] font-light tabular-nums leading-none shrink-0 w-7 ${dark ? "text-white/45" : "text-black/40"}`}>
+                      <span className={`text-[24px] font-light tabular-nums leading-none shrink-0 w-7 ${dark ? "text-white/45" : "text-black/60"}`}>
                         {String(i + 1).padStart(2, "0")}
                       </span>
                       <div className="min-w-0 flex-1">
