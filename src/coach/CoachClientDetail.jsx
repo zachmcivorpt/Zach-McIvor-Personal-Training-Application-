@@ -3696,21 +3696,21 @@ function NutritionPanel({ client, showToast }) {
                 flat strip reads calmer than a card nested inside a card. */}
             <div className="grid grid-cols-4 divide-x divide-black/8 border-y border-black/8 mb-1">
               {[
-                ["Calories", Math.round(nutrition.calories || 0), targets.calories, ""],
-                ["Protein", round1(nutrition.protein || 0), targets.protein, "g"],
-                ["Carbs", round1(nutrition.carbs || 0), targets.carbs, "g"],
-                ["Fat", round1(nutrition.fat || 0), targets.fat, "g"],
+                ["Calories", Math.round(nutrition.calories || 0), Math.round(targets.calories || 0), ""],
+                ["Protein", Math.round(nutrition.protein || 0), Math.round(targets.protein || 0), "g"],
+                ["Carbs", Math.round(nutrition.carbs || 0), Math.round(targets.carbs || 0), "g"],
+                ["Fat", Math.round(nutrition.fat || 0), Math.round(targets.fat || 0), "g"],
               ].map(([l, v, t, unit]) => (
-                <div key={l} className="text-center py-3 px-1">
-                  <p className="text-black font-bold text-[15px] tabular-nums">
+                <div key={l} className="text-center py-3 px-1 min-w-0">
+                  <p className="text-black font-bold text-[14px] tabular-nums leading-tight truncate">
                     {v}
                     {unit}
-                    <span className="text-black/30 font-medium text-[12px]">
-                      /{t}
-                      {unit}
-                    </span>
                   </p>
-                  <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-0.5">{l}</p>
+                  <p className="text-black/35 font-medium text-[11px] tabular-nums leading-tight truncate">
+                    /{t}
+                    {unit}
+                  </p>
+                  <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1 truncate">{l}</p>
                 </div>
               ))}
             </div>
