@@ -6428,6 +6428,8 @@ export default function ClientApp() {
     clearExerciseNotes,
     viewingAsClient,
     stopViewAsClient,
+    pendingCoachDate,
+    clearPendingCoachDate,
     deleteScheduledWorkoutById,
     moveScheduledWorkout,
     scheduleBodyStatsCheckin,
@@ -6782,16 +6784,16 @@ export default function ClientApp() {
   // actually done, not the plan — and pre-fills activeLog with whatever was
   // already logged so nothing already entered is lost. finishWorkout() sees
   // editingLogId set and updates this same log instead of creating a new one.
-  function continueCompletedWorkout(session) {
+  function continueCompletedWorkout(session, dateKey = todayDateKey) {
     if (!session?.workoutLogId) return;
     // scheduledWorkoutsByDate only ever keeps ONE entry per date (last one
     // wins), so on a day with more than one scheduled workout it can easily
     // resolve to a DIFFERENT workout than the one actually being continued —
     // silently building a prescription with the wrong (or missing) exercises.
-    // Search every entry scheduled today and only trust one whose label
+    // Search every entry scheduled that day and only trust one whose label
     // actually matches what was completed.
-    const todaysScheduled = scheduledWorkoutsListByDate[todayDateKey] || [];
-    const scheduled = todaysScheduled.find((w) => w.label === session.label);
+    const thatDaysScheduled = scheduledWorkoutsListByDate[dateKey] || [];
+    const scheduled = thatDaysScheduled.find((w) => w.label === session.label);
     const prescription = scheduled ? scheduledToSession(scheduled) : session;
     setActiveLog(Object.fromEntries(session.exercises.map((e) => [e.exerciseId, e.actualSets || []])));
     setExerciseNotes(Object.fromEntries(session.exercises.filter((e) => e.note).map((e) => [e.exerciseId, e.note])));
@@ -6802,6 +6804,31 @@ export default function ClientApp() {
     setRunningSession(prescription);
     setSessionOpen(true);
   }
+
+  // A coach can jump straight into logging or editing a specific day's
+  // session for this client from their own calendar — see
+  // DayDetailSheet's "Log/Edit Session" button, which calls
+  // startViewAsClient(clientId, date) and lets RequireRole's own role-based
+  // redirect bring them here. That just stashes the date; this consumes it
+  // the moment this client's app is actually on screen, so the coach lands
+  // straight in the workout instead of landing on Home and having to find
+  // that same day again themselves.
+  useEffect(() => {
+    if (!pendingCoachDate) return;
+    const dateKey = pendingCoachDate;
+    clearPendingCoachDate();
+    const session = sessionForDate(dateKey, logsForClient);
+    if (!session) {
+      setTab("calendar");
+      return;
+    }
+    if (isDateActuallyCompleted(dateKey, logsForClient)) {
+      continueCompletedWorkout(session, dateKey);
+    } else {
+      startWorkout(session);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingCoachDate]);
 
   // Self-heals a runningSession that's shaped like a completed log (only
   // whatever exercises had sets logged, e.g. 2 of a 7-exercise day) instead

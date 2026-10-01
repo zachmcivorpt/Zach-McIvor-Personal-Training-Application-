@@ -453,6 +453,12 @@ export function AppProvider({ children }) {
   // `profile`, so every client's data stays loaded — this only swaps which
   // user doc the rest of the app treats as "you".
   const [viewAsClientId, setViewAsClientId] = useState(null);
+  // Set alongside viewAsClientId when a coach jumps into "View as Client"
+  // from a specific calendar date (e.g. tapping an undone "Push Day" on
+  // their own calendar to log it for the client) — ClientApp reads this
+  // once on entry to open straight into that date's workout instead of
+  // landing on Home and making the coach find it again themselves.
+  const [pendingCoachDate, setPendingCoachDate] = useState(null);
   const currentUser =
     viewAsClientId && profile?.role === "coach" ? (db.users || []).find((u) => u.id === viewAsClientId) || profile : profile;
   const session = authUser ? { userId: authUser.uid } : null;
@@ -1937,8 +1943,16 @@ export function AppProvider({ children }) {
     currentUser,
     realUser: profile,
     viewingAsClient: !!viewAsClientId,
-    startViewAsClient: (clientId) => setViewAsClientId(clientId),
-    stopViewAsClient: () => setViewAsClientId(null),
+    startViewAsClient: (clientId, date) => {
+      setViewAsClientId(clientId);
+      setPendingCoachDate(date || null);
+    },
+    stopViewAsClient: () => {
+      setViewAsClientId(null);
+      setPendingCoachDate(null);
+    },
+    pendingCoachDate,
+    clearPendingCoachDate: () => setPendingCoachDate(null),
     hasCoach,
     authReady,
     sessionLoading,

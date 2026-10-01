@@ -78,6 +78,7 @@ import {
   Camera,
   Sparkles,
   ChevronLeft,
+  Play,
 } from "lucide-react";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
@@ -879,7 +880,7 @@ function ScheduleBodyStatsSheet({ open, onClose, client, initialDate, showToast 
   );
 }
 
-function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedule, onRemoveWorkout, onRemoveBodyStats }) {
+function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedule, onLogWorkout, onRemoveWorkout, onRemoveBodyStats }) {
   const [expandedLog, setExpandedLog] = useState(null);
   if (!date) return null;
   const label = new Date(date + "T00:00:00Z").toLocaleDateString(undefined, {
@@ -947,14 +948,38 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                     </p>
                   </div>
                   {it.type === "workout" && !it.done && (
+                    <>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onLogWorkout();
+                        }}
+                        title="Log this session for them — same as them completing it themselves"
+                        className="flex items-center gap-1 bg-blue-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
+                      >
+                        <Play size={11} /> Log
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveWorkout();
+                        }}
+                        className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60 shrink-0"
+                      >
+                        <X size={14} />
+                      </button>
+                    </>
+                  )}
+                  {it.type === "workout" && it.done && it.log && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onRemoveWorkout();
+                        onLogWorkout();
                       }}
-                      className="w-7 h-7 flex items-center justify-center text-black/30 hover:text-black/60"
+                      title="Edit their logged sets/reps/weight"
+                      className="flex items-center gap-1 bg-black/5 border border-black/10 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
                     >
-                      <X size={14} />
+                      <Edit3 size={11} /> Edit
                     </button>
                   )}
                   {it.type === "bodystats" && (
@@ -1004,7 +1029,16 @@ const DELETE_CATEGORIES = [
 ];
 
 function CalendarPanel({ client, showToast }) {
-  const { db, scheduleWorkout, unscheduleWorkout, scheduleBodyStatsCheckin, unscheduleBodyStatsCheckin, deleteWorkoutLog, removeHabit } = useApp();
+  const {
+    db,
+    scheduleWorkout,
+    unscheduleWorkout,
+    scheduleBodyStatsCheckin,
+    unscheduleBodyStatsCheckin,
+    deleteWorkoutLog,
+    removeHabit,
+    startViewAsClient,
+  } = useApp();
   // Built on Pointer Events rather than the HTML5 drag-and-drop API — that
   // API is mouse-only and never fires from a touch gesture, which is why
   // this didn't work at all on a phone. Pointer Events cover mouse and
@@ -1726,6 +1760,10 @@ function CalendarPanel({ client, showToast }) {
         exercisesById={exercisesById}
         onClose={() => setSelectedDate(null)}
         onSchedule={(kind) => setScheduleKind(kind)}
+        onLogWorkout={() => {
+          startViewAsClient(client.id, selectedDate);
+          setSelectedDate(null);
+        }}
         onRemoveWorkout={() => {
           unscheduleWorkout(client.id, selectedDate);
           showToast("Workout removed");
