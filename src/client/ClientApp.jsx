@@ -1343,6 +1343,9 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                   : "Scheduled"}
               </p>
               <h1 className={dark ? "text-white text-[26px] font-extrabold tracking-tight uppercase leading-[1.1] truncate" : "text-black text-[26px] font-extrabold tracking-tight uppercase leading-[1.1] truncate"}>{session.label}</h1>
+              <p className={dark ? "text-white/50 text-[11px] font-bold tracking-[0.1em] uppercase mt-1.5" : "text-black/45 text-[11px] font-bold tracking-[0.1em] uppercase mt-1.5"}>
+                Strength · {displayMinutes} Min
+              </p>
             </div>
           </div>
 
@@ -1385,10 +1388,10 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       onClick={() => setDetailExercise(ex)}
                       className="w-full flex items-center gap-3 text-left px-5 py-3.5"
                     >
+                      <ExerciseThumb dark={dark} exercise={ex} width={64} height={64} rounded="rounded-lg" className="shrink-0" />
                       <span className={`text-[24px] font-light tabular-nums leading-none shrink-0 w-7 ${dark ? "text-white/45" : "text-black/40"}`}>
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      <ExerciseThumb dark={dark} exercise={ex} width={64} height={64} rounded="rounded-lg" className="shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className={`${dark ? "text-white" : "text-black"} font-semibold text-[12px] tracking-wide uppercase truncate`}>
@@ -1501,7 +1504,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
           <div className="absolute bottom-6 left-0 right-0 flex justify-center px-5">
             <button
               onClick={onStart}
-              className={dark ? "w-full border border-white/25 text-white font-bold text-[13px] tracking-[0.1em] uppercase py-4 rounded-full flex items-center justify-center gap-2 active:scale-[0.98] transition-transform backdrop-blur-sm" : "w-full border border-black/25 text-black font-bold text-[13px] tracking-[0.1em] uppercase py-4 rounded-full flex items-center justify-center gap-2 active:scale-[0.98] transition-transform backdrop-blur-sm"}
+              className={dark ? "w-full border border-white/25 text-white font-bold text-[13px] tracking-[0.1em] uppercase py-4 rounded-full flex items-center justify-center gap-2 active:scale-[0.98] transition-transform backdrop-blur-sm" : "w-full bg-black text-white font-bold text-[13px] tracking-[0.1em] uppercase py-4 rounded-full shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"}
             >
               Start Session
               <ArrowRight size={15} />
