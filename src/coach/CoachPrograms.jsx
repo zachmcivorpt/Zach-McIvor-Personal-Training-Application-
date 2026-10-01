@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useApp, programPhases } from "../lib/AppContext";
 import { newId } from "../lib/id";
 import { Field, TextInput, TextArea, Select, PrimaryButton, BottomSheet, ExerciseThumb } from "../components/ui";
-import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVertical, ChevronDown, ChevronLeft } from "lucide-react";
+import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVertical, Pencil, ChevronLeft } from "lucide-react";
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
@@ -193,90 +193,117 @@ function ConfirmSheet({ open, onClose, title, body, confirmLabel = "Delete", onC
   );
 }
 
-// Mobile-only program switcher — replaces a horizontally-scrolling chip
-// row that cut long program names off mid-word with no way to read the
-// rest. Tap the current program to pick a different one from a full list.
-function ProgramPickerSheet({ open, onClose, programs, selectedId, onSelect, onNew }) {
+// Edit a program's name/level/description in one place — replaces the old
+// always-editable inline fields (which cluttered the header with a live
+// text input, a level dropdown and a description textarea all the time)
+// with a single pencil icon that opens this sheet on demand.
+function EditProgramSheet({ open, onClose, program, onSave }) {
+  const [name, setName] = useState("");
+  const [level, setLevel] = useState("Beginner");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && program) {
+      setName(program.name || "");
+      setLevel(program.level || "Beginner");
+      setDescription(program.description || "");
+    }
+  }, [open, program?.id]);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({ name: name.trim(), level, description });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <BottomSheet open={open} onClose={onClose} title="Programs">
-      <button
-        onClick={() => {
-          onClose();
-          onNew();
-        }}
-        className="w-full flex items-center justify-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl mb-3"
-      >
-        <Plus size={14} /> NEW PROGRAM
-      </button>
-      {programs.length === 0 ? (
-        <p className="text-black/30 text-xs text-center py-4">No programs yet.</p>
-      ) : (
-        <div className="space-y-1.5 max-h-[55vh] overflow-y-auto">
-          {programs.map((p) => {
-            const phaseCount = programPhases(p).length;
-            const active = p.id === selectedId;
-            return (
-              <button
-                key={p.id}
-                onClick={() => {
-                  onSelect(p.id);
-                  onClose();
-                }}
-                className={`w-full text-left px-3.5 py-3 rounded-xl transition-colors ${
-                  active ? "bg-black text-white" : "bg-black/[0.03] hover:bg-black/[0.06] text-black"
-                }`}
-              >
-                <p className="text-sm font-semibold truncate">{p.name}</p>
-                <p className={`text-xs mt-0.5 ${active ? "text-white/50" : "text-black/40"}`}>
-                  {phaseCount} phase{phaseCount === 1 ? "" : "s"}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      )}
+    <BottomSheet open={open} onClose={onClose} title="Edit Program">
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="PROGRAM NAME">
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Push / Pull / Legs" />
+        </Field>
+        <Field label="LEVEL">
+          <Select value={level} onChange={(e) => setLevel(e.target.value)}>
+            <option>Beginner</option>
+            <option>Intermediate</option>
+            <option>Advanced</option>
+          </Select>
+        </Field>
+        <Field label="DESCRIPTION">
+          <TextArea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this program is for, who it suits..." />
+        </Field>
+        <PrimaryButton type="submit" className="w-full" disabled={!name.trim() || saving}>
+          {saving ? "SAVING…" : "SAVE CHANGES"}
+        </PrimaryButton>
+      </form>
     </BottomSheet>
   );
 }
 
-// Mobile-only phase switcher — same reasoning as ProgramPickerSheet above.
-function PhasePickerSheet({ open, onClose, phases, selectedId, onSelect, onAdd }) {
+// Same idea for a phase's name/duration — replaces the inline name input
+// and +/- weeks stepper with a pencil icon that opens this sheet.
+function EditPhaseSheet({ open, onClose, phase, onSave }) {
+  const [name, setName] = useState("");
+  const [weeks, setWeeks] = useState(4);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && phase) {
+      setName(phase.name || "");
+      setWeeks(phase.durationWeeks || 4);
+    }
+  }, [open, phase?.id]);
+
+  async function submit(e) {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      await onSave({ name: name.trim(), durationWeeks: weeks });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <BottomSheet open={open} onClose={onClose} title="Phases">
-      {phases.length > 0 && (
-        <div className="space-y-1.5 max-h-[55vh] overflow-y-auto mb-3">
-          {phases.map((ph) => {
-            const active = ph.id === selectedId;
-            return (
-              <button
-                key={ph.id}
-                onClick={() => {
-                  onSelect(ph.id);
-                  onClose();
-                }}
-                className={`w-full text-left px-3.5 py-3 rounded-xl transition-colors ${
-                  active ? "bg-blue-600 text-white" : "bg-black/[0.03] hover:bg-black/[0.06] text-black"
-                }`}
-              >
-                <p className="text-sm font-semibold truncate">{ph.name}</p>
-                <p className={`text-xs mt-0.5 ${active ? "text-white/60" : "text-black/40"}`}>
-                  {ph.durationWeeks} wk{ph.durationWeeks === 1 ? "" : "s"} · {(ph.days || []).length} session
-                  {(ph.days || []).length === 1 ? "" : "s"}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      )}
-      <button
-        onClick={() => {
-          onClose();
-          onAdd();
-        }}
-        className="w-full flex items-center justify-center gap-1.5 bg-black/5 hover:bg-black/10 text-black text-xs font-semibold px-3 py-2.5 rounded-xl"
-      >
-        <Plus size={13} /> Add phase
-      </button>
+    <BottomSheet open={open} onClose={onClose} title="Edit Phase">
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="PHASE NAME">
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Foundation" />
+        </Field>
+        <Field label="DURATION">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setWeeks((w) => Math.max(1, w - 1))}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/5 text-black/60 text-lg font-semibold"
+              aria-label="Decrease duration"
+            >
+              −
+            </button>
+            <span className="text-black text-sm font-semibold w-20 text-center">
+              {weeks} week{weeks === 1 ? "" : "s"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setWeeks((w) => w + 1)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/5 text-black/60 text-lg font-semibold"
+              aria-label="Increase duration"
+            >
+              +
+            </button>
+          </div>
+        </Field>
+        <PrimaryButton type="submit" className="w-full" disabled={!name.trim() || saving}>
+          {saving ? "SAVING…" : "SAVE CHANGES"}
+        </PrimaryButton>
+      </form>
     </BottomSheet>
   );
 }
@@ -459,13 +486,8 @@ export default function CoachPrograms({ showToast }) {
   const [editingWorkout, setEditingWorkout] = useState(null); // { phaseIndex, dayIndex, day } | null
   const [libraryPickerOpen, setLibraryPickerOpen] = useState(false);
   const [copyIndices, setCopyIndices] = useState(null); // array of day indices being copied, or null
-  const [programDraft, setProgramDraft] = useState({ name: "", level: "Beginner", description: "" });
-  const [savingProgram, setSavingProgram] = useState(false);
-  const [phaseNameDraft, setPhaseNameDraft] = useState("");
-  const [savingPhaseName, setSavingPhaseName] = useState(false);
-  const [programPickerOpen, setProgramPickerOpen] = useState(false);
-  const [phasePickerOpen, setPhasePickerOpen] = useState(false);
-  const [descriptionOpen, setDescriptionOpen] = useState(false);
+  const [editProgramOpen, setEditProgramOpen] = useState(false);
+  const [editPhaseOpen, setEditPhaseOpen] = useState(false);
   // Mobile only — desktop always shows the program list and the detail
   // panel side by side, but on a phone that's the exact clutter this
   // screen kept getting flagged for. Mobile now browses a plain list
@@ -483,61 +505,12 @@ export default function CoachPrograms({ showToast }) {
   const selectedPhase = phases.find((p) => p.id === selectedPhaseId) || phases[0] || null;
   const phaseIndex = selectedPhase ? phases.findIndex((p) => p.id === selectedPhase.id) : -1;
 
-  // Draft state resets to whatever's actually saved whenever the coach
-  // switches to a different program/phase, so edits never leak across items.
-  useEffect(() => {
-    if (selected) setProgramDraft({ name: selected.name, level: selected.level, description: selected.description || "" });
-  }, [selected?.id]);
-  useEffect(() => {
-    if (selectedPhase) setPhaseNameDraft(selectedPhase.name);
-  }, [selectedPhase?.id]);
-
-  const programDirty =
-    !!selected &&
-    (programDraft.name !== selected.name || programDraft.level !== selected.level || programDraft.description !== (selected.description || ""));
-  const phaseNameDirty = !!selectedPhase && phaseNameDraft !== selectedPhase.name;
-
-  async function saveProgramFields() {
-    if (!selected || !programDirty) return;
-    setSavingProgram(true);
-    try {
-      await updateProgram(selected.id, {
-        name: programDraft.name.trim() || selected.name,
-        level: programDraft.level,
-        description: programDraft.description,
-      });
-      showToast("Program saved");
-    } catch (err) {
-      showToast(err.message || "Couldn't save — check your connection and try again");
-    } finally {
-      setSavingProgram(false);
-    }
-  }
-
-  async function savePhaseName() {
-    if (!selectedPhase || !phaseNameDirty || phaseIndex < 0) return;
-    setSavingPhaseName(true);
-    try {
-      await savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, name: phaseNameDraft.trim() || p.name } : p)));
-      showToast("Phase saved");
-    } catch (err) {
-      showToast(err.message || "Couldn't save — check your connection and try again");
-    } finally {
-      setSavingPhaseName(false);
-    }
-  }
-
-  // Flushes any unsaved edit to the program/phase being left, so switching
-  // away before hitting Save never silently discards it.
   function selectProgram(id) {
-    if (programDirty) saveProgramFields();
     setSelectedId(id);
     setSelectedPhaseId(null);
     setConfirmDeletePhase(false);
-    setDescriptionOpen(false);
   }
   function selectPhase(id) {
-    if (phaseNameDirty) savePhaseName();
     setSelectedPhaseId(id);
     setConfirmDeletePhase(false);
   }
@@ -547,16 +520,34 @@ export default function CoachPrograms({ showToast }) {
     return updateProgram(selected.id, { phases: next });
   }
 
+  async function saveProgramEdits(data) {
+    if (!selected) return;
+    try {
+      await updateProgram(selected.id, data);
+      setEditProgramOpen(false);
+      showToast("Program saved");
+    } catch (err) {
+      showToast(err.message || "Couldn't save — check your connection and try again");
+    }
+  }
+
+  async function savePhaseEdits(data) {
+    if (phaseIndex < 0) return;
+    try {
+      await savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, ...data } : p)));
+      setEditPhaseOpen(false);
+      showToast("Phase saved");
+    } catch (err) {
+      showToast(err.message || "Couldn't save — check your connection and try again");
+    }
+  }
+
   function addPhase() {
     if (!selected) return;
     const newPhase = { id: newId("ph"), name: `Phase ${phases.length + 1}`, durationWeeks: 4, days: [] };
     savePhases([...phases, newPhase]);
     setSelectedPhaseId(newPhase.id);
     showToast("Phase added");
-  }
-  function setDuration(weeks) {
-    if (phaseIndex < 0) return;
-    savePhases(phases.map((p, idx) => (idx === phaseIndex ? { ...p, durationWeeks: weeks } : p)));
   }
   function duplicatePhase() {
     if (phaseIndex < 0) return;
@@ -839,76 +830,30 @@ export default function CoachPrograms({ showToast }) {
             </div>
           ) : (
             <>
-              <div className="flex items-start justify-between gap-3 mb-1">
-                <div className="min-w-0 flex-1 flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1">PROGRAM</p>
-                    <input
-                      value={programDraft.name}
-                      onChange={(e) => setProgramDraft((d) => ({ ...d, name: e.target.value }))}
-                      className="bg-transparent outline-none text-black text-xl font-bold w-full truncate border-b border-transparent focus:border-black/15 pb-0.5"
-                    />
-                  </div>
-                  {programs.length > 1 && (
-                    <button
-                      onClick={() => setProgramPickerOpen(true)}
-                      aria-label="Switch program"
-                      title="Switch program"
-                      className="md:hidden w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-black/5 text-black/40 mt-3.5"
-                    >
-                      <ChevronDown size={16} />
-                    </button>
-                  )}
+              <div className="flex items-start justify-between gap-3 mb-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1">PROGRAM</p>
+                  <h2 className="text-black text-xl font-bold truncate">{selected.name}</h2>
+                  <p className="text-black/40 text-xs mt-1">
+                    {selected.level} · {phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total
+                  </p>
+                  {selected.description && <p className="text-black/50 text-sm mt-2.5 leading-relaxed">{selected.description}</p>}
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0 pt-[22px]">
-                  {programDirty && (
-                    <button
-                      onClick={saveProgramFields}
-                      disabled={savingProgram}
-                      className="bg-black text-white text-xs font-bold px-3 py-2 rounded-lg"
-                    >
-                      {savingProgram ? "SAVING…" : "SAVE"}
-                    </button>
-                  )}
+                <div className="flex items-center gap-1.5 shrink-0 pt-4">
+                  <button
+                    onClick={() => setEditProgramOpen(true)}
+                    aria-label="Edit program"
+                    title="Edit program"
+                    className="w-8 h-8 flex items-center justify-center text-black/40 hover:text-black rounded-lg hover:bg-black/8"
+                  >
+                    <Pencil size={15} />
+                  </button>
                   <OverflowMenu
                     label="More program actions"
                     items={[{ icon: Trash2, label: "Delete program", onClick: () => setConfirmDeleteProgram(true), danger: true }]}
                   />
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 flex-wrap mb-4">
-                <Select
-                  value={programDraft.level}
-                  onChange={(e) => setProgramDraft((d) => ({ ...d, level: e.target.value }))}
-                  className="!py-1.5 !text-xs !w-auto"
-                >
-                  <option>Beginner</option>
-                  <option>Intermediate</option>
-                  <option>Advanced</option>
-                </Select>
-                <span className="text-black/30 text-xs whitespace-nowrap">{phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total</span>
-              </div>
-
-              <button
-                onClick={() => setDescriptionOpen((v) => !v)}
-                className={`w-full flex items-center justify-between gap-2 text-black/40 hover:text-black/60 text-xs font-semibold py-1 ${
-                  descriptionOpen ? "mb-2" : "mb-5"
-                }`}
-              >
-                <span>{descriptionOpen ? "Hide description" : programDraft.description ? "Show description" : "Add a description"}</span>
-                <ChevronDown size={14} className={`transition-transform ${descriptionOpen ? "rotate-180" : ""}`} />
-              </button>
-              {descriptionOpen && (
-                <TextArea
-                  rows={3}
-                  value={programDraft.description}
-                  onChange={(e) => setProgramDraft((d) => ({ ...d, description: e.target.value }))}
-                  placeholder="What this program is for, who it suits..."
-                  className="mb-5"
-                  autoFocus
-                />
-              )}
 
               {!selectedPhase ? (
                 <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
@@ -921,60 +866,23 @@ export default function CoachPrograms({ showToast }) {
                 <>
                   <div className="border-t border-black/8 pt-4 mb-5">
                     <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">PHASE</p>
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <input
-                            value={phaseNameDraft}
-                            onChange={(e) => setPhaseNameDraft(e.target.value)}
-                            className="bg-transparent outline-none text-black font-bold text-base min-w-0 flex-1 truncate border-b border-transparent focus:border-black/15"
-                          />
-                          {phases.length > 1 && (
-                            <button
-                              onClick={() => setPhasePickerOpen(true)}
-                              aria-label="Switch phase"
-                              title="Switch phase"
-                              className="md:hidden w-7 h-7 shrink-0 flex items-center justify-center rounded-lg bg-black/5 text-black/40"
-                            >
-                              <ChevronDown size={14} />
-                            </button>
-                          )}
-                          {phaseNameDirty && (
-                            <button
-                              onClick={savePhaseName}
-                              disabled={savingPhaseName}
-                              className="bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg shrink-0"
-                            >
-                              {savingPhaseName ? "SAVING…" : "SAVE"}
-                            </button>
-                          )}
-                        </div>
+                        <h3 className="text-black font-bold text-base truncate">{selectedPhase.name}</h3>
                         <p className="text-black/35 text-xs mt-0.5">
+                          {selectedPhase.durationWeeks} wk{selectedPhase.durationWeeks === 1 ? "" : "s"} ·{" "}
                           {(selectedPhase.days || []).length} session{(selectedPhase.days || []).length === 1 ? "" : "s"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <div className="flex items-center bg-black/5 rounded-lg">
-                          <button
-                            type="button"
-                            onClick={() => setDuration(Math.max(1, selectedPhase.durationWeeks - 1))}
-                            className="w-7 h-7 flex items-center justify-center text-black/50"
-                            aria-label="Decrease duration"
-                          >
-                            −
-                          </button>
-                          <span className="text-black text-xs font-semibold w-14 text-center">
-                            {selectedPhase.durationWeeks} wk{selectedPhase.durationWeeks === 1 ? "" : "s"}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setDuration(selectedPhase.durationWeeks + 1)}
-                            className="w-7 h-7 flex items-center justify-center text-black/50"
-                            aria-label="Increase duration"
-                          >
-                            +
-                          </button>
-                        </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setEditPhaseOpen(true)}
+                          aria-label="Edit phase"
+                          title="Edit phase"
+                          className="w-8 h-8 flex items-center justify-center text-black/40 hover:text-black rounded-lg hover:bg-black/8"
+                        >
+                          <Pencil size={14} />
+                        </button>
                         <OverflowMenu
                           label="More phase actions"
                           items={[
@@ -1040,22 +948,8 @@ export default function CoachPrograms({ showToast }) {
         }}
       />
 
-      <ProgramPickerSheet
-        open={programPickerOpen}
-        onClose={() => setProgramPickerOpen(false)}
-        programs={programs}
-        selectedId={selected?.id}
-        onSelect={selectProgram}
-        onNew={() => setNewProgramOpen(true)}
-      />
-      <PhasePickerSheet
-        open={phasePickerOpen}
-        onClose={() => setPhasePickerOpen(false)}
-        phases={phases}
-        selectedId={selectedPhase?.id}
-        onSelect={selectPhase}
-        onAdd={addPhase}
-      />
+      <EditProgramSheet open={editProgramOpen} onClose={() => setEditProgramOpen(false)} program={selected} onSave={saveProgramEdits} />
+      <EditPhaseSheet open={editPhaseOpen} onClose={() => setEditPhaseOpen(false)} phase={selectedPhase} onSave={savePhaseEdits} />
 
       <ConfirmSheet
         open={confirmDeleteAll}
