@@ -51,11 +51,18 @@ export function buildBodyMetricEntries(bodyMetrics, configs) {
   return out;
 }
 
+// onSave(value, dateKey) — the date defaults to today but can be set to
+// any past day, so a client's history from another platform can be
+// backfilled and land in the right place on the graph.
 export function LogBodyMetricSheet({ open, onClose, config, lastValue, onSave, dark = false }) {
   const [value, setValue] = useState("");
+  const [dateKey, setDateKey] = useState(() => localDateKey());
 
   React.useEffect(() => {
-    if (open) setValue(lastValue != null ? String(lastValue) : "");
+    if (open) {
+      setValue(lastValue != null ? String(lastValue) : "");
+      setDateKey(localDateKey());
+    }
   }, [open, lastValue]);
 
   if (!config) return null;
@@ -75,12 +82,17 @@ export function LogBodyMetricSheet({ open, onClose, config, lastValue, onSave, d
           autoFocus
         />
       </Field>
+      <div className="mt-3">
+        <Field label="DATE" dark={dark}>
+          <TextInput dark={dark} type="date" value={dateKey} max={localDateKey()} onChange={(e) => setDateKey(e.target.value)} />
+        </Field>
+      </div>
       <PrimaryButton
         dark={dark}
         className="w-full mt-4"
-        disabled={!valid}
+        disabled={!valid || !dateKey}
         onClick={() => {
-          onSave(parsed);
+          onSave(parsed, dateKey);
           setValue("");
         }}
       >
@@ -220,8 +232,8 @@ export function BodyMetricHistoryScreen({ config, entries, onClose, onLog, onDel
         config={config}
         lastValue={latest?.value}
         onClose={() => setLogOpen(false)}
-        onSave={(v) => {
-          onLog(v);
+        onSave={(v, dateKey) => {
+          onLog(v, dateKey);
           setLogOpen(false);
         }}
         dark={dark}

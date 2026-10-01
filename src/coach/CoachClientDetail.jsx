@@ -4534,7 +4534,7 @@ function ProgressPanel({ client }) {
           config={{ key: "weight", label: "Body Weight", unit: "kg", icon: Scale }}
           entries={weighIns.map((w) => ({ id: w.id, date: w.date, value: w.weight }))}
           onClose={() => setWeightHistoryOpen(false)}
-          onLog={(v) => logWeight(client.id, v)}
+          onLog={(v, dateKey) => logWeight(client.id, v, dateKey)}
           onDelete={(_dateKey, weighInId) => deleteWeighIn(client.id, weighInId)}
         />
       )}
@@ -4544,7 +4544,7 @@ function ProgressPanel({ client }) {
           config={historyMetricConfig}
           entries={bodyMetricEntries[historyMetricConfig.key]}
           onClose={() => setHistoryMetricConfig(null)}
-          onLog={(v) => logBodyMetric(client.id, localDateKey(), historyMetricConfig.key, v)}
+          onLog={(v, dateKey) => logBodyMetric(client.id, dateKey || localDateKey(), historyMetricConfig.key, v)}
           onDelete={(dateKey) => deleteBodyMetric(client.id, dateKey, historyMetricConfig.key)}
         />
       )}
@@ -4553,8 +4553,8 @@ function ProgressPanel({ client }) {
         config={logMetricConfig}
         lastValue={logMetricConfig ? bodyMetricEntries[logMetricConfig.key]?.[bodyMetricEntries[logMetricConfig.key].length - 1]?.value : null}
         onClose={() => setLogMetricConfig(null)}
-        onSave={(v) => {
-          logBodyMetric(client.id, localDateKey(), logMetricConfig.key, v);
+        onSave={(v, dateKey) => {
+          logBodyMetric(client.id, dateKey || localDateKey(), logMetricConfig.key, v);
           setLogMetricConfig(null);
         }}
       />

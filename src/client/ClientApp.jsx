@@ -4397,12 +4397,18 @@ function MetricDetailSheet({ metric, onClose }) {
   );
 }
 
+// onSave(weight, dateKey) — date defaults to today, can be set to any past
+// day to backfill history (e.g. weigh-ins from a previous platform).
 function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
   const dark = useClientDark();
   const [weight, setWeight] = useState("");
+  const [dateKey, setDateKey] = useState(() => localDateKey());
 
   useEffect(() => {
-    if (open) setWeight(lastWeight ? String(lastWeight) : "");
+    if (open) {
+      setWeight(lastWeight ? String(lastWeight) : "");
+      setDateKey(localDateKey());
+    }
   }, [open, lastWeight]);
 
   const parsed = Number(weight);
@@ -4420,11 +4426,16 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
           autoFocus
         />
       </Field>
+      <div className="mt-3">
+        <Field dark={dark} label="DATE">
+          <TextInput dark={dark} type="date" value={dateKey} max={localDateKey()} onChange={(e) => setDateKey(e.target.value)} />
+        </Field>
+      </div>
       <PrimaryButton dark={dark}
         className="w-full mt-4"
-        disabled={!valid}
+        disabled={!valid || !dateKey}
         onClick={() => {
-          onSave(parsed);
+          onSave(parsed, dateKey);
           setWeight("");
         }}
       >
@@ -4546,8 +4557,8 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
         open={logOpen}
         onClose={() => setLogOpen(false)}
         lastWeight={latest?.weight}
-        onSave={(w) => {
-          onLog(w);
+        onSave={(w, dateKey) => {
+          onLog(w, dateKey);
           setLogOpen(false);
         }}
       />
@@ -4983,8 +4994,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         open={quickLogOpen}
         onClose={() => setQuickLogOpen(false)}
         lastWeight={latestWeighIn?.weight}
-        onSave={(w) => {
-          onLogWeight(w);
+        onSave={(w, dateKey) => {
+          onLogWeight(w, dateKey);
           setQuickLogOpen(false);
         }}
       />
@@ -4995,7 +5006,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           config={historyMetricConfig}
           entries={bodyMetricEntries[historyMetricConfig.key]}
           onClose={() => setHistoryMetricConfig(null)}
-          onLog={(v) => onLogBodyMetric(historyMetricConfig.key, v)}
+          onLog={(v, dateKey) => onLogBodyMetric(historyMetricConfig.key, v, dateKey)}
           onDelete={(dateKey) => onDeleteBodyMetric(dateKey, historyMetricConfig.key)}
         />
       )}
@@ -5005,8 +5016,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         config={logMetricConfig}
         lastValue={logMetricConfig ? bodyMetricEntries[logMetricConfig.key]?.[bodyMetricEntries[logMetricConfig.key].length - 1]?.value : null}
         onClose={() => setLogMetricConfig(null)}
-        onSave={(v) => {
-          onLogBodyMetric(logMetricConfig.key, v);
+        onSave={(v, dateKey) => {
+          onLogBodyMetric(logMetricConfig.key, v, dateKey);
           setLogMetricConfig(null);
         }}
       />
@@ -7401,12 +7412,12 @@ export default function ClientApp() {
             onAddPhoto={addProgressPhoto}
             onDeletePhoto={deleteProgressPhoto}
             weighIns={weighIns}
-            onLogWeight={(w) => logWeight(currentUser.id, w)}
+            onLogWeight={(w, dateKey) => logWeight(currentUser.id, w, dateKey)}
             onDeleteWeighIn={(id) => deleteWeighIn(currentUser.id, id)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
             bodyMetrics={bodyMetricsForClient}
-            onLogBodyMetric={(field, value) => logBodyMetric(currentUser.id, todayDateKey, field, value)}
+            onLogBodyMetric={(field, value, dateKey) => logBodyMetric(currentUser.id, dateKey || todayDateKey, field, value)}
             onDeleteBodyMetric={(dateKey, field) => deleteBodyMetric(currentUser.id, dateKey, field)}
             scheduledWorkouts={scheduledWorkoutsForClient}
             autoOpenWeighInKey={autoOpenWeighIn}

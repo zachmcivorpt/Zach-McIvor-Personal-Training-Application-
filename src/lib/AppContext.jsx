@@ -1259,9 +1259,18 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "progressPhotos", photoId)).catch(console.error);
       },
 
-      logWeight(clientId, weight) {
+      // `dateKey` (YYYY-MM-DD) backdates the weigh-in — e.g. importing a
+      // client's history from another platform. Today (or none) keeps the
+      // real current time; a past date is stamped at midday local time so
+      // it can never drift onto the neighbouring day in any timezone view.
+      logWeight(clientId, weight, dateKey) {
         const id = newDocId("weighIns");
-        setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date: Date.now() }).catch(console.error);
+        let date = Date.now();
+        if (dateKey && dateKey !== localDateKey()) {
+          const [y, m, d] = dateKey.split("-").map(Number);
+          date = new Date(y, m - 1, d, 12, 0, 0).getTime();
+        }
+        setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date }).catch(console.error);
       },
 
       // One doc per client per calendar day (steps, sleep, body fat %, lean
