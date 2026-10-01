@@ -4630,7 +4630,7 @@ function PlateauAlertCard({ client }) {
   if (plateaus.length === 0) return null;
 
   return (
-    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 md:p-5 shadow-sm mb-5">
+    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 md:p-5 shadow-sm mb-5 -mx-4 md:-mx-6">
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className="w-8 h-8 rounded-lg bg-orange-100 border border-orange-200 flex items-center justify-center shrink-0">
           <TrendingDown size={15} className="text-orange-700" />
@@ -4909,6 +4909,17 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   );
 }
 
+function ageFromDateOfBirth(dobStr) {
+  if (!dobStr) return null;
+  const dob = new Date(dobStr);
+  if (Number.isNaN(dob.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const beforeBirthdayThisYear = today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate());
+  if (beforeBirthdayThisYear) age -= 1;
+  return age >= 0 ? age : null;
+}
+
 function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
   const { db, updateUser, updateClientProfile, sendMessage, sendPasswordReset } = useApp();
   const [sendingReset, setSendingReset] = useState(false);
@@ -5012,7 +5023,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
   }
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden">
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden -mx-4 md:-mx-6">
       <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/8">
         <div>
           <p className="text-black font-bold text-[16px] tracking-tight">Personal Details</p>
@@ -5031,6 +5042,51 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
             <Check size={13} /> Saved
           </span>
         )}
+      </div>
+
+      <div className="grid grid-cols-3 divide-x divide-black/8 border-b border-black/8">
+        <div className="text-center py-3 px-2">
+          <input
+            type="number"
+            min={0}
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            placeholder="—"
+            className="w-full bg-transparent outline-none text-blue-600 font-bold text-lg tabular-nums text-center placeholder:text-black/15"
+          />
+          <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1">Age</p>
+        </div>
+        <div className="text-center py-3 px-2">
+          <select
+            value={sex}
+            onChange={(e) => setSex(e.target.value)}
+            className="w-full bg-transparent outline-none text-blue-600 font-bold text-lg text-center appearance-none"
+          >
+            <option value="" className="text-black/30 font-normal text-sm">
+              —
+            </option>
+            {SEX_OPTIONS.map((s) => (
+              <option key={s} value={s} className="text-black font-normal text-sm">
+                {s}
+              </option>
+            ))}
+          </select>
+          <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1">Sex</p>
+        </div>
+        <div className="text-center py-3 px-2">
+          <div className="flex items-baseline justify-center gap-0.5">
+            <input
+              type="number"
+              min={0}
+              value={heightCm}
+              onChange={(e) => setHeightCm(e.target.value)}
+              placeholder="—"
+              className="w-full max-w-[3.5rem] bg-transparent outline-none text-blue-600 font-bold text-lg tabular-nums text-right placeholder:text-black/15"
+            />
+            {heightCm && <span className="text-blue-600/50 font-semibold text-xs">cm</span>}
+          </div>
+          <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-1">Height</p>
+        </div>
       </div>
 
       <div className="px-5 py-5">
@@ -5060,7 +5116,12 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
             <input
               type="date"
               value={dateOfBirth}
-              onChange={(e) => setDateOfBirth(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDateOfBirth(v);
+                const computed = ageFromDateOfBirth(v);
+                if (computed != null) setAge(String(computed));
+              }}
               max={localDateKey()}
               className="w-full bg-transparent outline-none text-black text-sm [color-scheme:light]"
             />
@@ -5075,35 +5136,6 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
             />
           </UnderlineField>
         </div>
-        <div className="grid grid-cols-3 gap-6 mb-5">
-          <UnderlineField label="Age">
-            <input type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-transparent outline-none text-black text-sm" />
-          </UnderlineField>
-          <UnderlineField label="Sex">
-            <select
-              value={sex}
-              onChange={(e) => setSex(e.target.value)}
-              className="w-full bg-transparent outline-none text-black text-sm appearance-none"
-            >
-              <option value=""></option>
-              {SEX_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </UnderlineField>
-          <UnderlineField label="Height (cm)">
-            <input
-              type="number"
-              min={0}
-              value={heightCm}
-              onChange={(e) => setHeightCm(e.target.value)}
-              className="w-full bg-transparent outline-none text-black text-sm"
-            />
-          </UnderlineField>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
           <UnderlineField label="Goals">
             <textarea
@@ -5195,7 +5227,7 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
       <PlateauAlertCard client={client} />
 
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden">
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden -mx-4 md:-mx-6">
         <div className="px-5 pt-5 pb-4 border-b border-black/8">
           <p className="text-black font-bold text-[16px] tracking-tight">Trainer's Notes</p>
           <p className="text-black/35 text-xs mt-0.5">Private — only you can see these</p>
@@ -5299,7 +5331,7 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
         </div>
       </div>
 
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm overflow-hidden -mx-4 md:-mx-6">
         <div className="px-5 pt-5 pb-4 border-b border-black/8">
           <p className="text-black font-bold text-[16px] tracking-tight">Client Context</p>
           <p className="text-black/35 text-xs mt-0.5">What APEX Insights uses to understand this client</p>
