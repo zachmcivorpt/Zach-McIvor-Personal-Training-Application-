@@ -4112,6 +4112,9 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
               </div>
               <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>No meal guide yet</p>
               <p className={dark ? "text-white/40 text-sm mt-1.5" : "text-black/40 text-sm mt-1.5"}>Your coach hasn't built you a meal guide yet — check back soon.</p>
+              <p className={dark ? "text-white/30 text-xs mt-4 max-w-xs" : "text-black/30 text-xs mt-4 max-w-xs"}>
+                Want a custom meal plan and grocery list built around your goals? Message your coach about upgrading your plan.
+              </p>
             </div>
           </Card>
         </div>
