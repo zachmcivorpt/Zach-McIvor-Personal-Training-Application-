@@ -2,13 +2,27 @@
 
 ## Visual design conventions
 
+Target look: dark, restrained, technical, premium.
+
+- **Palette**: black, off-white, charcoal, plus **one** restrained accent
+  color used deliberately — not a rotating cast of secondary accents.
+  Red stays reserved for destructive/danger states only.
 - **No yellow/amber anywhere in the UI.** Not on new components, not as a
   restyle of existing ones unless asked. It's not part of this app's color
   language.
-- Stick to the app's existing accent palette rather than inventing new
-  colors: blue (primary accent), plus orange, indigo, emerald, purple, rose
-  as established secondary accents — black/white for structure, red only
-  for destructive/danger states.
+- **Stop putting everything inside rounded white boxes.** A white
+  `rounded-2xl` card with a border and `shadow-sm` is not the default
+  container for every piece of content — reach for it only when something
+  genuinely needs to read as a distinct, elevated object, not as the
+  default way to group information.
+- Minimal gradients. Minimal rounded cards. Thin dividers instead of boxed
+  sections where a divider will do.
+- Strong typography carries hierarchy — lean on type weight/size/spacing
+  before reaching for a background tint or a border to separate things.
+- Lots of negative space; don't fill it with decoration.
+- Numbers used as design elements (large, confident figures), not just
+  buried in small print.
+- Photography used sparingly, not as filler.
 
 ## Working style
 
