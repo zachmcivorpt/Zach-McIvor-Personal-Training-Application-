@@ -3659,7 +3659,7 @@ function NutritionPanel({ client, showToast }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6 -mx-4 md:-mx-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-black font-semibold">Nutrition Log</p>
           <div className="flex items-center gap-3">
@@ -3702,13 +3702,15 @@ function NutritionPanel({ client, showToast }) {
                 ["Fat", Math.round(nutrition.fat || 0), Math.round(targets.fat || 0), "g"],
               ].map(([l, v, t, unit]) => (
                 <div key={l} className="text-center py-3 px-1 min-w-0">
-                  <p className="text-blue-600 font-bold text-[12px] tabular-nums leading-tight truncate">
-                    {v}
-                    {unit}
-                  </p>
-                  <p className="text-black/35 font-medium text-[9.5px] tabular-nums leading-tight truncate">
-                    /{t}
-                    {unit}
+                  <p className="font-bold text-[13px] tabular-nums leading-tight whitespace-nowrap">
+                    <span className="text-blue-600">
+                      {v}
+                      {unit}
+                    </span>
+                    <span className="text-black/35 font-medium text-[10px]">
+                      /{t}
+                      {unit}
+                    </span>
                   </p>
                   <p className="text-black/40 text-[9px] font-semibold tracking-wide uppercase mt-1 truncate">{l}</p>
                 </div>
