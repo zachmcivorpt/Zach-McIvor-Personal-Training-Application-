@@ -5202,7 +5202,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           </div>
         </Card>
 
-        <ConsistencyHeatmap logs={logsForClient} dark={dark} />
+        <ConsistencyHeatmap logs={logsForClient} scheduledWorkouts={scheduledWorkouts} dark={dark} />
 
         <PhotosSection photos={photos} onAdd={handleAddPhoto} onDelete={(id) => onDeletePhoto(userId, id)} busy={uploading} weighIns={weighIns} />
 

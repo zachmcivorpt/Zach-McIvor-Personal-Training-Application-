@@ -4458,6 +4458,7 @@ function ProgressPanel({ client }) {
   const logs = db.workoutLogs[client.id] || [];
   const weighIns = (db.weighIns || {})[client.id] || [];
   const bodyMetrics = (db.bodyMetrics || {})[client.id] || [];
+  const scheduledWorkouts = (db.scheduledWorkouts || {})[client.id] || [];
   const exercisesById = Object.fromEntries(db.exercises.map((e) => [e.id, e]));
 
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
@@ -4481,7 +4482,7 @@ function ProgressPanel({ client }) {
     <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6 space-y-5">
       <PersonalBestsCard personalBests={personalBests} />
 
-      <ConsistencyHeatmap logs={logs} />
+      <ConsistencyHeatmap logs={logs} scheduledWorkouts={scheduledWorkouts} />
 
       <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
         <div className="flex items-center justify-between">

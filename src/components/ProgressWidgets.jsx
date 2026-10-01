@@ -356,13 +356,18 @@ export function BodyMeasurementsListCard({ entriesByKey, onOpenHistory, onLog, d
 // 30-day training consistency at a glance — green for a day trained, blue
 // for a day with a PR, grey otherwise. Shared so the coach's web Progress
 // tab shows the exact same heatmap the client sees on their own.
-export function ConsistencyHeatmap({ logs, dark = false }) {
+export function ConsistencyHeatmap({ logs, scheduledWorkouts, dark = false }) {
   const DAYS = 30;
   const days = useMemo(() => {
     const doneDates = new Set(logs.map((l) => localDateKey(l.date)));
     const prDates = new Set(
       logs.filter((l) => !l.cardio && (l.entries || []).some((e) => (e.sets || []).some((s) => s.isPR))).map((l) => localDateKey(l.date))
     );
+    // A date only counts as "missed" if a workout was actually scheduled
+    // for it — rest days and days with nothing assigned have no row here
+    // at all, so without this check every one of them looked exactly like
+    // a skipped session.
+    const scheduledDates = new Set((scheduledWorkouts || []).map((w) => w.date));
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const start = new Date(today);
@@ -372,16 +377,16 @@ export function ConsistencyHeatmap({ logs, dark = false }) {
     const cursor = new Date(start);
     for (let i = 0; i < DAYS; i++) {
       const dateStr = localDateKey(cursor);
-      out.push({ date: dateStr, done: doneDates.has(dateStr), pr: prDates.has(dateStr) });
+      out.push({ date: dateStr, done: doneDates.has(dateStr), pr: prDates.has(dateStr), scheduled: scheduledDates.has(dateStr) });
       cursor.setDate(cursor.getDate() + 1);
     }
     return out;
-  }, [logs]);
+  }, [logs, scheduledWorkouts]);
 
   return (
     <Card dark={dark}>
       <p className={`font-semibold ${dark ? "text-white" : "text-black"}`}>Consistency Heat Map</p>
-      <p className={`text-xs mt-0.5 mb-3 ${dark ? "text-white/40" : "text-black/40"}`}>Every day trained, last {DAYS} days</p>
+      <p className={`text-xs mt-0.5 mb-3 ${dark ? "text-white/40" : "text-black/40"}`}>Scheduled training days, last {DAYS} days</p>
       <div className="flex gap-[3px]">
         {days.map((day) => (
           <div
@@ -389,14 +394,27 @@ export function ConsistencyHeatmap({ logs, dark = false }) {
             title={day.date}
             className="flex-1 aspect-square rounded-[3px]"
             style={{
-              backgroundColor: day.pr ? MEASURE_BLUE : day.done ? GOAL_GREEN : dark ? "rgba(255,255,255,0.08)" : "rgba(10,10,11,0.08)",
+              backgroundColor: day.pr
+                ? MEASURE_BLUE
+                : day.done
+                ? GOAL_GREEN
+                : day.scheduled
+                ? dark
+                  ? "rgba(255,255,255,0.14)"
+                  : "rgba(10,10,11,0.14)"
+                : dark
+                ? "rgba(255,255,255,0.03)"
+                : "rgba(10,10,11,0.03)",
             }}
           />
         ))}
       </div>
-      <div className={`flex items-center gap-3 mt-3 text-[11px] ${dark ? "text-white/35" : "text-black/35"}`}>
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 text-[11px] ${dark ? "text-white/35" : "text-black/35"}`}>
         <span className="flex items-center gap-1">
-          <span className={`w-2.5 h-2.5 rounded-[2px] inline-block ${dark ? "bg-white/8" : "bg-black/8"}`} /> None
+          <span className={`w-2.5 h-2.5 rounded-[2px] inline-block ${dark ? "bg-white/3" : "bg-black/3"}`} /> Rest
+        </span>
+        <span className="flex items-center gap-1">
+          <span className={`w-2.5 h-2.5 rounded-[2px] inline-block ${dark ? "bg-white/14" : "bg-black/14"}`} /> Missed
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2.5 h-2.5 rounded-[2px] inline-block" style={{ backgroundColor: GOAL_GREEN }} /> Trained
