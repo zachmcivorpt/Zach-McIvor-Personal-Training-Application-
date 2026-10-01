@@ -484,6 +484,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const dark = useClientDark();
   const outerMargin = fullWidth ? "" : "mx-2.5";
   const outerRadius = fullWidth ? "rounded-none" : "rounded-2xl";
+  const outerBorder = fullWidth ? "" : `border ${dark ? "border-white/10" : "border-black/10"}`;
   const cardBg = dark ? "#141414" : "#F7F7F8";
   const border = dark ? "border-white/8" : "border-black/8";
   const muted20 = dark ? "text-white/20" : "text-black/20";
@@ -514,7 +515,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const pillLabel = completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : todaySession.wod ? "WORKOUT OF THE DAY" : isToday ? "TODAY'S FOCUS" : "SCHEDULED";
 
   return (
-    <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 border ${dark ? "border-white/10" : "border-black/10"}`}>
+    <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 ${outerBorder}`}>
       <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-black/75" />
       <div className="relative">
@@ -1071,6 +1072,7 @@ function HomeScreen({
         completedOnDate={completedOnDate}
         isPastDate={dayOffset < 0}
         dbReady={dbReady}
+        fullWidth
       />
       <CardioLogCard logs={cardioLogs} />
       <DailyHabitsCard
@@ -3137,7 +3139,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
       </div>
 
       {tab === "today" && (
-        <div className={dark ? "space-y-4" : "px-2.5 space-y-4"}>
+        <div className="space-y-4">
           <TodayWorkoutCard
             todaySession={todaySession}
             activeLog={activeLog}
