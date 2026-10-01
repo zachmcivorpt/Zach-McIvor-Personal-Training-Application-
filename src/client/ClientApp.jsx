@@ -516,7 +516,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
 
   return (
     <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 ${outerBorder}`}>
-      <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+      <img src={dark ? "/brand/login-bg.jpg" : "/brand/login-bg-light.jpg"} alt="" className="absolute inset-0 w-full h-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-black/75" />
       <div className="relative">
         <div className="flex items-center justify-between mb-2.5">
@@ -2872,7 +2872,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
     <div className="space-y-4">
       <div className={`overflow-hidden border ${dark ? "" : ""}`} style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
         <div className="relative h-40">
-          <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <img src={dark ? "/brand/login-bg.jpg" : "/brand/login-bg-light.jpg"} alt="" className="absolute inset-0 w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
           <button
             onClick={() => setHistoryOpen(true)}
