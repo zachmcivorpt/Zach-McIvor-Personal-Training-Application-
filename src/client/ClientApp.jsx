@@ -3133,7 +3133,9 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   return (
     <div className="pb-28">
       <div className="px-2.5 pt-6 pb-4">
-        <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Training</h1>
+        <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>
+          {tab === "program" ? `${currentUser.name}'s Program` : "Training"}
+        </h1>
       </div>
       <div className="flex gap-2 px-2.5 mb-4">
         {["today", "program"].map((t) => (
