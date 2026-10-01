@@ -4605,8 +4605,8 @@ const SEX_OPTIONS = ["Male", "Female", "Other"];
 function UnderlineField({ label, children }) {
   return (
     <label className="block">
-      <p className="text-black/35 text-[10px] font-semibold tracking-wide mb-1">{label.toUpperCase()}</p>
-      <div className="border-b border-black/10 focus-within:border-black/40 pb-1.5 transition-colors">{children}</div>
+      <p className="text-black/35 text-[10px] font-semibold tracking-wide mb-1.5">{label.toUpperCase()}</p>
+      <div className="border-b border-black/10 focus-within:border-blue-500 pb-1.5 transition-colors">{children}</div>
     </label>
   );
 }
@@ -4630,21 +4630,21 @@ function PlateauAlertCard({ client }) {
   if (plateaus.length === 0) return null;
 
   return (
-    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
+    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 md:p-5 shadow-sm mb-5">
       <div className="flex items-center gap-2.5 mb-2.5">
-        <div className="w-8 h-8 rounded-lg bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
-          <TrendingDown size={15} className="text-amber-700" />
+        <div className="w-8 h-8 rounded-lg bg-orange-100 border border-orange-200 flex items-center justify-center shrink-0">
+          <TrendingDown size={15} className="text-orange-700" />
         </div>
         <div>
-          <p className="text-amber-900 font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
-          <p className="text-amber-700/70 text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
+          <p className="text-orange-900 font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
+          <p className="text-orange-700/70 text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
         </div>
       </div>
       <div className="space-y-1.5">
         {plateaus.map((p) => (
           <div key={p.exerciseId} className="flex items-center justify-between bg-white/60 rounded-xl px-3.5 py-2">
-            <span className="text-amber-900 text-sm font-medium">{p.exerciseName}</span>
-            <span className="text-amber-700/70 text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
+            <span className="text-orange-900 text-sm font-medium">{p.exerciseName}</span>
+            <span className="text-orange-700/70 text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
           </div>
         ))}
       </div>
@@ -4941,6 +4941,17 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
   }, [client.id]);
 
   const nameOrEmailChanged = name.trim() !== (client.name || "") || email.trim().toLowerCase() !== (client.email || "").toLowerCase();
+  const dirty =
+    nameOrEmailChanged ||
+    dateOfBirth !== (client.dateOfBirth || "") ||
+    phone !== (client.phone || "") ||
+    String(age) !== String(client.age || "") ||
+    sex !== (client.sex || "") ||
+    String(heightCm) !== String(client.heightCm || "") ||
+    goals !== (client.preferences?.goals || "") ||
+    trainingHistory !== (client.trainingHistory || "") ||
+    injuries !== (client.injuries || "") ||
+    otherInfo !== (client.otherInfo || "");
 
   async function save() {
     setSaving(true);
@@ -5002,22 +5013,28 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
 
   return (
     <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden">
-      <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-black/8">
+      <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-black/8">
         <div>
-          <p className="text-black font-bold text-[15px]">Personal Details</p>
+          <p className="text-black font-bold text-[16px] tracking-tight">Personal Details</p>
           <p className="text-black/35 text-xs mt-0.5">The essentials for planning their training and nutrition</p>
         </div>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="bg-black text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-50 shrink-0"
-        >
-          {saving ? "SAVING…" : "SAVE"}
-        </button>
+        {dirty ? (
+          <button
+            onClick={save}
+            disabled={saving}
+            className="bg-black text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-50 shrink-0 transition-opacity"
+          >
+            {saving ? "SAVING…" : "SAVE"}
+          </button>
+        ) : (
+          <span className="flex items-center gap-1 text-black/25 text-xs font-semibold shrink-0">
+            <Check size={13} /> Saved
+          </span>
+        )}
       </div>
 
-      <div className="px-5 py-4">
-        <div className="grid grid-cols-2 gap-5 mb-4">
+      <div className="px-5 py-5">
+        <div className="grid grid-cols-2 gap-6 mb-5">
           <UnderlineField label="Name">
             <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-transparent outline-none text-black text-sm" />
           </UnderlineField>
@@ -5031,21 +5048,21 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
           </UnderlineField>
         </div>
         {client._source === "invite" ? (
-          <p className="text-black/35 text-xs -mt-2 mb-4">This is who they'll activate their account as — no login exists yet.</p>
+          <p className="text-black/35 text-xs -mt-3 mb-5">This is who they'll activate their account as — no login exists yet.</p>
         ) : (
-          <p className="text-black/35 text-xs -mt-2 mb-4">
+          <p className="text-black/35 text-xs -mt-3 mb-5">
             Changing email here updates their profile everywhere in the app, but not what they log in with — only they can
             change that themselves, from their own account.
           </p>
         )}
-        <div className="grid grid-cols-2 gap-5 mb-4">
+        <div className="grid grid-cols-2 gap-6 mb-5">
           <UnderlineField label="Date of birth">
             <input
               type="date"
               value={dateOfBirth}
               onChange={(e) => setDateOfBirth(e.target.value)}
               max={localDateKey()}
-              className="w-full bg-transparent outline-none text-black text-sm"
+              className="w-full bg-transparent outline-none text-black text-sm [color-scheme:light]"
             />
           </UnderlineField>
           <UnderlineField label="Phone">
@@ -5058,7 +5075,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
             />
           </UnderlineField>
         </div>
-        <div className="grid grid-cols-3 gap-5 mb-4">
+        <div className="grid grid-cols-3 gap-6 mb-5">
           <UnderlineField label="Age">
             <input type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-transparent outline-none text-black text-sm" />
           </UnderlineField>
@@ -5087,7 +5104,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
           </UnderlineField>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
           <UnderlineField label="Goals">
             <textarea
               rows={2}
@@ -5178,131 +5195,144 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
       <PlateauAlertCard client={client} />
 
-      <div className="mb-6">
-        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">TRAINER'S NOTES</p>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const text = noteInput.trim();
-            if (!text) return;
-            const note = addClientNote(client.id, text);
-            setNoteInput("");
-            setDetecting(true);
-            try {
-              // Tries the server-side LLM call first (real language
-              // understanding), falling back to the local keyword
-              // heuristic if it's unavailable — see analyzeNoteContext in
-              // AppContext.jsx. Either way this only ever returns
-              // suggestions for the coach to approve, nothing is saved yet.
-              const detected = await analyzeNoteContext(text);
-              if (detected.length) setPendingContext({ noteId: note?.id, items: detected });
-            } finally {
-              setDetecting(false);
-            }
-          }}
-          className="mb-3"
-        >
-          <textarea
-            value={noteInput}
-            onChange={(e) => setNoteInput(e.target.value)}
-            placeholder="Private note — only you can see this"
-            rows={2}
-            className="w-full bg-black/5 border border-black/10 rounded-xl px-3 py-2 text-sm text-black outline-none placeholder:text-black/25 resize-none mb-2"
-          />
-          <button type="submit" className="text-xs font-semibold bg-black text-white px-3 py-1.5 rounded-lg">
-            Add note
-          </button>
-        </form>
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm mb-5 overflow-hidden">
+        <div className="px-5 pt-5 pb-4 border-b border-black/8">
+          <p className="text-black font-bold text-[16px] tracking-tight">Trainer's Notes</p>
+          <p className="text-black/35 text-xs mt-0.5">Private — only you can see these</p>
+        </div>
 
-        {detecting && (
-          <div className="flex items-center gap-1.5 mb-3 px-1">
-            <Sparkles size={11} className="text-indigo-400 animate-pulse" />
-            <p className="text-black/30 text-xs">APEX is checking for useful context…</p>
-          </div>
-        )}
+        <div className="px-5 py-5">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const text = noteInput.trim();
+              if (!text) return;
+              const note = addClientNote(client.id, text);
+              setNoteInput("");
+              setDetecting(true);
+              try {
+                // Tries the server-side LLM call first (real language
+                // understanding), falling back to the local keyword
+                // heuristic if it's unavailable — see analyzeNoteContext in
+                // AppContext.jsx. Either way this only ever returns
+                // suggestions for the coach to approve, nothing is saved yet.
+                const detected = await analyzeNoteContext(text);
+                if (detected.length) setPendingContext({ noteId: note?.id, items: detected });
+              } finally {
+                setDetecting(false);
+              }
+            }}
+            className="mb-4"
+          >
+            <UnderlineField label="Add a note">
+              <textarea
+                value={noteInput}
+                onChange={(e) => setNoteInput(e.target.value)}
+                placeholder="e.g. Mentioned a new shoulder niggle on Tuesday's call"
+                rows={2}
+                className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+              />
+            </UnderlineField>
+            <button type="submit" className="mt-2.5 text-xs font-semibold bg-black text-white px-3.5 py-1.5 rounded-lg disabled:opacity-40" disabled={!noteInput.trim()}>
+              Add note
+            </button>
+          </form>
 
-        {pendingContext?.items.length > 0 && (
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3.5 py-3 mb-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles size={12} className="text-indigo-600" />
-              <p className="text-indigo-900 text-xs font-semibold">APEX detected potentially useful client context</p>
+          {detecting && (
+            <div className="flex items-center gap-1.5 mb-4 px-0.5">
+              <Sparkles size={11} className="text-indigo-400 animate-pulse" />
+              <p className="text-black/30 text-xs">APEX is checking for useful context…</p>
             </div>
-            <div className="space-y-2">
-              {pendingContext.items.map((item, i) => (
-                <div key={i} className="bg-white/70 rounded-lg px-3 py-2">
-                  <p className="text-indigo-900/50 text-[10px] font-semibold tracking-wide mb-0.5">{item.category.toUpperCase()}</p>
-                  <p className="text-indigo-950 text-sm mb-2">{item.suggestion}</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        addClientContext(client.id, item.category, item.suggestion, pendingContext.noteId);
-                        setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }));
-                        showToast?.("Saved to client profile");
-                      }}
-                      className="text-xs font-semibold bg-indigo-600 text-white px-3 py-1.5 rounded-lg"
-                    >
-                      Save to Client Profile
-                    </button>
-                    <button
-                      onClick={() => setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))}
-                      className="text-xs font-semibold text-indigo-900/60 px-3 py-1.5"
-                    >
-                      Don't Save
-                    </button>
+          )}
+
+          {pendingContext?.items.length > 0 && (
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3.5 py-3 mb-4">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sparkles size={12} className="text-indigo-600" />
+                <p className="text-indigo-900 text-xs font-semibold">APEX detected potentially useful client context</p>
+              </div>
+              <div className="space-y-2">
+                {pendingContext.items.map((item, i) => (
+                  <div key={i} className="bg-white/70 rounded-lg px-3 py-2">
+                    <p className="text-indigo-900/50 text-[10px] font-semibold tracking-wide mb-0.5">{item.category.toUpperCase()}</p>
+                    <p className="text-indigo-950 text-sm mb-2">{item.suggestion}</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          addClientContext(client.id, item.category, item.suggestion, pendingContext.noteId);
+                          setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }));
+                          showToast?.("Saved to client profile");
+                        }}
+                        className="text-xs font-semibold bg-indigo-600 text-white px-3 py-1.5 rounded-lg"
+                      >
+                        Save to Client Profile
+                      </button>
+                      <button
+                        onClick={() => setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))}
+                        className="text-xs font-semibold text-indigo-900/60 px-3 py-1.5"
+                      >
+                        Don't Save
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="divide-y divide-black/6 -mx-5 px-5 border-t border-black/6">
+            {notes.length === 0 && <p className="text-black/25 text-xs py-4">No notes yet.</p>}
+            {notes.map((n) => (
+              <div key={n.id} className="py-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-black text-sm">{n.text}</p>
+                  <span className="text-black/30 text-[10px] mt-1 block">
+                    {new Date(n.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </span>
+                </div>
+                <button onClick={() => deleteClientNote(client.id, n.id)} className="text-black/25 hover:text-red-500 shrink-0 mt-0.5" aria-label="Delete note">
+                  <X size={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-black/10 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-5 pt-5 pb-4 border-b border-black/8">
+          <p className="text-black font-bold text-[16px] tracking-tight">Client Context</p>
+          <p className="text-black/35 text-xs mt-0.5">What APEX Insights uses to understand this client</p>
+        </div>
+        <div className="px-5 py-5">
+          {context.length === 0 ? (
+            <p className="text-black/25 text-xs">
+              No saved context yet — approve an APEX suggestion above, or context saved here helps APEX Insights understand this client.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {CLIENT_CONTEXT_CATEGORIES.filter((cat) => contextByCategory[cat]?.length).map((cat) => (
+                <div key={cat}>
+                  <p className="text-black/30 text-[10px] font-semibold tracking-wide mb-1.5">{cat.toUpperCase()}</p>
+                  <div className="divide-y divide-black/6 border-y border-black/6">
+                    {contextByCategory[cat].map((c) => (
+                      <div key={c.id} className="py-2.5 flex items-start justify-between gap-2">
+                        <p className="text-black/80 text-sm">{c.text}</p>
+                        <button
+                          onClick={() => deleteClientContext(client.id, c.id)}
+                          className="text-black/25 hover:text-red-500 shrink-0 mt-0.5"
+                          aria-label="Remove context"
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {notes.length === 0 && <p className="text-black/25 text-xs">No notes yet.</p>}
-          {notes.map((n) => (
-            <div key={n.id} className="bg-black/[0.03] rounded-lg px-3 py-2.5">
-              <p className="text-black text-sm">{n.text}</p>
-              <div className="flex items-center justify-between mt-1.5">
-                <span className="text-black/30 text-[10px]">
-                  {new Date(n.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                </span>
-                <button onClick={() => deleteClientNote(client.id, n.id)} className="text-black/25 hover:text-black/50" aria-label="Delete note">
-                  <X size={11} />
-                </button>
-              </div>
-            </div>
-          ))}
+          )}
         </div>
-      </div>
-
-      <div>
-        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">CLIENT CONTEXT</p>
-        {context.length === 0 ? (
-          <p className="text-black/25 text-xs">
-            No saved context yet — approve an APEX suggestion above, or context saved here helps APEX Insights understand this client.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {CLIENT_CONTEXT_CATEGORIES.filter((cat) => contextByCategory[cat]?.length).map((cat) => (
-              <div key={cat}>
-                <p className="text-black/30 text-[10px] font-semibold tracking-wide mb-1.5">{cat.toUpperCase()}</p>
-                <div className="space-y-1.5">
-                  {contextByCategory[cat].map((c) => (
-                    <div key={c.id} className="bg-black/[0.03] rounded-lg px-3 py-2 flex items-start justify-between gap-2">
-                      <p className="text-black/80 text-sm">{c.text}</p>
-                      <button
-                        onClick={() => deleteClientContext(client.id, c.id)}
-                        className="text-black/25 hover:text-black/50 shrink-0 mt-0.5"
-                        aria-label="Remove context"
-                      >
-                        <X size={11} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
