@@ -3689,71 +3689,75 @@ function NutritionPanel({ client, showToast }) {
           </div>
         </div>
         {!nutrition ? (
-          <p className="text-black/30 text-sm mb-4">Nothing logged yet.</p>
+          <p className="text-black/30 text-sm py-6 text-center">Nothing logged yet.</p>
         ) : (
-          <div className="bg-black/[0.03] border border-black/8 rounded-2xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            {[
-              ["Calories", Math.round(nutrition.calories || 0), targets.calories, ""],
-              ["Protein", round1(nutrition.protein || 0), targets.protein, "g"],
-              ["Carbs", round1(nutrition.carbs || 0), targets.carbs, "g"],
-              ["Fat", round1(nutrition.fat || 0), targets.fat, "g"],
-            ].map(([l, v, t, unit]) => (
-              <div key={l} className="text-center">
-                <p className="text-black font-bold">
-                  {v}
-                  {unit}
-                  <span className="text-black/35 font-medium">
-                    /{t}
+          <>
+            {/* Plain divided stat row instead of a boxed tile grid — one
+                flat strip reads calmer than a card nested inside a card. */}
+            <div className="grid grid-cols-4 divide-x divide-black/8 border-y border-black/8 mb-1">
+              {[
+                ["Calories", Math.round(nutrition.calories || 0), targets.calories, ""],
+                ["Protein", round1(nutrition.protein || 0), targets.protein, "g"],
+                ["Carbs", round1(nutrition.carbs || 0), targets.carbs, "g"],
+                ["Fat", round1(nutrition.fat || 0), targets.fat, "g"],
+              ].map(([l, v, t, unit]) => (
+                <div key={l} className="text-center py-3 px-1">
+                  <p className="text-black font-bold text-[15px] tabular-nums">
+                    {v}
                     {unit}
-                  </span>
-                </p>
-                <p className="text-black/40 text-[11px] mt-0.5">{l}</p>
-              </div>
-            ))}
-          </div>
+                    <span className="text-black/30 font-medium text-[12px]">
+                      /{t}
+                      {unit}
+                    </span>
+                  </p>
+                  <p className="text-black/40 text-[10px] font-semibold tracking-wide uppercase mt-0.5">{l}</p>
+                </div>
+              ))}
+            </div>
+
+            {(() => {
+              const loggedCategories = NUTRITION_MEAL_CATEGORIES.filter((cat) => (nutrition.meals?.[cat] || []).length > 0);
+              if (loggedCategories.length === 0) return null;
+              // One continuous divided list across every logged category,
+              // instead of a separate bordered/background box per meal —
+              // the category name is itself a strong enough section break.
+              return (
+                <div className="divide-y divide-black/6 mb-1">
+                  {loggedCategories.map((cat) => {
+                    const items = nutrition.meals[cat] || [];
+                    const totalCals = Math.round(items.reduce((a, f) => a + (f.cals || 0), 0));
+                    return (
+                      <div key={cat} className="py-3">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className="text-black font-semibold text-sm">{cat}</p>
+                          <p className="text-black/35 text-xs">
+                            {totalCals} kcal · {items.length} item{items.length === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          {items.map((f) => (
+                            <div key={f.id} className="flex items-center justify-between gap-3">
+                              <p className="text-black/70 text-[13px] truncate">{f.name}</p>
+                              <p className="text-black/35 text-[11px] shrink-0 whitespace-nowrap tabular-nums">
+                                {Math.round(f.cals || 0)} kcal · P{round1(f.protein || 0)} C{round1(f.carbs || 0)} F{round1(f.fat || 0)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </>
         )}
-        {nutrition &&
-          (() => {
-            const loggedCategories = NUTRITION_MEAL_CATEGORIES.filter((cat) => (nutrition.meals?.[cat] || []).length > 0);
-            if (loggedCategories.length === 0) return null;
-            return (
-              <div className="space-y-2.5 mb-4">
-                {loggedCategories.map((cat) => {
-                  const items = nutrition.meals[cat] || [];
-                  const totalCals = Math.round(items.reduce((a, f) => a + (f.cals || 0), 0));
-                  return (
-                    <div key={cat} className="bg-black/[0.02] border border-black/8 rounded-xl p-3.5">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-black font-semibold text-sm">{cat}</p>
-                        <p className="text-black/40 text-xs">
-                          {totalCals} kcal · {items.length} item{items.length === 1 ? "" : "s"}
-                        </p>
-                      </div>
-                      <div className="space-y-1.5">
-                        {items.map((f) => (
-                          <div key={f.id} className="flex items-center justify-between gap-3">
-                            <p className="text-black/70 text-sm truncate">{f.name}</p>
-                            <p className="text-black/35 text-xs shrink-0 whitespace-nowrap">
-                              {Math.round(f.cals || 0)} kcal · P{round1(f.protein || 0)} C{round1(f.carbs || 0)} F{round1(f.fat || 0)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })()}
         {!confirmReset ? (
-          <button
-            onClick={() => setConfirmReset(true)}
-            className="flex items-center gap-2 bg-black/5 border border-black/10 text-black/60 text-sm font-medium px-4 py-2.5 rounded-xl"
-          >
-            <Trash2 size={13} /> Clear {navOffset === 0 ? "today's" : "this day's"} log
+          <button onClick={() => setConfirmReset(true)} className="flex items-center gap-1.5 text-black/35 hover:text-red-500 text-xs font-medium mt-3">
+            <Trash2 size={12} /> Clear {navOffset === 0 ? "today's" : "this day's"} log
           </button>
         ) : (
-          <div className="flex gap-2 max-w-xs">
+          <div className="flex gap-2 max-w-xs mt-3">
             <SecondaryButton className="flex-1" onClick={() => setConfirmReset(false)}>
               Cancel
             </SecondaryButton>
