@@ -767,53 +767,26 @@ export default function CoachPrograms({ showToast }) {
           </div>
         </div>
 
-        {/* mobile: tap-to-switch program + phase selectors, replacing the
-            old horizontally-scrolling chip rows that cut long names off
-            mid-word with no way to read the rest */}
-        <div className="md:hidden border-b border-black/8 p-3 space-y-2">
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => setProgramPickerOpen(true)}
-              className="flex-1 min-w-0 flex items-center justify-between gap-2 bg-black/[0.04] border border-black/8 rounded-xl px-3.5 py-2.5 text-left"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block text-black/35 text-[10px] font-semibold tracking-wide">PROGRAM</span>
-                <span className="block text-black text-sm font-semibold truncate">{selected ? selected.name : "Choose a program"}</span>
-              </span>
-              <ChevronDown size={16} className="text-black/30 shrink-0" />
-            </button>
-            <OverflowMenu
-              label="More program actions"
-              items={[
-                { icon: Plus, label: "New program", onClick: () => setNewProgramOpen(true) },
-                { icon: Download, label: importing ? "Importing…" : "Import starters", onClick: importStarterTemplates, disabled: importing },
-                ...(programs.length > 0
-                  ? [{ icon: Trash2, label: "Delete all programs", onClick: () => setConfirmDeleteAll(true), danger: true }]
-                  : []),
-              ]}
-            />
-          </div>
-
-          {selected && phases.length > 0 && (
-            <button
-              onClick={() => setPhasePickerOpen(true)}
-              className="w-full flex items-center justify-between gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3.5 py-2.5 text-left"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block text-blue-700/50 text-[10px] font-semibold tracking-wide">PHASE</span>
-                <span className="block text-blue-700 text-sm font-semibold truncate">{selectedPhase?.name}</span>
-              </span>
-              <ChevronDown size={16} className="text-blue-700/40 shrink-0" />
-            </button>
-          )}
-          {selected && phases.length === 0 && (
-            <button
-              onClick={addPhase}
-              className="w-full flex items-center justify-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-semibold px-3 py-2.5 rounded-xl"
-            >
-              <Plus size={13} /> Add first phase
-            </button>
-          )}
+        {/* mobile: just the two actions that have nowhere else to live —
+            switching program/phase now happens via the chevron next to
+            each name below instead of a separate summary card repeating
+            the same name a second time */}
+        <div className="md:hidden border-b border-black/8 p-3 flex items-center gap-1.5">
+          <button
+            onClick={() => setNewProgramOpen(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl"
+          >
+            <Plus size={14} /> NEW PROGRAM
+          </button>
+          <OverflowMenu
+            label="More program actions"
+            items={[
+              { icon: Download, label: importing ? "Importing…" : "Import starters", onClick: importStarterTemplates, disabled: importing },
+              ...(programs.length > 0
+                ? [{ icon: Trash2, label: "Delete all programs", onClick: () => setConfirmDeleteAll(true), danger: true }]
+                : []),
+            ]}
+          />
         </div>
 
         {/* right: selected phase's summary + workouts table */}
@@ -829,13 +802,25 @@ export default function CoachPrograms({ showToast }) {
           ) : (
             <>
               <div className="flex items-start justify-between gap-3 mb-1">
-                <div className="min-w-0 flex-1">
-                  <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1">PROGRAM</p>
-                  <input
-                    value={programDraft.name}
-                    onChange={(e) => setProgramDraft((d) => ({ ...d, name: e.target.value }))}
-                    className="bg-transparent outline-none text-black text-xl font-bold w-full truncate border-b border-transparent focus:border-black/15 pb-0.5"
-                  />
+                <div className="min-w-0 flex-1 flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1">PROGRAM</p>
+                    <input
+                      value={programDraft.name}
+                      onChange={(e) => setProgramDraft((d) => ({ ...d, name: e.target.value }))}
+                      className="bg-transparent outline-none text-black text-xl font-bold w-full truncate border-b border-transparent focus:border-black/15 pb-0.5"
+                    />
+                  </div>
+                  {programs.length > 1 && (
+                    <button
+                      onClick={() => setProgramPickerOpen(true)}
+                      aria-label="Switch program"
+                      title="Switch program"
+                      className="md:hidden w-8 h-8 shrink-0 flex items-center justify-center rounded-lg bg-black/5 text-black/40 mt-3.5"
+                    >
+                      <ChevronDown size={16} />
+                    </button>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 pt-[22px]">
                   {programDirty && (
@@ -868,7 +853,7 @@ export default function CoachPrograms({ showToast }) {
               </div>
 
               <TextArea
-                rows={2}
+                rows={3}
                 value={programDraft.description}
                 onChange={(e) => setProgramDraft((d) => ({ ...d, description: e.target.value }))}
                 placeholder="What this program is for, who it suits..."
@@ -894,6 +879,16 @@ export default function CoachPrograms({ showToast }) {
                             onChange={(e) => setPhaseNameDraft(e.target.value)}
                             className="bg-transparent outline-none text-black font-bold text-base min-w-0 flex-1 truncate border-b border-transparent focus:border-black/15"
                           />
+                          {phases.length > 1 && (
+                            <button
+                              onClick={() => setPhasePickerOpen(true)}
+                              aria-label="Switch phase"
+                              title="Switch phase"
+                              className="md:hidden w-7 h-7 shrink-0 flex items-center justify-center rounded-lg bg-black/5 text-black/40"
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                          )}
                           {phaseNameDirty && (
                             <button
                               onClick={savePhaseName}
