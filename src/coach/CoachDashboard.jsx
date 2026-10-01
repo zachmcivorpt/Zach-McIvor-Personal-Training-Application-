@@ -73,7 +73,7 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
             onChange={(e) => setReply(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
             placeholder="Send a message about this check-in..."
-            className="flex-1 bg-black/5 rounded-full px-4 py-2.5 text-sm text-black outline-none placeholder:text-black/30"
+            className="flex-1 min-w-0 bg-black/5 rounded-full px-4 py-2.5 text-sm text-black outline-none placeholder:text-black/30"
           />
           <button
             onClick={send}
@@ -353,7 +353,7 @@ function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessa
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Type a message..."
               autoFocus
-              className="flex-1 bg-black/5 rounded-full px-4 py-2.5 text-sm text-black outline-none placeholder:text-black/30"
+              className="flex-1 min-w-0 bg-black/5 rounded-full px-4 py-2.5 text-sm text-black outline-none placeholder:text-black/30"
             />
             <button
               onClick={send}

@@ -663,7 +663,7 @@ export function TextInput({ dark = false, ...props }) {
   return (
     <input
       {...props}
-      className={`w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors ${
+      className={`w-full min-w-0 border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors ${
         dark
           ? "bg-white/8 border-white/10 text-white placeholder:text-white/25 focus:border-white/30"
           : "bg-black/5 border-black/10 text-black placeholder:text-black/25 focus:border-black/30"
@@ -676,7 +676,7 @@ export function TextArea({ dark = false, ...props }) {
   return (
     <textarea
       {...props}
-      className={`w-full border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors resize-none ${
+      className={`w-full min-w-0 border rounded-xl px-3.5 py-2.5 text-sm outline-none transition-colors resize-none ${
         dark
           ? "bg-white/8 border-white/10 text-white placeholder:text-white/25 focus:border-white/30"
           : "bg-black/5 border-black/10 text-black placeholder:text-black/25 focus:border-black/30"

@@ -5923,9 +5923,9 @@ function CoachSheet({ open, onClose, ctx }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send(input)}
           placeholder="Ask your coach..."
-          className={dark ? "flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
+          className={dark ? "flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 min-w-0 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
         />
-        <button onClick={() => send(input)} className={dark ? "w-11 h-11 rounded-full bg-white flex items-center justify-center" : "w-11 h-11 rounded-full bg-black flex items-center justify-center"}>
+        <button onClick={() => send(input)} className={dark ? "w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0" : "w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0"}>
           <ChevronRight size={18} className={dark ? "text-black" : "text-white"} />
         </button>
       </div>
@@ -6099,7 +6099,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Message your coach..."
-          className={dark ? "flex-1 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
+          className={dark ? "flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 min-w-0 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
         />
         <button onClick={send} className={dark ? "w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0" : "w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0"}>
           <Send size={16} className={dark ? "text-black" : "text-white"} />
