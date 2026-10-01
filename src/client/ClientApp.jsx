@@ -1087,12 +1087,145 @@ function HomeScreen({
    WORKOUT PREVIEW + SESSION FLOW
 ============================================================================ */
 
-function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, onStart, onContinue, onClose }) {
+function calGridDateKey(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+// A 6-week grid (Mon-first) covering the given UTC month, including the
+// padding days from the previous/next month needed to fill whole weeks.
+function buildCalGrid(year, month) {
+  const first = new Date(Date.UTC(year, month, 1));
+  const startOffset = (first.getUTCDay() + 6) % 7;
+  const start = new Date(Date.UTC(year, month, 1 - startOffset));
+  const weeks = [];
+  let cursor = start;
+  for (let w = 0; w < 6; w++) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(cursor);
+      cursor = new Date(cursor.getTime() + 86400000);
+    }
+    weeks.push(week);
+  }
+  return weeks;
+}
+
+// Lets whoever's looking at a still-scheduled (not yet completed) workout
+// see which day it's sitting on and tap a different one to move it —
+// replaces what used to be a purely decorative icon in the preview header.
+function RescheduleSheet({ open, onClose, currentDate, onPick }) {
   const dark = useClientDark();
-  const { db, currentUser, addWorkoutComment } = useApp();
+  const [viewYear, setViewYear] = useState(() => new Date().getUTCFullYear());
+  const [viewMonth, setViewMonth] = useState(() => new Date().getUTCMonth());
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const d = currentDate ? new Date(currentDate + "T00:00:00Z") : new Date();
+    setViewYear(d.getUTCFullYear());
+    setViewMonth(d.getUTCMonth());
+  }, [open, currentDate]);
+
+  const weeks = useMemo(() => buildCalGrid(viewYear, viewMonth), [viewYear, viewMonth]);
+  const todayStr = localDateKey();
+
+  function shiftMonth(delta) {
+    const d = new Date(Date.UTC(viewYear, viewMonth + delta, 1));
+    setViewYear(d.getUTCFullYear());
+    setViewMonth(d.getUTCMonth());
+  }
+
+  async function pick(dateStr) {
+    if (dateStr === currentDate || saving) return;
+    setSaving(true);
+    try {
+      await onPick(dateStr);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Change scheduled day">
+      <div className="flex items-center justify-between mb-3">
+        <button
+          type="button"
+          onClick={() => shiftMonth(-1)}
+          className={dark ? "w-8 h-8 flex items-center justify-center rounded-lg bg-white/8 text-white/60" : "w-8 h-8 flex items-center justify-center rounded-lg bg-black/8 text-black/60"}
+        >
+          <ChevronLeft size={15} />
+        </button>
+        <p className={dark ? "text-white text-sm font-semibold" : "text-black text-sm font-semibold"}>
+          {new Date(Date.UTC(viewYear, viewMonth, 1)).toLocaleDateString(undefined, { month: "long", year: "numeric", timeZone: "UTC" })}
+        </p>
+        <button
+          type="button"
+          onClick={() => shiftMonth(1)}
+          className={dark ? "w-8 h-8 flex items-center justify-center rounded-lg bg-white/8 text-white/60" : "w-8 h-8 flex items-center justify-center rounded-lg bg-black/8 text-black/60"}
+        >
+          <ChevronRight size={15} />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {["M", "T", "W", "T", "F", "S", "S"].map((l, i) => (
+          <p key={i} className={dark ? "text-white/30 text-[10px] font-semibold text-center tracking-wide" : "text-black/30 text-[10px] font-semibold text-center tracking-wide"}>
+            {l}
+          </p>
+        ))}
+      </div>
+      <div className="space-y-1 mb-2">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="grid grid-cols-7 gap-1">
+            {week.map((date) => {
+              const dateStr = calGridDateKey(date);
+              const inMonth = date.getUTCMonth() === viewMonth;
+              const isToday = dateStr === todayStr;
+              const isCurrent = dateStr === currentDate;
+              return (
+                <button
+                  key={dateStr}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => pick(dateStr)}
+                  className={`aspect-square rounded-full text-xs font-medium transition-colors disabled:opacity-50 ${
+                    isCurrent
+                      ? "bg-blue-600 text-white"
+                      : isToday
+                      ? dark
+                        ? "border border-blue-400 text-white"
+                        : "border border-blue-400 text-black"
+                      : inMonth
+                      ? dark
+                        ? "text-white/70 hover:bg-white/10"
+                        : "text-black/70 hover:bg-black/8"
+                      : dark
+                      ? "text-white/20"
+                      : "text-black/20"
+                  }`}
+                >
+                  {date.getUTCDate()}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      <p className={dark ? "text-white/30 text-xs text-center" : "text-black/30 text-xs text-center"}>Tap a date to move this workout there.</p>
+    </BottomSheet>
+  );
+}
+
+function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, onStart, onContinue, onClose, showToast }) {
+  const dark = useClientDark();
+  const { db, currentUser, addWorkoutComment, moveScheduledWorkout, viewingAsClient } = useApp();
   const [commentDraft, setCommentDraft] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  // Only a genuinely scheduled, not-yet-completed workout (one with its own
+  // calendar date) can be moved — a plain program-day preview or an
+  // already-completed session has nothing to reschedule.
+  const canReschedule = !!session.id && !!session.date && !session.workoutLogId;
   const comments = session.workoutLogId
     ? (db.workoutComments[currentUser.id] || []).filter((c) => c.workoutLogId === session.workoutLogId)
     : [];
@@ -1148,6 +1281,16 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                 </div>
               )}
             </div>
+          ) : canReschedule ? (
+            <button
+              type="button"
+              onClick={() => setRescheduleOpen(true)}
+              aria-label="Change scheduled day"
+              title="Change scheduled day"
+              className={dark ? "w-8 h-8 -mr-1.5 flex items-center justify-center rounded-lg text-white/60 hover:text-white hover:bg-white/8" : "w-8 h-8 -mr-1.5 flex items-center justify-center rounded-lg text-black/60 hover:text-black hover:bg-black/8"}
+            >
+              <Calendar size={18} />
+            </button>
           ) : (
             <ClipboardList size={19} className={dark ? "text-white/25" : "text-black/25"} />
           )}
@@ -1202,7 +1345,15 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       key={i}
                       onClick={() => setDetailExercise(ex)}
                       className={
-                        dark
+                        // Coach reviewing in View as Client: a denser,
+                        // edge-to-edge row reads better across lots of
+                        // clients' sessions than the client's own rounded
+                        // cards with margins either side.
+                        viewingAsClient
+                          ? dark
+                            ? "w-full flex items-center gap-4 text-left bg-white/[0.04] border-y border-white/8 -mx-5 px-5 py-4"
+                            : "w-full flex items-center gap-4 text-left bg-black/[0.02] border-y border-black/6 -mx-5 px-5 py-4"
+                          : dark
                           ? "w-full flex items-center gap-4 text-left bg-white/[0.04] border border-white/8 rounded-2xl p-4"
                           : "w-full flex items-center gap-4 text-left bg-black/[0.02] border border-black/6 rounded-2xl p-4 shadow-sm"
                       }
@@ -1210,7 +1361,13 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       <ExerciseThumb dark={dark} exercise={ex} size={60} rounded="rounded-full" className="shadow-sm shrink-0" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className={dark ? "text-white font-bold text-base tracking-wide truncate" : "text-black font-bold text-base tracking-wide truncate"}>{ex.name}</p>
+                          <p
+                            className={`${dark ? "text-white" : "text-black"} font-bold ${
+                              viewingAsClient ? "text-sm" : "text-base"
+                            } tracking-wide truncate`}
+                          >
+                            {ex.name}
+                          </p>
                           {e.dropSet && (
                             <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                               DROPSET
@@ -1333,6 +1490,25 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
       </div>
       {detailExercise && (
         <ExerciseDetailSheet exercise={detailExercise} logsForClient={logsForClient} onClose={() => setDetailExercise(null)} />
+      )}
+      {canReschedule && (
+        <RescheduleSheet
+          open={rescheduleOpen}
+          onClose={() => setRescheduleOpen(false)}
+          currentDate={session.date}
+          onPick={async (dateStr) => {
+            try {
+              await moveScheduledWorkout(currentUser.id, session.id, dateStr);
+              setRescheduleOpen(false);
+              onClose();
+              showToast?.(
+                `Moved to ${new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`
+              );
+            } catch (err) {
+              showToast?.(err.message || "Couldn't move that workout — check your connection and try again");
+            }
+          }}
+        />
       )}
     </FullScreenOverlay>
   );
@@ -6478,7 +6654,14 @@ function ClientCalendarScreen({
                           : "Complete your scheduled workout."
                       }
                       onClick={guardedClick(() =>
-                        onPreviewWorkout({ label: scheduled.label, muscleGroups: scheduled.muscleGroups || [], exercises: scheduled.exercises })
+                        onPreviewWorkout({
+                          id: scheduled.id,
+                          date: scheduled.date,
+                          label: scheduled.label,
+                          muscleGroups: scheduled.muscleGroups || [],
+                          exercises: scheduled.exercises,
+                          instructions: scheduled.instructions || "",
+                        })
                       )}
                       draggable={canDragWorkout}
                       dragging={dragItem?.workoutId === scheduled.id}
@@ -6812,7 +6995,15 @@ export default function ClientApp() {
   const bodyStatsSchedulesForClient = (db.bodyStatsSchedules || {})[currentUser.id] || [];
   function scheduledToSession(entry) {
     return entry
-      ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises, instructions: entry.instructions || "", ...(entry.wod ? { wod: true } : {}) }
+      ? {
+          id: entry.id,
+          date: entry.date,
+          label: entry.label,
+          muscleGroups: entry.muscleGroups || [],
+          exercises: entry.exercises,
+          instructions: entry.instructions || "",
+          ...(entry.wod ? { wod: true } : {}),
+        }
       : null;
   }
   // A workout done late (e.g. Sunday's session finished Monday) is logged
@@ -7535,6 +7726,7 @@ export default function ClientApp() {
             exercisesById={exercisesById}
             logsForClient={logsForClient}
             canStart={previewCanStart}
+            showToast={showToast}
             onClose={() => setPreviewSession(null)}
             onStart={() => {
               const session = previewSession;
