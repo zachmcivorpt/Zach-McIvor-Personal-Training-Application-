@@ -3702,7 +3702,7 @@ function NutritionPanel({ client, showToast }) {
                 ["Fat", Math.round(nutrition.fat || 0), Math.round(targets.fat || 0), "g"],
               ].map(([l, v, t, unit]) => (
                 <div key={l} className="text-center py-3 px-1 min-w-0">
-                  <p className="text-black font-bold text-[14px] tabular-nums leading-tight truncate">
+                  <p className="text-blue-600 font-bold text-[14px] tabular-nums leading-tight truncate">
                     {v}
                     {unit}
                   </p>
