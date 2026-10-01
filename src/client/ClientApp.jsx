@@ -1787,14 +1787,18 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                   <button
                     type="button"
                     onClick={() => {
-                      onChangeField(i, "weight", String(suggestion.weight));
+                      // Bodyweight/unweighted move (suggestion.weight is a
+                      // real logged 0, not missing data) — leave Kg blank,
+                      // same as a client doing this exercise normally would,
+                      // rather than typing in a literal "0".
+                      if (suggestion.weight > 0) onChangeField(i, "weight", String(suggestion.weight));
                       onChangeField(i, "reps", String(suggestion.reps));
                     }}
                     className="flex items-center gap-1 text-[10px] font-semibold mt-0.5"
                     style={{ color: MEASURE_BLUE }}
                   >
                     <TrendingUp size={10} className="shrink-0" />
-                    <span className="truncate">Try {suggestion.reps} × {suggestion.weight}kg</span>
+                    <span className="truncate">Try {suggestion.reps}{suggestion.weight > 0 ? ` × ${suggestion.weight}kg` : " reps"}</span>
                   </button>
                 )}
               </div>

@@ -58,15 +58,25 @@ function fmtDate(ts) {
 // weight stays put and the target is just to add one more rep. This is
 // what "auto fill" now suggests, instead of literally repeating last
 // session's numbers.
+//
+// A logged weight of 0 is a real, deliberate value (a bodyweight move —
+// hanging leg raises, ab roll-outs, etc. — logged with no added load), not
+// missing data, so it must not be treated the same as "no previous set at
+// all". Only bail out when there's genuinely nothing to suggest from.
 export function suggestNextSet(prevSet, targetReps) {
-  if (!prevSet || !prevSet.weight) return null;
-  const prevWeight = Number(prevSet.weight);
+  if (!prevSet || !prevSet.reps) return null;
+  const prevWeight = Number(prevSet.weight) || 0;
   const prevReps = Number(prevSet.reps) || 0;
   const target = Number(targetReps) || prevReps || 1;
   if (prevReps >= target) {
-    const raw = prevWeight * 1.025;
-    const bumped = Math.max(prevWeight + 2.5, Math.round(raw / 2.5) * 2.5);
-    return { weight: bumped, reps: target };
+    if (prevWeight > 0) {
+      const raw = prevWeight * 1.025;
+      const bumped = Math.max(prevWeight + 2.5, Math.round(raw / 2.5) * 2.5);
+      return { weight: bumped, reps: target };
+    }
+    // Bodyweight/unweighted move — nothing to add plates to, so the
+    // progression is simply beating the target by one more rep.
+    return { weight: 0, reps: target + 1 };
   }
   return { weight: prevWeight, reps: prevReps + 1 };
 }
