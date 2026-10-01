@@ -1220,12 +1220,12 @@ function RescheduleSheet({ open, onClose, currentDate, onPick }) {
 // instead of a row of filled pill badges competing with the photo below it.
 function PreviewStat({ icon: Icon, value, label, dark, accent }) {
   return (
-    <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 py-3.5 px-1.5">
+    <div className="flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2.5 px-1.5">
       <div className={`flex items-center gap-1 ${accent ? "text-emerald-500" : dark ? "text-white" : "text-black"}`}>
-        <Icon size={12} />
-        <span className="text-[15px] font-bold tabular-nums truncate">{value}</span>
+        <Icon size={11} />
+        <span className="text-[13px] font-bold tabular-nums truncate">{value}</span>
       </div>
-      <span className={dark ? "text-white/35 text-[9px] font-semibold tracking-wide uppercase" : "text-black/35 text-[9px] font-semibold tracking-wide uppercase"}>{label}</span>
+      <span className={dark ? "text-white/35 text-[8px] font-semibold tracking-wide uppercase" : "text-black/35 text-[8px] font-semibold tracking-wide uppercase"}>{label}</span>
     </div>
   );
 }
@@ -1328,10 +1328,10 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
         {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
 
         <div className="flex-1 overflow-y-auto pb-28">
-          <div className="relative h-48 shrink-0 overflow-hidden">
+          <div className="relative h-44 shrink-0 overflow-hidden">
             <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover contrast-110 saturate-110 blur-[2px] scale-105" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/80" />
-            <div className="absolute bottom-0 inset-x-0 p-4 pb-6">
+            <div className="absolute bottom-0 inset-x-0 p-4">
               <span
                 className={`inline-block text-[9px] font-bold tracking-wide px-2 py-0.5 rounded-full mb-1.5 ${
                   session.workoutLogId ? "bg-emerald-500 text-white" : "bg-blue-500 text-white"
@@ -1343,7 +1343,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
             </div>
           </div>
 
-          <div className="px-5 -mt-6 relative z-10">
+          <div className="px-5 mt-4 relative z-10">
             <div
               className={`flex items-stretch divide-x rounded-2xl shadow-lg overflow-hidden ${
                 dark ? "bg-[#161616] border border-white/8 divide-white/8" : "bg-white border border-black/6 divide-black/6"
