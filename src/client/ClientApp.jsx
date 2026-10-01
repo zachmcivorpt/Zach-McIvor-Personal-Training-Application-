@@ -7918,7 +7918,7 @@ export default function ClientApp() {
         )}
         </TabFade>
 
-        {coachUser && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
+        {coachUser && !messagesOpen && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
 
         <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
           <div
