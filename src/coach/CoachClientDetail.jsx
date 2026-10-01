@@ -58,8 +58,6 @@ import {
   LayoutGrid,
   Repeat,
   ChevronDown,
-  User,
-  Target,
   CalendarPlus,
   Clock,
   CheckCircle2,
@@ -4916,9 +4914,12 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
   const [sendingReset, setSendingReset] = useState(false);
   const [name, setName] = useState(client.name || "");
   const [email, setEmail] = useState(client.email || "");
+  const [dateOfBirth, setDateOfBirth] = useState(client.dateOfBirth || "");
+  const [phone, setPhone] = useState(client.phone || "");
   const [age, setAge] = useState(client.age || "");
   const [sex, setSex] = useState(client.sex || "");
   const [heightCm, setHeightCm] = useState(client.heightCm || "");
+  const [goals, setGoals] = useState(client.preferences?.goals || "");
   const [trainingHistory, setTrainingHistory] = useState(client.trainingHistory || "");
   const [injuries, setInjuries] = useState(client.injuries || "");
   const [otherInfo, setOtherInfo] = useState(client.otherInfo || "");
@@ -4927,9 +4928,12 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
   React.useEffect(() => {
     setName(client.name || "");
     setEmail(client.email || "");
+    setDateOfBirth(client.dateOfBirth || "");
+    setPhone(client.phone || "");
     setAge(client.age || "");
     setSex(client.sex || "");
     setHeightCm(client.heightCm || "");
+    setGoals(client.preferences?.goals || "");
     setTrainingHistory(client.trainingHistory || "");
     setInjuries(client.injuries || "");
     setOtherInfo(client.otherInfo || "");
@@ -4942,9 +4946,12 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
     setSaving(true);
     try {
       await updateUser(client.id, {
+        dateOfBirth: dateOfBirth || null,
+        phone,
         age: age === "" ? null : Number(age),
         sex,
         heightCm: heightCm === "" ? null : Number(heightCm),
+        preferences: { ...(client.preferences || {}), goals },
         trainingHistory,
         injuries,
         otherInfo,
@@ -5031,6 +5038,26 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
             change that themselves, from their own account.
           </p>
         )}
+        <div className="grid grid-cols-2 gap-5 mb-4">
+          <UnderlineField label="Date of birth">
+            <input
+              type="date"
+              value={dateOfBirth}
+              onChange={(e) => setDateOfBirth(e.target.value)}
+              max={localDateKey()}
+              className="w-full bg-transparent outline-none text-black text-sm"
+            />
+          </UnderlineField>
+          <UnderlineField label="Phone">
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. 0412 345 678"
+              className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25"
+            />
+          </UnderlineField>
+        </div>
         <div className="grid grid-cols-3 gap-5 mb-4">
           <UnderlineField label="Age">
             <input type="number" min={0} value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-transparent outline-none text-black text-sm" />
@@ -5061,6 +5088,15 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <UnderlineField label="Goals">
+            <textarea
+              rows={2}
+              value={goals}
+              onChange={(e) => setGoals(e.target.value)}
+              placeholder="e.g. Build muscle, lose fat, improve strength on main lifts..."
+              className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+            />
+          </UnderlineField>
           <UnderlineField label="Training history">
             <textarea
               rows={2}
@@ -5272,19 +5308,6 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
   );
 }
 
-const PROFILE_EQUIPMENT_OPTIONS = [
-  "Barbell",
-  "Dumbbells",
-  "Kettlebells",
-  "Resistance Bands",
-  "Pull-up Bar",
-  "Bench",
-  "Cardio Machine",
-  "Full Gym Access",
-  "Bodyweight Only",
-];
-const PROFILE_DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const PROFILE_SESSION_LENGTH_OPTIONS = ["30 min", "45 min", "60 min", "75 min", "90+ min"];
 const PROFILE_DIET_OPTIONS = ["No restrictions", "Vegetarian", "Vegan", "Halal", "Kosher", "Dairy-free", "Gluten-free", "Low-carb / Keto"];
 
 function ProfileChip({ active, onClick, children }) {
@@ -5303,135 +5326,6 @@ function ProfileChip({ active, onClick, children }) {
 // PreferencesSheet) — a coach can now set/override every one of them
 // directly, e.g. after an in-person consult, instead of waiting for the
 // client to fill them in from their side.
-function ProfilePanel({ client, showToast }) {
-  const { updateUser } = useApp();
-  const prefs = client.preferences || {};
-  const [goals, setGoals] = useState(prefs.goals || "");
-  const [equipment, setEquipment] = useState(prefs.equipment || []);
-  const [trainingDays, setTrainingDays] = useState(prefs.trainingDays || []);
-  const [sessionLength, setSessionLength] = useState(prefs.sessionLength || "");
-  const [trainingNotes, setTrainingNotes] = useState(prefs.trainingNotes || "");
-  const [dietType, setDietType] = useState(prefs.dietType || "");
-  const [nutritionNotes, setNutritionNotes] = useState(prefs.nutritionNotes || "");
-  const [saving, setSaving] = useState(false);
-
-  React.useEffect(() => {
-    setGoals(prefs.goals || "");
-    setEquipment(prefs.equipment || []);
-    setTrainingDays(prefs.trainingDays || []);
-    setSessionLength(prefs.sessionLength || "");
-    setTrainingNotes(prefs.trainingNotes || "");
-    setDietType(prefs.dietType || "");
-    setNutritionNotes(prefs.nutritionNotes || "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client.id]);
-
-  function toggle(list, setList, val) {
-    setList(list.includes(val) ? list.filter((v) => v !== val) : [...list, val]);
-  }
-
-  async function save() {
-    setSaving(true);
-    try {
-      await updateUser(client.id, {
-        preferences: { ...prefs, goals, equipment, trainingDays, sessionLength, trainingNotes, dietType, nutritionNotes },
-      });
-      showToast("Profile updated");
-    } catch (err) {
-      showToast(err.message || "Couldn't save — please try again");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="px-4 py-5 md:px-6 md:py-6 max-w-2xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Avatar name={client.name} url={client.avatarUrl} size={56} />
-        <div className="min-w-0">
-          <p className="text-black font-bold text-lg truncate">{client.name}</p>
-          <p className="text-black/40 text-sm truncate">{client.email}</p>
-        </div>
-      </div>
-
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm divide-y divide-black/8 mb-5 -mx-4 md:-mx-6">
-        <div className="p-4 md:p-5">
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3 flex items-center gap-1.5">
-            <Target size={12} /> GOALS
-          </p>
-          <TextArea rows={3} value={goals} onChange={(e) => setGoals(e.target.value)} placeholder="e.g. Build muscle, lose fat, improve strength on main lifts..." />
-        </div>
-
-        <div className="p-4 md:p-5">
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3 flex items-center gap-1.5">
-            <Dumbbell size={12} /> EQUIPMENT ACCESS
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {PROFILE_EQUIPMENT_OPTIONS.map((opt) => (
-              <ProfileChip key={opt} active={equipment.includes(opt)} onClick={() => toggle(equipment, setEquipment, opt)}>
-                {opt}
-              </ProfileChip>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-4 md:p-5">
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3">TRAINING PREFERENCES</p>
-          <div className="space-y-3">
-            <div>
-              <p className="text-black/40 text-xs mb-1.5">Preferred training days</p>
-              <div className="flex flex-wrap gap-1.5">
-                {PROFILE_DAY_OPTIONS.map((d) => (
-                  <ProfileChip key={d} active={trainingDays.includes(d)} onClick={() => toggle(trainingDays, setTrainingDays, d)}>
-                    {d}
-                  </ProfileChip>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-black/40 text-xs mb-1.5">Preferred session length</p>
-              <div className="flex flex-wrap gap-1.5">
-                {PROFILE_SESSION_LENGTH_OPTIONS.map((s) => (
-                  <ProfileChip key={s} active={sessionLength === s} onClick={() => setSessionLength(sessionLength === s ? "" : s)}>
-                    {s}
-                  </ProfileChip>
-                ))}
-              </div>
-            </div>
-            <TextArea
-              rows={2}
-              value={trainingNotes}
-              onChange={(e) => setTrainingNotes(e.target.value)}
-              placeholder="Injuries, limitations, preferred/avoided exercises..."
-            />
-          </div>
-        </div>
-
-        <div className="p-4 md:p-5">
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-3">NUTRITION PREFERENCES</p>
-          <div className="space-y-3">
-            <div>
-              <p className="text-black/40 text-xs mb-1.5">Diet type</p>
-              <div className="flex flex-wrap gap-1.5">
-                {PROFILE_DIET_OPTIONS.map((d) => (
-                  <ProfileChip key={d} active={dietType === d} onClick={() => setDietType(dietType === d ? "" : d)}>
-                    {d}
-                  </ProfileChip>
-                ))}
-              </div>
-            </div>
-            <TextArea rows={2} value={nutritionNotes} onChange={(e) => setNutritionNotes(e.target.value)} placeholder="Allergies, intolerances, other notes..." />
-          </div>
-        </div>
-      </div>
-
-      <PrimaryButton onClick={save} disabled={saving} className="w-full">
-        {saving ? "Saving…" : "Save Profile"}
-      </PrimaryButton>
-    </div>
-  );
-}
-
 // Labels/order mirror the client app's own bottom tabs (Home, Training,
 // Nutrition, Check-ins, Progress, Profile) where a direct equivalent
 // exists, so it's easy to reason about "this is what they see on X" —
@@ -5445,7 +5339,6 @@ const CLIENT_NAV = [
   { id: "progress", label: "Progress", icon: ImageIcon },
   { id: "calendar", label: "Calendar", icon: Calendar },
   { id: "habits", label: "Habits", icon: ListChecks },
-  { id: "profile", label: "Profile", icon: User },
 ];
 
 export default function CoachClientDetail({ clientId, onClose, showToast, initialTab, openMessages }) {
@@ -5693,7 +5586,6 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
         {clientTab === "progress" && <ProgressPanel client={client} />}
         {clientTab === "habits" && <HabitsPanel client={client} />}
         {clientTab === "checkins" && <CheckInsPanel client={client} showToast={showToast} />}
-        {clientTab === "profile" && <ProfilePanel client={client} showToast={showToast} />}
       </div>
 
       {messaging && <ThreadView client={client} onClose={() => setMessaging(false)} />}
