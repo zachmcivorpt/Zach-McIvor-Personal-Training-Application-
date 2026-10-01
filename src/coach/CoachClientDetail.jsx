@@ -4631,21 +4631,19 @@ function PlateauAlertCard({ client }) {
   if (plateaus.length === 0) return null;
 
   return (
-    <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 md:p-5 shadow-sm mb-5 -mx-4 md:-mx-6">
-      <div className="flex items-center gap-2.5 mb-2.5">
-        <div className="w-8 h-8 rounded-lg bg-orange-100 border border-orange-200 flex items-center justify-center shrink-0">
-          <TrendingDown size={15} className="text-orange-700" />
-        </div>
+    <div className="mb-10 pb-10 border-b border-black/8">
+      <div className="flex items-center gap-2.5 mb-3">
+        <TrendingDown size={15} className="text-blue-600 shrink-0" />
         <div>
-          <p className="text-orange-900 font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
-          <p className="text-orange-700/70 text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
+          <p className="text-black font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
+          <p className="text-black/40 text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
         </div>
       </div>
-      <div className="space-y-1.5">
+      <div className="divide-y divide-black/8 border-y border-black/8">
         {plateaus.map((p) => (
-          <div key={p.exerciseId} className="flex items-center justify-between bg-white/60 rounded-xl px-3.5 py-2">
-            <span className="text-orange-900 text-sm font-medium">{p.exerciseName}</span>
-            <span className="text-orange-700/70 text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
+          <div key={p.exerciseId} className="flex items-center justify-between py-2.5">
+            <span className="text-black text-sm font-medium">{p.exerciseName}</span>
+            <span className="text-black/40 text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
           </div>
         ))}
       </div>
@@ -5024,8 +5022,8 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-8px_rgba(0,0,0,0.10)] mb-5 overflow-hidden -mx-4 md:-mx-6">
-      <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3.5 border-b border-black/6">
+    <div className="mb-10 pb-10 border-b border-black/8">
+      <div className="flex items-center justify-between gap-3 mb-5">
         <div className="min-w-0">
           <p className="text-black font-bold text-[15px] tracking-tight">Personal Details</p>
           <p className="text-black/35 text-[11px] mt-0.5 leading-snug">The essentials for planning their training and nutrition</p>
@@ -5034,14 +5032,14 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
           onClick={save}
           disabled={saving || !dirty}
           className={`shrink-0 flex items-center gap-1 text-[11px] font-bold px-3.5 py-1.5 rounded-full transition-all active:scale-95 ${
-            dirty ? "bg-black text-white shadow-sm" : "bg-black/[0.05] text-black/35"
+            dirty ? "bg-black text-white" : "bg-black/[0.05] text-black/35"
           } disabled:active:scale-100`}
         >
           {saving ? "Saving…" : dirty ? "Save" : (<><Check size={12} /> Saved</>)}
         </button>
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-black/6 border-b border-black/6 bg-blue-50/40">
+      <div className="grid grid-cols-3 divide-x divide-black/8 border-y border-black/8 -mx-4 md:-mx-6 mb-6">
         <div className="flex flex-col items-center justify-center py-3 px-2">
           <input
             type="number"
@@ -5092,7 +5090,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
         </div>
       </div>
 
-      <div className="px-5 py-4 space-y-4">
+      <div className="space-y-4">
         <UnderlineField label="Name">
           <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-transparent outline-none text-black text-[13px]" />
         </UnderlineField>
@@ -5188,7 +5186,7 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
         </button>
       </div>
 
-      <div className="px-5 py-3.5 border-t border-black/6 flex flex-wrap items-center gap-4">
+      <div className="pt-4 mt-4 border-t border-black/8 flex flex-wrap items-center gap-4">
         {client.status === "active" ? (
           <>
             <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
@@ -5237,13 +5235,13 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
       <PlateauAlertCard client={client} />
 
-      <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-8px_rgba(0,0,0,0.10)] mb-5 overflow-hidden -mx-4 md:-mx-6">
-        <div className="px-5 pt-5 pb-4 border-b border-black/6">
+      <div className="mb-10 pb-10 border-b border-black/8">
+        <div className="mb-5">
           <p className="text-black font-bold text-[16px] tracking-tight">Trainer's Notes</p>
           <p className="text-black/35 text-xs mt-0.5">Private — only you can see these</p>
         </div>
 
-        <div className="px-5 py-5">
+        <div>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -5282,36 +5280,36 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
           {detecting && (
             <div className="flex items-center gap-1.5 mb-4 px-0.5">
-              <Sparkles size={11} className="text-indigo-400 animate-pulse" />
+              <Sparkles size={11} className="text-blue-400 animate-pulse" />
               <p className="text-black/30 text-xs">APEX is checking for useful context…</p>
             </div>
           )}
 
           {pendingContext?.items.length > 0 && (
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-3.5 py-3 mb-4">
+            <div className="border border-blue-200 rounded-xl px-3.5 py-3 mb-4">
               <div className="flex items-center gap-1.5 mb-2">
-                <Sparkles size={12} className="text-indigo-600" />
-                <p className="text-indigo-900 text-xs font-semibold">APEX detected potentially useful client context</p>
+                <Sparkles size={12} className="text-blue-600" />
+                <p className="text-blue-900 text-xs font-semibold">APEX detected potentially useful client context</p>
               </div>
-              <div className="space-y-2">
+              <div className="divide-y divide-blue-100">
                 {pendingContext.items.map((item, i) => (
-                  <div key={i} className="bg-white/70 rounded-lg px-3 py-2">
-                    <p className="text-indigo-900/50 text-[10px] font-semibold tracking-wide mb-0.5">{item.category.toUpperCase()}</p>
-                    <p className="text-indigo-950 text-sm mb-2">{item.suggestion}</p>
-                    <div className="flex gap-2">
+                  <div key={i} className="py-2.5 first:pt-0 last:pb-0">
+                    <p className="text-blue-900/50 text-[10px] font-semibold tracking-wide mb-0.5">{item.category.toUpperCase()}</p>
+                    <p className="text-black text-sm mb-2">{item.suggestion}</p>
+                    <div className="flex gap-3">
                       <button
                         onClick={() => {
                           addClientContext(client.id, item.category, item.suggestion, pendingContext.noteId);
                           setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }));
                           showToast?.("Saved to client profile");
                         }}
-                        className="text-xs font-semibold bg-indigo-600 text-white px-3 py-1.5 rounded-lg"
+                        className="text-xs font-semibold text-blue-600"
                       >
                         Save to Client Profile
                       </button>
                       <button
                         onClick={() => setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))}
-                        className="text-xs font-semibold text-indigo-900/60 px-3 py-1.5"
+                        className="text-xs font-semibold text-black/40"
                       >
                         Don't Save
                       </button>
@@ -5322,7 +5320,7 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
             </div>
           )}
 
-          <div className="divide-y divide-black/6 -mx-5 px-5 border-t border-black/6">
+          <div className="divide-y divide-black/8 border-t border-black/8">
             {notes.length === 0 && <p className="text-black/25 text-xs py-4">No notes yet.</p>}
             {notes.map((n) => (
               <div key={n.id} className="py-3 flex items-start justify-between gap-3">
@@ -5341,12 +5339,12 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_28px_-8px_rgba(0,0,0,0.10)] overflow-hidden -mx-4 md:-mx-6">
-        <div className="px-5 pt-5 pb-4 border-b border-black/6">
+      <div>
+        <div className="mb-5">
           <p className="text-black font-bold text-[16px] tracking-tight">Client Context</p>
           <p className="text-black/35 text-xs mt-0.5">What APEX Insights uses to understand this client</p>
         </div>
-        <div className="px-5 py-5">
+        <div>
           {context.length === 0 ? (
             <p className="text-black/25 text-xs">
               No saved context yet — approve an APEX suggestion above, or context saved here helps APEX Insights understand this client.
