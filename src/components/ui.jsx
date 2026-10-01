@@ -345,7 +345,7 @@ export function FullScreenOverlay({ children }) {
   );
 }
 
-export function BottomSheet({ open, onClose, title, children, dark = false }) {
+export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5" }) {
   // Opening already slid up smoothly, but closing just vanished the instant
   // `open` went false — no exit animation at all, which is exactly the kind
   // of "blocky" jump a native app never has. Keeping the sheet mounted for
@@ -374,7 +374,7 @@ export function BottomSheet({ open, onClose, title, children, dark = false }) {
           onClick={onClose}
         />
         <div
-          className={`relative w-full max-w-md rounded-t-3xl max-h-[88vh] overflow-y-auto border-t transition-transform duration-300 ease-out ${
+          className={`relative w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-t-3xl max-h-[88vh] overflow-y-auto border-t transition-transform duration-300 ease-out ${
             dark ? "border-white/10" : "border-black/10"
           } ${visible ? "translate-y-0" : "translate-y-full"}`}
           style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
@@ -393,7 +393,7 @@ export function BottomSheet({ open, onClose, title, children, dark = false }) {
               <X size={16} />
             </button>
           </div>
-          <div className="p-5">{children}</div>
+          <div className={bodyClassName}>{children}</div>
         </div>
       </div>
     </FullScreenOverlay>

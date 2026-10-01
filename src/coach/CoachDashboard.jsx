@@ -914,6 +914,8 @@ export default function CoachDashboard({ onNavigate, onOpenClient, showToast }) 
         open={!!viewingActivity}
         onClose={() => setViewingActivity(null)}
         title={viewingActivity?.type === "checkin" ? viewingActivity.subject : viewingActivity?.clientName}
+        wide
+        bodyClassName="p-3 sm:p-5"
       >
         {viewingActivity?.type === "checkin" ? (
           <CheckInReviewCard
