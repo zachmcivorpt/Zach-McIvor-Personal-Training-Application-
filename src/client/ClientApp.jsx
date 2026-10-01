@@ -4807,9 +4807,50 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
   );
 }
 
-function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
+// Date-first step for adding progress photos — picks a date (defaults to
+// today, can be backdated like a weigh-in), then opens the native picker
+// with `multiple` so any number of photos can be added in one go, all
+// stamped to that same date, instead of one file at a time always dated
+// "now".
+function AddPhotoSheet({ open, onClose, onAdd, busy }) {
   const dark = useClientDark();
   const fileRef = useRef(null);
+  const [dateKey, setDateKey] = useState(() => localDateKey());
+
+  useEffect(() => {
+    if (open) setDateKey(localDateKey());
+  }, [open]);
+
+  return (
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Add Progress Photos">
+      <Field dark={dark} label="DATE">
+        <TextInput dark={dark} type="date" value={dateKey} max={localDateKey()} onChange={(e) => setDateKey(e.target.value)} />
+      </Field>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files || []);
+          if (files.length) {
+            onAdd(files, dateKey);
+            onClose();
+          }
+          e.target.value = "";
+        }}
+      />
+      <PrimaryButton dark={dark} className="w-full mt-4" disabled={busy || !dateKey} onClick={() => fileRef.current?.click()}>
+        <ImageIcon size={16} /> {busy ? "Uploading…" : "Choose Photos"}
+      </PrimaryButton>
+    </BottomSheet>
+  );
+}
+
+function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
+  const dark = useClientDark();
+  const [addOpen, setAddOpen] = useState(false);
   const [viewing, setViewing] = useState(null);
 
   return (
@@ -4825,20 +4866,9 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
           same clothes (or similar) as your very first set, from the same angles each time.
         </p>
       </div>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) onAdd(file);
-          e.target.value = "";
-        }}
-      />
       <div className="grid grid-cols-3 gap-2">
         <button
-          onClick={() => fileRef.current?.click()}
+          onClick={() => setAddOpen(true)}
           disabled={busy}
           className={dark ? "aspect-square rounded-xl border border-dashed border-white/15 bg-white/[0.03] flex flex-col items-center justify-center gap-1 text-white/40 disabled:opacity-40" : "aspect-square rounded-xl border border-dashed border-black/15 bg-black/[0.03] flex flex-col items-center justify-center gap-1 text-black/40 disabled:opacity-40"}
         >
@@ -4882,6 +4912,8 @@ function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
           </div>
         )}
       </BottomSheet>
+
+      <AddPhotoSheet open={addOpen} onClose={() => setAddOpen(false)} onAdd={onAdd} busy={busy} />
     </Card>
   );
 }
@@ -5041,13 +5073,20 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
     value: w.weight,
   }));
 
-  async function handleAddPhoto(file) {
+  // files is an array — any number of photos can be added in one go, all
+  // backdated to the same chosen date, instead of one file at a time
+  // always stamped "now" (the same backdate-friendly pattern as weigh-ins).
+  async function handleAddPhoto(files, dateKey) {
     setUploading(true);
     try {
-      const dataUrl = await fileToCompressedDataUrl(file);
-      onAddPhoto(userId, dataUrl);
-    } catch {
-      // silently ignore a bad file — nothing to persist
+      for (const file of files) {
+        try {
+          const dataUrl = await fileToCompressedDataUrl(file);
+          onAddPhoto(userId, dataUrl, "", dateKey);
+        } catch {
+          // skip a bad file in the batch — keep going with the rest
+        }
+      }
     } finally {
       setUploading(false);
     }

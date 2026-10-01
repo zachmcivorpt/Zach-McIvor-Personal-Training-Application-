@@ -1319,9 +1319,17 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "workoutComments", commentId)).catch(console.error);
       },
 
-      addProgressPhoto(clientId, dataUrl, caption = "") {
+      // `dateKey` (YYYY-MM-DD) backdates the photo — same reasoning as
+      // logWeight below: a past date is stamped at midday local time so it
+      // can never drift onto the neighbouring day in any timezone view.
+      addProgressPhoto(clientId, dataUrl, caption = "", dateKey) {
         const id = newDocId("progressPhotos");
-        setDoc(doc(firestore, "progressPhotos", id), { id, clientId, url: dataUrl, date: Date.now(), caption }).catch(console.error);
+        let date = Date.now();
+        if (dateKey && dateKey !== localDateKey()) {
+          const [y, m, d] = dateKey.split("-").map(Number);
+          date = new Date(y, m - 1, d, 12, 0, 0).getTime();
+        }
+        setDoc(doc(firestore, "progressPhotos", id), { id, clientId, url: dataUrl, date, caption }).catch(console.error);
       },
 
       deleteProgressPhoto(clientId, photoId) {
