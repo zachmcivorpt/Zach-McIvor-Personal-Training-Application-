@@ -3858,8 +3858,11 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
 
       {tab === "today" && (
       <>
-      <div className="px-2.5 mt-3">
-        <Card dark={dark} onClick={() => setNutritionDetailOpen(true)} className="shadow-sm">
+      <div
+        onClick={() => setNutritionDetailOpen(true)}
+        className="p-5 mt-3 cursor-pointer active:scale-[0.98] transition-transform"
+        style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
+      >
           <div className="flex items-center gap-2.5 mb-3">
             <Flame size={20} strokeWidth={2} className="text-orange-500 shrink-0" />
             <p className={dark ? "text-white/50 text-xs font-bold tracking-wide flex-1" : "text-black/50 text-xs font-bold tracking-wide flex-1"}>YOUR CALORIE TARGET</p>
@@ -3893,7 +3896,6 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
               </div>
             ))}
           </div>
-        </Card>
       </div>
 
       <div className="px-2.5 mt-4">
@@ -4946,7 +4948,7 @@ function PerformanceTimelineCard({ timeline, monthlyVolume, prevMonthlyVolume })
     },
   ];
   return (
-    <div className={`rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
+    <div className="p-5" style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
       <p className={dark ? "text-white/40 text-[11px] font-semibold tracking-wide uppercase" : "text-black/40 text-[11px] font-semibold tracking-wide uppercase"}>Last {timeline.days} Days</p>
       <p className={dark ? "text-white font-bold text-lg mt-0.5" : "text-black font-bold text-lg mt-0.5"}>Performance Timeline</p>
       <p className={dark ? "text-white/35 text-xs mt-1 mb-4" : "text-black/35 text-xs mt-1 mb-4"}>A quick read on how you've been trending: getting stronger, showing up, hitting new bests.</p>
@@ -5147,8 +5149,9 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         <BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />
       </div>
 
-      <div className="px-2.5 space-y-4">
-        <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
+      <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
+
+      <div className="px-2.5 space-y-4 mt-4">
         <WhoopCard bodyMetrics={bodyMetrics} dark={dark} />
 
         <div>
