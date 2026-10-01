@@ -303,7 +303,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
       if (end) newStart.setDate(newStart.getDate() + 1);
       const weeks = Math.max(1, Math.round(spanDays / 7));
       const newEnd = new Date(newStart);
-      newEnd.setDate(newEnd.getDate() + weeks * 7);
+      newEnd.setDate(newEnd.getDate() + weeks * 7 - 1);
       setForm({
         name: `${phase.name} (copy)`,
         startDate: localDateKey(newStart),
@@ -318,7 +318,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
   function setStartDate(startDate) {
     setForm((f) => {
       const newEnd = new Date(startDate);
-      newEnd.setDate(newEnd.getDate() + f.weeks * 7);
+      newEnd.setDate(newEnd.getDate() + f.weeks * 7 - 1);
       return { ...f, startDate, endDate: localDateKey(newEnd) };
     });
   }
@@ -326,7 +326,7 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
   function setWeeks(weeks) {
     setForm((f) => {
       const newEnd = new Date(f.startDate);
-      newEnd.setDate(newEnd.getDate() + weeks * 7);
+      newEnd.setDate(newEnd.getDate() + weeks * 7 - 1);
       return { ...f, weeks, endDate: localDateKey(newEnd) };
     });
   }
@@ -433,16 +433,23 @@ function buildMonthGrid(year, month) {
 // pass, the same interaction as the source layout's scheduling popover.
 // Renders in the client's local month; navigable and reusable at a
 // compact size inside a sheet.
-function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth, alreadyScheduledDates }) {
+// minDate/maxDate (YYYY-MM-DD, inclusive) lock the picker to a window —
+// e.g. a program phase's own weeks. Days outside it are greyed out and
+// can't be tapped, and the month arrows stop at the window's edges.
+function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftMonth, alreadyScheduledDates, minDate, maxDate }) {
   const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
   const todayStr = localDateKey();
+  const monthKey = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}`;
+  const canGoBack = !minDate || monthKey > minDate.slice(0, 7);
+  const canGoForward = !maxDate || monthKey < maxDate.slice(0, 7);
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <button
           type="button"
           onClick={() => onShiftMonth(-1)}
-          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60"
+          disabled={!canGoBack}
+          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60 disabled:opacity-25 disabled:hover:bg-black/8"
         >
           <ChevronRight size={13} className="rotate-180" />
         </button>
@@ -452,7 +459,8 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
         <button
           type="button"
           onClick={() => onShiftMonth(1)}
-          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60"
+          disabled={!canGoForward}
+          className="w-7 h-7 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60 disabled:opacity-25 disabled:hover:bg-black/8"
         >
           <ChevronRight size={13} />
         </button>
@@ -477,13 +485,17 @@ function MiniDatePicker({ selectedDates, onToggle, viewYear, viewMonth, onShiftM
               // the filled circle marking what's newly picked in this
               // session, same as Trainerize's own "Schedule" calendar.
               const alreadyScheduled = !selected && alreadyScheduledDates?.has(dateStr);
+              const outOfRange = (minDate && dateStr < minDate) || (maxDate && dateStr > maxDate);
               return (
                 <button
                   key={dateStr}
                   type="button"
+                  disabled={outOfRange}
                   onClick={() => onToggle(dateStr)}
                   className={`aspect-square rounded-full text-xs font-medium transition-colors ${
-                    selected
+                    outOfRange
+                      ? "text-black/15 line-through cursor-not-allowed"
+                      : selected
                       ? "bg-blue-500 text-white"
                       : alreadyScheduled
                       ? "border-2 border-blue-400 text-black"
@@ -517,6 +529,16 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   const [weeklyWeekday, setWeeklyWeekday] = useState(null); // 0=Mon..6=Sun, or null
   const [weeklyWeeks, setWeeklyWeeks] = useState(4);
   const [saving, setSaving] = useState(false);
+  // Scheduling from inside a program phase is locked to that phase's own
+  // dates (start → end, inclusive) — sessions can't be put before it
+  // starts or after its last week. Outside a phase, nothing is restricted.
+  const inPhase = !!phaseStart;
+  const inPhaseRange = (d) => (!phaseStart || d >= phaseStart) && (!phaseEnd || d <= phaseEnd);
+  const phaseWeeks =
+    phaseStart && phaseEnd
+      ? Math.max(1, Math.round((Date.parse(phaseEnd + "T00:00:00Z") - Date.parse(phaseStart + "T00:00:00Z")) / 86400000 / 7 + 1 / 7))
+      : null;
+  const fmtShort = (d) => new Date(d + "T00:00:00Z").toLocaleDateString(undefined, { day: "numeric", month: "short", timeZone: "UTC" });
   // Snapshot of which dates were ALREADY scheduled with this exact workout
   // the moment the calendar last synced to it — diffed against
   // selectedDates on submit so unchecking a circled (already-scheduled)
@@ -545,7 +567,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
       setViewYear(dateForView ? base.getUTCFullYear() : base.getFullYear());
       setViewMonth(dateForView ? base.getUTCMonth() : base.getMonth());
       setWeeklyWeekday(null);
-      setWeeklyWeeks(4);
+      setWeeklyWeeks(phaseWeeks || 4);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialDate, initialViewDate]);
@@ -568,7 +590,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
     setSelectedDates((prev) => {
       const next = new Set(prev);
       if (next.has(dateStr)) next.delete(dateStr);
-      else next.add(dateStr);
+      else if (inPhaseRange(dateStr)) next.add(dateStr);
       return next;
     });
   }
@@ -576,14 +598,18 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   // Quick-add convenience: fill in every occurrence of a chosen weekday for
   // the next N weeks, starting from today — still just adds circles to the
   // same set, so any of them can be individually removed afterward.
+  // Inside a phase it runs from the phase's first day (not today) and
+  // never past its last day, whatever number of weeks is typed.
   function applyWeeklyPattern() {
     if (weeklyWeekday === null) return;
     const dates = [];
-    const d = new Date();
+    const d = inPhase ? new Date(phaseStart + "T12:00:00") : new Date();
     // advance to the first matching weekday (Mon=0..Sun=6)
     while ((d.getDay() + 6) % 7 !== weeklyWeekday) d.setDate(d.getDate() + 1);
     for (let i = 0; i < weeklyWeeks; i++) {
-      dates.push(localDateKey(d));
+      const key = localDateKey(d);
+      if (!inPhaseRange(key)) break;
+      dates.push(key);
       d.setDate(d.getDate() + 7);
     }
     setSelectedDates((prev) => new Set([...prev, ...dates]));
@@ -632,7 +658,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   React.useEffect(() => {
     if (!open) return;
     const next = new Set(alreadyScheduledDates);
-    if (initialDate) next.add(initialDate);
+    if (initialDate && inPhaseRange(initialDate)) next.add(initialDate);
     setSelectedDates(next);
     baselineScheduledRef.current = new Set(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -641,7 +667,7 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
   async function submit(e) {
     e.preventDefault();
     const baseline = baselineScheduledRef.current;
-    const toAdd = [...selectedDates].filter((d) => !baseline.has(d)).sort();
+    const toAdd = [...selectedDates].filter((d) => !baseline.has(d) && inPhaseRange(d)).sort();
     const toRemove = [...baseline].filter((d) => !selectedDates.has(d));
     if (!payload || (toAdd.length === 0 && toRemove.length === 0)) return;
     setSaving(true);
@@ -742,9 +768,15 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
               viewMonth={viewMonth}
               onShiftMonth={shiftMonth}
               alreadyScheduledDates={alreadyScheduledDates}
+              minDate={phaseStart || undefined}
+              maxDate={phaseEnd || undefined}
             />
           </div>
-          <p className="text-black/30 text-[11px] mt-1.5">Tap any dates to circle them — pick as many as you like.</p>
+          <p className="text-black/30 text-[11px] mt-1.5">
+            {inPhase && phaseEnd
+              ? `This phase runs ${fmtShort(phaseStart)} – ${fmtShort(phaseEnd)}${phaseWeeks ? ` (${phaseWeeks} week${phaseWeeks === 1 ? "" : "s"})` : ""} — only dates inside it can be picked.`
+              : "Tap any dates to circle them — pick as many as you like."}
+          </p>
         </div>
 
         <div className="bg-black/[0.03] rounded-xl p-3">
@@ -767,12 +799,12 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
             <input
               type="number"
               min={1}
-              max={52}
+              max={phaseWeeks || 52}
               value={weeklyWeeks}
-              onChange={(e) => setWeeklyWeeks(Math.max(1, Math.min(52, Number(e.target.value) || 1)))}
+              onChange={(e) => setWeeklyWeeks(Math.max(1, Math.min(phaseWeeks || 52, Number(e.target.value) || 1)))}
               className="w-16 bg-white border border-black/10 rounded-lg px-2 py-1.5 text-black text-sm outline-none text-center"
             />
-            <span className="text-black/40 text-xs flex-1">weeks, starting this week</span>
+            <span className="text-black/40 text-xs flex-1">{inPhase ? "weeks, from the start of this phase" : "weeks, starting this week"}</span>
             <button
               type="button"
               disabled={weeklyWeekday === null}
@@ -952,7 +984,7 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onLogWorkout();
+                          onLogWorkout(it);
                         }}
                         title="Log this session for them — same as them completing it themselves"
                         className="flex items-center gap-1 bg-blue-500 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
@@ -974,7 +1006,7 @@ function DayDetailSheet({ date, client, items, exercisesById, onClose, onSchedul
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onLogWorkout();
+                        onLogWorkout(it);
                       }}
                       title="Edit their logged sets/reps/weight"
                       className="flex items-center gap-1 bg-black/5 border border-black/10 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg shrink-0"
@@ -1033,6 +1065,7 @@ function CalendarPanel({ client, showToast }) {
     db,
     scheduleWorkout,
     unscheduleWorkout,
+    deleteScheduledWorkoutById,
     scheduleBodyStatsCheckin,
     unscheduleBodyStatsCheckin,
     deleteWorkoutLog,
@@ -1200,11 +1233,14 @@ function CalendarPanel({ client, showToast }) {
   const workoutsByDate = useMemo(() => Object.fromEntries(scheduledWorkouts.map((w) => [w.date, w])), [scheduledWorkouts]);
   const bodyStatsByDate = useMemo(() => Object.fromEntries(bodyStatsSchedules.map((b) => [b.date, b])), [bodyStatsSchedules]);
   const weighInDates = useMemo(() => new Set(weighIns.map((w) => localDateKey(w.date))), [weighIns]);
-  const completedWorkoutsByDate = useMemo(() => {
+  // EVERY log per date (a coach can log a Pull Day and a Push Day on the
+  // same day) — keeping only the first one used to hide the second session
+  // entirely, or pair the scheduled day with the wrong log.
+  const completedLogsByDate = useMemo(() => {
     const map = {};
     workoutLogs.forEach((log) => {
       const key = localDateKey(log.date);
-      if (!map[key]) map[key] = log;
+      (map[key] = map[key] || []).push(log);
     });
     return map;
   }, [workoutLogs]);
@@ -1262,7 +1298,7 @@ function CalendarPanel({ client, showToast }) {
     // count as that day being completed, same identity check the client's
     // own Home screen already uses to decide whether today's scheduled
     // workout still needs doing.
-    const trainingCompleted = scheduledThisMonth.filter((w) => completedWorkoutsByDate[w.date]?.dayLabel === w.label).length;
+    const trainingCompleted = scheduledThisMonth.filter((w) => (completedLogsByDate[w.date] || []).some((l) => l.dayLabel === w.label)).length;
 
     let habitExpected = 0;
     let habitCompleted = 0;
@@ -1291,44 +1327,44 @@ function CalendarPanel({ client, showToast }) {
       habits: { completed: habitCompleted, expected: habitExpected, pct: pct(habitCompleted, habitExpected) },
       nutrition: { completed: nutritionCompleted, expected: nutritionExpected, pct: pct(nutritionCompleted, nutritionExpected) },
     };
-  }, [viewYear, viewMonth, scheduledWorkouts, completedWorkoutsByDate, habits, habitLogForClient, nutritionByDate, now, todayStr]);
+  }, [viewYear, viewMonth, scheduledWorkouts, completedLogsByDate, habits, habitLogForClient, nutritionByDate, now, todayStr]);
 
   function itemsForDate(date) {
     const dateStr = dKey(date);
     const items = [];
-    const completedLog = completedWorkoutsByDate[dateStr];
+    const dayLogs = completedLogsByDate[dateStr] || [];
     const w = workoutsByDate[dateStr];
     // A log only fulfills what was SCHEDULED that day if it's actually
     // that day's workout (dayLabel matches the scheduled label) — the same
-    // identity check the client's own Home screen uses. Logging a
-    // different session on a scheduled day (e.g. Pull Day on a day
-    // scheduled as Leg Day) used to show up here as "Leg Day — completed"
-    // using the scheduled name instead of what was really done.
-    const matchesScheduled = !!(w && completedLog && completedLog.dayLabel === w.label);
+    // identity check the client's own Home screen uses. Search every log on
+    // the date (not just the first) so a second session logged the same
+    // day can't knock the scheduled one back to "not done".
+    const matchedLog = w ? dayLogs.find((l) => l.dayLabel === w.label) || null : null;
     if (w) {
       items.push({
         type: "workout",
         label: w.label,
-        done: matchesScheduled,
-        log: matchesScheduled ? completedLog : null,
-        category: matchesScheduled && completedLog.cardio ? "cardio" : "workout",
-        key: matchesScheduled ? `log:${completedLog.id}` : `sched:${dateStr}`,
+        done: !!matchedLog,
+        log: matchedLog,
+        category: matchedLog?.cardio ? "cardio" : "workout",
+        key: matchedLog ? `log:${matchedLog.id}` : `sched:${dateStr}`,
       });
     }
-    // A completed workout that doesn't match what was scheduled that day
-    // (a different day's session logged instead, or nothing was scheduled
-    // at all) still shows up — as its own item, under its own real label,
-    // never borrowing the scheduled day's name for something else.
-    if (completedLog && !matchesScheduled) {
-      items.push({
-        type: "workout",
-        label: completedLog.dayLabel || "Workout Completed",
-        done: true,
-        log: completedLog,
-        category: completedLog.cardio ? "cardio" : "workout",
-        key: `log:${completedLog.id}`,
+    // Every other completed session that day (a different workout logged
+    // instead of / as well as the scheduled one) shows up as its own item,
+    // under its own real label, never borrowing the scheduled day's name.
+    dayLogs
+      .filter((l) => l !== matchedLog)
+      .forEach((l) => {
+        items.push({
+          type: "workout",
+          label: l.dayLabel || "Workout Completed",
+          done: true,
+          log: l,
+          category: l.cardio ? "cardio" : "workout",
+          key: `log:${l.id}`,
+        });
       });
-    }
     const b = bodyStatsByDate[dateStr];
     if (b) items.push({ type: "bodystats", label: "Track Body Stats", done: weighInDates.has(dateStr), key: `bodystats:${dateStr}` });
     activeFormSchedules
@@ -1461,8 +1497,12 @@ function CalendarPanel({ client, showToast }) {
     // whatever was scheduled there) — no blocking prompt. Delete/swipe
     // gives full manual control to clear a day first if that's not wanted.
     try {
-      await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises, instructions: entry.instructions });
-      unscheduleWorkout(client.id, fromDate);
+      await scheduleWorkout(client.id, { date: toDate, label: entry.label, muscleGroups: entry.muscleGroups, exercises: entry.exercises, instructions: entry.instructions, wod: entry.wod });
+      // Remove by the entry's real doc id — one moved on the client's own
+      // calendar has a fresh id, not clientId__date, and unscheduling by
+      // date alone left the original behind as a duplicate.
+      if (entry.id && entry.id !== `${client.id}__${toDate}`) deleteScheduledWorkoutById(entry.id);
+      else if (!entry.id) unscheduleWorkout(client.id, fromDate);
       showToast(`Moved ${entry.label} to ${label(toDate)}`);
     } catch (err) {
       showToast(err.message || "Couldn't move that workout — check your connection and try again");
@@ -1760,8 +1800,13 @@ function CalendarPanel({ client, showToast }) {
         exercisesById={exercisesById}
         onClose={() => setSelectedDate(null)}
         onSchedule={(kind) => setScheduleKind(kind)}
-        onLogWorkout={() => {
-          startViewAsClient(client.id, selectedDate);
+        onLogWorkout={(item) => {
+          // Hand over WHICH workout was tapped, not just the date — on a
+          // day holding more than one (e.g. scheduled Pull Day + a logged
+          // Push Day) the date alone made the client app guess, and "Edit"
+          // on the Push session opened a fresh Pull Day instead, saving the
+          // push numbers under the wrong name.
+          startViewAsClient(client.id, { date: selectedDate, logId: item?.log?.id || null, label: item?.label || null });
           setSelectedDate(null);
         }}
         onRemoveWorkout={() => {
@@ -4247,6 +4292,7 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [dateDraft, setDateDraft] = useState(() => localDateKey(log.date));
+  const [labelDraft, setLabelDraft] = useState(log.dayLabel || "");
 
   const allExercises = useMemo(() => Object.values(exercisesById).sort((a, b) => a.name.localeCompare(b.name)), [exercisesById]);
   const filtered = useMemo(
@@ -4279,7 +4325,8 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
         ...e,
         sets: e.sets.map((s, i) => ({ ...s, setNumber: i + 1, weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, completed: true })),
       }));
-    updateWorkoutLogEntries(log.id, cleaned);
+    const nextLabel = labelDraft.trim();
+    updateWorkoutLogEntries(log.id, cleaned, nextLabel && nextLabel !== log.dayLabel ? { dayLabel: nextLabel } : undefined);
     onClose();
   }
 
@@ -4310,6 +4357,10 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
   return (
     <BottomSheet open title="Edit Workout" onClose={onClose}>
       <div className="px-4 pb-4 space-y-3 max-h-[70vh] overflow-y-auto">
+        <div>
+          <p className="text-black/40 text-[11px] font-semibold tracking-wide mb-1.5">WORKOUT NAME</p>
+          <TextInput value={labelDraft} onChange={(e) => setLabelDraft(e.target.value)} placeholder="e.g. Push Day" />
+        </div>
         {entries.map((e, ei) => {
           const exercise = exercisesById[e.exerciseId];
           return (
@@ -4515,7 +4566,7 @@ function ProgressPanel({ client }) {
           config={{ key: "weight", label: "Body Weight", unit: "kg", icon: Scale }}
           entries={weighIns.map((w) => ({ id: w.id, date: w.date, value: w.weight }))}
           onClose={() => setWeightHistoryOpen(false)}
-          onLog={(v) => logWeight(client.id, v)}
+          onLog={(v, dateKey) => logWeight(client.id, v, dateKey)}
           onDelete={(_dateKey, weighInId) => deleteWeighIn(client.id, weighInId)}
         />
       )}
@@ -4525,7 +4576,7 @@ function ProgressPanel({ client }) {
           config={historyMetricConfig}
           entries={bodyMetricEntries[historyMetricConfig.key]}
           onClose={() => setHistoryMetricConfig(null)}
-          onLog={(v) => logBodyMetric(client.id, localDateKey(), historyMetricConfig.key, v)}
+          onLog={(v, dateKey) => logBodyMetric(client.id, dateKey || localDateKey(), historyMetricConfig.key, v)}
           onDelete={(dateKey) => deleteBodyMetric(client.id, dateKey, historyMetricConfig.key)}
         />
       )}
@@ -4534,8 +4585,8 @@ function ProgressPanel({ client }) {
         config={logMetricConfig}
         lastValue={logMetricConfig ? bodyMetricEntries[logMetricConfig.key]?.[bodyMetricEntries[logMetricConfig.key].length - 1]?.value : null}
         onClose={() => setLogMetricConfig(null)}
-        onSave={(v) => {
-          logBodyMetric(client.id, localDateKey(), logMetricConfig.key, v);
+        onSave={(v, dateKey) => {
+          logBodyMetric(client.id, dateKey || localDateKey(), logMetricConfig.key, v);
           setLogMetricConfig(null);
         }}
       />

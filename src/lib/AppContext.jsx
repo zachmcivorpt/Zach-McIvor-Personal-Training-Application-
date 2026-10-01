@@ -1328,9 +1328,18 @@ export function AppProvider({ children }) {
         deleteDoc(doc(firestore, "progressPhotos", photoId)).catch(console.error);
       },
 
-      logWeight(clientId, weight) {
+      // `dateKey` (YYYY-MM-DD) backdates the weigh-in — e.g. importing a
+      // client's history from another platform. Today (or none) keeps the
+      // real current time; a past date is stamped at midday local time so
+      // it can never drift onto the neighbouring day in any timezone view.
+      logWeight(clientId, weight, dateKey) {
         const id = newDocId("weighIns");
-        setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date: Date.now() }).catch(console.error);
+        let date = Date.now();
+        if (dateKey && dateKey !== localDateKey()) {
+          const [y, m, d] = dateKey.split("-").map(Number);
+          date = new Date(y, m - 1, d, 12, 0, 0).getTime();
+        }
+        setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date }).catch(console.error);
       },
 
       // One doc per client per calendar day (steps, sleep, body fat %, lean
@@ -1358,9 +1367,9 @@ export function AppProvider({ children }) {
       // Workouts scheduled onto specific calendar dates for a client — the
       // doc id is deterministic (clientId__date) so re-scheduling a date
       // cleanly replaces whatever was there before instead of duplicating.
-      async scheduleWorkout(clientId, { date, label, muscleGroups, exercises, instructions }) {
+      async scheduleWorkout(clientId, { date, label, muscleGroups, exercises, instructions, wod }) {
         const id = `${clientId}__${date}`;
-        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises, instructions: instructions || "" };
+        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises, instructions: instructions || "", ...(wod ? { wod: true } : {}) };
         try {
           await setDoc(doc(firestore, "scheduledWorkouts", id), entry);
         } catch (err) {
@@ -1404,6 +1413,26 @@ export function AppProvider({ children }) {
           throw new Error("Couldn't schedule that workout — " + (err.message || "please try again."));
         }
         return dates;
+      },
+
+      // Saves a coach-built "workout of the day" (or an edit to any
+      // scheduled workout) onto a client's calendar, under the same
+      // deterministic clientId__date id every scheduled day uses — so it
+      // shows on the Training tab and both calendars, drags/moves, and
+      // logs into history + PBs exactly like a program workout. When an
+      // edit changes the date (or the entry had a non-deterministic id
+      // from a calendar drag), the old doc is removed only after the new
+      // one is written, so the workout moves rather than duplicates.
+      async saveScheduledWorkout(clientId, { previousId, date, label, muscleGroups, exercises, instructions, wod }) {
+        const id = `${clientId}__${date}`;
+        const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises: exercises || [], instructions: instructions || "", ...(wod ? { wod: true } : {}) };
+        try {
+          await setDoc(doc(firestore, "scheduledWorkouts", id), entry);
+          if (previousId && previousId !== id) await deleteDoc(doc(firestore, "scheduledWorkouts", previousId));
+        } catch (err) {
+          throw new Error("Couldn't save that workout — " + (err.message || "please try again."));
+        }
+        return entry;
       },
 
       unscheduleWorkout(clientId, date) {
@@ -1459,6 +1488,8 @@ export function AppProvider({ children }) {
             label: entry.label,
             muscleGroups: entry.muscleGroups || [],
             exercises: entry.exercises,
+            instructions: entry.instructions || "",
+            ...(entry.wod ? { wod: true } : {}),
           });
           await deleteDoc(doc(firestore, "scheduledWorkouts", workoutId));
         } catch (err) {
@@ -1476,8 +1507,10 @@ export function AppProvider({ children }) {
       // Coach corrections to an already-completed session — editing the
       // logged sets/reps or which exercises were done, from the "..." menu
       // on a workout log (Trainerize's Edit Stats / Edit This Workout).
-      updateWorkoutLogEntries(logId, entries) {
-        updateDoc(doc(firestore, "workoutLogs", logId), { entries }).catch(console.error);
+      // `extra` lets the same save also fix the session's name (dayLabel)
+      // when it was logged under the wrong workout.
+      updateWorkoutLogEntries(logId, entries, extra) {
+        updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) }).catch(console.error);
       },
 
       // Moves a completed log onto a different calendar date, keeping the

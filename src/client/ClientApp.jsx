@@ -509,7 +509,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const started = isToday && !!activeLog && !completedOnDate;
   const exCount = countExercises(todaySession.exercises);
   const estMin = estimateWorkoutMinutes(todaySession.exercises);
-  const pillLabel = completedOnDate ? "COMPLETED" : isToday ? "TODAY'S FOCUS" : isPastDate ? "MISSED" : "SCHEDULED";
+  const pillLabel = completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : todaySession.wod ? "WORKOUT OF THE DAY" : isToday ? "TODAY'S FOCUS" : "SCHEDULED";
 
   return (
     <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 border ${dark ? "border-white/10" : "border-black/10"}`}>
@@ -2806,10 +2806,88 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   );
 }
 
-function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
+function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsByDate, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
   const dark = useClientDark();
+  const { db, currentUser, viewingAsClient, saveScheduledWorkout, deleteScheduledWorkoutById } = useApp();
   const [tab, setTab] = useState("today");
   const [cardioOpen, setCardioOpen] = useState(false);
+  // Coach-only (View as Client): build a one-off "workout of the day" or
+  // edit/move today's scheduled workout. Saved as an ordinary scheduled
+  // workout on the client's calendar, so starting it, logging sets, PBs,
+  // history and calendar drag/move all behave exactly like any other day.
+  const [wodPickerOpen, setWodPickerOpen] = useState(false);
+  const [wodEditing, setWodEditing] = useState(null); // { day, previousId } while the editor is open
+  const [wodRemoveOpen, setWodRemoveOpen] = useState(false);
+  const todayStr = localDateKey();
+
+  function startWod(template) {
+    const exercisesCopy = template ? JSON.parse(JSON.stringify(template.exercises || [])).map((ex) => ({ ...ex, addedAt: Date.now() })) : [];
+    setWodEditing({
+      previousId: null,
+      day: {
+        id: `wod_${Date.now()}`,
+        date: todayStr,
+        label: template?.label || "Workout of the Day",
+        muscleGroups: template?.muscleGroups || [],
+        instructions: template?.instructions || "",
+        exercises: exercisesCopy,
+        wod: true,
+      },
+    });
+    setWodPickerOpen(false);
+  }
+
+  function editScheduled(entry) {
+    setWodEditing({
+      previousId: entry.id,
+      day: {
+        id: entry.id,
+        date: entry.date,
+        label: entry.label,
+        muscleGroups: entry.muscleGroups || [],
+        instructions: entry.instructions || "",
+        exercises: entry.exercises || [],
+        wod: !!entry.wod,
+      },
+    });
+  }
+
+  // Warns before a save would replace a different workout already on that
+  // date — each calendar day holds one scheduled workout per client.
+  function dateHint(date) {
+    if (!date || !wodEditing) return "";
+    const existing = scheduledWorkoutsByDate?.[date];
+    if (!existing || existing.id === wodEditing.previousId) return "";
+    return `This will replace "${existing.label}" already scheduled for this date.`;
+  }
+
+  async function saveWod(day) {
+    try {
+      await saveScheduledWorkout(currentUser.id, {
+        previousId: wodEditing?.previousId || null,
+        date: day.date,
+        label: day.label,
+        muscleGroups: day.muscleGroups,
+        exercises: day.exercises,
+        instructions: day.instructions,
+        wod: day.wod,
+      });
+      const moved = wodEditing?.previousId && day.date !== wodEditing.day.date;
+      setWodEditing(null);
+      showToast?.(
+        moved
+          ? `Moved to ${new Date(day.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`
+          : day.date === todayStr
+          ? "Workout saved for today"
+          : `Workout saved for ${new Date(day.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`
+      );
+    } catch (err) {
+      // Editor stays open (wodEditing untouched) so nothing built is lost.
+      showToast?.(err.message || "Couldn't save that workout — check your connection and try again");
+    }
+  }
+
+  const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
   return (
     <div className="pb-28">
       <div className="px-2.5 pt-6 pb-4">
@@ -2848,6 +2926,32 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
             fullWidth
           />
           <div className="px-2.5 space-y-4">
+          {viewingAsClient && (
+            <div className="space-y-2">
+              {canEditToday && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => editScheduled(todayScheduledEntry)}
+                    className={dark ? "flex-1 flex items-center justify-center gap-1.5 bg-white/5 text-white/80 text-sm font-semibold py-3 rounded-2xl" : "flex-1 flex items-center justify-center gap-1.5 bg-black/5 text-black/80 text-sm font-semibold py-3 rounded-2xl"}
+                  >
+                    <Edit3 size={14} /> Edit / move
+                  </button>
+                  <button
+                    onClick={() => setWodRemoveOpen(true)}
+                    className={dark ? "px-4 flex items-center justify-center gap-1.5 bg-white/5 text-white/60 text-sm font-semibold py-3 rounded-2xl" : "px-4 flex items-center justify-center gap-1.5 bg-black/5 text-black/60 text-sm font-semibold py-3 rounded-2xl"}
+                  >
+                    <X size={14} /> Remove
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={() => setWodPickerOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
+              >
+                <Plus size={16} /> Create workout of the day
+              </button>
+            </div>
+          )}
           <button
             onClick={() => setCardioOpen(true)}
             className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform" : "w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"}
@@ -2859,6 +2963,84 @@ function WorkoutsScreen({ todaySession, scheduledWorkouts, activeLog, completedO
       )}
 
       {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} showToast={showToast} />}
+
+      {viewingAsClient && (
+        <>
+          <BottomSheet open={wodPickerOpen} onClose={() => setWodPickerOpen(false)} title="Workout of the Day">
+            <div className="space-y-2 max-h-[65vh] overflow-y-auto">
+              <button
+                onClick={() => startWod(null)}
+                className="w-full flex items-center gap-3 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded-xl px-3.5 py-3 text-left transition-colors"
+              >
+                <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
+                  <Plus size={16} className="text-white" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-black font-semibold text-sm">Build from scratch</p>
+                  <p className="text-black/40 text-xs">Pick exercises, sets and reps</p>
+                </div>
+              </button>
+              {(db.masterWorkouts || []).length > 0 && (
+                <p className="text-black/40 text-[11px] font-semibold tracking-wide pt-2 px-1">OR START FROM YOUR LIBRARY</p>
+              )}
+              {(db.masterWorkouts || []).map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => startWod(w)}
+                  className="w-full flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 text-left transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                    <Dumbbell size={15} className="text-blue-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-black font-semibold text-sm truncate">{w.label}</p>
+                    <p className="text-black/35 text-xs truncate">
+                      {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
+                      {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </BottomSheet>
+
+          {wodEditing && (
+            <WorkoutEditor
+              open
+              day={wodEditing.day}
+              exercises={db.exercises}
+              onClose={() => setWodEditing(null)}
+              onSave={saveWod}
+              showToast={showToast}
+              showDate
+              dateHint={dateHint}
+            />
+          )}
+
+          <BottomSheet open={wodRemoveOpen} onClose={() => setWodRemoveOpen(false)} title="Remove today's workout?">
+            <div className="space-y-4">
+              <p className="text-black/60 text-sm leading-snug">
+                Takes {todayScheduledEntry?.label ? `"${todayScheduledEntry.label}"` : "this workout"} off {currentUser.name?.split(" ")[0] || "the client"}'s calendar for today. Logged sessions and PBs aren't affected.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    if (todayScheduledEntry) deleteScheduledWorkoutById(todayScheduledEntry.id);
+                    setWodRemoveOpen(false);
+                    showToast?.("Workout removed");
+                  }}
+                  className="flex-1 bg-red-600 text-white text-sm font-semibold py-3 rounded-xl"
+                >
+                  Remove
+                </button>
+                <button onClick={() => setWodRemoveOpen(false)} className="flex-1 bg-black/8 text-black/70 text-sm font-semibold py-3 rounded-xl">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </BottomSheet>
+        </>
+      )}
 
       <LogCardioSheet
         open={cardioOpen}
@@ -4215,12 +4397,18 @@ function MetricDetailSheet({ metric, onClose }) {
   );
 }
 
+// onSave(weight, dateKey) — date defaults to today, can be set to any past
+// day to backfill history (e.g. weigh-ins from a previous platform).
 function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
   const dark = useClientDark();
   const [weight, setWeight] = useState("");
+  const [dateKey, setDateKey] = useState(() => localDateKey());
 
   useEffect(() => {
-    if (open) setWeight(lastWeight ? String(lastWeight) : "");
+    if (open) {
+      setWeight(lastWeight ? String(lastWeight) : "");
+      setDateKey(localDateKey());
+    }
   }, [open, lastWeight]);
 
   const parsed = Number(weight);
@@ -4238,11 +4426,16 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
           autoFocus
         />
       </Field>
+      <div className="mt-3">
+        <Field dark={dark} label="DATE">
+          <TextInput dark={dark} type="date" value={dateKey} max={localDateKey()} onChange={(e) => setDateKey(e.target.value)} />
+        </Field>
+      </div>
       <PrimaryButton dark={dark}
         className="w-full mt-4"
-        disabled={!valid}
+        disabled={!valid || !dateKey}
         onClick={() => {
-          onSave(parsed);
+          onSave(parsed, dateKey);
           setWeight("");
         }}
       >
@@ -4364,8 +4557,8 @@ function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
         open={logOpen}
         onClose={() => setLogOpen(false)}
         lastWeight={latest?.weight}
-        onSave={(w) => {
-          onLog(w);
+        onSave={(w, dateKey) => {
+          onLog(w, dateKey);
           setLogOpen(false);
         }}
       />
@@ -4801,8 +4994,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         open={quickLogOpen}
         onClose={() => setQuickLogOpen(false)}
         lastWeight={latestWeighIn?.weight}
-        onSave={(w) => {
-          onLogWeight(w);
+        onSave={(w, dateKey) => {
+          onLogWeight(w, dateKey);
           setQuickLogOpen(false);
         }}
       />
@@ -4813,7 +5006,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
           config={historyMetricConfig}
           entries={bodyMetricEntries[historyMetricConfig.key]}
           onClose={() => setHistoryMetricConfig(null)}
-          onLog={(v) => onLogBodyMetric(historyMetricConfig.key, v)}
+          onLog={(v, dateKey) => onLogBodyMetric(historyMetricConfig.key, v, dateKey)}
           onDelete={(dateKey) => onDeleteBodyMetric(dateKey, historyMetricConfig.key)}
         />
       )}
@@ -4823,8 +5016,8 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
         config={logMetricConfig}
         lastValue={logMetricConfig ? bodyMetricEntries[logMetricConfig.key]?.[bodyMetricEntries[logMetricConfig.key].length - 1]?.value : null}
         onClose={() => setLogMetricConfig(null)}
-        onSave={(v) => {
-          onLogBodyMetric(logMetricConfig.key, v);
+        onSave={(v, dateKey) => {
+          onLogBodyMetric(logMetricConfig.key, v, dateKey);
           setLogMetricConfig(null);
         }}
       />
@@ -6101,11 +6294,12 @@ function ClientCalendarScreen({
     };
   }
 
+  // Every log per date — two sessions on one day (Pull + Push) both show.
   const logsByDate = useMemo(() => {
     const map = {};
     logsForClient.forEach((l) => {
       const key = localDateKey(l.date);
-      if (!map[key]) map[key] = l;
+      (map[key] = map[key] || []).push(l);
     });
     return map;
   }, [logsForClient]);
@@ -6133,7 +6327,7 @@ function ClientCalendarScreen({
       d.setDate(start.getDate() + i);
       const dateStr = localDateKey(d);
       const scheduledList = scheduledWorkoutsListByDate[dateStr] || [];
-      const log = logsByDate[dateStr];
+      const dayLogs = logsByDate[dateStr] || [];
       const dayHabits = habits.filter((h) => {
         const createdKey = localDateKey(h.createdAt);
         if (dateStr < createdKey) return false;
@@ -6142,9 +6336,9 @@ function ClientCalendarScreen({
       });
       const checkinsToday = activeFormSchedules.filter((s) => s.dayOfWeek === d.getDay());
       const bodyStatsToday = (bodyStatsSchedules || []).some((b) => b.date === dateStr);
-      const hasContent = scheduledList.length > 0 || !!log || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
+      const hasContent = scheduledList.length > 0 || dayLogs.length > 0 || dayHabits.length > 0 || checkinsToday.length > 0 || bodyStatsToday;
       if (!hasContent && dateStr !== todayStr) continue;
-      list.push({ date: d, dateStr, scheduledList, log, dayHabits, checkinsToday, bodyStatsToday, hasContent });
+      list.push({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent });
     }
     return list;
   }, [daysBack, daysForward, scheduledWorkoutsListByDate, logsByDate, habits, activeFormSchedules, bodyStatsSchedules, todayStr]);
@@ -6213,7 +6407,7 @@ function ClientCalendarScreen({
         </button>
       </div>
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-2.5 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
-        {days.map(({ date: d, dateStr, scheduledList, log, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
+        {days.map(({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
           const isToday = dateStr === todayStr;
           const doneHabitIds = habitLogForClient[dateStr] || [];
           const habitsDone = dayHabits.filter((h) => doneHabitIds.includes(h.id)).length;
@@ -6227,7 +6421,8 @@ function ClientCalendarScreen({
           // to do with the leftover scheduled item themselves (drag or
           // delete). The standalone "completed" card below only shows when
           // the log doesn't match ANY scheduled item on this day.
-          const anyLogMatchesScheduled = !!(log && scheduledList.some((s) => log.dayLabel === s.label));
+          const scheduledLabels = new Set(scheduledList.map((s) => s.label));
+          const unmatchedLogs = dayLogs.filter((l) => !scheduledLabels.has(l.dayLabel));
           const canDragBodyStats = canEdit && !!bodyStatsToday && !bodyStatsDone;
           const isDropTarget = canEdit && dragItem && dragItem.date !== dateStr;
 
@@ -6247,7 +6442,7 @@ function ClientCalendarScreen({
               <div className={dark ? "border-b border-white/10 mb-3" : "border-b border-black/10 mb-3"} />
               <div className="space-y-2.5">
                 {scheduledList.map((scheduled) => {
-                  const logMatchesScheduled = !!(log && log.dayLabel === scheduled.label);
+                  const logMatchesScheduled = dayLogs.some((l) => l.dayLabel === scheduled.label);
                   const canDragWorkout = canEdit && !logMatchesScheduled;
                   return (
                     <CalendarEventCard
@@ -6274,15 +6469,16 @@ function ClientCalendarScreen({
                     />
                   );
                 })}
-                {log && !anyLogMatchesScheduled && (
+                {unmatchedLogs.map((log) => (
                   <CalendarEventCard
+                    key={log.id}
                     dot={{ border: "border-emerald-500", bg: "bg-emerald-500" }}
                     done
                     title={log.dayLabel}
                     subtitle="Completed."
                     onDelete={canEdit ? () => onDeleteWorkoutLog(log.id) : undefined}
                   />
-                )}
+                ))}
                 {dayHabits.map((h) => (
                   <CalendarEventCard
                     key={h.id}
@@ -6595,7 +6791,9 @@ export default function ClientApp() {
   }, [scheduledWorkoutsForClient]);
   const bodyStatsSchedulesForClient = (db.bodyStatsSchedules || {})[currentUser.id] || [];
   function scheduledToSession(entry) {
-    return entry ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises, instructions: entry.instructions || "" } : null;
+    return entry
+      ? { label: entry.label, muscleGroups: entry.muscleGroups || [], exercises: entry.exercises, instructions: entry.instructions || "", ...(entry.wod ? { wod: true } : {}) }
+      : null;
   }
   // A workout done late (e.g. Sunday's session finished Monday) is logged
   // with today's timestamp, not Sunday's — logWorkout always stamps the
@@ -6607,23 +6805,29 @@ export default function ClientApp() {
   // instead), leave that scheduled workout showing as-is rather than
   // replacing it with the catch-up session — the client decides whether
   // to remove it (swipe on the calendar), not the app.
+  // The completed-log view of one specific log — its OWN label and sets.
+  function logToSession(log, scheduled = null) {
+    return {
+      label: log.dayLabel || "Workout",
+      muscleGroups: scheduled?.muscleGroups || [],
+      instructions: scheduled?.instructions || "",
+      workoutLogId: log.id,
+      exercises: (log.entries || []).map((e) => ({
+        exerciseId: e.exerciseId,
+        targetSets: (e.sets || []).length,
+        actualSets: e.sets || [],
+        note: e.note || "",
+      })),
+    };
+  }
   function sessionForDate(dateKey, logs) {
     const scheduled = scheduledWorkoutsByDate[dateKey];
-    const completedLog = logs.find((l) => !l.cardio && localDateKey(l.date) === dateKey);
-    if (completedLog && (!scheduled || scheduled.label === completedLog.dayLabel)) {
-      return {
-        label: completedLog.dayLabel || "Workout",
-        muscleGroups: scheduled?.muscleGroups || [],
-        instructions: scheduled?.instructions || "",
-        workoutLogId: completedLog.id,
-        exercises: completedLog.entries.map((e) => ({
-          exerciseId: e.exerciseId,
-          targetSets: (e.sets || []).length,
-          actualSets: e.sets || [],
-          note: e.note || "",
-        })),
-      };
-    }
+    // With two sessions logged on one day (e.g. Pull Day + Push Day), the
+    // first log found isn't necessarily the scheduled day's own — look for
+    // the one whose label actually matches before falling back.
+    const dayLogs = logs.filter((l) => !l.cardio && localDateKey(l.date) === dateKey);
+    const completedLog = scheduled ? dayLogs.find((l) => l.dayLabel === scheduled.label) : dayLogs[0];
+    if (completedLog) return logToSession(completedLog, scheduled);
     return scheduledToSession(scheduled);
   }
   // "Completed" for a date means a log exists AND it's actually that
@@ -6815,8 +7019,29 @@ export default function ClientApp() {
   // that same day again themselves.
   useEffect(() => {
     if (!pendingCoachDate) return;
-    const dateKey = pendingCoachDate;
+    // Either a bare date (older call sites) or { date, logId, label } —
+    // the exact workout the coach tapped on their calendar.
+    const target = typeof pendingCoachDate === "string" ? { date: pendingCoachDate } : pendingCoachDate;
+    const dateKey = target.date;
     clearPendingCoachDate();
+    // "Edit" on a specific completed session: re-open THAT log, under its
+    // own name — never whatever else happens to be scheduled that day.
+    if (target.logId) {
+      const log = logsForClient.find((l) => l.id === target.logId);
+      if (log && !log.cardio) {
+        const scheduled = (scheduledWorkoutsListByDate[dateKey] || []).find((w) => w.label === log.dayLabel) || null;
+        continueCompletedWorkout(logToSession(log, scheduled), dateKey);
+        return;
+      }
+    }
+    // "Log" on a specific scheduled workout: start exactly that one.
+    if (target.label) {
+      const scheduled = (scheduledWorkoutsListByDate[dateKey] || []).find((w) => w.label === target.label);
+      if (scheduled) {
+        startWorkout(scheduledToSession(scheduled));
+        return;
+      }
+    }
     const session = sessionForDate(dateKey, logsForClient);
     if (!session) {
       setTab("calendar");
@@ -6867,6 +7092,7 @@ export default function ClientApp() {
 
   function finishWorkout() {
     const session = runningSession || todaySession;
+    if (!session) return;
     pauseActiveSegment(); // stop the clock the instant Finish is hit, before reading the total
     const elapsedMs = sessionActiveMsRef.current;
     const durationMin = Math.floor(elapsedMs / 60000);
@@ -7115,7 +7341,8 @@ export default function ClientApp() {
         {tab === "workouts" && (
           <WorkoutsScreen
             todaySession={todaySession}
-            scheduledWorkouts={scheduledWorkoutsForClient}
+            todayScheduledEntry={scheduledWorkoutsByDate[todayDateKey] || null}
+            scheduledWorkoutsByDate={scheduledWorkoutsByDate}
             activeLog={activeLog}
             completedOnDate={completedToday}
             onStart={() => startWorkout()}
@@ -7185,12 +7412,12 @@ export default function ClientApp() {
             onAddPhoto={addProgressPhoto}
             onDeletePhoto={deleteProgressPhoto}
             weighIns={weighIns}
-            onLogWeight={(w) => logWeight(currentUser.id, w)}
+            onLogWeight={(w, dateKey) => logWeight(currentUser.id, w, dateKey)}
             onDeleteWeighIn={(id) => deleteWeighIn(currentUser.id, id)}
             logsForClient={logsForClient}
             exercisesById={exercisesById}
             bodyMetrics={bodyMetricsForClient}
-            onLogBodyMetric={(field, value) => logBodyMetric(currentUser.id, todayDateKey, field, value)}
+            onLogBodyMetric={(field, value, dateKey) => logBodyMetric(currentUser.id, dateKey || todayDateKey, field, value)}
             onDeleteBodyMetric={(dateKey, field) => deleteBodyMetric(currentUser.id, dateKey, field)}
             scheduledWorkouts={scheduledWorkoutsForClient}
             autoOpenWeighInKey={autoOpenWeighIn}
