@@ -2238,17 +2238,24 @@ function WorkoutSession({
     const arr = activeLog[exMeta.exerciseId] || [];
     const row = arr[idx];
     if (!row) return;
-    const weight = parseFloat(row.weight);
     const reps = parseInt(row.reps, 10);
-    if (!weight || !reps || isNaN(weight) || isNaN(reps)) return;
+    if (!reps || isNaN(reps)) return;
+    // Weight is legitimately blank/0 for a bodyweight exercise — only reps
+    // are required to mark a set complete and check it for a PR. Requiring
+    // weight too used to silently skip completion (and PR detection
+    // entirely) for every unweighted exercise.
+    const weight = row.weight === "" || row.weight == null ? 0 : parseFloat(row.weight);
+    if (isNaN(weight)) return;
 
     // Judged against the true all-time best for this exercise, not just
     // whatever was logged last session — otherwise a weak set could "PR"
     // simply by beating a previous session that was itself below a peak
-    // set weeks earlier.
+    // set weeks earlier. No prior best at all (first time ever logging
+    // this exercise) counts as a PR too — matching the Progress tab's own
+    // Personal Bests card, which treats the first logged set the same way.
     const { bestScore, bestSet, maxWeight } = getBestEverStats(logsForClient, exMeta.exerciseId);
     const score = weight > 0 ? estimate1RM(weight, reps) : reps;
-    const isPR = bestSet ? weight > maxWeight || score > bestScore : false;
+    const isPR = !bestSet || weight > maxWeight || score > bestScore;
 
     setActiveLog((prev) => {
       const next = [...(prev[exMeta.exerciseId] || [])];
@@ -2257,7 +2264,13 @@ function WorkoutSession({
     });
 
     if (isPR) {
-      setPrToast({ exerciseName: exercisesById[exMeta.exerciseId]?.name, weight, reps, prevWeight: bestSet.weight, prevReps: bestSet.reps });
+      setPrToast({
+        exerciseName: exercisesById[exMeta.exerciseId]?.name,
+        weight,
+        reps,
+        prevWeight: bestSet?.weight ?? null,
+        prevReps: bestSet?.reps ?? null,
+      });
       setTimeout(() => setPrToast(null), 5000);
     }
   }
@@ -2378,7 +2391,10 @@ function WorkoutSession({
                 </div>
                 <p className="text-white text-xl font-bold mt-1">{prToast.exerciseName}</p>
                 <p className="text-white/70 text-sm mt-0.5">
-                  {prToast.weight}kg × {prToast.reps} · Best previous: {prToast.prevWeight}kg × {prToast.prevReps}
+                  {prToast.weight > 0 ? `${prToast.weight}kg × ${prToast.reps}` : `${prToast.reps} reps`} ·{" "}
+                  {prToast.prevWeight == null
+                    ? "First time logging this!"
+                    : `Best previous: ${prToast.prevWeight > 0 ? `${prToast.prevWeight}kg × ${prToast.prevReps}` : `${prToast.prevReps} reps`}`}
                 </p>
               </div>
             </div>
