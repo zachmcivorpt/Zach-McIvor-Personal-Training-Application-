@@ -64,6 +64,7 @@ import {
   Download,
   Flame,
   ArrowRight,
+  StickyNote,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -2162,12 +2163,16 @@ function WorkoutSession({
   onSaveNote,
   clientId,
   onLiveUpdate,
+  sessionNote,
+  onChangeSessionNote,
+  onSaveSessionNote,
 }) {
   const dark = useClientDark();
   const [noteOpenFor, setNoteOpenFor] = useState(null);
   const [swapFor, setSwapFor] = useState(null); // the original exMeta currently being swapped
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
+  const [sessionNoteOpen, setSessionNoteOpen] = useState(false);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
@@ -2347,9 +2352,24 @@ function WorkoutSession({
     <FullScreenOverlay>
       <div className={dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"}>
         <div className={dark ? "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
-          <button onClick={onExit} className={dark ? "text-white/60 text-sm font-medium" : "text-black/60 text-sm font-medium"}>
-            Cancel
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={onExit} className={dark ? "text-white/60 text-sm font-medium" : "text-black/60 text-sm font-medium"}>
+              Cancel
+            </button>
+            <button
+              onClick={() => setSessionNoteOpen(true)}
+              aria-label={sessionNote ? "Edit session note" : "Add a session note"}
+              className={`relative ${dark ? "text-white/60" : "text-black/60"}`}
+            >
+              <StickyNote size={18} fill={sessionNote ? (dark ? "#FFFFFF33" : "#00000022") : "none"} />
+              {sessionNote && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: MEASURE_BLUE }}
+                />
+              )}
+            </button>
+          </div>
           <h1 className={dark ? "text-white font-bold text-[17px] truncate px-2" : "text-black font-bold text-[17px] truncate px-2"}>{daySession.label}</h1>
           <div className="w-[52px]" />
         </div>
@@ -2436,8 +2456,62 @@ function WorkoutSession({
           />
         )}
 
+        <SessionNoteSheet
+          open={sessionNoteOpen}
+          note={sessionNote}
+          onChange={onChangeSessionNote}
+          onSave={onSaveSessionNote}
+          onClose={() => setSessionNoteOpen(false)}
+        />
       </div>
     </FullScreenOverlay>
+  );
+}
+
+// One note for the whole session (e.g. "felt flat today", "knee a bit sore
+// on squats") rather than tied to a specific exercise — same autosave
+// pattern as an exercise note, just scoped to the workout as a whole.
+function SessionNoteSheet({ open, note, onChange, onSave, onClose }) {
+  const dark = useClientDark();
+  const [status, setStatus] = useState("idle");
+  const saveTimeout = useRef(null);
+  const statusResetRef = useRef(null);
+
+  function handleChange(value) {
+    onChange(value);
+    setStatus("saving");
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    if (statusResetRef.current) clearTimeout(statusResetRef.current);
+    saveTimeout.current = setTimeout(() => {
+      onSave?.(value);
+      setStatus("saved");
+      statusResetRef.current = setTimeout(() => setStatus("idle"), 1500);
+    }, 500);
+  }
+
+  function handleClose() {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    onSave?.(note || "");
+    onClose();
+  }
+
+  return (
+    <BottomSheet dark={dark} open={open} onClose={handleClose} title="Session Note">
+      <textarea
+        value={note || ""}
+        onChange={(e) => handleChange(e.target.value)}
+        placeholder="Add a note for this whole session — how it felt, anything to flag for your coach…"
+        rows={4}
+        autoFocus
+        className={dark ? "w-full bg-black border border-white/15 rounded-xl px-3.5 py-2.5 text-white text-[14px] outline-none focus:border-white/30 placeholder:text-white/25 resize-none" : "w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[14px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"}
+      />
+      <p className="text-[11px] mt-1.5 px-0.5" style={{ color: status === "saved" ? "#16A34A" : dark ? "rgba(255,255,255,0.3)" : "rgba(10,10,11,0.3)" }}>
+        {status === "saving" ? "Saving…" : status === "saved" ? "Saved ✓" : "Autosaves as you type"}
+      </p>
+      <PrimaryButton dark={dark} className="w-full mt-4" onClick={handleClose}>
+        Done
+      </PrimaryButton>
+    </BottomSheet>
   );
 }
 
@@ -7223,6 +7297,8 @@ export default function ClientApp() {
     deleteBodyMetric,
     saveExerciseNote,
     clearExerciseNotes,
+    saveSessionNote,
+    clearSessionNote,
     viewingAsClient,
     stopViewAsClient,
     pendingCoachDate,
@@ -7252,6 +7328,9 @@ export default function ClientApp() {
   // from a previous session, so a note isn't lost if the app is closed
   // before the workout is finished.
   const [exerciseNotes, setExerciseNotes] = useState(() => persistedSession?.exerciseNotes || currentUser.draftExerciseNotes || {});
+  // One note covering the whole session, separate from per-exercise notes —
+  // same seed-from-draft-then-clear-on-finish pattern as exerciseNotes above.
+  const [sessionNote, setSessionNote] = useState(() => persistedSession?.sessionNote || currentUser.draftSessionNote || "");
   const [exerciseSwaps, setExerciseSwaps] = useState(persistedSession?.exerciseSwaps || {}); // {originalExerciseId: {toExerciseId, toName, fromName, reason}}
   const [extraExercises, setExtraExercises] = useState(persistedSession?.extraExercises || []); // exMeta objects the client inserted mid-session, not part of the original plan
   // Set when the client re-opened an already-completed workout (e.g. they
@@ -7356,7 +7435,7 @@ export default function ClientApp() {
   // visibility/pagehide flush below can read the latest values synchronously
   // from inside an event handler without waiting for an effect to re-run.
   const sessionSnapshotRef = useRef(null);
-  sessionSnapshotRef.current = { runningSession, activeLog, exerciseNotes, exerciseSwaps, extraExercises, sessionOpen, editingLogId };
+  sessionSnapshotRef.current = { runningSession, activeLog, exerciseNotes, sessionNote, exerciseSwaps, extraExercises, sessionOpen, editingLogId };
 
   function flushActiveSession() {
     try {
@@ -7374,7 +7453,7 @@ export default function ClientApp() {
 
   useEffect(() => {
     flushActiveSession();
-  }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, extraExercises, sessionOpen, editingLogId, activeMsTick]);
+  }, [currentUser.id, runningSession, activeLog, exerciseNotes, sessionNote, exerciseSwaps, extraExercises, sessionOpen, editingLogId, activeMsTick]);
 
   // Belt-and-suspenders flush for the exact moment the app is backgrounded —
   // the native iOS wrapper is a bare WKWebView with no app-level state
@@ -7484,6 +7563,7 @@ export default function ClientApp() {
       instructions: scheduled?.instructions || "",
       workoutLogId: log.id,
       durationMin: log.durationMin,
+      sessionNote: log.sessionNote || "",
       exercises: (log.entries || []).map((e) => ({
         exerciseId: e.exerciseId,
         targetSets: (e.sets || []).length,
@@ -7681,6 +7761,7 @@ export default function ClientApp() {
     const prescription = scheduled ? scheduledToSession(scheduled) : session;
     setActiveLog(Object.fromEntries(session.exercises.map((e) => [e.exerciseId, e.actualSets || []])));
     setExerciseNotes(Object.fromEntries(session.exercises.filter((e) => e.note).map((e) => [e.exerciseId, e.note])));
+    setSessionNote(session.sessionNote || "");
     setExerciseSwaps({});
     setExtraExercises([]);
     setEditingLogId(session.workoutLogId);
@@ -7839,14 +7920,20 @@ export default function ClientApp() {
         // original duration (the real time actually spent training) still
         // stands, so it's left untouched here rather than overwritten with
         // however long this quick edit took.
-        await updateWorkoutLogEntries(editingLogId, entries);
+        await updateWorkoutLogEntries(editingLogId, entries, { sessionNote: sessionNote.trim() });
       } else {
         // session.date (present for anything started from a specific
         // scheduled day — today's own, or an overdue day picked up late from
         // the calendar) ties this log to the day it actually fulfills, so
         // finishing an overdue workout today still flips THAT day to
         // completed rather than only ever showing up under today's date.
-        await logWorkout(currentUser.id, { dayLabel: session.label, entries, durationMin, ...(session.date ? { scheduledDate: session.date } : {}) });
+        await logWorkout(currentUser.id, {
+          dayLabel: session.label,
+          entries,
+          durationMin,
+          sessionNote: sessionNote.trim(),
+          ...(session.date ? { scheduledDate: session.date } : {}),
+        });
       }
     } catch (err) {
       // The write failed (offline, denied, etc) — leave the session, its
@@ -7860,9 +7947,11 @@ export default function ClientApp() {
 
     sessionActiveMsRef.current = 0;
     clearExerciseNotes(currentUser.id, Array.from(allExerciseIds));
+    clearSessionNote(currentUser.id);
     setSummaryData({ daySession: session, activeLog: cleanedLog, durationMin, durationSec });
     setActiveLog(null);
     setExerciseNotes({});
+    setSessionNote("");
     setExerciseSwaps({});
     setExtraExercises([]);
     setEditingLogId(null);
@@ -8208,6 +8297,9 @@ export default function ClientApp() {
             onSaveNote={(exerciseId, value) => saveExerciseNote(currentUser.id, exerciseId, value)}
             clientId={currentUser.id}
             onLiveUpdate={updateLiveSession}
+            sessionNote={sessionNote}
+            onChangeSessionNote={setSessionNote}
+            onSaveSessionNote={(value) => saveSessionNote(currentUser.id, value)}
           />
         )}
         {summaryOpen && summaryData && (

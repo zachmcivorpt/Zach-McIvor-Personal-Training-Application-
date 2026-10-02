@@ -1311,6 +1311,16 @@ export function AppProvider({ children }) {
         updateDoc(doc(firestore, "users", clientId), updates).catch(console.error);
       },
 
+      // Same idea as saveExerciseNote/clearExerciseNotes above, but for one
+      // note covering the whole session (e.g. "felt flat today, cut it
+      // short") rather than a specific exercise.
+      saveSessionNote(clientId, note) {
+        updateDoc(doc(firestore, "users", clientId), { draftSessionNote: note }).catch(console.error);
+      },
+      clearSessionNote(clientId) {
+        updateDoc(doc(firestore, "users", clientId), { draftSessionNote: deleteField() }).catch(console.error);
+      },
+
       // Nutrition logged per calendar day — doc id is deterministic
       // (clientId__date) so each day's log is separate, mirroring the
       // scheduledWorkouts date-keyed pattern.

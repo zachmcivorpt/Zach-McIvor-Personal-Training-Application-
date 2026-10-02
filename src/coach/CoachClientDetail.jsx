@@ -3848,7 +3848,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
   const [commentsOpen, setCommentsOpen] = useState(false);
   const workoutNote = ((db.clientNotes || {})[log.clientId] || []).find((n) => n.workoutLogId === log.id);
   const comments = ((db.workoutComments || {})[log.clientId] || []).filter((c) => c.workoutLogId === log.id);
-  const hasFlags = log.entries.some((e) => e.note || e.swapReason) || !!workoutNote;
+  const hasFlags = log.entries.some((e) => e.note || e.swapReason) || !!workoutNote || !!log.sessionNote;
   const prCount = log.entries.reduce((a, e) => a + e.sets.filter((s) => s.isPR).length, 0);
   const volume = log.entries.reduce((a, e) => a + e.sets.reduce((b, s) => b + (s.weight || 0) * (s.reps || 0), 0), 0);
   // Only computed when the caller passes the client's full history — a
@@ -4018,6 +4018,15 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                   </div>
                 </div>
               )}
+            </div>
+          )}
+          {log.sessionNote && (
+            <div className="flex items-start gap-1.5 bg-blue-50 rounded-lg px-3 py-2.5">
+              <NotebookPen size={12} className="text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-blue-700 text-[11px] font-semibold mb-0.5">Client's session note</p>
+                <p className="text-blue-600/80 text-xs leading-relaxed whitespace-pre-wrap">{log.sessionNote}</p>
+              </div>
             </div>
           )}
           <div className="space-y-2.5">
