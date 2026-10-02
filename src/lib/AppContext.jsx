@@ -1369,14 +1369,18 @@ export function AppProvider({ children }) {
       // client's history from another platform. Today (or none) keeps the
       // real current time; a past date is stamped at midday local time so
       // it can never drift onto the neighbouring day in any timezone view.
-      logWeight(clientId, weight, dateKey) {
+      async logWeight(clientId, weight, dateKey) {
         const id = newDocId("weighIns");
         let date = Date.now();
         if (dateKey && dateKey !== localDateKey()) {
           const [y, m, d] = dateKey.split("-").map(Number);
           date = new Date(y, m - 1, d, 12, 0, 0).getTime();
         }
-        setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date }).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date });
+        } catch (err) {
+          throw new Error("Couldn't save your weigh-in — check your connection and try again");
+        }
       },
 
       // One doc per client per calendar day (steps, sleep, body fat %, lean
@@ -1397,8 +1401,12 @@ export function AppProvider({ children }) {
         updateDoc(doc(firestore, "bodyMetrics", id), { [field]: deleteField() }).catch(console.error);
       },
 
-      deleteWeighIn(clientId, weighInId) {
-        deleteDoc(doc(firestore, "weighIns", weighInId)).catch(console.error);
+      async deleteWeighIn(clientId, weighInId) {
+        try {
+          await deleteDoc(doc(firestore, "weighIns", weighInId));
+        } catch (err) {
+          throw new Error("Couldn't remove that weigh-in — check your connection and try again");
+        }
       },
 
       // Workouts scheduled onto specific calendar dates for a client — the

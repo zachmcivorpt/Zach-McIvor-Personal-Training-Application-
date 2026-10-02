@@ -4952,6 +4952,7 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
           autoFocus
         />
       </Field>
+      {weight !== "" && !valid && <p className="text-red-500 text-xs mt-1.5">Enter a weight greater than 0</p>}
       <div className="mt-3">
         <Field dark={dark} label="DATE">
           <TextInput dark={dark} type="date" value={dateKey} max={localDateKey()} onChange={(e) => setDateKey(e.target.value)} />
@@ -8146,8 +8147,9 @@ export default function ClientApp() {
             }}
             onDeleteWeighIn={(weighInId) => {
               if (!weighInId) return;
-              deleteWeighIn(currentUser.id, weighInId);
-              showToast("Weigh-in removed");
+              deleteWeighIn(currentUser.id, weighInId)
+                .then(() => showToast("Weigh-in removed"))
+                .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again"));
             }}
           />
         )}
@@ -8158,8 +8160,16 @@ export default function ClientApp() {
             onAddPhoto={addProgressPhoto}
             onDeletePhoto={deleteProgressPhoto}
             weighIns={weighIns}
-            onLogWeight={(w, dateKey) => logWeight(currentUser.id, w, dateKey)}
-            onDeleteWeighIn={(id) => deleteWeighIn(currentUser.id, id)}
+            onLogWeight={(w, dateKey) =>
+              logWeight(currentUser.id, w, dateKey)
+                .then(() => showToast("Weigh-in saved"))
+                .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"))
+            }
+            onDeleteWeighIn={(id) =>
+              deleteWeighIn(currentUser.id, id)
+                .then(() => showToast("Weigh-in removed"))
+                .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again"))
+            }
             logsForClient={logsForClient}
             exercisesById={exercisesById}
             bodyMetrics={bodyMetricsForClient}

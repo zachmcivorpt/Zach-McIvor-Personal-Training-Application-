@@ -4467,7 +4467,7 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
   );
 }
 
-function ProgressPanel({ client }) {
+function ProgressPanel({ client, showToast }) {
   const { db, logWeight, deleteWeighIn, logBodyMetric, deleteBodyMetric } = useApp();
   const photos = db.progressPhotos[client.id] || [];
   const logs = db.workoutLogs[client.id] || [];
@@ -4585,8 +4585,16 @@ function ProgressPanel({ client }) {
           config={{ key: "weight", label: "Body Weight", unit: "kg", icon: Scale }}
           entries={weighIns.map((w) => ({ id: w.id, date: w.date, value: w.weight }))}
           onClose={() => setWeightHistoryOpen(false)}
-          onLog={(v, dateKey) => logWeight(client.id, v, dateKey)}
-          onDelete={(_dateKey, weighInId) => deleteWeighIn(client.id, weighInId)}
+          onLog={(v, dateKey) =>
+            logWeight(client.id, v, dateKey)
+              .then(() => showToast?.("Weigh-in saved"))
+              .catch((err) => showToast?.(err.message || "Couldn't save — check your connection and try again"))
+          }
+          onDelete={(_dateKey, weighInId) =>
+            deleteWeighIn(client.id, weighInId)
+              .then(() => showToast?.("Weigh-in removed"))
+              .catch((err) => showToast?.(err.message || "Couldn't remove — check your connection and try again"))
+          }
         />
       )}
 
@@ -5700,7 +5708,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
         {clientTab === "calendar" && <CalendarPanel client={client} showToast={showToast} />}
         {clientTab === "program" && <TrainingProgramPanel client={client} showToast={showToast} />}
         {clientTab === "nutrition" && <NutritionPanel client={client} showToast={showToast} />}
-        {clientTab === "progress" && <ProgressPanel client={client} />}
+        {clientTab === "progress" && <ProgressPanel client={client} showToast={showToast} />}
         {clientTab === "habits" && <HabitsPanel client={client} />}
         {clientTab === "checkins" && <CheckInsPanel client={client} showToast={showToast} />}
       </div>
