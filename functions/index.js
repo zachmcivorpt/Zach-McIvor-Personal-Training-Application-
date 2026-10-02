@@ -267,42 +267,72 @@ const MUSCLE_REGION = { Chest: "Push", Shoulders: "Push", Triceps: "Push", Back:
 // something in each — never pulling from outside what they're assigned.
 const WOD_REGION_ORDER = ["Legs", "Push", "Pull", "Core"];
 
+// Used to prefer an actual main/compound lift over an accessory sharing
+// the same category (e.g. Bench Press over Cable Fly — both "Chest") when
+// a region has more than one candidate in the client's program.
+const COMPOUND_KEYWORDS = [
+  "squat", "deadlift", "bench press", "overhead press", "shoulder press",
+  "row", "pull up", "pull-up", "chin up", "chin-up", "press",
+];
+function isCompoundName(name) {
+  const n = (name || "").toLowerCase();
+  return COMPOUND_KEYWORDS.some((k) => n.includes(k));
+}
+
 // callClaude() and CLAUDE_MODEL are defined further down this file (the
 // APEX AI Insights / Coach Notes section) — both are available here by the
 // time this actually runs: function declarations hoist, and this code only
 // executes when the scheduler fires, well after the whole module has
 // finished loading.
 
-// Builds a ~4-exercise full-body session from whatever's actually in the
-// client's current phase — one exercise per region in WOD_REGION_ORDER,
-// skipped entirely if nothing in their program matches that region.
-// Returns null if their program has nothing usable at all (never
-// fabricates an exercise they weren't already assigned).
+// Builds a ~4-exercise full-body session from the client's own currently
+// assigned sessions — one exercise per region in WOD_REGION_ORDER, each
+// one the actual main lift of whichever session it came from (not a
+// warm-up/cool-down entry, and preferred over an accessory sharing the
+// same category), skipped entirely if nothing in their program matches
+// that region. Returns null if their program has nothing usable at all
+// (never fabricates an exercise they weren't already assigned).
 async function buildInactivityWod(clientId, todayKey) {
   const phasesSnap = await db.collection("clientPhases").where("clientId", "==", clientId).get();
   const phase = pickCurrentPhase(phasesSnap.docs.map((d) => d.data()), todayKey);
   if (!phase) return null;
 
-  const exerciseIds = new Set();
+  // Only a session's genuine working exercises count as "their lifts" —
+  // warm-up/cool-down entries exist to prepare/recover, not to reset from.
+  const candidates = [];
   for (const week of phase.weeks || []) {
     for (const day of week.days || []) {
       for (const ex of day.exercises || []) {
-        if (ex.exerciseId) exerciseIds.add(ex.exerciseId);
+        if (!ex.exerciseId) continue;
+        if ((ex.section || "main") !== "main") continue;
+        candidates.push({ exerciseId: ex.exerciseId, targetSets: ex.targetSets || 1 });
       }
     }
   }
-  if (exerciseIds.size === 0) return null;
+  if (candidates.length === 0) return null;
 
   const exercisesSnap = await db.collection("exercises").get();
   const exercisesById = new Map(exercisesSnap.docs.map((d) => [d.id, d.data()]));
 
+  // Ranks candidates within a region: a name match against known
+  // compound-lift keywords first, then the exercise with the most
+  // prescribed sets as the tiebreak — a main lift is consistently
+  // programmed with more working sets than an accessory in the same
+  // category, so this reliably lands on the session's actual main lift
+  // rather than whichever exercise happened to be listed first.
   const byRegion = {};
-  for (const exerciseId of exerciseIds) {
-    const region = MUSCLE_REGION[exercisesById.get(exerciseId)?.category];
-    if (region && !byRegion[region]) byRegion[region] = exerciseId; // first found per region is fine — no ranking data worth preferring one over another
+  for (const { exerciseId, targetSets } of candidates) {
+    const exercise = exercisesById.get(exerciseId);
+    const region = MUSCLE_REGION[exercise?.category];
+    if (!region) continue;
+    const compound = isCompoundName(exercise.name);
+    const current = byRegion[region];
+    if (!current || (compound && !current.compound) || (compound === current.compound && targetSets > current.targetSets)) {
+      byRegion[region] = { exerciseId, compound, targetSets };
+    }
   }
 
-  const picked = WOD_REGION_ORDER.map((region) => byRegion[region]).filter(Boolean);
+  const picked = WOD_REGION_ORDER.map((region) => byRegion[region]?.exerciseId).filter(Boolean);
   if (picked.length === 0) return null;
 
   return picked.map((exerciseId) => ({
