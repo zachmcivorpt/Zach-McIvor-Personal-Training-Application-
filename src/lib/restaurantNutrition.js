@@ -25,8 +25,10 @@ const RESTAURANT_MENUS = {
     // (fatsecret.com.au) — the meal combos below are built from this
     // same number so a tapped breakdown always sums to the real total.
     { name: "Big Mac", calories: 492, protein: 25, carbs: 35, fat: 27, tags: ["gluten", "dairy"] },
-    { name: "Quarter Pounder with Cheese", calories: 520, protein: 30, carbs: 41, fat: 26, tags: ["gluten", "dairy"] },
-    { name: "6pc Chicken McNuggets", calories: 250, protein: 14, carbs: 15, fat: 15, tags: ["gluten"] },
+    { name: "Quarter Pounder with Cheese", calories: 513, protein: 29, carbs: 40, fat: 28, tags: ["gluten", "dairy"] },
+    // Corrected to the real fatsecret.com.au Australia figure — was
+    // previously overestimated by ~16%.
+    { name: "6pc Chicken McNuggets", calories: 216, protein: 12, carbs: 12, fat: 13, tags: ["gluten"] },
     { name: "Grilled Chicken Salad (no dressing)", calories: 220, protein: 27, carbs: 10, fat: 8, tags: [] },
     { name: "Side Salad", calories: 20, protein: 1, carbs: 4, fat: 0, tags: ["vegetarian"] },
     { name: "Small Fries", calories: 230, protein: 3, carbs: 30, fat: 11, tags: ["vegetarian"] },
@@ -117,13 +119,13 @@ const RESTAURANT_MENUS = {
     },
     {
       name: "Small Quarter Pounder Meal (Coke No Sugar)",
-      calories: 752,
-      protein: 33,
-      carbs: 71,
-      fat: 37,
+      calories: 745,
+      protein: 32,
+      carbs: 70,
+      fat: 39,
       tags: ["gluten", "dairy", "combo"],
       contents: [
-        { name: "Quarter Pounder with Cheese", calories: 520, protein: 30, carbs: 41, fat: 26 },
+        { name: "Quarter Pounder with Cheese", calories: 513, protein: 29, carbs: 40, fat: 28 },
         { name: "Small Fries", calories: 230, protein: 3, carbs: 30, fat: 11 },
         { name: "Coke No Sugar (small)", calories: 2, protein: 0, carbs: 0, fat: 0 },
       ],
@@ -172,7 +174,8 @@ const RESTAURANT_MENUS = {
   ],
   subway: [
     { name: "Turkey Breast 6-inch", calories: 280, protein: 18, carbs: 46, fat: 4, tags: ["gluten"] },
-    { name: "Chicken Teriyaki 6-inch", calories: 370, protein: 26, carbs: 55, fat: 5, tags: ["gluten"] },
+    // Corrected to match published Subway data — carbs were overstated.
+    { name: "Chicken Teriyaki 6-inch", calories: 340, protein: 26, carbs: 46, fat: 6, tags: ["gluten"] },
     { name: "Veggie Delite 6-inch", calories: 230, protein: 9, carbs: 44, fat: 3, tags: ["gluten", "vegetarian"] },
     { name: "Tuna 6-inch", calories: 450, protein: 19, carbs: 44, fat: 22, tags: ["gluten", "dairy"] },
     { name: "Steak & Cheese 6-inch", calories: 380, protein: 24, carbs: 45, fat: 12, tags: ["gluten", "dairy"] },
@@ -196,7 +199,9 @@ const RESTAURANT_MENUS = {
     { name: "Whopper", calories: 660, protein: 28, carbs: 49, fat: 40, tags: ["gluten"] },
     { name: "Hamburger", calories: 240, protein: 12, carbs: 29, fat: 9, tags: ["gluten"] },
     { name: "Crispy Chicken Burger", calories: 500, protein: 22, carbs: 50, fat: 24, tags: ["gluten"] },
-    { name: "Grilled Chicken Burger", calories: 380, protein: 28, carbs: 38, fat: 13, tags: ["gluten"] },
+    // Corrected to match the real Hungry Jack's AU "Grilled Chicken
+    // Classic Burger" figure — protein was overstated, fat understated.
+    { name: "Grilled Chicken Burger", calories: 344, protein: 23, carbs: 29, fat: 16, tags: ["gluten"] },
     { name: "4pc Chicken Nuggets", calories: 170, protein: 9, carbs: 11, fat: 10, tags: ["gluten"] },
     { name: "Small Fries", calories: 230, protein: 3, carbs: 29, fat: 11, tags: ["vegetarian"] },
     { name: "Garden Salad", calories: 60, protein: 4, carbs: 8, fat: 2, tags: ["vegetarian"] },
@@ -231,13 +236,13 @@ const RESTAURANT_MENUS = {
     },
     {
       name: "Small Grilled Chicken Meal (Coke No Sugar)",
-      calories: 612,
-      protein: 31,
-      carbs: 67,
-      fat: 24,
+      calories: 576,
+      protein: 26,
+      carbs: 58,
+      fat: 27,
       tags: ["gluten", "combo"],
       contents: [
-        { name: "Grilled Chicken Burger", calories: 380, protein: 28, carbs: 38, fat: 13 },
+        { name: "Grilled Chicken Burger", calories: 344, protein: 23, carbs: 29, fat: 16 },
         { name: "Small Fries", calories: 230, protein: 3, carbs: 29, fat: 11 },
         { name: "Coke No Sugar (small)", calories: 2, protein: 0, carbs: 0, fat: 0 },
       ],
