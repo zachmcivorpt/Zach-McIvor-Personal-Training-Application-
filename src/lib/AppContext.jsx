@@ -1264,9 +1264,13 @@ export function AppProvider({ children }) {
         return { removedCount: toDelete.length, groupCount };
       },
 
-      logWorkout(clientId, entry) {
+      async logWorkout(clientId, entry) {
         const id = newDocId("workoutLogs");
-        setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry });
+        } catch (err) {
+          throw new Error("Couldn't save your workout — check your connection and try again");
+        }
       },
 
       // A lightweight, ephemeral doc (one per client, doc id === clientId —
@@ -1554,8 +1558,12 @@ export function AppProvider({ children }) {
       // on a workout log (Trainerize's Edit Stats / Edit This Workout).
       // `extra` lets the same save also fix the session's name (dayLabel)
       // when it was logged under the wrong workout.
-      updateWorkoutLogEntries(logId, entries, extra) {
-        updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) }).catch(console.error);
+      async updateWorkoutLogEntries(logId, entries, extra) {
+        try {
+          await updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) });
+        } catch (err) {
+          throw new Error("Couldn't save your changes — check your connection and try again");
+        }
       },
 
       // Moves a completed log onto a different calendar date, keeping the

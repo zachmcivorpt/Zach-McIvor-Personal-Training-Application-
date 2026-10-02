@@ -4311,6 +4311,8 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
   const [search, setSearch] = useState("");
   const [dateDraft, setDateDraft] = useState(() => localDateKey(log.date));
   const [labelDraft, setLabelDraft] = useState(log.dayLabel || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const allExercises = useMemo(() => Object.values(exercisesById).sort((a, b) => a.name.localeCompare(b.name)), [exercisesById]);
   const filtered = useMemo(
@@ -4336,7 +4338,7 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
     setSearch("");
   }
 
-  function saveStats() {
+  async function saveStats() {
     const cleaned = entries
       .filter((e) => e.sets.length > 0)
       .map((e) => ({
@@ -4344,8 +4346,16 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
         sets: e.sets.map((s, i) => ({ ...s, setNumber: i + 1, weight: Number(s.weight) || 0, reps: Number(s.reps) || 0, completed: true })),
       }));
     const nextLabel = labelDraft.trim();
-    updateWorkoutLogEntries(log.id, cleaned, nextLabel && nextLabel !== log.dayLabel ? { dayLabel: nextLabel } : undefined);
-    onClose();
+    setSaving(true);
+    setError("");
+    try {
+      await updateWorkoutLogEntries(log.id, cleaned, nextLabel && nextLabel !== log.dayLabel ? { dayLabel: nextLabel } : undefined);
+      onClose();
+    } catch (err) {
+      setError(err.message || "Couldn't save — please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function saveMove() {
@@ -4454,9 +4464,11 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
           </button>
         )}
 
+        {error && <p className="text-red-600 text-xs bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
+
         <div className="flex items-center gap-3 pt-1">
-          <PrimaryButton onClick={saveStats} className="flex-1">
-            Save Changes
+          <PrimaryButton onClick={saveStats} disabled={saving} className="flex-1">
+            {saving ? "Saving…" : "Save Changes"}
           </PrimaryButton>
           <SecondaryButton onClick={onClose} className="flex-1">
             Cancel

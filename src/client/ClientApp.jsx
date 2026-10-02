@@ -2208,6 +2208,7 @@ function WorkoutSession({
   extraExercises,
   setExtraExercises,
   onFinish,
+  finishing,
   onExit,
   onSaveNote,
   clientId,
@@ -2460,8 +2461,8 @@ function WorkoutSession({
             <Plus size={16} />
             Add Exercise
           </button>
-          <PrimaryButton dark={dark} className="w-full" onClick={onFinish}>
-            Complete Workout
+          <PrimaryButton dark={dark} className="w-full" onClick={onFinish} disabled={finishing}>
+            {finishing ? "Saving…" : "Complete Workout"}
           </PrimaryButton>
         </div>
 
@@ -7346,6 +7347,7 @@ export default function ClientApp() {
   // accidentally hit Save mid-session) to keep logging — finishWorkout()
   // updates this existing log's entries instead of creating a new one.
   const [editingLogId, setEditingLogId] = useState(persistedSession?.editingLogId || null);
+  const [finishingWorkout, setFinishingWorkout] = useState(false);
   const [sessionOpen, setSessionOpen] = useState(persistedSession?.sessionOpen || false);
   const [preStartOpen, setPreStartOpen] = useState(false);
   const [previewSession, setPreviewSession] = useState(null);
@@ -7829,14 +7831,13 @@ export default function ClientApp() {
     updateLiveSession(currentUser.id, { label: session?.label || "Workout", startedAt: Date.now(), activeLog: {} });
   }
 
-  function finishWorkout() {
+  async function finishWorkout() {
     const session = runningSession || todaySession;
-    if (!session) return;
+    if (!session || finishingWorkout) return;
     pauseActiveSegment(); // stop the clock the instant Finish is hit, before reading the total
     const elapsedMs = sessionActiveMsRef.current;
     const durationMin = Math.floor(elapsedMs / 60000);
     const durationSec = Math.floor((elapsedMs % 60000) / 1000);
-    sessionActiveMsRef.current = 0;
     const raw = activeLog || {};
     const cleanedLog = {};
     Object.entries(raw).forEach(([exerciseId, sets]) => {
@@ -7883,27 +7884,41 @@ export default function ClientApp() {
       (id) => (exerciseNotes[id] || "").trim() && sessionExerciseIds.has(id)
     );
     const allExerciseIds = new Set([...Object.keys(cleanedLog), ...notedExerciseIds]);
-    clearExerciseNotes(currentUser.id, Array.from(allExerciseIds));
     const entries = Array.from(allExerciseIds).map((exerciseId) => ({
       exerciseId,
       sets: cleanedLog[exerciseId] || [],
       note: exerciseNotes[exerciseId] || "",
       ...(swapByToId[exerciseId] || {}),
     }));
-    if (editingLogId) {
-      // Re-opened an already-completed workout to fix a stat — the
-      // original duration (the real time actually spent training) still
-      // stands, so it's left untouched here rather than overwritten with
-      // however long this quick edit took.
-      updateWorkoutLogEntries(editingLogId, entries);
-    } else {
-      // session.date (present for anything started from a specific
-      // scheduled day — today's own, or an overdue day picked up late from
-      // the calendar) ties this log to the day it actually fulfills, so
-      // finishing an overdue workout today still flips THAT day to
-      // completed rather than only ever showing up under today's date.
-      logWorkout(currentUser.id, { dayLabel: session.label, entries, durationMin, ...(session.date ? { scheduledDate: session.date } : {}) });
+
+    setFinishingWorkout(true);
+    try {
+      if (editingLogId) {
+        // Re-opened an already-completed workout to fix a stat — the
+        // original duration (the real time actually spent training) still
+        // stands, so it's left untouched here rather than overwritten with
+        // however long this quick edit took.
+        await updateWorkoutLogEntries(editingLogId, entries);
+      } else {
+        // session.date (present for anything started from a specific
+        // scheduled day — today's own, or an overdue day picked up late from
+        // the calendar) ties this log to the day it actually fulfills, so
+        // finishing an overdue workout today still flips THAT day to
+        // completed rather than only ever showing up under today's date.
+        await logWorkout(currentUser.id, { dayLabel: session.label, entries, durationMin, ...(session.date ? { scheduledDate: session.date } : {}) });
+      }
+    } catch (err) {
+      // The write failed (offline, denied, etc) — leave the session, its
+      // sets and the elapsed clock exactly as they were so nothing logged
+      // is lost; the client can just hit Finish again once reconnected,
+      // instead of the whole workout silently vanishing.
+      setFinishingWorkout(false);
+      showToast(err.message || "Couldn't save your workout — check your connection and try again");
+      return;
     }
+
+    sessionActiveMsRef.current = 0;
+    clearExerciseNotes(currentUser.id, Array.from(allExerciseIds));
     setSummaryData({ daySession: session, activeLog: cleanedLog, durationMin, durationSec });
     setActiveLog(null);
     setExerciseNotes({});
@@ -7914,6 +7929,7 @@ export default function ClientApp() {
     setSummaryOpen(true);
     setRunningSession(null);
     clearLiveSession(currentUser.id);
+    setFinishingWorkout(false);
   }
 
   function openPreview(session, canStart, isTodayLog = false) {
@@ -8098,8 +8114,9 @@ export default function ClientApp() {
             logsForClient={logsForClient}
             exercisesById={exercisesById}
             onLogCardio={(cardio) => {
-              logWorkout(currentUser.id, { dayLabel: `${cardio.activityLabel} (Cardio)`, entries: [], cardio });
-              showToast(`${cardio.activityLabel} logged`);
+              logWorkout(currentUser.id, { dayLabel: `${cardio.activityLabel} (Cardio)`, entries: [], cardio })
+                .then(() => showToast(`${cardio.activityLabel} logged`))
+                .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"));
             }}
             dbReady={dbReady}
             showToast={showToast}
@@ -8242,6 +8259,7 @@ export default function ClientApp() {
             extraExercises={extraExercises}
             setExtraExercises={setExtraExercises}
             onFinish={finishWorkout}
+            finishing={finishingWorkout}
             onExit={() => {
               setSessionOpen(false);
               clearLiveSession(currentUser.id);
