@@ -105,6 +105,73 @@ function CoachSignupForm() {
   );
 }
 
+function ForgotPasswordForm({ initialEmail, onBack }) {
+  const { sendPasswordReset } = useApp();
+  const [email, setEmail] = useState(initialEmail || "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    if (!email.trim()) {
+      setError("Enter your email.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await sendPasswordReset(email.trim());
+      setSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <div>
+        <p className="text-white/70 text-sm text-center mb-6">
+          If an account exists for <span className="text-white font-semibold">{email.trim()}</span>, a password reset link is on its way.
+        </p>
+        <button type="button" onClick={onBack} className="block mx-auto text-white font-semibold text-sm underline underline-offset-2">
+          Back to sign in
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-white/50 text-sm text-center mb-6">Enter your email and we'll send you a link to reset your password.</p>
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="EMAIL">
+          <TextInput
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoCapitalize="none"
+            autoComplete="username"
+            autoFocus
+          />
+        </Field>
+
+        {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
+
+        <PrimaryButton type="submit" disabled={busy} className="w-full !rounded-full">
+          {busy ? "SENDING…" : "SEND RESET LINK"}
+        </PrimaryButton>
+        <button type="button" onClick={onBack} className="block mx-auto text-white/50 text-sm">
+          Back to sign in
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function LoginScreen() {
   const { login, hasCoach, currentUser, db } = useApp();
   const navigate = useNavigate();
@@ -114,6 +181,7 @@ export default function LoginScreen() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   // Set the instant a sign-in genuinely succeeds — Firebase accepted the
   // credential and handed back a real account. Distinct from `session`
   // (which the app can also reach via other means) so the "couldn't find
@@ -243,6 +311,8 @@ export default function LoginScreen() {
 
           {showCoachSignup ? (
             <CoachSignupForm />
+          ) : forgotOpen ? (
+            <ForgotPasswordForm initialEmail={username} onBack={() => setForgotOpen(false)} />
           ) : (
             <>
               <form onSubmit={submit} className="space-y-4">
@@ -257,16 +327,28 @@ export default function LoginScreen() {
                     autoComplete="username"
                   />
                 </Field>
-                <Field label="PASSWORD">
-                  <TextInput
-                    type="password"
-                    name="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                  />
-                </Field>
+                <div>
+                  <Field label="PASSWORD">
+                    <TextInput
+                      type="password"
+                      name="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                    />
+                  </Field>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setError("");
+                      setForgotOpen(true);
+                    }}
+                    className="block text-white/50 text-xs mt-1.5"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
 
                 {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
 
