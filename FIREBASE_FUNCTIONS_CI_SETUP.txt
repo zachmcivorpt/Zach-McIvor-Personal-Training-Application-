@@ -1,0 +1,71 @@
+Auto-Deploy for Cloud Functions — one-time setup
+===================================================
+
+WHAT THIS IS
+------------
+Functions now deploy automatically whenever functions/ changes and gets
+pushed to main — no terminal, no Node install, no `firebase deploy`
+ever again. Same idea as how your web app already auto-deploys to
+Vercel and the iOS/Android apps already auto-build on Codemagic.
+
+Two things, both just clicking around in a browser — no typing commands.
+
+
+STEP 1 — GET A FIREBASE SERVICE ACCOUNT KEY
+------------------------------------------------
+1. Go to https://console.firebase.google.com and open your project
+   (zach-mcivor-pt-app).
+2. Click the gear icon (top-left) → Project Settings.
+3. Click the "Service accounts" tab.
+4. Click "Generate new private key" → confirm "Generate key".
+5. A .json file downloads to your computer. Keep it — you'll paste its
+   contents in Step 2. (Don't share this file or post it anywhere
+   public — it's a real credential for your Firebase project.)
+
+
+STEP 2 — ADD IT TO GITHUB AS A SECRET
+-------------------------------------------
+1. Go to your repo on github.com:
+   https://github.com/zachmcivorpt/Zach-McIvor-Personal-Training-Application-
+2. Click "Settings" (top menu of the repo).
+3. In the left sidebar: "Secrets and variables" → "Actions".
+4. Click "New repository secret".
+5. Name:  FIREBASE_SERVICE_ACCOUNT
+6. Value: open the .json file from Step 1 in any text editor, select
+   all, copy, and paste the whole thing in here.
+7. Click "Add secret".
+
+That's it — setup's done.
+
+
+RUNNING IT FOR THE FIRST TIME
+----------------------------------
+The workflow only auto-triggers on a NEW push that changes something in
+functions/ — it won't retroactively run for code already pushed. To
+deploy what's already there right now (including the new inactivityWod
+function):
+
+1. In your repo on github.com, click the "Actions" tab.
+2. Click "Deploy Cloud Functions" in the left list.
+3. Click the "Run workflow" button (top-right of that page) → "Run workflow".
+4. Wait a minute or two, then click into the run to watch it — a green
+   checkmark means it worked. Look for "inactivityWod" in the deploy
+   log to confirm that function specifically went out.
+
+From then on, any future change to functions/ that gets pushed to main
+deploys itself automatically — no more manual steps.
+
+
+IF THE DEPLOY FAILS WITH A PERMISSIONS ERROR
+-------------------------------------------------
+The default service account key from Step 1 is usually enough, but
+Google occasionally needs one extra grant for Cloud Functions deploys.
+If the Actions log shows a permission-denied error:
+
+1. Go to https://console.cloud.google.com/iam-admin/iam and make sure
+   zach-mcivor-pt-app is selected as the project (top bar).
+2. Find the service account ending in
+   "@zach-mcivor-pt-app.iam.gserviceaccount.com" in the list.
+3. Click the pencil/edit icon next to it → "Add another role" →
+   search for and select "Editor" → Save.
+4. Re-run the workflow (Step "RUNNING IT FOR THE FIRST TIME" above).

@@ -1,0 +1,37 @@
+name: Deploy Cloud Functions
+
+# Auto-deploys functions/ to Firebase whenever it changes on main — same
+# "push to main and it just ships" pattern codemagic.yaml already gives
+# the iOS/Android builds and Vercel already gives the web app. Needs a
+# one-time FIREBASE_SERVICE_ACCOUNT repo secret (see
+# FIREBASE_FUNCTIONS_CI_SETUP.txt) before it can actually authenticate —
+# until that secret exists, a run just fails at the deploy step with a
+# clear auth error, nothing else in the app is affected either way.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "functions/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install functions dependencies
+        working-directory: functions
+        run: npm install
+
+      - name: Write Firebase service account key
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/firebase-sa.json"
+
+      - name: Deploy to Firebase
+        run: npx firebase-tools deploy --only functions --project zach-mcivor-pt-app --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
