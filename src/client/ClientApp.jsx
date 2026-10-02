@@ -7439,27 +7439,57 @@ export default function ClientApp() {
       localStorage.setItem(lastTabKey(currentUser.id), tab);
     } catch {}
   }, [currentUser.id, tab]);
-  useEffect(() => {
+
+  // Always-current snapshot of everything the active-session write below
+  // needs — kept on a ref (updated every render, no effect) so the
+  // visibility/pagehide flush below can read the latest values synchronously
+  // from inside an event handler without waiting for an effect to re-run.
+  const sessionSnapshotRef = useRef(null);
+  sessionSnapshotRef.current = { runningSession, activeLog, exerciseNotes, exerciseSwaps, extraExercises, sessionOpen, editingLogId };
+
+  function flushActiveSession() {
     try {
-      if (runningSession && (sessionOpen || activeLog)) {
+      const snap = sessionSnapshotRef.current;
+      if (snap.runningSession && (snap.sessionOpen || snap.activeLog)) {
         localStorage.setItem(
           activeSessionKey(currentUser.id),
-          JSON.stringify({
-            runningSession,
-            activeLog,
-            exerciseNotes,
-            exerciseSwaps,
-            extraExercises,
-            sessionOpen,
-            editingLogId,
-            activeMs: sessionActiveMsRef.current,
-          })
+          JSON.stringify({ ...snap, activeMs: sessionActiveMsRef.current })
         );
       } else {
         localStorage.removeItem(activeSessionKey(currentUser.id));
       }
     } catch {}
+  }
+
+  useEffect(() => {
+    flushActiveSession();
   }, [currentUser.id, runningSession, activeLog, exerciseNotes, exerciseSwaps, extraExercises, sessionOpen, editingLogId, activeMsTick]);
+
+  // Belt-and-suspenders flush for the exact moment the app is backgrounded —
+  // the native iOS wrapper is a bare WKWebView with no app-level state
+  // restoration of its own, so a backgrounded session that gets fully
+  // killed by iOS (common under memory pressure) relies entirely on
+  // whatever's already on disk. The effect above writes on every state
+  // change, but there's a real gap between React committing a state update
+  // and its effect actually running (effects are deferred, not synchronous
+  // with the render) — if the OS suspends the JS context inside that gap,
+  // whatever triggered that very last write never lands. visibilitychange
+  // (going to "hidden") and pagehide both fire synchronously, before
+  // backgrounding completes, giving one last chance to flush the current
+  // state immediately rather than trusting the deferred effect to have
+  // already run.
+  useEffect(() => {
+    function onHide() {
+      if (document.visibilityState === "hidden") flushActiveSession();
+    }
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", flushActiveSession);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", flushActiveSession);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser.id]);
 
   // An installed PWA is routinely left open (backgrounded, phone locked)
   // across a real calendar-day rollover without ever fully closing — so
