@@ -3625,9 +3625,12 @@ function guessMealForNow() {
 // library), not an external AI call, so it works instantly with no setup.
 function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, showToast, dark }) {
   const { nutritionAiHelp } = useApp();
-  const [messages, setMessages] = useState([]); // { role: "user"|"assistant", text, suggestions? }
+  // One entry per question asked — not a flat chat log — so each answer
+  // can be dismissed or refreshed (different suggestions for the same
+  // question) on its own without the whole thread just growing forever.
+  const [exchanges, setExchanges] = useState([]); // { id, query, reply, suggestions, shownNames, loading, error }
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const sending = exchanges.some((e) => e.loading);
 
   const QUICK_PROMPTS = ["KFC", "McDonald's", "High protein dinner", "500 calorie meal"];
 
@@ -3661,22 +3664,44 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
 
   async function sendMessage(text) {
     const trimmed = (text ?? input).trim();
-    if (!trimmed || loading) return;
+    if (!trimmed || sending) return;
     setInput("");
-    const history = messages.slice(-6).map((m) => ({ role: m.role, text: m.text }));
-    setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
-    setLoading(true);
+    const id = `ex-${Date.now()}`;
+    setExchanges((prev) => [...prev, { id, query: trimmed, reply: "", suggestions: [], shownNames: [], loading: true, error: false }]);
     try {
-      const { reply, suggestions } = await nutritionAiHelp(trimmed, buildContext(), history);
-      setMessages((prev) => [...prev, { role: "assistant", text: reply, suggestions }]);
+      const { reply, suggestions } = await nutritionAiHelp(trimmed, buildContext(), [], []);
+      setExchanges((prev) => prev.map((e) => (e.id === id ? { ...e, reply, suggestions, shownNames: suggestions.map((s) => s.name), loading: false } : e)));
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: err.message || "I couldn't get the nutrition information for that option right now. Try another food or enter the meal manually.", error: true },
-      ]);
-    } finally {
-      setLoading(false);
+      setExchanges((prev) =>
+        prev.map((e) =>
+          e.id === id
+            ? { ...e, reply: err.message || "I couldn't get the nutrition information for that option right now. Try another food or enter the meal manually.", loading: false, error: true }
+            : e
+        )
+      );
     }
+  }
+
+  // Re-rolls just this exchange's suggestions to a fresh batch (never
+  // repeating what's already been shown for the same question) instead
+  // of starting a whole new question — "give me other options" without
+  // the thread growing.
+  async function refreshSuggestions(id) {
+    const exchange = exchanges.find((e) => e.id === id);
+    if (!exchange || exchange.loading) return;
+    setExchanges((prev) => prev.map((e) => (e.id === id ? { ...e, loading: true } : e)));
+    try {
+      const { reply, suggestions } = await nutritionAiHelp(exchange.query, buildContext(), [], exchange.shownNames);
+      setExchanges((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, reply, suggestions, shownNames: [...e.shownNames, ...suggestions.map((s) => s.name)], loading: false } : e))
+      );
+    } catch {
+      setExchanges((prev) => prev.map((e) => (e.id === id ? { ...e, loading: false } : e)));
+    }
+  }
+
+  function dismissExchange(id) {
+    setExchanges((prev) => prev.filter((e) => e.id !== id));
   }
 
   function addSuggestion(s) {
@@ -3700,32 +3725,44 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
       </div>
       <p className={dark ? "text-white/40 text-xs mb-3" : "text-black/40 text-xs mb-3"}>Make better food decisions without doing the maths.</p>
 
-      {messages.length === 0 ? (
+      {exchanges.length === 0 ? (
         <p className={dark ? "text-white/60 text-[13px] leading-snug mb-3" : "text-black/60 text-[13px] leading-snug mb-3"}>
           Not sure what to eat? Tell me what you're thinking about eating and I'll help you fit it into today's targets.
         </p>
       ) : (
         <div className="space-y-3 mb-3">
-          {messages.map((m, i) => (
-            <div key={i}>
-              {m.role === "user" ? (
-                <p className={dark ? "text-white/90 text-[13px] font-semibold" : "text-black/90 text-[13px] font-semibold"}>{m.text}</p>
+          {exchanges.map((e) => (
+            <div
+              key={e.id}
+              className="rounded-xl p-2.5 -mx-2.5 relative"
+              style={{ backgroundColor: dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}
+            >
+              <button
+                onClick={() => dismissExchange(e.id)}
+                aria-label="Dismiss"
+                className={dark ? "absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white/30 active:bg-white/10" : "absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-black/30 active:bg-black/10"}
+              >
+                <X size={13} />
+              </button>
+              <p className={dark ? "text-white/90 text-[13px] font-semibold pr-7" : "text-black/90 text-[13px] font-semibold pr-7"}>{e.query}</p>
+              {e.loading ? (
+                <p className={dark ? "text-white/30 text-xs italic mt-1" : "text-black/30 text-xs italic mt-1"}>Thinking…</p>
               ) : (
-                <div>
+                <div className="mt-1">
                   <p
-                    className={`text-[13px] leading-snug whitespace-pre-wrap ${
-                      m.error ? (dark ? "text-white/40 italic" : "text-black/40 italic") : dark ? "text-white/75" : "text-black/75"
+                    className={`text-[13px] leading-snug whitespace-pre-wrap pr-7 ${
+                      e.error ? (dark ? "text-white/40 italic" : "text-black/40 italic") : dark ? "text-white/75" : "text-black/75"
                     }`}
                   >
-                    {m.text}
+                    {e.reply}
                   </p>
-                  {m.suggestions?.length > 0 && (
+                  {e.suggestions?.length > 0 && (
                     <div className="mt-2 space-y-2">
-                      {m.suggestions.map((s, j) => (
+                      {e.suggestions.map((s, j) => (
                         <div
                           key={j}
                           className="rounded-xl border px-3 py-2.5 flex items-center justify-between gap-3"
-                          style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+                          style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER, backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
                         >
                           <div className="min-w-0">
                             <p className={dark ? "text-white text-[13px] font-semibold truncate" : "text-black text-[13px] font-semibold truncate"}>{s.name}</p>
@@ -3742,13 +3779,19 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
                           </button>
                         </div>
                       ))}
+                      <button
+                        onClick={() => refreshSuggestions(e.id)}
+                        className={dark ? "flex items-center gap-1.5 text-[11px] font-semibold text-white/50 active:text-white/80 mt-0.5" : "flex items-center gap-1.5 text-[11px] font-semibold text-black/45 active:text-black/80 mt-0.5"}
+                      >
+                        <Repeat size={11} />
+                        Show different options
+                      </button>
                     </div>
                   )}
                 </div>
               )}
             </div>
           ))}
-          {loading && <p className={dark ? "text-white/30 text-xs italic" : "text-black/30 text-xs italic"}>Thinking…</p>}
         </div>
       )}
 
@@ -3768,7 +3811,7 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
         />
         <button
           onClick={() => sendMessage()}
-          disabled={!input.trim() || loading}
+          disabled={!input.trim() || sending}
           className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
           style={{ backgroundColor: MEASURE_BLUE }}
         >
@@ -3781,7 +3824,7 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
           <button
             key={p}
             onClick={() => sendMessage(p)}
-            disabled={loading}
+            disabled={sending}
             className={
               dark
                 ? "text-[11px] font-medium px-2.5 py-1 rounded-full bg-white/8 text-white/60 disabled:opacity-40"

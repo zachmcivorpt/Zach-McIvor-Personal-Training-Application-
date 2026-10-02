@@ -2040,9 +2040,9 @@ export function AppProvider({ children }) {
       // against their actual remaining calories/macros for today. No
       // network call, no API key, so it can never depend on anything
       // outside this app being configured.
-      async nutritionAiHelp(message, context, history) {
+      async nutritionAiHelp(message, context, history, excludeNames) {
         void history; // kept in the signature for API-shape compatibility with callers
-        return getLocalNutritionSuggestion(message, context);
+        return getLocalNutritionSuggestion(message, context, excludeNames);
       },
 
       // Finishes a WHOOP OAuth connect — the client was just sent to

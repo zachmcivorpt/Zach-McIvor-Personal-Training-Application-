@@ -29,6 +29,12 @@ const RESTAURANT_MENUS = {
     { name: "Small Fries", calories: 230, protein: 3, carbs: 30, fat: 11, tags: ["vegetarian"] },
     { name: "Egg & Cheese McMuffin", calories: 300, protein: 17, carbs: 30, fat: 12, tags: ["gluten", "dairy", "egg"] },
     { name: "Oatmeal", calories: 150, protein: 4, carbs: 29, fat: 2, tags: ["gluten", "vegetarian"] },
+    // Meals — burger + small fries + drink, like you'd actually order it.
+    { name: "Small Big Mac Meal (Coke No Sugar)", calories: 782, protein: 28, carbs: 75, fat: 41, tags: ["gluten", "dairy", "combo"] },
+    { name: "Small Big Mac Meal (regular Coke)", calories: 920, protein: 28, carbs: 111, fat: 41, tags: ["gluten", "dairy", "combo"] },
+    { name: "Small Cheeseburger Meal (Coke No Sugar)", calories: 532, protein: 18, carbs: 63, fat: 23, tags: ["gluten", "dairy", "combo"] },
+    { name: "Small McChicken Meal (Coke No Sugar)", calories: 632, protein: 17, carbs: 69, fat: 32, tags: ["gluten", "combo"] },
+    { name: "Small Quarter Pounder Meal (Coke No Sugar)", calories: 752, protein: 33, carbs: 71, fat: 37, tags: ["gluten", "dairy", "combo"] },
   ],
   kfc: [
     { name: "Original Recipe Chicken Breast", calories: 390, protein: 39, carbs: 11, fat: 21, tags: ["gluten"] },
@@ -40,6 +46,8 @@ const RESTAURANT_MENUS = {
     { name: "Corn Cob", calories: 150, protein: 4, carbs: 32, fat: 2, tags: ["vegetarian"] },
     { name: "Coleslaw (small)", calories: 150, protein: 1, carbs: 14, fat: 10, tags: ["dairy", "vegetarian"] },
     { name: "Mashed Potato & Gravy", calories: 120, protein: 2, carbs: 17, fat: 5, tags: ["gluten"] },
+    { name: "Zinger Box Meal (Pepsi Max)", calories: 732, protein: 28, carbs: 81, fat: 32, tags: ["gluten", "combo"] },
+    { name: "Zinger Box Meal (regular Pepsi)", calories: 870, protein: 28, carbs: 116, fat: 32, tags: ["gluten", "combo"] },
   ],
   subway: [
     { name: "Turkey Breast 6-inch", calories: 280, protein: 18, carbs: 46, fat: 4, tags: ["gluten"] },
@@ -49,6 +57,7 @@ const RESTAURANT_MENUS = {
     { name: "Steak & Cheese 6-inch", calories: 380, protein: 24, carbs: 45, fat: 12, tags: ["gluten", "dairy"] },
     { name: "Chicken & Bacon Ranch 6-inch", calories: 480, protein: 29, carbs: 44, fat: 21, tags: ["gluten", "dairy"] },
     { name: "Chicken Teriyaki Salad (no bread)", calories: 180, protein: 24, carbs: 15, fat: 3, tags: [] },
+    { name: "Turkey Breast Sub Meal (chips, Coke No Sugar)", calories: 560, protein: 20, carbs: 76, fat: 16, tags: ["gluten", "combo"] },
   ],
   "burger king": [
     { name: "Whopper", calories: 660, protein: 28, carbs: 49, fat: 40, tags: ["gluten"] },
@@ -58,6 +67,8 @@ const RESTAURANT_MENUS = {
     { name: "4pc Chicken Nuggets", calories: 170, protein: 9, carbs: 11, fat: 10, tags: ["gluten"] },
     { name: "Small Fries", calories: 230, protein: 3, carbs: 29, fat: 11, tags: ["vegetarian"] },
     { name: "Garden Salad", calories: 60, protein: 4, carbs: 8, fat: 2, tags: ["vegetarian"] },
+    { name: "Whopper Meal (Coke No Sugar)", calories: 1002, protein: 32, carbs: 93, fat: 56, tags: ["gluten", "combo"] },
+    { name: "Grilled Chicken Meal (Coke No Sugar)", calories: 612, protein: 31, carbs: 68, fat: 24, tags: ["gluten", "combo"] },
   ],
   "domino's": [
     { name: "Margherita Pizza (2 slices)", calories: 380, protein: 16, carbs: 48, fat: 14, tags: ["gluten", "dairy", "vegetarian"] },
@@ -80,6 +91,7 @@ const RESTAURANT_MENUS = {
     { name: "Chicken Burrito Supreme", calories: 410, protein: 17, carbs: 50, fat: 15, tags: ["gluten", "dairy"] },
     { name: "Crunchwrap Supreme", calories: 530, protein: 16, carbs: 71, fat: 21, tags: ["gluten", "dairy"] },
     { name: "Chicken Power Bowl", calories: 470, protein: 26, carbs: 48, fat: 18, tags: ["dairy"] },
+    { name: "Crunchwrap Supreme Box (Baja Blast Zero)", calories: 650, protein: 18, carbs: 86, fat: 24, tags: ["gluten", "dairy", "combo"] },
   ],
   starbucks: [
     { name: "Egg White & Spinach Wrap", calories: 290, protein: 20, carbs: 33, fat: 8, tags: ["gluten", "dairy", "egg"] },
@@ -226,8 +238,15 @@ function scoreItem(item, budget, favorProtein) {
   return calDiff + overshoot - item.protein * proteinWeight;
 }
 
-function pickTop(items, budget, favorProtein, count) {
-  return [...items]
+// `excludeNames` lets the UI ask for a fresh batch ("show different
+// options") without repeating what it already showed. If excluding
+// everything already seen would leave nothing, the exclusion list is
+// ignored for that call and ranking just starts over from the top —
+// better to repeat a good fit than to show nothing.
+function pickTop(items, budget, favorProtein, count, excludeNames) {
+  const excluded = excludeNames && excludeNames.size ? items.filter((i) => !excludeNames.has(i.name)) : items;
+  const pool = excluded.length ? excluded : items;
+  return [...pool]
     .map((item) => ({ item, score: scoreItem(item, budget, favorProtein) }))
     .sort((a, b) => a.score - b.score)
     .slice(0, count)
@@ -245,7 +264,11 @@ function toSuggestion(item) {
 }
 
 // Mirrors the shape the old Cloud Function returned: { reply, suggestions }.
-export function getLocalNutritionSuggestion(message, context) {
+// `excludeNames` (array of suggestion names already shown for this same
+// query) lets "show different options" rotate through fresh picks
+// instead of repeating the same 3 every time.
+export function getLocalNutritionSuggestion(message, context, excludeNames) {
+  const exclude = new Set(excludeNames || []);
   const flags = allergyFlags(context);
   const needsVegetarian = wantsVegetarian(context);
   const favorProtein = /protein|muscle|lean|cut(ting)?/i.test(message) || /muscle|lean/i.test(context.goal || "");
@@ -261,7 +284,7 @@ export function getLocalNutritionSuggestion(message, context) {
     const budget = parsedTarget || remainingBudget;
     const allowed = menu.filter((i) => passesAllergyFilter(i, flags, needsVegetarian));
     const pool = allowed.length ? allowed : menu;
-    const picks = pickTop(pool, budget, favorProtein, 3);
+    const picks = pickTop(pool, budget, favorProtein, 3, exclude);
     const best = picks[0];
     const heavy = best && best.calories > budget * 1.3;
     const allergyNote = allowed.length < menu.length ? " I left out anything that could conflict with what's on your profile." : "";
@@ -291,7 +314,7 @@ export function getLocalNutritionSuggestion(message, context) {
   const budget = parsedTarget || remainingBudget;
   const allowed = pool.filter((i) => passesAllergyFilter(i, flags, needsVegetarian));
   const finalPool = allowed.length ? allowed : pool;
-  const picks = pickTop(finalPool, budget, favorProtein, 3);
+  const picks = pickTop(finalPool, budget, favorProtein, 3, exclude);
   const allergyNote = allowed.length < pool.length ? " I left out anything that could conflict with what's on your profile." : "";
 
   let reply;
