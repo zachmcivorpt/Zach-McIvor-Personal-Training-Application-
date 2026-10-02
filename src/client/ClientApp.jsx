@@ -2143,57 +2143,6 @@ function AddExerciseSheet({ open, allExercises, excludeIds, onClose, onConfirm }
   );
 }
 
-const FIREWORK_BLUES = ["#3B82F6", "#60A5FA", "#93C5FD", "#2563EB", "#BFDBFE", "#DBEAFE"];
-
-// A few staggered radial bursts (real fireworks, not falling streamers) —
-// each one a ring of sparks launched outward from its own point and computed
-// once per mount so they don't jump to new random positions if the parent
-// re-renders mid-burst.
-function FireworksBurst() {
-  const bursts = useMemo(
-    () =>
-      Array.from({ length: 6 }, (_, b) => ({
-        id: b,
-        cx: 15 + Math.random() * 70,
-        cy: 14 + Math.random() * 38,
-        delay: b * 0.4 + Math.random() * 0.15,
-        particles: Array.from({ length: 24 }, (_, i) => {
-          const angle = (Math.PI * 2 * i) / 24 + Math.random() * 0.25;
-          const dist = 60 + Math.random() * 70;
-          return {
-            id: i,
-            dx: Math.cos(angle) * dist,
-            dy: Math.sin(angle) * dist,
-            color: FIREWORK_BLUES[i % FIREWORK_BLUES.length],
-            duration: 1 + Math.random() * 0.6,
-          };
-        }),
-      })),
-    []
-  );
-  return (
-    <div className="fixed inset-0 z-[100] pointer-events-none overflow-hidden">
-      {bursts.map((burst) => (
-        <div key={burst.id} className="absolute" style={{ left: `${burst.cx}%`, top: `${burst.cy}%` }}>
-          {burst.particles.map((p) => (
-            <span
-              key={p.id}
-              className="absolute w-1.5 h-1.5 rounded-full"
-              style={{
-                backgroundColor: p.color,
-                boxShadow: `0 0 6px 1.5px ${p.color}`,
-                animation: `fireworkPop ${p.duration}s ease-out ${burst.delay}s forwards`,
-                "--dx": `${p.dx}px`,
-                "--dy": `${p.dy}px`,
-              }}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function WorkoutSession({
   session: daySession,
   activeLog,
@@ -2219,7 +2168,6 @@ function WorkoutSession({
   const [swapFor, setSwapFor] = useState(null); // the original exMeta currently being swapped
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
-  const [prToast, setPrToast] = useState(null);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
@@ -2383,17 +2331,6 @@ function WorkoutSession({
       onLiveUpdate?.(clientId, { label: daySession.label, activeLog: next });
       return next;
     });
-
-    if (isPR) {
-      setPrToast({
-        exerciseName: exercisesById[exMeta.exerciseId]?.name,
-        weight,
-        reps,
-        prevWeight: bestSet?.weight ?? null,
-        prevReps: bestSet?.reps ?? null,
-      });
-      setTimeout(() => setPrToast(null), 5000);
-    }
   }
 
   function handleStartRest(exMeta) {
@@ -2499,32 +2436,6 @@ function WorkoutSession({
           />
         )}
 
-        {prToast && (
-          <>
-            <FireworksBurst />
-            <div className="fixed top-16 inset-x-0 mx-auto z-[101] w-[88%] max-w-sm animate-[prPop_0.3s_ease-out]">
-              <div className="relative bg-black/30 backdrop-blur-[32px] border border-white/10 rounded-2xl p-5 text-center shadow-[0_20px_60px_-12px_rgba(0,0,0,0.55)] overflow-hidden">
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-                <div className="flex items-center justify-center gap-2 mb-1.5">
-                  <span className="w-4 h-0.5 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />
-                  <p className="text-white font-bold text-xs tracking-[0.15em]">NEW PERSONAL RECORD</p>
-                  <span className="w-4 h-0.5 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />
-                </div>
-                <p className="text-white text-xl font-bold mt-1">{prToast.exerciseName}</p>
-                <p className="text-white/70 text-sm mt-0.5">
-                  {prToast.weight > 0 ? `${prToast.weight}kg × ${prToast.reps}` : `${prToast.reps} reps`} ·{" "}
-                  {prToast.prevWeight == null
-                    ? "First time logging this!"
-                    : `Best previous: ${prToast.prevWeight > 0 ? `${prToast.prevWeight}kg × ${prToast.prevReps}` : `${prToast.prevReps} reps`}`}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-        <style>{`
-          @keyframes prPop{0%{opacity:0;transform:scale(0.94)}100%{opacity:1;transform:scale(1)}}
-          @keyframes fireworkPop{0%{transform:translate(0,0) scale(1);opacity:1}70%{opacity:0.9}100%{transform:translate(var(--dx),calc(var(--dy) + 36px)) scale(0.3);opacity:0}}
-        `}</style>
       </div>
     </FullScreenOverlay>
   );
