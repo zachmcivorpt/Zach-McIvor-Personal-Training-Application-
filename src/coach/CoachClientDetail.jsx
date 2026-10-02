@@ -1259,6 +1259,18 @@ function CalendarPanel({ client, showToast }) {
   // window (not tied to whatever month is being viewed) — sorted lowest
   // first, so the groups lagging behind the rest surface at a glance
   // rather than a flat "trained / not trained" toggle.
+  //
+  // Credits each exercise's PRIMARY muscle(s), not its top-level
+  // `category` — category is a movement-pattern/type label ("Full
+  // Body", "Cardio", "Warm-up") that most compound lifts (thrusters,
+  // sled pushes, box jumps, wall balls, farmer carries, cleans...) fall
+  // under, so aggregating by category silently dropped every set logged
+  // against any of those ~45 exercises from the chart entirely — they
+  // never landed in any bucket, which could make a genuinely-trained
+  // group like Legs read 0 just because that work came from compound
+  // movements instead of isolation ones. primaryMuscles is the actual
+  // muscle-targeting data already on every exercise and is what this
+  // widget should have been reading all along.
   const muscleBalance = useMemo(() => {
     const since = new Date();
     since.setDate(since.getDate() - 13);
@@ -1268,8 +1280,11 @@ function CalendarPanel({ client, showToast }) {
       const key = localDateKey(log.date);
       if (key < sinceKey || key > todayStr) return;
       (log.entries || []).forEach((e) => {
-        const category = exercisesById[e.exerciseId]?.category;
-        if (category && counts[category] !== undefined) counts[category] += (e.sets || []).length;
+        const setCount = (e.sets || []).length;
+        const muscles = exercisesById[e.exerciseId]?.primaryMuscles || [];
+        muscles.forEach((m) => {
+          if (counts[m] !== undefined) counts[m] += setCount;
+        });
       });
     });
     const max = Math.max(1, ...Object.values(counts));
