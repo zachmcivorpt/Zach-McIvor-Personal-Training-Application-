@@ -3738,19 +3738,11 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
       <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
 
       <div className="relative px-5 sm:px-8 py-6 max-w-3xl mx-auto">
-        <div className="flex items-center gap-3 mb-1.5">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: MEASURE_BLUE, boxShadow: `0 0 24px ${MEASURE_BLUE}55` }}
-          >
-            <Sparkles size={18} className="text-white" />
-          </div>
-          <div>
-            <p className={dark ? "text-white font-extrabold text-base tracking-[0.08em]" : "text-black font-extrabold text-base tracking-[0.08em]"}>FUEL IQ</p>
-            <p className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: MEASURE_BLUE }}>
-              Real-time meal targeting
-            </p>
-          </div>
+        <div className="mb-1.5">
+          <p className={dark ? "text-white font-extrabold text-base tracking-[0.08em]" : "text-black font-extrabold text-base tracking-[0.08em]"}>FUEL IQ</p>
+          <p className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: MEASURE_BLUE }}>
+            Real-time meal targeting
+          </p>
         </div>
         <p className={dark ? "text-white/45 text-xs mb-4 max-w-md" : "text-black/45 text-xs mb-4 max-w-md"}>
           Not sure what to eat, or eating out? Get a real fit for today's targets — no maths required.
