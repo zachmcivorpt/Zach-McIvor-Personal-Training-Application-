@@ -2352,10 +2352,9 @@ function WorkoutSession({
     <FullScreenOverlay>
       <div className={dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"}>
         <div className={dark ? "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+          <div className="w-[70px]" />
+          <h1 className={dark ? "text-white font-bold text-[17px] truncate px-2" : "text-black font-bold text-[17px] truncate px-2"}>{daySession.label}</h1>
           <div className="flex items-center gap-3">
-            <button onClick={onExit} className={dark ? "text-white/60 text-sm font-medium" : "text-black/60 text-sm font-medium"}>
-              Cancel
-            </button>
             <button
               onClick={() => setSessionNoteOpen(true)}
               aria-label={sessionNote ? "Edit session note" : "Add a session note"}
@@ -2369,9 +2368,10 @@ function WorkoutSession({
                 />
               )}
             </button>
+            <button onClick={onExit} className={dark ? "text-white/60 text-sm font-medium" : "text-black/60 text-sm font-medium"}>
+              Cancel
+            </button>
           </div>
-          <h1 className={dark ? "text-white font-bold text-[17px] truncate px-2" : "text-black font-bold text-[17px] truncate px-2"}>{daySession.label}</h1>
-          <div className="w-[52px]" />
         </div>
         <div className="flex-1 overflow-y-auto px-2.5 py-4 space-y-5 pb-28">
           <SessionIntelligenceCard exercises={exercisesForSession} exercisesById={exercisesById} logsForClient={logsForClient} dark={dark} />
