@@ -195,10 +195,15 @@ const RESTAURANT_MENUS = {
       ],
     },
   ],
-  "burger king": [
+  // Burger King doesn't exist in Australia — this chain trades as Hungry
+  // Jack's here (same company, same menu, different name on the sign),
+  // so that's the name used everywhere a client or the UI sees it.
+  "hungry jack's": [
     { name: "Whopper", calories: 660, protein: 28, carbs: 49, fat: 40, tags: ["gluten"] },
     { name: "Hamburger", calories: 240, protein: 12, carbs: 29, fat: 9, tags: ["gluten"] },
-    { name: "Crispy Chicken Burger", calories: 500, protein: 22, carbs: 50, fat: 24, tags: ["gluten"] },
+    // Real Hungry Jack's AU item (calorieking.com.au) — replaces the old
+    // generic, unsourced "Crispy Chicken Burger" guess.
+    { name: "Chicken Royale Burger", calories: 464, protein: 14, carbs: 42, fat: 27, tags: ["gluten"] },
     // Corrected to match the real Hungry Jack's AU "Grilled Chicken
     // Classic Burger" figure — protein was overstated, fat understated.
     { name: "Grilled Chicken Burger", calories: 344, protein: 23, carbs: 29, fat: 16, tags: ["gluten"] },
@@ -248,16 +253,21 @@ const RESTAURANT_MENUS = {
       ],
     },
   ],
+  // Per-slice figures are the official values from dominos.com.au's own
+  // published nutritional information page, doubled for a 2-slice serve.
   "domino's": [
-    { name: "Margherita Pizza (2 slices)", calories: 380, protein: 16, carbs: 48, fat: 14, tags: ["gluten", "dairy", "vegetarian"] },
-    { name: "Pepperoni Pizza (2 slices)", calories: 440, protein: 18, carbs: 46, fat: 20, tags: ["gluten", "dairy"] },
-    { name: "BBQ Chicken Pizza (2 slices)", calories: 420, protein: 20, carbs: 50, fat: 15, tags: ["gluten", "dairy"] },
-    { name: "Vegetarian Supreme Pizza (2 slices)", calories: 360, protein: 14, carbs: 46, fat: 13, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Margherita Pizza (2 slices)", calories: 272, protein: 10, carbs: 36, fat: 8, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Pepperoni Pizza (2 slices)", calories: 262, protein: 12, carbs: 37, fat: 6, tags: ["gluten", "dairy"] },
+    { name: "BBQ Chicken Pizza (2 slices)", calories: 292, protein: 12, carbs: 34, fat: 12, tags: ["gluten", "dairy"] },
+    { name: "Vegetarian Supreme Pizza (2 slices)", calories: 310, protein: 12, carbs: 42, fat: 10, tags: ["gluten", "dairy", "vegetarian"] },
     { name: "Garlic Bread (2 pieces)", calories: 200, protein: 5, carbs: 26, fat: 8, tags: ["gluten", "dairy", "vegetarian"] },
   ],
   "nando's": [
-    { name: "1/4 Chicken Breast (no skin)", calories: 220, protein: 40, carbs: 0, fat: 6, tags: [] },
-    { name: "1/4 Chicken Thigh & Leg", calories: 280, protein: 28, carbs: 0, fat: 18, tags: [] },
+    // Two real, distinct products (fatsecret.com.au / calorieking.com.au)
+    // rather than one guessed figure — a skinless breast-only quarter
+    // runs much leaner than the mixed skin-on quarter.
+    { name: "1/4 Chicken Breast (no skin)", calories: 289, protein: 39, carbs: 0, fat: 15, tags: [] },
+    { name: "1/4 Chicken (mixed cut, skin on)", calories: 425, protein: 55, carbs: 0, fat: 23, tags: [] },
     { name: "Chicken Wrap", calories: 450, protein: 28, carbs: 42, fat: 18, tags: ["gluten"] },
     { name: "Corn on the Cob", calories: 150, protein: 4, carbs: 30, fat: 2, tags: ["vegetarian"] },
     { name: "Mediterranean Salad", calories: 180, protein: 10, carbs: 12, fat: 10, tags: ["dairy", "vegetarian"] },
@@ -293,8 +303,10 @@ const RESTAURANT_MENUS = {
   // Convenience stores/servos — grab-and-go, not a sit-down menu, so this
   // is a smaller spread of what's actually on the counter/fridge shelf.
   "7-eleven": [
-    { name: "Sausage Roll", calories: 310, protein: 8, carbs: 24, fat: 20, tags: ["gluten"] },
-    { name: "Meat Pie", calories: 400, protein: 13, carbs: 34, fat: 24, tags: ["gluten"] },
+    // The pie-warmer items are overwhelmingly Four'N Twenty in Australian
+    // servos — real published values for that actual brand/product.
+    { name: "Sausage Roll (Four'N Twenty)", calories: 507, protein: 14, carbs: 50, fat: 28, tags: ["gluten"] },
+    { name: "Meat Pie (Four'N Twenty)", calories: 431, protein: 16, carbs: 35, fat: 24, tags: ["gluten"] },
     { name: "Chicken & Salad Wrap", calories: 380, protein: 22, carbs: 38, fat: 14, tags: ["gluten"] },
     { name: "Ham & Cheese Sandwich", calories: 350, protein: 18, carbs: 36, fat: 14, tags: ["gluten", "dairy"] },
     { name: "Protein Bar", calories: 220, protein: 20, carbs: 20, fat: 8, tags: ["dairy"] },
@@ -305,8 +317,8 @@ const RESTAURANT_MENUS = {
     { name: "Yoghurt Tub", calories: 150, protein: 8, carbs: 20, fat: 4, tags: ["dairy", "vegetarian"] },
   ],
   apco: [
-    { name: "Sausage Roll", calories: 310, protein: 8, carbs: 24, fat: 20, tags: ["gluten"] },
-    { name: "Meat Pie", calories: 400, protein: 13, carbs: 34, fat: 24, tags: ["gluten"] },
+    { name: "Sausage Roll (Four'N Twenty)", calories: 507, protein: 14, carbs: 50, fat: 28, tags: ["gluten"] },
+    { name: "Meat Pie (Four'N Twenty)", calories: 431, protein: 16, carbs: 35, fat: 24, tags: ["gluten"] },
     { name: "Chicken Roll", calories: 370, protein: 21, carbs: 36, fat: 15, tags: ["gluten"] },
     { name: "Ham & Cheese Toastie", calories: 360, protein: 17, carbs: 34, fat: 16, tags: ["gluten", "dairy"] },
     { name: "Protein Bar", calories: 220, protein: 20, carbs: 20, fat: 8, tags: ["dairy"] },
@@ -321,7 +333,7 @@ const BRAND_ALIASES = {
   "mcdonald's": ["mcdonald's", "mcdonalds", "maccas", "macca's", "mcdo", "mcd"],
   kfc: ["kfc", "kentucky fried chicken"],
   subway: ["subway"],
-  "burger king": ["burger king", "hungry jack's", "hungry jacks", "bk"],
+  "hungry jack's": ["hungry jack's", "hungry jacks", "burger king", "bk"],
   "domino's": ["domino's", "dominos", "domino"],
   "nando's": ["nando's", "nandos"],
   "taco bell": ["taco bell"],
@@ -334,7 +346,7 @@ const BRAND_DISPLAY = {
   "mcdonald's": "McDonald's",
   kfc: "KFC",
   subway: "Subway",
-  "burger king": "Burger King",
+  "hungry jack's": "Hungry Jack's",
   "domino's": "Domino's",
   "nando's": "Nando's",
   "taco bell": "Taco Bell",
@@ -343,12 +355,10 @@ const BRAND_DISPLAY = {
   apco: "APCO",
 };
 
-// Burger King trades as "Hungry Jack's" in Australia — same company,
-// same menu, different name on the sign — so echo back whichever one
-// the client actually typed rather than always saying "Burger King".
+// Burger King doesn't exist in Australia (it's Hungry Jack's here, same
+// company/menu), so that's always the default display — even someone
+// typing "Burger King" or "BK" still gets told "Hungry Jack's" back.
 const ALIAS_DISPLAY_OVERRIDES = {
-  "hungry jack's": "Hungry Jack's",
-  "hungry jacks": "Hungry Jack's",
   maccas: "Macca's",
   "macca's": "Macca's",
 };
@@ -523,7 +533,7 @@ export function getLocalNutritionSuggestion(message, context, excludeNames) {
     reply = `Based on roughly ${Math.round(budget)} kcal and ${Math.round(proteinRemaining)}g protein you've got left today, here's a good fit:${allergyNote}`;
   } else {
     reply =
-      "Tell me a restaurant (McDonald's, KFC, Subway, Burger King/Hungry Jack's, Domino's, Nando's, Taco Bell, Starbucks, 7-Eleven, APCO) or a calorie target and I'll find something that fits what you've got left today.";
+      "Tell me a restaurant (McDonald's, KFC, Subway, Hungry Jack's, Domino's, Nando's, Taco Bell, Starbucks, 7-Eleven, APCO) or a calorie target and I'll find something that fits what you've got left today.";
   }
   return { reply, suggestions: picks.map((p) => toSuggestion({ ...p, name: p.name })) };
 }

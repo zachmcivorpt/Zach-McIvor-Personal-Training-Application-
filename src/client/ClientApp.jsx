@@ -3633,7 +3633,7 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
   const [detailSuggestion, setDetailSuggestion] = useState(null);
   const sending = exchanges.some((e) => e.loading);
 
-  const QUICK_PROMPTS = ["KFC", "McDonald's", "Subway", "APCO", "High protein dinner", "500 calorie meal"];
+  const QUICK_PROMPTS = ["KFC", "McDonald's", "Hungry Jack's", "Subway", "APCO", "High protein dinner", "500 calorie meal"];
 
   function buildContext() {
     const caloriesConsumed = Math.round(todayNutrition.calories || 0);
