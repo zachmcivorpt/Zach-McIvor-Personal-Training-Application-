@@ -40,14 +40,47 @@ function friendlyStorageError(err, kind) {
   return err?.message || "Upload failed — check your connection and try again.";
 }
 
+// Firebase's resumable upload retries recoverable network errors with its
+// own backoff and no hard ceiling — on a flaky connection (exactly the
+// case for a client sending a photo from their phone) it can sit retrying
+// silently for minutes with no progress and no error, which just looks
+// like the app hung: the attach buttons stay disabled (see MessagesSheet's
+// `disabled={uploadPct !== null}`) with nothing telling the client what's
+// wrong or how to recover. Cancel and surface a clear, actionable error if
+// no progress at all lands within STALL_TIMEOUT_MS instead of waiting on
+// Firebase's own retry loop indefinitely.
+const STALL_TIMEOUT_MS = 45000;
+
 function uploadToPath(path, file, type, kind, onProgress) {
   return new Promise((resolve, reject) => {
     const task = uploadBytesResumable(ref(storage, path), file);
+    let settled = false;
+    let timedOut = false;
+    let lastProgressAt = Date.now();
+
+    const stallCheck = setInterval(() => {
+      if (Date.now() - lastProgressAt > STALL_TIMEOUT_MS) {
+        timedOut = true;
+        task.cancel();
+      }
+    }, 2000);
+
     task.on(
       "state_changed",
-      (snap) => onProgress?.(snap.totalBytes ? snap.bytesTransferred / snap.totalBytes : 0),
-      (err) => reject(new Error(friendlyStorageError(err, kind))),
+      (snap) => {
+        lastProgressAt = Date.now();
+        onProgress?.(snap.totalBytes ? snap.bytesTransferred / snap.totalBytes : 0);
+      },
+      (err) => {
+        if (settled) return;
+        settled = true;
+        clearInterval(stallCheck);
+        reject(new Error(timedOut ? "Upload timed out — check your connection and try again." : friendlyStorageError(err, kind)));
+      },
       async () => {
+        if (settled) return;
+        settled = true;
+        clearInterval(stallCheck);
         try {
           const url = await getDownloadURL(task.snapshot.ref);
           resolve({ url, name: file.name, type });
