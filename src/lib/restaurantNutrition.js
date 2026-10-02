@@ -300,6 +300,71 @@ const RESTAURANT_MENUS = {
     { name: "Oatmeal", calories: 160, protein: 5, carbs: 28, fat: 2.5, tags: ["gluten", "vegetarian"] },
     { name: "Banana", calories: 100, protein: 1, carbs: 27, fat: 0, tags: ["vegetarian"] },
   ],
+  // The local fish & chip shop — not a named chain, but a real, common
+  // takeaway category in its own right, so "fish and chips" gets an
+  // actual chip-shop menu (grilled/battered fish, chips, potato cake,
+  // dim sim) instead of falling through to the generic meal library.
+  // Figures sourced from published flake/battered-fish/potato-cake/
+  // dim-sim/calamari nutrition data.
+  "fish and chips": [
+    { name: "Grilled Fish Fillet (flake)", calories: 170, protein: 32, carbs: 0, fat: 5, tags: [] },
+    { name: "Battered Fish (1 piece)", calories: 343, protein: 21, carbs: 21, fat: 19, tags: ["gluten"] },
+    { name: "Chips (shop serve)", calories: 300, protein: 4, carbs: 40, fat: 14, tags: ["vegetarian"] },
+    { name: "Potato Cake", calories: 135, protein: 2, carbs: 17, fat: 7, tags: ["gluten", "vegetarian"] },
+    { name: "Dim Sim (steamed)", calories: 120, protein: 4, carbs: 18, fat: 3, tags: ["gluten"] },
+    { name: "Dim Sim (fried)", calories: 120, protein: 5, carbs: 10, fat: 6, tags: ["gluten"] },
+    { name: "Calamari Rings (fried)", calories: 316, protein: 19, carbs: 19, fat: 18, tags: ["gluten"] },
+    {
+      name: "Grilled Fish & Chips (handful)",
+      calories: 470,
+      protein: 36,
+      carbs: 40,
+      fat: 19,
+      tags: ["combo"],
+      contents: [
+        { name: "Grilled Fish Fillet (flake)", calories: 170, protein: 32, carbs: 0, fat: 5 },
+        { name: "Chips (handful)", calories: 300, protein: 4, carbs: 40, fat: 14 },
+      ],
+    },
+    {
+      name: "Battered Fish & Chips",
+      calories: 643,
+      protein: 25,
+      carbs: 61,
+      fat: 33,
+      tags: ["gluten", "combo"],
+      contents: [
+        { name: "Battered Fish (1 piece)", calories: 343, protein: 21, carbs: 21, fat: 19 },
+        { name: "Chips (shop serve)", calories: 300, protein: 4, carbs: 40, fat: 14 },
+      ],
+    },
+    {
+      name: "Fish, Chips & a Potato Cake",
+      calories: 778,
+      protein: 27,
+      carbs: 78,
+      fat: 40,
+      tags: ["gluten", "combo"],
+      contents: [
+        { name: "Battered Fish (1 piece)", calories: 343, protein: 21, carbs: 21, fat: 19 },
+        { name: "Chips (shop serve)", calories: 300, protein: 4, carbs: 40, fat: 14 },
+        { name: "Potato Cake", calories: 135, protein: 2, carbs: 17, fat: 7 },
+      ],
+    },
+    {
+      name: "Fish, Chips & a Steamed Dim Sim",
+      calories: 763,
+      protein: 29,
+      carbs: 79,
+      fat: 36,
+      tags: ["gluten", "combo"],
+      contents: [
+        { name: "Battered Fish (1 piece)", calories: 343, protein: 21, carbs: 21, fat: 19 },
+        { name: "Chips (shop serve)", calories: 300, protein: 4, carbs: 40, fat: 14 },
+        { name: "Dim Sim (steamed)", calories: 120, protein: 4, carbs: 18, fat: 3 },
+      ],
+    },
+  ],
   // Convenience stores/servos — grab-and-go, not a sit-down menu, so this
   // is a smaller spread of what's actually on the counter/fridge shelf.
   "7-eleven": [
@@ -340,6 +405,7 @@ const BRAND_ALIASES = {
   starbucks: ["starbucks", "sbux"],
   "7-eleven": ["7-eleven", "7 eleven", "7/11", "seven eleven"],
   apco: ["apco"],
+  "fish and chips": ["fish and chips", "fish & chips", "fish n chips", "fish 'n' chips", "fish shop", "the chippy", "chippy"],
 };
 
 const BRAND_DISPLAY = {
@@ -353,6 +419,7 @@ const BRAND_DISPLAY = {
   starbucks: "Starbucks",
   "7-eleven": "7-Eleven",
   apco: "APCO",
+  "fish and chips": "the fish & chip shop",
 };
 
 // Burger King doesn't exist in Australia (it's Hungry Jack's here, same
@@ -533,7 +600,7 @@ export function getLocalNutritionSuggestion(message, context, excludeNames) {
     reply = `Based on roughly ${Math.round(budget)} kcal and ${Math.round(proteinRemaining)}g protein you've got left today, here's a good fit:${allergyNote}`;
   } else {
     reply =
-      "Tell me a restaurant (McDonald's, KFC, Subway, Hungry Jack's, Domino's, Nando's, Taco Bell, Starbucks, 7-Eleven, APCO) or a calorie target and I'll find something that fits what you've got left today.";
+      "Tell me a restaurant (McDonald's, KFC, Subway, Hungry Jack's, Domino's, Nando's, Taco Bell, Starbucks, 7-Eleven, APCO, fish and chips) or a calorie target and I'll find something that fits what you've got left today.";
   }
   return { reply, suggestions: picks.map((p) => toSuggestion({ ...p, name: p.name })) };
 }
