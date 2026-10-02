@@ -3815,7 +3815,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 px-4 py-2 rounded-full text-sm font-medium text-center ${
+            className={`flex-1 px-4 py-2 rounded-xl text-sm font-medium text-center ${
               tab === t.key
                 ? dark
                   ? "bg-white text-black"
@@ -3832,7 +3832,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
 
       {tab === "today" && (
       <div className="px-2.5 mb-1">
-        <div className={dark ? "inline-flex items-center rounded-full border border-white/10 bg-white/5" : "inline-flex items-center rounded-full border border-black/10 bg-black/5"}>
+        <div className={dark ? "inline-flex items-center rounded-xl border border-white/10 bg-white/5" : "inline-flex items-center rounded-xl border border-black/10 bg-black/5"}>
           <button
             onClick={() => setNavOffset((o) => o + 1)}
             className={dark ? "w-8 h-8 flex items-center justify-center shrink-0 text-white/70 active:scale-90 transition-transform" : "w-8 h-8 flex items-center justify-center shrink-0 text-black/60 active:scale-90 transition-transform"}
