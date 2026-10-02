@@ -88,6 +88,30 @@ const RESTAURANT_MENUS = {
     { name: "Oatmeal", calories: 160, protein: 5, carbs: 28, fat: 2.5, tags: ["gluten", "vegetarian"] },
     { name: "Banana", calories: 100, protein: 1, carbs: 27, fat: 0, tags: ["vegetarian"] },
   ],
+  // Convenience stores/servos — grab-and-go, not a sit-down menu, so this
+  // is a smaller spread of what's actually on the counter/fridge shelf.
+  "7-eleven": [
+    { name: "Sausage Roll", calories: 310, protein: 8, carbs: 24, fat: 20, tags: ["gluten"] },
+    { name: "Meat Pie", calories: 400, protein: 13, carbs: 34, fat: 24, tags: ["gluten"] },
+    { name: "Chicken & Salad Wrap", calories: 380, protein: 22, carbs: 38, fat: 14, tags: ["gluten"] },
+    { name: "Ham & Cheese Sandwich", calories: 350, protein: 18, carbs: 36, fat: 14, tags: ["gluten", "dairy"] },
+    { name: "Protein Bar", calories: 220, protein: 20, carbs: 20, fat: 8, tags: ["dairy"] },
+    { name: "Banana", calories: 105, protein: 1, carbs: 27, fat: 0, tags: ["vegetarian"] },
+    { name: "Mixed Nuts (small pack)", calories: 170, protein: 6, carbs: 6, fat: 15, tags: ["vegetarian"] },
+    { name: "Muesli Bar", calories: 120, protein: 2, carbs: 19, fat: 4, tags: ["gluten", "vegetarian"] },
+    { name: "Iced Coffee (bottled)", calories: 180, protein: 5, carbs: 28, fat: 5, tags: ["dairy", "vegetarian"] },
+    { name: "Yoghurt Tub", calories: 150, protein: 8, carbs: 20, fat: 4, tags: ["dairy", "vegetarian"] },
+  ],
+  apco: [
+    { name: "Sausage Roll", calories: 310, protein: 8, carbs: 24, fat: 20, tags: ["gluten"] },
+    { name: "Meat Pie", calories: 400, protein: 13, carbs: 34, fat: 24, tags: ["gluten"] },
+    { name: "Chicken Roll", calories: 370, protein: 21, carbs: 36, fat: 15, tags: ["gluten"] },
+    { name: "Ham & Cheese Toastie", calories: 360, protein: 17, carbs: 34, fat: 16, tags: ["gluten", "dairy"] },
+    { name: "Protein Bar", calories: 220, protein: 20, carbs: 20, fat: 8, tags: ["dairy"] },
+    { name: "Banana", calories: 105, protein: 1, carbs: 27, fat: 0, tags: ["vegetarian"] },
+    { name: "Hot Chips (small)", calories: 310, protein: 4, carbs: 40, fat: 15, tags: ["vegetarian"] },
+    { name: "Muesli Bar", calories: 120, protein: 2, carbs: 19, fat: 4, tags: ["gluten", "vegetarian"] },
+  ],
 };
 
 // Common ways people actually type each chain's name.
@@ -100,6 +124,8 @@ const BRAND_ALIASES = {
   "nando's": ["nando's", "nandos"],
   "taco bell": ["taco bell"],
   starbucks: ["starbucks", "sbux"],
+  "7-eleven": ["7-eleven", "7 eleven", "7/11", "seven eleven"],
+  apco: ["apco"],
 };
 
 const BRAND_DISPLAY = {
@@ -111,6 +137,18 @@ const BRAND_DISPLAY = {
   "nando's": "Nando's",
   "taco bell": "Taco Bell",
   starbucks: "Starbucks",
+  "7-eleven": "7-Eleven",
+  apco: "APCO",
+};
+
+// Burger King trades as "Hungry Jack's" in Australia — same company,
+// same menu, different name on the sign — so echo back whichever one
+// the client actually typed rather than always saying "Burger King".
+const ALIAS_DISPLAY_OVERRIDES = {
+  "hungry jack's": "Hungry Jack's",
+  "hungry jacks": "Hungry Jack's",
+  maccas: "Macca's",
+  "macca's": "Macca's",
 };
 
 const DAIRY_WORDS = ["milk", "cheese", "yoghurt", "yogurt", "cream", "butter"];
@@ -126,7 +164,8 @@ function normalize(s) {
 function detectBrand(message) {
   const m = normalize(message);
   for (const [brand, aliases] of Object.entries(BRAND_ALIASES)) {
-    if (aliases.some((a) => m.includes(a))) return brand;
+    const matchedAlias = aliases.find((a) => m.includes(a));
+    if (matchedAlias) return { key: brand, display: ALIAS_DISPLAY_OVERRIDES[matchedAlias] || BRAND_DISPLAY[brand] };
   }
   return null;
 }
@@ -218,7 +257,7 @@ export function getLocalNutritionSuggestion(message, context) {
   const parsedTarget = parseCalorieTarget(message);
 
   if (brand) {
-    const menu = RESTAURANT_MENUS[brand];
+    const menu = RESTAURANT_MENUS[brand.key];
     const budget = parsedTarget || remainingBudget;
     const allowed = menu.filter((i) => passesAllergyFilter(i, flags, needsVegetarian));
     const pool = allowed.length ? allowed : menu;
@@ -229,9 +268,9 @@ export function getLocalNutritionSuggestion(message, context) {
 
     let reply;
     if (heavy) {
-      reply = `Everything at ${BRAND_DISPLAY[brand]} runs a bit heavier than what you've got left today (roughly ${Math.round(budget)} kcal) — this is the lightest fit I'd go with:${allergyNote}`;
+      reply = `Everything at ${brand.display} runs a bit heavier than what you've got left today (roughly ${Math.round(budget)} kcal) — this is the lightest fit I'd go with:${allergyNote}`;
     } else {
-      reply = `From ${BRAND_DISPLAY[brand]}, here's what fits well with roughly ${Math.round(budget)} kcal and ${Math.round(proteinRemaining)}g protein left today:${allergyNote}`;
+      reply = `From ${brand.display}, here's what fits well with roughly ${Math.round(budget)} kcal and ${Math.round(proteinRemaining)}g protein left today:${allergyNote}`;
     }
     return { reply, suggestions: picks.slice(0, heavy ? 1 : 3).map(toSuggestion) };
   }
@@ -262,7 +301,7 @@ export function getLocalNutritionSuggestion(message, context) {
     reply = `Based on roughly ${Math.round(budget)} kcal and ${Math.round(proteinRemaining)}g protein you've got left today, here's a good fit:${allergyNote}`;
   } else {
     reply =
-      "Tell me a restaurant (McDonald's, KFC, Subway, Burger King, Domino's, Nando's, Taco Bell, Starbucks) or a calorie target and I'll find something that fits what you've got left today.";
+      "Tell me a restaurant (McDonald's, KFC, Subway, Burger King/Hungry Jack's, Domino's, Nando's, Taco Bell, Starbucks, 7-Eleven, APCO) or a calorie target and I'll find something that fits what you've got left today.";
   }
   return { reply, suggestions: picks.map((p) => toSuggestion({ ...p, name: p.name })) };
 }
