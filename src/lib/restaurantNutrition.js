@@ -169,8 +169,6 @@ const RESTAURANT_MENUS = {
     { name: "Original Tenders (3pc)", calories: 431, protein: 36, carbs: 28, fat: 20, tags: ["gluten"] },
     { name: "Original Tenders (5pc)", calories: 764, protein: 60, carbs: 47, fat: 33, tags: ["gluten"] },
     { name: "Original Tenders (10pc)", calories: 1528, protein: 120, carbs: 94, fat: 66, tags: ["gluten"] },
-    { name: "Rice Box (chicken, rice & gravy)", calories: 450, protein: 25, carbs: 55, fat: 15, tags: ["gluten"] },
-    { name: "Famous Bowl", calories: 590, protein: 24, carbs: 62, fat: 27, tags: ["gluten", "dairy"] },
     { name: "Wicked Wings (3pc)", calories: 290, protein: 20, carbs: 10, fat: 20, tags: ["gluten"] },
     { name: "Large Chips", calories: 450, protein: 6, carbs: 58, fat: 21, tags: ["vegetarian"] },
     {
