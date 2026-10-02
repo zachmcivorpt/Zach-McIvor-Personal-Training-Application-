@@ -7,6 +7,13 @@ name: Deploy Cloud Functions
 # FIREBASE_FUNCTIONS_CI_SETUP.txt) before it can actually authenticate —
 # until that secret exists, a run just fails at the deploy step with a
 # clear auth error, nothing else in the app is affected either way.
+#
+# functions/.env.zach-mcivor-pt-app (ANTHROPIC_API_KEY etc.) is
+# deliberately gitignored — it holds real secrets — so this checkout
+# never has it. The "Write functions .env" step below reconstructs it
+# from repo secrets right before deploying, so the AI features
+# (nutritionAiHelp and friends) actually get a working key in
+# production instead of silently deploying with "not-configured-yet".
 on:
   push:
     branches: [main]
@@ -30,6 +37,15 @@ jobs:
 
       - name: Write Firebase service account key
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/firebase-sa.json"
+
+      - name: Write functions .env
+        working-directory: functions
+        run: |
+          cat > .env.zach-mcivor-pt-app <<EOF
+          ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
+          WHOOP_CLIENT_ID=${{ secrets.WHOOP_CLIENT_ID }}
+          WHOOP_CLIENT_SECRET=${{ secrets.WHOOP_CLIENT_SECRET }}
+          EOF
 
       - name: Deploy to Firebase
         run: npx firebase-tools deploy --only functions --project zach-mcivor-pt-app --non-interactive

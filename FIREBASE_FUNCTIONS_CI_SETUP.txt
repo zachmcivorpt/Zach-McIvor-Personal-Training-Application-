@@ -35,7 +35,42 @@ STEP 2 — ADD IT TO GITHUB AS A SECRET
    all, copy, and paste the whole thing in here.
 7. Click "Add secret".
 
-That's it — setup's done.
+That's it for deploy auth.
+
+
+STEP 3 — ADD THE ANTHROPIC_API_KEY SECRET (REQUIRED FOR AI FEATURES)
+--------------------------------------------------------------------
+The AI-backed features — AI Nutrition Help in the client Nutrition tab,
+the coach-note context suggestions, APEX insight phrasing, and the
+auto-named "Reignition Workout" nudge — all call Anthropic's API from
+inside functions/index.js. That call needs a real ANTHROPIC_API_KEY at
+runtime.
+
+There's a functions/.env.zach-mcivor-pt-app file in this repo that holds
+that key locally, but it's deliberately .gitignore'd (it's a real
+credential, same reasoning as the Firebase service account key above) —
+so it never reaches GitHub, and this GitHub Actions workflow writes a
+fresh copy of that file from a repo secret right before every deploy.
+Without this secret set, every AI feature fails the same way on every
+message, regardless of what's typed — not a bug in any specific feature,
+just a missing key never making it to the deployed function.
+
+1. Get a key from https://console.anthropic.com (API Keys section) if
+   you don't already have one.
+2. Go to your repo on github.com → Settings → "Secrets and variables" →
+   "Actions" → "New repository secret" (same place as Step 2 above).
+3. Name:  ANTHROPIC_API_KEY
+4. Value: paste your real key.
+5. Click "Add secret".
+6. Also update your own local functions/.env.zach-mcivor-pt-app with the
+   same real key (replacing "not-configured-yet"), so a manual
+   `firebase deploy` from your own machine also works if you ever run one.
+7. Re-run the workflow once (see "RUNNING IT FOR THE FIRST TIME" below)
+   so the fix actually ships — it won't retroactively apply to functions
+   already deployed with the placeholder key.
+
+(WHOOP_CLIENT_ID / WHOOP_CLIENT_SECRET work the same way as optional
+repo secrets, only needed once you're ready to turn on WHOOP sync.)
 
 
 RUNNING IT FOR THE FIRST TIME
