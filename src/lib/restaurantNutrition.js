@@ -21,7 +21,10 @@ const RESTAURANT_MENUS = {
     { name: "Hamburger", calories: 250, protein: 12, carbs: 31, fat: 9, tags: ["gluten"] },
     { name: "Cheeseburger", calories: 300, protein: 15, carbs: 33, fat: 12, tags: ["gluten", "dairy"] },
     { name: "McChicken", calories: 400, protein: 14, carbs: 39, fat: 21, tags: ["gluten"] },
-    { name: "Big Mac", calories: 550, protein: 25, carbs: 45, fat: 30, tags: ["gluten", "dairy"] },
+    // Big Mac figure is the real published McDonald's Australia value
+    // (fatsecret.com.au) — the meal combos below are built from this
+    // same number so a tapped breakdown always sums to the real total.
+    { name: "Big Mac", calories: 492, protein: 25, carbs: 35, fat: 27, tags: ["gluten", "dairy"] },
     { name: "Quarter Pounder with Cheese", calories: 520, protein: 30, carbs: 41, fat: 26, tags: ["gluten", "dairy"] },
     { name: "6pc Chicken McNuggets", calories: 250, protein: 14, carbs: 15, fat: 15, tags: ["gluten"] },
     { name: "Grilled Chicken Salad (no dressing)", calories: 220, protein: 27, carbs: 10, fat: 8, tags: [] },
@@ -29,33 +32,61 @@ const RESTAURANT_MENUS = {
     { name: "Small Fries", calories: 230, protein: 3, carbs: 30, fat: 11, tags: ["vegetarian"] },
     { name: "Egg & Cheese McMuffin", calories: 300, protein: 17, carbs: 30, fat: 12, tags: ["gluten", "dairy", "egg"] },
     { name: "Oatmeal", calories: 150, protein: 4, carbs: 29, fat: 2, tags: ["gluten", "vegetarian"] },
-    // Meals — burger + small fries + drink, like you'd actually order it.
-    // `contents` breaks the combo back out into what's actually in it, so
-    // tapping the suggestion can show the full meal, not just one total.
+    // Meals — burger + fries + drink, labelled by actual McDonald's
+    // Australia meal size (Small/Medium/Large), matching published
+    // CalorieKing AU totals for "Meal, Big Mac, [size] Fries, [size]
+    // Coke" so these hold up against the real menu, not just an
+    // in-house estimate. `contents` sums exactly to the listed total.
     {
-      name: "Small Big Mac Meal (Coke No Sugar)",
-      calories: 782,
+      name: "Small Big Mac Meal (regular Coke)",
+      calories: 850,
       protein: 28,
-      carbs: 75,
+      carbs: 89,
       fat: 41,
       tags: ["gluten", "dairy", "combo"],
       contents: [
-        { name: "Big Mac", calories: 550, protein: 25, carbs: 45, fat: 30 },
-        { name: "Small Fries", calories: 230, protein: 3, carbs: 30, fat: 11 },
-        { name: "Coke No Sugar (small)", calories: 2, protein: 0, carbs: 0, fat: 0 },
+        { name: "Big Mac", calories: 492, protein: 25, carbs: 35, fat: 27 },
+        { name: "Small Fries", calories: 220, protein: 2, carbs: 29, fat: 11 },
+        { name: "Coca-Cola (small)", calories: 138, protein: 1, carbs: 25, fat: 3 },
       ],
     },
     {
-      name: "Small Big Mac Meal (regular Coke)",
-      calories: 920,
-      protein: 28,
-      carbs: 111,
-      fat: 41,
+      name: "Medium Big Mac Meal (regular Coke)",
+      calories: 1007,
+      protein: 29,
+      carbs: 112,
+      fat: 47,
       tags: ["gluten", "dairy", "combo"],
       contents: [
-        { name: "Big Mac", calories: 550, protein: 25, carbs: 45, fat: 30 },
-        { name: "Small Fries", calories: 230, protein: 3, carbs: 30, fat: 11 },
-        { name: "Coca-Cola (small)", calories: 140, protein: 0, carbs: 36, fat: 0 },
+        { name: "Big Mac", calories: 492, protein: 25, carbs: 35, fat: 27 },
+        { name: "Medium Fries", calories: 340, protein: 4, carbs: 44, fat: 20 },
+        { name: "Coca-Cola (medium)", calories: 175, protein: 0, carbs: 33, fat: 0 },
+      ],
+    },
+    {
+      name: "Medium Big Mac Meal (Coke No Sugar)",
+      calories: 834,
+      protein: 29,
+      carbs: 79,
+      fat: 47,
+      tags: ["gluten", "dairy", "combo"],
+      contents: [
+        { name: "Big Mac", calories: 492, protein: 25, carbs: 35, fat: 27 },
+        { name: "Medium Fries", calories: 340, protein: 4, carbs: 44, fat: 20 },
+        { name: "Coke No Sugar (medium)", calories: 2, protein: 0, carbs: 0, fat: 0 },
+      ],
+    },
+    {
+      name: "Large Big Mac Meal (regular Coke)",
+      calories: 1170,
+      protein: 30,
+      carbs: 141,
+      fat: 51,
+      tags: ["gluten", "dairy", "combo"],
+      contents: [
+        { name: "Big Mac", calories: 492, protein: 25, carbs: 35, fat: 27 },
+        { name: "Large Fries", calories: 420, protein: 5, carbs: 55, fat: 24 },
+        { name: "Coca-Cola (large)", calories: 258, protein: 0, carbs: 51, fat: 0 },
       ],
     },
     {
@@ -102,36 +133,40 @@ const RESTAURANT_MENUS = {
     { name: "Original Recipe Chicken Breast", calories: 390, protein: 39, carbs: 11, fat: 21, tags: ["gluten"] },
     { name: "Original Recipe Chicken Drumstick", calories: 150, protein: 14, carbs: 4, fat: 9, tags: ["gluten"] },
     { name: "Original Recipe Chicken Thigh", calories: 280, protein: 19, carbs: 9, fat: 19, tags: ["gluten"] },
-    { name: "Zinger Burger", calories: 450, protein: 24, carbs: 45, fat: 19, tags: ["gluten"] },
+    // Zinger Burger bumped to match published figures (fatsecret/fitia AU)
+    // — the old 450 figure undercounted it relative to real menu data,
+    // which is exactly why the "Zinger Box Meal" combo below didn't line
+    // up against the real KFC Australia "Zinger Burger Box" total.
+    { name: "Zinger Burger", calories: 480, protein: 24, carbs: 43, fat: 24, tags: ["gluten"] },
     { name: "Popcorn Chicken (regular)", calories: 400, protein: 20, carbs: 23, fat: 25, tags: ["gluten"] },
     { name: "Grilled Chicken Fillet (no bun)", calories: 200, protein: 35, carbs: 2, fat: 6, tags: [] },
     { name: "Corn Cob", calories: 150, protein: 4, carbs: 32, fat: 2, tags: ["vegetarian"] },
     { name: "Coleslaw (small)", calories: 150, protein: 1, carbs: 14, fat: 10, tags: ["dairy", "vegetarian"] },
     { name: "Mashed Potato & Gravy", calories: 120, protein: 2, carbs: 17, fat: 5, tags: ["gluten"] },
     {
-      name: "Zinger Box Meal (Pepsi Max)",
-      calories: 732,
-      protein: 28,
-      carbs: 81,
-      fat: 32,
+      name: "Regular Zinger Box Meal (Pepsi Max)",
+      calories: 872,
+      protein: 29,
+      carbs: 89,
+      fat: 44,
       tags: ["gluten", "combo"],
       contents: [
-        { name: "Zinger Burger", calories: 450, protein: 24, carbs: 45, fat: 19 },
-        { name: "Chips (regular)", calories: 280, protein: 4, carbs: 36, fat: 13 },
-        { name: "Pepsi Max (small)", calories: 2, protein: 0, carbs: 0, fat: 0 },
+        { name: "Zinger Burger", calories: 480, protein: 24, carbs: 43, fat: 24 },
+        { name: "Regular Chips", calories: 390, protein: 5, carbs: 46, fat: 20 },
+        { name: "Pepsi Max (can)", calories: 2, protein: 0, carbs: 0, fat: 0 },
       ],
     },
     {
-      name: "Zinger Box Meal (regular Pepsi)",
-      calories: 870,
-      protein: 28,
-      carbs: 116,
-      fat: 32,
+      name: "Regular Zinger Box Meal (regular Pepsi)",
+      calories: 1030,
+      protein: 29,
+      carbs: 130,
+      fat: 44,
       tags: ["gluten", "combo"],
       contents: [
-        { name: "Zinger Burger", calories: 450, protein: 24, carbs: 45, fat: 19 },
-        { name: "Chips (regular)", calories: 280, protein: 4, carbs: 36, fat: 13 },
-        { name: "Pepsi (small)", calories: 140, protein: 0, carbs: 35, fat: 0 },
+        { name: "Zinger Burger", calories: 480, protein: 24, carbs: 43, fat: 24 },
+        { name: "Regular Chips", calories: 390, protein: 5, carbs: 46, fat: 20 },
+        { name: "Pepsi (can)", calories: 160, protein: 0, carbs: 41, fat: 0 },
       ],
     },
   ],
@@ -165,21 +200,37 @@ const RESTAURANT_MENUS = {
     { name: "4pc Chicken Nuggets", calories: 170, protein: 9, carbs: 11, fat: 10, tags: ["gluten"] },
     { name: "Small Fries", calories: 230, protein: 3, carbs: 29, fat: 11, tags: ["vegetarian"] },
     { name: "Garden Salad", calories: 60, protein: 4, carbs: 8, fat: 2, tags: ["vegetarian"] },
+    // "Medium chips" calorie figure matches Hungry Jack's published value
+    // (fatsecret.com.au) — close to the real "Whopper Value Meal Medium"
+    // total (~1074 kcal) once a regular Coke is added.
     {
-      name: "Whopper Meal (Coke No Sugar)",
-      calories: 1002,
+      name: "Medium Whopper Meal (regular Coke)",
+      calories: 1138,
       protein: 32,
-      carbs: 93,
-      fat: 56,
+      carbs: 132,
+      fat: 55,
       tags: ["gluten", "combo"],
       contents: [
         { name: "Whopper", calories: 660, protein: 28, carbs: 49, fat: 40 },
-        { name: "Medium Fries", calories: 340, protein: 4, carbs: 44, fat: 16 },
-        { name: "Coke No Sugar (small)", calories: 2, protein: 0, carbs: 0, fat: 0 },
+        { name: "Medium Chips", calories: 308, protein: 4, carbs: 40, fat: 15 },
+        { name: "Coca-Cola (medium)", calories: 170, protein: 0, carbs: 43, fat: 0 },
       ],
     },
     {
-      name: "Grilled Chicken Meal (Coke No Sugar)",
+      name: "Medium Whopper Meal (Coke No Sugar)",
+      calories: 970,
+      protein: 32,
+      carbs: 89,
+      fat: 55,
+      tags: ["gluten", "combo"],
+      contents: [
+        { name: "Whopper", calories: 660, protein: 28, carbs: 49, fat: 40 },
+        { name: "Medium Chips", calories: 308, protein: 4, carbs: 40, fat: 15 },
+        { name: "Coke No Sugar (medium)", calories: 2, protein: 0, carbs: 0, fat: 0 },
+      ],
+    },
+    {
+      name: "Small Grilled Chicken Meal (Coke No Sugar)",
       calories: 612,
       protein: 31,
       carbs: 67,
