@@ -2032,6 +2032,22 @@ export function AppProvider({ children }) {
         }
       },
 
+      // The Nutrition tab's "AI Nutrition Help" assistant. Unlike the two
+      // above, there's no sensible local heuristic to fall back to for a
+      // freeform "what should I eat" question, so a failure (API key not
+      // configured yet, network issue, model hiccup) surfaces as a thrown
+      // Error with the exact copy the Nutrition screen shows inline —
+      // never a crash, and never silently nothing.
+      async nutritionAiHelp(message, context, history) {
+        try {
+          const result = await httpsCallable(functions, "nutritionAiHelp")({ message, context, history });
+          return { reply: result.data?.reply || "", suggestions: result.data?.suggestions || [] };
+        } catch (err) {
+          console.warn("nutritionAiHelp Cloud Function unavailable:", err.message);
+          throw new Error("I couldn't get the nutrition information for that option right now. Try another food or enter the meal manually.");
+        }
+      },
+
       // Finishes a WHOOP OAuth connect — the client was just sent to
       // WHOOP's own sign-in page and came back with a `code` in the URL
       // (see the redirect flow in ClientApp.jsx). The actual token

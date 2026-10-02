@@ -3694,6 +3694,198 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
   );
 }
 
+// Rough, time-of-day guess for which meal slot an AI-suggested food should
+// log into — there's no slot info in a freeform "what should I eat"
+// question, so this is just a sensible default rather than forcing the
+// client to pick one before they can tap "Add to food log".
+function guessMealForNow() {
+  const h = new Date().getHours();
+  if (h < 11) return "Breakfast";
+  if (h < 15) return "Lunch";
+  if (h < 21) return "Dinner";
+  return "Snacks";
+}
+
+// The Nutrition tab's "AI Nutrition Help" assistant — understands THIS
+// client's own real targets and today's actual progress (never a generic
+// assumption) and can drop a suggested food straight into the existing
+// food-logging flow via onAddFood, so there's no second logging system
+// here. The server-side half (functions/index.js's nutritionAiHelp) only
+// ever turns the real numbers this component sends it into words; it
+// never re-derives or invents them.
+function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, showToast, dark }) {
+  const { nutritionAiHelp } = useApp();
+  const [messages, setMessages] = useState([]); // { role: "user"|"assistant", text, suggestions? }
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const QUICK_PROMPTS = ["KFC", "McDonald's", "High protein dinner", "500 calorie meal"];
+
+  function buildContext() {
+    const caloriesConsumed = Math.round(todayNutrition.calories || 0);
+    const proteinConsumed = round1(todayNutrition.protein || 0);
+    const carbsConsumed = round1(todayNutrition.carbs || 0);
+    const fatConsumed = round1(todayNutrition.fat || 0);
+    const mealsLoggedToday = Object.entries(todayNutrition.meals || {}).flatMap(([meal, items]) =>
+      (items || []).map((f) => ({ meal, name: f.name, calories: f.cals, protein: f.protein, carbs: f.carbs, fat: f.fat }))
+    );
+    return {
+      calorieTarget: targets.calories,
+      caloriesConsumed,
+      caloriesRemaining: Math.max(0, targets.calories - caloriesConsumed),
+      proteinTarget: targets.protein,
+      proteinConsumed,
+      proteinRemaining: Math.max(0, round1(targets.protein - proteinConsumed)),
+      carbsTarget: targets.carbs,
+      carbsConsumed,
+      carbsRemaining: Math.max(0, round1(targets.carbs - carbsConsumed)),
+      fatTarget: targets.fat,
+      fatConsumed,
+      fatRemaining: Math.max(0, round1(targets.fat - fatConsumed)),
+      mealsLoggedToday,
+      dietaryPreferences: nutritionProfile.dietaryStyle || [],
+      allergies: nutritionProfile.allergies || "",
+      goal: nutritionProfile.mainChallenge || "",
+    };
+  }
+
+  async function sendMessage(text) {
+    const trimmed = (text ?? input).trim();
+    if (!trimmed || loading) return;
+    setInput("");
+    const history = messages.slice(-6).map((m) => ({ role: m.role, text: m.text }));
+    setMessages((prev) => [...prev, { role: "user", text: trimmed }]);
+    setLoading(true);
+    try {
+      const { reply, suggestions } = await nutritionAiHelp(trimmed, buildContext(), history);
+      setMessages((prev) => [...prev, { role: "assistant", text: reply, suggestions }]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: err.message || "I couldn't get the nutrition information for that option right now. Try another food or enter the meal manually.", error: true },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function addSuggestion(s) {
+    onAddFood(guessMealForNow(), { id: `ai-${Date.now()}`, name: s.name, cals: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat });
+    showToast("Added to today's food log.");
+  }
+
+  return (
+    <div
+      className="rounded-2xl border shadow-sm p-4"
+      style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+    >
+      <div className="flex items-center gap-2.5 mb-1">
+        <div
+          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+          style={{ backgroundColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }}
+        >
+          <Sparkles size={15} style={{ color: MEASURE_BLUE }} />
+        </div>
+        <p className={dark ? "text-white font-bold text-[13px] tracking-wide" : "text-black font-bold text-[13px] tracking-wide"}>AI NUTRITION HELP</p>
+      </div>
+      <p className={dark ? "text-white/40 text-xs mb-3" : "text-black/40 text-xs mb-3"}>Make better food decisions without doing the maths.</p>
+
+      {messages.length === 0 ? (
+        <p className={dark ? "text-white/60 text-[13px] leading-snug mb-3" : "text-black/60 text-[13px] leading-snug mb-3"}>
+          Not sure what to eat? Tell me what you're thinking about eating and I'll help you fit it into today's targets.
+        </p>
+      ) : (
+        <div className="space-y-3 mb-3">
+          {messages.map((m, i) => (
+            <div key={i}>
+              {m.role === "user" ? (
+                <p className={dark ? "text-white/90 text-[13px] font-semibold" : "text-black/90 text-[13px] font-semibold"}>{m.text}</p>
+              ) : (
+                <div>
+                  <p
+                    className={`text-[13px] leading-snug whitespace-pre-wrap ${
+                      m.error ? (dark ? "text-white/40 italic" : "text-black/40 italic") : dark ? "text-white/75" : "text-black/75"
+                    }`}
+                  >
+                    {m.text}
+                  </p>
+                  {m.suggestions?.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      {m.suggestions.map((s, j) => (
+                        <div
+                          key={j}
+                          className="rounded-xl border px-3 py-2.5 flex items-center justify-between gap-3"
+                          style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+                        >
+                          <div className="min-w-0">
+                            <p className={dark ? "text-white text-[13px] font-semibold truncate" : "text-black text-[13px] font-semibold truncate"}>{s.name}</p>
+                            <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
+                              ~{s.calories} kcal · ~{s.protein}g protein · ~{s.carbs}g carbs · ~{s.fat}g fat
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => addSuggestion(s)}
+                            className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border-[1.5px] active:scale-95 transition-transform whitespace-nowrap"
+                            style={{ borderColor: MEASURE_BLUE, color: MEASURE_BLUE }}
+                          >
+                            ADD TO LOG
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          {loading && <p className={dark ? "text-white/30 text-xs italic" : "text-black/30 text-xs italic"}>Thinking…</p>}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") sendMessage();
+          }}
+          placeholder="What are you eating?"
+          className={
+            dark
+              ? "flex-1 min-w-0 bg-white/8 text-white placeholder-white/30 text-[13px] rounded-xl px-3.5 py-2.5 outline-none"
+              : "flex-1 min-w-0 bg-black/5 text-black placeholder-black/30 text-[13px] rounded-xl px-3.5 py-2.5 outline-none"
+          }
+        />
+        <button
+          onClick={() => sendMessage()}
+          disabled={!input.trim() || loading}
+          className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
+          style={{ backgroundColor: MEASURE_BLUE }}
+        >
+          <Send size={15} className="text-white" />
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 mt-2.5">
+        {QUICK_PROMPTS.map((p) => (
+          <button
+            key={p}
+            onClick={() => sendMessage(p)}
+            disabled={loading}
+            className={
+              dark
+                ? "text-[11px] font-medium px-2.5 py-1 rounded-full bg-white/8 text-white/60 disabled:opacity-40"
+                : "text-[11px] font-medium px-2.5 py-1 rounded-full bg-black/5 text-black/55 disabled:opacity-40"
+            }
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal } = useApp();
@@ -3705,6 +3897,11 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
     return localDateKey(d);
   }, [navOffset]);
   const nutrition = nutritionByDateKey[viewDateKey] || DEFAULT_NUTRITION;
+  // AI Nutrition Help always reasons about TODAY's actual progress, not
+  // whichever day the date-nav above happens to be browsing — asking "what
+  // should I eat" while looking back at yesterday's log must never get
+  // answered against yesterday's already-closed-out numbers.
+  const todayNutrition = nutritionByDateKey[localDateKey()] || DEFAULT_NUTRITION;
   const navLabel = useMemo(() => {
     if (navOffset === 0) return "Today";
     if (navOffset === 1) return "Yesterday";
@@ -4148,6 +4345,19 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
           })}
         </div>
       </div>
+      )}
+
+      {tab === "today" && (
+        <div className="px-2.5 mt-5">
+          <AiNutritionHelpCard
+            targets={targets}
+            todayNutrition={todayNutrition}
+            nutritionProfile={currentUser.nutritionProfile || {}}
+            onAddFood={(meal, food) => onAddFood(meal, food, localDateKey())}
+            showToast={showToast}
+            dark={dark}
+          />
+        </div>
       )}
 
       <BottomSheet dark={dark} open={!!detailMeal} onClose={() => setDetailMeal(null)} title={detailMeal || ""}>

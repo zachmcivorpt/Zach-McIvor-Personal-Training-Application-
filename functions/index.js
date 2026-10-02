@@ -676,6 +676,77 @@ Rules:
 });
 
 // ---------------------------------------------------------------------
+// AI Nutrition Help — the Nutrition tab's "what should I eat" assistant.
+// Unlike the two functions above, this one is client-callable (any
+// signed-in user acting on their own nutrition data, not coach-only).
+// The client already holds everything needed to answer (today's targets
+// and progress, computed from their own Firestore data) and sends it as
+// `context` — this function never re-reads Firestore itself, it only
+// turns real numbers the client already verified into a natural-language
+// answer and, where a concrete food fits, a short list of structured
+// suggestions the UI can turn into "Add to food log" buttons. The model
+// is never allowed to invent a precise macro target or pretend
+// restaurant nutrition is exact — see the system prompt below.
+// ---------------------------------------------------------------------
+exports.nutritionAiHelp = onCall(async (request) => {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Sign in required.");
+
+  const message = (request.data?.message || "").trim();
+  const context = request.data?.context || {};
+  const history = Array.isArray(request.data?.history) ? request.data.history.slice(-6) : [];
+  if (!message) throw new HttpsError("invalid-argument", "Missing message.");
+
+  const system = `You are the "AI Nutrition Help" assistant built into the APEX Coaching Platform's Nutrition tab. You help a client decide what to eat RIGHT NOW by fitting their choice into their own remaining calories/macros for today — you are not a generic chatbot and you are not a medical professional.
+
+You will be given the client's real, current nutrition state as JSON (targets, what they've consumed today, what's remaining, what they've already logged, and any stored dietary preferences/allergies/goal context). Treat every number in it as ground truth — never substitute a generic target, and never assume a number that isn't given.
+
+Rules:
+- Prioritize fitting the client's REMAINING calories first, then make sensible macro choices given what's left and their goal/preference — never require an exact macro match.
+- Restaurant/menu nutrition is approximate. Always hedge with words like "roughly", "approximately", "about", "good fit", "reasonably close" — never state a suspiciously precise number like "447 kcal"; round to a sensible approximate figure instead (e.g. "~450 kcal").
+- If the client's profile lists an allergy or intolerance, never suggest an item that plausibly conflicts with it, and name the allergy if you steer them away from something because of it (e.g. "Your profile lists a peanut allergy, so I'd avoid this option.").
+- Never make a medical or diagnostic claim. Never tell the client to skip a meal or go hungry just to hit an exact number — food is still the point.
+- Keep the conversational reply short (2-5 sentences), warm but direct, no filler disclaimers beyond what's naturally relevant.
+- When you have a concrete food/menu suggestion with real-enough numbers to act on, include it in "suggestions" (0-3 items) so the app can offer an "Add to food log" button — each with an approximate calories/protein/carbs/fat. Leave "suggestions" empty for general advice that isn't a specific loggable food.
+- Respond with ONLY a JSON object, no markdown fences, no prose outside the JSON: {"reply": "...", "suggestions": [{"name": "...", "calories": number, "protein": number, "carbs": number, "fat": number}]}`;
+
+  const historyText = history.length
+    ? `Conversation so far:\n${history.map((h) => `${h.role === "user" ? "Client" : "You"}: ${h.text}`).join("\n")}\n\n`
+    : "";
+  const userText = `${historyText}Client's current nutrition state (JSON):\n${JSON.stringify(context)}\n\nClient's new message: "${message}"`;
+
+  let raw;
+  try {
+    raw = await callClaude(process.env.ANTHROPIC_API_KEY, system, userText, 500);
+  } catch (err) {
+    throw new HttpsError("internal", err.message);
+  }
+
+  let parsed;
+  try {
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+  } catch {
+    throw new HttpsError("internal", "Couldn't parse the model's response.");
+  }
+  if (!parsed || typeof parsed.reply !== "string") throw new HttpsError("internal", "Unexpected response shape.");
+
+  const suggestions = Array.isArray(parsed.suggestions)
+    ? parsed.suggestions
+        .filter((s) => s && typeof s.name === "string")
+        .slice(0, 3)
+        .map((s) => ({
+          name: s.name,
+          calories: Math.round(Number(s.calories)) || 0,
+          protein: Math.round(Number(s.protein)) || 0,
+          carbs: Math.round(Number(s.carbs)) || 0,
+          fat: Math.round(Number(s.fat)) || 0,
+        }))
+    : [];
+
+  return { reply: parsed.reply, suggestions };
+});
+
+// ---------------------------------------------------------------------
 // WHOOP integration — a client connects their own WHOOP account (OAuth)
 // so their recovery/sleep/strain show up automatically instead of being
 // typed in by hand. The access/refresh tokens are the one piece of this
