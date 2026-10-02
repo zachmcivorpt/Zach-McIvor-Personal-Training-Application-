@@ -3113,7 +3113,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-6 pb-4">
+      <div className="px-2.5 pt-7 pb-2">
         <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>
           {tab === "program" ? `${currentUser.name}'s Program` : "Training"}
         </h1>
@@ -3802,9 +3802,8 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-6 pb-4 flex items-center justify-between">
+      <div className="px-2.5 pt-7 pb-2">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Nutrition</h1>
-        {tab === "today" && <Search size={20} className={dark ? "text-white/40" : "text-black/40"} />}
       </div>
 
       <div className="flex gap-2 px-2.5 mb-4">
@@ -5144,7 +5143,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-6 pb-4 flex items-center justify-between">
+      <div className="px-2.5 pt-7 pb-2 flex items-center justify-between">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Progress</h1>
         <BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />
       </div>
@@ -5721,7 +5720,7 @@ function ProfileScreen({
   ];
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-6 pb-4">
+      <div className="px-2.5 pt-7 pb-2">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Profile</h1>
       </div>
       <div className="px-2.5">
@@ -6281,7 +6280,7 @@ function CheckInsScreen({ userId, showToast }) {
 
   return (
     <div className="pb-28 space-y-4">
-      <div className="px-2.5 pt-6 pb-2">
+      <div className="px-2.5 pt-7 pb-2">
         <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Check-ins</h1>
         <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scheduled by your coach</p>
       </div>
@@ -6795,7 +6794,7 @@ function ClientCalendarScreen({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-2.5 pt-6 pb-3 shrink-0 flex items-center justify-between">
+      <div className="px-2.5 pt-7 pb-2 shrink-0 flex items-center justify-between">
         <div>
           <h1 className={dark ? "text-white text-2xl font-bold" : "text-black text-2xl font-bold"}>Calendar</h1>
           <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scroll to see anything past or upcoming.</p>
