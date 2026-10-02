@@ -98,13 +98,14 @@ HOW IT WORKS
 
 ALSO BUILT: INACTIVITY NUDGE + AUTO-GENERATED WOD
 ----------------------------------------------------
-A client who's gone 4+ days without logging a workout now gets a push
-notification AND a ready-to-go "Reignition Workout" session automatically
-dropped onto today's calendar — built only from exercises already in
-their own assigned program (never anything outside it), so getting back
-in doesn't need you to do anything first. Runs once a day
-(exports.inactivityWod in functions/index.js); re-deploying functions
-(Step 3 above) is all that's needed to turn it on — no new setup step.
+A client who's gone 4+ days without logging a workout now gets a ready-to-go
+"Reignition Workout" session automatically dropped onto today's
+calendar — built only from exercises already in their own assigned
+program (never anything outside it) — plus a real chat message (from
+you, in their Messages tab) telling them it's there, which also triggers
+the usual push notification. Runs once a day (exports.inactivityWod in
+functions/index.js); re-deploying functions (Step 3 above) is all that's
+needed to turn it on — no new setup step.
 It won't re-nudge the same client again for 5 days, and never overwrites
 a real scheduled day that's already on their calendar.
 

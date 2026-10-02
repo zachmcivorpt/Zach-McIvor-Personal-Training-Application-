@@ -419,14 +419,19 @@ exports.inactivityWod = onSchedule(
       });
       await userDoc.ref.update({ lastInactivityNudgeAt: Date.now() });
 
-      await notifyUser(
-        uid,
-        {
-          title: "Let's get back into it",
-          body: `It's been ${daysSince} days — we've put together a "${label}" session for you today.`,
-        },
-        "inactivityNudge"
-      );
+      // A real chat message rather than a bare push notification — it
+      // persists in the client's Messages tab (so it's still there if the
+      // push gets missed/dismissed), and onNewMessage above already pushes
+      // a notification for any coach-authored message, so this is the
+      // only send needed; no separate notifyUser call.
+      const messageId = db.collection("messages").doc().id;
+      await db.collection("messages").doc(messageId).set({
+        id: messageId,
+        clientId: uid,
+        from: "coach",
+        text: `It's been ${daysSince} days since your last session — your "${label}" has been added to your calendar for today, built from your own program and ready whenever you are.`,
+        date: Date.now(),
+      });
     }
   }
 );
