@@ -5,6 +5,7 @@
 // Firestore's 1MB-per-document limit).
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "./firebase";
+import { maybeCompressVideo } from "./videoCompress";
 
 const MAX_VIDEO_BYTES = 75 * 1024 * 1024; // 75MB
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
@@ -61,16 +62,26 @@ function uploadToPath(path, file, type, kind, onProgress) {
 // Uploads a video to messageVideos/{clientId}/... and resolves with an
 // attachment object ready to pass straight into sendMessage(). onProgress
 // is called with a 0..1 fraction as the upload streams.
-export function uploadMessageVideo(clientId, file, onProgress) {
+export async function uploadMessageVideo(clientId, file, onProgress) {
   if (!file.type.startsWith("video/")) {
-    return Promise.reject(new Error("Please choose a video file."));
+    throw new Error("Please choose a video file.");
   }
   if (file.size > MAX_VIDEO_BYTES) {
-    return Promise.reject(
-      new Error(`That video is ${(file.size / 1024 / 1024).toFixed(0)}MB — please keep it under ${MAX_VIDEO_BYTES / 1024 / 1024}MB.`)
-    );
+    throw new Error(`That video is ${(file.size / 1024 / 1024).toFixed(0)}MB — please keep it under ${MAX_VIDEO_BYTES / 1024 / 1024}MB.`);
   }
-  return uploadToPath(`messageVideos/${clientId}/${Date.now()}_${file.name}`, file, "video", "Video", onProgress);
+  // Large phone-camera clips get downscaled/recompressed client-side first
+  // so there are fewer bytes to actually push over the network — the real
+  // lever on upload time. Falls straight back to the original file if
+  // compression isn't applicable or fails for any reason.
+  const upload = await maybeCompressVideo(file, onProgress);
+  const compressed = upload !== file;
+  return uploadToPath(
+    `messageVideos/${clientId}/${Date.now()}_${upload.name}`,
+    upload,
+    "video",
+    "Video",
+    (frac) => onProgress?.(compressed ? 0.3 + frac * 0.7 : frac)
+  );
 }
 
 // A photo attached to a regular message (a meal, an injury, gym setup,
