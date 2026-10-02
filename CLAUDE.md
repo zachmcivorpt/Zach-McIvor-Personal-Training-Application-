@@ -1,5 +1,16 @@
 # APEX Coaching Platform
 
+## Product status
+
+APEX is a **live, published app on the Apple App Store**
+(https://apps.apple.com/app/id6810194114) — not just an installable PWA.
+Clients download it from the App Store link in their invite email, then
+open the activation link from that same email to set their password.
+Treat this as the real, current distribution model everywhere it's
+relevant: invite emails, onboarding copy, client-facing docs/guides, and
+any "how do I get the app" messaging. Don't describe install as
+browser-only "add to home screen" — that's no longer the primary path.
+
 ## Visual design conventions
 
 Target look: dark, restrained, technical, premium. Applies identically in
