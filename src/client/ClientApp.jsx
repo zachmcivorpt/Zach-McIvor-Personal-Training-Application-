@@ -253,118 +253,28 @@ const DEFAULT_NUTRITION = {
 const COACH_SUGGESTIONS = [
   "What should I train today?",
   "I only have 30 minutes.",
-  "How much protein do I have left?",
   "Should I increase my bench weight?",
-  "Give me some snack ideas",
-  "What should I eat post-workout?",
+  "How's my progress looking?",
 ];
 
-// Real, common, easy-to-grab options with real macros (scaled from the same
-// food database the Nutrition tab logs against) — including the kind of
-// thing someone actually grabs on the way out (a packet of jerky, a
-// fridge protein shake), not just meal-prep ideas. 20 each so there's
-// always something new to suggest — see formatFoodSuggestions below for
-// why only a few show up per message.
-const SNACK_SUGGESTIONS = [
-  { name: "Beef jerky (1 packet, ~30g)", cals: 123, protein: 10, carbs: 3, fat: 2 },
-  { name: "Protein shake, RTD (375ml — e.g. a 7-Eleven fridge one)", cals: 139, protein: 30, carbs: 4, fat: 2 },
-  { name: "YoPro protein yoghurt (170g tub)", cals: 158, protein: 26, carbs: 9, fat: 2 },
-  { name: "Banana + a small handful of almonds (30g)", cals: 279, protein: 7, carbs: 34, fat: 15 },
-  { name: "Cottage cheese (150g) + 2 rice cakes", cals: 224, protein: 19, carbs: 21, fat: 6 },
-  { name: "Greek yoghurt, low fat (170g) + a banana", cals: 205, protein: 18, carbs: 33, fat: 1 },
-  { name: "2 boiled eggs + a rice cake", cals: 182, protein: 14, carbs: 9, fat: 10 },
-  { name: "Tuna, canned (100g) + 2 rice cakes", cals: 193, protein: 28, carbs: 16, fat: 2 },
-  { name: "Cheddar cheese (30g) + an apple", cals: 215, protein: 9, carbs: 25, fat: 10 },
-  { name: "Protein bar (1 bar, ~60g)", cals: 210, protein: 18, carbs: 21, fat: 6 },
-  { name: "Peanut butter (20g) + an apple", cals: 212, protein: 6, carbs: 29, fat: 10 },
-  { name: "Almonds (30g, small handful)", cals: 174, protein: 6, carbs: 7, fat: 15 },
-  { name: "Hummus (50g) + 2 rice cakes", cals: 160, protein: 6, carbs: 23, fat: 6 },
-  { name: "Oats, dry (50g) — add water or milk", cals: 190, protein: 7, carbs: 34, fat: 4 },
-  { name: "Cottage cheese (150g) + a banana", cals: 252, protein: 18, carbs: 32, fat: 6 },
-  { name: "Egg whites (130g) + 2 rice cakes", cals: 145, protein: 16, carbs: 17, fat: 1 },
-  { name: "Mozzarella cheese (30g) + an apple", cals: 178, protein: 9, carbs: 26, fat: 5 },
-  { name: "Vegan protein bar (1 bar, ~60g)", cals: 210, protein: 12, carbs: 24, fat: 6 },
-  { name: "Ricotta (100g) + an apple", cals: 268, protein: 12, carbs: 28, fat: 13 },
-  { name: "Walnuts (30g, small handful)", cals: 196, protein: 5, carbs: 4, fat: 20 },
-];
-const POST_WORKOUT_SUGGESTIONS = [
-  { name: "Protein shake, RTD (375ml) + a banana", cals: 244, protein: 31, carbs: 31, fat: 2 },
-  { name: "Beef jerky (1 packet) + 2 rice cakes", cals: 200, protein: 12, carbs: 19, fat: 2 },
-  { name: "Cottage cheese (150g) + 2 rice cakes", cals: 224, protein: 19, carbs: 21, fat: 6 },
-  { name: "YoPro protein yoghurt (170g) + a banana", cals: 263, protein: 27, carbs: 36, fat: 2 },
-  { name: "Chicken breast (100g) + 2 rice cakes", cals: 242, protein: 33, carbs: 16, fat: 4 },
-  { name: "Tuna, canned (100g) + a banana", cals: 221, protein: 27, carbs: 27, fat: 1 },
-  { name: "Egg whites (130g) + a banana", cals: 173, protein: 15, carbs: 28, fat: 0 },
-  { name: "Greek yoghurt, low fat (170g) + oats (25g)", cals: 195, protein: 20, carbs: 23, fat: 3 },
-  { name: "Protein bar (1 bar) + a banana", cals: 315, protein: 19, carbs: 48, fat: 6 },
-  { name: "2 whole eggs + 2 rice cakes", cals: 220, protein: 15, carbs: 17, fat: 11 },
-  { name: "Cottage cheese (150g) + a banana", cals: 252, protein: 18, carbs: 32, fat: 6 },
-  { name: "Turkey breast (100g) + 2 rice cakes", cals: 212, protein: 32, carbs: 16, fat: 2 },
-  { name: "Protein shake, RTD (375ml) + oats (25g)", cals: 234, protein: 33, carbs: 21, fat: 4 },
-  { name: "Chicken tenderloin (150g) + a banana", cals: 270, protein: 36, carbs: 27, fat: 2 },
-  { name: "YoPro protein yoghurt (170g) + oats (25g)", cals: 253, protein: 29, carbs: 26, fat: 4 },
-  { name: "Egg white protein powder (1 scoop) + a banana", cals: 216, protein: 26, carbs: 28, fat: 0 },
-  { name: "Beef jerky (1 packet) + a banana", cals: 228, protein: 11, carbs: 30, fat: 2 },
-  { name: "Vegan protein bar + a banana", cals: 315, protein: 13, carbs: 51, fat: 6 },
-  { name: "Tuna steak (150g) + 2 rice cakes", cals: 353, protein: 47, carbs: 16, fat: 10 },
-  { name: "Ham, deli slices (50g) + 2 rice cakes", cals: 131, protein: 11, carbs: 17, fat: 3 },
-];
-
-const SNACK_INTRO = "A few easy snack options with the macros:";
-const POST_WORKOUT_INTRO = "Good post-training options — protein-forward and easy to grab:";
-
-// Counts how many bullet options have already been sent for this topic
-// across the whole conversation, so "more" continues from where it left
-// off instead of repeating (or re-explaining) the same batch.
-function countShownSuggestions(messages, intro) {
-  let count = 0;
-  (messages || []).forEach((m) => {
-    if (m.role === "coach" && m.text.startsWith(intro)) count += (m.text.match(/^• /gm) || []).length;
-  });
-  return count;
-}
-
-// Only sends a few at a time — a wall of 20 options in one bubble is
-// harder to actually read than useful. Points at "more" for the rest.
-function formatFoodSuggestions(intro, list, offset, batchSize = 3) {
-  const batch = list.slice(offset, offset + batchSize);
-  if (batch.length === 0) return `That's every option I've got for now (${list.length} sent) — message your coach if you'd like more ideas.`;
-  const lines = batch.map((f) => `• ${f.name} — ${f.cals} kcal, ${f.protein}g protein, ${f.carbs}g carbs, ${f.fat}g fat`);
-  const remaining = list.length - (offset + batch.length);
-  const tail =
-    remaining > 0
-      ? `Just ask for "more" and I'll send another ${Math.min(batchSize, remaining)}.`
-      : "Log whichever one you actually have under Nutrition — search its name and it'll pull the same numbers.";
-  return [intro, ...lines, tail].join("\n");
-}
-
-// Quick Tips — canned, rule-based answers to common questions, built only
-// from real data already loaded in this session (nutrition, today's
+// Quick Tips — canned, rule-based answers to common TRAINING questions
+// only, built only from real data already loaded in this session (today's
 // session). This is NOT a live AI model — there's no backend to run one
 // against, so it never invents specific numbers (lift history, recovery
-// scores) it doesn't actually have. Anything it can't answer honestly
-// points the client to messaging their coach instead.
-function coachReply(prompt, ctx, messages = []) {
+// scores) it doesn't actually have. Nutrition questions are deliberately
+// redirected to the AI Nutrition Help card in the Nutrition tab instead of
+// answered here — that's the one place with real targets/macros/allergies
+// to reason from; this helper has none of that context and shouldn't
+// pretend to. Anything else it can't answer honestly points the client to
+// messaging their coach instead.
+const NUTRITION_KEYWORDS = ["snack", "protein", "carb", "calorie", "macro", "eat", "meal", "food", "diet", "hungry"];
+
+function coachReply(prompt, ctx) {
   const p = prompt.toLowerCase();
-  const askingFoodTopic = p.includes("snack") || (p.includes("post") && (p.includes("workout") || p.includes("training")));
-  const wantsMore = (p.includes("more") || p.trim() === "more please") && !askingFoodTopic;
-  if (wantsMore) {
-    const lastCoach = [...messages].reverse().find((m) => m.role === "coach");
-    if (lastCoach?.text.startsWith(POST_WORKOUT_INTRO)) {
-      return formatFoodSuggestions(POST_WORKOUT_INTRO, POST_WORKOUT_SUGGESTIONS, countShownSuggestions(messages, POST_WORKOUT_INTRO));
-    }
-    if (lastCoach?.text.startsWith(SNACK_INTRO)) {
-      return formatFoodSuggestions(SNACK_INTRO, SNACK_SUGGESTIONS, countShownSuggestions(messages, SNACK_INTRO));
-    }
-  }
+  if (NUTRITION_KEYWORDS.some((k) => p.includes(k)))
+    return "That's a nutrition question — try AI Nutrition Help in the Nutrition tab instead. It knows your real targets and what you've already eaten today, which this helper doesn't. This one's just for training.";
   if (p.includes("30 minutes") || p.includes("short"))
     return "With 30 minutes, try a condensed version of today's session — pick the 3 heaviest compound lifts and cut rest to 60 seconds. Message your coach if you'd like them to trim it for you.";
-  if (p.includes("post") && (p.includes("workout") || p.includes("training")))
-    return formatFoodSuggestions(POST_WORKOUT_INTRO, POST_WORKOUT_SUGGESTIONS, 0);
-  if (p.includes("snack"))
-    return formatFoodSuggestions(SNACK_INTRO, SNACK_SUGGESTIONS, 0);
-  if (p.includes("protein"))
-    return `You've had ${ctx.nutrition.protein}g of your ${ctx.targets.protein}g target — that leaves ${Math.max(0, ctx.targets.protein - ctx.nutrition.protein)}g. A chicken breast and a scoop of whey would close most of that gap.`;
   if (p.includes("bench") || p.includes("weight") || p.includes("increase"))
     return "Check the Progress tab for your real lift history and e1RM trend — I don't have that pulled up here. If you're unsure whether to increase the weight, message your coach and they'll make the call.";
   if (p.includes("today") || p.includes("train"))
@@ -373,7 +283,7 @@ function coachReply(prompt, ctx, messages = []) {
       : "You don't have a workout scheduled today — check the Training tab, or message your coach if that doesn't look right.";
   if (p.includes("progress"))
     return "Your real trends (volume, bodyweight, PRs) are on the Progress tab — I don't have them loaded in this chat.";
-  return "I can only answer a few common questions right now (today's workout, macros left, general training advice) — for anything specific to you, message your coach directly.";
+  return "I can only answer a few common training questions right now (today's workout, your progress, general training advice) — for nutrition, try AI Nutrition Help in the Nutrition tab; for anything else specific to you, message your coach directly.";
 }
 
 function estimateCalories(volume, durationMin) {
@@ -5998,7 +5908,7 @@ function ProfileScreen({
             </div>
             <div className="flex-1">
               <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Quick Tips</p>
-              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Canned answers to common questions</p>
+              <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Canned answers to common training questions</p>
             </div>
             <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
           </div>
@@ -6069,7 +5979,7 @@ function CoachSheet({ open, onClose, ctx }) {
   const [messages, setMessages] = useState([
     {
       role: "coach",
-      text: `Hey ${ctx.user.name.split(" ")[0]} — this is a quick-answer helper, not a live AI. It can handle a handful of common questions using your real numbers where it has them; for anything specific, message your coach directly.`,
+      text: `Hey ${ctx.user.name.split(" ")[0]} — this is a quick-answer training helper, not a live AI. It can handle a handful of common training questions using your real numbers where it has them. For nutrition, use AI Nutrition Help in the Nutrition tab instead; for anything else specific to you, message your coach directly.`,
     },
   ]);
   const [input, setInput] = useState("");
@@ -6077,7 +5987,7 @@ function CoachSheet({ open, onClose, ctx }) {
   function send(text) {
     if (!text.trim()) return;
     const userMsg = { role: "user", text };
-    const reply = { role: "coach", text: coachReply(text, ctx, messages) };
+    const reply = { role: "coach", text: coachReply(text, ctx) };
     setMessages((m) => [...m, userMsg, reply]);
     setInput("");
   }
@@ -6098,19 +6008,6 @@ function CoachSheet({ open, onClose, ctx }) {
         ))}
       </div>
       <div className="flex flex-wrap gap-2 mb-3">
-        {(() => {
-          const lastCoach = [...messages].reverse().find((m) => m.role === "coach");
-          const isFoodList = lastCoach?.text.startsWith(SNACK_INTRO) || lastCoach?.text.startsWith(POST_WORKOUT_INTRO);
-          const outOfOptions = lastCoach?.text.startsWith("That's every option");
-          return (
-            isFoodList &&
-            !outOfOptions && (
-              <button onClick={() => send("more")} className={dark ? "text-xs bg-white text-black px-3 py-1.5 rounded-full font-semibold" : "text-xs bg-black text-white px-3 py-1.5 rounded-full font-semibold"}>
-                More options
-              </button>
-            )
-          );
-        })()}
         {COACH_SUGGESTIONS.map((s) => (
           <button key={s} onClick={() => send(s)} className={dark ? "text-xs bg-white/8 text-white/60 px-3 py-1.5 rounded-full" : "text-xs bg-black/8 text-black/60 px-3 py-1.5 rounded-full"}>
             {s}
@@ -8218,7 +8115,7 @@ export default function ClientApp() {
           />
         )}
 
-        <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} ctx={{ user: currentUser, nutrition, targets, todaySession }} />
+        <CoachSheet open={coachOpen} onClose={() => setCoachOpen(false)} ctx={{ user: currentUser, todaySession }} />
         <MessagesSheet
           open={messagesOpen}
           onClose={() => setMessagesOpen(false)}
