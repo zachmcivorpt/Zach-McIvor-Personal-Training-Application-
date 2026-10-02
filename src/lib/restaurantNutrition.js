@@ -703,6 +703,13 @@ function wantsMealType(message) {
   return null;
 }
 
+// "Eating out" (with no restaurant named yet) should prompt for which
+// chain rather than silently falling through to home-cooked meal-library
+// suggestions — that's not what someone typing this actually wants.
+function wantsEatingOut(message) {
+  return /\beating out\b|\bgoing out to eat\b|\btake ?away\b|\bfast food\b|\bwhat should i order\b/i.test(message);
+}
+
 function allergyFlags(context) {
   const a = normalize(context.allergies);
   return {
@@ -836,6 +843,10 @@ function toSuggestion(item) {
     contents: item.contents
       ? item.contents.map((c) => ({ name: c.name, calories: Math.round(c.calories), protein: Math.round(c.protein), carbs: Math.round(c.carbs), fat: Math.round(c.fat) }))
       : undefined,
+    // Only present on home-cook meal-library suggestions (never on a
+    // restaurant item, which has nothing to cook) — lets the UI show
+    // real step-by-step instructions instead of just an ingredient list.
+    instructions: item.instructions || undefined,
   };
 }
 
@@ -854,6 +865,14 @@ export function getLocalNutritionSuggestion(message, context, excludeNames) {
 
   const brand = detectBrand(message);
   const parsedTarget = parseCalorieTarget(message);
+
+  if (!brand && wantsEatingOut(message)) {
+    return {
+      reply:
+        "Which one? Tap a chain below or just type it — McDonald's, KFC, Hungry Jack's, Subway, Domino's, Grill'd, Nando's, Taco Bell, Starbucks, 7-Eleven, APCO, or fish and chips — and I'll find what fits best with what you've got left today.",
+      suggestions: [],
+    };
+  }
 
   if (wantsMacroMatch(message)) {
     if (!brand) {
@@ -911,6 +930,9 @@ export function getLocalNutritionSuggestion(message, context, excludeNames) {
     // Real per-ingredient breakdown from the meal library, so tapping a
     // suggestion here shows what's actually in it too.
     contents: (meal.ingredients || []).map((i) => ({ name: i.name, calories: i.cals, protein: i.protein, carbs: i.carbs, fat: i.fat })),
+    // Real step-by-step method from the meal library — this is what
+    // lets the detail sheet show "how to cook it" for a home-cook pick.
+    instructions: meal.instructions,
   });
   const candidates = FITNESS_MEALS_AU.filter((meal) => !mealType || (meal.mealTypes || []).includes(mealType)).map(toCandidate);
   const pool = candidates.length ? candidates : FITNESS_MEALS_AU.map(toCandidate);

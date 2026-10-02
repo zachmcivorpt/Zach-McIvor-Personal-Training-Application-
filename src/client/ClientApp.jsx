@@ -272,7 +272,7 @@ const NUTRITION_KEYWORDS = ["snack", "protein", "carb", "calorie", "macro", "eat
 function coachReply(prompt, ctx) {
   const p = prompt.toLowerCase();
   if (NUTRITION_KEYWORDS.some((k) => p.includes(k)))
-    return "That's a nutrition question — try AI Nutrition Help in the Nutrition tab instead. It knows your real targets and what you've already eaten today, which this helper doesn't. This one's just for training.";
+    return "That's a nutrition question — try Fuel IQ in the Nutrition tab instead. It knows your real targets and what you've already eaten today, which this helper doesn't. This one's just for training.";
   if (p.includes("30 minutes") || p.includes("short"))
     return "With 30 minutes, try a condensed version of today's session — pick the 3 heaviest compound lifts and cut rest to 60 seconds. Message your coach if you'd like them to trim it for you.";
   if (p.includes("bench") || p.includes("weight") || p.includes("increase"))
@@ -283,7 +283,7 @@ function coachReply(prompt, ctx) {
       : "You don't have a workout scheduled today — check the Training tab, or message your coach if that doesn't look right.";
   if (p.includes("progress"))
     return "Your real trends (volume, bodyweight, PRs) are on the Progress tab — I don't have them loaded in this chat.";
-  return "I can only answer a few common training questions right now (today's workout, your progress, general training advice) — for nutrition, try AI Nutrition Help in the Nutrition tab; for anything else specific to you, message your coach directly.";
+  return "I can only answer a few common training questions right now (today's workout, your progress, general training advice) — for nutrition, try Fuel IQ in the Nutrition tab; for anything else specific to you, message your coach directly.";
 }
 
 function estimateCalories(volume, durationMin) {
@@ -3634,7 +3634,7 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
   const sending = exchanges.some((e) => e.loading);
   const inputRef = useRef(null);
 
-  const QUICK_PROMPTS = ["KFC", "McDonald's", "Hungry Jack's", "Subway", "APCO", "High protein dinner", "500 calorie meal"];
+  const QUICK_PROMPTS = ["Not sure what to eat", "Eating out", "KFC", "McDonald's", "Hungry Jack's", "Subway", "Grill'd", "High protein dinner"];
 
   // "Macro Match" needs a restaurant name to actually do anything, so
   // unlike the other chips it pre-fills the input and hands focus back
@@ -3724,23 +3724,24 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
   return (
     <>
     <div
-      className="rounded-2xl border shadow-sm p-4"
-      style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+      className="rounded-2xl p-4"
+      style={{
+        backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED,
+        border: `1.5px solid ${MEASURE_BLUE}33`,
+        boxShadow: dark ? `0 0 0 1px ${MEASURE_BLUE}14` : `0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px ${MEASURE_BLUE}10`,
+      }}
     >
       <div className="flex items-center gap-2.5 mb-1">
-        <div
-          className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-          style={{ backgroundColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }}
-        >
-          <Sparkles size={15} style={{ color: MEASURE_BLUE }} />
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: MEASURE_BLUE }}>
+          <Sparkles size={15} className="text-white" />
         </div>
-        <p className={dark ? "text-white font-bold text-[13px] tracking-wide" : "text-black font-bold text-[13px] tracking-wide"}>AI NUTRITION HELP</p>
+        <p className={dark ? "text-white font-bold text-sm tracking-wide" : "text-black font-bold text-sm tracking-wide"}>FUEL IQ</p>
       </div>
-      <p className={dark ? "text-white/40 text-xs mb-3" : "text-black/40 text-xs mb-3"}>Make better food decisions without doing the maths.</p>
+      <p className={dark ? "text-white/40 text-xs mb-3" : "text-black/40 text-xs mb-3"}>Not sure what to eat, or eating out? Get a real fit for today's targets — no maths required.</p>
 
       {exchanges.length === 0 ? (
         <p className={dark ? "text-white/60 text-[13px] leading-snug mb-3" : "text-black/60 text-[13px] leading-snug mb-3"}>
-          Not sure what to eat? Tell me what you're thinking about eating and I'll help you fit it into today's targets.
+          Tell me what you're thinking about eating — or tap "Not sure what to eat" or "Eating out" below — and I'll fit it to what you've got left today.
         </p>
       ) : (
         <div className="space-y-3 mb-3">
@@ -3884,7 +3885,9 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
 
           {detailSuggestion.contents?.length > 0 ? (
             <div className="mt-4">
-              <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-2" : "text-black/35 text-[11px] font-bold tracking-wide mb-2"}>WHAT'S IN IT</p>
+              <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-2" : "text-black/35 text-[11px] font-bold tracking-wide mb-2"}>
+                {detailSuggestion.instructions ? "INGREDIENTS" : "WHAT'S IN IT"}
+              </p>
               <div className="space-y-1.5">
                 {detailSuggestion.contents.map((c, i) => (
                   <div
@@ -3902,6 +3905,35 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
           ) : (
             <p className={dark ? "text-white/30 text-sm mt-4" : "text-black/30 text-sm mt-4"}>A single item — no breakdown needed.</p>
           )}
+
+          {detailSuggestion.instructions ? (
+            <div className="mt-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div
+                  className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }}
+                >
+                  <UtensilsCrossed size={12} style={{ color: MEASURE_BLUE }} />
+                </div>
+                <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide" : "text-black/35 text-[11px] font-bold tracking-wide"}>HOW TO COOK IT</p>
+              </div>
+              <ol className="space-y-2">
+                {detailSuggestion.instructions
+                  .split(/\n+/)
+                  .map((step) => step.trim())
+                  .filter(Boolean)
+                  .map((step, i) => (
+                    <li
+                      key={i}
+                      className={dark ? "flex gap-2.5 bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2.5" : "flex gap-2.5 bg-black/[0.02] border border-black/8 rounded-lg px-3 py-2.5"}
+                    >
+                      <span className={dark ? "text-white/30 text-xs font-bold shrink-0 w-4 text-right" : "text-black/30 text-xs font-bold shrink-0 w-4 text-right"}>{i + 1}</span>
+                      <span className={dark ? "text-white/75 text-[13px] leading-snug" : "text-black/75 text-[13px] leading-snug"}>{step.replace(/^\d+\.\s*/, "")}</span>
+                    </li>
+                  ))}
+              </ol>
+            </div>
+          ) : null}
 
           <p className={dark ? "text-white/30 text-[11px] mt-4 leading-snug" : "text-black/30 text-[11px] mt-4 leading-snug"}>
             Figures are approximate published values — actual nutrition can vary slightly by location and recipe updates.
@@ -6107,7 +6139,7 @@ function CoachSheet({ open, onClose, ctx }) {
   const [messages, setMessages] = useState([
     {
       role: "coach",
-      text: `Hey ${ctx.user.name.split(" ")[0]} — this is a quick-answer training helper, not a live AI. It can handle a handful of common training questions using your real numbers where it has them. For nutrition, use AI Nutrition Help in the Nutrition tab instead; for anything else specific to you, message your coach directly.`,
+      text: `Hey ${ctx.user.name.split(" ")[0]} — this is a quick-answer training helper, not a live AI. It can handle a handful of common training questions using your real numbers where it has them. For nutrition, use Fuel IQ in the Nutrition tab instead; for anything else specific to you, message your coach directly.`,
     },
   ]);
   const [input, setInput] = useState("");
