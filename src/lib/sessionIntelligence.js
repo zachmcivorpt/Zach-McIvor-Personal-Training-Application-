@@ -10,7 +10,14 @@
 // with coach-added custom ones that just carry `category: "Custom"` — so
 // category alone isn't reliable. Name-keyword matching is the fallback for
 // both body region and movement pattern whenever category doesn't resolve.
+//
+// A second, optional pass (buildPersonalNote) layers in this specific
+// client's own logged history for the exercises programmed today — same
+// "every number is real, traceable data" rule src/lib/apexInsights.js
+// follows, just one grounded observation instead of a whole rules engine,
+// since this renders inline in a workout screen rather than a dashboard.
 import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "./workoutStats";
+import { estimate1RM } from "./AppContext";
 
 const REST_CATEGORIES = new Set(["Warm-up", "Cool-down"]);
 
@@ -104,11 +111,94 @@ function classifyExercise(exercise) {
   return { region, pattern };
 }
 
+const RETURNING_GAP_DAYS = 7;
+const TREND_SESSIONS = 3;
+
+// Best e1RM (or rep count for an unweighted/bodyweight set) logged for one
+// exercise in one session — mirrors how apexInsights.js scores a session's
+// best set for the same exercise, so "best this session" means the same
+// thing everywhere in the app.
+function sessionBestScore(entry) {
+  let best = 0;
+  (entry?.sets || []).forEach((s) => {
+    if (!s.reps) return;
+    const score = s.weight > 0 ? estimate1RM(s.weight, s.reps) : s.reps;
+    if (score > best) best = score;
+  });
+  return best;
+}
+
+// One grounded observation about THIS client, from their own logged
+// history for the exercises actually programmed today — never more than
+// one, so the card stays a single clear thought rather than a stat dump.
+// Priority: a real break in training (changes how today should be
+// approached) outranks a performance trend (changes ambition), which
+// outranks a brand-new exercise (purely informational).
+function buildPersonalNote(list, exercisesById, logsForClient) {
+  if (!logsForClient || logsForClient.length === 0) return null;
+
+  // logsForClient is already newest-first (see AppContext.jsx's bucket()).
+  const lastSession = logsForClient[0];
+  if (lastSession?.date) {
+    const gapDays = Math.round((Date.now() - lastSession.date) / 86400000);
+    if (gapDays >= RETURNING_GAP_DAYS) {
+      return `It's been ${gapDays} days since your last logged session — ease back in today rather than chasing a new max.`;
+    }
+  }
+
+  let trendUp = null; // best % climb across the lifts programmed today
+  let stalled = null; // a lift flat across the last 3 sessions
+  let brandNew = null; // first lift programmed today with zero history
+
+  for (const exMeta of list) {
+    const exercise = exercisesById?.[exMeta.exerciseId];
+    if (!exercise) continue;
+
+    const sessionsForLift = [];
+    for (const log of logsForClient) {
+      const entry = log.entries?.find((e) => e.exerciseId === exMeta.exerciseId);
+      if (!entry) continue;
+      const score = sessionBestScore(entry);
+      if (score > 0) sessionsForLift.push({ date: log.date, score });
+      if (sessionsForLift.length >= TREND_SESSIONS) break;
+    }
+
+    if (sessionsForLift.length === 0) {
+      if (!brandNew) brandNew = exercise.name;
+      continue;
+    }
+
+    if (sessionsForLift.length >= TREND_SESSIONS) {
+      const [newest, mid, oldest] = sessionsForLift; // newest-first
+      if (newest.score > mid.score && mid.score > oldest.score) {
+        const pct = Math.round(((newest.score - oldest.score) / oldest.score) * 100);
+        if (!trendUp || pct > trendUp.pct) trendUp = { name: exercise.name, pct };
+      } else if (newest.score === mid.score && mid.score === oldest.score) {
+        if (!stalled) stalled = exercise.name;
+      }
+    }
+  }
+
+  if (trendUp && trendUp.pct >= 3) {
+    return `Your ${trendUp.name} has climbed ${trendUp.pct}% over your last ${TREND_SESSIONS} logged sessions — good day to chase another PR.`;
+  }
+  if (stalled) {
+    return `Your ${stalled} has held at the same best for ${TREND_SESSIONS} sessions straight — today could be the day to add a rep or a little weight.`;
+  }
+  if (brandNew && list.length > 0 && exercisesById?.[list[0].exerciseId]?.name === brandNew) {
+    return `First time logging ${brandNew} in this program — focus on finding a solid working weight today.`;
+  }
+  return null;
+}
+
 // Analyses a day's programmed exercises (the same `exercises` array shape
 // used everywhere else — targetSets/targetReps/targetType/restSeconds per
 // entry) against the exercise library, and returns a summary for display.
-// Returns null if there's nothing usable to analyse yet.
-export function analyzeSession(exercises, exercisesById) {
+// logsForClient (optional) is this client's own workoutLogs, newest-first —
+// passing it adds one personalized observation grounded in their real
+// history; omitting it just skips that line, same as before. Returns null
+// if there's nothing usable to analyse yet.
+export function analyzeSession(exercises, exercisesById, logsForClient) {
   const list = (exercises || []).filter((e) => !e.isRest);
   if (list.length === 0) return null;
 
@@ -152,7 +242,7 @@ export function analyzeSession(exercises, exercisesById) {
   // Nothing but warm-up/cool-down entries — treat the whole thing as
   // mobility work rather than guessing a strength focus that isn't there.
   if (movingSets === 0) {
-    return buildResult({ bodyFocus: "Mobility & Recovery", trainingGoal: null, patternWeights, exercises: list, workingSets });
+    return buildResult({ bodyFocus: "Mobility & Recovery", trainingGoal: null, patternWeights, exercises: list, workingSets, logsForClient, exercisesById });
   }
 
   const totalRegionWeight = upperWeight + lowerWeight + coreWeight;
@@ -189,10 +279,10 @@ export function analyzeSession(exercises, exercisesById) {
     trainingGoal = "Endurance";
   }
 
-  return buildResult({ bodyFocus, trainingGoal, patternWeights, exercises: list, workingSets });
+  return buildResult({ bodyFocus, trainingGoal, patternWeights, exercises: list, workingSets, logsForClient, exercisesById });
 }
 
-function buildResult({ bodyFocus, trainingGoal, patternWeights, exercises, workingSets }) {
+function buildResult({ bodyFocus, trainingGoal, patternWeights, exercises, workingSets, logsForClient, exercisesById }) {
   const topPatterns = Object.entries(patternWeights)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
@@ -200,7 +290,8 @@ function buildResult({ bodyFocus, trainingGoal, patternWeights, exercises, worki
 
   const classification = trainingGoal ? `${bodyFocus} ${trainingGoal}` : bodyFocus;
   const briefing = buildBriefing(bodyFocus, trainingGoal, topPatterns);
-  const whyItMatters = buildWhyItMatters(bodyFocus, trainingGoal);
+  const personalNote = buildPersonalNote(exercises, exercisesById, logsForClient);
+  const whyItMatters = buildWhyItMatters(bodyFocus, trainingGoal) + (personalNote ? ` ${personalNote}` : "");
   const estMinutes = estimateWorkoutMinutes(exercises);
 
   return {

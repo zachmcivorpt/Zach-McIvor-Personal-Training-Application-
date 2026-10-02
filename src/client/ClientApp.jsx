@@ -2499,7 +2499,7 @@ function WorkoutSession({
           <div className="w-[52px]" />
         </div>
         <div className="flex-1 overflow-y-auto px-2.5 py-4 space-y-5 pb-28">
-          <SessionIntelligenceCard exercises={exercisesForSession} exercisesById={exercisesById} dark={dark} />
+          <SessionIntelligenceCard exercises={exercisesForSession} exercisesById={exercisesById} logsForClient={logsForClient} dark={dark} />
           {sectionedExercises(exercisesForSession).map((group) => (
             <div key={group.key}>
               {group.showHeader && (

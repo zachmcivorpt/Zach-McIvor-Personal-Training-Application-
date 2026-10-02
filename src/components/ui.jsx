@@ -778,13 +778,16 @@ export function MetricTile({ label, value, date, series, onClick, dark = false }
 }
 
 // Compact, auto-generated summary shown above a session's exercise list —
-// derived entirely from the exercises already programmed (category, target
-// sets/reps/rest), no coach input required. Recomputes on every render, so
-// it stays in sync with edits (added/removed exercises, changed sets/reps,
-// reordering) without any extra wiring from the caller.
-export function SessionIntelligenceCard({ exercises, exercisesById, dark = false, defaultExpanded = true, className = "" }) {
+// derived from the exercises already programmed (category, target
+// sets/reps/rest) plus, when logsForClient is passed, this specific
+// client's own logged history for those same exercises (a real trend,
+// a plateau, a break in training). No coach input required either way.
+// Recomputes on every render, so it stays in sync with edits (added/
+// removed exercises, changed sets/reps, reordering, new logged sets)
+// without any extra wiring from the caller.
+export function SessionIntelligenceCard({ exercises, exercisesById, logsForClient, dark = false, defaultExpanded = true, className = "" }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const analysis = useMemo(() => analyzeSession(exercises, exercisesById), [exercises, exercisesById]);
+  const analysis = useMemo(() => analyzeSession(exercises, exercisesById, logsForClient), [exercises, exercisesById, logsForClient]);
   if (!analysis) return null;
   const { briefing, whyItMatters, stats } = analysis;
 
