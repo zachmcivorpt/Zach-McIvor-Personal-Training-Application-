@@ -32,6 +32,7 @@ import { FITNESS_MEALS_AU } from "./fitnessMealsAU";
 import { COACH_SETUP_CODE } from "./config";
 import { localDateKey } from "./dateKey";
 import { detectNoteContext } from "./apexInsights";
+import { getLocalNutritionSuggestion } from "./restaurantNutrition";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -2032,20 +2033,16 @@ export function AppProvider({ children }) {
         }
       },
 
-      // The Nutrition tab's "AI Nutrition Help" assistant. Unlike the two
-      // above, there's no sensible local heuristic to fall back to for a
-      // freeform "what should I eat" question, so a failure (API key not
-      // configured yet, network issue, model hiccup) surfaces as a thrown
-      // Error with the exact copy the Nutrition screen shows inline —
-      // never a crash, and never silently nothing.
+      // The Nutrition tab's "AI Nutrition Help" assistant. Fully local —
+      // matches the client's message (a restaurant name, a calorie
+      // target, "high protein dinner", etc.) against a built-in fast-food
+      // menu database and the app's own 400+ real meal library, ranked
+      // against their actual remaining calories/macros for today. No
+      // network call, no API key, so it can never depend on anything
+      // outside this app being configured.
       async nutritionAiHelp(message, context, history) {
-        try {
-          const result = await httpsCallable(functions, "nutritionAiHelp")({ message, context, history });
-          return { reply: result.data?.reply || "", suggestions: result.data?.suggestions || [] };
-        } catch (err) {
-          console.warn("nutritionAiHelp Cloud Function unavailable:", err.message);
-          throw new Error("I couldn't get the nutrition information for that option right now. Try another food or enter the meal manually.");
-        }
+        void history; // kept in the signature for API-shape compatibility with callers
+        return getLocalNutritionSuggestion(message, context);
       },
 
       // Finishes a WHOOP OAuth connect — the client was just sent to

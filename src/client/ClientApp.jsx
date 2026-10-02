@@ -3620,9 +3620,9 @@ function guessMealForNow() {
 // client's own real targets and today's actual progress (never a generic
 // assumption) and can drop a suggested food straight into the existing
 // food-logging flow via onAddFood, so there's no second logging system
-// here. The server-side half (functions/index.js's nutritionAiHelp) only
-// ever turns the real numbers this component sends it into words; it
-// never re-derives or invents them.
+// here. Backed entirely by src/lib/restaurantNutrition.js — a local,
+// deterministic matcher (restaurant menu database + this app's own meal
+// library), not an external AI call, so it works instantly with no setup.
 function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, showToast, dark }) {
   const { nutritionAiHelp } = useApp();
   const [messages, setMessages] = useState([]); // { role: "user"|"assistant", text, suggestions? }

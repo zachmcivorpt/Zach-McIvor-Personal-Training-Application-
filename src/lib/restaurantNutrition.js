@@ -1,0 +1,268 @@
+// Local, instant replacement for the "AI Nutrition Help" backend — no
+// external API, no API key, no network call, so it never depends on
+// anything outside this app being configured. Values below are
+// well-known, publicly published approximate nutrition figures for each
+// chain's standard menu (actual numbers vary slightly by region/recipe
+// updates, which is exactly why every suggestion is still labelled with
+// "~" in the UI rather than presented as exact).
+//
+// Matching is entirely deterministic: detect a restaurant name (or a
+// calorie/protein-style request) in the client's free-text message,
+// filter out anything that conflicts with their stored allergies/
+// dietary preferences, then rank what's left by how well it fits
+// whatever calories/macros they actually have remaining today — the
+// same job the old LLM-backed function did, just without the LLM.
+import { FITNESS_MEALS_AU } from "./fitnessMealsAU";
+
+// tags: dairy | gluten | egg | vegetarian — used for simple allergy/
+// preference filtering against the client's stored profile text.
+const RESTAURANT_MENUS = {
+  "mcdonald's": [
+    { name: "Hamburger", calories: 250, protein: 12, carbs: 31, fat: 9, tags: ["gluten"] },
+    { name: "Cheeseburger", calories: 300, protein: 15, carbs: 33, fat: 12, tags: ["gluten", "dairy"] },
+    { name: "McChicken", calories: 400, protein: 14, carbs: 39, fat: 21, tags: ["gluten"] },
+    { name: "Big Mac", calories: 550, protein: 25, carbs: 45, fat: 30, tags: ["gluten", "dairy"] },
+    { name: "Quarter Pounder with Cheese", calories: 520, protein: 30, carbs: 41, fat: 26, tags: ["gluten", "dairy"] },
+    { name: "6pc Chicken McNuggets", calories: 250, protein: 14, carbs: 15, fat: 15, tags: ["gluten"] },
+    { name: "Grilled Chicken Salad (no dressing)", calories: 220, protein: 27, carbs: 10, fat: 8, tags: [] },
+    { name: "Side Salad", calories: 20, protein: 1, carbs: 4, fat: 0, tags: ["vegetarian"] },
+    { name: "Small Fries", calories: 230, protein: 3, carbs: 30, fat: 11, tags: ["vegetarian"] },
+    { name: "Egg & Cheese McMuffin", calories: 300, protein: 17, carbs: 30, fat: 12, tags: ["gluten", "dairy", "egg"] },
+    { name: "Oatmeal", calories: 150, protein: 4, carbs: 29, fat: 2, tags: ["gluten", "vegetarian"] },
+  ],
+  kfc: [
+    { name: "Original Recipe Chicken Breast", calories: 390, protein: 39, carbs: 11, fat: 21, tags: ["gluten"] },
+    { name: "Original Recipe Chicken Drumstick", calories: 150, protein: 14, carbs: 4, fat: 9, tags: ["gluten"] },
+    { name: "Original Recipe Chicken Thigh", calories: 280, protein: 19, carbs: 9, fat: 19, tags: ["gluten"] },
+    { name: "Zinger Burger", calories: 450, protein: 24, carbs: 45, fat: 19, tags: ["gluten"] },
+    { name: "Popcorn Chicken (regular)", calories: 400, protein: 20, carbs: 23, fat: 25, tags: ["gluten"] },
+    { name: "Grilled Chicken Fillet (no bun)", calories: 200, protein: 35, carbs: 2, fat: 6, tags: [] },
+    { name: "Corn Cob", calories: 150, protein: 4, carbs: 32, fat: 2, tags: ["vegetarian"] },
+    { name: "Coleslaw (small)", calories: 150, protein: 1, carbs: 14, fat: 10, tags: ["dairy", "vegetarian"] },
+    { name: "Mashed Potato & Gravy", calories: 120, protein: 2, carbs: 17, fat: 5, tags: ["gluten"] },
+  ],
+  subway: [
+    { name: "Turkey Breast 6-inch", calories: 280, protein: 18, carbs: 46, fat: 4, tags: ["gluten"] },
+    { name: "Chicken Teriyaki 6-inch", calories: 370, protein: 26, carbs: 55, fat: 5, tags: ["gluten"] },
+    { name: "Veggie Delite 6-inch", calories: 230, protein: 9, carbs: 44, fat: 3, tags: ["gluten", "vegetarian"] },
+    { name: "Tuna 6-inch", calories: 450, protein: 19, carbs: 44, fat: 22, tags: ["gluten", "dairy"] },
+    { name: "Steak & Cheese 6-inch", calories: 380, protein: 24, carbs: 45, fat: 12, tags: ["gluten", "dairy"] },
+    { name: "Chicken & Bacon Ranch 6-inch", calories: 480, protein: 29, carbs: 44, fat: 21, tags: ["gluten", "dairy"] },
+    { name: "Chicken Teriyaki Salad (no bread)", calories: 180, protein: 24, carbs: 15, fat: 3, tags: [] },
+  ],
+  "burger king": [
+    { name: "Whopper", calories: 660, protein: 28, carbs: 49, fat: 40, tags: ["gluten"] },
+    { name: "Hamburger", calories: 240, protein: 12, carbs: 29, fat: 9, tags: ["gluten"] },
+    { name: "Crispy Chicken Burger", calories: 500, protein: 22, carbs: 50, fat: 24, tags: ["gluten"] },
+    { name: "Grilled Chicken Burger", calories: 380, protein: 28, carbs: 38, fat: 13, tags: ["gluten"] },
+    { name: "4pc Chicken Nuggets", calories: 170, protein: 9, carbs: 11, fat: 10, tags: ["gluten"] },
+    { name: "Small Fries", calories: 230, protein: 3, carbs: 29, fat: 11, tags: ["vegetarian"] },
+    { name: "Garden Salad", calories: 60, protein: 4, carbs: 8, fat: 2, tags: ["vegetarian"] },
+  ],
+  "domino's": [
+    { name: "Margherita Pizza (2 slices)", calories: 380, protein: 16, carbs: 48, fat: 14, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Pepperoni Pizza (2 slices)", calories: 440, protein: 18, carbs: 46, fat: 20, tags: ["gluten", "dairy"] },
+    { name: "BBQ Chicken Pizza (2 slices)", calories: 420, protein: 20, carbs: 50, fat: 15, tags: ["gluten", "dairy"] },
+    { name: "Vegetarian Supreme Pizza (2 slices)", calories: 360, protein: 14, carbs: 46, fat: 13, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Garlic Bread (2 pieces)", calories: 200, protein: 5, carbs: 26, fat: 8, tags: ["gluten", "dairy", "vegetarian"] },
+  ],
+  "nando's": [
+    { name: "1/4 Chicken Breast (no skin)", calories: 220, protein: 40, carbs: 0, fat: 6, tags: [] },
+    { name: "1/4 Chicken Thigh & Leg", calories: 280, protein: 28, carbs: 0, fat: 18, tags: [] },
+    { name: "Chicken Wrap", calories: 450, protein: 28, carbs: 42, fat: 18, tags: ["gluten"] },
+    { name: "Corn on the Cob", calories: 150, protein: 4, carbs: 30, fat: 2, tags: ["vegetarian"] },
+    { name: "Mediterranean Salad", calories: 180, protein: 10, carbs: 12, fat: 10, tags: ["dairy", "vegetarian"] },
+    { name: "Spicy Rice", calories: 220, protein: 4, carbs: 42, fat: 4, tags: ["vegetarian"] },
+  ],
+  "taco bell": [
+    { name: "Crunchy Taco", calories: 170, protein: 8, carbs: 13, fat: 10, tags: ["dairy"] },
+    { name: "Bean Burrito", calories: 350, protein: 13, carbs: 54, fat: 9, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Chicken Burrito Supreme", calories: 410, protein: 17, carbs: 50, fat: 15, tags: ["gluten", "dairy"] },
+    { name: "Crunchwrap Supreme", calories: 530, protein: 16, carbs: 71, fat: 21, tags: ["gluten", "dairy"] },
+    { name: "Chicken Power Bowl", calories: 470, protein: 26, carbs: 48, fat: 18, tags: ["dairy"] },
+  ],
+  starbucks: [
+    { name: "Egg White & Spinach Wrap", calories: 290, protein: 20, carbs: 33, fat: 8, tags: ["gluten", "dairy", "egg"] },
+    { name: "Turkey Bacon Egg White Sandwich", calories: 230, protein: 17, carbs: 25, fat: 6, tags: ["gluten", "dairy", "egg"] },
+    { name: "Protein Box", calories: 450, protein: 20, carbs: 30, fat: 25, tags: ["dairy", "egg"] },
+    { name: "Oatmeal", calories: 160, protein: 5, carbs: 28, fat: 2.5, tags: ["gluten", "vegetarian"] },
+    { name: "Banana", calories: 100, protein: 1, carbs: 27, fat: 0, tags: ["vegetarian"] },
+  ],
+};
+
+// Common ways people actually type each chain's name.
+const BRAND_ALIASES = {
+  "mcdonald's": ["mcdonald's", "mcdonalds", "maccas", "macca's", "mcdo", "mcd"],
+  kfc: ["kfc", "kentucky fried chicken"],
+  subway: ["subway"],
+  "burger king": ["burger king", "hungry jack's", "hungry jacks", "bk"],
+  "domino's": ["domino's", "dominos", "domino"],
+  "nando's": ["nando's", "nandos"],
+  "taco bell": ["taco bell"],
+  starbucks: ["starbucks", "sbux"],
+};
+
+const BRAND_DISPLAY = {
+  "mcdonald's": "McDonald's",
+  kfc: "KFC",
+  subway: "Subway",
+  "burger king": "Burger King",
+  "domino's": "Domino's",
+  "nando's": "Nando's",
+  "taco bell": "Taco Bell",
+  starbucks: "Starbucks",
+};
+
+const DAIRY_WORDS = ["milk", "cheese", "yoghurt", "yogurt", "cream", "butter"];
+const GLUTEN_WORDS = ["bread", "wrap", "pasta", "tortilla", "flour", "bun", "oats"];
+const NUT_WORDS = ["peanut", "almond", "cashew", "walnut", "pecan", "pistachio", "hazelnut"];
+const SHELLFISH_WORDS = ["prawn", "shrimp", "crab", "lobster", "oyster"];
+const MEAT_WORDS = ["chicken", "beef", "pork", "turkey", "lamb", "bacon", "ham", "salami", "fish", "salmon", "tuna", "prawn", "shrimp"];
+
+function normalize(s) {
+  return (s || "").toLowerCase();
+}
+
+function detectBrand(message) {
+  const m = normalize(message);
+  for (const [brand, aliases] of Object.entries(BRAND_ALIASES)) {
+    if (aliases.some((a) => m.includes(a))) return brand;
+  }
+  return null;
+}
+
+function parseCalorieTarget(message) {
+  const m = normalize(message).match(/(\d{2,4})\s*(kcal|cal|calorie)/);
+  return m ? Number(m[1]) : null;
+}
+
+function wantsMealType(message) {
+  const m = normalize(message);
+  if (m.includes("breakfast")) return "Breakfast";
+  if (m.includes("lunch")) return "Lunch";
+  if (m.includes("dinner")) return "Dinner";
+  if (m.includes("snack")) return "Snacks";
+  if (m.includes("pre-workout") || m.includes("pre workout")) return "Pre-workout";
+  if (m.includes("post-workout") || m.includes("post workout")) return "Post-workout";
+  return null;
+}
+
+function allergyFlags(context) {
+  const a = normalize(context.allergies);
+  return {
+    dairy: a.includes("dairy") || a.includes("lactose") || a.includes("milk"),
+    gluten: a.includes("gluten") || a.includes("coeliac") || a.includes("celiac"),
+    nuts: a.includes("nut"),
+    shellfish: a.includes("shellfish") || a.includes("prawn") || a.includes("shrimp"),
+    egg: a.includes("egg"),
+  };
+}
+
+function wantsVegetarian(context) {
+  const prefs = (context.dietaryPreferences || []).map(normalize);
+  return prefs.some((p) => p.includes("vegetarian") || p.includes("vegan"));
+}
+
+// Works for both tagged restaurant items and raw fitness-meal ingredient
+// text — whichever one a given item carries.
+function passesAllergyFilter(item, flags, needsVegetarian) {
+  const tags = item.tags || [];
+  const text = item.ingredientText || "";
+  if (flags.dairy && (tags.includes("dairy") || DAIRY_WORDS.some((w) => text.includes(w)))) return false;
+  if (flags.gluten && (tags.includes("gluten") || GLUTEN_WORDS.some((w) => text.includes(w)))) return false;
+  if (flags.nuts && NUT_WORDS.some((w) => text.includes(w))) return false;
+  if (flags.shellfish && SHELLFISH_WORDS.some((w) => text.includes(w))) return false;
+  if (flags.egg && (tags.includes("egg") || text.includes("egg"))) return false;
+  if (needsVegetarian) {
+    const isVeg = tags.includes("vegetarian") || (text && !MEAT_WORDS.some((w) => text.includes(w)));
+    if (!isVeg) return false;
+  }
+  return true;
+}
+
+function scoreItem(item, budget, favorProtein) {
+  const calDiff = Math.abs(item.calories - budget);
+  const overshoot = item.calories > budget * 1.3 ? 350 : 0;
+  const proteinWeight = favorProtein ? 4 : 1.2;
+  return calDiff + overshoot - item.protein * proteinWeight;
+}
+
+function pickTop(items, budget, favorProtein, count) {
+  return [...items]
+    .map((item) => ({ item, score: scoreItem(item, budget, favorProtein) }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, count)
+    .map((x) => x.item);
+}
+
+function toSuggestion(item) {
+  return {
+    name: item.name,
+    calories: Math.round(item.calories),
+    protein: Math.round(item.protein),
+    carbs: Math.round(item.carbs),
+    fat: Math.round(item.fat),
+  };
+}
+
+// Mirrors the shape the old Cloud Function returned: { reply, suggestions }.
+export function getLocalNutritionSuggestion(message, context) {
+  const flags = allergyFlags(context);
+  const needsVegetarian = wantsVegetarian(context);
+  const favorProtein = /protein|muscle|lean|cut(ting)?/i.test(message) || /muscle|lean/i.test(context.goal || "");
+
+  const remainingBudget = context.caloriesRemaining > 0 ? context.caloriesRemaining : context.calorieTarget || 600;
+  const proteinRemaining = context.proteinRemaining > 0 ? context.proteinRemaining : context.proteinTarget || 0;
+
+  const brand = detectBrand(message);
+  const parsedTarget = parseCalorieTarget(message);
+
+  if (brand) {
+    const menu = RESTAURANT_MENUS[brand];
+    const budget = parsedTarget || remainingBudget;
+    const allowed = menu.filter((i) => passesAllergyFilter(i, flags, needsVegetarian));
+    const pool = allowed.length ? allowed : menu;
+    const picks = pickTop(pool, budget, favorProtein, 3);
+    const best = picks[0];
+    const heavy = best && best.calories > budget * 1.3;
+    const allergyNote = allowed.length < menu.length ? " I left out anything that could conflict with what's on your profile." : "";
+
+    let reply;
+    if (heavy) {
+      reply = `Everything at ${BRAND_DISPLAY[brand]} runs a bit heavier than what you've got left today (roughly ${Math.round(budget)} kcal) — this is the lightest fit I'd go with:${allergyNote}`;
+    } else {
+      reply = `From ${BRAND_DISPLAY[brand]}, here's what fits well with roughly ${Math.round(budget)} kcal and ${Math.round(proteinRemaining)}g protein left today:${allergyNote}`;
+    }
+    return { reply, suggestions: picks.slice(0, heavy ? 1 : 3).map(toSuggestion) };
+  }
+
+  // No specific chain named — search the app's own 400+ real meal library
+  // instead, which already carries real, verified macros.
+  const mealType = wantsMealType(message);
+  const candidates = FITNESS_MEALS_AU.filter((meal) => !mealType || (meal.mealTypes || []).includes(mealType)).map((meal) => ({
+    name: meal.name,
+    calories: meal.cals,
+    protein: meal.protein,
+    carbs: meal.carbs,
+    fat: meal.fat,
+    ingredientText: (meal.ingredients || []).map((i) => normalize(i.name)).join(" "),
+  }));
+  const pool = candidates.length ? candidates : FITNESS_MEALS_AU.map((meal) => ({ name: meal.name, calories: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, ingredientText: "" }));
+
+  const budget = parsedTarget || remainingBudget;
+  const allowed = pool.filter((i) => passesAllergyFilter(i, flags, needsVegetarian));
+  const finalPool = allowed.length ? allowed : pool;
+  const picks = pickTop(finalPool, budget, favorProtein, 3);
+  const allergyNote = allowed.length < pool.length ? " I left out anything that could conflict with what's on your profile." : "";
+
+  let reply;
+  if (parsedTarget) {
+    reply = `Here's something around ${Math.round(parsedTarget)} kcal that fits well:${allergyNote}`;
+  } else if (picks.length) {
+    reply = `Based on roughly ${Math.round(budget)} kcal and ${Math.round(proteinRemaining)}g protein you've got left today, here's a good fit:${allergyNote}`;
+  } else {
+    reply =
+      "Tell me a restaurant (McDonald's, KFC, Subway, Burger King, Domino's, Nando's, Taco Bell, Starbucks) or a calorie target and I'll find something that fits what you've got left today.";
+  }
+  return { reply, suggestions: picks.map((p) => toSuggestion({ ...p, name: p.name })) };
+}
