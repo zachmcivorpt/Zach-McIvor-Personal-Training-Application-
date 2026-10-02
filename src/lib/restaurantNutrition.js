@@ -446,24 +446,31 @@ const RESTAURANT_MENUS = {
     { name: "Sweet Potato Chips (Regular)", calories: 540, protein: 5, carbs: 67, fat: 26, tags: ["vegetarian"] },
     { name: "Herbed Mayo Dip", calories: 218, protein: 1, carbs: 3, fat: 23, tags: ["egg"] },
   ],
+  // Rebuilt from Nando's Australia's own published nutrition data
+  // (nandos.com.au, via the same official-source aggregator used for the
+  // other chains above). The current AU menu sells Half chicken (not a
+  // separate Quarter product) — "Quarter" below is exactly half of the
+  // real Half-chicken figure, same whole-divided-evenly logic as a pizza
+  // slice, not an estimate.
   "nando's": [
-    // Two real, distinct products (fatsecret.com.au / calorieking.com.au)
-    // rather than one guessed figure — a skinless breast-only quarter
-    // runs much leaner than the mixed skin-on quarter.
-    { name: "1/4 Chicken Breast (no skin)", calories: 289, protein: 39, carbs: 0, fat: 15, tags: [] },
-    { name: "1/4 Chicken (mixed cut, skin on)", calories: 425, protein: 55, carbs: 0, fat: 23, tags: [] },
-    { name: "Chicken Wrap", calories: 450, protein: 28, carbs: 42, fat: 18, tags: ["gluten"] },
-    { name: "Corn on the Cob", calories: 150, protein: 4, carbs: 30, fat: 2, tags: ["vegetarian"] },
-    { name: "Mediterranean Salad", calories: 180, protein: 10, carbs: 12, fat: 10, tags: ["dairy", "vegetarian"] },
-    { name: "Spicy Rice", calories: 220, protein: 4, carbs: 42, fat: 4, tags: ["vegetarian"] },
-    { name: "Full Chicken (skin on)", calories: 850, protein: 110, carbs: 0, fat: 46, tags: [] },
-    { name: "Grilled Chicken Burger", calories: 420, protein: 30, carbs: 40, fat: 15, tags: ["gluten"] },
-    { name: "Chicken Pita", calories: 380, protein: 25, carbs: 38, fat: 12, tags: ["gluten"] },
-    { name: "Veggie Wrap (halloumi)", calories: 420, protein: 15, carbs: 45, fat: 20, tags: ["gluten", "dairy", "vegetarian"] },
-    { name: "Garlic Bread", calories: 220, protein: 5, carbs: 28, fat: 10, tags: ["gluten", "dairy", "vegetarian"] },
-    { name: "Macho Peas", calories: 150, protein: 8, carbs: 20, fat: 3, tags: ["vegetarian"] },
-    { name: "Coleslaw", calories: 150, protein: 2, carbs: 12, fat: 11, tags: ["dairy", "vegetarian"] },
-    { name: "Mashed Potato", calories: 180, protein: 3, carbs: 25, fat: 7, tags: ["dairy", "vegetarian"] },
+    { name: "1/4 PERi-PERi Chicken", calories: 358, protein: 54, carbs: 1, fat: 15, tags: [] },
+    { name: "1/2 PERi-PERi Chicken", calories: 715, protein: 108, carbs: 1, fat: 31, tags: [] },
+    { name: "4 PERi-PERi Grilled Tenders", calories: 220, protein: 40, carbs: 1, fat: 7, tags: [] },
+    { name: "BBQ Chicken Ribs", calories: 297, protein: 30, carbs: 4, fat: 18, tags: [] },
+    { name: "PERinaise Classic Burger", calories: 496, protein: 41, carbs: 43, fat: 17, tags: ["gluten", "dairy"] },
+    { name: "Double Cheese & Bacon Burger", calories: 667, protein: 47, carbs: 48, fat: 31, tags: ["gluten", "dairy"] },
+    { name: "Avo Goodness Burger", calories: 568, protein: 38, carbs: 52, fat: 22, tags: ["gluten"] },
+    { name: "The Halloumi Burger", calories: 599, protein: 40, carbs: 54, fat: 25, tags: ["gluten", "dairy"] },
+    { name: "Nandoca's Choice Burger", calories: 649, protein: 43, carbs: 46, fat: 32, tags: ["gluten", "dairy"] },
+    { name: "Supremo Burger", calories: 648, protein: 42, carbs: 53, fat: 29, tags: ["gluten", "dairy"] },
+    { name: "The Great Pretender Protein Burger", calories: 297, protein: 17, carbs: 10, fat: 5, tags: ["gluten", "vegetarian"] },
+    { name: "Mediterranean Salad with Chicken", calories: 581, protein: 38, carbs: 15, fat: 35, tags: ["dairy"] },
+    { name: "Mediterranean Salad", calories: 415, protein: 8, carbs: 15, fat: 30, tags: ["dairy", "vegetarian"] },
+    { name: "Grain Salad", calories: 221, protein: 8, carbs: 19, fat: 6, tags: ["vegetarian"] },
+    { name: "Avo Parmesan Crunch Salad", calories: 259, protein: 11, carbs: 7, fat: 21, tags: ["dairy", "vegetarian"] },
+    { name: "Roasted Broccoli with PERi-Crackle", calories: 339, protein: 11, carbs: 3, fat: 30, tags: ["vegetarian"] },
+    { name: "PERi-Harvest Bowl", calories: 421, protein: 10, carbs: 27, fat: 23, tags: ["vegetarian"] },
+    { name: "PERi-PERi Chips (Regular)", calories: 326, protein: 5, carbs: 45, fat: 13, tags: ["vegetarian"] },
   ],
   "taco bell": [
     { name: "Crunchy Taco", calories: 170, protein: 8, carbs: 13, fat: 10, tags: ["dairy"] },
@@ -492,18 +499,37 @@ const RESTAURANT_MENUS = {
       ],
     },
   ],
+  // Rebuilt from Starbucks Australia's own published food nutrition data.
+  // The old list here was the US Starbucks menu (Protein Box, Bacon &
+  // Gruyere Sandwich, Egg White & Spinach Wrap) — none of which are
+  // actually sold at Starbucks in Australia. Coffee drinks are left out
+  // (AU food panel reports them at ~0-4 kcal black, with milk/syrup
+  // added separately per order, so there's no single fixed "grande
+  // latte" figure to give here without guessing the milk/syrup choice).
   starbucks: [
-    { name: "Egg White & Spinach Wrap", calories: 290, protein: 20, carbs: 33, fat: 8, tags: ["gluten", "dairy", "egg"] },
-    { name: "Turkey Bacon Egg White Sandwich", calories: 230, protein: 17, carbs: 25, fat: 6, tags: ["gluten", "dairy", "egg"] },
-    { name: "Protein Box", calories: 450, protein: 20, carbs: 30, fat: 25, tags: ["dairy", "egg"] },
-    { name: "Oatmeal", calories: 160, protein: 5, carbs: 28, fat: 2.5, tags: ["gluten", "vegetarian"] },
-    { name: "Banana", calories: 100, protein: 1, carbs: 27, fat: 0, tags: ["vegetarian"] },
-    { name: "Bacon & Gruyere Sandwich", calories: 370, protein: 19, carbs: 33, fat: 18, tags: ["gluten", "dairy", "egg"] },
-    { name: "Spinach & Feta Wrap", calories: 290, protein: 13, carbs: 31, fat: 11, tags: ["gluten", "dairy", "egg", "vegetarian"] },
-    { name: "Chocolate Croissant", calories: 340, protein: 6, carbs: 38, fat: 18, tags: ["gluten", "dairy", "egg", "vegetarian"] },
-    { name: "Blueberry Muffin", calories: 350, protein: 5, carbs: 51, fat: 14, tags: ["gluten", "dairy", "egg", "vegetarian"] },
-    { name: "Caffe Latte (grande)", calories: 190, protein: 13, carbs: 18, fat: 7, tags: ["dairy", "vegetarian"] },
-    { name: "Greek Yoghurt Parfait", calories: 220, protein: 14, carbs: 28, fat: 6, tags: ["dairy", "vegetarian"] },
+    { name: "Chicken Caesar Wrap", calories: 516, protein: 30, carbs: 44, fat: 26, tags: ["gluten", "dairy", "egg"] },
+    { name: "Chicken & Avocado Panini", calories: 576, protein: 31, carbs: 62, fat: 22, tags: ["gluten", "dairy"] },
+    { name: "Chicken & Avocado Wrap", calories: 459, protein: 23, carbs: 46, fat: 19, tags: ["gluten"] },
+    { name: "Spicy Fried Chicken and Slaw Deli Roll", calories: 626, protein: 27, carbs: 58, fat: 31, tags: ["gluten", "dairy"] },
+    { name: "Sausage & Egg Muffin", calories: 435, protein: 25, carbs: 31, fat: 24, tags: ["gluten", "dairy", "egg"] },
+    { name: "Bacon, Egg & Cheese Brekky Roll", calories: 423, protein: 22, carbs: 47, fat: 18, tags: ["gluten", "dairy", "egg"] },
+    { name: "Triple Smoked Ham, Cheese & Salad Sandwich", calories: 409, protein: 27, carbs: 40, fat: 14, tags: ["gluten", "dairy"] },
+    { name: "Ham & Cheese Toastie", calories: 471, protein: 24, carbs: 55, fat: 16, tags: ["gluten", "dairy"] },
+    { name: "Egg, Chive & Parmesan Bagel", calories: 590, protein: 25, carbs: 62, fat: 26, tags: ["gluten", "dairy", "egg"] },
+    { name: "Spinach & Ricotta Roll", calories: 285, protein: 11, carbs: 37, fat: 11, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Spinach & Feta Croissant", calories: 383, protein: 12, carbs: 33, fat: 22, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Spicy Bean & Veg Burrito", calories: 509, protein: 12, carbs: 59, fat: 24, tags: ["gluten", "vegetarian"] },
+    { name: "Plain Bagel", calories: 313, protein: 11, carbs: 61, fat: 2, tags: ["gluten", "vegetarian"] },
+    { name: "Butter Croissant", calories: 352, protein: 6, carbs: 39, fat: 19, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Cheese & Bacon Danish", calories: 353, protein: 8, carbs: 33, fat: 21, tags: ["gluten", "dairy"] },
+    { name: "Health Lab Dubai Choc Protein Ball", calories: 182, protein: 5, carbs: 9, fat: 11, tags: ["dairy", "vegetarian"] },
+    { name: "Health Lab Matcha & Strawberry Protein Bar", calories: 188, protein: 10, carbs: 17, fat: 6, tags: ["dairy", "vegetarian"] },
+    { name: "Health Lab Chocolate Protein Wafer Bar", calories: 229, protein: 8, carbs: 16, fat: 15, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Chocolate Protein Crispy Slice", calories: 196, protein: 5, carbs: 19, fat: 11, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Pistachio Protein Crispy Slice", calories: 217, protein: 6, carbs: 20, fat: 12, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Kettle Chips Original Sea Salt (45g)", calories: 224, protein: 3, carbs: 24, fat: 12, tags: ["vegetarian"] },
+    { name: "Confetti Cookie", calories: 284, protein: 4, carbs: 41, fat: 11, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Lemon Meringue Tart", calories: 320, protein: 5, carbs: 46, fat: 13, tags: ["gluten", "dairy", "egg", "vegetarian"] },
   ],
   // The local fish & chip shop — not a named chain, but a real, common
   // takeaway category in its own right, so "fish and chips" gets an
