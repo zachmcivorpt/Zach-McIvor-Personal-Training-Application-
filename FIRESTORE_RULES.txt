@@ -24,14 +24,22 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-New `whoopTokens` collection, for the WHOOP wearable integration — holds
-each connected client's OAuth access/refresh tokens. It has NO allow
-rules at all, on purpose: every read and write to it happens from Cloud
-Functions using the Admin SDK (which bypasses these rules entirely), and
-a token should never be reachable from the browser in the first place.
-The explicit deny-everything block below exists for documentation, not
-because it changes behavior — Firestore already defaults to denying
-anything with no matching rule.
+New `liveSessions` collection — one ephemeral doc per client (doc id ==
+clientId, like mealPlans/habitLog), written while that client is actively
+mid-workout so you can watch their sets land live from a client detail
+page if they're training remotely. The owning client can read/write only
+their own doc; you (the coach) can read every one but never write one
+yourself — there's nothing for you to write here, it only ever reflects
+what a client's own device is doing right now.
+
+Older change: new `whoopTokens` collection, for the WHOOP wearable
+integration — holds each connected client's OAuth access/refresh tokens.
+It has NO allow rules at all, on purpose: every read and write to it
+happens from Cloud Functions using the Admin SDK (which bypasses these
+rules entirely), and a token should never be reachable from the browser
+in the first place. The explicit deny-everything block below exists for
+documentation, not because it changes behavior — Firestore already
+defaults to denying anything with no matching rule.
 
 Older change: `scheduledWorkouts` and `bodyStatsSchedules` now let the
 owning client create/update/delete their OWN entries, not just the coach
@@ -341,6 +349,16 @@ service cloud.firestore {
     //     readable bodyMetrics collection instead. ---
     match /whoopTokens/{clientId} {
       allow read, write: if false;
+    }
+
+    // --- liveSessions/{clientId}: doc id IS the client's uid. A real-time
+    //     mirror of a workout session WHILE it's in progress — only the
+    //     owning client ever writes it (from their own device, the moment
+    //     they're mid-session); the coach only ever reads it, to watch a
+    //     remote session live from CoachClientDetail. ---
+    match /liveSessions/{clientId} {
+      allow read: if isCoach() || ownsClientId(clientId);
+      allow write: if ownsClientId(clientId);
     }
   }
 }

@@ -354,6 +354,7 @@ export function AppProvider({ children }) {
       watch("nutritionLogs", "nutritionLogs");
       watch("bodyMetrics", "bodyMetrics");
       watch("mealPlans", "mealPlans");
+      watch("liveSessions", "liveSessions");
     } else if (role === "client") {
       const uid = authUser.uid;
       watch("workoutLogs", "workoutLogs", [where("clientId", "==", uid)]);
@@ -371,6 +372,7 @@ export function AppProvider({ children }) {
       watch("nutritionLogs", "nutritionLogs", [where("clientId", "==", uid)]);
       watch("bodyMetrics", "bodyMetrics", [where("clientId", "==", uid)]);
       watch("mealPlans", "mealPlans", [where("clientId", "==", uid)]);
+      watch("liveSessions", "liveSessions", [where("clientId", "==", uid)]);
       watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
       // clientNotes/clientContext intentionally NOT synced here — they're
       // the coach's private notes (and APEX's approved context derived from
@@ -501,6 +503,11 @@ export function AppProvider({ children }) {
       // produces at most a single-item array — same helper, just read as
       // (db.mealPlans[clientId] || [])[0] wherever it's used.
       mealPlans: bucket(raw.mealPlans, (a, b) => b.updatedAt - a.updatedAt),
+      // Doc id IS the clientId (same reasoning as habitLog above) — a
+      // client has a liveSessions entry only while actually mid-workout,
+      // so this is read as db.liveSessions[clientId] (undefined = not
+      // currently training) rather than through bucket()'s array shape.
+      liveSessions: Object.fromEntries((raw.liveSessions || []).map((s) => [s.clientId, s])),
     };
   }, [raw, role, profile]);
 
@@ -1259,6 +1266,27 @@ export function AppProvider({ children }) {
       logWorkout(clientId, entry) {
         const id = newDocId("workoutLogs");
         setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }).catch(console.error);
+      },
+
+      // A lightweight, ephemeral doc (one per client, doc id === clientId —
+      // same pattern as mealPlans/habitLog) mirroring a workout session
+      // WHILE it's in progress, so a coach who opens that client's detail
+      // page while they're training remotely sees sets land live — the
+      // existing onSnapshot listener on this collection (see watch() calls
+      // above) is already real-time, so writing here is the only new thing
+      // needed. Deliberately separate from workoutLogs itself: a bunch of
+      // existing logic elsewhere (missed-session checks, "day completed"
+      // badges, etc.) treats a workoutLogs doc's mere existence as "this
+      // day is done," which an in-progress session is not.
+      updateLiveSession(clientId, patch) {
+        setDoc(doc(firestore, "liveSessions", clientId), { clientId, updatedAt: Date.now(), ...patch }, { merge: true }).catch(console.error);
+      },
+
+      // Called the moment a session actually finishes or is abandoned, so
+      // a coach never sees a stale "training now" banner for a workout
+      // that ended minutes or hours ago.
+      clearLiveSession(clientId) {
+        deleteDoc(doc(firestore, "liveSessions", clientId)).catch(() => {});
       },
 
       // A client's own note on an exercise, saved as soon as they finish

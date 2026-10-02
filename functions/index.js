@@ -224,6 +224,178 @@ exports.checkInReminders = onSchedule(
   }
 );
 
+// ---------------------------------------------------------------------
+// Inactivity-triggered "Full-Body Reset" WOD — a client who's gone a few
+// days without logging a workout gets a notification AND a ready-to-go
+// full-body session auto-dropped onto today's calendar, pulled only from
+// exercises already in their own assigned program (never invented), so
+// getting back in doesn't require them (or their coach) to do anything
+// first. Same split this app already uses everywhere else: a
+// deterministic rule decides WHETHER this fires and WHAT exercises go in
+// it (real data only); the LLM, when configured, is only ever asked to
+// phrase a one-line blurb for it — see callClaude below.
+// ---------------------------------------------------------------------
+const INACTIVITY_DAYS = 4;
+// Once nudged, leave it alone for a while rather than re-generating (and
+// re-notifying about) a new WOD every single day a client stays away —
+// one nudge, then let the existing one sit on their calendar.
+const INACTIVITY_COOLDOWN_MS = 5 * 24 * 60 * 60 * 1000;
+
+// Mirrors getCurrentPhase() in src/lib/AppContext.jsx exactly (duplicated
+// rather than imported — functions/ is a separate CommonJS package with
+// no build step pulling in the web app's ES modules, same reasoning as
+// CONTEXT_CATEGORIES above): the phase whose date range contains today,
+// else the most recently finished one, else the next upcoming one.
+function pickCurrentPhase(phases, todayKey) {
+  if (!phases || phases.length === 0) return null;
+  const sorted = [...phases].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const active = sorted.find((p) => p.startDate <= todayKey && (!p.endDate || p.endDate >= todayKey));
+  if (active) return active;
+  const past = sorted.filter((p) => p.endDate && p.endDate < todayKey);
+  if (past.length) return past[past.length - 1];
+  const upcoming = sorted.find((p) => p.startDate > todayKey);
+  if (upcoming) return upcoming;
+  return sorted[sorted.length - 1] || null;
+}
+
+// Same Upper/Lower/Core grouping src/lib/sessionIntelligence.js uses for
+// its own category-based classification — kept as a literal here for the
+// same CommonJS-can't-import-the-web-app reason as elsewhere in this file.
+const MUSCLE_REGION = { Chest: "Push", Shoulders: "Push", Triceps: "Push", Back: "Pull", Biceps: "Pull", Legs: "Legs", Core: "Core" };
+// One exercise per region, in this order, so a full "reset" day always
+// covers a push, a pull, legs, and core when the client's own program has
+// something in each — never pulling from outside what they're assigned.
+const WOD_REGION_ORDER = ["Legs", "Push", "Pull", "Core"];
+
+// callClaude() and CLAUDE_MODEL are defined further down this file (the
+// APEX AI Insights / Coach Notes section) — both are available here by the
+// time this actually runs: function declarations hoist, and this code only
+// executes when the scheduler fires, well after the whole module has
+// finished loading.
+
+// Builds a ~4-exercise full-body session from whatever's actually in the
+// client's current phase — one exercise per region in WOD_REGION_ORDER,
+// skipped entirely if nothing in their program matches that region.
+// Returns null if their program has nothing usable at all (never
+// fabricates an exercise they weren't already assigned).
+async function buildInactivityWod(clientId, todayKey) {
+  const phasesSnap = await db.collection("clientPhases").where("clientId", "==", clientId).get();
+  const phase = pickCurrentPhase(phasesSnap.docs.map((d) => d.data()), todayKey);
+  if (!phase) return null;
+
+  const exerciseIds = new Set();
+  for (const week of phase.weeks || []) {
+    for (const day of week.days || []) {
+      for (const ex of day.exercises || []) {
+        if (ex.exerciseId) exerciseIds.add(ex.exerciseId);
+      }
+    }
+  }
+  if (exerciseIds.size === 0) return null;
+
+  const exercisesSnap = await db.collection("exercises").get();
+  const exercisesById = new Map(exercisesSnap.docs.map((d) => [d.id, d.data()]));
+
+  const byRegion = {};
+  for (const exerciseId of exerciseIds) {
+    const region = MUSCLE_REGION[exercisesById.get(exerciseId)?.category];
+    if (region && !byRegion[region]) byRegion[region] = exerciseId; // first found per region is fine — no ranking data worth preferring one over another
+  }
+
+  const picked = WOD_REGION_ORDER.map((region) => byRegion[region]).filter(Boolean);
+  if (picked.length === 0) return null;
+
+  return picked.map((exerciseId) => ({
+    exerciseId,
+    section: "main",
+    targetSets: 3,
+    targetType: "reps",
+    targetReps: "10",
+    targetRIR: 3,
+    restSeconds: 60,
+    notes: "",
+  }));
+}
+
+exports.inactivityWod = onSchedule(
+  { schedule: "0 8 * * *", timeZone: "Australia/Sydney" },
+  async () => {
+    const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+    const usersSnap = await db.collection("users").where("role", "==", "client").get();
+
+    for (const userDoc of usersSnap.docs) {
+      const user = userDoc.data();
+      const uid = userDoc.id;
+      if (user.status !== "active" || user.accessPaused) continue;
+      if (user.lastInactivityNudgeAt && Date.now() - user.lastInactivityNudgeAt < INACTIVITY_COOLDOWN_MS) continue;
+
+      const logsSnap = await db.collection("workoutLogs").where("clientId", "==", uid).get();
+      let lastDate = 0;
+      logsSnap.forEach((d) => {
+        const t = d.data().date;
+        if (t > lastDate) lastDate = t;
+      });
+      // Never logged a single workout at all — not "inactive," just brand
+      // new, with nothing to measure a gap against yet.
+      if (lastDate === 0) continue;
+      const daysSince = Math.floor((Date.now() - lastDate) / (24 * 60 * 60 * 1000));
+      if (daysSince < INACTIVITY_DAYS) continue;
+
+      // A real session (coach-scheduled or an earlier broadcast) already
+      // sits on today — never overwrite it with an auto-generated one.
+      const scheduledId = `${uid}__${todayKey}`;
+      const existing = await db.collection("scheduledWorkouts").doc(scheduledId).get();
+      if (existing.exists) continue;
+
+      let exercises;
+      try {
+        exercises = await buildInactivityWod(uid, todayKey);
+      } catch (err) {
+        console.error(`inactivityWod: couldn't build a session for ${uid}:`, err.message);
+        continue;
+      }
+      if (!exercises) continue; // nothing in their program to build from
+
+      let label = "Full-Body Reset";
+      try {
+        label = (
+          await callClaude(
+            process.env.ANTHROPIC_API_KEY,
+            `You name a single workout session for a personal-training app. Given how many days a client has been away from training, reply with ONLY a short (2-5 word) motivating session title — no quotes, no markdown, no explanation. Example: "Full-Body Reset".`,
+            `${daysSince} days since their last logged session.`,
+            20
+          )
+        ).replace(/^"|"$/g, "") || label;
+      } catch {
+        // ANTHROPIC_API_KEY not configured, or the call failed — the
+        // deterministic label above is a perfectly good fallback, so this
+        // never blocks the WOD itself from going out.
+      }
+
+      await db.collection("scheduledWorkouts").doc(scheduledId).set({
+        id: scheduledId,
+        clientId: uid,
+        date: todayKey,
+        label,
+        muscleGroups: [],
+        exercises,
+        broadcast: true,
+        autoGenerated: true,
+      });
+      await userDoc.ref.update({ lastInactivityNudgeAt: Date.now() });
+
+      await notifyUser(
+        uid,
+        {
+          title: "Let's get back into it",
+          body: `It's been ${daysSince} days — we've put together a "${label}" session for you today.`,
+        },
+        "inactivityNudge"
+      );
+    }
+  }
+);
+
 // removeClient (AppContext.jsx) can only ever delete a client's Firestore
 // docs — the client-side Firebase Auth SDK has no way to delete a DIFFERENT
 // user's account, only your own. Every client removed before this function

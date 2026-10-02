@@ -5411,6 +5411,37 @@ const CLIENT_NAV = [
   { id: "habits", label: "Habits", icon: ListChecks },
 ];
 
+// Renders only while db.liveSessions[client.id] exists — see
+// updateLiveSession/clearLiveSession in AppContext.jsx. That listener is
+// the same real-time onSnapshot plumbing every other collection already
+// uses, so this needs no polling: a set a remote client logs right now
+// shows up here within the same tick it reaches Firestore.
+function LiveSessionBanner({ live, exercises }) {
+  const exercisesById = useMemo(() => Object.fromEntries((exercises || []).map((e) => [e.id, e])), [exercises]);
+  if (!live) return null;
+
+  const touched = Object.entries(live.activeLog || {}).filter(([, sets]) => (sets || []).some((s) => s.completed));
+  const completedSets = touched.reduce((sum, [, sets]) => sum + sets.filter((s) => s.completed).length, 0);
+  const exerciseNames = touched.map(([exerciseId]) => exercisesById[exerciseId]?.name).filter(Boolean);
+
+  return (
+    <div className="mx-3 md:mx-5 mt-3 md:mt-5 flex items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+      <span className="relative flex h-2.5 w-2.5 shrink-0">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-500 opacity-75" />
+        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-600" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-bold text-blue-900">Training now{live.label ? ` — ${live.label}` : ""}</p>
+        <p className="text-xs text-blue-700/80 truncate">
+          {completedSets > 0
+            ? `${completedSets} set${completedSets === 1 ? "" : "s"} logged so far${exerciseNames.length ? " — " + exerciseNames.join(", ") : ""}`
+            : "Session just started — no sets logged yet"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function CoachClientDetail({ clientId, onClose, showToast, initialTab, openMessages }) {
   const { db, removeClient, startViewAsClient, setClientAccessPaused } = useApp();
   const [clientTab, setClientTab] = useState(initialTab || "summary");
@@ -5647,6 +5678,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
 
       {/* main panel */}
       <div className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-[#F7F7F8]">
+        <LiveSessionBanner live={db.liveSessions[client.id]} exercises={db.exercises} />
         {clientTab === "summary" && (
           <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} onClose={onClose} />
         )}

@@ -92,12 +92,23 @@ HOW IT WORKS
 - No new Firestore security rules were needed — device tokens are just
   a new field on the existing users/{uid} document, already covered by
   the rule that lets you edit your own profile.
+- A client is also notified whenever you schedule/update their training
+  program, publish a meal plan, or send them a message — same mechanism.
+
+
+ALSO BUILT: INACTIVITY NUDGE + AUTO-GENERATED WOD
+----------------------------------------------------
+A client who's gone 4+ days without logging a workout now gets a push
+notification AND a ready-to-go "Full-Body Reset" session automatically
+dropped onto today's calendar — built only from exercises already in
+their own assigned program (never anything outside it), so getting back
+in doesn't need you to do anything first. Runs once a day
+(exports.inactivityWod in functions/index.js); re-deploying functions
+(Step 3 above) is all that's needed to turn it on — no new setup step.
+It won't re-nudge the same client again for 5 days, and never overwrites
+a real scheduled day that's already on their calendar.
 
 
 LATER IDEAS (not built yet)
 -----------------------------
-- Scheduled reminders (e.g. "workout today" nudges) — needs a
-  time-based Cloud Function (Cloud Scheduler) rather than an
-  event trigger; a bigger addition than this first pass.
-- Notifying a client when their coach schedules a new workout/phase.
-Ask any time you want either added.
+Ask any time you want something here.

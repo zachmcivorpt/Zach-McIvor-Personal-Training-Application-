@@ -2300,6 +2300,8 @@ function WorkoutSession({
   onFinish,
   onExit,
   onSaveNote,
+  clientId,
+  onLiveUpdate,
 }) {
   const dark = useClientDark();
   const [noteOpenFor, setNoteOpenFor] = useState(null);
@@ -2461,9 +2463,14 @@ function WorkoutSession({
     const isPR = !bestSet || weight > maxWeight || score > bestScore;
 
     setActiveLog((prev) => {
-      const next = [...(prev[exMeta.exerciseId] || [])];
-      next[idx] = { ...next[idx], completed: true, isPR };
-      return { ...prev, [exMeta.exerciseId]: next };
+      const nextSets = [...(prev[exMeta.exerciseId] || [])];
+      nextSets[idx] = { ...nextSets[idx], completed: true, isPR };
+      const next = { ...prev, [exMeta.exerciseId]: nextSets };
+      // Mirrors this set into liveSessions the instant it's marked done —
+      // the coach's CoachClientDetail listener is already real-time, so
+      // this is the one write that makes a remote session watchable live.
+      onLiveUpdate?.(clientId, { label: daySession.label, activeLog: next });
+      return next;
     });
 
     if (isPR) {
@@ -7035,6 +7042,8 @@ export default function ClientApp() {
     scheduleBodyStatsCheckin,
     unscheduleBodyStatsCheckin,
     connectWhoop,
+    updateLiveSession,
+    clearLiveSession,
     dbReady,
   } = useApp();
   const dark = db.appDesign?.clientDarkMode === true;
@@ -7538,6 +7547,8 @@ export default function ClientApp() {
       return prev || {};
     });
     setSessionOpen(true);
+    const session = runningSession || todaySession;
+    updateLiveSession(currentUser.id, { label: session?.label || "Workout", startedAt: Date.now(), activeLog: {} });
   }
 
   function finishWorkout() {
@@ -7624,6 +7635,7 @@ export default function ClientApp() {
     setSessionOpen(false);
     setSummaryOpen(true);
     setRunningSession(null);
+    clearLiveSession(currentUser.id);
   }
 
   function openPreview(session, canStart, isTodayLog = false) {
@@ -7943,8 +7955,13 @@ export default function ClientApp() {
             extraExercises={extraExercises}
             setExtraExercises={setExtraExercises}
             onFinish={finishWorkout}
-            onExit={() => setSessionOpen(false)}
+            onExit={() => {
+              setSessionOpen(false);
+              clearLiveSession(currentUser.id);
+            }}
             onSaveNote={(exerciseId, value) => saveExerciseNote(currentUser.id, exerciseId, value)}
+            clientId={currentUser.id}
+            onLiveUpdate={updateLiveSession}
           />
         )}
         {summaryOpen && summaryData && (
