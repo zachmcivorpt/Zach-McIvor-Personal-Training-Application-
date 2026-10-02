@@ -3630,6 +3630,7 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
   // question) on its own without the whole thread just growing forever.
   const [exchanges, setExchanges] = useState([]); // { id, query, reply, suggestions, shownNames, loading, error }
   const [input, setInput] = useState("");
+  const [detailSuggestion, setDetailSuggestion] = useState(null);
   const sending = exchanges.some((e) => e.loading);
 
   const QUICK_PROMPTS = ["KFC", "McDonald's", "High protein dinner", "500 calorie meal"];
@@ -3710,6 +3711,7 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
   }
 
   return (
+    <>
     <div
       className="rounded-2xl border shadow-sm p-4"
       style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
@@ -3759,25 +3761,30 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
                   {e.suggestions?.length > 0 && (
                     <div className="mt-2 space-y-2">
                       {e.suggestions.map((s, j) => (
-                        <div
+                        <button
                           key={j}
-                          className="rounded-xl border px-3 py-2.5 flex items-center justify-between gap-3"
+                          onClick={() => setDetailSuggestion(s)}
+                          className="w-full text-left rounded-xl border px-3 py-2.5 flex items-center justify-between gap-3 active:opacity-70 transition-opacity"
                           style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER, backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
                         >
                           <div className="min-w-0">
                             <p className={dark ? "text-white text-[13px] font-semibold truncate" : "text-black text-[13px] font-semibold truncate"}>{s.name}</p>
                             <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
                               ~{s.calories} kcal · ~{s.protein}g protein · ~{s.carbs}g carbs · ~{s.fat}g fat
+                              {s.contents?.length > 0 ? ` · ${s.contents.length} items` : ""}
                             </p>
                           </div>
-                          <button
-                            onClick={() => addSuggestion(s)}
+                          <span
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              addSuggestion(s);
+                            }}
                             className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border-[1.5px] active:scale-95 transition-transform whitespace-nowrap"
                             style={{ borderColor: MEASURE_BLUE, color: MEASURE_BLUE }}
                           >
                             ADD TO LOG
-                          </button>
-                        </div>
+                          </span>
+                        </button>
                       ))}
                       <button
                         onClick={() => refreshSuggestions(e.id)}
@@ -3836,6 +3843,63 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
         ))}
       </div>
     </div>
+
+    <BottomSheet dark={dark} open={!!detailSuggestion} onClose={() => setDetailSuggestion(null)} title={detailSuggestion?.name || ""}>
+      {detailSuggestion && (
+        <div>
+          <div className={dark ? "grid grid-cols-4 gap-2 bg-white/[0.04] border border-white/8 rounded-lg p-3.5" : "grid grid-cols-4 gap-2 bg-black/[0.02] border border-black/8 rounded-lg p-3.5"}>
+            {[
+              ["Cals", `~${detailSuggestion.calories}`],
+              ["Protein", `~${detailSuggestion.protein}g`],
+              ["Carbs", `~${detailSuggestion.carbs}g`],
+              ["Fat", `~${detailSuggestion.fat}g`],
+            ].map(([l, v]) => (
+              <div key={l} className="text-center">
+                <p className={dark ? "text-white font-bold text-sm" : "text-black font-bold text-sm"}>{v}</p>
+                <p className={dark ? "text-white/40 text-[10px] mt-0.5" : "text-black/40 text-[10px] mt-0.5"}>{l}</p>
+              </div>
+            ))}
+          </div>
+
+          {detailSuggestion.contents?.length > 0 ? (
+            <div className="mt-4">
+              <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide mb-2" : "text-black/35 text-[11px] font-bold tracking-wide mb-2"}>WHAT'S IN IT</p>
+              <div className="space-y-1.5">
+                {detailSuggestion.contents.map((c, i) => (
+                  <div
+                    key={i}
+                    className={dark ? "flex items-center justify-between bg-white/[0.04] border border-white/8 rounded-lg px-3 py-2.5" : "flex items-center justify-between bg-black/[0.02] border border-black/8 rounded-lg px-3 py-2.5"}
+                  >
+                    <p className={dark ? "text-white text-sm truncate pr-2" : "text-black text-sm truncate pr-2"}>{c.name}</p>
+                    <p className={dark ? "text-white/40 text-xs shrink-0" : "text-black/40 text-xs shrink-0"}>
+                      ~{c.calories} kcal · {c.protein}g P · {c.carbs}g C · {c.fat}g F
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className={dark ? "text-white/30 text-sm mt-4" : "text-black/30 text-sm mt-4"}>A single item — no breakdown needed.</p>
+          )}
+
+          <p className={dark ? "text-white/30 text-[11px] mt-4 leading-snug" : "text-black/30 text-[11px] mt-4 leading-snug"}>
+            Figures are approximate published values — actual nutrition can vary slightly by location and recipe updates.
+          </p>
+
+          <PrimaryButton
+            dark={dark}
+            className="w-full mt-5"
+            onClick={() => {
+              addSuggestion(detailSuggestion);
+              setDetailSuggestion(null);
+            }}
+          >
+            <Plus size={16} /> ADD TO LOG
+          </PrimaryButton>
+        </div>
+      )}
+    </BottomSheet>
+    </>
   );
 }
 
