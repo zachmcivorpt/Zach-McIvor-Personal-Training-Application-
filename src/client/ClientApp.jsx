@@ -3723,16 +3723,15 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
 
   return (
     <>
-    {/* Always rendered dark regardless of the app's own light/dark toggle —
-        a deliberate "mission control" panel that reads as a distinct,
-        flagship feature rather than another card in the list. Full-bleed
-        (the parent wrapper carries no horizontal padding) so it spans the
-        full page width instead of sitting inset like everything else. */}
-    <div className="relative overflow-hidden" style={{ backgroundColor: CLIENT_DARK_BG }}>
+    {/* Follows the app's own light/dark toggle like every other screen —
+        just styled as a distinct, full-bleed "mission control" panel
+        (the parent wrapper carries no horizontal padding) rather than
+        another inset card, so it still reads as the flagship feature. */}
+    <div className="relative overflow-hidden" style={{ backgroundColor: dark ? CLIENT_DARK_BG : SURFACE_RAISED }}>
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
       <div
         className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full pointer-events-none"
-        style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}26 0%, transparent 70%)`, filter: "blur(10px)" }}
+        style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}${dark ? "26" : "14"} 0%, transparent 70%)`, filter: "blur(10px)" }}
       />
       {/* HUD-style corner brackets — restrained, not decorative clutter */}
       <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
@@ -3747,35 +3746,47 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
             <Sparkles size={18} className="text-white" />
           </div>
           <div>
-            <p className="text-white font-extrabold text-base tracking-[0.08em]">FUEL IQ</p>
-            <p className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: `${MEASURE_BLUE}` }}>
+            <p className={dark ? "text-white font-extrabold text-base tracking-[0.08em]" : "text-black font-extrabold text-base tracking-[0.08em]"}>FUEL IQ</p>
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase" style={{ color: MEASURE_BLUE }}>
               Real-time meal targeting
             </p>
           </div>
         </div>
-        <p className="text-white/45 text-xs mb-4 max-w-md">Not sure what to eat, or eating out? Get a real fit for today's targets — no maths required.</p>
+        <p className={dark ? "text-white/45 text-xs mb-4 max-w-md" : "text-black/45 text-xs mb-4 max-w-md"}>
+          Not sure what to eat, or eating out? Get a real fit for today's targets — no maths required.
+        </p>
 
         {exchanges.length === 0 ? (
-          <p className="text-white/60 text-[13px] leading-snug mb-4 max-w-md">
+          <p className={dark ? "text-white/60 text-[13px] leading-snug mb-4 max-w-md" : "text-black/60 text-[13px] leading-snug mb-4 max-w-md"}>
             Tell me what you're thinking about eating — or tap "Not sure what to eat" or "Eating out" below — and I'll fit it to what you've got left today.
           </p>
         ) : (
           <div className="space-y-3 mb-4">
             {exchanges.map((e) => (
-              <div key={e.id} className="rounded-xl p-3 relative border" style={{ backgroundColor: "rgba(255,255,255,0.035)", borderColor: "rgba(255,255,255,0.08)" }}>
+              <div
+                key={e.id}
+                className="rounded-xl p-3 relative border"
+                style={{ backgroundColor: dark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.025)", borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }}
+              >
                 <button
                   onClick={() => dismissExchange(e.id)}
                   aria-label="Dismiss"
-                  className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white/30 active:bg-white/10"
+                  className={dark ? "absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-white/30 active:bg-white/10" : "absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-black/30 active:bg-black/10"}
                 >
                   <X size={13} />
                 </button>
-                <p className="text-white/90 text-[13px] font-semibold pr-7">{e.query}</p>
+                <p className={dark ? "text-white/90 text-[13px] font-semibold pr-7" : "text-black/90 text-[13px] font-semibold pr-7"}>{e.query}</p>
                 {e.loading ? (
-                  <p className="text-white/30 text-xs italic mt-1">Thinking…</p>
+                  <p className={dark ? "text-white/30 text-xs italic mt-1" : "text-black/30 text-xs italic mt-1"}>Thinking…</p>
                 ) : (
                   <div className="mt-1">
-                    <p className={`text-[13px] leading-snug whitespace-pre-wrap pr-7 ${e.error ? "text-white/40 italic" : "text-white/75"}`}>{e.reply}</p>
+                    <p
+                      className={`text-[13px] leading-snug whitespace-pre-wrap pr-7 ${
+                        e.error ? (dark ? "text-white/40 italic" : "text-black/40 italic") : dark ? "text-white/75" : "text-black/75"
+                      }`}
+                    >
+                      {e.reply}
+                    </p>
                     {e.suggestions?.length > 0 && (
                       <div className="mt-2 space-y-2">
                         {e.suggestions.map((s, j) => (
@@ -3783,11 +3794,11 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
                             key={j}
                             onClick={() => setDetailSuggestion(s)}
                             className="w-full text-left rounded-xl border px-3 py-2.5 flex items-center justify-between gap-3 active:opacity-70 transition-opacity"
-                            style={{ borderColor: "rgba(255,255,255,0.1)", backgroundColor: CLIENT_DARK_SURFACE_2 }}
+                            style={{ borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)", backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : "#fff" }}
                           >
                             <div className="min-w-0">
-                              <p className="text-white text-[13px] font-semibold truncate">{s.name}</p>
-                              <p className="text-white/40 text-[11px] mt-0.5">
+                              <p className={dark ? "text-white text-[13px] font-semibold truncate" : "text-black text-[13px] font-semibold truncate"}>{s.name}</p>
+                              <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
                                 ~{s.calories} kcal · ~{s.protein}g protein · ~{s.carbs}g carbs · ~{s.fat}g fat
                                 {s.contents?.length > 0 ? ` · ${s.contents.length} items` : ""}
                               </p>
@@ -3804,7 +3815,10 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
                             </span>
                           </button>
                         ))}
-                        <button onClick={() => refreshSuggestions(e.id)} className="flex items-center gap-1.5 text-[11px] font-semibold text-white/50 active:text-white/80 mt-0.5">
+                        <button
+                          onClick={() => refreshSuggestions(e.id)}
+                          className={dark ? "flex items-center gap-1.5 text-[11px] font-semibold text-white/50 active:text-white/80 mt-0.5" : "flex items-center gap-1.5 text-[11px] font-semibold text-black/45 active:text-black/80 mt-0.5"}
+                        >
                           <Repeat size={11} />
                           Show different options
                         </button>
@@ -3826,7 +3840,11 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
               if (e.key === "Enter") sendMessage();
             }}
             placeholder="What are you eating?"
-            className="flex-1 min-w-0 bg-white/[0.06] border border-white/10 text-white placeholder-white/30 text-[13px] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#2F8FFF] transition-colors"
+            className={
+              dark
+                ? "flex-1 min-w-0 bg-white/[0.06] border border-white/10 text-white placeholder-white/30 text-[13px] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#2F8FFF] transition-colors"
+                : "flex-1 min-w-0 bg-black/[0.04] border border-black/10 text-black placeholder-black/30 text-[13px] rounded-xl px-3.5 py-2.5 outline-none focus:border-[#2F8FFF] transition-colors"
+            }
           />
           <button
             onClick={() => sendMessage()}
@@ -3853,7 +3871,11 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
               key={p}
               onClick={() => sendMessage(p)}
               disabled={sending}
-              className="text-[11px] font-medium px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 text-white/65 disabled:opacity-40 active:bg-white/[0.12] transition-colors"
+              className={
+                dark
+                  ? "text-[11px] font-medium px-2.5 py-1 rounded-full bg-white/[0.06] border border-white/10 text-white/65 disabled:opacity-40 active:bg-white/[0.12] transition-colors"
+                  : "text-[11px] font-medium px-2.5 py-1 rounded-full bg-black/[0.04] border border-black/10 text-black/60 disabled:opacity-40 active:bg-black/[0.08] transition-colors"
+              }
             >
               {p}
             </button>
