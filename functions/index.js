@@ -225,7 +225,7 @@ exports.checkInReminders = onSchedule(
 );
 
 // ---------------------------------------------------------------------
-// Inactivity-triggered "Full-Body Reset" WOD — a client who's gone a few
+// Inactivity-triggered "Reignition Workout" WOD — a client who's gone a few
 // days without logging a workout gets a notification AND a ready-to-go
 // full-body session auto-dropped onto today's calendar, pulled only from
 // exercises already in their own assigned program (never invented), so
@@ -391,12 +391,12 @@ exports.inactivityWod = onSchedule(
       }
       if (!exercises) continue; // nothing in their program to build from
 
-      let label = "Full-Body Reset";
+      let label = "Reignition Workout";
       try {
         label = (
           await callClaude(
             process.env.ANTHROPIC_API_KEY,
-            `You name a single workout session for a personal-training app. Given how many days a client has been away from training, reply with ONLY a short (2-5 word) motivating session title — no quotes, no markdown, no explanation. Example: "Full-Body Reset".`,
+            `You name a single workout session for a personal-training app. Given how many days a client has been away from training, reply with ONLY a short (2-5 word) motivating session title — no quotes, no markdown, no explanation. Example: "Reignition Workout".`,
             `${daysSince} days since their last logged session.`,
             20
           )

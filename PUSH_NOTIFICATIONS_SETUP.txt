@@ -99,7 +99,7 @@ HOW IT WORKS
 ALSO BUILT: INACTIVITY NUDGE + AUTO-GENERATED WOD
 ----------------------------------------------------
 A client who's gone 4+ days without logging a workout now gets a push
-notification AND a ready-to-go "Full-Body Reset" session automatically
+notification AND a ready-to-go "Reignition Workout" session automatically
 dropped onto today's calendar — built only from exercises already in
 their own assigned program (never anything outside it), so getting back
 in doesn't need you to do anything first. Runs once a day
