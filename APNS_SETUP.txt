@@ -109,14 +109,32 @@ runtime) — see the note under Step 1 for why that's expected and
 harmless, not a sign anything is broken.
 
 
-HOW TO TEST IT
----------------
-Once all three steps are done and a new TestFlight/App Store build goes
-out: open the app on a real iOS device (push doesn't work in the
-Simulator), accept the notification permission prompt on first launch,
-sign in, then message that client from the coach side (or submit a
-check-in as the client) from a different device/session — the
-notification should arrive the same way it already does on Android.
+HOW TO TEST IT, AND GETTING IT TO ACTUAL USERS
+---------------------------------------------------
+codemagic.yaml only auto-submits each build to TestFlight — it does NOT
+push straight to the live App Store listing. Since APEX is already a
+published, live app (not just something in TestFlight), getting this
+fix to real users takes one more manual step after Codemagic goes
+green:
+
+1. Do steps 1-3 above, then push (or just re-trigger a build if nothing
+   else changed) — Codemagic builds and lands it in TestFlight as
+   usual.
+2. Install that TestFlight build on a real device (push doesn't work in
+   the Simulator) and sanity-check it: accept the notification
+   permission prompt on first launch, sign in, then message that client
+   from the coach side (or submit a check-in as the client) from a
+   different device/session — the notification should arrive the same
+   way it already does on Android.
+3. In App Store Connect, create a new version (e.g. 1.0.1), attach that
+   TestFlight build to it, and submit it for App Review. Once Apple
+   approves it (typically 24-48h) and you release it, that's what
+   reaches everyone who already has the live app installed, as a
+   normal App Store update.
+
+Push itself is a completely standard capability and won't draw extra
+review scrutiny — the version bump is just how any native code change
+reaches a live App Store app, same as any other iOS update.
 
 
 LATER IDEAS (not built yet)
