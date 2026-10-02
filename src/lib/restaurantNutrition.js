@@ -640,10 +640,15 @@ function passesAllergyFilter(item, flags, needsVegetarian) {
   return true;
 }
 
+// Protein-first by default — not just when the client explicitly asks
+// for "high protein" — since that's what's actually useful for someone
+// tracking macros: among options that reasonably fit the calorie
+// budget, lead with the higher-protein ones rather than whichever
+// happens to land closest to the calorie number.
 function scoreItem(item, budget, favorProtein) {
   const calDiff = Math.abs(item.calories - budget);
   const overshoot = item.calories > budget * 1.3 ? 350 : 0;
-  const proteinWeight = favorProtein ? 4 : 1.2;
+  const proteinWeight = favorProtein ? 6 : 4;
   return calDiff + overshoot - item.protein * proteinWeight;
 }
 
