@@ -11,9 +11,20 @@ final class ViewController: UIViewController, WKNavigationDelegate {
     private let spinner = UIActivityIndicatorView(style: .large)
     private let siteURL = URL(string: "https://apexcoachingplatform-appl.vercel.app")!
 
+    // The FCM token AppDelegate obtains from APNs often arrives before the
+    // page has finished its first load (or before GoogleService-Info.plist
+    // exists at all, in which case this just never fires) — held here and
+    // flushed once the web app is actually ready to run JS against it.
+    private var pendingFCMToken: String?
+    private var webViewReady = false
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleFCMToken(_:)), name: .apexFCMToken, object: nil
+        )
 
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
@@ -48,6 +59,33 @@ final class ViewController: UIViewController, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         spinner.stopAnimating()
+        webViewReady = true
+        if let token = pendingFCMToken {
+            pendingFCMToken = nil
+            sendTokenToWeb(token)
+        }
+    }
+
+    @objc private func handleFCMToken(_ note: Notification) {
+        guard let token = note.object as? String else { return }
+        if webViewReady {
+            sendTokenToWeb(token)
+        } else {
+            pendingFCMToken = token
+        }
+    }
+
+    // Hands the token to window.__apexNativePush.setToken (src/lib/nativeBridge.js),
+    // which saves it onto the signed-in user's own fcmTokens array — the
+    // exact same field and arrayUnion pattern src/lib/push.js's enablePush()
+    // already uses for every other build.
+    private func sendTokenToWeb(_ token: String) {
+        let escaped = token.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        webView.evaluateJavaScript("window.__apexNativePush && window.__apexNativePush.setToken(\"\(escaped)\");")
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

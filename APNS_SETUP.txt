@@ -1,0 +1,127 @@
+iOS Push Notifications Setup — APEX Coaching Platform (App Store build)
+========================================================================
+
+WHAT THIS IS
+------------
+Push notifications already work on the Android app (it runs inside real
+Chrome, which has full Web Push support) and in a browser. The iOS App
+Store build is different: it's a bare WKWebView wrapper
+(ios/ApexCoach/), and WKWebView has no Push API at all — no amount of
+JavaScript can make a notification arrive there. The only way to get
+push onto that build is real native code: ask iOS for permission, get an
+APNs device token, hand it to Firebase, and feed the resulting token into
+the exact same fcmTokens field the web app already uses.
+
+That native code is written and pushed:
+  - ios/ApexCoach/AppDelegate.swift requests notification permission,
+    registers for remote notifications, and gets an FCM token from
+    Firebase once Apple hands back an APNs token.
+  - ios/ApexCoach/ViewController.swift bridges that token into the
+    already-loaded, already-authenticated web app, which saves it onto
+    users/{uid}.fcmTokens the same way src/lib/push.js's enablePush()
+    does for every other build.
+  - ios/project.yml now pulls in the Firebase iOS SDK (FirebaseMessaging)
+    via Swift Package Manager, and declares the Push Notifications
+    entitlement (ios/ApexCoach/ApexCoach.entitlements).
+
+Nothing on the Cloud Functions side changes — onNewMessage and
+onNewCheckIn (see PUSH_NOTIFICATIONS_SETUP.txt) already send to every
+token in fcmTokens, so once an iOS device's token lands in that array,
+it just starts receiving pushes.
+
+Three things only you can do, because they need your own Apple
+Developer and Firebase logins. Until step 1 and step 3 are both done,
+the code above quietly no-ops (see "WHY THIS IS SAFE TO SHIP NOW" below)
+— nothing breaks in the meantime.
+
+
+STEP 1 — TURN ON PUSH NOTIFICATIONS FOR THE APP ID (Apple Developer)
+-----------------------------------------------------------------------
+1. Go to https://developer.apple.com/account/resources/identifiers/list
+   and open the App ID for com.apexcoaching.platform.
+2. Under Capabilities, turn on "Push Notifications". Save.
+3. Your App Store provisioning profile for this App ID needs to be
+   regenerated now that the App ID has a new capability — if Codemagic
+   is set to auto-manage signing it may pick this up on its own next
+   build; if not, regenerate the profile in the Developer portal and
+   re-upload/re-select it wherever Codemagic's app_store_connect
+   integration is configured (Codemagic dashboard → your app →
+   Code signing).
+
+IMPORTANT: until this step is done, the very next Codemagic iOS build
+after this code lands will fail at the code-signing step (the app now
+declares the aps-environment entitlement, which the old profile doesn't
+grant). That's expected and harmless — it doesn't affect the app
+already live on the App Store, it just means that one build attempt
+needs this step done before it (or a later one) will succeed. The
+Android build is on a separate workflow and is not affected.
+
+
+STEP 2 — ADD AN iOS APP TO YOUR FIREBASE PROJECT
+----------------------------------------------------
+(Skip this if you already added an iOS app to the Firebase project
+when setting up something else — check Project Settings → General →
+Your apps.)
+
+1. Go to https://console.firebase.google.com, open your project.
+2. Project Settings (gear icon) → General → "Add app" → the iOS icon.
+3. Bundle ID: com.apexcoaching.platform
+4. Download the GoogleService-Info.plist it gives you.
+5. Add that file to this repo at:
+     ios/ApexCoach/GoogleService-Info.plist
+   (It's a public client identifier, not a secret — same as the rest of
+   your Firebase config already committed in src/lib/config.js — so
+   it's fine to commit normally.) Commit and push; no other code change
+   is needed, the Swift code already looks for this exact file and
+   turns itself on the moment it's present.
+
+
+STEP 3 — UPLOAD AN APNs AUTH KEY TO FIREBASE
+-------------------------------------------------
+This is what lets Firebase actually deliver to Apple's push servers.
+
+1. In the Apple Developer portal: Certificates, Identifiers & Profiles
+   → Keys → "+" to create a new key → check "Apple Push Notifications
+   service (APNs)" → Continue → Register. Download the .p8 file (you
+   can only download it once — keep it somewhere safe) and note its
+   Key ID, plus your Team ID (top-right of the Developer portal).
+2. In Firebase Console: Project Settings → Cloud Messaging tab → under
+   "Apple app configuration" for your iOS app → "APNs Authentication
+   Key" → Upload. Provide the .p8 file, Key ID, and Team ID.
+
+That's it for Firebase's side — one auth key covers both development
+and production APNs environments, and every iOS app in the project.
+
+
+WHY THIS IS SAFE TO SHIP NOW
+--------------------------------
+AppDelegate.swift checks for GoogleService-Info.plist before doing
+anything Firebase-related:
+
+    guard Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil else {
+        return true
+    }
+
+So every build before Step 2 is done launches exactly as it does today
+— no crash, no permission prompt, push just isn't wired up yet. Step 1
+is the only one that can make a *build* fail (at code signing, not at
+runtime) — see the note under Step 1 for why that's expected and
+harmless, not a sign anything is broken.
+
+
+HOW TO TEST IT
+---------------
+Once all three steps are done and a new TestFlight/App Store build goes
+out: open the app on a real iOS device (push doesn't work in the
+Simulator), accept the notification permission prompt on first launch,
+sign in, then message that client from the coach side (or submit a
+check-in as the client) from a different device/session — the
+notification should arrive the same way it already does on Android.
+
+
+LATER IDEAS (not built yet)
+-----------------------------
+- A "Notifications aren't set up yet" style in-app banner specifically
+  for iOS once Step 1-3 are outstanding, mirroring how src/lib/push.js
+  already surfaces that for the web/VAPID case. Ask any time if you'd
+  like this added.

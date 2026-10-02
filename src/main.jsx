@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
+import './lib/nativeBridge.js'
 
 // skipWaiting + clientsClaim (see vite.config.js) make a freshly-deployed
 // service worker take over quickly in the background, but that alone never

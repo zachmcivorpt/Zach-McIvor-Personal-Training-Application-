@@ -3,12 +3,21 @@ options:
   createIntermediateGroups: true
   deploymentTarget:
     iOS: "15.0"
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 10.29.0
 targets:
   ApexCoach:
     type: application
     platform: iOS
     sources:
       - ApexCoach
+    dependencies:
+      - package: Firebase
+        product: FirebaseCore
+      - package: Firebase
+        product: FirebaseMessaging
     info:
       path: Generated-Info.plist
       properties:
@@ -36,6 +45,8 @@ targets:
         NSPhotoLibraryUsageDescription: "Used to attach and upload photos within the app (progress photos, messages)."
         NSPhotoLibraryAddUsageDescription: "Used to save photos from the app to your library."
         ITSAppUsesNonExemptEncryption: false
+        UIBackgroundModes:
+          - remote-notification
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.apexcoaching.platform
@@ -45,3 +56,4 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: false
+        CODE_SIGN_ENTITLEMENTS: ApexCoach/ApexCoach.entitlements

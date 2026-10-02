@@ -51,6 +51,18 @@ export async function disablePush(uid, token) {
   await updateDoc(doc(firestore, "users", uid), { fcmTokens: arrayRemove(token) }).catch(() => {});
 }
 
+// Counterpart to enablePush for the iOS App Store build: WKWebView has no
+// Push API at all (isSupported() above always resolves false there), so
+// that device's token comes from native APNs/FCM code instead of this
+// file's own getToken() call — see ios/ApexCoach/AppDelegate.swift and the
+// bridge in src/lib/nativeBridge.js. Same fcmTokens array, same Cloud
+// Functions on the other end; this is just the save step, called from the
+// native side instead of a user gesture in the browser.
+export async function saveNativeFcmToken(uid, token) {
+  if (!uid || !token) return;
+  await updateDoc(doc(firestore, "users", uid), { fcmTokens: arrayUnion(token) }).catch(() => {});
+}
+
 // Messages that arrive while the app is open in the foreground don't go
 // through the service worker's background handler — this is the
 // foreground equivalent, so the app can show its own in-app toast instead.
