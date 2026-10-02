@@ -240,6 +240,12 @@ const INACTIVITY_DAYS = 4;
 // re-notifying about) a new WOD every single day a client stays away —
 // one nudge, then let the existing one sit on their calendar.
 const INACTIVITY_COOLDOWN_MS = 5 * 24 * 60 * 60 * 1000;
+// Two main lifts per session, so a client with e.g. a Push/Pull/Legs
+// split gets a genuine taste of each day rather than a generic mix —
+// capped overall so the reset day stays short and approachable rather
+// than growing with however many sessions are in the program.
+const EXERCISES_PER_SESSION = 2;
+const MAX_WOD_EXERCISES = 6;
 
 // Mirrors getCurrentPhase() in src/lib/AppContext.jsx exactly (duplicated
 // rather than imported — functions/ is a separate CommonJS package with
@@ -258,18 +264,9 @@ function pickCurrentPhase(phases, todayKey) {
   return sorted[sorted.length - 1] || null;
 }
 
-// Same Upper/Lower/Core grouping src/lib/sessionIntelligence.js uses for
-// its own category-based classification — kept as a literal here for the
-// same CommonJS-can't-import-the-web-app reason as elsewhere in this file.
-const MUSCLE_REGION = { Chest: "Push", Shoulders: "Push", Triceps: "Push", Back: "Pull", Biceps: "Pull", Legs: "Legs", Core: "Core" };
-// One exercise per region, in this order, so a full "reset" day always
-// covers a push, a pull, legs, and core when the client's own program has
-// something in each — never pulling from outside what they're assigned.
-const WOD_REGION_ORDER = ["Legs", "Push", "Pull", "Core"];
-
-// Used to prefer an actual main/compound lift over an accessory sharing
-// the same category (e.g. Bench Press over Cable Fly — both "Chest") when
-// a region has more than one candidate in the client's program.
+// Used to prefer an actual main/compound lift over an accessory within
+// the same session (e.g. Bench Press over Cable Fly on the same Push day)
+// when picking that session's top EXERCISES_PER_SESSION exercises.
 const COMPOUND_KEYWORDS = [
   "squat", "deadlift", "bench press", "overhead press", "shoulder press",
   "row", "pull up", "pull-up", "chin up", "chin-up", "press",
@@ -285,55 +282,63 @@ function isCompoundName(name) {
 // executes when the scheduler fires, well after the whole module has
 // finished loading.
 
-// Builds a ~4-exercise full-body session from the client's own currently
-// assigned sessions — one exercise per region in WOD_REGION_ORDER, each
-// one the actual main lift of whichever session it came from (not a
-// warm-up/cool-down entry, and preferred over an accessory sharing the
-// same category), skipped entirely if nothing in their program matches
-// that region. Returns null if their program has nothing usable at all
-// (never fabricates an exercise they weren't already assigned).
+// Builds a full-body "greatest hits" session from the client's own
+// currently assigned sessions — the top EXERCISES_PER_SESSION main lifts
+// from EACH session in their program (e.g. a Push/Pull/Legs split gets a
+// taste of all three), in program order, capped overall at
+// MAX_WOD_EXERCISES so the reset day stays short regardless of how many
+// sessions the program has. Reads only phase.weeks[0].days — the single
+// template week every other screen in the app already treats as "the"
+// program (see ClientProgramTab in src/client/ClientApp.jsx), not every
+// week's repeated copy of it. Returns null if their program has nothing
+// usable at all (never fabricates an exercise they weren't assigned).
 async function buildInactivityWod(clientId, todayKey) {
   const phasesSnap = await db.collection("clientPhases").where("clientId", "==", clientId).get();
   const phase = pickCurrentPhase(phasesSnap.docs.map((d) => d.data()), todayKey);
   if (!phase) return null;
 
-  // Only a session's genuine working exercises count as "their lifts" —
-  // warm-up/cool-down entries exist to prepare/recover, not to reset from.
-  const candidates = [];
-  for (const week of phase.weeks || []) {
-    for (const day of week.days || []) {
-      for (const ex of day.exercises || []) {
-        if (!ex.exerciseId) continue;
-        if ((ex.section || "main") !== "main") continue;
-        candidates.push({ exerciseId: ex.exerciseId, targetSets: ex.targetSets || 1 });
-      }
-    }
-  }
-  if (candidates.length === 0) return null;
+  const days = phase.weeks?.[0]?.days || [];
+  if (days.length === 0) return null;
 
   const exercisesSnap = await db.collection("exercises").get();
   const exercisesById = new Map(exercisesSnap.docs.map((d) => [d.id, d.data()]));
 
-  // Ranks candidates within a region: a name match against known
-  // compound-lift keywords first, then the exercise with the most
-  // prescribed sets as the tiebreak — a main lift is consistently
-  // programmed with more working sets than an accessory in the same
-  // category, so this reliably lands on the session's actual main lift
-  // rather than whichever exercise happened to be listed first.
-  const byRegion = {};
-  for (const { exerciseId, targetSets } of candidates) {
-    const exercise = exercisesById.get(exerciseId);
-    const region = MUSCLE_REGION[exercise?.category];
-    if (!region) continue;
-    const compound = isCompoundName(exercise.name);
-    const current = byRegion[region];
-    if (!current || (compound && !current.compound) || (compound === current.compound && targetSets > current.targetSets)) {
-      byRegion[region] = { exerciseId, compound, targetSets };
+  // Pulls each session's own top picks in turn (round-robin by session,
+  // not by raw ranking across the whole program) so a 6-exercise cap
+  // still represents a Push day AND a Pull day AND a Leg day, say,
+  // instead of accidentally filling up on one session's lifts alone.
+  const used = new Set();
+  const picked = [];
+  for (const day of days) {
+    // Only a session's genuine working exercises count as its "lifts" —
+    // warm-up/cool-down entries exist to prepare/recover, not to reset
+    // from.
+    const ranked = (day.exercises || [])
+      .filter((ex) => ex.exerciseId && (ex.section || "main") === "main")
+      .map((ex) => ({ exerciseId: ex.exerciseId, targetSets: ex.targetSets || 1, exercise: exercisesById.get(ex.exerciseId) }))
+      .filter((c) => c.exercise)
+      // A name match against known compound-lift keywords first, then
+      // the exercise with the most prescribed sets as the tiebreak — a
+      // main lift is consistently programmed with more working sets
+      // than an accessory in the same session, so this reliably lands
+      // on that session's actual main lift(s) rather than whichever
+      // exercises happened to be listed first.
+      .sort((a, b) => {
+        const compoundDiff = (isCompoundName(b.exercise.name) ? 1 : 0) - (isCompoundName(a.exercise.name) ? 1 : 0);
+        return compoundDiff !== 0 ? compoundDiff : b.targetSets - a.targetSets;
+      });
+
+    let takenFromThisSession = 0;
+    for (const candidate of ranked) {
+      if (takenFromThisSession >= EXERCISES_PER_SESSION) break;
+      if (used.has(candidate.exerciseId)) continue; // already pulled via an earlier session sharing this exact lift
+      used.add(candidate.exerciseId);
+      picked.push(candidate.exerciseId);
+      takenFromThisSession++;
     }
   }
-
-  const picked = WOD_REGION_ORDER.map((region) => byRegion[region]?.exerciseId).filter(Boolean);
   if (picked.length === 0) return null;
+  picked.length = Math.min(picked.length, MAX_WOD_EXERCISES);
 
   return picked.map((exerciseId) => ({
     exerciseId,
