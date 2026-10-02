@@ -34,6 +34,21 @@ const RESTAURANT_MENUS = {
     { name: "Small Fries", calories: 230, protein: 3, carbs: 30, fat: 11, tags: ["vegetarian"] },
     { name: "Egg & Cheese McMuffin", calories: 300, protein: 17, carbs: 30, fat: 12, tags: ["gluten", "dairy", "egg"] },
     { name: "Oatmeal", calories: 150, protein: 4, carbs: 29, fat: 2, tags: ["gluten", "vegetarian"] },
+    { name: "Double Cheeseburger", calories: 440, protein: 25, carbs: 34, fat: 23, tags: ["gluten", "dairy"] },
+    { name: "McDouble", calories: 390, protein: 22, carbs: 33, fat: 18, tags: ["gluten", "dairy"] },
+    { name: "10pc Chicken McNuggets", calories: 410, protein: 24, carbs: 25, fat: 25, tags: ["gluten"] },
+    { name: "20pc Chicken McNuggets", calories: 820, protein: 48, carbs: 50, fat: 50, tags: ["gluten"] },
+    { name: "Filet-O-Fish", calories: 390, protein: 15, carbs: 39, fat: 18, tags: ["gluten", "dairy"] },
+    { name: "Medium Fries", calories: 340, protein: 4, carbs: 44, fat: 20, tags: ["vegetarian"] },
+    { name: "Large Fries", calories: 490, protein: 6, carbs: 66, fat: 22, tags: ["vegetarian"] },
+    { name: "Hash Brown", calories: 140, protein: 1, carbs: 15, fat: 8, tags: ["gluten", "vegetarian"] },
+    { name: "Bacon & Egg McMuffin", calories: 310, protein: 17, carbs: 28, fat: 15, tags: ["gluten", "dairy", "egg"] },
+    { name: "Hotcakes (with syrup)", calories: 580, protein: 9, carbs: 99, fat: 16, tags: ["gluten", "dairy", "egg", "vegetarian"] },
+    { name: "Soft Serve Cone", calories: 140, protein: 3, carbs: 22, fat: 4, tags: ["dairy", "vegetarian"] },
+    { name: "Oreo McFlurry", calories: 340, protein: 8, carbs: 51, fat: 11, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Apple Pie", calories: 230, protein: 2, carbs: 32, fat: 11, tags: ["gluten", "vegetarian"] },
+    { name: "Apple Slices", calories: 15, protein: 0, carbs: 4, fat: 0, tags: ["vegetarian"] },
+    { name: "Grilled Chicken & Bacon Caesar Salad", calories: 280, protein: 28, carbs: 12, fat: 14, tags: ["dairy"] },
     // Meals — burger + fries + drink, labelled by actual McDonald's
     // Australia meal size (Small/Medium/Large), matching published
     // CalorieKing AU totals for "Meal, Big Mac, [size] Fries, [size]
@@ -145,6 +160,14 @@ const RESTAURANT_MENUS = {
     { name: "Corn Cob", calories: 150, protein: 4, carbs: 32, fat: 2, tags: ["vegetarian"] },
     { name: "Coleslaw (small)", calories: 150, protein: 1, carbs: 14, fat: 10, tags: ["dairy", "vegetarian"] },
     { name: "Mashed Potato & Gravy", calories: 120, protein: 2, carbs: 17, fat: 5, tags: ["gluten"] },
+    { name: "Original Recipe Chicken Wing", calories: 150, protein: 10, carbs: 5, fat: 10, tags: ["gluten"] },
+    { name: "Hot & Spicy Chicken Breast", calories: 410, protein: 33, carbs: 14, fat: 25, tags: ["gluten"] },
+    { name: "Original Tenders (3pc)", calories: 240, protein: 24, carbs: 15, fat: 12, tags: ["gluten"] },
+    { name: "Original Tenders (5pc)", calories: 400, protein: 40, carbs: 25, fat: 20, tags: ["gluten"] },
+    { name: "Rice Box (chicken, rice & gravy)", calories: 450, protein: 25, carbs: 55, fat: 15, tags: ["gluten"] },
+    { name: "Famous Bowl", calories: 620, protein: 25, carbs: 65, fat: 28, tags: ["gluten", "dairy"] },
+    { name: "Wicked Wings (3pc)", calories: 290, protein: 20, carbs: 10, fat: 20, tags: ["gluten"] },
+    { name: "Large Chips", calories: 450, protein: 6, carbs: 58, fat: 21, tags: ["vegetarian"] },
     {
       name: "Regular Zinger Box Meal (Pepsi Max)",
       calories: 872,
@@ -181,6 +204,13 @@ const RESTAURANT_MENUS = {
     { name: "Steak & Cheese 6-inch", calories: 380, protein: 24, carbs: 45, fat: 12, tags: ["gluten", "dairy"] },
     { name: "Chicken & Bacon Ranch 6-inch", calories: 480, protein: 29, carbs: 44, fat: 21, tags: ["gluten", "dairy"] },
     { name: "Chicken Teriyaki Salad (no bread)", calories: 180, protein: 24, carbs: 15, fat: 3, tags: [] },
+    { name: "Italian B.M.T. 6-inch", calories: 410, protein: 20, carbs: 46, fat: 17, tags: ["gluten", "dairy"] },
+    { name: "Meatball Marinara 6-inch", calories: 480, protein: 20, carbs: 66, fat: 16, tags: ["gluten", "dairy"] },
+    { name: "Subway Club 6-inch", calories: 310, protein: 24, carbs: 46, fat: 4, tags: ["gluten"] },
+    { name: "Spicy Italian 6-inch", calories: 480, protein: 20, carbs: 45, fat: 27, tags: ["gluten", "dairy"] },
+    { name: "Veggie Patty 6-inch", calories: 360, protein: 19, carbs: 53, fat: 8, tags: ["gluten", "vegetarian"] },
+    { name: "Egg & Cheese 6-inch (breakfast)", calories: 380, protein: 22, carbs: 44, fat: 13, tags: ["gluten", "dairy", "egg"] },
+    { name: "Cookie", calories: 200, protein: 2, carbs: 30, fat: 9, tags: ["gluten", "dairy", "vegetarian"] },
     {
       name: "Turkey Breast Sub Meal (chips, Coke No Sugar)",
       calories: 512,
@@ -210,6 +240,14 @@ const RESTAURANT_MENUS = {
     { name: "4pc Chicken Nuggets", calories: 170, protein: 9, carbs: 11, fat: 10, tags: ["gluten"] },
     { name: "Small Fries", calories: 230, protein: 3, carbs: 29, fat: 11, tags: ["vegetarian"] },
     { name: "Garden Salad", calories: 60, protein: 4, carbs: 8, fat: 2, tags: ["vegetarian"] },
+    { name: "Double Cheeseburger", calories: 440, protein: 26, carbs: 30, fat: 24, tags: ["gluten", "dairy"] },
+    { name: "Angry Whopper", calories: 900, protein: 36, carbs: 54, fat: 60, tags: ["gluten", "dairy"] },
+    { name: "Rebel Whopper (plant-based)", calories: 540, protein: 23, carbs: 47, fat: 29, tags: ["gluten", "vegetarian"] },
+    { name: "Onion Rings (small)", calories: 280, protein: 4, carbs: 35, fat: 13, tags: ["gluten", "vegetarian"] },
+    { name: "Hash Brown", calories: 160, protein: 2, carbs: 16, fat: 10, tags: ["gluten", "vegetarian"] },
+    { name: "Soft Serve Cone", calories: 150, protein: 3, carbs: 24, fat: 4, tags: ["dairy", "vegetarian"] },
+    { name: "Apple Pie", calories: 220, protein: 2, carbs: 30, fat: 10, tags: ["gluten", "vegetarian"] },
+    { name: "BBQ Bacon Deluxe Burger", calories: 630, protein: 30, carbs: 48, fat: 34, tags: ["gluten", "dairy"] },
     // "Medium chips" calorie figure matches Hungry Jack's published value
     // (fatsecret.com.au) — close to the real "Whopper Value Meal Medium"
     // total (~1074 kcal) once a regular Coke is added.
@@ -261,6 +299,11 @@ const RESTAURANT_MENUS = {
     { name: "BBQ Chicken Pizza (2 slices)", calories: 292, protein: 12, carbs: 34, fat: 12, tags: ["gluten", "dairy"] },
     { name: "Vegetarian Supreme Pizza (2 slices)", calories: 310, protein: 12, carbs: 42, fat: 10, tags: ["gluten", "dairy", "vegetarian"] },
     { name: "Garlic Bread (2 pieces)", calories: 200, protein: 5, carbs: 26, fat: 8, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Hawaiian Pizza (2 slices)", calories: 272, protein: 12, carbs: 38, fat: 8, tags: ["gluten", "dairy"] },
+    { name: "Meat Lovers Pizza (2 slices)", calories: 306, protein: 14, carbs: 37, fat: 11, tags: ["gluten", "dairy"] },
+    { name: "Chicken Supreme Pizza (2 slices)", calories: 300, protein: 14, carbs: 36, fat: 11, tags: ["gluten", "dairy"] },
+    { name: "Chicken Wings (6pc)", calories: 450, protein: 35, carbs: 8, fat: 30, tags: ["gluten"] },
+    { name: "Garden Salad", calories: 90, protein: 3, carbs: 10, fat: 4, tags: ["vegetarian"] },
   ],
   "nando's": [
     // Two real, distinct products (fatsecret.com.au / calorieking.com.au)
@@ -272,6 +315,14 @@ const RESTAURANT_MENUS = {
     { name: "Corn on the Cob", calories: 150, protein: 4, carbs: 30, fat: 2, tags: ["vegetarian"] },
     { name: "Mediterranean Salad", calories: 180, protein: 10, carbs: 12, fat: 10, tags: ["dairy", "vegetarian"] },
     { name: "Spicy Rice", calories: 220, protein: 4, carbs: 42, fat: 4, tags: ["vegetarian"] },
+    { name: "Full Chicken (skin on)", calories: 850, protein: 110, carbs: 0, fat: 46, tags: [] },
+    { name: "Grilled Chicken Burger", calories: 420, protein: 30, carbs: 40, fat: 15, tags: ["gluten"] },
+    { name: "Chicken Pita", calories: 380, protein: 25, carbs: 38, fat: 12, tags: ["gluten"] },
+    { name: "Veggie Wrap (halloumi)", calories: 420, protein: 15, carbs: 45, fat: 20, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Garlic Bread", calories: 220, protein: 5, carbs: 28, fat: 10, tags: ["gluten", "dairy", "vegetarian"] },
+    { name: "Macho Peas", calories: 150, protein: 8, carbs: 20, fat: 3, tags: ["vegetarian"] },
+    { name: "Coleslaw", calories: 150, protein: 2, carbs: 12, fat: 11, tags: ["dairy", "vegetarian"] },
+    { name: "Mashed Potato", calories: 180, protein: 3, carbs: 25, fat: 7, tags: ["dairy", "vegetarian"] },
   ],
   "taco bell": [
     { name: "Crunchy Taco", calories: 170, protein: 8, carbs: 13, fat: 10, tags: ["dairy"] },
@@ -279,6 +330,13 @@ const RESTAURANT_MENUS = {
     { name: "Chicken Burrito Supreme", calories: 410, protein: 17, carbs: 50, fat: 15, tags: ["gluten", "dairy"] },
     { name: "Crunchwrap Supreme", calories: 530, protein: 16, carbs: 71, fat: 21, tags: ["gluten", "dairy"] },
     { name: "Chicken Power Bowl", calories: 470, protein: 26, carbs: 48, fat: 18, tags: ["dairy"] },
+    { name: "Soft Taco", calories: 180, protein: 9, carbs: 18, fat: 8, tags: ["gluten", "dairy"] },
+    { name: "Nachos Bell Grande", calories: 740, protein: 16, carbs: 80, fat: 36, tags: ["dairy", "vegetarian"] },
+    { name: "Mexican Pizza", calories: 540, protein: 21, carbs: 46, fat: 30, tags: ["gluten", "dairy"] },
+    { name: "Cheesy Gordita Crunch", calories: 500, protein: 21, carbs: 41, fat: 29, tags: ["gluten", "dairy"] },
+    { name: "Chicken Quesadilla", calories: 510, protein: 26, carbs: 37, fat: 29, tags: ["gluten", "dairy"] },
+    { name: "Nacho Fries", calories: 320, protein: 4, carbs: 34, fat: 18, tags: ["dairy", "vegetarian"] },
+    { name: "Cinnamon Twists", calories: 170, protein: 1, carbs: 26, fat: 7, tags: ["gluten", "vegetarian"] },
     {
       name: "Crunchwrap Supreme Box (Baja Blast Zero)",
       calories: 650,
@@ -299,6 +357,12 @@ const RESTAURANT_MENUS = {
     { name: "Protein Box", calories: 450, protein: 20, carbs: 30, fat: 25, tags: ["dairy", "egg"] },
     { name: "Oatmeal", calories: 160, protein: 5, carbs: 28, fat: 2.5, tags: ["gluten", "vegetarian"] },
     { name: "Banana", calories: 100, protein: 1, carbs: 27, fat: 0, tags: ["vegetarian"] },
+    { name: "Bacon & Gruyere Sandwich", calories: 370, protein: 19, carbs: 33, fat: 18, tags: ["gluten", "dairy", "egg"] },
+    { name: "Spinach & Feta Wrap", calories: 290, protein: 13, carbs: 31, fat: 11, tags: ["gluten", "dairy", "egg", "vegetarian"] },
+    { name: "Chocolate Croissant", calories: 340, protein: 6, carbs: 38, fat: 18, tags: ["gluten", "dairy", "egg", "vegetarian"] },
+    { name: "Blueberry Muffin", calories: 350, protein: 5, carbs: 51, fat: 14, tags: ["gluten", "dairy", "egg", "vegetarian"] },
+    { name: "Caffe Latte (grande)", calories: 190, protein: 13, carbs: 18, fat: 7, tags: ["dairy", "vegetarian"] },
+    { name: "Greek Yoghurt Parfait", calories: 220, protein: 14, carbs: 28, fat: 6, tags: ["dairy", "vegetarian"] },
   ],
   // The local fish & chip shop — not a named chain, but a real, common
   // takeaway category in its own right, so "fish and chips" gets an
@@ -314,6 +378,12 @@ const RESTAURANT_MENUS = {
     { name: "Dim Sim (steamed)", calories: 120, protein: 4, carbs: 18, fat: 3, tags: ["gluten"] },
     { name: "Dim Sim (fried)", calories: 120, protein: 5, carbs: 10, fat: 6, tags: ["gluten"] },
     { name: "Calamari Rings (fried)", calories: 316, protein: 19, carbs: 19, fat: 18, tags: ["gluten"] },
+    { name: "Grilled Flathead Fillet", calories: 180, protein: 30, carbs: 0, fat: 6, tags: [] },
+    { name: "Scallops (fried, 6pc)", calories: 220, protein: 10, carbs: 18, fat: 12, tags: ["gluten", "shellfish"] },
+    { name: "Prawn Cutlets (fried, 6pc)", calories: 260, protein: 14, carbs: 20, fat: 15, tags: ["gluten", "shellfish"] },
+    { name: "Hamburger (fish shop grill)", calories: 400, protein: 18, carbs: 35, fat: 20, tags: ["gluten"] },
+    { name: "Greek Salad (side)", calories: 150, protein: 5, carbs: 10, fat: 11, tags: ["dairy", "vegetarian"] },
+    { name: "Large Chips", calories: 450, protein: 6, carbs: 58, fat: 21, tags: ["vegetarian"] },
     {
       name: "Grilled Fish & Chips (handful)",
       calories: 470,
@@ -380,6 +450,12 @@ const RESTAURANT_MENUS = {
     { name: "Muesli Bar", calories: 120, protein: 2, carbs: 19, fat: 4, tags: ["gluten", "vegetarian"] },
     { name: "Iced Coffee (bottled)", calories: 180, protein: 5, carbs: 28, fat: 5, tags: ["dairy", "vegetarian"] },
     { name: "Yoghurt Tub", calories: 150, protein: 8, carbs: 20, fat: 4, tags: ["dairy", "vegetarian"] },
+    { name: "Hot Dog", calories: 290, protein: 10, carbs: 25, fat: 17, tags: ["gluten"] },
+    { name: "Chicken Nuggets (6pc)", calories: 280, protein: 14, carbs: 18, fat: 18, tags: ["gluten"] },
+    { name: "Pizza Slice (heated)", calories: 300, protein: 13, carbs: 32, fat: 13, tags: ["gluten", "dairy"] },
+    { name: "Sushi Pack", calories: 350, protein: 12, carbs: 60, fat: 6, tags: [] },
+    { name: "Chocolate Bar", calories: 230, protein: 3, carbs: 25, fat: 13, tags: ["dairy", "vegetarian"] },
+    { name: "Slurpee (small)", calories: 130, protein: 0, carbs: 34, fat: 0, tags: ["vegetarian"] },
   ],
   apco: [
     { name: "Sausage Roll (Four'N Twenty)", calories: 507, protein: 14, carbs: 50, fat: 28, tags: ["gluten"] },
@@ -390,6 +466,11 @@ const RESTAURANT_MENUS = {
     { name: "Banana", calories: 105, protein: 1, carbs: 27, fat: 0, tags: ["vegetarian"] },
     { name: "Hot Chips (small)", calories: 310, protein: 4, carbs: 40, fat: 15, tags: ["vegetarian"] },
     { name: "Muesli Bar", calories: 120, protein: 2, carbs: 19, fat: 4, tags: ["gluten", "vegetarian"] },
+    { name: "Hot Dog", calories: 290, protein: 10, carbs: 25, fat: 17, tags: ["gluten"] },
+    { name: "Chicken Nuggets (6pc)", calories: 280, protein: 14, carbs: 18, fat: 18, tags: ["gluten"] },
+    { name: "Chicken Salad Sandwich", calories: 360, protein: 18, carbs: 38, fat: 14, tags: ["gluten", "dairy"] },
+    { name: "Slushie (small)", calories: 130, protein: 0, carbs: 34, fat: 0, tags: ["vegetarian"] },
+    { name: "Chocolate Bar", calories: 230, protein: 3, carbs: 25, fat: 13, tags: ["dairy", "vegetarian"] },
   ],
 };
 
@@ -550,7 +631,7 @@ function passesAllergyFilter(item, flags, needsVegetarian) {
   if (flags.dairy && (tags.includes("dairy") || DAIRY_WORDS.some((w) => text.includes(w)))) return false;
   if (flags.gluten && (tags.includes("gluten") || GLUTEN_WORDS.some((w) => text.includes(w)))) return false;
   if (flags.nuts && NUT_WORDS.some((w) => text.includes(w))) return false;
-  if (flags.shellfish && SHELLFISH_WORDS.some((w) => text.includes(w))) return false;
+  if (flags.shellfish && (tags.includes("shellfish") || SHELLFISH_WORDS.some((w) => text.includes(w)))) return false;
   if (flags.egg && (tags.includes("egg") || text.includes("egg"))) return false;
   if (needsVegetarian) {
     const isVeg = tags.includes("vegetarian") || (text && !MEAT_WORDS.some((w) => text.includes(w)));
