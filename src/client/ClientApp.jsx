@@ -3632,8 +3632,19 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
   const [input, setInput] = useState("");
   const [detailSuggestion, setDetailSuggestion] = useState(null);
   const sending = exchanges.some((e) => e.loading);
+  const inputRef = useRef(null);
 
   const QUICK_PROMPTS = ["KFC", "McDonald's", "Hungry Jack's", "Subway", "APCO", "High protein dinner", "500 calorie meal"];
+
+  // "Macro Match" needs a restaurant name to actually do anything, so
+  // unlike the other chips it pre-fills the input and hands focus back
+  // instead of sending immediately — the client finishes the sentence.
+  function startMacroMatch() {
+    setInput("Macro match at ");
+    inputRef.current?.focus();
+    const len = "Macro match at ".length;
+    requestAnimationFrame(() => inputRef.current?.setSelectionRange(len, len));
+  }
 
   function buildContext() {
     const caloriesConsumed = Math.round(todayNutrition.calories || 0);
@@ -3804,6 +3815,7 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
 
       <div className="flex items-center gap-2">
         <input
+          ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -3827,6 +3839,15 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
       </div>
 
       <div className="flex flex-wrap gap-1.5 mt-2.5">
+        <button
+          onClick={startMacroMatch}
+          disabled={sending}
+          className="flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border-[1.5px] disabled:opacity-40"
+          style={{ borderColor: MEASURE_BLUE, color: MEASURE_BLUE }}
+        >
+          <Target size={11} />
+          Macro Match
+        </button>
         {QUICK_PROMPTS.map((p) => (
           <button
             key={p}

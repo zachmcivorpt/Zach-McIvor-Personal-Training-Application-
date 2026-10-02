@@ -476,6 +476,67 @@ function allergyFlags(context) {
   };
 }
 
+function wantsMacroMatch(message) {
+  return /macro.?match|match (the rest of )?my (macros|calories|cals)|hit my macros/i.test(message);
+}
+
+function sumItems(items) {
+  return items.reduce((acc, i) => ({ calories: acc.calories + i.calories, protein: acc.protein + i.protein, carbs: acc.carbs + i.carbs, fat: acc.fat + i.fat }), {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0,
+  });
+}
+
+// Weighted squared relative error across all four macros at once — unlike
+// the single-item ranking above (which only really optimizes calories),
+// this is what "match my macros" actually needs: get calories, protein,
+// carbs AND fat all close simultaneously, which usually takes more than
+// one menu item.
+function macroMatchDistance(sum, target) {
+  let d = 0;
+  for (const k of ["calories", "protein", "carbs", "fat"]) {
+    if (target[k] > 0) {
+      const rel = (sum[k] - target[k]) / target[k];
+      d += rel * rel;
+    }
+  }
+  return d;
+}
+
+// Every 1-, 2- and 3-item combination from the menu — plenty fast for a
+// menu this size (a dozen-ish items), and a real meal is rarely more
+// than 3 separate things ordered together.
+function generateCombos(items) {
+  const combos = [];
+  for (let i = 0; i < items.length; i++) {
+    combos.push([items[i]]);
+    for (let j = i + 1; j < items.length; j++) {
+      combos.push([items[i], items[j]]);
+      for (let k = j + 1; k < items.length; k++) {
+        combos.push([items[i], items[j], items[k]]);
+      }
+    }
+  }
+  return combos;
+}
+
+// Finds the combo(s) of menu items whose combined calories/protein/carbs/
+// fat land closest to the client's actual remaining targets for today —
+// "Macro Match". `excludeNames` (the composite "A + B + C" name) lets a
+// refresh move on to the next-closest combo instead of repeating one.
+function macroMatchSuggestions(pool, target, excludeNames, count) {
+  const scored = generateCombos(pool).map((items) => {
+    const sum = sumItems(items);
+    return { items, sum, score: macroMatchDistance(sum, target), name: items.map((i) => i.name).join(" + ") };
+  });
+  scored.sort((a, b) => a.score - b.score);
+  const filtered = excludeNames && excludeNames.size ? scored.filter((c) => !excludeNames.has(c.name)) : scored;
+  const finalList = filtered.length ? filtered : scored;
+  return finalList.slice(0, count).map((c) => ({ name: c.name, calories: c.sum.calories, protein: c.sum.protein, carbs: c.sum.carbs, fat: c.sum.fat, contents: c.items }));
+}
+
 function wantsVegetarian(context) {
   const prefs = (context.dietaryPreferences || []).map(normalize);
   return prefs.some((p) => p.includes("vegetarian") || p.includes("vegan"));
@@ -550,6 +611,30 @@ export function getLocalNutritionSuggestion(message, context, excludeNames) {
 
   const brand = detectBrand(message);
   const parsedTarget = parseCalorieTarget(message);
+
+  if (wantsMacroMatch(message)) {
+    if (!brand) {
+      return {
+        reply: "Tell me which restaurant and I'll build a combo from their menu that matches your remaining calories AND macros as closely as possible — e.g. \"macro match McDonald's\".",
+        suggestions: [],
+      };
+    }
+    const menu = RESTAURANT_MENUS[brand.key];
+    const allowed = menu.filter((i) => passesAllergyFilter(i, flags, needsVegetarian));
+    const pool = allowed.length ? allowed : menu;
+    const target = {
+      calories: remainingBudget,
+      protein: proteinRemaining,
+      carbs: context.carbsRemaining > 0 ? context.carbsRemaining : context.carbsTarget || 0,
+      fat: context.fatRemaining > 0 ? context.fatRemaining : context.fatTarget || 0,
+    };
+    const matches = macroMatchSuggestions(pool, target, exclude, 3);
+    const allergyNote = allowed.length < menu.length ? " I left out anything that could conflict with what's on your profile." : "";
+    const reply = `Macro Match from ${brand.display} — closest I can build to roughly ${Math.round(target.calories)} kcal, ${Math.round(target.protein)}g protein, ${Math.round(
+      target.carbs
+    )}g carbs and ${Math.round(target.fat)}g fat left today:${allergyNote}`;
+    return { reply, suggestions: matches.map(toSuggestion) };
+  }
 
   if (brand) {
     const menu = RESTAURANT_MENUS[brand.key];
