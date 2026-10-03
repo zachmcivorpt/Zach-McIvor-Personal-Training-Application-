@@ -78,6 +78,7 @@ import {
   Sparkles,
   ChevronLeft,
   Play,
+  Flame,
 } from "lucide-react";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { MICRO_FIELDS } from "../lib/foodDatabase";
@@ -3223,12 +3224,6 @@ function NutritionTargetsCard({ client, showToast, open, onClose }) {
         <div className="flex-1 overflow-y-auto">
           <div className="relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-            <div
-              className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
-              style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}12 0%, transparent 70%)`, filter: "blur(10px)" }}
-            />
-            <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
-            <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
             <div className="relative px-5 py-5 max-w-3xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-x-10">
               <TDEECalculator
                 client={client}
@@ -3280,6 +3275,7 @@ function NutritionTargetsCard({ client, showToast, open, onClose }) {
                 <p className="text-black/30 text-[11px] mt-3">Protein + Carbs + Fat always add up to 100% of calories — adjusting one rebalances the others.</p>
               </div>
             </div>
+            <div className="h-px mt-2" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
           </div>
         </div>
       </div>
@@ -3684,6 +3680,60 @@ const NUTRITION_GRAPH_METRICS = [
 // which reads correctly as "nothing logged" rather than "hit 0 exactly" —
 // the average below is computed only from days that actually have a log,
 // so an unlogged gap never drags it down.
+// The reference's own goal-declaration header, sitting above the graph —
+// always shows the client's TARGET (not today's progress, which the diary
+// card already covers), with one segmented bar showing how calories split
+// across the three macros by proportion. Three shades of the app's own
+// blue instead of a green/teal/orange set, same reasoning as the macro
+// sliders in NutritionTargetsCard below.
+function NutritionGoalSummaryCard({ targets, onEditTargets }) {
+  // Use the coach's own set percentages directly (resolveNutritionTargets
+  // already carries them) rather than re-deriving from the rounded gram
+  // values — avoids drifting a point or two off what was actually set.
+  const proteinPct = targets.proteinPct || 0;
+  const carbsPct = targets.carbsPct || 0;
+  const fatPct = targets.fatPct || 0;
+  const total = proteinPct + carbsPct + fatPct;
+
+  return (
+    <div className="relative overflow-hidden bg-white border border-black/10 rounded-2xl shadow-sm mb-6">
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+      <div className="relative p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-9 h-9 rounded-full border border-black/15 flex items-center justify-center shrink-0">
+              <Flame size={16} className="text-black/50" />
+            </div>
+            <p className="text-black font-semibold text-[16px] leading-snug">
+              Eat {Math.round(targets.calories || 0)} Calories per day, with the following macro split
+            </p>
+          </div>
+          {onEditTargets && (
+            <button onClick={onEditTargets} aria-label="Edit calories & macros" className="text-black/30 hover:text-black/60 shrink-0 mt-1">
+              <MoreVertical size={16} />
+            </button>
+          )}
+        </div>
+        {total > 0 && (
+          <>
+            <div className="flex h-1.5 rounded-full overflow-hidden mt-4">
+              <div style={{ width: `${proteinPct}%`, backgroundColor: MEASURE_BLUE }} />
+              <div style={{ width: `${carbsPct}%`, backgroundColor: "#1D4ED8" }} />
+              <div style={{ width: `${fatPct}%`, backgroundColor: "#7DB7FF" }} />
+            </div>
+            <div className="flex justify-between mt-2">
+              <span className="text-black/40 text-xs">Protein Goal</span>
+              <span className="text-black/40 text-xs">Carbs Goal</span>
+              <span className="text-black/40 text-xs">Fat Goal</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NutritionGraphCard({ client, showToast }) {
   const { db } = useApp();
   const targets = resolveNutritionTargets(client.nutritionTargets);
@@ -3717,15 +3767,10 @@ function NutritionGraphCard({ client, showToast }) {
 
   return (
     <div className="relative overflow-hidden bg-white border border-black/10 rounded-2xl shadow-sm mb-6">
-      {/* Same restrained premium treatment as Fuel IQ on the client side —
-          thin blue gradient line, soft glow, HUD corner brackets. */}
+      {/* Thin blue gradient line top and bottom — no glow, no corner
+          brackets, just the lines. */}
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-      <div
-        className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
-        style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}10 0%, transparent 70%)`, filter: "blur(10px)" }}
-      />
-      <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
-      <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
 
       <div className="relative p-5">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
@@ -4054,6 +4099,7 @@ function NutritionPanel({ client, showToast }) {
         )}
       </div>
 
+      <NutritionGoalSummaryCard targets={targets} onEditTargets={() => setTargetsOpen(true)} />
       <NutritionGraphCard client={client} showToast={showToast} />
 
       <NutritionAdherenceCard client={client} />

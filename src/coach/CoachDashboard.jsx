@@ -790,20 +790,13 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         <p className="text-black/40 text-sm mt-0.5">Your roster and what needs your attention.</p>
       </div>
 
-      {/* Same restrained "flagship panel" treatment as Fuel IQ on the
-          client side — a thin blue gradient line and soft glow instead of
-          four separate boxed cards, with dividers between the numbers
-          rather than borders around each one. */}
+      {/* A thin blue gradient line top and bottom — no glow, no corner
+          brackets, just the lines — instead of four separate boxed cards,
+          with dividers between the numbers rather than borders around
+          each one. */}
       <div className="relative overflow-hidden rounded-2xl mb-4" style={{ backgroundColor: SURFACE_RAISED, border: `1px solid ${BORDER}` }}>
         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-        <div
-          className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
-          style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}12 0%, transparent 70%)`, filter: "blur(10px)" }}
-        />
-        {/* HUD-style corner brackets — restrained, not decorative clutter;
-            same treatment as Fuel IQ on the client side. */}
-        <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
-        <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
         <div className="relative grid grid-cols-2 md:grid-cols-4">
           <HeadlineStatColumn icon={Users} label="Active Clients" value={active.length} onClick={() => onNavigate("clients")} />
           <HeadlineStatColumn icon={Trophy} label="Challenges" value={(db.challenges || []).length} onClick={() => onNavigate("challenges")} />

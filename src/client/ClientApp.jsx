@@ -3686,6 +3686,57 @@ const NUTRITION_GRAPH_METRICS = [
 // graph icon on the Nutrition tab's date-nav row). A day with nothing
 // logged renders as no bar (value 0) rather than drawing a 0-calorie day,
 // and the average line only ever factors in days that actually have a log.
+// The reference's own goal-declaration header, sitting above the graph —
+// always shows the client's TARGET (not today's progress — the "YOUR
+// CALORIE TARGET" card on the main tab already covers that), with one
+// segmented bar showing how calories split across the three macros by
+// proportion. Three shades of the app's own blue instead of a
+// green/teal/orange set, matching the coach-side equivalent. Display
+// only — a client doesn't edit their own targets, only their coach does.
+function NutritionGoalSummaryCard({ targets, dark }) {
+  // Use the coach's own set percentages directly (resolveNutritionTargets
+  // already carries them) rather than re-deriving from the rounded gram
+  // values — avoids drifting a point or two off what was actually set.
+  const proteinPct = targets.proteinPct || 0;
+  const carbsPct = targets.carbsPct || 0;
+  const fatPct = targets.fatPct || 0;
+  const total = proteinPct + carbsPct + fatPct;
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-2xl border ${dark ? "border-white/10" : "border-black/8"}`}
+      style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
+    >
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+      <div className="relative p-5">
+        <div className="flex items-start gap-3">
+          <div className={dark ? "w-9 h-9 rounded-full border border-white/15 flex items-center justify-center shrink-0" : "w-9 h-9 rounded-full border border-black/15 flex items-center justify-center shrink-0"}>
+            <Flame size={16} className={dark ? "text-white/50" : "text-black/50"} />
+          </div>
+          <p className={dark ? "text-white font-semibold text-[16px] leading-snug" : "text-black font-semibold text-[16px] leading-snug"}>
+            Eat {Math.round(targets.calories || 0)} Calories per day, with the following macro split
+          </p>
+        </div>
+        {total > 0 && (
+          <>
+            <div className="flex h-1.5 rounded-full overflow-hidden mt-4">
+              <div style={{ width: `${proteinPct}%`, backgroundColor: MEASURE_BLUE }} />
+              <div style={{ width: `${carbsPct}%`, backgroundColor: "#1D4ED8" }} />
+              <div style={{ width: `${fatPct}%`, backgroundColor: "#7DB7FF" }} />
+            </div>
+            <div className="flex justify-between mt-2">
+              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Protein Goal</span>
+              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Carbs Goal</span>
+              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Fat Goal</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets }) {
   const dark = useClientDark();
   const [periodKey, setPeriodKey] = useState("fortnight");
@@ -3722,19 +3773,15 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets }) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2.5 py-5 space-y-4">
+          <NutritionGoalSummaryCard targets={targets} dark={dark} />
           <div
             className={`relative overflow-hidden rounded-2xl border ${dark ? "border-white/10" : "border-black/8"}`}
             style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
           >
-            {/* Same restrained premium treatment as Fuel IQ above on this
-                same tab — thin blue gradient line, soft glow, HUD corners. */}
+            {/* Thin blue gradient line top and bottom — no glow, no corner
+                brackets, just the lines. */}
             <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-            <div
-              className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full pointer-events-none"
-              style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}${dark ? "20" : "10"} 0%, transparent 70%)`, filter: "blur(10px)" }}
-            />
-            <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
-            <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+            <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
 
             <div className="relative p-5">
             <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
