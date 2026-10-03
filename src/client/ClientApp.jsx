@@ -136,7 +136,7 @@ import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
 import { FOOD_DATABASE, MICRO_FIELDS } from "../lib/foodDatabase";
-import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
+import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
@@ -4353,10 +4353,11 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
     const pool = (db.masterMeals || []).filter(
       (m) => m.id !== swapping.meal.id && !usedIds.has(m.id) && eligibleForSlot(m, swapping.slot)
     );
-    return bestMatches(
+    return diverseBestMatches(
       pool,
       { calories: swapping.meal.cals, protein: swapping.meal.protein, carbs: swapping.meal.carbs, fat: swapping.meal.fat },
-      8
+      8,
+      1
     );
   }, [swapping, mealPlanDay, db.masterMeals]);
 
