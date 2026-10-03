@@ -2456,13 +2456,16 @@ function WorkoutSession({
           />
         )}
 
-        <SessionNoteSheet
-          open={sessionNoteOpen}
-          note={sessionNote}
-          onChange={onChangeSessionNote}
-          onSave={onSaveSessionNote}
-          onClose={() => setSessionNoteOpen(false)}
-        />
+        {sessionNoteOpen && (
+          <SessionNoteScreen
+            note={sessionNote}
+            onChange={onChangeSessionNote}
+            onSave={onSaveSessionNote}
+            onClose={() => setSessionNoteOpen(false)}
+            logsForClient={logsForClient}
+            currentLogId={daySession.workoutLogId}
+          />
+        )}
       </div>
     </FullScreenOverlay>
   );
@@ -2471,11 +2474,22 @@ function WorkoutSession({
 // One note for the whole session (e.g. "felt flat today", "knee a bit sore
 // on squats") rather than tied to a specific exercise — same autosave
 // pattern as an exercise note, just scoped to the workout as a whole.
-function SessionNoteSheet({ open, note, onChange, onSave, onClose }) {
+// "Other Notes" below it surfaces past sessions' notes for context, same
+// idea as Trainerize's in-session Notes screen.
+function SessionNoteScreen({ note, onChange, onSave, onClose, logsForClient, currentLogId }) {
   const dark = useClientDark();
+  const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState("idle");
   const saveTimeout = useRef(null);
   const statusResetRef = useRef(null);
+
+  const otherNotes = useMemo(
+    () =>
+      (logsForClient || [])
+        .filter((l) => l.sessionNote && l.id !== currentLogId)
+        .sort((a, b) => b.date - a.date),
+    [logsForClient, currentLogId]
+  );
 
   function handleChange(value) {
     onChange(value);
@@ -2489,29 +2503,91 @@ function SessionNoteSheet({ open, note, onChange, onSave, onClose }) {
     }, 500);
   }
 
-  function handleClose() {
+  function finishEditing() {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
     onSave?.(note || "");
-    onClose();
+    setStatus("idle");
+    setEditing(false);
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={handleClose} title="Session Note">
-      <textarea
-        value={note || ""}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder="Add a note for this whole session — how it felt, anything to flag for your coach…"
-        rows={4}
-        autoFocus
-        className={dark ? "w-full bg-black border border-white/15 rounded-xl px-3.5 py-2.5 text-white text-[14px] outline-none focus:border-white/30 placeholder:text-white/25 resize-none" : "w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[14px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"}
-      />
-      <p className="text-[11px] mt-1.5 px-0.5" style={{ color: status === "saved" ? "#16A34A" : dark ? "rgba(255,255,255,0.3)" : "rgba(10,10,11,0.3)" }}>
-        {status === "saving" ? "Saving…" : status === "saved" ? "Saved ✓" : "Autosaves as you type"}
-      </p>
-      <PrimaryButton dark={dark} className="w-full mt-4" onClick={handleClose}>
-        Done
-      </PrimaryButton>
-    </BottomSheet>
+    <FullScreenOverlay>
+      <div className={dark ? "fixed inset-0 z-[115] bg-black flex flex-col overflow-y-auto" : "fixed inset-0 z-[115] bg-white flex flex-col overflow-y-auto"}>
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0">
+          <button onClick={editing ? finishEditing : onClose} className={dark ? "text-white/60 -ml-1" : "text-black/60 -ml-1"}>
+            {editing ? <ChevronLeft size={24} /> : <X size={22} />}
+          </button>
+          <h1 className={dark ? "text-white font-bold text-[17px]" : "text-black font-bold text-[17px]"}>Notes</h1>
+          <div className="w-[24px]" />
+        </div>
+
+        <div className="px-5 pb-10">
+          <p className={dark ? "text-white/40 text-xs font-semibold tracking-wide mb-2 mt-2" : "text-black/40 text-xs font-semibold tracking-wide mb-2 mt-2"}>
+            THIS WORKOUT'S NOTE
+          </p>
+
+          {editing ? (
+            <div>
+              <textarea
+                value={note || ""}
+                onChange={(e) => handleChange(e.target.value)}
+                placeholder="Add a note about this workout…"
+                rows={5}
+                autoFocus
+                className={dark ? "w-full bg-black border border-white/15 rounded-xl px-3.5 py-2.5 text-white text-[14px] outline-none focus:border-white/30 placeholder:text-white/25 resize-none" : "w-full bg-white border border-black/15 rounded-xl px-3.5 py-2.5 text-black text-[14px] outline-none focus:border-black/30 placeholder:text-black/25 resize-none"}
+              />
+              <p className="text-[11px] mt-1.5 px-0.5" style={{ color: status === "saved" ? "#16A34A" : dark ? "rgba(255,255,255,0.3)" : "rgba(10,10,11,0.3)" }}>
+                {status === "saving" ? "Saving…" : status === "saved" ? "Saved ✓" : "Autosaves as you type — only visible to your coach"}
+              </p>
+              <PrimaryButton dark={dark} className="w-full mt-4" onClick={finishEditing}>
+                Done
+              </PrimaryButton>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className={dark ? "w-full flex items-start gap-3 py-3 border-b border-white/8 text-left" : "w-full flex items-start gap-3 py-3 border-b border-black/8 text-left"}
+            >
+              <div className={dark ? "w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center shrink-0"}>
+                <StickyNote size={16} style={{ color: MEASURE_BLUE }} />
+              </div>
+              {note ? (
+                <p className={dark ? "text-white/85 text-sm leading-relaxed pt-1.5" : "text-black/85 text-sm leading-relaxed pt-1.5"}>{note}</p>
+              ) : (
+                <p className={dark ? "text-white/35 text-sm leading-relaxed pt-1.5" : "text-black/35 text-sm leading-relaxed pt-1.5"}>
+                  Tap here to add a note about this workout. It's only visible to your coach.
+                </p>
+              )}
+            </button>
+          )}
+
+          {!editing && otherNotes.length > 0 && (
+            <>
+              <p className={dark ? "text-white/40 text-xs font-semibold tracking-wide mb-2 mt-7" : "text-black/40 text-xs font-semibold tracking-wide mb-2 mt-7"}>
+                OTHER NOTES
+              </p>
+              <div>
+                {otherNotes.map((log) => (
+                  <div key={log.id} className={dark ? "flex items-start gap-3 py-3 border-b border-white/8" : "flex items-start gap-3 py-3 border-b border-black/8"}>
+                    <div className={dark ? "w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-9 h-9 rounded-lg bg-black/5 flex items-center justify-center shrink-0"}>
+                      <StickyNote size={16} className={dark ? "text-white/40" : "text-black/40"} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={dark ? "text-white/40 text-xs font-medium" : "text-black/40 text-xs font-medium"}>{log.dayLabel || "Workout"}</p>
+                      <p className={dark ? "text-white/85 text-sm leading-relaxed mt-0.5 line-clamp-2" : "text-black/85 text-sm leading-relaxed mt-0.5 line-clamp-2"}>{log.sessionNote}</p>
+                      <p className={dark ? "text-white/30 text-[11px] mt-1" : "text-black/30 text-[11px] mt-1"}>
+                        Added {new Date(log.date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </FullScreenOverlay>
   );
 }
 
