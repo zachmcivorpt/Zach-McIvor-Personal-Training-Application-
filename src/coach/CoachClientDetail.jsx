@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
@@ -1059,6 +1060,7 @@ const DELETE_CATEGORIES = [
 ];
 
 function CalendarPanel({ client, showToast }) {
+  const navigate = useNavigate();
   const {
     db,
     scheduleWorkout,
@@ -1820,6 +1822,7 @@ function CalendarPanel({ client, showToast }) {
           // on the Push session opened a fresh Pull Day instead, saving the
           // push numbers under the wrong name.
           startViewAsClient(client.id, { date: selectedDate, logId: item?.log?.id || null, label: item?.label || null });
+          navigate("/app");
           setSelectedDate(null);
         }}
         onRemoveWorkout={() => {
@@ -5498,6 +5501,7 @@ function LiveSessionBanner({ live, exercises }) {
 }
 
 export default function CoachClientDetail({ clientId, onClose, showToast, initialTab, openMessages }) {
+  const navigate = useNavigate();
   const { db, removeClient, startViewAsClient, setClientAccessPaused } = useApp();
   const [clientTab, setClientTab] = useState(initialTab || "summary");
   const [messaging, setMessaging] = useState(!!openMessages);
@@ -5544,7 +5548,10 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             </button>
           )}
           <button
-            onClick={() => startViewAsClient(client.id)}
+            onClick={() => {
+              startViewAsClient(client.id);
+              navigate("/app");
+            }}
             className="w-full mt-2 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold py-2.5 rounded-xl transition-colors"
             title="Browse and act in the app exactly as this client — works even before they've activated"
           >
@@ -5636,7 +5643,10 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             </div>
           </div>
           <button
-            onClick={() => startViewAsClient(client.id)}
+            onClick={() => {
+              startViewAsClient(client.id);
+              navigate("/app");
+            }}
             aria-label="View as client"
             title="Browse and act in the app exactly as this client — works even before they've activated"
             className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0"

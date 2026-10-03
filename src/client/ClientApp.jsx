@@ -8124,6 +8124,7 @@ export default function ClientApp() {
     // session too.
     if (viewingAsClient) {
       stopViewAsClient();
+      navigate("/coach");
       return;
     }
     // Navigating before Firebase has actually finished signing out left
@@ -8171,7 +8172,13 @@ export default function ClientApp() {
         {viewingAsClient && (
           <div className="sticky top-0 z-[70] bg-blue-600 text-white flex items-center justify-between gap-2 px-4 py-2 pt-safe">
             <span className="text-xs font-semibold truncate">Viewing as {currentUser.name}</span>
-            <button onClick={stopViewAsClient} className="flex items-center gap-1 bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-2.5 py-1 rounded-lg shrink-0">
+            <button
+              onClick={() => {
+                stopViewAsClient();
+                navigate("/coach");
+              }}
+              className="flex items-center gap-1 bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-2.5 py-1 rounded-lg shrink-0"
+            >
               <ChevronLeft size={12} /> Exit
             </button>
           </div>

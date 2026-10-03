@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApp, getCurrentPhase, getNextPhase, needsNewPhaseSoon } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
@@ -353,6 +354,7 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
 }
 
 export default function CoachClients({ showToast, search, setSearch, openClientId, onOpenClientHandled }) {
+  const navigate = useNavigate();
   const { db, removeClient, startViewAsClient, setClientAccessPaused, usersReady: dbReady } = useApp();
   const [addOpen, setAddOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -550,7 +552,10 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                   <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
                       <button
-                        onClick={() => startViewAsClient(c.id)}
+                        onClick={() => {
+                          startViewAsClient(c.id);
+                          navigate("/app");
+                        }}
                         title="Browse and act in the app exactly as this client — works even before they've activated"
                         aria-label={`View as ${c.name}`}
                         className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors shrink-0"
@@ -611,6 +616,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                   onClick={(e) => {
                     e.stopPropagation();
                     startViewAsClient(c.id);
+                    navigate("/app");
                   }}
                   title="Browse and act in the app exactly as this client — works even before they've activated"
                   aria-label={`View as ${c.name}`}
