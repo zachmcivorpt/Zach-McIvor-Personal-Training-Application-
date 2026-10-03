@@ -756,6 +756,20 @@ export function AppProvider({ children }) {
         return code;
       },
 
+      // Self-service version of resendInvite above, for a client stuck on
+      // the Activate screen with a lost/expired code and no way to sign in
+      // yet to ask the coach themselves — see functions/index.js for the
+      // actual lookup/rate-limit logic (needs the Admin SDK since there's no
+      // Auth session at this point for Firestore rules to check against).
+      async regenerateInviteCode(email, name) {
+        try {
+          const result = await httpsCallable(functions, "regenerateInviteCode")({ email, name });
+          return result.data.code;
+        } catch (err) {
+          throw new Error(err.message || "Couldn't generate a new code — please try again.");
+        }
+      },
+
       // There's no real delivery confirmation for the login details (they
       // go out via the coach's own email app or a manual copy/paste, not
       // something this app sends itself) — this just records that the

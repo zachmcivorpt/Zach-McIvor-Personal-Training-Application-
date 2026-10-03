@@ -552,6 +552,45 @@ exports.cleanupOrphanedInvite = onCall(async (request) => {
   return { cleaned: true };
 });
 
+// Self-service "I lost/forgot my invite code" for a client still on the
+// Activate screen — there's no Auth account yet at this point (that's only
+// created once activateAccount succeeds), so none of Firebase Auth's own
+// account-recovery flows apply; this is the pre-auth equivalent. Callable
+// with no sign-in, same trust level as cleanupOrphanedInvite above, so it
+// needs its own light checks rather than relying on Firestore rules (which
+// keep invites/{id} create/update coach-only — see FIRESTORE_RULES.txt):
+// the submitted name must match what the coach actually typed when they
+// created the invite (not just the email, which is often guessable/public),
+// and repeat requests are rate-limited so this can't be hammered to race a
+// legitimate client's own activation attempt.
+const INVITE_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars — matches src/lib/id.js's inviteCode()
+const REGENERATE_COOLDOWN_MS = 60 * 1000;
+
+exports.regenerateInviteCode = onCall(async (request) => {
+  const email = (request.data?.email || "").trim().toLowerCase();
+  const name = (request.data?.name || "").trim().toLowerCase();
+  if (!email || !name) throw new HttpsError("invalid-argument", "Enter both your email and the name your coach has on file for you.");
+
+  const inviteRef = db.collection("invites").doc(email);
+  const inviteSnap = await inviteRef.get();
+  // Deliberately the same message whether the invite doesn't exist at all or
+  // the name just didn't match — telling them which one would let this be
+  // used to probe whether a given email has a pending invite.
+  const mismatch = new HttpsError("not-found", "No pending invite matches that email and name — check with your coach.");
+  if (!inviteSnap.exists) throw mismatch;
+  const invite = inviteSnap.data();
+  if ((invite.name || "").trim().toLowerCase() !== name) throw mismatch;
+
+  if (invite.lastRegeneratedAt && Date.now() - invite.lastRegeneratedAt < REGENERATE_COOLDOWN_MS) {
+    throw new HttpsError("resource-exhausted", "Please wait a moment before requesting another code.");
+  }
+
+  let code = "";
+  for (let i = 0; i < 6; i++) code += INVITE_CODE_CHARS[Math.floor(Math.random() * INVITE_CODE_CHARS.length)];
+  await inviteRef.update({ code, lastRegeneratedAt: Date.now() });
+  return { code };
+});
+
 // ---------------------------------------------------------------------
 // APEX AI Insights / Coach Notes — the two Cloud Functions that let the
 // rule-based engine in src/lib/apexInsights.js hand off to a real LLM
