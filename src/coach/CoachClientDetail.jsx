@@ -80,6 +80,7 @@ import {
   Play,
 } from "lucide-react";
 import { fileToCompressedDataUrl } from "../lib/image";
+import { MICRO_FIELDS } from "../lib/foodDatabase";
 import { parseVideoUrl } from "../lib/video";
 import { matchesSearch } from "../lib/search";
 
@@ -3724,13 +3725,15 @@ function NutritionGraphCard({ client }) {
         ))}
       </div>
 
-      <div className="flex items-center justify-between text-xs mb-2">
-        <p className="text-black/40">
-          Current Goal: <span className="text-black font-semibold">{targetValue > 0 ? `${targetValue}${metric.unit}` : "Not set"}</span>
+      <div className="flex items-center gap-4 text-xs mb-2">
+        <p className="text-black/40 flex items-center gap-1.5">
+          <span className="inline-block w-3 h-0" style={{ borderTop: `1.5px solid ${MEASURE_BLUE}` }} />
+          Goal: <span className="text-black font-semibold">{targetValue > 0 ? `${targetValue}${metric.unit}` : "Not set"}</span>
         </p>
         {average != null && (
-          <p className="text-black/40">
-            Average: <span className="font-semibold" style={{ color: MEASURE_BLUE }}>{average}{metric.unit}</span>
+          <p className="text-black/40 flex items-center gap-1.5">
+            <span className="inline-block w-3 h-0 border-t border-dashed" style={{ borderColor: "rgba(10,10,11,0.4)" }} />
+            Average: <span className="text-black font-semibold">{average}{metric.unit}</span>
           </p>
         )}
       </div>
@@ -3741,7 +3744,8 @@ function NutritionGraphCard({ client }) {
             <CartesianGrid vertical={false} stroke="rgba(10,10,11,0.06)" />
             <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
             <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
-            {targetValue > 0 && <ReferenceLine y={targetValue} stroke={MEASURE_BLUE} strokeDasharray="4 4" strokeOpacity={0.45} />}
+            {targetValue > 0 && <ReferenceLine y={targetValue} stroke={MEASURE_BLUE} strokeWidth={1.5} />}
+            {average != null && <ReferenceLine y={average} stroke="rgba(10,10,11,0.4)" strokeDasharray="4 4" />}
             <Bar dataKey="value" radius={[3, 3, 0, 0]} isAnimationActive={false}>
               {series.map((d, i) => (
                 <Cell key={i} fill={d.logged ? MEASURE_BLUE : "rgba(10,10,11,0.07)"} />
@@ -3763,6 +3767,7 @@ function NutritionPanel({ client, showToast }) {
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const [targetsOpen, setTargetsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmRemoveItem, setConfirmRemoveItem] = useState(null); // { category, id, name } | null
   // 0 = today, 1 = yesterday, ... 6 = a week ago — matches the client's own
   // Nutrition tab nav (ClientApp.jsx's NutritionScreen), capped at 6 so the
   // coach never navigates past what's realistically still useful to review.
@@ -3790,6 +3795,36 @@ function NutritionPanel({ client, showToast }) {
     ? mealPlan.days.reduce((n, d) => n + Object.values(d.meals || {}).reduce((a, arr) => a + arr.length, 0), 0)
     : 0;
   const mealPlanWeeks = mealPlan?.weeks || null;
+
+  // Lets the coach pull a single mis-logged item back out of a client's
+  // diary (e.g. a duplicate entry, or something logged against the wrong
+  // meal) without clearing the whole day — same math as removeFood in
+  // ClientApp.jsx, mirrored here since the coach view has no access to
+  // that component-local function.
+  function removeFoodItem(category, entryId) {
+    setNutritionForDate(client.id, viewDateKey, (n) => {
+      if (!n) return n;
+      const items = n.meals?.[category] || [];
+      const entry = items.find((f) => f.id === entryId);
+      if (!entry) return n;
+      const micros = {};
+      MICRO_FIELDS.forEach((key) => {
+        micros[key] = Math.max(0, round1((n[key] || 0) - (Number(entry[key]) || 0)));
+      });
+      return {
+        ...n,
+        calories: Math.max(0, Math.round((n.calories || 0) - (entry.cals || 0))),
+        protein: Math.max(0, round1((n.protein || 0) - (entry.protein || 0))),
+        carbs: Math.max(0, round1((n.carbs || 0) - (entry.carbs || 0))),
+        fat: Math.max(0, round1((n.fat || 0) - (entry.fat || 0))),
+        ...micros,
+        meals: { ...n.meals, [category]: items.filter((f) => f.id !== entryId) },
+      };
+    })
+      .then(() => showToast("Entry removed"))
+      .catch(() => showToast("Couldn't remove — check your connection and try again"));
+    setConfirmRemoveItem(null);
+  }
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
@@ -3891,14 +3926,37 @@ function NutritionPanel({ client, showToast }) {
                           </p>
                         </div>
                         <div className="space-y-1">
-                          {items.map((f) => (
-                            <div key={f.id} className="flex items-center justify-between gap-3">
-                              <p className="text-black/70 text-[13px] truncate">{f.name}</p>
-                              <p className="text-black/35 text-[11px] shrink-0 whitespace-nowrap tabular-nums">
-                                {Math.round(f.cals || 0)} kcal · P{round1(f.protein || 0)} C{round1(f.carbs || 0)} F{round1(f.fat || 0)}
-                              </p>
-                            </div>
-                          ))}
+                          {items.map((f) =>
+                            confirmRemoveItem?.category === cat && confirmRemoveItem?.id === f.id ? (
+                              <div key={f.id} className="flex items-center justify-between gap-2 py-0.5">
+                                <p className="text-black/50 text-[12px] truncate">Remove "{f.name}"?</p>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <button onClick={() => setConfirmRemoveItem(null)} className="text-black/40 text-[11px] font-semibold">
+                                    Cancel
+                                  </button>
+                                  <button onClick={() => removeFoodItem(cat, f.id)} className="text-red-600 text-[11px] font-bold">
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div key={f.id} className="group flex items-center justify-between gap-3">
+                                <p className="text-black/70 text-[13px] truncate">{f.name}</p>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <p className="text-black/35 text-[11px] whitespace-nowrap tabular-nums">
+                                    {Math.round(f.cals || 0)} kcal · P{round1(f.protein || 0)} C{round1(f.carbs || 0)} F{round1(f.fat || 0)}
+                                  </p>
+                                  <button
+                                    onClick={() => setConfirmRemoveItem({ category: cat, id: f.id, name: f.name })}
+                                    aria-label={`Remove ${f.name}`}
+                                    className="w-5 h-5 flex items-center justify-center rounded text-black/20 hover:text-red-500 hover:bg-red-50"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          )}
                         </div>
                       </div>
                     );
