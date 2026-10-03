@@ -418,14 +418,23 @@ export function computeMonthlyConsistency(logs, scheduledWorkouts) {
 
 // Same shape as computeMonthlyConsistency/computeWeeklySessionCompletion,
 // but scoped to an arbitrary date range — a training phase's own
-// start/end dates rather than a calendar week or month. Only counts
-// scheduled days that have actually arrived (capped at today, or the
-// phase's own end date if that's already passed), so a phase that
-// still has weeks left to run doesn't read as "incomplete" against
-// days that haven't happened yet.
+// start/end dates rather than a calendar week or month. "Program phase
+// completion" reads as progress through the WHOLE phase, so this counts
+// every workout scheduled across the full start-to-end range (coaches
+// schedule a phase's recurring pattern up front — see applyWeeklyPattern
+// in CoachClientDetail.jsx — so scheduledWorkouts already holds the whole
+// plan, not just days that have happened yet). A workout later in the
+// phase that hasn't been reached yet correctly counts as not-yet-completed
+// and pulls the percentage down — that's the point: a phase with two
+// weeks still to run should NOT read as 80%+ done. Previously this capped
+// `expected` at today's date, which made an in-progress phase look nearly
+// finished days or weeks before it actually was (e.g. "9 of 11, 82%" with
+// 13 days still left in the phase). A phase with no end date yet still
+// falls back to counting only up to today, since there's no fixed finish
+// line to measure progress against.
 export function computePhaseCompletion(logs, scheduledWorkouts, startDate, endDate) {
   const todayKey = localDateKey();
-  const rangeEnd = endDate && endDate < todayKey ? endDate : todayKey;
+  const rangeEnd = endDate || todayKey;
   const inRange = (scheduledWorkouts || []).filter((w) => w.date >= startDate && w.date <= rangeEnd);
   if (inRange.length === 0) return { completed: 0, expected: 0, pct: null };
   const loggedDates = new Set((logs || []).map((l) => localDateKey(l.date)));
