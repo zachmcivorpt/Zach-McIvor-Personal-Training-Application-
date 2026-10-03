@@ -800,6 +800,10 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
           style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}12 0%, transparent 70%)`, filter: "blur(10px)" }}
         />
+        {/* HUD-style corner brackets — restrained, not decorative clutter;
+            same treatment as Fuel IQ on the client side. */}
+        <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+        <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
         <div className="relative grid grid-cols-2 md:grid-cols-4">
           <HeadlineStatColumn icon={Users} label="Active Clients" value={active.length} onClick={() => onNavigate("clients")} />
           <HeadlineStatColumn icon={Trophy} label="Challenges" value={(db.challenges || []).length} onClick={() => onNavigate("challenges")} />

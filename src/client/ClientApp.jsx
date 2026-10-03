@@ -3722,7 +3722,21 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets }) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2.5 py-5 space-y-4">
-          <Card dark={dark}>
+          <div
+            className={`relative overflow-hidden rounded-2xl border ${dark ? "border-white/10" : "border-black/8"}`}
+            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
+          >
+            {/* Same restrained premium treatment as Fuel IQ above on this
+                same tab — thin blue gradient line, soft glow, HUD corners. */}
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+            <div
+              className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full pointer-events-none"
+              style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}${dark ? "20" : "10"} 0%, transparent 70%)`, filter: "blur(10px)" }}
+            />
+            <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+            <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+
+            <div className="relative p-5">
             <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
               <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide" : "text-black/35 text-[11px] font-bold tracking-wide"}>
                 {period.label.toUpperCase()} HISTORY
@@ -3787,7 +3801,8 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets }) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </FullScreenOverlay>

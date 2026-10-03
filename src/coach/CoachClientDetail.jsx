@@ -3223,7 +3223,13 @@ function NutritionTargetsCard({ client, showToast, open, onClose }) {
         <div className="flex-1 overflow-y-auto">
           <div className="relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-            <div className="px-5 py-5 max-w-3xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-x-10">
+            <div
+              className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
+              style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}12 0%, transparent 70%)`, filter: "blur(10px)" }}
+            />
+            <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+            <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+            <div className="relative px-5 py-5 max-w-3xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-x-10">
               <TDEECalculator
                 client={client}
                 latestWeight={latestWeight}
@@ -3710,7 +3716,18 @@ function NutritionGraphCard({ client, showToast }) {
   const average = loggedValues.length ? Math.round(loggedValues.reduce((a, b) => a + b, 0) / loggedValues.length) : null;
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
+    <div className="relative overflow-hidden bg-white border border-black/10 rounded-2xl shadow-sm mb-6">
+      {/* Same restrained premium treatment as Fuel IQ on the client side —
+          thin blue gradient line, soft glow, HUD corner brackets. */}
+      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+      <div
+        className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
+        style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}10 0%, transparent 70%)`, filter: "blur(10px)" }}
+      />
+      <div className="absolute top-3 left-3 w-3 h-3 border-t border-l pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+      <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r pointer-events-none" style={{ borderColor: `${MEASURE_BLUE}55` }} />
+
+      <div className="relative p-5">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div>
           <p className="text-black font-semibold">Nutrition Graph</p>
@@ -3795,6 +3812,7 @@ function NutritionGraphCard({ client, showToast }) {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+      </div>
       </div>
 
       <NutritionTargetsCard client={client} showToast={showToast} open={targetsOpen} onClose={() => setTargetsOpen(false)} />
