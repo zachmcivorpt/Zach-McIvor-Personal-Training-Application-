@@ -802,7 +802,7 @@ function CoachChatBubble({ coachUser, unreadCount, onOpen }) {
   return (
     <div
       className="fixed z-[55] right-4"
-      style={{ bottom: "calc(88px + env(safe-area-inset-bottom, 0px))", width: CHAT_BUBBLE_SIZE, height: CHAT_BUBBLE_SIZE }}
+      style={{ bottom: "calc(88px + env(safe-area-inset-bottom, 0px))", width: CHAT_BUBBLE_SIZE, height: CHAT_BUBBLE_SIZE, transform: "translateZ(0)" }}
     >
       <button onClick={onOpen} className="w-14 h-14 rounded-full shadow-lg" aria-label={`Message ${coachUser.name}`}>
         <div className="w-full h-full rounded-full overflow-hidden ring-2 ring-white bg-black pointer-events-none">
@@ -8325,7 +8325,12 @@ export default function ClientApp() {
 
         {coachUser && !messagesOpen && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
 
-        <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50">
+        {/* Promoted to its own GPU layer (translateZ(0)) — otherwise this
+            fixed bar visibly lags behind during a fast scroll in the iOS App
+            Store build's bare WKWebView instead of staying pinned, since
+            WebKit repaints it as part of the normal scroll pipeline rather
+            than compositing it independently every frame. */}
+        <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50" style={{ transform: "translateZ(0)" }}>
           <div
             className={`w-full max-w-md backdrop-blur border-t flex px-2 pb-safe ${dark ? "border-white/8" : "border-black/8"}`}
             style={{ backgroundColor: dark ? "rgba(12,12,12,0.95)" : "rgba(255,255,255,0.95)" }}

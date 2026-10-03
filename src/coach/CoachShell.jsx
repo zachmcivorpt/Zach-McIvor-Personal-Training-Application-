@@ -188,7 +188,12 @@ export default function CoachShell() {
       </div>
 
       {/* mobile top bar */}
-      <div className="dark-chrome md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0A0C]">
+      {/* Promoted to its own GPU compositing layer (translateZ(0)) — without
+          it, a fixed-position bar in the iOS App Store build's bare WKWebView
+          visibly lags behind during a fast scroll instead of staying pinned,
+          since WebKit otherwise repaints it as part of the normal scroll
+          pipeline rather than compositing it independently every frame. */}
+      <div className="dark-chrome md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0A0C]" style={{ transform: "translateZ(0)" }}>
         <div className="flex items-center justify-between px-4 py-3">
           <Logo variant="mark" tone="white" className="h-8 w-auto" />
           <div className="flex items-center gap-2">
@@ -225,8 +230,8 @@ export default function CoachShell() {
         {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} showToast={showToast} />}
       </div>
 
-      {/* mobile bottom tab bar */}
-      <div className="dark-chrome md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center">
+      {/* mobile bottom tab bar — see the top bar above for why translateZ(0) */}
+      <div className="dark-chrome md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center" style={{ transform: "translateZ(0)" }}>
         <div className="w-full bg-[#0A0A0C]/97 backdrop-blur flex px-1 pb-safe">
           {MAIN_MENU.map((item) => {
             const Icon = item.icon;
