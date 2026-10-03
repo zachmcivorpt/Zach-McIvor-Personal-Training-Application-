@@ -3663,12 +3663,14 @@ const NUTRITION_GRAPH_METRICS = [
 // which reads correctly as "nothing logged" rather than "hit 0 exactly" —
 // the average below is computed only from days that actually have a log,
 // so an unlogged gap never drags it down.
-function NutritionGraphCard({ client }) {
+function NutritionGraphCard({ client, showToast }) {
   const { db } = useApp();
   const targets = resolveNutritionTargets(client.nutritionTargets);
   const logs = db.nutritionLogs[client.id] || [];
   const [periodKey, setPeriodKey] = useState("fortnight");
   const [metricKey, setMetricKey] = useState("calories");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [targetsOpen, setTargetsOpen] = useState(false);
   const period = NUTRITION_ADHERENCE_PERIODS.find((p) => p.key === periodKey);
   const metric = NUTRITION_GRAPH_METRICS.find((m) => m.key === metricKey);
   const targetValue = Math.round(targets[metricKey] || 0);
@@ -3699,7 +3701,7 @@ function NutritionGraphCard({ client }) {
           <p className="text-black font-semibold">Nutrition Graph</p>
           <p className="text-black/40 text-xs mt-0.5">Daily {metric.label.toLowerCase()} against this client's own goal</p>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-1.5">
           {NUTRITION_ADHERENCE_PERIODS.map((p) => (
             <button
               key={p.key}
@@ -3709,6 +3711,31 @@ function NutritionGraphCard({ client }) {
               {p.label}
             </button>
           ))}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="Nutrition graph options"
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60"
+            >
+              <MoreVertical size={14} />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-9 z-20 w-48 bg-white border border-black/10 rounded-xl shadow-lg py-1.5">
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setTargetsOpen(true);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-sm text-black/80 hover:bg-black/5"
+                  >
+                    Edit calories &amp; macros
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -3754,6 +3781,10 @@ function NutritionGraphCard({ client }) {
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      <BottomSheet open={targetsOpen} onClose={() => setTargetsOpen(false)} title="Edit Calories & Macros" wide bodyClassName="p-5 sm:p-6">
+        <NutritionTargetsCard client={client} showToast={showToast} embedded />
+      </BottomSheet>
     </div>
   );
 }
@@ -3992,7 +4023,7 @@ function NutritionPanel({ client, showToast }) {
         )}
       </div>
 
-      <NutritionGraphCard client={client} />
+      <NutritionGraphCard client={client} showToast={showToast} />
 
       <NutritionAdherenceCard client={client} />
 
