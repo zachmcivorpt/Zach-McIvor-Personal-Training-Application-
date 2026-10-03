@@ -4963,9 +4963,63 @@ function ageFromDateOfBirth(dobStr) {
   return age >= 0 ? age : null;
 }
 
-function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
-  const { db, updateUser, updateClientProfile, sendMessage, sendPasswordReset } = useApp();
+// Standalone strip at the top of the Summary tab — the two quickest coach
+// actions for a client (nudge the welcome message, resend login help),
+// pulled out of Personal Details so they're visible without scrolling.
+function QuickSendActions({ client, showToast, onSendLogin }) {
+  const { db, sendMessage, sendPasswordReset } = useApp();
   const [sendingReset, setSendingReset] = useState(false);
+
+  async function sendLoginHelp() {
+    setSendingReset(true);
+    try {
+      await sendPasswordReset(client.email);
+      showToast(`Password reset email sent to ${client.email}`);
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setSendingReset(false);
+    }
+  }
+
+  function sendWelcomeNow() {
+    const welcome = db.welcomeMessage;
+    if (!welcome?.text?.trim()) {
+      showToast("Set up a welcome message in Settings first");
+      return;
+    }
+    const text = welcome.text.replace(/\{name\}/gi, client.name.split(" ")[0]);
+    const attachment = welcome.attachmentUrl ? { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl } : undefined;
+    sendMessage(client.id, "coach", text, attachment);
+    showToast("Welcome message sent");
+  }
+
+  return (
+    <div className="py-4 mb-8 border-y border-black/8 flex flex-wrap items-center gap-4">
+      {client.status === "active" ? (
+        <>
+          <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+            <MailCheck size={13} /> Send welcome message now
+          </button>
+          <button
+            onClick={sendLoginHelp}
+            disabled={sendingReset}
+            className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-40"
+          >
+            <Send size={13} /> {sendingReset ? "Sending…" : "Resend login help"}
+          </button>
+        </>
+      ) : (
+        <button onClick={onSendLogin} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+          <Send size={13} /> Send Login Details
+        </button>
+      )}
+    </div>
+  );
+}
+
+function PersonalDetailsCard({ client, showToast, onClose }) {
+  const { updateUser, updateClientProfile } = useApp();
   const [name, setName] = useState(client.name || "");
   const [email, setEmail] = useState(client.email || "");
   const [dateOfBirth, setDateOfBirth] = useState(client.dateOfBirth || "");
@@ -5039,30 +5093,6 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
     } finally {
       setSaving(false);
     }
-  }
-
-  async function sendLoginHelp() {
-    setSendingReset(true);
-    try {
-      await sendPasswordReset(client.email);
-      showToast(`Password reset email sent to ${client.email}`);
-    } catch (err) {
-      showToast(err.message);
-    } finally {
-      setSendingReset(false);
-    }
-  }
-
-  function sendWelcomeNow() {
-    const welcome = db.welcomeMessage;
-    if (!welcome?.text?.trim()) {
-      showToast("Set up a welcome message in Settings first");
-      return;
-    }
-    const text = welcome.text.replace(/\{name\}/gi, client.name.split(" ")[0]);
-    const attachment = welcome.attachmentUrl ? { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl } : undefined;
-    sendMessage(client.id, "coach", text, attachment);
-    showToast("Welcome message sent");
   }
 
   return (
@@ -5229,27 +5259,6 @@ function PersonalDetailsCard({ client, showToast, onClose, onSendLogin }) {
           {saving ? "Saving…" : dirty ? "Save changes" : "All changes saved"}
         </button>
       </div>
-
-      <div className="pt-4 mt-4 border-t border-black/8 flex flex-wrap items-center gap-4">
-        {client.status === "active" ? (
-          <>
-            <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
-              <MailCheck size={13} /> Send welcome message now
-            </button>
-            <button
-              onClick={sendLoginHelp}
-              disabled={sendingReset}
-              className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-40"
-            >
-              <Send size={13} /> {sendingReset ? "Sending…" : "Resend login help"}
-            </button>
-          </>
-        ) : (
-          <button onClick={onSendLogin} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
-            <Send size={13} /> Send Login Details
-          </button>
-        )}
-      </div>
     </div>
   );
 }
@@ -5275,7 +5284,9 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <PersonalDetailsCard client={client} showToast={showToast} onClose={onClose} onSendLogin={onSendLogin} />
+      <QuickSendActions client={client} showToast={showToast} onSendLogin={onSendLogin} />
+
+      <PersonalDetailsCard client={client} showToast={showToast} onClose={onClose} />
 
       <PlateauAlertCard client={client} />
 
