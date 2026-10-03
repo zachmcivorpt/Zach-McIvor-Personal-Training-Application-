@@ -30,7 +30,7 @@ import {
   PersonalBestsCard,
   axisStyle,
 } from "../components/ProgressWidgets";
-import { AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ReferenceLine, Tooltip, ResponsiveContainer } from "recharts";
 import { ThreadView } from "./CoachMessages";
 import MealPlanBuilder from "./MealPlanBuilder";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
@@ -3139,7 +3139,7 @@ function TDEECalculator({ client, latestWeight, onApply }) {
   );
 }
 
-function NutritionTargetsCard({ client, showToast }) {
+function NutritionTargetsCard({ client, showToast, embedded = false }) {
   const { db, updateUser } = useApp();
   const saved = { ...DEFAULT_NUTRITION_TARGETS, ...(client.nutritionTargets || {}) };
   const [calories, setCalories] = useState(saved.calories);
@@ -3181,16 +3181,24 @@ function NutritionTargetsCard({ client, showToast }) {
     }
   }
 
+  // Three shades of the app's single blue accent rather than a
+  // green/amber "traffic light" set — APEX sticks to one accent color
+  // (see CLAUDE.md), just varied in depth so the three sliders still
+  // read as distinct from each other.
   const MACROS = [
-    { key: "protein", label: "Protein", color: "#3B82F6" },
-    { key: "carbs", label: "Carbs", color: "#10B981" },
-    { key: "fat", label: "Fat", color: "#F59E0B" },
+    { key: "protein", label: "Protein", color: MEASURE_BLUE },
+    { key: "carbs", label: "Carbs", color: "#1D4ED8" },
+    { key: "fat", label: "Fat", color: "#7DB7FF" },
   ];
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 md:p-6">
-      <p className="text-black font-semibold mb-1">Nutrition Targets</p>
-      <p className="text-black/40 text-xs mb-5">What this client sees as their daily calorie and macro goals in the app.</p>
+    <div className={embedded ? "" : "bg-white border border-black/10 rounded-2xl shadow-sm p-5 md:p-6"}>
+      {!embedded && (
+        <>
+          <p className="text-black font-semibold mb-1">Nutrition Targets</p>
+          <p className="text-black/40 text-xs mb-5">What this client sees as their daily calorie and macro goals in the app.</p>
+        </>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <TDEECalculator
@@ -3640,6 +3648,112 @@ function NutritionAdherenceCard({ client }) {
   );
 }
 
+const NUTRITION_GRAPH_METRICS = [
+  { key: "calories", label: "Calories", unit: "" },
+  { key: "protein", label: "Protein", unit: "g" },
+  { key: "carbs", label: "Carbs", unit: "g" },
+  { key: "fat", label: "Fat", unit: "g" },
+];
+
+// Day-by-day bar chart of one macro against this client's own target over
+// the selected period — the thing the diary + adherence cards above don't
+// show: trend and consistency over time, at a glance, rather than one day
+// at a time. A day with nothing logged just renders as no bar (value 0),
+// which reads correctly as "nothing logged" rather than "hit 0 exactly" —
+// the average below is computed only from days that actually have a log,
+// so an unlogged gap never drags it down.
+function NutritionGraphCard({ client }) {
+  const { db } = useApp();
+  const targets = resolveNutritionTargets(client.nutritionTargets);
+  const logs = db.nutritionLogs[client.id] || [];
+  const [periodKey, setPeriodKey] = useState("fortnight");
+  const [metricKey, setMetricKey] = useState("calories");
+  const period = NUTRITION_ADHERENCE_PERIODS.find((p) => p.key === periodKey);
+  const metric = NUTRITION_GRAPH_METRICS.find((m) => m.key === metricKey);
+  const targetValue = Math.round(targets[metricKey] || 0);
+
+  const series = useMemo(() => {
+    const byDate = Object.fromEntries(logs.map((n) => [n.date, n]));
+    const out = [];
+    for (let i = period.days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const entry = byDate[localDateKey(d)];
+      out.push({
+        date: d.toLocaleDateString(undefined, { weekday: "narrow" }),
+        value: entry ? Math.round(entry[metricKey] || 0) : 0,
+        logged: !!entry,
+      });
+    }
+    return out;
+  }, [logs, period.days, metricKey]);
+
+  const loggedValues = series.filter((d) => d.logged).map((d) => d.value);
+  const average = loggedValues.length ? Math.round(loggedValues.reduce((a, b) => a + b, 0) / loggedValues.length) : null;
+
+  return (
+    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <div>
+          <p className="text-black font-semibold">Nutrition Graph</p>
+          <p className="text-black/40 text-xs mt-0.5">Daily {metric.label.toLowerCase()} against this client's own goal</p>
+        </div>
+        <div className="flex gap-1.5">
+          {NUTRITION_ADHERENCE_PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriodKey(p.key)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${periodKey === p.key ? "bg-black text-white" : "bg-black/6 text-black/50"}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-1.5 mb-4">
+        {NUTRITION_GRAPH_METRICS.map((m) => (
+          <button
+            key={m.key}
+            onClick={() => setMetricKey(m.key)}
+            className={`px-3 py-1 rounded-full text-xs font-semibold ${metricKey === m.key ? "text-white" : "bg-black/6 text-black/50"}`}
+            style={metricKey === m.key ? { backgroundColor: MEASURE_BLUE } : undefined}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-between text-xs mb-2">
+        <p className="text-black/40">
+          Current Goal: <span className="text-black font-semibold">{targetValue > 0 ? `${targetValue}${metric.unit}` : "Not set"}</span>
+        </p>
+        {average != null && (
+          <p className="text-black/40">
+            Average: <span className="font-semibold" style={{ color: MEASURE_BLUE }}>{average}{metric.unit}</span>
+          </p>
+        )}
+      </div>
+
+      <div className="h-48 -ml-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={series} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid vertical={false} stroke="rgba(10,10,11,0.06)" />
+            <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+            {targetValue > 0 && <ReferenceLine y={targetValue} stroke={MEASURE_BLUE} strokeDasharray="4 4" strokeOpacity={0.45} />}
+            <Bar dataKey="value" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+              {series.map((d, i) => (
+                <Cell key={i} fill={d.logged ? MEASURE_BLUE : "rgba(10,10,11,0.07)"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
 const NUTRITION_MEAL_CATEGORIES = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
 
 function NutritionPanel({ client, showToast }) {
@@ -3647,6 +3761,8 @@ function NutritionPanel({ client, showToast }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [mealPlanOpen, setMealPlanOpen] = useState(false);
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
+  const [targetsOpen, setTargetsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   // 0 = today, 1 = yesterday, ... 6 = a week ago — matches the client's own
   // Nutrition tab nav (ClientApp.jsx's NutritionScreen), capped at 6 so the
   // coach never navigates past what's realistically still useful to review.
@@ -3680,13 +3796,51 @@ function NutritionPanel({ client, showToast }) {
       <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6 -mx-4 md:-mx-6">
         <div className="flex items-center justify-between mb-4">
           <p className="text-black font-semibold">{navTitle}</p>
-          <button
-            onClick={() => setNavOffset((o) => (o + 1) % 7)}
-            aria-label={navOffset === 0 ? "View an earlier day" : "Step back a day"}
-            className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
-          >
-            <ChevronLeft size={14} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setNavOffset((o) => (o + 1) % 7)}
+              aria-label={navOffset === 0 ? "View an earlier day" : "Step back a day"}
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
+            >
+              <ChevronLeft size={14} />
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-label="Nutrition options"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
+              >
+                <MoreVertical size={14} />
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 top-9 z-20 w-48 bg-white border border-black/10 rounded-xl shadow-lg py-1.5">
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        setTargetsOpen(true);
+                      }}
+                      className="w-full text-left px-3.5 py-2 text-sm text-black/80 hover:bg-black/5"
+                    >
+                      Edit calories &amp; macros
+                    </button>
+                    {nutrition && (
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false);
+                          setConfirmReset(true);
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        Clear {navOffset === 0 ? "today's" : "this day's"} log
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
         {!nutrition ? (
           <p className="text-black/30 text-sm py-6 text-center">Nothing logged yet.</p>
@@ -3754,11 +3908,7 @@ function NutritionPanel({ client, showToast }) {
             })()}
           </>
         )}
-        {!confirmReset ? (
-          <button onClick={() => setConfirmReset(true)} className="flex items-center gap-1.5 text-black/35 hover:text-red-500 text-xs font-medium mt-3">
-            <Trash2 size={12} /> Clear {navOffset === 0 ? "today's" : "this day's"} log
-          </button>
-        ) : (
+        {confirmReset && (
           <div className="flex gap-2 max-w-xs mt-3">
             <SecondaryButton className="flex-1" onClick={() => setConfirmReset(false)}>
               Cancel
@@ -3784,11 +3934,11 @@ function NutritionPanel({ client, showToast }) {
         )}
       </div>
 
+      <NutritionGraphCard client={client} />
+
       <NutritionAdherenceCard client={client} />
 
       <div className="space-y-6">
-        <NutritionTargetsCard client={client} showToast={showToast} />
-
         <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2.5">
@@ -3828,6 +3978,9 @@ function NutritionPanel({ client, showToast }) {
         mealsById={mealsById}
         clientName={client.name}
       />
+      <BottomSheet open={targetsOpen} onClose={() => setTargetsOpen(false)} title="Edit Calories & Macros" wide bodyClassName="p-5 sm:p-6">
+        <NutritionTargetsCard client={client} showToast={showToast} embedded />
+      </BottomSheet>
     </div>
   );
 }
