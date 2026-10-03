@@ -7,7 +7,7 @@ import WorkoutEditor from "./WorkoutEditor";
 import { clientStatusPill } from "./CoachClients";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { computeApexInsights } from "../lib/apexInsights";
-import { MEASURE_BLUE } from "../theme";
+import { MEASURE_BLUE, BORDER, SURFACE_RAISED } from "../theme";
 import {
   Users,
   UserPlus,
@@ -89,15 +89,21 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
   );
 }
 
-function StatCard({ icon: Icon, label, value, onClick }) {
+// One column inside the headline stats panel below — thin dividers between
+// columns rather than four separate boxed cards (see Fuel IQ in
+// ClientApp.jsx for the same visual language this borrows: a restrained
+// blue glow/gradient treatment instead of another card in the grid).
+// `borderClass` is passed per-column since the 2x2 mobile / 1x4 desktop
+// grid needs different dividers at each breakpoint.
+function HeadlineStatColumn({ icon: Icon, label, value, onClick, borderClass }) {
   return (
-    <Card className="!p-5" onClick={onClick}>
-      <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center mb-3">
-        <Icon size={16} className="text-blue-500" />
-      </div>
-      <p className="text-black text-3xl font-bold leading-none">{value}</p>
-      <p className="text-black/40 text-[11px] tracking-wide mt-2">{label}</p>
-    </Card>
+    <button onClick={onClick} className={`text-left p-5 sm:p-6 transition-colors hover:bg-black/[0.02] ${borderClass}`} style={{ borderColor: BORDER }}>
+      <Icon size={15} style={{ color: MEASURE_BLUE }} />
+      <p className="text-black text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
+      <p className="text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5" style={{ color: MEASURE_BLUE }}>
+        {label}
+      </p>
+    </button>
   );
 }
 
@@ -387,7 +393,11 @@ function ActivityItem({ item, onClick }) {
   return (
     <div
       onClick={clickable ? onClick : undefined}
-      className={`flex items-start gap-3 py-3 border-b border-black/5 last:border-0 ${clickable ? "cursor-pointer hover:bg-black/[0.03] -mx-1 px-1 rounded-lg" : ""}`}
+      // No last:border-0 here — this renders inside a two-column CSS layout
+      // on desktop (see the Recent Activity card in CoachDashboard.jsx),
+      // where "last child" doesn't line up with "visually last in either
+      // column", so every row keeps its own divider instead.
+      className={`break-inside-avoid flex items-start gap-3 py-3 border-b border-black/5 ${clickable ? "cursor-pointer hover:bg-black/[0.03] -mx-1 px-1 rounded-lg" : ""}`}
     >
       <Avatar name={item.clientName} url={item.clientAvatar} size={32} />
       <div className="flex-1 min-w-0">
@@ -776,24 +786,48 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         <p className="text-black/40 text-sm mt-0.5">Your roster and what needs your attention.</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <StatCard icon={Users} label="ACTIVE CLIENTS" value={active.length} onClick={() => onNavigate("clients")} />
-        <StatCard icon={Trophy} label="CHALLENGES" value={(db.challenges || []).length} onClick={() => onNavigate("challenges")} />
-        <StatCard
-          icon={NotebookPen}
-          label="CHECK-INS TO REVIEW"
-          value={pendingCheckins}
-          onClick={() => {
-            if (pendingCheckins === 1) {
-              const { client, response } = pendingCheckinList[0];
-              const form = (db.forms || []).find((f) => f.id === response.formId);
-              setViewingActivity({ type: "checkin", clientId: client.id, clientName: client.name, subject: form?.name || "a check-in", response, form });
-            } else {
-              onNavigate("clients");
-            }
-          }}
+      {/* Same restrained "flagship panel" treatment as Fuel IQ on the
+          client side — a thin blue gradient line and soft glow instead of
+          four separate boxed cards, with dividers between the numbers
+          rather than borders around each one. */}
+      <div className="relative overflow-hidden rounded-2xl mb-4" style={{ backgroundColor: SURFACE_RAISED, border: `1px solid ${BORDER}` }}>
+        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+        <div
+          className="absolute -top-24 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}12 0%, transparent 70%)`, filter: "blur(10px)" }}
         />
-        <StatCard icon={MessageCircle} label="MESSAGES TO REPLY TO" value={awaitingReply} onClick={() => onNavigate("messages")} />
+        <div className="relative grid grid-cols-2 md:grid-cols-4">
+          <HeadlineStatColumn
+            icon={Users}
+            label="Active Clients"
+            value={active.length}
+            onClick={() => onNavigate("clients")}
+            borderClass="border-r border-b md:border-b-0 md:border-r"
+          />
+          <HeadlineStatColumn
+            icon={Trophy}
+            label="Challenges"
+            value={(db.challenges || []).length}
+            onClick={() => onNavigate("challenges")}
+            borderClass="border-b md:border-b-0 md:border-r"
+          />
+          <HeadlineStatColumn
+            icon={NotebookPen}
+            label="Check-ins to Review"
+            value={pendingCheckins}
+            onClick={() => {
+              if (pendingCheckins === 1) {
+                const { client, response } = pendingCheckinList[0];
+                const form = (db.forms || []).find((f) => f.id === response.formId);
+                setViewingActivity({ type: "checkin", clientId: client.id, clientName: client.name, subject: form?.name || "a check-in", response, form });
+              } else {
+                onNavigate("clients");
+              }
+            }}
+            borderClass="border-r"
+          />
+          <HeadlineStatColumn icon={MessageCircle} label="Messages to Reply To" value={awaitingReply} onClick={() => onNavigate("messages")} borderClass="" />
+        </div>
       </div>
 
       <Card className="!p-0 overflow-hidden flex flex-col mb-4">
@@ -820,39 +854,35 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4 items-stretch">
-        <Card className="lg:col-span-1 !p-0 overflow-hidden flex flex-col">
-          <div className="px-5 pt-5 pb-3">
-            <p className="text-black font-semibold">Recent Activity</p>
-          </div>
-          <div className="px-5 pb-2 flex-1 max-h-[340px] overflow-y-auto">
-            {recentActivity.length === 0 ? (
-              <p className="text-black/30 text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
-            ) : (
-              recentActivity.map((item, i) => (
-                <ActivityItem
-                  key={i}
-                  item={item}
-                  onClick={() => setViewingActivity(item)}
-                />
-              ))
-            )}
-          </div>
-        </Card>
+      <Card className="!p-0 overflow-hidden flex flex-col mb-4">
+        <div className="px-5 pt-5 pb-3">
+          <p className="text-black font-semibold">Recent Activity</p>
+        </div>
+        <div className="px-5 pb-2 max-h-[420px] overflow-y-auto">
+          {recentActivity.length === 0 ? (
+            <p className="text-black/30 text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
+          ) : (
+            <div className="md:columns-2 md:gap-x-8">
+              {recentActivity.map((item, i) => (
+                <ActivityItem key={i} item={item} onClick={() => setViewingActivity(item)} />
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
 
-        <Card className="lg:col-span-2 !p-0 overflow-hidden flex flex-col">
-          <div className="px-5 pt-5 pb-1">
-            <p className="text-black font-semibold">We've auto-tagged your clients based on their needs</p>
-          </div>
-          <div className="px-5 pb-2">
-            <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
-            <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
-            <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
-            <SegmentRow icon={Utensils} label="Meal guide ending in a couple of days" clients={mealPlanEndingSoon} onViewAll={() => onNavigate("clients")} />
-            <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
-          </div>
-        </Card>
-      </div>
+      <Card className="!p-0 overflow-hidden flex flex-col mb-4">
+        <div className="px-5 pt-5 pb-1">
+          <p className="text-black font-semibold">We've auto-tagged your clients based on their needs</p>
+        </div>
+        <div className="px-5 pb-2">
+          <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
+          <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
+          <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
+          <SegmentRow icon={Utensils} label="Meal guide ending in a couple of days" clients={mealPlanEndingSoon} onViewAll={() => onNavigate("clients")} />
+          <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
+        </div>
+      </Card>
 
       <div className="mb-4">
         <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
