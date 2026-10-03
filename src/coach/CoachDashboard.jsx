@@ -92,12 +92,16 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
 // One column inside the headline stats panel below — thin dividers between
 // columns rather than four separate boxed cards (see Fuel IQ in
 // ClientApp.jsx for the same visual language this borrows: a restrained
-// blue glow/gradient treatment instead of another card in the grid).
-// `borderClass` is passed per-column since the 2x2 mobile / 1x4 desktop
-// grid needs different dividers at each breakpoint.
-function HeadlineStatColumn({ icon: Icon, label, value, onClick, borderClass }) {
+// blue glow/gradient treatment instead of another card in the grid). No
+// border on the button itself — giving each cell its own border-r/border-b
+// meant two adjacent cells' translucent borders overlapped exactly at the
+// shared corner, compounding into a visibly darker crossing point than the
+// panel's own single-line edges. The dividers are drawn once each instead
+// (see the two <div> hairlines in the grid below), so every line — outer
+// edge and inner divider alike — is the same single pass of the same color.
+function HeadlineStatColumn({ icon: Icon, label, value, onClick }) {
   return (
-    <button onClick={onClick} className={`text-left p-5 sm:p-6 transition-colors hover:bg-black/[0.02] ${borderClass}`} style={{ borderColor: BORDER }}>
+    <button onClick={onClick} className="text-left p-5 sm:p-6 transition-colors hover:bg-black/[0.02]">
       <Icon size={15} style={{ color: MEASURE_BLUE }} />
       <p className="text-black text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
       <p className="text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5" style={{ color: MEASURE_BLUE }}>
@@ -797,20 +801,8 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           style={{ background: `radial-gradient(circle, ${MEASURE_BLUE}12 0%, transparent 70%)`, filter: "blur(10px)" }}
         />
         <div className="relative grid grid-cols-2 md:grid-cols-4">
-          <HeadlineStatColumn
-            icon={Users}
-            label="Active Clients"
-            value={active.length}
-            onClick={() => onNavigate("clients")}
-            borderClass="border-r border-b md:border-b-0 md:border-r"
-          />
-          <HeadlineStatColumn
-            icon={Trophy}
-            label="Challenges"
-            value={(db.challenges || []).length}
-            onClick={() => onNavigate("challenges")}
-            borderClass="border-b md:border-b-0 md:border-r"
-          />
+          <HeadlineStatColumn icon={Users} label="Active Clients" value={active.length} onClick={() => onNavigate("clients")} />
+          <HeadlineStatColumn icon={Trophy} label="Challenges" value={(db.challenges || []).length} onClick={() => onNavigate("challenges")} />
           <HeadlineStatColumn
             icon={NotebookPen}
             label="Check-ins to Review"
@@ -824,9 +816,17 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
                 onNavigate("clients");
               }
             }}
-            borderClass="border-r"
           />
-          <HeadlineStatColumn icon={MessageCircle} label="Messages to Reply To" value={awaitingReply} onClick={() => onNavigate("messages")} borderClass="" />
+          <HeadlineStatColumn icon={MessageCircle} label="Messages to Reply To" value={awaitingReply} onClick={() => onNavigate("messages")} />
+
+          {/* Divider hairlines, each drawn once — a single vertical + single
+              horizontal line on the 2x2 mobile grid, three verticals and no
+              horizontal on the 1x4 desktop row. */}
+          <div className="absolute inset-y-0 left-1/2 w-px md:hidden" style={{ backgroundColor: BORDER }} />
+          <div className="absolute inset-x-0 top-1/2 h-px md:hidden" style={{ backgroundColor: BORDER }} />
+          <div className="hidden md:block absolute inset-y-0 w-px" style={{ left: "25%", backgroundColor: BORDER }} />
+          <div className="hidden md:block absolute inset-y-0 w-px" style={{ left: "50%", backgroundColor: BORDER }} />
+          <div className="hidden md:block absolute inset-y-0 w-px" style={{ left: "75%", backgroundColor: BORDER }} />
         </div>
       </div>
 
