@@ -3140,7 +3140,14 @@ function TDEECalculator({ client, latestWeight, onApply }) {
   );
 }
 
-function NutritionTargetsCard({ client, showToast, embedded = false }) {
+// Full-screen "Nutrition Goal" editor — X / title / Save in the header
+// (not a bottom button, matching the reference), a thin top accent line
+// and divided rows instead of a boxed card, same premium language as the
+// Overview headline stats panel (CoachDashboard.jsx's HeadlineStatColumn).
+// `open`/`onClose` make it self-contained: both call sites (the diary's
+// "⋯" menu and the graph's own "⋯" menu) just render it directly, no
+// BottomSheet wrapper needed.
+function NutritionTargetsCard({ client, showToast, open, onClose }) {
   const { db, updateUser } = useApp();
   const saved = { ...DEFAULT_NUTRITION_TARGETS, ...(client.nutritionTargets || {}) };
   const [calories, setCalories] = useState(saved.calories);
@@ -3156,6 +3163,8 @@ function NutritionTargetsCard({ client, showToast, embedded = false }) {
     setCalories(saved.calories);
     setPcts({ protein: saved.proteinPct, carbs: saved.carbsPct, fat: saved.fatPct });
   }
+
+  if (!open) return null;
 
   const dirty = calories !== saved.calories || pcts.protein !== saved.proteinPct || pcts.carbs !== saved.carbsPct || pcts.fat !== saved.fatPct;
   const grams = {
@@ -3175,6 +3184,7 @@ function NutritionTargetsCard({ client, showToast, embedded = false }) {
         nutritionTargets: { calories, proteinPct: pcts.protein, carbsPct: pcts.carbs, fatPct: pcts.fat },
       });
       showToast("Nutrition targets saved");
+      onClose();
     } catch (err) {
       showToast(err.message || "Couldn't save targets");
     } finally {
@@ -3193,76 +3203,81 @@ function NutritionTargetsCard({ client, showToast, embedded = false }) {
   ];
 
   return (
-    <div className={embedded ? "" : "bg-white border border-black/10 rounded-2xl shadow-sm p-5 md:p-6"}>
-      {!embedded && (
-        <>
-          <p className="text-black font-semibold mb-1">Nutrition Targets</p>
-          <p className="text-black/40 text-xs mb-5">What this client sees as their daily calorie and macro goals in the app.</p>
-        </>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <TDEECalculator
-          client={client}
-          latestWeight={latestWeight}
-          onApply={({ calories: kcal, proteinPct, carbsPct, fatPct }) => {
-            setCalories(Math.min(4500, Math.max(1200, kcal)));
-            setPcts({ protein: proteinPct, carbs: carbsPct, fat: fatPct });
-          }}
-        />
-
-        <div className="lg:border-l lg:border-black/10 lg:pl-8">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-black/50 text-xs tracking-wide">CALORIES</span>
-            <span className="text-black font-bold text-sm">{calories} kcal</span>
-          </div>
-          <input
-            type="range"
-            min={1200}
-            max={4500}
-            step={25}
-            value={calories}
-            onChange={(e) => setCalories(Number(e.target.value))}
-            className="w-full accent-black"
-          />
-
-          <div className="mt-4 space-y-3.5">
-            {MACROS.map((m) => (
-              <div key={m.key}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-black/50 text-xs tracking-wide">{m.label.toUpperCase()}</span>
-                  <span className="text-black text-sm font-semibold">
-                    {pcts[m.key]}% · {grams[m.key]}g
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={pcts[m.key]}
-                  onChange={(e) => setPct(m.key, Number(e.target.value))}
-                  className="w-full"
-                  style={{ accentColor: m.color }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <p className="text-black/25 text-[11px] mt-3">Protein + Carbs + Fat always add up to 100% of calories — adjusting one rebalances the others.</p>
-
+    <FullScreenOverlay>
+      <div className="fixed inset-0 z-[110] bg-white flex flex-col">
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5">
+          <button onClick={onClose} className="text-black/60" aria-label="Close">
+            <X size={20} />
+          </button>
+          <span className="text-black font-semibold">Nutrition Goal</span>
           <button
             onClick={save}
             disabled={!dirty || saving}
-            className={`w-full mt-4 py-2.5 rounded-xl text-sm font-bold transition-colors ${
-              !dirty && !saving ? "bg-black/8 text-black/30" : "bg-black text-white"
-            }`}
+            className={`text-sm font-bold ${!dirty || saving ? "text-black/25" : ""}`}
+            style={dirty && !saving ? { color: MEASURE_BLUE } : undefined}
           >
-            {saving ? "SAVING…" : dirty ? "SAVE TARGETS" : "SAVED"}
+            {saving ? "SAVING…" : "SAVE"}
           </button>
         </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+            <div className="px-5 py-5 max-w-3xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-x-10">
+              <TDEECalculator
+                client={client}
+                latestWeight={latestWeight}
+                onApply={({ calories: kcal, proteinPct, carbsPct, fatPct }) => {
+                  setCalories(Math.min(4500, Math.max(1200, kcal)));
+                  setPcts({ protein: proteinPct, carbs: carbsPct, fat: fatPct });
+                }}
+              />
+
+              <div>
+                <div className="py-3.5 border-b border-black/8">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-black/50 text-xs font-semibold tracking-wide">CALORIES</span>
+                    <span className="text-black font-bold text-sm tabular-nums">{calories} kcal</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={1200}
+                    max={4500}
+                    step={25}
+                    value={calories}
+                    onChange={(e) => setCalories(Number(e.target.value))}
+                    className="w-full accent-black"
+                  />
+                </div>
+
+                {MACROS.map((m) => (
+                  <div key={m.key} className="py-3.5 border-b border-black/8">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-black/50 text-xs font-semibold tracking-wide">{m.label.toUpperCase()}</span>
+                      <span className="text-black text-sm font-semibold tabular-nums">
+                        {pcts[m.key]}% · {grams[m.key]}g
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={pcts[m.key]}
+                      onChange={(e) => setPct(m.key, Number(e.target.value))}
+                      className="w-full"
+                      style={{ accentColor: m.color }}
+                    />
+                  </div>
+                ))}
+
+                <p className="text-black/30 text-[11px] mt-3">Protein + Carbs + Fat always add up to 100% of calories — adjusting one rebalances the others.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </FullScreenOverlay>
   );
 }
 
@@ -3782,9 +3797,7 @@ function NutritionGraphCard({ client, showToast }) {
         </ResponsiveContainer>
       </div>
 
-      <BottomSheet open={targetsOpen} onClose={() => setTargetsOpen(false)} title="Edit Calories & Macros" wide bodyClassName="p-5 sm:p-6">
-        <NutritionTargetsCard client={client} showToast={showToast} embedded />
-      </BottomSheet>
+      <NutritionTargetsCard client={client} showToast={showToast} open={targetsOpen} onClose={() => setTargetsOpen(false)} />
     </div>
   );
 }
@@ -4067,9 +4080,7 @@ function NutritionPanel({ client, showToast }) {
         mealsById={mealsById}
         clientName={client.name}
       />
-      <BottomSheet open={targetsOpen} onClose={() => setTargetsOpen(false)} title="Edit Calories & Macros" wide bodyClassName="p-5 sm:p-6">
-        <NutritionTargetsCard client={client} showToast={showToast} embedded />
-      </BottomSheet>
+      <NutritionTargetsCard client={client} showToast={showToast} open={targetsOpen} onClose={() => setTargetsOpen(false)} />
     </div>
   );
 }
