@@ -4516,21 +4516,23 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
 
       {tab === "plan" && mealPlan && mealPlanDay && (
         <div className="space-y-4">
-          <div className="relative h-36 overflow-hidden">
-            <img src="/brand/nutrition-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
-            <button
-              onClick={() => setShoppingListOpen(true)}
-              className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full active:scale-[0.96] transition-transform"
-            >
-              <ShoppingCart size={12} /> LIST
-            </button>
-            <span className="absolute top-3 left-3 bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">
-              {planWeeksCount === 1 ? "1-WEEK GUIDE" : `WEEK ${activeWeek + 1} OF ${planWeeksCount}`}
-            </span>
-            <div className="absolute bottom-0 left-0 right-0 p-4">
-              <h2 className="text-white text-xl font-bold tracking-tight">My Meal Guide</h2>
-              <p className="text-white/70 text-xs mt-1">Built by your coach — tap any meal to log it now</p>
+          <div className="relative">
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+            <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+            <div className="flex items-center justify-between gap-3 px-2.5 py-4">
+              <div className="min-w-0">
+                <span className="inline-block text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full text-white mb-1.5" style={{ backgroundColor: MEASURE_BLUE }}>
+                  {planWeeksCount === 1 ? "1-WEEK GUIDE" : `WEEK ${activeWeek + 1} OF ${planWeeksCount}`}
+                </span>
+                <h2 className={dark ? "text-white text-xl font-bold tracking-tight" : "text-black text-xl font-bold tracking-tight"}>My Meal Guide</h2>
+                <p className={dark ? "text-white/45 text-xs mt-1" : "text-black/45 text-xs mt-1"}>Built by your coach — tap any meal to log it now</p>
+              </div>
+              <button
+                onClick={() => setShoppingListOpen(true)}
+                className={dark ? "flex items-center gap-1.5 bg-white/8 text-white text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full shrink-0 active:scale-[0.96] transition-transform" : "flex items-center gap-1.5 bg-black/8 text-black text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full shrink-0 active:scale-[0.96] transition-transform"}
+              >
+                <ShoppingCart size={12} /> LIST
+              </button>
             </div>
           </div>
 
