@@ -80,6 +80,8 @@ import {
   Cell,
   XAxis,
   YAxis,
+  CartesianGrid,
+  ReferenceLine,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
@@ -3666,6 +3668,132 @@ function NutritionDetailSheet({ open, onClose, nutrition, targets }) {
   );
 }
 
+const NUTRITION_GRAPH_PERIODS = [
+  { key: "week", label: "7 Days", days: 7 },
+  { key: "fortnight", label: "14 Days", days: 14 },
+  { key: "month", label: "30 Days", days: 30 },
+];
+const NUTRITION_GRAPH_METRICS = [
+  { key: "calories", label: "Calories", unit: "" },
+  { key: "protein", label: "Protein", unit: "g" },
+  { key: "carbs", label: "Carbs", unit: "g" },
+  { key: "fat", label: "Fat", unit: "g" },
+];
+
+// Day-by-day history of one macro against the client's own goal — the
+// "YOUR CALORIE TARGET" card and NutritionDetailSheet above only ever show
+// a single day; this is the trend-over-time view (opened via the small
+// graph icon on the Nutrition tab's date-nav row). A day with nothing
+// logged renders as no bar (value 0) rather than drawing a 0-calorie day,
+// and the average line only ever factors in days that actually have a log.
+function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets }) {
+  const dark = useClientDark();
+  const [periodKey, setPeriodKey] = useState("fortnight");
+  const [metricKey, setMetricKey] = useState("calories");
+  if (!open) return null;
+
+  const period = NUTRITION_GRAPH_PERIODS.find((p) => p.key === periodKey);
+  const metric = NUTRITION_GRAPH_METRICS.find((m) => m.key === metricKey);
+  const targetValue = Math.round(targets[metricKey] || 0);
+
+  const series = [];
+  for (let i = period.days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const entry = nutritionByDateKey[localDateKey(d)];
+    series.push({
+      date: d.toLocaleDateString(undefined, { weekday: "narrow" }),
+      value: entry ? Math.round(entry[metricKey] || 0) : 0,
+      logged: !!entry,
+    });
+  }
+  const loggedValues = series.filter((d) => d.logged).map((d) => d.value);
+  const average = loggedValues.length ? Math.round(loggedValues.reduce((a, b) => a + b, 0) / loggedValues.length) : null;
+
+  return (
+    <FullScreenOverlay>
+      <div className={dark ? "fixed inset-0 z-[95] bg-black flex flex-col" : "fixed inset-0 z-[95] bg-white flex flex-col"}>
+        <div className={dark ? "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-2.5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
+          <button onClick={onClose} className={dark ? "text-white/60" : "text-black/60"}>
+            <X size={20} />
+          </button>
+          <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Nutrition Graph</span>
+          <div className="w-5" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-2.5 py-5 space-y-4">
+          <Card dark={dark}>
+            <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+              <p className={dark ? "text-white/35 text-[11px] font-bold tracking-wide" : "text-black/35 text-[11px] font-bold tracking-wide"}>
+                {period.label.toUpperCase()} HISTORY
+              </p>
+              <div className="flex gap-1.5">
+                {NUTRITION_GRAPH_PERIODS.map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPeriodKey(p.key)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                      periodKey === p.key ? "text-white" : dark ? "bg-white/8 text-white/50" : "bg-black/6 text-black/50"
+                    }`}
+                    style={periodKey === p.key ? { backgroundColor: MEASURE_BLUE } : undefined}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-1.5 mb-4">
+              {NUTRITION_GRAPH_METRICS.map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setMetricKey(m.key)}
+                  className={`flex-1 px-2 py-1.5 rounded-full text-[11px] font-semibold ${
+                    metricKey === m.key ? "text-white" : dark ? "bg-white/8 text-white/50" : "bg-black/6 text-black/50"
+                  }`}
+                  style={metricKey === m.key ? { backgroundColor: MEASURE_BLUE } : undefined}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-4 text-xs mb-2">
+              <p className={dark ? "text-white/40 flex items-center gap-1.5" : "text-black/40 flex items-center gap-1.5"}>
+                <span className="inline-block w-3 h-0" style={{ borderTop: `1.5px solid ${MEASURE_BLUE}` }} />
+                Goal: <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{targetValue > 0 ? `${targetValue}${metric.unit}` : "Not set"}</span>
+              </p>
+              {average != null && (
+                <p className={dark ? "text-white/40 flex items-center gap-1.5" : "text-black/40 flex items-center gap-1.5"}>
+                  <span className={dark ? "inline-block w-3 h-0 border-t border-dashed border-white/40" : "inline-block w-3 h-0 border-t border-dashed border-black/40"} />
+                  Average: <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{average}{metric.unit}</span>
+                </p>
+              )}
+            </div>
+
+            <div className="h-48 -ml-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={series} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke={dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,11,0.06)"} />
+                  <XAxis dataKey="date" tick={axisStyleFor(dark)} axisLine={false} tickLine={false} />
+                  <YAxis tick={axisStyleFor(dark)} axisLine={false} tickLine={false} width={34} />
+                  {targetValue > 0 && <ReferenceLine y={targetValue} stroke={MEASURE_BLUE} strokeWidth={1.5} />}
+                  {average != null && <ReferenceLine y={average} stroke={dark ? "rgba(255,255,255,0.35)" : "rgba(10,10,11,0.35)"} strokeDasharray="4 4" />}
+                  <Bar dataKey="value" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+                    {series.map((d, i) => (
+                      <Cell key={i} fill={d.logged ? MEASURE_BLUE : dark ? "rgba(255,255,255,0.08)" : "rgba(10,10,11,0.07)"} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </FullScreenOverlay>
+  );
+}
+
 // Rough, time-of-day guess for which meal slot an AI-suggested food should
 // log into — there's no slot info in a freeform "what should I eat"
 // question, so this is just a sensible default rather than forcing the
@@ -4064,6 +4192,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
   const [pendingFood, setPendingFood] = useState(null);
   const [logTab, setLogTab] = useState("history"); // "history" | "mymeals"
   const [nutritionDetailOpen, setNutritionDetailOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
   const [tab, setTab] = useState("today"); // "today" | "plan"
 
   const mealCategories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
@@ -4176,7 +4305,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
       </div>
 
       {tab === "today" && (
-      <div className="px-2.5 mb-1">
+      <div className="px-2.5 mb-1 flex items-center justify-between gap-2">
         <div className={dark ? "inline-flex items-center rounded-xl border border-white/10 bg-white/5" : "inline-flex items-center rounded-xl border border-black/10 bg-black/5"}>
           <button
             onClick={() => setNavOffset((o) => o + 1)}
@@ -4198,6 +4327,13 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
             <ChevronRight size={15} />
           </button>
         </div>
+        <button
+          onClick={() => setGraphOpen(true)}
+          aria-label="View nutrition history graph"
+          className={dark ? "w-9 h-9 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center shrink-0 text-white/70 active:scale-90 transition-transform" : "w-9 h-9 rounded-xl border border-black/10 bg-black/5 flex items-center justify-center shrink-0 text-black/60 active:scale-90 transition-transform"}
+        >
+          <BarChart3 size={15} />
+        </button>
       </div>
       )}
 
@@ -4884,6 +5020,13 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         open={nutritionDetailOpen}
         onClose={() => setNutritionDetailOpen(false)}
         nutrition={nutrition}
+        targets={targets}
+      />
+
+      <NutritionGraphScreen
+        open={graphOpen}
+        onClose={() => setGraphOpen(false)}
+        nutritionByDateKey={nutritionByDateKey}
         targets={targets}
       />
     </div>
