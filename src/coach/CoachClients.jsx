@@ -425,7 +425,11 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
     const nextPhase = getNextPhase(phases, today);
     const thread = db.messages[c.id] || [];
     const lastMsg = thread[thread.length - 1];
-    const awaitingReply = !!(lastMsg && lastMsg.from === "client");
+    // Cleared the moment the coach actually opens this client's thread
+    // (see ThreadMessages' mark-as-seen effect in CoachMessages.jsx), not
+    // just once they send a reply — opening it to read it is enough to
+    // stop flagging it as needing attention.
+    const awaitingReply = !!(lastMsg && lastMsg.from === "client" && lastMsg.date > (c.coachMessagesSeenAt || 0));
     const pendingCheckins = ((db.formResponses || {})[c.id] || []).filter((r) => r.read === false).length;
     const needsNewPhase = needsNewPhaseSoon(currentPhase, nextPhase, today);
     return { currentPhase, nextPhase, awaitingReply, pendingCheckins, needsNewPhase };

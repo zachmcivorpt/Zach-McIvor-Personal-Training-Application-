@@ -299,9 +299,16 @@ function DuplicatePhaseSheet({ open, onClose, phase, onDuplicate }) {
       const spanDays = end ? Math.round((end - start) / 86400000) : 27;
       // Default to picking up right where the original phase leaves off —
       // this is almost always used to line up the client's next phase —
-      // rather than today, which would leave a gap or an overlap.
+      // rather than today, which would leave a gap or an overlap. Always
+      // rolled forward to the next Monday: coaches run phases in whole
+      // weeks, so the day right after the old end date is rarely a Monday
+      // itself, and starting mid-week both reads oddly on the calendar and
+      // (since duplicateClientPhase re-schedules every old session shifted
+      // by this exact day offset) throws off the weekday each carried-over
+      // session lands on unless that offset is a whole number of weeks.
       const newStart = end ? new Date(end) : new Date();
       if (end) newStart.setDate(newStart.getDate() + 1);
+      while ((newStart.getDay() + 6) % 7 !== 0) newStart.setDate(newStart.getDate() + 1);
       const weeks = Math.max(1, Math.round(spanDays / 7));
       const newEnd = new Date(newStart);
       newEnd.setDate(newEnd.getDate() + weeks * 7 - 1);
@@ -605,8 +612,12 @@ function ScheduleWorkoutSheet({ open, onClose, client, initialDate, initialViewD
     if (weeklyWeekday === null) return;
     const dates = [];
     const d = inPhase ? new Date(phaseStart + "T12:00:00") : new Date();
-    // advance to the first matching weekday (Mon=0..Sun=6)
-    while ((d.getDay() + 6) % 7 !== weeklyWeekday) d.setDate(d.getDate() + 1);
+    // advance to the first matching weekday (Mon=0..Sun=6) — bounded to 7
+    // tries so a malformed phaseStart (producing an Invalid Date, whose
+    // getDay() is always NaN and never matches) can't spin the tab forever
+    // instead of just doing nothing.
+    for (let guard = 0; guard < 7 && (d.getDay() + 6) % 7 !== weeklyWeekday; guard++) d.setDate(d.getDate() + 1);
+    if (isNaN(d.getTime()) || (d.getDay() + 6) % 7 !== weeklyWeekday) return;
     for (let i = 0; i < weeklyWeeks; i++) {
       const key = localDateKey(d);
       if (!inPhaseRange(key)) break;

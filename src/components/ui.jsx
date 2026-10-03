@@ -498,7 +498,7 @@ export function Toast({ message, show, dark = false }) {
 ============================================================================ */
 
 export function ProgressBar({ value, max, height = 8, dim = false, color, trackClassName = "bg-black/10" }) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <div className={`w-full rounded-full ${trackClassName}`} style={{ height }}>
       <div

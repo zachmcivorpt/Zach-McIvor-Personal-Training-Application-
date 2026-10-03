@@ -54,7 +54,7 @@ function AttachmentPill({ attachment, tone = "light" }) {
 // both the full-screen ThreadView (opened from a client's own profile) and
 // the inline right-hand panel of the desktop Messages screen.
 function ThreadMessages({ client }) {
-  const { db, sendMessage } = useApp();
+  const { db, sendMessage, updateUser } = useApp();
   const [input, setInput] = useState("");
   const [uploadPct, setUploadPct] = useState(null);
   const [uploadError, setUploadError] = useState("");
@@ -67,6 +67,18 @@ function ThreadMessages({ client }) {
   useEffect(() => {
     setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 50);
   }, [thread.length]);
+
+  // Opening this thread is itself "the coach has seen it" — the
+  // roster/nav "awaiting reply" badge (CoachClients.jsx, CoachShell.jsx)
+  // reads this back and clears as soon as it's newer than the client's
+  // last message, so a coach doesn't have to actually type a reply just
+  // to make the badge go away once they've read it.
+  useEffect(() => {
+    const lastMsg = thread[thread.length - 1];
+    if (lastMsg && lastMsg.from === "client" && lastMsg.date > (client.coachMessagesSeenAt || 0)) {
+      updateUser(client.id, { coachMessagesSeenAt: Date.now() });
+    }
+  }, [client.id, thread.length]);
 
   function send() {
     if (!input.trim()) return;

@@ -123,7 +123,9 @@ export default function CoachShell() {
   const unreadMessages = activeClients.some((c) => {
     const thread = db.messages[c.id] || [];
     const last = thread[thread.length - 1];
-    return last && last.from === "client";
+    // Mirrors the roster's "awaiting reply" badge — clears once the coach
+    // has actually opened that client's thread, not only once they reply.
+    return last && last.from === "client" && last.date > (c.coachMessagesSeenAt || 0);
   });
 
   function NavButton({ item }) {
