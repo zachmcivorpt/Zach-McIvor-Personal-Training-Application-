@@ -122,10 +122,58 @@ export function fileToCompressedDataUrl(file, maxDim = 900, quality = 0.78) {
 // client-side before it ever leaves the device cuts both the upload time
 // (sender) and the download time (every recipient, every time they open
 // the thread) by roughly the same factor — the single biggest lever on
-// "how fast does this show up" for either side. Falls back to the original
-// file if anything about the compression step fails, so a weird/corrupt
-// image doesn't block the send entirely.
+// "how fast does this show up" for either side.
+//
+// This step runs before the real Firebase upload even starts, and nothing
+// in the message composer shows progress during it — on a slow device
+// compressing a large original (previously routed through a base64
+// data-URL round trip; see compressViaImageElement below) this is exactly
+// what read as "the app froze" when attaching a photo. Two changes:
+// createImageBitmap decodes straight from the file's bytes with no
+// intermediate base64 string, which is dramatically faster for a
+// multi-megabyte photo; and a hard timeout falls back to the original,
+// uncompressed file rather than letting a slow/stuck decode hold up the
+// send indefinitely (the attach button also now shows a spinner during
+// this step — see attachButtonContent in ClientApp.jsx/CoachMessages.jsx).
 export function compressImageFile(file, maxDim = 1600, quality = 0.82) {
+  const work =
+    typeof createImageBitmap === "function" ? compressViaBitmap(file, maxDim, quality) : compressViaImageElement(file, maxDim, quality);
+  const timeout = new Promise((resolve) => setTimeout(() => resolve(file), 8000));
+  return Promise.race([work, timeout]);
+}
+
+function compressViaBitmap(file, maxDim, quality) {
+  return createImageBitmap(file)
+    .then((bitmap) => {
+      const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+      // Already smaller than the cap (a screenshot, an already-compressed
+      // download) — compressing further would just cost CPU for no size win.
+      if (scale >= 1) {
+        bitmap.close?.();
+        return file;
+      }
+      const w = Math.round(bitmap.width * scale);
+      const h = Math.round(bitmap.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(bitmap, 0, 0, w, h);
+      bitmap.close?.();
+      return new Promise((resolve) => {
+        canvas.toBlob(
+          (blob) => resolve(blob ? new File([blob], (file.name || "photo").replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file),
+          "image/jpeg",
+          quality
+        );
+      });
+    })
+    .catch(() => compressViaImageElement(file, maxDim, quality));
+}
+
+// Fallback for the rare browser without createImageBitmap support (or one
+// that fails to decode a particular file) — the original base64 round trip.
+function compressViaImageElement(file, maxDim, quality) {
   return new Promise((resolve) => {
     const img = new Image();
     const reader = new FileReader();
@@ -135,9 +183,6 @@ export function compressImageFile(file, maxDim = 1600, quality = 0.82) {
       img.onerror = giveUp;
       img.onload = () => {
         const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-        // Already smaller than the cap (a screenshot, an already-compressed
-        // download) — compressing further would just cost CPU for no size
-        // win, so send it through untouched.
         if (scale >= 1) {
           resolve(file);
           return;

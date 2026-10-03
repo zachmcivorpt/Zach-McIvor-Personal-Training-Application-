@@ -6263,6 +6263,19 @@ function CoachSheet({ open, onClose, ctx }) {
   );
 }
 
+// A send-attachment button previously just showed its static icon the whole
+// time a file was compressing/uploading — with no percentage yet (file
+// selected but the real Firebase progress events haven't started landing)
+// that read as nothing happening at all, exactly "the app froze" for a big
+// phone photo that takes a few seconds to compress before the upload itself
+// even begins. Spinner for "started, no progress yet", percentage once real
+// progress lands, otherwise the resting icon.
+function attachButtonContent(icon, uploadPct, dark) {
+  if (uploadPct === null) return icon;
+  if (uploadPct > 0) return <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span>;
+  return <span className={`w-4 h-4 border-2 rounded-full animate-spin ${dark ? "border-white/30 border-t-white" : "border-black/30 border-t-black"}`} />;
+}
+
 function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const dark = useClientDark();
   const [input, setInput] = useState("");
@@ -6404,7 +6417,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           aria-label="Attach a form-check video"
           className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
         >
-          {uploadPct !== null ? <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span> : <Video size={17} />}
+          {attachButtonContent(<Video size={17} />, uploadPct, dark)}
         </button>
         <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
         <button
@@ -6413,7 +6426,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           aria-label="Attach a PDF"
           className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
         >
-          <Paperclip size={17} />
+          {attachButtonContent(<Paperclip size={17} />, uploadPct, dark)}
         </button>
         <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
         <button
@@ -6422,7 +6435,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           aria-label="Attach a photo"
           className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
         >
-          <ImageIcon size={17} />
+          {attachButtonContent(<ImageIcon size={17} />, uploadPct, dark)}
         </button>
         <input
           value={input}
