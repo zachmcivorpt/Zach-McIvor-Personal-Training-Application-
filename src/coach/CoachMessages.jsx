@@ -12,7 +12,13 @@ function AttachmentPill({ attachment, tone = "light" }) {
   if (attachment.type === "image") {
     return (
       <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
-        <img src={attachment.url} alt={attachment.name || "Photo"} className="w-full max-w-[220px] rounded-lg object-cover" />
+        <img
+          src={attachment.url}
+          alt={attachment.name || "Photo"}
+          loading="eager"
+          decoding="async"
+          className="w-full max-w-[220px] rounded-lg object-cover"
+        />
       </a>
     );
   }

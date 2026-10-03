@@ -6355,7 +6355,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
                 <video src={m.attachment.url} controls playsInline className={dark ? "mt-2 w-full max-w-[220px] rounded-lg bg-white" : "mt-2 w-full max-w-[220px] rounded-lg bg-black"} />
               ) : m.attachment && m.attachment.type === "image" ? (
                 <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
-                  <img src={m.attachment.url} alt={m.attachment.name || "Photo"} className="w-full max-w-[220px] rounded-lg object-cover" />
+                  <img src={m.attachment.url} alt={m.attachment.name || "Photo"} loading="eager" decoding="async" className="w-full max-w-[220px] rounded-lg object-cover" />
                 </a>
               ) : (
                 m.attachment && (

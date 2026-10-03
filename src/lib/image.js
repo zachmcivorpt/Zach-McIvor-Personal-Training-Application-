@@ -114,3 +114,55 @@ export function fileToCompressedDataUrl(file, maxDim = 900, quality = 0.78) {
     reader.readAsDataURL(file);
   });
 }
+
+// Same downscale as above, but resolves to a real File (for a Storage
+// upload — e.g. a messaging photo) instead of a data URL. A phone photo
+// attached to a message can easily be 5-15MB at full resolution; nobody's
+// viewing a chat photo at more than a phone screen's width, so shrinking it
+// client-side before it ever leaves the device cuts both the upload time
+// (sender) and the download time (every recipient, every time they open
+// the thread) by roughly the same factor — the single biggest lever on
+// "how fast does this show up" for either side. Falls back to the original
+// file if anything about the compression step fails, so a weird/corrupt
+// image doesn't block the send entirely.
+export function compressImageFile(file, maxDim = 1600, quality = 0.82) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const reader = new FileReader();
+    const giveUp = () => resolve(file);
+    reader.onerror = giveUp;
+    reader.onload = () => {
+      img.onerror = giveUp;
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        // Already smaller than the cap (a screenshot, an already-compressed
+        // download) — compressing further would just cost CPU for no size
+        // win, so send it through untouched.
+        if (scale >= 1) {
+          resolve(file);
+          return;
+        }
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              giveUp();
+              return;
+            }
+            resolve(new File([blob], (file.name || "photo").replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }));
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}

@@ -6,6 +6,7 @@
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "./firebase";
 import { maybeCompressVideo } from "./videoCompress";
+import { compressImageFile } from "./image";
 
 const MAX_VIDEO_BYTES = 75 * 1024 * 1024; // 75MB
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
@@ -120,16 +121,19 @@ export async function uploadMessageVideo(clientId, file, onProgress) {
 // A photo attached to a regular message (a meal, an injury, gym setup,
 // etc.) — same reasoning as video/PDF: a real Storage upload rather than
 // base64 so it isn't squeezed by Firestore's 1MB document cap.
-export function uploadMessageImage(clientId, file, onProgress) {
+export async function uploadMessageImage(clientId, file, onProgress) {
   if (!file.type.startsWith("image/")) {
-    return Promise.reject(new Error("Please choose an image file."));
+    throw new Error("Please choose an image file.");
   }
   if (file.size > MAX_MESSAGE_IMAGE_BYTES) {
-    return Promise.reject(
-      new Error(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB — please keep it under ${MAX_MESSAGE_IMAGE_BYTES / 1024 / 1024}MB.`)
-    );
+    throw new Error(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB — please keep it under ${MAX_MESSAGE_IMAGE_BYTES / 1024 / 1024}MB.`);
   }
-  return uploadToPath(`messageImages/${clientId}/${Date.now()}_${file.name}`, file, "image", "Image", onProgress);
+  // Downscaled client-side first, same reasoning as the video path below —
+  // fewer bytes to push over the network is the real lever on both upload
+  // time (sender) and every later download time (recipient opening the
+  // thread), and a chat photo never needs more than ~1600px wide anyway.
+  const upload = await compressImageFile(file);
+  return uploadToPath(`messageImages/${clientId}/${Date.now()}_${upload.name}`, upload, "image", "Image", onProgress);
 }
 
 // Same idea for a PDF attached to a regular message (a program summary, an
