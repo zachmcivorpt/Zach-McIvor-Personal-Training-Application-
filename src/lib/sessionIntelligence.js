@@ -199,8 +199,19 @@ function buildPersonalNote(list, exercisesById, logsForClient) {
 // history; omitting it just skips that line, same as before. Returns null
 // if there's nothing usable to analyse yet.
 export function analyzeSession(exercises, exercisesById, logsForClient) {
+  // Session Intelligence is about what this session is actually training
+  // for — a warm-up set (even one drawn from the main library, e.g. a
+  // lighter squat ramp-up, or one the coach tagged under a "Warm-up"
+  // category) isn't part of that signal and would otherwise skew the
+  // focus/goal classification toward whatever the warm-up happens to be.
+  // `section` (warmup/main/cooldown) is the per-program-entry source of
+  // truth for this — the same field the session screen itself groups by
+  // (see sectionedExercises in ClientApp.jsx) — so it's checked ahead of,
+  // and instead of, the exercise library's own category.
   const list = (exercises || []).filter((e) => !e.isRest);
   if (list.length === 0) return null;
+
+  const mainList = list.filter((e) => (e.section || "main") === "main");
 
   let upperWeight = 0;
   let lowerWeight = 0;
@@ -211,9 +222,9 @@ export function analyzeSession(exercises, exercisesById, logsForClient) {
   let amrapOrTimedSets = 0;
   let shortRestSets = 0;
   let workingSets = 0;
-  let movingSets = 0; // excludes warm-up/cool-down library entries
+  let movingSets = 0; // main-session lifts only — excludes warm-up/cool-down entries
 
-  list.forEach((exMeta) => {
+  mainList.forEach((exMeta) => {
     const exercise = exercisesById?.[exMeta.exerciseId];
     const sets = exMeta.targetSets || 1;
     const isRestCategory = exercise?.category && REST_CATEGORIES.has(exercise.category);
@@ -279,7 +290,7 @@ export function analyzeSession(exercises, exercisesById, logsForClient) {
     trainingGoal = "Endurance";
   }
 
-  return buildResult({ bodyFocus, trainingGoal, patternWeights, exercises: list, workingSets, logsForClient, exercisesById });
+  return buildResult({ bodyFocus, trainingGoal, patternWeights, exercises: mainList, workingSets, logsForClient, exercisesById });
 }
 
 function buildResult({ bodyFocus, trainingGoal, patternWeights, exercises, workingSets, logsForClient, exercisesById }) {
