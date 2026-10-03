@@ -41,6 +41,30 @@ export const FOOD_DATABASE = [
   { id: "m33", name: "Turkey Bacon", cals: 150, protein: 17, carbs: 1, fat: 8, per: 100, defaultQty: 30 },
   { id: "m34", name: "Rabbit", cals: 173, protein: 33, carbs: 0, fat: 3.5, per: 100, defaultQty: 150 },
   { id: "m35", name: "Goat Meat", cals: 143, protein: 27, carbs: 0, fat: 3, per: 100, defaultQty: 150 },
+  // Distinct beef steak cuts (grilled/pan-seared, trimmed of visible fat
+  // where noted) alongside the existing sirloin (m08) — real AU butcher
+  // names, each with its own genuinely different macro profile rather
+  // than restating sirloin under another label.
+  { id: "m36", name: "Scotch Fillet Steak (ribeye, grilled)", cals: 250, protein: 27, carbs: 0, fat: 15, per: 100, defaultQty: 180 },
+  { id: "m37", name: "Eye Fillet Steak (beef tenderloin, grilled)", cals: 188, protein: 29, carbs: 0, fat: 7, per: 100, defaultQty: 180 },
+  { id: "m38", name: "Rump Steak (lean, grilled)", cals: 172, protein: 31, carbs: 0, fat: 5, per: 100, defaultQty: 180 },
+  { id: "m39", name: "T-Bone Steak (grilled, lean)", cals: 220, protein: 28, carbs: 0, fat: 11, per: 100, defaultQty: 200 },
+  { id: "m40", name: "Flank Steak (grilled)", cals: 192, protein: 28, carbs: 0, fat: 8, per: 100, defaultQty: 180 },
+  { id: "m41", name: "Skirt Steak (grilled)", cals: 254, protein: 26, carbs: 0, fat: 16, per: 100, defaultQty: 180 },
+  { id: "m42", name: "Chuck/Blade Steak (lean, grilled)", cals: 210, protein: 29, carbs: 0, fat: 10, per: 100, defaultQty: 180 },
+  // Kangaroo is a genuinely distinct, very lean game meat — not a beef
+  // substitute macro-wise (notably lower fat than any beef cut above) —
+  // also lets the "Kangaroo Steak" meal in fitnessMealsAU.js reference
+  // its own real macros instead of borrowing sirloin's (see
+  // scripts/genAuFitnessMeals.mjs).
+  { id: "m43", name: "Kangaroo Steak (grilled)", cals: 98, protein: 22, carbs: 0, fat: 1, per: 100, defaultQty: 180 },
+  // Crumbed chicken schnitzel — pan-fried vs. oven-baked/air-fried genuinely
+  // differ in fat from oil absorption, so both are worth having rather than
+  // one generic entry. Cross-checked against the Subway "Chicken Schnitzel
+  // (per sub serve)" entry already in this file (sw113: 183cal/17.2p/7.1c/9.5f
+  // per 87g ≈ 210cal/19.8p/8.2c/10.9f per 100g) — these sit in the same range.
+  { id: "m44", name: "Chicken Schnitzel (crumbed, pan-fried)", cals: 235, protein: 20, carbs: 13, fat: 12, per: 100, defaultQty: 180 },
+  { id: "m45", name: "Chicken Schnitzel (crumbed, oven-baked)", cals: 200, protein: 22, carbs: 14, fat: 7, per: 100, defaultQty: 180 },
 
   // --- Fish & seafood ---
   { id: "f01", name: "Salmon Fillet", cals: 208, protein: 20, carbs: 0, fat: 13, per: 100, defaultQty: 150 },

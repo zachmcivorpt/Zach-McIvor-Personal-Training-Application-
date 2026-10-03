@@ -1019,11 +1019,37 @@ meals.push(
     "1. Combine the split peas, diced ham and carrot in a pot with water or stock.\n2. Simmer until the peas break down and the soup thickens."),
   meal("Moroccan Chickpea & Couscous Bowl", [["l03", 150], ["g06", 150], ["v04", 40], ["r19", 15]], undefined,
     "1. Warm the chickpeas with the grated carrot and raisins.\n2. Prepare the couscous with boiling water/stock.\n3. Combine and serve."),
-  meal("Kangaroo Steak with Sweet Potato Mash", [["m08", 150], ["v05", 200], ["v03", 60]], undefined,
-    "1. Season and pan-sear the steak to your liking (kangaroo cooks similarly to lean beef — quick and hot), then rest before slicing.\n2. Mash the cooked sweet potato.\n3. Massage the kale with a little oil and serve together.")
+  meal("Kangaroo Steak with Sweet Potato Mash", [["m43", 150], ["v05", 200], ["v03", 60]], undefined,
+    "1. Season and pan-sear the kangaroo steak hot and quick, no more than medium-rare, then rest before slicing — it's very lean and overcooks easily.\n2. Mash the cooked sweet potato.\n3. Massage the kale with a little oil and serve together.")
 );
 
 console.log("After extra batch:", meals.length);
+
+// ---- Steak cuts & chicken schnitzel (new base foods m36-m45) ----
+meals.push(
+  meal("Scotch Fillet with Mash & Green Beans", [["m36", 180], ["v06", 220], ["v16", 120]], undefined,
+    "1. Season the scotch fillet and grill or pan-sear to your liking, then rest for 5 minutes before slicing.\n2. Boil the potato until tender, then mash.\n3. Steam the green beans until just tender and serve together."),
+  meal("Eye Fillet with Sweet Potato & Asparagus", [["m37", 180], ["v05", 200], ["v19", 100]], undefined,
+    "1. Season the eye fillet and pan-sear over high heat for a few minutes per side, then rest before slicing — it's very lean so don't overcook it.\n2. Roast or boil the sweet potato until tender.\n3. Steam or pan-fry the asparagus until just tender and serve together."),
+  meal("Rump Steak with Rice & Broccoli", [["m38", 180], ["g02", 150], ["v01", 120]], undefined,
+    "1. Season the rump steak and grill or pan-sear to your liking, then rest for 5 minutes before slicing.\n2. Cook the brown rice according to packet instructions.\n3. Steam the broccoli until just tender and serve together."),
+  meal("T-Bone Steak with Potato & Salad", [["m39", 220], ["v06", 220], ["v61", 80]], undefined,
+    "1. Season the T-bone and grill to your liking, turning once, then rest for 5 minutes before serving.\n2. Boil, steam, or roast the potato until tender.\n3. Serve with a side salad."),
+  meal("Flank Steak Fajita Bowl", [["m40", 170], ["g01", 150], ["v13", 60], ["v14", 40], ["s10", 20]], undefined,
+    "1. Season the flank steak and grill or pan-sear hot and fast, then rest and slice thinly against the grain.\n2. Cook the rice according to packet instructions.\n3. Sauté the capsicum and onion until softened and serve everything together with a spoon of salsa."),
+  meal("Skirt Steak Stir-Fry with Rice", [["m41", 170], ["g02", 150], ["v09", 60], ["v13", 60], ["n12", 8]], undefined,
+    "1. Slice the skirt steak thinly against the grain and stir-fry in a hot wok or pan for 2-3 minutes until browned.\n2. Add the sliced zucchini and capsicum and stir-fry a further 2-3 minutes.\n3. Cook the brown rice and serve together."),
+  meal("Slow-Cooked Chuck Steak with Mash", [["m42", 180], ["v07", 220], ["v04", 60]], undefined,
+    "1. Brown the chuck steak, then slow-cook or braise with the diced carrot until fork-tender.\n2. Warm the mashed potato and serve together."),
+  meal("Classic Chicken Schnitzel with Chips & Salad", [["m44", 180], ["v58", 200], ["v61", 80]], undefined,
+    "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and pan-fry until golden and cooked through.\n2. Bake the sweet potato fries until crisp.\n3. Serve with a side salad."),
+  meal("Oven-Baked Chicken Schnitzel with Rice & Greens", [["m45", 180], ["g02", 150], ["v01", 120]], undefined,
+    "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and bake or air-fry until golden and cooked through — a lighter alternative to pan-frying.\n2. Cook the brown rice according to packet instructions.\n3. Steam the broccoli until just tender and serve together."),
+  meal("Chicken Schnitzel Parmigiana with Chips", [["m44", 180], ["s01", 40], ["d10", 30], ["v58", 200]], undefined,
+    "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and pan-fry until golden and cooked through.\n2. Top with the tomato sauce and mozzarella and grill until melted.\n3. Bake the sweet potato fries and serve together.")
+);
+
+console.log("After steak & schnitzel batch:", meals.length);
 
 console.log("Total meals generated:", meals.length);
 

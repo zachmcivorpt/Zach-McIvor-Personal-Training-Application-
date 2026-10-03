@@ -19984,13 +19984,13 @@ export const FITNESS_MEALS_AU = [
     "name": "Kangaroo Steak with Sweet Potato Mash",
     "ingredients": [
       {
-        "baseFoodId": "m08",
+        "baseFoodId": "m43",
         "grams": 150,
-        "name": "Beef Steak (sirloin, lean) — Coles Australian Beef Sirloin Steak (150g)",
-        "cals": 275,
-        "protein": 43.5,
+        "name": "Kangaroo Steak (grilled) (150g)",
+        "cals": 147,
+        "protein": 33,
         "carbs": 0,
-        "fat": 10.5
+        "fat": 1.5
       },
       {
         "baseFoodId": "v05",
@@ -20015,10 +20015,475 @@ export const FITNESS_MEALS_AU = [
       "Lunch",
       "Dinner"
     ],
-    "instructions": "1. Season and pan-sear the steak to your liking (kangaroo cooks similarly to lean beef — quick and hot), then rest before slicing.\n2. Mash the cooked sweet potato.\n3. Massage the kale with a little oil and serve together.",
-    "cals": 484,
-    "protein": 50.1,
+    "instructions": "1. Season and pan-sear the kangaroo steak hot and quick, no more than medium-rare, then rest before slicing — it's very lean and overcooks easily.\n2. Mash the cooked sweet potato.\n3. Massage the kale with a little oil and serve together.",
+    "cals": 356,
+    "protein": 39.6,
     "carbs": 47.4,
-    "fat": 11.2
+    "fat": 2.2
+  },
+  {
+    "id": "au_meal_411",
+    "name": "Scotch Fillet with Mash & Green Beans",
+    "ingredients": [
+      {
+        "baseFoodId": "m36",
+        "grams": 180,
+        "name": "Scotch Fillet Steak (ribeye, grilled) (180g)",
+        "cals": 450,
+        "protein": 48.6,
+        "carbs": 0,
+        "fat": 27
+      },
+      {
+        "baseFoodId": "v06",
+        "grams": 220,
+        "name": "White Potato (baked) — Coles Brushed Potatoes (220g)",
+        "cals": 205,
+        "protein": 5.5,
+        "carbs": 46.2,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v16",
+        "grams": 120,
+        "name": "Green Beans (steamed) — Coles Green Beans (120g)",
+        "cals": 42,
+        "protein": 2.2,
+        "carbs": 8.4,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the scotch fillet and grill or pan-sear to your liking, then rest for 5 minutes before slicing.\n2. Boil the potato until tender, then mash.\n3. Steam the green beans until just tender and serve together.",
+    "cals": 697,
+    "protein": 56.3,
+    "carbs": 54.6,
+    "fat": 27.4
+  },
+  {
+    "id": "au_meal_412",
+    "name": "Eye Fillet with Sweet Potato & Asparagus",
+    "ingredients": [
+      {
+        "baseFoodId": "m37",
+        "grams": 180,
+        "name": "Eye Fillet Steak (beef tenderloin, grilled) (180g)",
+        "cals": 338,
+        "protein": 52.2,
+        "carbs": 0,
+        "fat": 12.6
+      },
+      {
+        "baseFoodId": "v05",
+        "grams": 200,
+        "name": "Sweet Potato (baked) — Coles Sweet Potato (200g)",
+        "cals": 180,
+        "protein": 4,
+        "carbs": 42,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v19",
+        "grams": 100,
+        "name": "Asparagus (steamed) — Coles Asparagus (100g)",
+        "cals": 22,
+        "protein": 2.4,
+        "carbs": 4,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the eye fillet and pan-sear over high heat for a few minutes per side, then rest before slicing — it's very lean so don't overcook it.\n2. Roast or boil the sweet potato until tender.\n3. Steam or pan-fry the asparagus until just tender and serve together.",
+    "cals": 540,
+    "protein": 58.6,
+    "carbs": 46,
+    "fat": 13
+  },
+  {
+    "id": "au_meal_413",
+    "name": "Rump Steak with Rice & Broccoli",
+    "ingredients": [
+      {
+        "baseFoodId": "m38",
+        "grams": 180,
+        "name": "Rump Steak (lean, grilled) (180g)",
+        "cals": 310,
+        "protein": 55.8,
+        "carbs": 0,
+        "fat": 9
+      },
+      {
+        "baseFoodId": "g02",
+        "grams": 150,
+        "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
+        "cals": 185,
+        "protein": 4.1,
+        "carbs": 39,
+        "fat": 1.5
+      },
+      {
+        "baseFoodId": "v01",
+        "grams": 120,
+        "name": "Broccoli (steamed) — Perfection Fresh Broccoli (120g)",
+        "cals": 42,
+        "protein": 2.9,
+        "carbs": 8.4,
+        "fat": 0.5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the rump steak and grill or pan-sear to your liking, then rest for 5 minutes before slicing.\n2. Cook the brown rice according to packet instructions.\n3. Steam the broccoli until just tender and serve together.",
+    "cals": 537,
+    "protein": 62.8,
+    "carbs": 47.4,
+    "fat": 11
+  },
+  {
+    "id": "au_meal_414",
+    "name": "T-Bone Steak with Potato & Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "m39",
+        "grams": 220,
+        "name": "T-Bone Steak (grilled, lean) (220g)",
+        "cals": 484,
+        "protein": 61.6,
+        "carbs": 0,
+        "fat": 24.2
+      },
+      {
+        "baseFoodId": "v06",
+        "grams": 220,
+        "name": "White Potato (baked) — Coles Brushed Potatoes (220g)",
+        "cals": 205,
+        "protein": 5.5,
+        "carbs": 46.2,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 80,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (80g)",
+        "cals": 12,
+        "protein": 1.1,
+        "carbs": 2.3,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the T-bone and grill to your liking, turning once, then rest for 5 minutes before serving.\n2. Boil, steam, or roast the potato until tender.\n3. Serve with a side salad.",
+    "cals": 701,
+    "protein": 68.2,
+    "carbs": 48.5,
+    "fat": 24.6
+  },
+  {
+    "id": "au_meal_415",
+    "name": "Flank Steak Fajita Bowl",
+    "ingredients": [
+      {
+        "baseFoodId": "m40",
+        "grams": 170,
+        "name": "Flank Steak (grilled) (170g)",
+        "cals": 326,
+        "protein": 47.6,
+        "carbs": 0,
+        "fat": 13.6
+      },
+      {
+        "baseFoodId": "g01",
+        "grams": 150,
+        "name": "White Rice (cooked) — SunRice Medium Grain White Rice (150g)",
+        "cals": 195,
+        "protein": 3.6,
+        "carbs": 42,
+        "fat": 0.5
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v14",
+        "grams": 40,
+        "name": "Onion (raw) — Coles Brown Onions (40g)",
+        "cals": 16,
+        "protein": 0.4,
+        "carbs": 3.6,
+        "fat": 0
+      },
+      {
+        "baseFoodId": "s10",
+        "grams": 20,
+        "name": "Salsa — Old El Paso Salsa (20g)",
+        "cals": 7,
+        "protein": 0.3,
+        "carbs": 1.4,
+        "fat": 0
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Season the flank steak and grill or pan-sear hot and fast, then rest and slice thinly against the grain.\n2. Cook the rice according to packet instructions.\n3. Sauté the capsicum and onion until softened and serve everything together with a spoon of salsa.",
+    "cals": 563,
+    "protein": 52.5,
+    "carbs": 50.6,
+    "fat": 14.3
+  },
+  {
+    "id": "au_meal_416",
+    "name": "Skirt Steak Stir-Fry with Rice",
+    "ingredients": [
+      {
+        "baseFoodId": "m41",
+        "grams": 170,
+        "name": "Skirt Steak (grilled) (170g)",
+        "cals": 432,
+        "protein": 44.2,
+        "carbs": 0,
+        "fat": 27.2
+      },
+      {
+        "baseFoodId": "g02",
+        "grams": 150,
+        "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
+        "cals": 185,
+        "protein": 4.1,
+        "carbs": 39,
+        "fat": 1.5
+      },
+      {
+        "baseFoodId": "v09",
+        "grams": 60,
+        "name": "Zucchini (raw) — Coles Zucchini (60g)",
+        "cals": 10,
+        "protein": 0.7,
+        "carbs": 1.9,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "v13",
+        "grams": 60,
+        "name": "Capsicum / Bell Pepper — Coles Capsicum (60g)",
+        "cals": 19,
+        "protein": 0.6,
+        "carbs": 3.6,
+        "fat": 0.2
+      },
+      {
+        "baseFoodId": "n12",
+        "grams": 8,
+        "name": "Olive Oil — Cobram Estate Extra Virgin Olive Oil (8g)",
+        "cals": 71,
+        "protein": 0,
+        "carbs": 0,
+        "fat": 8
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Slice the skirt steak thinly against the grain and stir-fry in a hot wok or pan for 2-3 minutes until browned.\n2. Add the sliced zucchini and capsicum and stir-fry a further 2-3 minutes.\n3. Cook the brown rice and serve together.",
+    "cals": 717,
+    "protein": 49.6,
+    "carbs": 44.5,
+    "fat": 37.1
+  },
+  {
+    "id": "au_meal_417",
+    "name": "Slow-Cooked Chuck Steak with Mash",
+    "ingredients": [
+      {
+        "baseFoodId": "m42",
+        "grams": 180,
+        "name": "Chuck/Blade Steak (lean, grilled) (180g)",
+        "cals": 378,
+        "protein": 52.2,
+        "carbs": 0,
+        "fat": 18
+      },
+      {
+        "baseFoodId": "v07",
+        "grams": 220,
+        "name": "Mashed Potato (220g)",
+        "cals": 231,
+        "protein": 4.4,
+        "carbs": 35.2,
+        "fat": 8.8
+      },
+      {
+        "baseFoodId": "v04",
+        "grams": 60,
+        "name": "Carrot (raw) (60g)",
+        "cals": 25,
+        "protein": 0.5,
+        "carbs": 6,
+        "fat": 0.1
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Brown the chuck steak, then slow-cook or braise with the diced carrot until fork-tender.\n2. Warm the mashed potato and serve together.",
+    "cals": 634,
+    "protein": 57.1,
+    "carbs": 41.2,
+    "fat": 26.9
+  },
+  {
+    "id": "au_meal_418",
+    "name": "Classic Chicken Schnitzel with Chips & Salad",
+    "ingredients": [
+      {
+        "baseFoodId": "m44",
+        "grams": 180,
+        "name": "Chicken Schnitzel (crumbed, pan-fried) (180g)",
+        "cals": 423,
+        "protein": 36,
+        "carbs": 23.4,
+        "fat": 21.6
+      },
+      {
+        "baseFoodId": "v58",
+        "grams": 200,
+        "name": "Sweet Potato Fries (baked) — Coles Sweet Potato Fries (200g)",
+        "cals": 300,
+        "protein": 4,
+        "carbs": 46,
+        "fat": 10.8
+      },
+      {
+        "baseFoodId": "v61",
+        "grams": 80,
+        "name": "Mixed Salad Leaves — Coles Mixed Salad Leaves (80g)",
+        "cals": 12,
+        "protein": 1.1,
+        "carbs": 2.3,
+        "fat": 0.2
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and pan-fry until golden and cooked through.\n2. Bake the sweet potato fries until crisp.\n3. Serve with a side salad.",
+    "cals": 735,
+    "protein": 41.1,
+    "carbs": 71.7,
+    "fat": 32.6
+  },
+  {
+    "id": "au_meal_419",
+    "name": "Oven-Baked Chicken Schnitzel with Rice & Greens",
+    "ingredients": [
+      {
+        "baseFoodId": "m45",
+        "grams": 180,
+        "name": "Chicken Schnitzel (crumbed, oven-baked) (180g)",
+        "cals": 360,
+        "protein": 39.6,
+        "carbs": 25.2,
+        "fat": 12.6
+      },
+      {
+        "baseFoodId": "g02",
+        "grams": 150,
+        "name": "Brown Rice (cooked) — SunRice Brown Rice (150g)",
+        "cals": 185,
+        "protein": 4.1,
+        "carbs": 39,
+        "fat": 1.5
+      },
+      {
+        "baseFoodId": "v01",
+        "grams": 120,
+        "name": "Broccoli (steamed) — Perfection Fresh Broccoli (120g)",
+        "cals": 42,
+        "protein": 2.9,
+        "carbs": 8.4,
+        "fat": 0.5
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and bake or air-fry until golden and cooked through — a lighter alternative to pan-frying.\n2. Cook the brown rice according to packet instructions.\n3. Steam the broccoli until just tender and serve together.",
+    "cals": 587,
+    "protein": 46.6,
+    "carbs": 72.6,
+    "fat": 14.6
+  },
+  {
+    "id": "au_meal_420",
+    "name": "Chicken Schnitzel Parmigiana with Chips",
+    "ingredients": [
+      {
+        "baseFoodId": "m44",
+        "grams": 180,
+        "name": "Chicken Schnitzel (crumbed, pan-fried) (180g)",
+        "cals": 423,
+        "protein": 36,
+        "carbs": 23.4,
+        "fat": 21.6
+      },
+      {
+        "baseFoodId": "s01",
+        "grams": 40,
+        "name": "Tomato Sauce / Ketchup — Rosella Tomato Sauce (40g)",
+        "cals": 45,
+        "protein": 0.5,
+        "carbs": 10.4,
+        "fat": 0.1
+      },
+      {
+        "baseFoodId": "d10",
+        "grams": 30,
+        "name": "Mozzarella Cheese — Coles Mozzarella Cheese Block (30g)",
+        "cals": 84,
+        "protein": 8.4,
+        "carbs": 0.9,
+        "fat": 5.1
+      },
+      {
+        "baseFoodId": "v58",
+        "grams": 200,
+        "name": "Sweet Potato Fries (baked) — Coles Sweet Potato Fries (200g)",
+        "cals": 300,
+        "protein": 4,
+        "carbs": 46,
+        "fat": 10.8
+      }
+    ],
+    "mealTypes": [
+      "Lunch",
+      "Dinner"
+    ],
+    "instructions": "1. Dip the chicken breast in beaten egg, then coat in breadcrumbs, and pan-fry until golden and cooked through.\n2. Top with the tomato sauce and mozzarella and grill until melted.\n3. Bake the sweet potato fries and serve together.",
+    "cals": 852,
+    "protein": 48.9,
+    "carbs": 80.7,
+    "fat": 37.6
   }
 ];
