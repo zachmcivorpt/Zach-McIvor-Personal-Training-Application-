@@ -3705,7 +3705,7 @@ function NutritionGoalSummaryCard({ targets, dark, onEditTargets }) {
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border ${dark ? "border-white/10" : "border-black/8"}`}
+      className={`relative overflow-hidden border ${dark ? "border-white/10" : "border-black/8"}`}
       style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
     >
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
@@ -3740,9 +3740,15 @@ function NutritionGoalSummaryCard({ targets, dark, onEditTargets }) {
               <div style={{ width: `${fatPct}%`, backgroundColor: "#7DB7FF" }} />
             </div>
             <div className="flex justify-between mt-2">
-              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Protein Goal</span>
-              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Carbs Goal</span>
-              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>Fat Goal</span>
+              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
+                Protein Goal <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{proteinPct}%</span>
+              </span>
+              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
+                Carbs Goal <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{carbsPct}%</span>
+              </span>
+              <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
+                Fat Goal <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{fatPct}%</span>
+              </span>
             </div>
           </>
         )}
@@ -3795,7 +3801,7 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets, show
             onEditTargets={viewingAsClient ? () => setTargetsOpen(true) : undefined}
           />
           <div
-            className={`relative overflow-hidden rounded-2xl border ${dark ? "border-white/10" : "border-black/8"}`}
+            className={`relative overflow-hidden border ${dark ? "border-white/10" : "border-black/8"}`}
             style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
           >
             {/* Thin blue gradient line top and bottom — no glow, no corner
