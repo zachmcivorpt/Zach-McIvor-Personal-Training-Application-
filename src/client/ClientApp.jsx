@@ -140,6 +140,7 @@ import { bestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
+import { NutritionTargetsCard } from "../coach/CoachClientDetail";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
 import {
   BODY_FAT_CONFIG,
@@ -3693,7 +3694,7 @@ const NUTRITION_GRAPH_METRICS = [
 // proportion. Three shades of the app's own blue instead of a
 // green/teal/orange set, matching the coach-side equivalent. Display
 // only — a client doesn't edit their own targets, only their coach does.
-function NutritionGoalSummaryCard({ targets, dark }) {
+function NutritionGoalSummaryCard({ targets, dark, onEditTargets }) {
   // Use the coach's own set percentages directly (resolveNutritionTargets
   // already carries them) rather than re-deriving from the rounded gram
   // values — avoids drifting a point or two off what was actually set.
@@ -3710,13 +3711,26 @@ function NutritionGoalSummaryCard({ targets, dark }) {
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
       <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
       <div className="relative p-5">
-        <div className="flex items-start gap-3">
-          <div className={dark ? "w-9 h-9 rounded-full border border-white/15 flex items-center justify-center shrink-0" : "w-9 h-9 rounded-full border border-black/15 flex items-center justify-center shrink-0"}>
-            <Flame size={16} className={dark ? "text-white/50" : "text-black/50"} />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className={dark ? "w-9 h-9 rounded-full border border-white/15 flex items-center justify-center shrink-0" : "w-9 h-9 rounded-full border border-black/15 flex items-center justify-center shrink-0"}>
+              <Flame size={16} className={dark ? "text-white/50" : "text-black/50"} />
+            </div>
+            <p className={dark ? "text-white font-semibold text-[16px] leading-snug" : "text-black font-semibold text-[16px] leading-snug"}>
+              Eat {Math.round(targets.calories || 0)} Calories per day, with the following macro split
+            </p>
           </div>
-          <p className={dark ? "text-white font-semibold text-[16px] leading-snug" : "text-black font-semibold text-[16px] leading-snug"}>
-            Eat {Math.round(targets.calories || 0)} Calories per day, with the following macro split
-          </p>
+          {/* Only a coach in "View as Client" mode gets this — a client
+              never edits their own targets, only their coach does. */}
+          {onEditTargets && (
+            <button
+              onClick={onEditTargets}
+              aria-label="Edit calories & macros"
+              className={dark ? "text-white/30 hover:text-white/60 shrink-0 mt-1" : "text-black/30 hover:text-black/60 shrink-0 mt-1"}
+            >
+              <MoreVertical size={16} />
+            </button>
+          )}
         </div>
         {total > 0 && (
           <>
@@ -3737,10 +3751,12 @@ function NutritionGoalSummaryCard({ targets, dark }) {
   );
 }
 
-function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets }) {
+function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets, showToast }) {
   const dark = useClientDark();
+  const { currentUser, viewingAsClient } = useApp();
   const [periodKey, setPeriodKey] = useState("fortnight");
   const [metricKey, setMetricKey] = useState("calories");
+  const [targetsOpen, setTargetsOpen] = useState(false);
   if (!open) return null;
 
   const period = NUTRITION_GRAPH_PERIODS.find((p) => p.key === periodKey);
@@ -3773,7 +3789,11 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets }) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-2.5 py-5 space-y-4">
-          <NutritionGoalSummaryCard targets={targets} dark={dark} />
+          <NutritionGoalSummaryCard
+            targets={targets}
+            dark={dark}
+            onEditTargets={viewingAsClient ? () => setTargetsOpen(true) : undefined}
+          />
           <div
             className={`relative overflow-hidden rounded-2xl border ${dark ? "border-white/10" : "border-black/8"}`}
             style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
@@ -3852,6 +3872,10 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets }) {
           </div>
         </div>
       </div>
+
+      {viewingAsClient && (
+        <NutritionTargetsCard client={currentUser} showToast={showToast} open={targetsOpen} onClose={() => setTargetsOpen(false)} />
+      )}
     </FullScreenOverlay>
   );
 }
@@ -5090,6 +5114,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         onClose={() => setGraphOpen(false)}
         nutritionByDateKey={nutritionByDateKey}
         targets={targets}
+        showToast={showToast}
       />
     </div>
   );

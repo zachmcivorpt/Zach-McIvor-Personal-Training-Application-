@@ -3148,7 +3148,10 @@ function TDEECalculator({ client, latestWeight, onApply }) {
 // `open`/`onClose` make it self-contained: both call sites (the diary's
 // "⋯" menu and the graph's own "⋯" menu) just render it directly, no
 // BottomSheet wrapper needed.
-function NutritionTargetsCard({ client, showToast, open, onClose }) {
+// Exported — also used from ClientApp.jsx when a coach is in "View as
+// Client" mode, so they can still edit the real client's targets from
+// inside the client-preview UI rather than losing that action entirely.
+export function NutritionTargetsCard({ client, showToast, open, onClose }) {
   const { db, updateUser } = useApp();
   const saved = { ...DEFAULT_NUTRITION_TARGETS, ...(client.nutritionTargets || {}) };
   const [calories, setCalories] = useState(saved.calories);
