@@ -3,18 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
 import { MEASURE_BLUE, CLIENT_DARK_BG } from "../theme";
-import { LayoutDashboard, Users, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell } from "lucide-react";
+import { LayoutDashboard, Users, Users2, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
 import CoachLibrary from "./CoachLibrary";
 import CoachMessages from "./CoachMessages";
 import CoachChallenges from "./CoachChallenges";
+import CoachGroups from "./CoachGroups";
 import CoachMore from "./CoachMore";
 
 const MAIN_MENU = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
   { id: "messages", label: "Messages", icon: MessageCircle },
   { id: "clients", label: "Clients", icon: Users },
+  { id: "groups", label: "Groups", icon: Users2 },
   { id: "library", label: "Library", icon: Library },
   { id: "challenges", label: "Challenges", icon: Trophy },
 ];
@@ -232,6 +234,7 @@ export default function CoachShell() {
           <CoachLibrary showToast={showToast} openTab={pendingLibraryTab} onOpenTabHandled={() => setPendingLibraryTab(null)} />
         )}
         {tab === "challenges" && <CoachChallenges showToast={showToast} />}
+        {tab === "groups" && <CoachGroups showToast={showToast} />}
         {tab === "messages" && <CoachMessages />}
         {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} showToast={showToast} />}
       </div>

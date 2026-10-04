@@ -350,6 +350,11 @@ export function AppProvider({ children }) {
       watch("bodyStatsSchedules", "bodyStatsSchedules");
       watch("notifications", "notifications");
       watch("challenges", "challenges");
+      // Coach-only for now — there's no client-facing Groups UI yet, so
+      // clients never watch these two collections (mirrors how
+      // clientNotes/clientContext are also coach-only watches above).
+      watch("groups", "groups");
+      watch("groupMessages", "groupMessages");
       watch("nutritionLogs", "nutritionLogs");
       watch("bodyMetrics", "bodyMetrics");
       watch("mealPlans", "mealPlans");
@@ -466,6 +471,19 @@ export function AppProvider({ children }) {
       return out;
     }
 
+    // Same idea as bucket() above, but keyed by any field — groupMessages
+    // buckets by groupId, not clientId, so the clientId-only helper above
+    // doesn't fit it.
+    function bucketBy(list, key, sortFn) {
+      const out = {};
+      for (const item of list || []) {
+        const k = item[key];
+        (out[k] = out[k] || []).push(item);
+      }
+      if (sortFn) Object.values(out).forEach((arr) => arr.sort(sortFn));
+      return out;
+    }
+
     return {
       users,
       exercises: raw.exercises?.length ? raw.exercises : SEED_EXERCISES,
@@ -495,6 +513,11 @@ export function AppProvider({ children }) {
       bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
       notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       challenges: (raw.challenges || []).slice().sort((a, b) => b.createdAt - a.createdAt),
+      // Coach-only for now (see the Groups tab) — groupMessages buckets by
+      // groupId rather than clientId, since a group message belongs to the
+      // group, not to any one client.
+      groups: (raw.groups || []).slice().sort((a, b) => b.createdAt - a.createdAt),
+      groupMessages: bucketBy(raw.groupMessages, "groupId", (a, b) => a.date - b.date),
       coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
       appDesign: raw.appDesign || { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null },
       bodyMetrics: bucket(raw.bodyMetrics, (a, b) => a.date.localeCompare(b.date)),
@@ -1730,6 +1753,51 @@ export function AppProvider({ children }) {
       },
       deleteChallenge(id) {
         deleteDoc(doc(firestore, "challenges", id)).catch(console.error);
+      },
+
+      // Groups — coach-managed groups of clients for group messaging. The
+      // coach-side-only Groups tab (see src/coach/CoachGroups.jsx).
+      async createGroup(data) {
+        const id = newDocId("groups");
+        const group = { id, name: "", description: "", memberIds: [], createdAt: Date.now(), ...data };
+        try {
+          await setDoc(doc(firestore, "groups", id), group);
+        } catch (err) {
+          throw new Error("Couldn't create that group — " + (err.message || "please try again."));
+        }
+        return group;
+      },
+      async updateGroup(id, data) {
+        try {
+          await updateDoc(doc(firestore, "groups", id), data);
+        } catch (err) {
+          throw new Error("Couldn't save that group — " + (err.message || "please try again."));
+        }
+      },
+      // Firestore doesn't cascade-delete — batch-remove the group's own
+      // message history (already held locally via db.groupMessages, no
+      // extra read needed) alongside the group doc itself, chunked the
+      // same way the bulk food/meal imports are, so a group with a long
+      // history doesn't exceed a single batch's 500-write limit.
+      async deleteGroup(id) {
+        try {
+          const msgs = db.groupMessages[id] || [];
+          for (let i = 0; i < msgs.length; i += 400) {
+            const batch = writeBatch(firestore);
+            msgs.slice(i, i + 400).forEach((m) => batch.delete(doc(firestore, "groupMessages", m.id)));
+            await batch.commit();
+          }
+          await deleteDoc(doc(firestore, "groups", id));
+        } catch (err) {
+          throw new Error("Couldn't delete that group — " + (err.message || "please try again."));
+        }
+      },
+      sendGroupMessage(groupId, text) {
+        const trimmed = (text || "").trim();
+        if (!trimmed) return;
+        const id = newDocId("groupMessages");
+        const msg = { id, groupId, from: "coach", text: trimmed, date: Date.now() };
+        setDoc(doc(firestore, "groupMessages", id), msg).catch(console.error);
       },
 
       createSavedMeal(clientId, meal) {

@@ -257,5 +257,19 @@ service cloud.firestore {
       allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.participantIds);
       allow write: if isCoach();
     }
+
+    // --- groups/{id}, groupMessages/{id}: the coach-side Groups tab —
+    //     coach-managed groups of clients with a group chat. Coach-only for
+    //     now, both read and write: there's no client-facing Groups UI yet
+    //     (mirrors clientNotes/clientContext above, which stay coach-only
+    //     at the rules level until a feature actually reads them from the
+    //     client app). Opening client read/write access is a rules change
+    //     to make alongside that future client-side UI, not ahead of it. ---
+    match /groups/{id} {
+      allow read, write: if isCoach();
+    }
+    match /groupMessages/{id} {
+      allow read, write: if isCoach();
+    }
   }
 }
