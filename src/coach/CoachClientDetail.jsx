@@ -1359,10 +1359,26 @@ function CalendarPanel({ client, showToast }) {
       if (key < sinceKey || key > todayStr) return;
       (log.entries || []).forEach((e) => {
         const setCount = (e.sets || []).length;
-        const muscles = exercisesById[e.exerciseId]?.primaryMuscles || [];
+        const ex = exercisesById[e.exerciseId];
+        // "Primary Muscles" is an optional free-text field on an exercise
+        // (Exercises -> Edit) — plenty of real exercises, especially ones
+        // added via bulk video import, only ever got a name/category/
+        // equipment filled in and were left with no muscle tags at all. A
+        // set logged against one of those used to credit nothing, full
+        // stop. Category is the one field that's actually required on
+        // every exercise, so when there's no usable primaryMuscles tag,
+        // fall back to it — it still only credits a real single-muscle
+        // category (e.g. "Chest", "Legs"), never a movement-pattern label
+        // like "Full Body"/"Warm-up"/"Cardio" (normalizeMuscle returns
+        // null for those, same as it always did).
+        const muscles = ex?.primaryMuscles?.length > 0 ? ex.primaryMuscles : [ex?.category];
+        const credited = new Set();
         muscles.forEach((m) => {
           const bucket = normalizeMuscle(m);
-          if (bucket) counts[bucket] += setCount;
+          if (bucket) credited.add(bucket);
+        });
+        credited.forEach((bucket) => {
+          counts[bucket] += setCount;
         });
       });
     });
