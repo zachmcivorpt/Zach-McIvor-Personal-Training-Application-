@@ -74,15 +74,23 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
     >
       {chamfer ? (
         <>
+          {/* A lit metal bevel tracing the card's own edge — top edge
+              brightest toward the right corner, down the right edge, then
+              the chamfer's own diagonal cut lit bright — never a gradient
+              band painted across the card's face. */}
           <div
-            className="pointer-events-none absolute top-0 left-[10%] right-[10%] h-px"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
+            className="pointer-events-none absolute top-0 left-[12%] right-0 h-[2px]"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.25) 55%, rgba(255,255,255,0.85) 100%)" }}
           />
           <div
-            className="pointer-events-none absolute inset-y-0 right-[-15%] w-[65%]"
+            className="pointer-events-none absolute top-0 right-0 bottom-[18px] w-[2px]"
+            style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.15) 60%, transparent)" }}
+          />
+          <div
+            className="pointer-events-none absolute -right-[2px] bottom-[6px] w-[34px] h-[34px]"
             style={{
               background:
-                "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.14) 46%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.14) 54%, transparent 70%)",
+                "linear-gradient(135deg, transparent 46%, rgba(255,255,255,0.95) 49.5%, rgba(255,255,255,0.95) 51.5%, transparent 55%)",
             }}
           />
         </>
