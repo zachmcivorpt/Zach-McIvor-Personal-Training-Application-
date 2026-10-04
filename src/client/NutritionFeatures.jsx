@@ -82,6 +82,14 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
           </div>
         </div>
       )}
+      {food.nutritionSuspect && (
+        <div className={dark ? "bg-[#EF4444]/10 border border-[#EF4444]/25 rounded-2xl p-3 mb-4" : "bg-red-50 border border-red-100 rounded-2xl p-3 mb-4"}>
+          <p className={dark ? "text-[#EF4444] text-xs font-semibold" : "text-red-700 text-xs font-semibold"}>Double-check this against the label</p>
+          <p className={dark ? "text-white/50 text-[11px] mt-0.5" : "text-black/50 text-[11px] mt-0.5"}>
+            The scanned data doesn't add up cleanly ({food.nutritionSuspectReason}) — the source listing may be wrong or mismatched. Check it against the pack before adding; close this and enter it manually if the numbers don't match.
+          </p>
+        </div>
+      )}
       <p className={dark ? "text-white/40 text-xs text-center mb-4" : "text-black/40 text-xs text-center mb-4"}>How much did you have?</p>
 
       {units.length > 1 && (

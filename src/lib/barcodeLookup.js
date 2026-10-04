@@ -19,6 +19,36 @@ function parseServingGrams(product) {
   return match ? parseFloat(match[1]) : null;
 }
 
+// Open Food Facts is crowd-sourced — anyone can submit a product's label,
+// and mismatched/mistyped entries do slip through (a flavoured variant's
+// numbers saved under the plain product's barcode, a misplaced decimal,
+// kJ typed into the kcal field). A scanned product silently trusted as
+// "definitely correct" either way is exactly the failure mode a barcode
+// scanner can't afford, so every result is checked against its own
+// Atwater energy math (protein*4 + carbs*4 + fat*9 ≈ calories) and basic
+// per-100g plausibility before it's handed back — not to reject it (a
+// borderline real product shouldn't become unloggable), but so the
+// confirm screen can tell the client "double-check this one against the
+// label" instead of presenting every scan with equal, unearned confidence.
+export function validateNutrition({ cals, protein, carbs, fat }) {
+  const reasons = [];
+  if (cals == null || cals < 0 || cals > 920) reasons.push("calories outside a plausible per-100g range");
+  if (protein == null || protein < 0 || protein > 100) reasons.push("protein outside a plausible per-100g range");
+  if (carbs == null || carbs < 0 || carbs > 100) reasons.push("carbs outside a plausible per-100g range");
+  if (fat == null || fat < 0 || fat > 100) reasons.push("fat outside a plausible per-100g range");
+  if (reasons.length === 0) {
+    const expected = protein * 4 + carbs * 4 + fat * 9;
+    // Generous tolerance — fibre, sugar alcohols, alcohol and rounding on
+    // the source label all legitimately widen the gap between the two
+    // sides of this check for a real product; this is a "flag it," not a
+    // "reject it," threshold.
+    if (expected > 5 && Math.abs(cals - expected) / Math.max(expected, cals, 1) > 0.35) {
+      reasons.push(`label says ${Math.round(cals)} cal, but ${protein}g protein + ${carbs}g carbs + ${fat}g fat works out to ~${Math.round(expected)} cal`);
+    }
+  }
+  return reasons.length > 0 ? { plausible: false, reason: reasons[0] } : { plausible: true, reason: null };
+}
+
 async function fetchProduct(code, timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -71,7 +101,9 @@ export function stableBarcodeKey(code) {
   return isVariableWeightBarcode(digits) ? digits.slice(0, 6) : digits;
 }
 
-function codeVariants(code) {
+// Exported so the debug trace (below) can show exactly which variants a
+// scanned code expands to, not just that "a lookup happened."
+export function codeVariants(code) {
   const digits = String(code).replace(/\D/g, "");
   const variants = [digits];
   if (digits.length === 12) variants.push("0" + digits);
@@ -109,34 +141,19 @@ async function fetchFirstMatch(variants) {
   });
 }
 
-export async function lookupBarcode(code) {
-  const product = await fetchFirstMatch(codeVariants(code));
-
-  if (!product) {
-    const digits = String(code).replace(/\D/g, "");
-    const err = new Error(`Barcode scanned: ${digits}\nProduct not found — you can still add it manually below.`);
-    err.notFound = true;
-    err.scannedCode = digits;
-    throw err;
-  }
-
+// Maps a raw Open Food Facts product onto a FOOD_DATABASE-shaped entry, or
+// returns a {notFound, reason, productName} descriptor when there's no
+// usable nutrition on it yet. Pulled out of lookupBarcode so the debug
+// trace (below) can report the exact same mapping/validation a real scan
+// would get, instead of a second hand-rolled copy that could drift out of
+// sync with it.
+function mapProductToFood(product, code) {
   const n = product.nutriments || {};
   const name = product.product_name || product.generic_name || `Scanned item (${code})`;
   const hasNutrition = n["energy-kcal_100g"] != null || n["proteins_100g"] != null || n["carbohydrates_100g"] != null || n["fat_100g"] != null;
 
   if (!hasNutrition) {
-    // The product exists in the database (so we know its name) but nobody's
-    // entered its nutrition facts yet — common for smaller/local brands.
-    // Surface the name so manual entry can be pre-filled instead of typed
-    // from scratch, rather than pretending it's a valid zero-calorie food.
-    const digits = String(code).replace(/\D/g, "");
-    const err = new Error(
-      `Barcode scanned: ${digits}\nFound "${name}", but it doesn't have nutrition info yet — you can add it manually below.`
-    );
-    err.notFound = true;
-    err.productName = name;
-    err.scannedCode = digits;
-    throw err;
+    return { notFound: true, reason: "no-nutrition", productName: name };
   }
 
   const cals = Math.round(n["energy-kcal_100g"] || 0);
@@ -162,6 +179,12 @@ export async function lookupBarcode(code) {
     defaultQty: servingGrams || 100,
     fromBarcode: true,
   };
+
+  const validation = validateNutrition({ cals, protein, carbs, fat });
+  if (!validation.plausible) {
+    food.nutritionSuspect = true;
+    food.nutritionSuspectReason = validation.reason;
+  }
 
   // Open Food Facts already reports these when the product's label has been
   // entered in full — real per-100g figures, not estimated — so a scanned
@@ -189,4 +212,98 @@ export async function lookupBarcode(code) {
   });
 
   return food;
+}
+
+export async function lookupBarcode(code) {
+  const product = await fetchFirstMatch(codeVariants(code));
+  const digits = String(code).replace(/\D/g, "");
+
+  if (!product) {
+    const err = new Error(`Barcode scanned: ${digits}\nProduct not found — you can still add it manually below.`);
+    err.notFound = true;
+    err.scannedCode = digits;
+    throw err;
+  }
+
+  const result = mapProductToFood(product, code);
+  if (result.notFound) {
+    // The product exists in the database (so we know its name) but nobody's
+    // entered its nutrition facts yet — common for smaller/local brands.
+    // Surface the name so manual entry can be pre-filled instead of typed
+    // from scratch, rather than pretending it's a valid zero-calorie food.
+    const err = new Error(
+      `Barcode scanned: ${digits}\nFound "${result.productName}", but it doesn't have nutrition info yet — you can add it manually below.`
+    );
+    err.notFound = true;
+    err.productName = result.productName;
+    err.scannedCode = digits;
+    throw err;
+  }
+
+  return result;
+}
+
+// Developer/test-mode trace: runs the exact same lookup real scans use,
+// but reports every step instead of collapsing straight to a result or an
+// error — which variant(s) were tried, which one (if any) actually hit,
+// the raw Open Food Facts product, and the nutrition validation outcome.
+// Source list is honest about what this app actually has: Open Food Facts
+// is the only product database wired in right now (see the top-of-file
+// note), so "sources searched" has exactly one real entry rather than a
+// fabricated multi-source list.
+export async function debugLookupBarcode(code) {
+  const startedAt = Date.now();
+  const digits = String(code).replace(/\D/g, "");
+  const variants = codeVariants(code);
+
+  const perVariant = await Promise.all(
+    variants.map(async (variant) => {
+      const t0 = Date.now();
+      const product = await fetchProduct(variant);
+      return { variant, found: !!product, product, ms: Date.now() - t0 };
+    })
+  );
+
+  const trace = {
+    scannedCode: digits,
+    sourcesSearched: [{ name: "Open Food Facts", url: "https://world.openfoodfacts.org", type: "barcode-exact-match" }],
+    variantsTried: perVariant.map(({ variant, found, ms }) => ({ variant, found, ms })),
+    totalMs: Date.now() - startedAt,
+  };
+
+  const hit = perVariant.find((v) => v.found);
+  if (!hit) {
+    trace.selectedVariant = null;
+    trace.rawProduct = null;
+    trace.outcome = "not-found";
+    trace.confidence = 0;
+    trace.finalFood = null;
+    return trace;
+  }
+
+  trace.selectedVariant = hit.variant;
+  trace.rawProduct = hit.product;
+  // The scanner has exactly one signal to score, by design: did this
+  // exact barcode resolve to an exact record. There's no name/brand
+  // fuzzy-matching step to score separately (unlike a text search), so
+  // "confidence" here means "is this a real exact match with usable,
+  // plausible nutrition" rather than a weighted blend across sources that
+  // don't exist yet.
+  const mapped = mapProductToFood(hit.product, code);
+  if (mapped.notFound) {
+    trace.outcome = "found-no-nutrition";
+    trace.productName = mapped.productName;
+    trace.confidence = 0.4; // real product, identity confirmed, but nothing to log yet
+    trace.finalFood = null;
+    return trace;
+  }
+
+  trace.outcome = "resolved";
+  trace.nutritionValidation = validateNutrition({ cals: mapped.cals, protein: mapped.protein, carbs: mapped.carbs, fat: mapped.fat });
+  trace.confidence = trace.nutritionValidation.plausible ? 0.95 : 0.5;
+  trace.confidenceReason = trace.nutritionValidation.plausible
+    ? "exact barcode match, nutrition data internally consistent"
+    : `exact barcode match, but ${trace.nutritionValidation.reason}`;
+  trace.finalFood = mapped;
+  return trace;
 }

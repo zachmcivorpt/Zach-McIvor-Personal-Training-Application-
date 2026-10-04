@@ -5,8 +5,9 @@ import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput, DeleteA
 import { fileToDataUrl, removeFlatLogoBackground } from "../lib/image";
 import { enablePush, disablePush } from "../lib/push";
 import { uploadDesignImage, uploadLoginBackground } from "../lib/storage";
-import { DarkPage, DarkPageHeader } from "./darkUI";
-import { MEASURE_BLUE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
+import { DarkPage, DarkPageHeader, DarkPanel } from "./darkUI";
+import { MEASURE_BLUE, GOAL_GREEN, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
+import { debugLookupBarcode } from "../lib/barcodeLookup";
 import {
   Video,
   LogOut,
@@ -23,6 +24,7 @@ import {
   ZoomIn,
   ZoomOut,
   Check,
+  ScanBarcode,
 } from "lucide-react";
 
 // Small on/off row shared by the two per-type notification toggles — same
@@ -855,6 +857,146 @@ function DataBackupCard({ db }) {
   );
 }
 
+// Developer/benchmark tool for the barcode scanner: run a lookup without
+// a camera and see exactly what happened — the real variants tried
+// against Open Food Facts, which one (if any) hit, the raw product data,
+// the nutrition plausibility check, and the confidence score it produced.
+// Only reports what the scanner actually has — one real source, scored
+// on an exact-match basis — never a fabricated multi-source comparison.
+function BarcodeDebugCard() {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [trace, setTrace] = useState(null);
+  const [err, setErr] = useState("");
+
+  async function run() {
+    const digits = code.replace(/\D/g, "");
+    if (!digits) return;
+    setBusy(true);
+    setErr("");
+    setTrace(null);
+    try {
+      const result = await debugLookupBarcode(digits);
+      setTrace(result);
+    } catch (e) {
+      setErr(e.message || "Lookup failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const confidenceColor = trace == null ? "rgba(255,255,255,0.4)" : trace.confidence >= 0.9 ? GOAL_GREEN : trace.confidence > 0 ? MEASURE_BLUE : OVER_RED;
+
+  return (
+    <DarkPanel className="p-5">
+      <div className="flex items-center gap-2 mb-1">
+        <ScanBarcode size={16} className="text-white" style={{ color: MEASURE_BLUE }} />
+        <p className="text-white font-bold text-sm">Barcode Lookup Inspector</p>
+      </div>
+      <p className="text-white text-xs mb-4">
+        Dev tool — enter a barcode and see exactly what the scanner's lookup does: which code variants it tries against Open Food Facts, which one resolves, the raw product data, and the nutrition validation that decides its confidence.
+      </p>
+      <div className="flex gap-2 mb-3">
+        <TextInput
+          dark
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/[^\d]/g, ""))}
+          placeholder="Barcode digits, e.g. 9310072032118"
+          inputMode="numeric"
+        />
+        <button
+          onClick={run}
+          disabled={!code.trim() || busy}
+          className="shrink-0 px-4 rounded-xl text-sm font-bold disabled:opacity-40"
+          style={{ backgroundColor: "#fff", color: "#000" }}
+        >
+          {busy ? "…" : "Run"}
+        </button>
+      </div>
+
+      {err && <p className="text-xs" style={{ color: OVER_RED }}>{err}</p>}
+
+      {trace && (
+        <div className="space-y-3 text-xs">
+          <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <span className="text-white/50">Scanned code</span>
+            <span className="text-white font-mono">{trace.scannedCode}</span>
+          </div>
+
+          <div>
+            <p className="text-white/40 mb-1">Sources searched</p>
+            {trace.sourcesSearched.map((s) => (
+              <p key={s.name} className="text-white">
+                {s.name} <span className="text-white/35">({s.type})</span>
+              </p>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-white/40 mb-1">Variants tried ({trace.totalMs}ms total)</p>
+            {trace.variantsTried.map((v) => (
+              <div key={v.variant} className="flex items-center justify-between">
+                <span className="text-white font-mono">{v.variant}</span>
+                <span style={{ color: v.found ? GOAL_GREEN : "rgba(255,255,255,0.35)" }}>{v.found ? `hit · ${v.ms}ms` : `miss · ${v.ms}ms`}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-white/50">Outcome</span>
+            <span className="text-white font-semibold">{trace.outcome}</span>
+          </div>
+
+          {trace.selectedVariant && (
+            <div className="flex items-center justify-between">
+              <span className="text-white/50">Selected variant</span>
+              <span className="text-white font-mono">{trace.selectedVariant}</span>
+            </div>
+          )}
+
+          {trace.productName && (
+            <div className="flex items-center justify-between">
+              <span className="text-white/50">Product found</span>
+              <span className="text-white">{trace.productName} (no nutrition data)</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <span className="text-white/50">Confidence</span>
+            <span className="font-bold" style={{ color: confidenceColor }}>
+              {Math.round(trace.confidence * 100)}%
+            </span>
+          </div>
+          {trace.confidenceReason && <p className="text-white/40">{trace.confidenceReason}</p>}
+
+          {trace.nutritionValidation && !trace.nutritionValidation.plausible && (
+            <div className="rounded-xl p-2.5" style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}>
+              <p style={{ color: OVER_RED }}>Nutrition flagged: {trace.nutritionValidation.reason}</p>
+            </div>
+          )}
+
+          {trace.finalFood && (
+            <div className="border-t pt-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
+              <p className="text-white/40 mb-1">Final food object (per 100g)</p>
+              <p className="text-white">{trace.finalFood.name}</p>
+              <p className="text-white/50">
+                {trace.finalFood.cals} cal · {trace.finalFood.protein}p · {trace.finalFood.carbs}c · {trace.finalFood.fat}f
+              </p>
+            </div>
+          )}
+
+          {trace.rawProduct && (
+            <details className="border-t pt-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
+              <summary className="text-white/40 cursor-pointer">Raw Open Food Facts product JSON</summary>
+              <pre className="text-white/50 text-[10px] mt-2 overflow-x-auto whitespace-pre-wrap break-all">{JSON.stringify(trace.rawProduct, null, 2)}</pre>
+            </details>
+          )}
+        </div>
+      )}
+    </DarkPanel>
+  );
+}
+
 export default function CoachMore({ onNavigate, onLogout, showToast }) {
   const { currentUser, updateUser, updateCoachEmail, db, deleteMyAccount } = useApp();
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -909,6 +1051,8 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
       )}
 
       <DataBackupCard db={db} />
+
+      <BarcodeDebugCard />
 
       <DangerButton className="w-full" dark onClick={onLogout}>
         <LogOut size={14} /> Sign out
