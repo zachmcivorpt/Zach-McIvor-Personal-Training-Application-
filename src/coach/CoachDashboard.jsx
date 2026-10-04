@@ -607,7 +607,14 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
 
     const logs = db.workoutLogs[c.id] || [];
     const daysSinceWorkout = logs[0] ? Math.floor((Date.now() - logs[0].date) / 86400000) : null;
-    const daysSinceLogin = c.lastLoginAt ? Math.floor((Date.now() - c.lastLoginAt) / 86400000) : null;
+    // lastActiveAt is a real in-app-use heartbeat (see AppContext.jsx), not
+    // just the last time Firebase Auth confirmed a sign-in — a client whose
+    // session never needed to re-authenticate could sit on a stale
+    // lastLoginAt for weeks despite opening the app constantly, which would
+    // make this "gone quiet" check fire wrongly. Falls back to lastLoginAt
+    // only for a client who hasn't opened the app again since this shipped.
+    const lastOpenedAt = c.lastActiveAt || c.lastLoginAt;
+    const daysSinceLogin = lastOpenedAt ? Math.floor((Date.now() - lastOpenedAt) / 86400000) : null;
 
     if (daysSinceWorkout !== null && daysSinceWorkout >= QUIET_DAYS && (daysSinceLogin === null || daysSinceLogin >= QUIET_DAYS)) {
       needsAttention.push({

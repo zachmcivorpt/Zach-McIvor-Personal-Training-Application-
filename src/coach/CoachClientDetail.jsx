@@ -5252,14 +5252,18 @@ function PerformanceTimelineCard({ client }) {
           <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
         </div>
         <p className="text-white text-xs text-right shrink-0 mt-0.5">
-          {client.lastLoginAt
-            ? new Date(client.lastLoginAt).toLocaleString(undefined, {
+          {/* lastActiveAt is a real in-app-use heartbeat (see AppContext.jsx),
+              not the sign-in-only lastLoginAt — falls back to lastLoginAt
+              only for a client who hasn't opened the app again since this
+              shipped, so they don't show as having no data at all. */}
+          {client.lastActiveAt || client.lastLoginAt
+            ? new Date(client.lastActiveAt || client.lastLoginAt).toLocaleString(undefined, {
                 month: "short",
                 day: "numeric",
                 hour: "numeric",
                 minute: "2-digit",
               })
-            : "Never logged in"}
+            : "Never opened the app"}
           <span className="block text-white text-[10px] font-medium mt-0.5">Last active</span>
         </p>
       </div>

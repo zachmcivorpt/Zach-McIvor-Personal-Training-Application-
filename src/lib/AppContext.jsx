@@ -207,6 +207,48 @@ export function AppProvider({ children }) {
     );
   }, [role, profile]);
 
+  // The "Last active" a coach sees on a client's profile needs to reflect
+  // actual app USE, not just the last time Firebase Auth confirmed a real
+  // sign-in (lastLoginAt, written once by login()/activateAccount()) — a
+  // session persists for weeks without ever re-authenticating, so a client
+  // who opens the app every single day could still show a stale date from
+  // whenever they first signed in weeks ago. lastActiveAt instead gets
+  // written the moment a client's session is confirmed on every cold open,
+  // again whenever the app is brought back to the foreground (closed and
+  // reopened, or switched back to from another app), and periodically while
+  // a single session stays open for a while — throttled to at most once
+  // every couple of minutes, never a write per render or per
+  // visibility-event flicker. Gated on role === "client" specifically (not
+  // just "signed in") so a coach browsing via "View as Client" — where the
+  // authenticated user is still the coach, profile.role stays "coach" — can
+  // never overwrite the real client's own last-active timestamp.
+  useEffect(() => {
+    if (role !== "client" || !authUser) return;
+    const uid = authUser.uid;
+    const MIN_INTERVAL_MS = 2 * 60 * 1000;
+    let lastWriteAt = 0;
+    function markActive() {
+      const now = Date.now();
+      if (now - lastWriteAt < MIN_INTERVAL_MS) return;
+      lastWriteAt = now;
+      updateDoc(doc(firestore, "users", uid), { lastActiveAt: now }).catch(() => {});
+    }
+    markActive();
+    function onVisible() {
+      if (document.visibilityState === "visible") markActive();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") markActive();
+    }, MIN_INTERVAL_MS);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      clearInterval(interval);
+    };
+  }, [role, authUser]);
+
   const [dbReady, setDbReady] = useState(false);
   // A coach's `dbReady` above only flips once EVERY watched collection has
   // reported in — for a coach with any real history that means the roster
