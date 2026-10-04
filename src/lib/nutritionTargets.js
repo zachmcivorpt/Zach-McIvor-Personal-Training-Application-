@@ -9,16 +9,33 @@ export function macroGrams(calories, pct, kcalPerGram) {
   return Math.round((calories * (pct / 100)) / kcalPerGram);
 }
 
+// Rounding protein/carbs/fat grams independently (three separate
+// Math.round calls) means protein*4 + carbs*4 + fat*9 doesn't reliably
+// land back on the stated calorie target — e.g. the 2200 kcal default
+// (29/44/27%) rounds to 160/242/66g, which is 2202 kcal, not 2200.
+// Protein and fat are rounded first since those are the macros a client
+// actually watches closely; carbs is then derived from whatever calories
+// are left over, so the three gram figures always back-sum to within a
+// couple of calories of the stated target — the best achievable with
+// whole-gram values — instead of three independent roundings compounding.
+export function macroGramsSet(calories, pcts) {
+  const protein = macroGrams(calories, pcts.proteinPct ?? pcts.protein, 4);
+  const fat = macroGrams(calories, pcts.fatPct ?? pcts.fat, 9);
+  const carbs = Math.max(0, Math.round((calories - protein * 4 - fat * 9) / 4));
+  return { protein, carbs, fat };
+}
+
 // Expands stored {calories, proteinPct, carbsPct, fatPct} into the
 // {calories, protein, carbs, fat, water} gram-based shape the rest of the
 // app already expects.
 export function resolveNutritionTargets(stored) {
   const t = { ...DEFAULT_NUTRITION_TARGETS, ...(stored || {}) };
+  const grams = macroGramsSet(t.calories, t);
   return {
     calories: t.calories,
-    protein: macroGrams(t.calories, t.proteinPct, 4),
-    carbs: macroGrams(t.calories, t.carbsPct, 4),
-    fat: macroGrams(t.calories, t.fatPct, 9),
+    protein: grams.protein,
+    carbs: grams.carbs,
+    fat: grams.fat,
     water: DEFAULT_WATER_TARGET,
     proteinPct: t.proteinPct,
     carbsPct: t.carbsPct,

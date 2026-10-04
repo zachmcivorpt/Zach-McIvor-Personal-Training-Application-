@@ -4,7 +4,7 @@ import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay, ExerciseThumb, Field } from "../components/ui";
-import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct, resolveNutritionTargets } from "../lib/nutritionTargets";
+import { DEFAULT_NUTRITION_TARGETS, macroGramsSet, adjustMacroPct, resolveNutritionTargets } from "../lib/nutritionTargets";
 import {
   computePerformanceTimeline,
   computePRsInLastNDays,
@@ -3334,11 +3334,7 @@ export function NutritionTargetsCard({ client, showToast, open, onClose }) {
   if (!open) return null;
 
   const dirty = calories !== saved.calories || pcts.protein !== saved.proteinPct || pcts.carbs !== saved.carbsPct || pcts.fat !== saved.fatPct;
-  const grams = {
-    protein: macroGrams(calories, pcts.protein, 4),
-    carbs: macroGrams(calories, pcts.carbs, 4),
-    fat: macroGrams(calories, pcts.fat, 9),
-  };
+  const grams = macroGramsSet(calories, { proteinPct: pcts.protein, carbsPct: pcts.carbs, fatPct: pcts.fat });
 
   function setPct(key, value) {
     setPcts((prev) => adjustMacroPct(prev, key, value));
