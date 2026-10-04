@@ -4272,40 +4272,43 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
       .filter(Boolean)
       .join(" · ");
     return (
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm px-3.5 py-3">
-        <p className="text-black text-sm font-semibold">{log.cardio.activityLabel || log.dayLabel}</p>
-        <p className="text-black/40 text-xs mt-0.5">
+      <DarkPanel className="px-3.5 py-3">
+        <p className="relative text-white text-sm font-semibold">{log.cardio.activityLabel || log.dayLabel}</p>
+        <p className="relative text-white text-xs mt-0.5">
           {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
           {details && <span> · {details}</span>}
         </p>
-      </div>
+      </DarkPanel>
     );
   }
 
   return (
     <>
-    <div className="bg-white border border-black/10 rounded-2xl overflow-hidden shadow-sm">
-      <button onClick={() => setOpen((v) => !v)} className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left">
-        <div className="w-11 h-11 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-          <Dumbbell size={17} className="text-blue-500" />
+    <DarkPanel className="overflow-hidden">
+      <button onClick={() => setOpen((v) => !v)} className="relative w-full flex items-center gap-3.5 px-4 py-3.5 text-left">
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.12)" }}>
+          <Dumbbell size={17} style={{ color: MEASURE_BLUE }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-black text-[15px] font-semibold">{log.dayLabel}</p>
-          <p className="text-black/40 text-xs mt-1 flex items-center flex-wrap gap-x-1.5 gap-y-1">
+          <p className="text-white text-[15px] font-semibold">{log.dayLabel}</p>
+          <p className="text-white text-xs mt-1 flex items-center flex-wrap gap-x-1.5 gap-y-1">
             <span>
               {new Date(log.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
               {" · "}
               {volume.toLocaleString()} kg lifted
             </span>
             {prCount > 0 && (
-              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[11px] font-bold px-1.5 py-0.5 rounded-md">
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md"
+                style={{ backgroundColor: "rgba(47,196,120,0.12)", color: GOAL_GREEN }}
+              >
                 <Trophy size={10} /> {prCount} PR{prCount === 1 ? "" : "s"}
               </span>
             )}
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
-          {hasFlags && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+          {hasFlags && <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: MEASURE_BLUE }} />}
           <span
             role="button"
             tabIndex={0}
@@ -4313,11 +4316,14 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
               ev.stopPropagation();
               setCommentsOpen(true);
             }}
-            className="relative w-8 h-8 flex items-center justify-center rounded-lg text-black/40 hover:bg-black/5 hover:text-black/70"
+            className="relative w-8 h-8 flex items-center justify-center rounded-lg text-white hover:bg-white/10 hover:text-white"
           >
             <MessageSquare size={16} />
             {comments.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
+              <span
+                className="absolute -top-0.5 -right-0.5 min-w-[14px] h-3.5 px-0.5 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
+                style={{ backgroundColor: MEASURE_BLUE }}
+              >
                 {comments.length}
               </span>
             )}
@@ -4329,80 +4335,81 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
               ev.stopPropagation();
               setMenuOpen((v) => !v);
             }}
-            className="relative w-8 h-8 -mr-1 flex items-center justify-center rounded-lg text-black/40 hover:bg-black/5 hover:text-black/70"
+            className="relative w-8 h-8 -mr-1 flex items-center justify-center rounded-lg text-white hover:bg-white/10 hover:text-white"
           >
             <MoreVertical size={16} />
             {menuOpen && (
               <div
                 onClick={(ev) => ev.stopPropagation()}
-                className="absolute right-0 top-8 z-20 w-52 bg-white border border-black/10 rounded-xl shadow-lg py-1.5 text-left"
+                className="absolute right-0 top-8 z-20 w-52 border rounded-xl shadow-lg py-1.5 text-left"
+                style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
               >
                 <button
                   onClick={() => {
                     setMenuOpen(false);
                     setModal("stats");
                   }}
-                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-black/70 hover:bg-black/[0.04]"
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-white hover:bg-white/10"
                 >
-                  <Edit3 size={13} className="text-black/40" /> Edit Stats
+                  <Edit3 size={13} className="text-white" /> Edit Stats
                 </button>
                 <button
                   onClick={() => {
                     setMenuOpen(false);
                     setModal("move");
                   }}
-                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-black/70 hover:bg-black/[0.04]"
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-white hover:bg-white/10"
                 >
-                  <CalendarClock size={13} className="text-black/40" /> Move To Another Day
+                  <CalendarClock size={13} className="text-white" /> Move To Another Day
                 </button>
                 <button
                   onClick={() => {
                     setMenuOpen(false);
                     setModal("stats");
                   }}
-                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-black/70 hover:bg-black/[0.04]"
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-white hover:bg-white/10"
                 >
-                  <Dumbbell size={13} className="text-black/40" /> Edit This Workout
+                  <Dumbbell size={13} className="text-white" /> Edit This Workout
                 </button>
-                <div className="my-1 border-t border-black/8" />
+                <div className="my-1 border-t" style={{ borderColor: CLIENT_DARK_BORDER }} />
                 <button
                   onClick={() => {
                     setMenuOpen(false);
                     setModal("revert");
                   }}
-                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-black/70 hover:bg-black/[0.04]"
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-white hover:bg-white/10"
                 >
-                  <RotateCcw size={13} className="text-black/40" /> Revert To Scheduled
+                  <RotateCcw size={13} className="text-white" /> Revert To Scheduled
                 </button>
                 <button
                   onClick={() => {
                     setMenuOpen(false);
                     setModal("delete");
                   }}
-                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
+                  className="w-full flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-red-400 hover:bg-red-500/10"
                 >
                   <Trash2 size={13} /> Delete
                 </button>
               </div>
             )}
           </span>
-          <ChevronDown size={16} className={`text-black/30 transition-transform ${open ? "rotate-180" : ""}`} />
+          <ChevronDown size={16} className={`text-white transition-transform ${open ? "rotate-180" : ""}`} />
         </div>
       </button>
       {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
       {open && (
-        <div className="px-4 pb-4 pt-1 space-y-3 border-t border-black/5">
+        <div className="relative px-4 pb-4 pt-1 space-y-3 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
           {(insights.personalBests.length > 0 || insights.notProgressed.length > 0) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3">
               {insights.personalBests.length > 0 && (
-                <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-3.5 py-3">
+                <div className="rounded-xl px-3.5 py-3 border" style={{ backgroundColor: "rgba(47,196,120,0.08)", borderColor: "rgba(47,196,120,0.25)" }}>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Trophy size={13} className="text-emerald-600" />
-                    <p className="text-emerald-700 text-[10px] font-bold tracking-wide uppercase">Personal Bests</p>
+                    <Trophy size={13} style={{ color: GOAL_GREEN }} />
+                    <p className="text-[10px] font-bold tracking-wide uppercase" style={{ color: GOAL_GREEN }}>Personal Bests</p>
                   </div>
                   <div className="space-y-1.5">
                     {insights.personalBests.map((pb) => (
-                      <p key={pb.exerciseId} className="text-emerald-800 text-[13px] leading-snug">
+                      <p key={pb.exerciseId} className="text-[13px] leading-snug" style={{ color: GOAL_GREEN }}>
                         <span className="font-semibold">{pb.exerciseName}</span> — {pb.display}
                       </p>
                     ))}
@@ -4410,16 +4417,16 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                 </div>
               )}
               {insights.notProgressed.length > 0 && (
-                <div className="bg-rose-50 border border-rose-100 rounded-xl px-3.5 py-3">
+                <div className="rounded-xl px-3.5 py-3 border" style={{ backgroundColor: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.25)" }}>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <TrendingDown size={13} className="text-rose-600" />
-                    <p className="text-rose-700 text-[10px] font-bold tracking-wide uppercase">No Progress</p>
+                    <TrendingDown size={13} style={{ color: OVER_RED }} />
+                    <p className="text-[10px] font-bold tracking-wide uppercase" style={{ color: OVER_RED }}>No Progress</p>
                   </div>
                   <div className="space-y-1.5">
                     {insights.notProgressed.map((np) => (
-                      <p key={np.exerciseId} className="text-rose-800 text-[13px] leading-snug">
+                      <p key={np.exerciseId} className="text-[13px] leading-snug" style={{ color: OVER_RED }}>
                         <span className="font-semibold">{np.exerciseName}</span> — {np.current}{" "}
-                        <span className="text-rose-400">(was {np.previous})</span>
+                        <span className="opacity-60">(was {np.previous})</span>
                       </p>
                     ))}
                   </div>
@@ -4428,11 +4435,11 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
             </div>
           )}
           {log.sessionNote && (
-            <div className="flex items-start gap-1.5 bg-blue-50 rounded-lg px-3 py-2.5">
-              <NotebookPen size={12} className="text-blue-600 shrink-0 mt-0.5" />
+            <div className="flex items-start gap-1.5 rounded-lg px-3 py-2.5" style={{ backgroundColor: "rgba(47,143,255,0.1)" }}>
+              <NotebookPen size={12} className="shrink-0 mt-0.5" style={{ color: MEASURE_BLUE }} />
               <div>
-                <p className="text-blue-700 text-[11px] font-semibold mb-0.5">Client's session note</p>
-                <p className="text-blue-600/80 text-xs leading-relaxed whitespace-pre-wrap">{log.sessionNote}</p>
+                <p className="text-[11px] font-semibold mb-0.5" style={{ color: MEASURE_BLUE }}>Client's session note</p>
+                <p className="text-xs leading-relaxed whitespace-pre-wrap" style={{ color: "rgba(47,143,255,0.8)" }}>{log.sessionNote}</p>
               </div>
             </div>
           )}
@@ -4440,20 +4447,23 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
             {log.entries.map((e, i) => {
               const exercise = exercisesById[e.exerciseId];
               return (
-                <div key={i} className="bg-white border border-black/8 rounded-xl px-4 py-3.5 shadow-sm">
-                  <p className="text-black text-sm font-semibold mb-2">{exercise?.name || "Exercise"}</p>
+                <div key={i} className="rounded-xl px-4 py-3.5 border" style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}>
+                  <p className="text-white text-sm font-semibold mb-2">{exercise?.name || "Exercise"}</p>
                   <div className="space-y-1.5">
                     {e.sets.map((s, si) => (
                       <div
                         key={si}
-                        className={`flex items-center gap-3 text-[13px] ${s.isPR ? "text-emerald-700 font-semibold" : "text-black/55"}`}
+                        className="flex items-center gap-3 text-[13px]"
+                        style={{ color: s.isPR ? GOAL_GREEN : "rgba(255,255,255,0.55)", fontWeight: s.isPR ? 600 : undefined }}
                       >
-                        <span className={`w-12 shrink-0 font-medium ${s.isPR ? "text-emerald-600" : "text-black/30"}`}>Set {si + 1}</span>
+                        <span className="w-12 shrink-0 font-medium" style={{ color: s.isPR ? GOAL_GREEN : "rgba(255,255,255,0.3)" }}>
+                          Set {si + 1}
+                        </span>
                         <span>
                           {s.reps} × {s.weight}kg
                         </span>
                         {s.isPR && (
-                          <span className="inline-flex items-center gap-1 text-emerald-600 font-bold text-[11px] ml-auto">
+                          <span className="inline-flex items-center gap-1 font-bold text-[11px] ml-auto" style={{ color: GOAL_GREEN }}>
                             <Trophy size={11} /> PR
                           </span>
                         )}
@@ -4461,29 +4471,29 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                     ))}
                   </div>
                   {e.swapReason && (
-                    <div className="mt-3 bg-blue-50 rounded-lg px-3 py-2.5">
-                      <p className="text-blue-700 text-xs font-semibold flex items-center gap-1.5 mb-1">
+                    <div className="mt-3 rounded-lg px-3 py-2.5" style={{ backgroundColor: "rgba(47,143,255,0.1)" }}>
+                      <p className="text-xs font-semibold flex items-center gap-1.5 mb-1" style={{ color: MEASURE_BLUE }}>
                         <Repeat size={12} /> Swapped from {e.swappedFromName || "planned exercise"}
                       </p>
-                      <p className="text-blue-600/80 text-xs leading-relaxed">{e.swapReason}</p>
+                      <p className="text-xs leading-relaxed" style={{ color: "rgba(47,143,255,0.8)" }}>{e.swapReason}</p>
                     </div>
                   )}
                   {e.note && (
-                    <div className="mt-3 flex items-start gap-1.5 bg-black/[0.04] rounded-lg px-3 py-2.5">
-                      <NotebookPen size={12} className="text-black/40 shrink-0 mt-0.5" />
-                      <p className="text-black/60 text-xs leading-relaxed">{e.note}</p>
+                    <div className="mt-3 flex items-start gap-1.5 rounded-lg px-3 py-2.5" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+                      <NotebookPen size={12} className="text-white shrink-0 mt-0.5" />
+                      <p className="text-white text-xs leading-relaxed">{e.note}</p>
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-          <div className="bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
+          <div className="rounded-xl px-3.5 py-3 border" style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}>
             <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
               <div className="flex items-center gap-1.5">
-                <NotebookPen size={13} className="text-black/40" />
-                <p className="text-black/60 text-xs font-semibold">This Workout's Note</p>
-                <span className="text-black/25 text-[10px]">· private, only visible to you</span>
+                <NotebookPen size={13} className="text-white" />
+                <p className="text-white text-xs font-semibold">This Workout's Note</p>
+                <span className="text-white text-[10px]">· private, only visible to you</span>
               </div>
               {!editingNote && workoutNote && (
                 <div className="flex items-center gap-2 shrink-0">
@@ -4492,11 +4502,11 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                       setNoteDraft(workoutNote.text);
                       setEditingNote(true);
                     }}
-                    className="text-black/30 hover:text-black/60"
+                    className="text-white hover:text-white"
                   >
                     <Edit3 size={13} />
                   </button>
-                  <button onClick={() => deleteClientNote(log.clientId, workoutNote.id)} className="text-black/30 hover:text-red-600">
+                  <button onClick={() => deleteClientNote(log.clientId, workoutNote.id)} className="text-white hover:text-red-400">
                     <Trash2 size={13} />
                   </button>
                 </div>
@@ -4505,6 +4515,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
             {editingNote ? (
               <div className="space-y-2">
                 <TextArea
+                  dark
                   value={noteDraft}
                   onChange={(e) => setNoteDraft(e.target.value)}
                   placeholder="Private note about this workout — only visible to you."
@@ -4523,24 +4534,25 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
                       else addClientNote(log.clientId, trimmed, log.id);
                       setEditingNote(false);
                     }}
-                    className="text-xs font-semibold text-emerald-600 flex items-center gap-1"
+                    className="text-xs font-semibold flex items-center gap-1"
+                    style={{ color: GOAL_GREEN }}
                   >
                     <Check size={13} /> Save
                   </button>
-                  <button onClick={() => setEditingNote(false)} className="text-xs font-semibold text-black/40 flex items-center gap-1">
+                  <button onClick={() => setEditingNote(false)} className="text-xs font-semibold text-white flex items-center gap-1">
                     <X size={13} /> Cancel
                   </button>
                 </div>
               </div>
             ) : workoutNote ? (
-              <p className="text-black/60 text-xs leading-snug whitespace-pre-wrap">{workoutNote.text}</p>
+              <p className="text-white text-xs leading-snug whitespace-pre-wrap">{workoutNote.text}</p>
             ) : (
               <button
                 onClick={() => {
                   setNoteDraft("");
                   setEditingNote(true);
                 }}
-                className="text-black/30 text-xs italic"
+                className="text-white text-xs italic"
               >
                 Add a private note about this workout…
               </button>
@@ -4548,7 +4560,7 @@ export function WorkoutLogCard({ log, exercisesById, defaultOpen = false, allLog
           </div>
         </div>
       )}
-    </div>
+    </DarkPanel>
     {commentsOpen && (
       <CommentsModal log={log} exercisesById={exercisesById} comments={comments} onClose={() => setCommentsOpen(false)} />
     )}
