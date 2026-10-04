@@ -47,19 +47,31 @@ function DarkPanel({ children, className = "", chamfer = false, style }) {
     <div
       className={`relative overflow-hidden border ${chamfer ? "" : "rounded-2xl"} ${className}`}
       style={{
-        backgroundColor: CLIENT_DARK_SURFACE,
-        borderColor: CLIENT_DARK_BORDER,
+        background: chamfer ? "linear-gradient(165deg, #1A1A1A, #121212 55%)" : CLIENT_DARK_SURFACE,
+        borderColor: chamfer ? "rgba(255,255,255,0.14)" : CLIENT_DARK_BORDER,
         clipPath: chamfer ? "polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px))" : undefined,
         ...style,
       }}
     >
-      {/* A single diagonal sheen across the top-right corner — the
-          "light reflection" the reference calls for, restrained to one
-          pass rather than a glow wrapping the whole card. */}
-      <div
-        className="pointer-events-none absolute -top-10 -right-10 w-28 h-28"
-        style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 60%)" }}
-      />
+      {chamfer ? (
+        // A single diagonal light-reflection streak across the card — the
+        // "light reflection" the reference calls for. Only on the chamfered
+        // instrument tiles (stat cards); the full-width panels below (Needs
+        // Attention, Recent Activity, ...) keep the plainer corner glow so a
+        // streak this wide doesn't read as a stray diagonal bar across them.
+        <div
+          className="pointer-events-none absolute inset-y-0 left-[-20%] w-[70%]"
+          style={{
+            background:
+              "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.1) 46%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.1) 54%, transparent 70%)",
+          }}
+        />
+      ) : (
+        <div
+          className="pointer-events-none absolute -top-10 -right-10 w-28 h-28"
+          style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 60%)" }}
+        />
+      )}
       {children}
     </div>
   );
@@ -880,7 +892,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
             </div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            <span className="text-white/35 text-xs font-medium tabular-nums hidden xs:inline">
+            <span className="text-white/35 text-xs font-medium tabular-nums hidden sm:inline">
               {new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
             </span>
             <div className="w-9 h-9 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60">
