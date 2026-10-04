@@ -99,7 +99,6 @@ import {
   FullScreenOverlay,
   NumberStepper,
   Logo,
-  MetricTile,
   DangerButton,
   PrimaryButton,
   SecondaryButton,
@@ -114,6 +113,7 @@ import {
   DeleteAccountSheet,
   SessionIntelligenceCard,
 } from "../components/ui";
+import { MetricTile } from "../components/charts";
 import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, BORDER_STRONG, SURFACE_RAISED, SURFACE, BORDER, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import {
   computeWeeklyVolume,

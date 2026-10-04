@@ -28,12 +28,9 @@ import { httpsCallable } from "firebase/functions";
 import { auth, db as firestore, functions } from "./firebase";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
-import { FOOD_DATABASE } from "./foodDatabase";
-import { FITNESS_MEALS_AU } from "./fitnessMealsAU";
 import { COACH_SETUP_CODE } from "./config";
 import { localDateKey } from "./dateKey";
 import { detectNoteContext } from "./apexInsights";
-import { getLocalNutritionSuggestion } from "./restaurantNutrition";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -1868,6 +1865,14 @@ export function AppProvider({ children }) {
       // library back in sync instead of leaving stale names stuck forever.
       // A coach's own photoUrl on a given meal id is always preserved.
       async importFitnessMealsAU() {
+        // Dynamically imported rather than loaded at module scope — this
+        // 536KB data file is only ever needed for this one explicit
+        // coach-triggered import action, never on a normal app open, so
+        // statically importing it here would mean every single person who
+        // opens APEX (client or coach, every single time) downloads and
+        // parses it before anything can render, for a feature the
+        // overwhelming majority of opens never touch.
+        const { FITNESS_MEALS_AU } = await import("./fitnessMealsAU");
         const existingById = new Map((db.masterMeals || []).map((m) => [m.id, m]));
         const newCount = FITNESS_MEALS_AU.filter((m) => !existingById.has(m.id)).length;
         try {
@@ -1937,6 +1942,11 @@ export function AppProvider({ children }) {
       // running it again after editing an imported food never reverts
       // that edit — it just picks up any built-ins added since last time.
       async importBuiltInFoods() {
+        // Same reasoning as importFitnessMealsAU() above — a 208KB data
+        // file loaded only for this one explicit coach action, dynamically
+        // imported so it's never part of what every app open has to fetch
+        // and parse first.
+        const { FOOD_DATABASE } = await import("./foodDatabase");
         const existingIds = new Set((db.customFoods || []).map((f) => f.id));
         const toImport = FOOD_DATABASE.filter((f) => !existingIds.has(f.id));
         if (toImport.length === 0) return { importedCount: 0 };
@@ -2110,6 +2120,11 @@ export function AppProvider({ children }) {
       // outside this app being configured.
       async nutritionAiHelp(message, context, history, excludeNames) {
         void history; // kept in the signature for API-shape compatibility with callers
+        // Dynamically imported — this module carries the 536KB
+        // FITNESS_MEALS_AU meal library plus its own built-in fast-food
+        // menu data, needed only when a client actually opens "AI
+        // Nutrition Help", never on a normal app launch.
+        const { getLocalNutritionSuggestion } = await import("./restaurantNutrition");
         return getLocalNutritionSuggestion(message, context, excludeNames);
       },
 
