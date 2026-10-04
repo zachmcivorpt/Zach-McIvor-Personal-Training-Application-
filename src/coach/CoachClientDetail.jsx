@@ -2541,17 +2541,21 @@ function TrainingProgramPanel({ client, showToast }) {
                         if (selectMode) toggleDaySelected(d.id);
                         else if (renamingId !== d.id) setPreviewIndex(i);
                       }}
-                      className={`w-full border rounded-2xl px-4 py-3.5 text-left transition-colors cursor-pointer shadow-sm ${
-                        selected ? "bg-blue-50 border-blue-200" : "bg-white hover:border-black/15 border-black/8"
-                      }`}
+                      style={{
+                        backgroundColor: selected ? "rgba(47,143,255,0.08)" : CLIENT_DARK_SURFACE,
+                        borderColor: selected ? "rgba(47,143,255,0.35)" : CLIENT_DARK_BORDER,
+                      }}
+                      className="w-full border rounded-2xl px-4 py-3.5 text-left transition-colors cursor-pointer hover:border-white/20"
                     >
                       {/* top row: identity — thumb, name, stale flag, and (out of the way of the title) the overflow menu */}
                       <div className="flex items-center gap-3">
                         {selectMode && (
                           <span
-                            className={`w-4 h-4 rounded shrink-0 border-2 flex items-center justify-center ${
-                              selected ? "bg-blue-600 border-blue-600" : "border-black/25 bg-white"
-                            }`}
+                            className="w-4 h-4 rounded shrink-0 border-2 flex items-center justify-center"
+                            style={{
+                              backgroundColor: selected ? MEASURE_BLUE : CLIENT_DARK_SURFACE,
+                              borderColor: selected ? MEASURE_BLUE : "rgba(255,255,255,0.25)",
+                            }}
                           >
                             {selected && <Check size={11} className="text-white" strokeWidth={3} />}
                           </span>
@@ -2569,14 +2573,16 @@ function TrainingProgramPanel({ client, showToast }) {
                                 if (e.key === "Escape") setRenamingId(null);
                               }}
                               onBlur={() => confirmRename(i)}
-                              className="bg-white border border-blue-300 rounded-lg px-2 py-1 text-sm font-medium text-black outline-none w-full max-w-xs"
+                              className="border rounded-lg px-2 py-1 text-sm font-medium text-white outline-none w-full max-w-xs"
+                              style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: MEASURE_BLUE }}
                             />
                           ) : (
-                            <p className="text-black font-bold text-[15px] leading-snug line-clamp-1 flex items-center gap-1.5">
+                            <p className="text-white font-bold text-[15px] leading-snug line-clamp-1 flex items-center gap-1.5">
                               {d.label}
                               {d.exercises.some((e) => isExerciseStale(e, phase?.createdAt)) && (
                                 <span
-                                  className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"
+                                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                                  style={{ backgroundColor: MEASURE_BLUE }}
                                   title="Has an exercise that's been in the program 45+ days"
                                 />
                               )}
@@ -2587,30 +2593,33 @@ function TrainingProgramPanel({ client, showToast }) {
                           <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
                             <span
                               onClick={() => setOpenMenuId(openMenuId === d.id ? null : d.id)}
-                              className="w-7 h-7 flex items-center justify-center text-black/40 hover:text-black hover:bg-black/8 rounded-lg cursor-pointer"
+                              className="w-7 h-7 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 rounded-lg cursor-pointer"
                             >
                               <MoreVertical size={15} />
                             </span>
                             {openMenuId === d.id && (
                               <>
                                 <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                                <div className="absolute right-0 top-8 z-20 bg-white border border-black/10 rounded-xl shadow-lg py-1.5 w-40">
-                                  <button onClick={() => startRename(d)} className="w-full text-left px-3 py-2 text-sm text-black/70 hover:bg-black/5">
+                                <div
+                                  className="absolute right-0 top-8 z-20 border rounded-xl shadow-lg py-1.5 w-40"
+                                  style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+                                >
+                                  <button onClick={() => startRename(d)} className="w-full text-left px-3 py-2 text-sm text-white/70 hover:bg-white/10">
                                     Rename
                                   </button>
-                                  <button onClick={() => duplicateWorkoutRow(i)} className="w-full text-left px-3 py-2 text-sm text-black/70 hover:bg-black/5">
+                                  <button onClick={() => duplicateWorkoutRow(i)} className="w-full text-left px-3 py-2 text-sm text-white/70 hover:bg-white/10">
                                     Duplicate
                                   </button>
-                                  <button onClick={() => saveWorkoutRowToLibrary(d)} className="w-full text-left px-3 py-2 text-sm text-black/70 hover:bg-black/5">
+                                  <button onClick={() => saveWorkoutRowToLibrary(d)} className="w-full text-left px-3 py-2 text-sm text-white/70 hover:bg-white/10">
                                     Save to Library
                                   </button>
-                                  <div className="border-t border-black/8 my-1" />
+                                  <div className="border-t my-1" style={{ borderColor: CLIENT_DARK_BORDER }} />
                                   <button
                                     onClick={() => {
                                       deleteWorkout(i);
                                       setOpenMenuId(null);
                                     }}
-                                    className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-red-500/10"
                                   >
                                     Delete
                                   </button>
@@ -2624,12 +2633,12 @@ function TrainingProgramPanel({ client, showToast }) {
                       {/* bottom row: meta + muscle-group tags on the left, primary actions on the right — its own row so it never fights the title for space */}
                       <div className="flex items-center justify-between gap-3 flex-wrap mt-2.5 pl-[52px]">
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
-                          <span className="text-black/40 text-xs font-medium whitespace-nowrap">
+                          <span className="text-white/40 text-xs font-medium whitespace-nowrap">
                             est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
                           </span>
                           {d.muscleGroups?.length > 0 &&
                             d.muscleGroups.map((mg) => (
-                              <span key={mg} className="bg-black/5 text-black/50 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap">
+                              <span key={mg} className="bg-white/5 text-white/50 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap">
                                 {mg}
                               </span>
                             ))}
@@ -2641,7 +2650,7 @@ function TrainingProgramPanel({ client, showToast }) {
                                 e.stopPropagation();
                                 setEditingWorkout({ dayIndex: i, day: d });
                               }}
-                              className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-black/8 transition-colors"
+                              className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
                             >
                               <Edit3 size={13} /> Edit
                             </span>
@@ -2650,7 +2659,8 @@ function TrainingProgramPanel({ client, showToast }) {
                                 e.stopPropagation();
                                 setSchedulingDay(d);
                               }}
-                              className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
+                              className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors hover:bg-white/10"
+                              style={{ color: MEASURE_BLUE }}
                             >
                               <CalendarPlus size={13} /> Schedule
                             </span>
