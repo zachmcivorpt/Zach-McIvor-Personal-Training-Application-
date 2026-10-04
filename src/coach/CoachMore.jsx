@@ -863,11 +863,39 @@ function DataBackupCard({ db }) {
 // the nutrition plausibility check, and the confidence score it produced.
 // Only reports what the scanner actually has — one real source, scored
 // on an exact-match basis — never a fabricated multi-source comparison.
+// Dev-only flag read by BarcodeScanSheet to show a small live overlay
+// during an actual camera scan — camera status, live frame count, last
+// decode, format support, verification pass/fail, lookup state. A plain
+// localStorage flag rather than a Firestore field on principle: this is
+// a per-device debugging aid for whoever is holding the phone testing a
+// real scan, not account data, and it must never be visible to a normal
+// client who hasn't explicitly turned it on here.
+const BARCODE_DEBUG_FLAG = "apex_barcode_scan_debug";
+
 function BarcodeDebugCard() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [trace, setTrace] = useState(null);
   const [err, setErr] = useState("");
+  const [liveDebug, setLiveDebug] = useState(() => {
+    try {
+      return localStorage.getItem(BARCODE_DEBUG_FLAG) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  function toggleLiveDebug() {
+    const next = !liveDebug;
+    setLiveDebug(next);
+    try {
+      if (next) localStorage.setItem(BARCODE_DEBUG_FLAG, "1");
+      else localStorage.removeItem(BARCODE_DEBUG_FLAG);
+    } catch {
+      // localStorage unavailable (private browsing, etc.) — the toggle
+      // still reflects in this session's state, just won't persist
+    }
+  }
 
   async function run() {
     const digits = code.replace(/\D/g, "");
@@ -897,6 +925,22 @@ function BarcodeDebugCard() {
       <p className="text-white text-xs mb-4">
         Dev tool — enter a barcode and see exactly what the scanner's lookup does: which code variants it tries against Open Food Facts, which one resolves, the raw product data, and the nutrition validation that decides its confidence.
       </p>
+
+      <div className="flex items-center justify-between py-2.5 px-3 rounded-xl mb-4" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+        <div className="min-w-0 pr-3">
+          <p className="text-white text-xs font-semibold">Live camera scan diagnostics</p>
+          <p className="text-white/40 text-[11px] mt-0.5">Shows a small overlay on this device's actual scanner (camera status, frames, last decode, verification) while diagnosing a real failed scan. Stays off for everyone else.</p>
+        </div>
+        <button
+          onClick={toggleLiveDebug}
+          className="w-9 h-5 rounded-full relative transition-colors shrink-0"
+          style={{ backgroundColor: liveDebug ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }}
+          aria-label={`Turn ${liveDebug ? "off" : "on"} live scan diagnostics`}
+        >
+          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${liveDebug ? "left-[18px]" : "left-0.5"}`} />
+        </button>
+      </div>
+
       <div className="flex gap-2 mb-3">
         <TextInput
           dark

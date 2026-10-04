@@ -1,9 +1,33 @@
 import React, { useEffect, useRef, useState } from "react";
+// Safari/iOS has never shipped the native BarcodeDetector API (confirmed
+// against WebKit's own bug tracker and caniuse — still disabled behind a
+// flag as of the current Safari release, having actually regressed
+// further in iOS 18) and there's no indication that will change soon. On
+// a device that's an Apple App Store app, that's not an edge case, it's
+// most real users: without this, every one of them was silently falling
+// back to html5-qrcode's bundled zxing-js decoder (a years-old, lightly
+// maintained pure-JS port) no matter what the camera/region config below
+// did, which is the actual reason a clear, real supermarket barcode
+// (glossy/curved packaging in particular) can still fail to be read even
+// after fixing the scan-region crop.
+//
+// This import installs a real `window.BarcodeDetector` using zxing-wasm —
+// an actively maintained WebAssembly build of the genuine ZXing-C++
+// engine, not a JS reimplementation — but only on a browser that doesn't
+// already have one, so Chrome/Android keeps using its faster native
+// hardware-accelerated decoder untouched. html5-qrcode's own
+// `useBarCodeDetectorIfSupported` option (already enabled below) checks
+// exactly this global, so this one import is what makes Safari/iOS use
+// the same fast, boxless, native-BarcodeDetector code path Android
+// already had — no change needed to the scanning logic itself. The one
+// trade-off: the ~2-3MB WASM binary loads from jsDelivr's CDN on first
+// real scan (not on app load), not bundled in this app's own build.
+import "barcode-detector/polyfill";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG } from "../lib/foodDatabase";
-import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey } from "../lib/barcodeLookup";
+import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey, detectBarcodeFormat } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { matchesSearch } from "../lib/search";
@@ -257,6 +281,12 @@ async function safeStop(instance) {
 // correction upstream on Open Food Facts doesn't sit stale indefinitely.
 const CACHE_STALE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
+// Must match BARCODE_DEBUG_FLAG in src/coach/CoachMore.jsx (the toggle
+// lives there, not duplicated here as an import — this file is used by
+// the client app, that one's coach-only, and the two don't otherwise
+// share any dependency in either direction).
+const BARCODE_DEBUG_FLAG = "apex_barcode_scan_debug";
+
 export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   const { db, createFood, updateFood } = useApp();
   const [status, setStatus] = useState("scanning"); // scanning | detected | looking-up | error | not-found
@@ -269,6 +299,14 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   const [manualCode, setManualCode] = useState("");
   const [torchSupported, setTorchSupported] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null); // live scan diagnostics — only populated/shown when BARCODE_DEBUG_FLAG is set
+  const debugEnabled = (() => {
+    try {
+      return localStorage.getItem(BARCODE_DEBUG_FLAG) === "1";
+    } catch {
+      return false;
+    }
+  })();
   const lookedUpCodeRef = useRef(""); // the digits actually resolved — tagged onto a food saved to the library so the next scan/entry of the same barcode is instant
   const scannerRef = useRef(null);
   const elId = "barcode-scanner-region";
@@ -317,8 +355,20 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     lookedUpCodeRef.current = cacheKey;
     setCodeEntryOpen(false);
     setStatus("looking-up");
+    const lookupDebugStartedAt = performance.now();
+    if (debugEnabled) {
+      setDebugInfo((d) => ({ ...d, lookup: "looking-up" }));
+    }
     const known = (db.customFoods || []).find((f) => f.barcode === cacheKey);
     if (known) {
+      if (debugEnabled) {
+        setDebugInfo((d) => ({
+          ...d,
+          lookup: `found (local library cache) · ${Math.round(performance.now() - lookupDebugStartedAt)}ms · verification ${known.verificationLevel || "n/a"}${
+            known.confidenceScore != null ? ` · confidence ${known.confidenceScore}` : ""
+          }`,
+        }));
+      }
       onAdd({ ...known, per: known.per ?? 100, defaultQty: known.defaultQty ?? 100 });
       // A user's own correction is never silently refreshed over — it's
       // the most trustworthy thing on record for this barcode (a human
@@ -361,6 +411,9 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       // skip the network round-trip that can only ever come back empty
       // and go straight to manual entry, saved under the stable key above
       // so this same deli item is a one-time entry, not a repeat chore.
+      if (debugEnabled) {
+        setDebugInfo((d) => ({ ...d, lookup: "skipped network lookup — variable-weight (deli/scale) barcode" }));
+      }
       if (closedRef.current) return;
       setError(
         `Barcode scanned: ${digits}\nThis looks like an in-store scale label (deli/meat/produce) — add its nutrition once below and it'll be remembered next time you scan this item.`
@@ -375,6 +428,14 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       const food = await lookupBarcode(digits);
       // eslint-disable-next-line no-console
       console.debug("[barcode-scan-perf]", { outcome: "lookup-resolved", code: digits, lookupMs: Math.round(performance.now() - lookupStartedAt) });
+      if (debugEnabled) {
+        setDebugInfo((d) => ({
+          ...d,
+          lookup: `found (network) · ${Math.round(performance.now() - lookupStartedAt)}ms · verification ${food.verificationLevel || "n/a"}${
+            food.confidenceScore != null ? ` · confidence ${food.confidenceScore}` : ""
+          }`,
+        }));
+      }
       // Save every successful lookup into the shared food library — permanently,
       // for every client, not just the manual-entry fallback for a "not found"
       // scan — otherwise a real, fully-resolved product (found on Open Food
@@ -392,6 +453,12 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.debug("[barcode-scan-perf]", { outcome: "lookup-failed", code: digits, lookupMs: Math.round(performance.now() - lookupStartedAt), notFound: !!err.notFound });
+      if (debugEnabled) {
+        setDebugInfo((d) => ({
+          ...d,
+          lookup: `${err.notFound ? "barcode valid, no product found" : "lookup error"} · ${Math.round(performance.now() - lookupStartedAt)}ms · ${err.message || ""}`,
+        }));
+      }
       if (closedRef.current) return;
       setError(err.message);
       setErrorDetail("");
@@ -425,10 +492,10 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     let stopped = false;
     let activeScanner = null; // the instance that actually succeeded, if any
 
-    // Dev-only timing/frame instrumentation (console only — never surfaced
-    // to a normal user). openedAt is captured once per sheet-open, not per
-    // camera-constraint retry, so it reflects what the person actually
-    // experienced end to end.
+    // Dev-only timing/frame instrumentation (console always; the on-screen
+    // overlay below only when BARCODE_DEBUG_FLAG is on). openedAt is
+    // captured once per sheet-open, not per camera-constraint retry, so it
+    // reflects what the person actually experienced end to end.
     const perf = { openedAt: performance.now(), cameraReadyAt: null, detectedAt: null, framesProcessed: 0 };
     function logPerf(outcome, extra) {
       const t = (ms) => (ms == null ? null : Math.round(ms - perf.openedAt));
@@ -441,12 +508,33 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
         ...extra,
       });
     }
+    if (debugEnabled) {
+      setDebugInfo({
+        camera: "not-ready",
+        decoder: hasNativeDetector ? "BarcodeDetector (native or polyfilled)" : "zxing-js fallback",
+        formats: BARCODE_FORMATS.map((f) => Object.keys(Html5QrcodeSupportedFormats).find((k) => Html5QrcodeSupportedFormats[k] === f)).join(", "),
+        framesProcessed: 0,
+        lastDetection: null,
+        lastFormatCheck: null,
+        lookup: "idle",
+      });
+    }
 
     async function onDecoded(decodedText) {
       if (stopped) return;
       stopped = true;
       perf.detectedAt = performance.now();
-      logPerf("detected", { code: decodedText.replace(/\D/g, "") });
+      const detectedDigits = decodedText.replace(/\D/g, "");
+      logPerf("detected", { code: detectedDigits });
+      if (debugEnabled) {
+        const formatCheck = detectBarcodeFormat(detectedDigits);
+        setDebugInfo((d) => ({
+          ...d,
+          lastDetection: detectedDigits,
+          lastFormatCheck: `${formatCheck.format} · check digit ${formatCheck.valid === true ? "PASS" : formatCheck.valid === false ? "FAIL" : "n/a"}`,
+          detectedMs: Math.round(perf.detectedAt - perf.openedAt),
+        }));
+      }
       await safeStop(activeScanner);
       // A brief, explicit "got it" beat before the lookup spinner takes
       // over — confirms the decode itself succeeded (this exact code was
@@ -503,6 +591,13 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       // for the dev perf log so a slow/failing scan shows exactly how
       // many frames were actually looked at before giving up or hitting.
       perf.framesProcessed += 1;
+      // Every frame would be excessive re-rendering for a debug overlay
+      // nobody but a dev enables — a few updates a second is plenty to see
+      // it's alive and counting, without turning the overlay itself into
+      // scanner-slowing overhead.
+      if (debugEnabled && perf.framesProcessed % 5 === 0) {
+        setDebugInfo((d) => ({ ...d, framesProcessed: perf.framesProcessed }));
+      }
     };
 
     // Prefer the rear camera, but a device that rejects that constraint
@@ -551,6 +646,9 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
             return;
           }
           perf.cameraReadyAt = performance.now();
+          if (debugEnabled) {
+            setDebugInfo((d) => ({ ...d, camera: "ready", cameraReadyMs: Math.round(perf.cameraReadyAt - perf.openedAt) }));
+          }
           activeScanner = instance;
           scannerRef.current = instance;
           // Torch support varies by device/browser and isn't knowable ahead
@@ -576,6 +674,9 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       if (!cancelled) {
         const classified = classifyCameraError(lastErr);
         logPerf("camera-failed", { reason: classified.raw });
+        if (debugEnabled) {
+          setDebugInfo((d) => ({ ...d, camera: `failed — ${classified.raw}` }));
+        }
         setError(classified.text);
         setErrorDetail(classified.raw);
         setStatus("error");
@@ -690,6 +791,37 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
             )}
           </div>
           <p className={dark ? "text-white/40 text-sm text-center mt-4 px-8" : "text-black/40 text-sm text-center mt-4 px-8"}>Point your camera at a product barcode</p>
+
+          {/* Dev-only diagnostics — never shown unless BARCODE_DEBUG_FLAG is
+              set on this device (toggle lives in Coach → More). Exists to
+              answer, on an actual real-world failed scan, exactly where the
+              pipeline stalled (camera, detection, verification, or lookup)
+              without guessing. */}
+          {debugEnabled && debugInfo && (
+            <div className="px-5 mt-3">
+              <div className="rounded-xl px-3.5 py-3 font-mono" style={{ backgroundColor: "rgba(255,80,80,0.08)", border: "1px solid rgba(255,80,80,0.3)" }}>
+                <p className={dark ? "text-white/50 text-[10px] font-sans font-semibold mb-1.5 tracking-wide" : "text-black/50 text-[10px] font-sans font-semibold mb-1.5 tracking-wide"}>
+                  SCAN DIAGNOSTICS (dev only)
+                </p>
+                {[
+                  ["camera", debugInfo.camera],
+                  ["cameraReadyMs", debugInfo.cameraReadyMs],
+                  ["decoder", debugInfo.decoder],
+                  ["formats", debugInfo.formats],
+                  ["framesProcessed", debugInfo.framesProcessed],
+                  ["lastDetection", debugInfo.lastDetection],
+                  ["lastFormatCheck", debugInfo.lastFormatCheck],
+                  ["detectedMs", debugInfo.detectedMs],
+                  ["lookup", debugInfo.lookup],
+                ].map(([k, v]) => (
+                  <p key={k} className={dark ? "text-white/80 text-[10.5px] leading-[1.6]" : "text-black/80 text-[10.5px] leading-[1.6]"}>
+                    <span className={dark ? "text-white/40" : "text-black/40"}>{k}:</span> {v == null ? "—" : String(v)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="px-5 mt-4">
             {!codeEntryOpen ? (
               <button onClick={() => setCodeEntryOpen(true)} className={dark ? "w-full text-center text-white/40 text-sm font-medium py-2 underline underline-offset-2" : "w-full text-center text-black/40 text-sm font-medium py-2 underline underline-offset-2"}>

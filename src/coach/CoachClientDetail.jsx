@@ -3182,45 +3182,45 @@ function TDEECalculator({ client, latestWeight, onApply }) {
 
   return (
     <div>
-      <p className="text-white text-sm font-semibold mb-3">TDEE Calculator</p>
+      <p className="text-black text-sm font-semibold mb-3">TDEE Calculator</p>
       {!ready ? (
-        <p className="text-white text-xs">Add age, sex and height on the Summary tab to enable this.</p>
+        <p className="text-black/60 text-xs">Add age, sex and height on the Summary tab to enable this.</p>
       ) : (
         <div className="space-y-3.5">
-          <div className="grid grid-cols-3 gap-2 text-center rounded-xl py-2.5" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+          <div className="grid grid-cols-3 gap-2 text-center rounded-xl py-2.5" style={{ backgroundColor: "rgba(10,10,11,0.04)" }}>
             <div>
-              <p className="text-white text-[10px]">AGE</p>
-              <p className="text-white text-sm font-semibold">{client.age}</p>
+              <p className="text-black/50 text-[10px]">AGE</p>
+              <p className="text-black text-sm font-semibold">{client.age}</p>
             </div>
             <div>
-              <p className="text-white text-[10px]">SEX</p>
-              <p className="text-white text-sm font-semibold">{client.sex}</p>
+              <p className="text-black/50 text-[10px]">SEX</p>
+              <p className="text-black text-sm font-semibold">{client.sex}</p>
             </div>
             <div>
-              <p className="text-white text-[10px]">HEIGHT</p>
-              <p className="text-white text-sm font-semibold">{client.heightCm}cm</p>
+              <p className="text-black/50 text-[10px]">HEIGHT</p>
+              <p className="text-black text-sm font-semibold">{client.heightCm}cm</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-white text-[10px] mb-1">CURRENT WEIGHT (KG)</p>
+              <p className="text-black/50 text-[10px] mb-1">CURRENT WEIGHT (KG)</p>
               <input
                 type="number"
                 min={0}
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder={latestWeight ? String(latestWeight) : "No weigh-ins yet"}
-                className="w-full border rounded-lg px-2.5 py-1.5 text-white text-sm outline-none placeholder:text-white"
-                style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+                className="w-full border rounded-lg px-2.5 py-1.5 text-black text-sm outline-none placeholder:text-black/40"
+                style={{ backgroundColor: "#F7F7F8", borderColor: "rgba(10,10,11,0.12)" }}
               />
             </div>
             <div>
-              <p className="text-white text-[10px] mb-1">ACTIVITY LEVEL</p>
+              <p className="text-black/50 text-[10px] mb-1">ACTIVITY LEVEL</p>
               <select
                 value={activity}
                 onChange={(e) => setActivity(e.target.value)}
-                className="w-full border rounded-lg px-2.5 py-1.5 text-white text-xs outline-none"
-                style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+                className="w-full border rounded-lg px-2.5 py-1.5 text-black text-xs outline-none"
+                style={{ backgroundColor: "#F7F7F8", borderColor: "rgba(10,10,11,0.12)" }}
               >
                 {ACTIVITY_LEVELS.map((l) => (
                   <option key={l.key} value={l.key}>
@@ -3231,7 +3231,7 @@ function TDEECalculator({ client, latestWeight, onApply }) {
             </div>
           </div>
           <div>
-            <p className="text-white text-[10px] mb-1">GOAL</p>
+            <p className="text-black/50 text-[10px] mb-1">GOAL</p>
             <div className="grid grid-cols-3 gap-1.5">
               {NUTRITION_GOALS.map((g) => (
                 <button
@@ -3241,8 +3241,8 @@ function TDEECalculator({ client, latestWeight, onApply }) {
                   className="py-1.5 rounded-lg text-xs font-semibold transition-colors border"
                   style={
                     goalKey === g.key
-                      ? { backgroundColor: "#fff", color: "#000", borderColor: "#fff" }
-                      : { backgroundColor: CLIENT_DARK_SURFACE_2, color: "#FFFFFF", borderColor: CLIENT_DARK_BORDER }
+                      ? { backgroundColor: "#000", color: "#fff", borderColor: "#000" }
+                      : { backgroundColor: "#F7F7F8", color: "#0A0A0B", borderColor: "rgba(10,10,11,0.12)" }
                   }
                 >
                   {g.label}
@@ -3251,12 +3251,12 @@ function TDEECalculator({ client, latestWeight, onApply }) {
             </div>
           </div>
           {w > 0 && (
-            <div className="rounded-xl px-3.5 py-3" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
-              <p className="text-white text-[10px]">BMR {Math.round(bmr)} kcal · TDEE {tdee} kcal</p>
+            <div className="rounded-xl px-3.5 py-3" style={{ backgroundColor: "rgba(10,10,11,0.04)" }}>
+              <p className="text-black/50 text-[10px]">BMR {Math.round(bmr)} kcal · TDEE {tdee} kcal</p>
               <div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
                 <div>
-                  <p className="text-white text-lg font-bold leading-none">{suggestedCalories} kcal</p>
-                  <p className="text-white text-[11px] mt-1">
+                  <p className="text-black text-lg font-bold leading-none">{suggestedCalories} kcal</p>
+                  <p className="text-black/50 text-[11px] mt-1">
                     P {goal.macros.protein}% · C {goal.macros.carbs}% · F {goal.macros.fat}%
                   </p>
                 </div>
@@ -3270,7 +3270,7 @@ function TDEECalculator({ client, latestWeight, onApply }) {
                       fatPct: goal.macros.fat,
                     })
                   }
-                  className="bg-white text-black text-xs font-bold px-3 py-2 rounded-lg shrink-0 hover:opacity-90"
+                  className="bg-black text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0 hover:opacity-90"
                 >
                   USE THIS
                 </button>

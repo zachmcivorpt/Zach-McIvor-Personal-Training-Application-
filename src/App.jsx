@@ -1,12 +1,19 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider, useApp } from "./lib/AppContext";
 import { Logo } from "./components/ui";
 import LoginScreen from "./auth/LoginScreen";
 import ActivateScreen from "./auth/ActivateScreen";
-import CoachShell from "./coach/CoachShell";
-import ClientApp from "./client/ClientApp";
 import LegalPage from "./legal/LegalPage";
+
+// CoachShell and ClientApp are each huge route trees (the entire coach
+// console / entire client app) — bundling both into the single main chunk
+// meant every cold launch had to parse+execute both in full before anything
+// could render, even for a client who only ever needs ClientApp. Lazy
+// loading means the critical path (auth check → sign in → one of these two)
+// only ever fetches/runs the one actually needed.
+const CoachShell = lazy(() => import("./coach/CoachShell"));
+const ClientApp = lazy(() => import("./client/ClientApp"));
 
 // Firebase Auth restores a persisted session asynchronously — on a cold
 // launch (most visible tapping an installed PWA icon) there's a brief
@@ -49,7 +56,9 @@ function Routed() {
         path="/coach/*"
         element={
           <RequireRole role="coach">
-            <CoachShell />
+            <Suspense fallback={<SessionLoadingScreen />}>
+              <CoachShell />
+            </Suspense>
           </RequireRole>
         }
       />
@@ -57,7 +66,9 @@ function Routed() {
         path="/app/*"
         element={
           <RequireRole role="client">
-            <ClientApp />
+            <Suspense fallback={<SessionLoadingScreen />}>
+              <ClientApp />
+            </Suspense>
           </RequireRole>
         }
       />
