@@ -7,7 +7,8 @@ import WorkoutEditor from "./WorkoutEditor";
 import { clientStatusPill } from "./CoachClients";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { computeApexInsights } from "../lib/apexInsights";
-import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, CLIENT_DARK_TEXT_MUTED, GOAL_GREEN, OVER_RED } from "../theme";
+import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
+import { DarkPage, DarkPanel, StatCard, MountainTexture } from "./darkUI";
 import {
   Users,
   UserPlus,
@@ -30,59 +31,8 @@ import {
   Trash2,
   Sparkles,
   Bell,
-  ChevronRight,
-  ArrowUpRight,
   CheckCircle2,
 } from "lucide-react";
-
-// Shared "premium instrument panel" surface for the Overview page — a
-// near-black glass card with a hairline border, used instead of the
-// standard light Card everywhere on this page. Kept local to this file
-// (not promoted to components/ui.jsx) since the Coach console's other
-// pages stay on the single light theme — this dark treatment is a
-// deliberate, scoped exception for Overview only, not a site-wide change.
-function DarkPanel({ children, className = "", chamfer = false, style }) {
-  return (
-    <div
-      className={`relative overflow-hidden border ${chamfer ? "" : "rounded-2xl"} ${className}`}
-      style={{
-        background: chamfer ? "linear-gradient(165deg, #1A1A1A, #121212 55%)" : CLIENT_DARK_SURFACE,
-        borderColor: chamfer ? "rgba(255,255,255,0.14)" : CLIENT_DARK_BORDER,
-        clipPath: chamfer ? "polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%)" : undefined,
-        ...style,
-      }}
-    >
-      {chamfer ? (
-        <>
-          {/* A bright hairline right at the top edge — the reference's own
-              "glint" along the top of each tile — plus the diagonal
-              reflection streak crossing through it. Only on the chamfered
-              instrument tiles (stat cards); the full-width panels below
-              (Needs Attention, Recent Activity, ...) keep the plainer
-              corner glow so a streak this wide doesn't read as a stray
-              diagonal bar across them. */}
-          <div
-            className="pointer-events-none absolute top-0 left-[10%] right-[10%] h-px"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
-          />
-          <div
-            className="pointer-events-none absolute inset-y-0 left-[-20%] w-[70%]"
-            style={{
-              background:
-                "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.1) 46%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.1) 54%, transparent 70%)",
-            }}
-          />
-        </>
-      ) : (
-        <div
-          className="pointer-events-none absolute -top-10 -right-10 w-28 h-28"
-          style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 60%)" }}
-        />
-      )}
-      {children}
-    </div>
-  );
-}
 
 function timeOfDayGreeting() {
   const h = new Date().getHours();
@@ -146,35 +96,6 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
         </div>
       </div>
     </div>
-  );
-}
-
-// One of the four premium "instrument" tiles in the stats grid — a
-// chamfered dark glass card with a restrained trend/status line underneath
-// the number (trendKind picks its color: "up" green, "down"/"alert" red,
-// "neutral" muted grey, "link" blue with a chevron). Deliberately plain
-// otherwise — no decoration beyond the one corner sheen DarkPanel already
-// draws — these are meant to read as precision instruments, not posters.
-function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral", onClick }) {
-  const trendColor = trendKind === "up" ? GOAL_GREEN : trendKind === "alert" ? OVER_RED : trendKind === "link" ? MEASURE_BLUE : CLIENT_DARK_TEXT_MUTED;
-  return (
-    <DarkPanel chamfer className="active:scale-[0.98] transition-transform">
-      <button onClick={onClick} className="relative w-full text-left p-4 sm:p-[18px] transition-colors hover:bg-white/[0.03]">
-        <Icon size={16} style={{ color: MEASURE_BLUE }} />
-        <p className="text-white text-[32px] sm:text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
-        <p className="text-white/40 text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5">{label}</p>
-        <div className="flex items-center justify-between mt-2.5">
-          <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: trendColor }}>
-            {trendKind === "up" && <ArrowUpRight size={12} />}
-            {trendKind === "alert" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: OVER_RED }} />}
-            {trendKind === "link" ? <ChevronRight size={14} /> : <span>{trend}</span>}
-          </div>
-          {/* The card's own clickability affordance — tucked beside the
-              chamfered bottom-right corner, same spot the reference uses. */}
-          <ChevronRight size={14} className="text-white/20" />
-        </div>
-      </button>
-    </DarkPanel>
   );
 }
 
@@ -868,39 +789,12 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   const recentActivity = activity.slice(0, 12);
 
   return (
-    // -mt-14 -mb-16 (cancelled back out by matching padding) pulls this
-    // page's dark background up/down over the shared CoachShell content
-    // wrapper's own pt-14/pb-16 (the gap it leaves for the fixed mobile
-    // top/bottom bars) — without it that gap stays the shell's white
-    // background, showing as a pale strip above and below this page's
-    // content on mobile while every other (light) tab blends into it
-    // unnoticed.
-    <div className="-mt-14 -mb-16 pt-14 pb-16 md:mt-0 md:mb-0 md:pt-0 md:pb-0" style={{ backgroundColor: CLIENT_DARK_BG, minHeight: "100%" }}>
-    <div className="max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8">
+    <DarkPage>
       {/* Hero header — a dark glass panel with a faint layered mountain
           silhouette (plain CSS triangles, not a photo — "atmospheric, not
           a giant photograph") washed into the right edge. */}
       <div className="relative overflow-hidden rounded-2xl mb-4 border" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
-        <div
-          className="absolute inset-0 overflow-hidden"
-          style={{
-            maskImage: "linear-gradient(to left, black, transparent 65%)",
-            WebkitMaskImage: "linear-gradient(to left, black, transparent 65%)",
-          }}
-        >
-          <div
-            className="absolute -bottom-6 -right-10 w-[320px] h-[150px] opacity-60"
-            style={{ background: "linear-gradient(160deg, #222a33, #121519)", clipPath: "polygon(30% 0%, 75% 40%, 100% 100%, 0% 100%)" }}
-          />
-          <div
-            className="absolute -bottom-6 right-[-5%] w-[260px] h-[220px] opacity-55"
-            style={{ background: "linear-gradient(160deg, #2a3442, #15191f)", clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" }}
-          />
-          <div
-            className="absolute -bottom-6 right-[8%] w-[180px] h-[160px] opacity-50"
-            style={{ background: "linear-gradient(160deg, #3a4858, #1a1f26)", clipPath: "polygon(40% 0%, 100% 100%, 0% 100%)" }}
-          />
-        </div>
+        <MountainTexture />
         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
         <div className="relative flex items-center justify-between gap-3 px-5 py-6 sm:px-7 sm:py-7">
           <div className="flex items-center gap-4 min-w-0">
@@ -1189,7 +1083,6 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           }}
         />
       )}
-    </div>
-    </div>
+    </DarkPage>
   );
 }
