@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
-import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay, ExerciseThumb } from "../components/ui";
+import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay, ExerciseThumb, Field } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGrams, adjustMacroPct, resolveNutritionTargets } from "../lib/nutritionTargets";
 import {
   computePerformanceTimeline,
@@ -6020,8 +6020,11 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
   // Pausing cuts the client off from the app immediately, and this button
   // sits right next to "View as Client"/"Message" in a tight row of
   // same-size icons — an easy mis-tap. Un-pausing stays instant since it
-  // only ever restores access, never removes it.
+  // only ever restores access, never removes it. Same typed-name friction
+  // as Remove Client below: a stray tap through the sheet can't pause
+  // anyone by accident.
   const [confirmPause, setConfirmPause] = useState(false);
+  const [confirmPauseText, setConfirmPauseText] = useState("");
 
   const client = db.users.find((u) => u.id === clientId);
   if (!client) return null;
@@ -6270,20 +6273,47 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
 
       {messaging && <ThreadView client={client} onClose={() => setMessaging(false)} />}
       <SendLoginSheet open={sendOpen} onClose={() => setSendOpen(false)} client={client} showToast={showToast} />
-      {confirmPause && (
-        <ConfirmActionSheet
-          title="Pause This Client's Access?"
-          body={`${client.name} won't be able to open their program, nutrition, or progress until you resume access. You can undo this any time.`}
-          confirmLabel="Pause Access"
-          danger
-          onConfirm={() => {
-            setClientAccessPaused(client.id, true);
-            showToast("Access paused");
-            setConfirmPause(false);
-          }}
-          onClose={() => setConfirmPause(false)}
-        />
-      )}
+      <BottomSheet
+        open={confirmPause}
+        onClose={() => {
+          setConfirmPause(false);
+          setConfirmPauseText("");
+        }}
+        title="Pause This Client's Access?"
+      >
+        <div className="px-4 pb-4 space-y-4">
+          <p className="text-black/60 text-sm leading-snug">
+            {client.name} won't be able to open their program, nutrition, or progress until you resume access. You can
+            undo this any time.
+          </p>
+          <Field label={`Type their name (${client.name}) to confirm`}>
+            <TextInput value={confirmPauseText} onChange={(e) => setConfirmPauseText(e.target.value)} placeholder="Full name" />
+          </Field>
+          <div className="flex items-center gap-3">
+            <DangerButton
+              className="flex-1 disabled:opacity-40 disabled:cursor-not-allowed"
+              disabled={confirmPauseText.trim().toLowerCase() !== client.name.trim().toLowerCase()}
+              onClick={() => {
+                setClientAccessPaused(client.id, true);
+                showToast("Access paused");
+                setConfirmPause(false);
+                setConfirmPauseText("");
+              }}
+            >
+              Pause Access
+            </DangerButton>
+            <SecondaryButton
+              className="flex-1"
+              onClick={() => {
+                setConfirmPause(false);
+                setConfirmPauseText("");
+              }}
+            >
+              Cancel
+            </SecondaryButton>
+          </div>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

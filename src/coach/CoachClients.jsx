@@ -410,6 +410,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
   // real risk. Un-pausing (restoring access) stays instant since it only
   // ever helps a client, never hurts one.
   const [confirmPauseId, setConfirmPauseId] = useState(null);
+  const [confirmPauseText, setConfirmPauseText] = useState("");
   // Extra friction on top of the sheet itself: typing the exact name (like
   // GitHub's "type the repo name to confirm") means even opening this sheet
   // and tapping through it fast can't delete anyone by accident — the
@@ -785,17 +786,32 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         </DangerButton>
       </BottomSheet>
 
-      <BottomSheet open={!!confirmPauseId} onClose={() => setConfirmPauseId(null)} title="Pause this client's access?">
+      <BottomSheet
+        open={!!confirmPauseId}
+        onClose={() => {
+          setConfirmPauseId(null);
+          setConfirmPauseText("");
+        }}
+        title="Pause this client's access?"
+      >
         <p className="text-black/50 text-sm mb-4">
           {db.users.find((u) => u.id === confirmPauseId)?.name || "This client"} won't be able to open their program,
           nutrition, or progress until you resume access. You can undo this any time.
         </p>
+        <Field label={`Type their name (${db.users.find((u) => u.id === confirmPauseId)?.name || ""}) to confirm`}>
+          <TextInput value={confirmPauseText} onChange={(e) => setConfirmPauseText(e.target.value)} placeholder="Full name" />
+        </Field>
         <DangerButton
-          className="w-full"
+          className="w-full mt-3 disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={
+            confirmPauseText.trim().toLowerCase() !==
+            (db.users.find((u) => u.id === confirmPauseId)?.name || "").trim().toLowerCase()
+          }
           onClick={() => {
             setClientAccessPaused(confirmPauseId, true);
             showToast("Access paused");
             setConfirmPauseId(null);
+            setConfirmPauseText("");
           }}
         >
           <Lock size={14} /> Pause access
