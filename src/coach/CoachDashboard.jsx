@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
-import { Card, Pill, Avatar, BottomSheet } from "../components/ui";
+import { Pill, Avatar, BottomSheet, Logo } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
 import WorkoutEditor from "./WorkoutEditor";
 import { clientStatusPill } from "./CoachClients";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { computeApexInsights } from "../lib/apexInsights";
-import { MEASURE_BLUE, BORDER, SURFACE_RAISED } from "../theme";
+import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, CLIENT_DARK_TEXT_MUTED, GOAL_GREEN, OVER_RED } from "../theme";
 import {
   Users,
   UserPlus,
@@ -29,7 +29,48 @@ import {
   TrendingDown,
   Trash2,
   Sparkles,
+  Bell,
+  ChevronRight,
+  ArrowUpRight,
+  Minus,
+  CheckCircle2,
 } from "lucide-react";
+
+// Shared "premium instrument panel" surface for the Overview page — a
+// near-black glass card with a hairline border, used instead of the
+// standard light Card everywhere on this page. Kept local to this file
+// (not promoted to components/ui.jsx) since the Coach console's other
+// pages stay on the single light theme — this dark treatment is a
+// deliberate, scoped exception for Overview only, not a site-wide change.
+function DarkPanel({ children, className = "", chamfer = false, style }) {
+  return (
+    <div
+      className={`relative overflow-hidden border ${chamfer ? "" : "rounded-2xl"} ${className}`}
+      style={{
+        backgroundColor: CLIENT_DARK_SURFACE,
+        borderColor: CLIENT_DARK_BORDER,
+        clipPath: chamfer ? "polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px))" : undefined,
+        ...style,
+      }}
+    >
+      {/* A single diagonal sheen across the top-right corner — the
+          "light reflection" the reference calls for, restrained to one
+          pass rather than a glow wrapping the whole card. */}
+      <div
+        className="pointer-events-none absolute -top-10 -right-10 w-28 h-28"
+        style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 60%)" }}
+      />
+      {children}
+    </div>
+  );
+}
+
+function timeOfDayGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 // The check-in's own Q&A, plus a reply box right there — so reviewing one
 // from the dashboard doesn't require a separate trip into Messages first.
@@ -89,25 +130,31 @@ function CheckInReviewCard({ clientId, clientName, form, response, sendMessage, 
   );
 }
 
-// One column inside the headline stats panel below — thin dividers between
-// columns rather than four separate boxed cards (see Fuel IQ in
-// ClientApp.jsx for the same visual language this borrows: a restrained
-// blue glow/gradient treatment instead of another card in the grid). No
-// border on the button itself — giving each cell its own border-r/border-b
-// meant two adjacent cells' translucent borders overlapped exactly at the
-// shared corner, compounding into a visibly darker crossing point than the
-// panel's own single-line edges. The dividers are drawn once each instead
-// (see the two <div> hairlines in the grid below), so every line — outer
-// edge and inner divider alike — is the same single pass of the same color.
-function HeadlineStatColumn({ icon: Icon, label, value, onClick }) {
+// One of the four premium "instrument" tiles in the stats grid — a
+// chamfered dark glass card with a restrained trend/status line underneath
+// the number (trendKind picks its color: "up" green, "down"/"alert" red,
+// "neutral" muted grey, "link" blue with a chevron). Deliberately plain
+// otherwise — no decoration beyond the one corner sheen DarkPanel already
+// draws — these are meant to read as precision instruments, not posters.
+function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral", onClick }) {
+  const trendColor = trendKind === "up" ? GOAL_GREEN : trendKind === "alert" ? OVER_RED : trendKind === "link" ? MEASURE_BLUE : CLIENT_DARK_TEXT_MUTED;
   return (
-    <button onClick={onClick} className="text-left p-5 sm:p-6 transition-colors hover:bg-black/[0.02]">
-      <Icon size={15} style={{ color: MEASURE_BLUE }} />
-      <p className="text-black text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
-      <p className="text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5" style={{ color: MEASURE_BLUE }}>
-        {label}
-      </p>
-    </button>
+    <DarkPanel chamfer className="active:scale-[0.98] transition-transform">
+      <button onClick={onClick} className="relative w-full text-left p-4 sm:p-5 transition-colors hover:bg-white/[0.03]">
+        <Icon size={16} style={{ color: MEASURE_BLUE }} />
+        <p className="text-white text-[32px] sm:text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
+        <p className="text-white/40 text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5">{label}</p>
+        {trend && (
+          <div className="flex items-center gap-1 mt-3 text-xs font-semibold" style={{ color: trendColor }}>
+            {trendKind === "up" && <ArrowUpRight size={12} />}
+            {trendKind === "alert" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: OVER_RED }} />}
+            {trendKind === "neutral" && <Minus size={12} />}
+            {trendKind === "link" && <ChevronRight size={12} />}
+            <span>{trend}</span>
+          </div>
+        )}
+      </button>
+    </DarkPanel>
   );
 }
 
@@ -136,18 +183,23 @@ function timeAgo(ts) {
   return `${day} day${day === 1 ? "" : "s"} ago`;
 }
 
-function AvatarStack({ clients, max = 4 }) {
+function AvatarStack({ clients, max = 4, dark = false }) {
   const shown = clients.slice(0, max);
   const extra = clients.length - shown.length;
+  const ringClass = dark ? "ring-2" : "ring-2 ring-white";
+  const ringStyle = dark ? { "--tw-ring-color": CLIENT_DARK_SURFACE } : undefined;
   return (
     <div className="flex items-center -space-x-2">
       {shown.map((c) => (
-        <div key={c.id} className="ring-2 ring-white rounded-full">
-          <Avatar name={c.name} url={c.avatarUrl} size={30} />
+        <div key={c.id} className={`${ringClass} rounded-full`} style={ringStyle}>
+          <Avatar name={c.name} url={c.avatarUrl} size={30} dark={dark} />
         </div>
       ))}
       {extra > 0 && (
-        <div className="w-[30px] h-[30px] rounded-full bg-black/8 ring-2 ring-white flex items-center justify-center text-black/50 text-[11px] font-semibold">
+        <div
+          className={`w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-semibold ${ringClass} ${dark ? "bg-white/10 text-white/50" : "bg-black/8 text-black/50"}`}
+          style={ringStyle}
+        >
           +{extra}
         </div>
       )}
@@ -157,26 +209,25 @@ function AvatarStack({ clients, max = 4 }) {
 
 function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
   return (
-    <div className="flex items-center gap-3 py-3 border-b border-black/5 last:border-0">
+    <div className="flex items-center gap-3 py-3 border-b last:border-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
       <div
-        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-          clients.length ? "bg-blue-50 border border-blue-100" : "bg-black/[0.03] border border-black/8"
-        }`}
+        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border"
+        style={clients.length ? { backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" } : { backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
       >
-        <Icon size={16} className={clients.length ? "text-blue-500" : "text-black/25"} />
+        <Icon size={16} style={{ color: clients.length ? MEASURE_BLUE : "rgba(255,255,255,0.25)" }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-black/70 text-sm font-medium truncate">{label}</p>
+        <p className="text-white/70 text-sm font-medium truncate">{label}</p>
       </div>
       {clients.length > 0 ? (
         <div className="flex items-center gap-2.5 shrink-0">
-          <AvatarStack clients={clients} />
-          <button onClick={onViewAll} className="text-xs font-semibold shrink-0 text-blue-600 hover:text-blue-700">
+          <AvatarStack clients={clients} dark />
+          <button onClick={onViewAll} className="text-xs font-semibold shrink-0 hover:opacity-80" style={{ color: MEASURE_BLUE }}>
             View All
           </button>
         </div>
       ) : (
-        <span className="text-black/25 text-xs shrink-0">All clear</span>
+        <span className="text-white/25 text-xs shrink-0">All clear</span>
       )}
     </div>
   );
@@ -219,7 +270,7 @@ function SwipeableRow({ onDelete, children }) {
 
   return (
     <div ref={rowRef} className="relative overflow-hidden">
-      <div className="absolute inset-0 bg-red-500 flex items-center justify-end pr-3">
+      <div className="absolute inset-0 flex items-center justify-end pr-3" style={{ backgroundColor: OVER_RED }}>
         <Trash2 size={14} className="text-white" />
       </div>
       <div
@@ -227,8 +278,8 @@ function SwipeableRow({ onDelete, children }) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
-        className="relative bg-white touch-pan-y select-none"
+        style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease", backgroundColor: CLIENT_DARK_SURFACE }}
+        className="relative touch-pan-y select-none"
       >
         {children}
       </div>
@@ -243,21 +294,22 @@ function NeedsAttentionRow({ alert, onDismiss, onOpen }) {
     <SwipeableRow onDelete={onDismiss}>
       <div
         onClick={isApex ? () => onOpen(alert) : undefined}
-        className={`flex items-center gap-3 py-3 border-b border-black/5 last:border-0 ${isApex ? "cursor-pointer hover:bg-black/[0.02] -mx-1 px-1 rounded-lg" : ""}`}
+        className={`flex items-center gap-3 py-3 border-b last:border-0 ${isApex ? "cursor-pointer hover:bg-white/[0.03] -mx-1 px-1 rounded-lg" : ""}`}
+        style={{ borderColor: CLIENT_DARK_BORDER }}
       >
-        <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={32} />
+        <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={32} dark />
         <div className="flex-1 min-w-0">
-          <p className="text-black/80 text-[13px] leading-snug">
+          <p className="text-white/80 text-[13px] leading-snug">
             {isApex && (
-              <span className="inline-flex items-center gap-1 text-indigo-600 font-semibold text-[10px] tracking-wide uppercase mr-1.5 align-middle">
+              <span className="inline-flex items-center gap-1 font-semibold text-[10px] tracking-wide uppercase mr-1.5 align-middle" style={{ color: MEASURE_BLUE }}>
                 <Sparkles size={10} /> Apex Insight
               </span>
             )}
-            <span className="font-semibold text-black">{alert.client.name}</span> — {alert.title}
+            <span className="font-semibold text-white">{alert.client.name}</span> — {alert.title}
           </p>
-          <p className="text-black/40 text-[11px] mt-0.5">{alert.detail}</p>
+          <p className="text-white/40 text-[11px] mt-0.5">{alert.detail}</p>
         </div>
-        <Icon size={16} className={isApex ? "text-indigo-500 shrink-0" : "text-red-500 shrink-0"} />
+        <Icon size={16} className="shrink-0" style={{ color: isApex ? MEASURE_BLUE : OVER_RED }} />
       </div>
     </SwipeableRow>
   );
@@ -401,12 +453,13 @@ function ActivityItem({ item, onClick }) {
       // on desktop (see the Recent Activity card in CoachDashboard.jsx),
       // where "last child" doesn't line up with "visually last in either
       // column", so every row keeps its own divider instead.
-      className={`break-inside-avoid flex items-start gap-3 py-3 border-b border-black/5 ${clickable ? "cursor-pointer hover:bg-black/[0.03] -mx-1 px-1 rounded-lg" : ""}`}
+      className={`break-inside-avoid flex items-start gap-3 py-3 border-b ${clickable ? "cursor-pointer hover:bg-white/[0.03] -mx-1 px-1 rounded-lg" : ""}`}
+      style={{ borderColor: CLIENT_DARK_BORDER }}
     >
-      <Avatar name={item.clientName} url={item.clientAvatar} size={32} />
+      <Avatar name={item.clientName} url={item.clientAvatar} size={32} dark />
       <div className="flex-1 min-w-0">
-        <p className="text-black/80 text-[13px] leading-snug">
-          <span className="font-semibold text-black">{item.clientName}</span> {item.verb}{" "}
+        <p className="text-white/80 text-[13px] leading-snug">
+          <span className="font-semibold text-white">{item.clientName}</span> {item.verb}{" "}
           {item.subject && (
             <span className="font-medium" style={{ color: MEASURE_BLUE }}>
               {item.subject}
@@ -414,7 +467,7 @@ function ActivityItem({ item, onClick }) {
           )}
           {item.suffix}
         </p>
-        <p className="text-black/30 text-[11px] mt-1">
+        <p className="text-white/30 text-[11px] mt-1">
           {timeAgo(item.date)}
           {clickable && <span className="font-medium" style={{ color: MEASURE_BLUE }}> · Tap to view</span>}
         </p>
@@ -468,18 +521,18 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
   }
 
   return (
-    <Card>
-      <div className="flex items-center justify-between mb-3">
+    <DarkPanel className="p-5">
+      <div className="relative flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-            <StickyNote size={15} className="text-blue-500" />
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border" style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}>
+            <StickyNote size={15} style={{ color: MEASURE_BLUE }} />
           </div>
-          <p className="text-black font-semibold">Coach's Notes</p>
+          <p className="text-white font-semibold">Coach's Notes</p>
         </div>
         <button
           onClick={save}
           disabled={saving || !dirty}
-          className="text-xs font-bold text-white bg-black px-3 py-1.5 rounded-lg disabled:opacity-30 transition-opacity"
+          className="text-xs font-bold text-black bg-white px-3 py-1.5 rounded-lg disabled:opacity-30 transition-opacity"
         >
           {saving ? "SAVING…" : "SAVE"}
         </button>
@@ -492,9 +545,10 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
         }}
         placeholder="Anything to remember — plans, reminders, things to follow up on. Only you can see this."
         rows={4}
-        className="w-full bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-3 text-sm text-black outline-none placeholder:text-black/30 resize-none"
+        className="relative w-full border rounded-xl px-3.5 py-3 text-sm text-white outline-none placeholder:text-white/30 resize-none"
+        style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
       />
-    </Card>
+    </DarkPanel>
   );
 }
 
@@ -503,6 +557,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = localDateKey();
+  const newActiveThisWeek = active.filter((c) => c.createdAt && Date.now() - c.createdAt <= 7 * 86400000).length;
   const [viewingActivity, setViewingActivity] = useState(null); // the clicked Recent Activity item (workout or check-in) for the detail sheet
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [viewingApexAlert, setViewingApexAlert] = useState(null); // the tapped APEX Insight row, for its detail sheet
@@ -668,10 +723,14 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
     updateUser(currentUser.id, { dismissedAlerts: { [alertId]: Date.now() } });
   }
 
+  // Same "opening the thread clears it" gate as the roster pill and nav dot
+  // (CoachClients.jsx, CoachShell.jsx) — without it this count could read
+  // differently from those for the same client the moment the coach reads
+  // (but hasn't yet replied to) a message.
   const awaitingReply = active.filter((c) => {
     const thread = db.messages[c.id] || [];
     const last = thread[thread.length - 1];
-    return last && last.from === "client";
+    return last && last.from === "client" && last.date > (c.coachMessagesSeenAt || 0);
   }).length;
 
   const pendingCheckinList = [];
@@ -784,80 +843,147 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   const recentActivity = activity.slice(0, 12);
 
   return (
+    // -mt-14 -mb-16 (cancelled back out by matching padding) pulls this
+    // page's dark background up/down over the shared CoachShell content
+    // wrapper's own pt-14/pb-16 (the gap it leaves for the fixed mobile
+    // top/bottom bars) — without it that gap stays the shell's white
+    // background, showing as a pale strip above and below this page's
+    // content on mobile while every other (light) tab blends into it
+    // unnoticed.
+    <div className="-mt-14 -mb-16 pt-14 pb-16 md:mt-0 md:mb-0 md:pt-0 md:pb-0" style={{ backgroundColor: CLIENT_DARK_BG, minHeight: "100%" }}>
     <div className="max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8">
-      <div className="mb-6">
-        <h1 className="text-black text-2xl font-bold">Overview</h1>
-        <p className="text-black/40 text-sm mt-0.5">Your roster and what needs your attention.</p>
-      </div>
-
-      {/* A thin blue gradient line top and bottom — no glow, no corner
-          brackets, just the lines — instead of four separate boxed cards,
-          with dividers between the numbers rather than borders around
-          each one. */}
-      <div className="relative overflow-hidden rounded-2xl mb-4" style={{ backgroundColor: SURFACE_RAISED, border: `1px solid ${BORDER}` }}>
+      {/* Hero header — a dark glass panel with a bare, low-opacity mountain
+          silhouette washed into the right edge (atmospheric, not a photo —
+          see the radial mask below that fades it into the panel rather
+          than letting it read as a hard-edged image). */}
+      <div className="relative overflow-hidden rounded-2xl mb-4 border" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
+        <div
+          className="absolute inset-0 opacity-[0.14]"
+          style={{
+            backgroundImage: "url(/brand/mark-white.png)",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right -40px bottom -60px",
+            backgroundSize: "340px",
+            maskImage: "linear-gradient(to left, black, transparent 70%)",
+            WebkitMaskImage: "linear-gradient(to left, black, transparent 70%)",
+          }}
+        />
         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
-        <div className="relative grid grid-cols-2 md:grid-cols-4">
-          <HeadlineStatColumn icon={Users} label="Active Clients" value={active.length} onClick={() => onNavigate("clients")} />
-          <HeadlineStatColumn icon={Trophy} label="Challenges" value={(db.challenges || []).length} onClick={() => onNavigate("challenges")} />
-          <HeadlineStatColumn
-            icon={NotebookPen}
-            label="Check-ins to Review"
-            value={pendingCheckins}
-            onClick={() => {
-              if (pendingCheckins === 1) {
-                const { client, response } = pendingCheckinList[0];
-                const form = (db.forms || []).find((f) => f.id === response.formId);
-                setViewingActivity({ type: "checkin", clientId: client.id, clientName: client.name, subject: form?.name || "a check-in", response, form });
-              } else {
-                onNavigate("clients");
-              }
-            }}
-          />
-          <HeadlineStatColumn icon={MessageCircle} label="Messages to Reply To" value={awaitingReply} onClick={() => onNavigate("messages")} />
-
-          {/* Divider hairlines, each drawn once — a single vertical + single
-              horizontal line on the 2x2 mobile grid, three verticals and no
-              horizontal on the 1x4 desktop row. */}
-          <div className="absolute inset-y-0 left-1/2 w-px md:hidden" style={{ backgroundColor: BORDER }} />
-          <div className="absolute inset-x-0 top-1/2 h-px md:hidden" style={{ backgroundColor: BORDER }} />
-          <div className="hidden md:block absolute inset-y-0 w-px" style={{ left: "25%", backgroundColor: BORDER }} />
-          <div className="hidden md:block absolute inset-y-0 w-px" style={{ left: "50%", backgroundColor: BORDER }} />
-          <div className="hidden md:block absolute inset-y-0 w-px" style={{ left: "75%", backgroundColor: BORDER }} />
+        <div className="relative flex items-center justify-between gap-3 px-5 py-6 sm:px-7 sm:py-7">
+          <div className="flex items-center gap-4 min-w-0">
+            <Logo variant="mark" tone="white" className="h-10 w-auto shrink-0 hidden sm:block" />
+            <div className="min-w-0">
+              <h1 className="text-white text-xl sm:text-[28px] font-bold leading-tight truncate">
+                {timeOfDayGreeting()}, {currentUser?.name?.split(" ")[0] || "Coach"}
+              </h1>
+              <p className="text-white/40 text-[11px] sm:text-xs font-semibold tracking-[0.1em] uppercase mt-1.5">Your roster and what needs your attention.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-white/35 text-xs font-medium tabular-nums hidden xs:inline">
+              {new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
+            </span>
+            <div className="w-9 h-9 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60">
+              <Bell size={15} />
+            </div>
+            <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={34} dark />
+          </div>
         </div>
       </div>
 
-      <Card className="!p-0 overflow-hidden flex flex-col mb-4">
-        <div className="px-5 pt-5 pb-1 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-red-50 border border-red-100 flex items-center justify-center shrink-0">
-            <AlertTriangle size={15} className="text-red-500" />
+      {/* Primary stats — four individually chamfered instrument tiles
+          instead of one divided panel, each with its own trend/status
+          line (see StatCard above). */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <StatCard
+          icon={Users}
+          label="Active Clients"
+          value={active.length}
+          trend={newActiveThisWeek > 0 ? `+${newActiveThisWeek} this week` : "No change"}
+          trendKind={newActiveThisWeek > 0 ? "up" : "neutral"}
+          onClick={() => onNavigate("clients")}
+        />
+        <StatCard icon={Trophy} label="Challenges" value={(db.challenges || []).length} trend="—" trendKind="neutral" onClick={() => onNavigate("challenges")} />
+        <StatCard
+          icon={NotebookPen}
+          label="Check-ins to Review"
+          value={pendingCheckins}
+          trend={pendingCheckins > 0 ? "Review now" : "—"}
+          trendKind={pendingCheckins > 0 ? "link" : "neutral"}
+          onClick={() => {
+            if (pendingCheckins === 1) {
+              const { client, response } = pendingCheckinList[0];
+              const form = (db.forms || []).find((f) => f.id === response.formId);
+              setViewingActivity({ type: "checkin", clientId: client.id, clientName: client.name, subject: form?.name || "a check-in", response, form });
+            } else {
+              onNavigate("clients");
+            }
+          }}
+        />
+        <StatCard
+          icon={MessageCircle}
+          label="Messages to Reply"
+          value={awaitingReply}
+          trend={awaitingReply > 0 ? `${awaitingReply} new` : "—"}
+          trendKind={awaitingReply > 0 ? "alert" : "neutral"}
+          onClick={() => onNavigate("messages")}
+        />
+      </div>
+
+      <DarkPanel className="flex flex-col mb-4">
+        <div className="relative px-5 pt-5 pb-1 flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
+            style={
+              visibleNeedsAttention.length > 0
+                ? { backgroundColor: "rgba(239,68,68,0.12)", borderColor: "rgba(239,68,68,0.3)" }
+                : { backgroundColor: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.25)" }
+            }
+          >
+            {visibleNeedsAttention.length > 0 ? (
+              <AlertTriangle size={15} style={{ color: OVER_RED }} />
+            ) : (
+              <CheckCircle2 size={15} style={{ color: GOAL_GREEN }} />
+            )}
           </div>
-          <p className="text-black font-semibold">Needs Attention</p>
+          <p className="text-white font-semibold">Needs Attention</p>
           {visibleNeedsAttention.length > 0 && (
-            <span className="bg-red-500 text-white text-[11px] font-bold px-2 py-0.5 rounded-full">{visibleNeedsAttention.length}</span>
+            <span className="text-white text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: OVER_RED }}>
+              {visibleNeedsAttention.length}
+            </span>
           )}
         </div>
-        <div className="px-5 pb-2">
+        <div className="relative px-5 pb-2">
           {visibleNeedsAttention.length === 0 ? (
-            <p className="text-black/30 text-sm text-center py-6">All clients are on track — nothing needs your attention right now.</p>
+            // Calm system-status panel, not a boring grey alert box — a
+            // quiet confirmation that everything's fine, same restrained
+            // language as the rest of the page rather than a dead end.
+            <div className="flex flex-col items-center text-center py-8">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center mb-3 border" style={{ backgroundColor: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.2)" }}>
+                <CheckCircle2 size={20} style={{ color: GOAL_GREEN }} />
+              </div>
+              <p className="text-white/70 text-xs font-bold tracking-[0.12em] uppercase">All clients are on track</p>
+              <p className="text-white/30 text-xs mt-1.5">Nothing needs your attention right now.</p>
+            </div>
           ) : (
             <>
               {visibleNeedsAttention.slice(0, 8).map((a) => (
                 <NeedsAttentionRow key={a.id} alert={a} onDismiss={() => dismissAlert(a.id)} onOpen={setViewingApexAlert} />
               ))}
-              <p className="text-black/25 text-[10px] text-center pt-1 pb-1">Swipe an item left to dismiss it for a week</p>
+              <p className="text-white/25 text-[10px] text-center pt-1 pb-1">Swipe an item left to dismiss it for a week</p>
             </>
           )}
         </div>
-      </Card>
+      </DarkPanel>
 
-      <Card className="!p-0 overflow-hidden flex flex-col mb-4">
-        <div className="px-5 pt-5 pb-3">
-          <p className="text-black font-semibold">Recent Activity</p>
+      <DarkPanel className="flex flex-col mb-4">
+        <div className="relative px-5 pt-5 pb-3">
+          <p className="text-white font-semibold">Recent Activity</p>
+          <p className="text-white/30 text-xs mt-0.5">Your latest client activity.</p>
         </div>
-        <div className="px-5 pb-2 max-h-[420px] overflow-y-auto">
+        <div className="relative px-5 pb-2 max-h-[420px] overflow-y-auto">
           {recentActivity.length === 0 ? (
-            <p className="text-black/30 text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
+            <p className="text-white/30 text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
           ) : (
             <div className="md:columns-2 md:gap-x-8">
               {recentActivity.map((item, i) => (
@@ -866,75 +992,91 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
             </div>
           )}
         </div>
-      </Card>
+      </DarkPanel>
 
-      <Card className="!p-0 overflow-hidden flex flex-col mb-4">
-        <div className="px-5 pt-5 pb-1">
-          <p className="text-black font-semibold">We've auto-tagged your clients based on their needs</p>
+      <DarkPanel className="flex flex-col mb-4">
+        <div className="relative px-5 pt-5 pb-1">
+          <p className="text-white font-semibold">Auto-Tagged Segments</p>
+          <p className="text-white/30 text-xs mt-0.5">Clients grouped by what they need from you next.</p>
         </div>
-        <div className="px-5 pb-2">
+        <div className="relative px-5 pb-2 mt-2">
           <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={Utensils} label="Meal guide ending in a couple of days" clients={mealPlanEndingSoon} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
         </div>
-      </Card>
+      </DarkPanel>
 
       <div className="mb-4">
         <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="md:col-span-1 h-fit">
-          <p className="text-black font-semibold mb-3">Quick actions</p>
-          <div className="space-y-2">
-            <button onClick={() => onNavigate("clients")} className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 rounded-xl px-4 py-3 transition-colors">
-              <UserPlus size={16} className="text-black/60" />
-              <span className="text-black/80 text-sm font-medium flex-1 text-left">Add a new client</span>
+        <DarkPanel className="md:col-span-1 h-fit p-5">
+          <p className="relative text-white font-semibold mb-3">Quick Actions</p>
+          <div className="relative space-y-2">
+            <button
+              onClick={() => onNavigate("clients")}
+              className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
+              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
+            >
+              <UserPlus size={16} className="text-white/50" />
+              <span className="text-white/80 text-sm font-medium flex-1 text-left">Add a new client</span>
             </button>
-            <button onClick={() => onOpenLibrary("programs")} className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 rounded-xl px-4 py-3 transition-colors">
-              <FilePlus size={16} className="text-black/60" />
-              <span className="text-black/80 text-sm font-medium flex-1 text-left">Build a program template</span>
+            <button
+              onClick={() => onOpenLibrary("programs")}
+              className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
+              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
+            >
+              <FilePlus size={16} className="text-white/50" />
+              <span className="text-white/80 text-sm font-medium flex-1 text-left">Build a program template</span>
             </button>
-            <button onClick={() => onNavigate("library")} className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 rounded-xl px-4 py-3 transition-colors">
-              <Video size={16} className="text-black/60" />
-              <span className="text-black/80 text-sm font-medium flex-1 text-left">Add an exercise + video</span>
+            <button
+              onClick={() => onNavigate("library")}
+              className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
+              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
+            >
+              <Video size={16} className="text-white/50" />
+              <span className="text-white/80 text-sm font-medium flex-1 text-left">Add an exercise + video</span>
             </button>
             <button
               onClick={() => setBroadcastOpen(true)}
               disabled={active.length === 0}
               title={active.length === 0 ? "No active clients to broadcast to yet" : undefined}
-              className="w-full flex items-center gap-3 bg-black/5 hover:bg-black/8 disabled:opacity-40 disabled:hover:bg-black/5 rounded-xl px-4 py-3 transition-colors"
+              className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:hover:bg-transparent"
+              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
             >
-              <Flame size={16} className="text-black/60" />
-              <span className="text-black/80 text-sm font-medium flex-1 text-left">Broadcast today's workout</span>
+              <Flame size={16} className="text-white/50" />
+              <span className="text-white/80 text-sm font-medium flex-1 text-left">Broadcast today's workout</span>
             </button>
           </div>
-        </Card>
+        </DarkPanel>
 
-        <Card className="md:col-span-2 h-fit">
-          <p className="text-black font-semibold mb-3">Clients</p>
-          <div className="space-y-2.5">
-            {clients.length === 0 && <p className="text-black/30 text-sm">No clients yet.</p>}
+        <DarkPanel className="md:col-span-2 h-fit p-5">
+          <p className="relative text-white font-semibold mb-3">Clients</p>
+          <div className="relative space-y-2.5">
+            {clients.length === 0 && <p className="text-white/30 text-sm">No clients yet.</p>}
             {clients.slice(0, 8).map((c) => {
               const phases = (db.clientPhases || {})[c.id] || [];
               const phase = getCurrentPhase(phases, todayKey);
               return (
                 <div key={c.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar name={c.name} url={c.avatarUrl} size={32} />
+                    <Avatar name={c.name} url={c.avatarUrl} size={32} dark />
                     <div className="min-w-0">
-                      <p className="text-black text-sm font-medium leading-none truncate">{c.name}</p>
-                      <p className="text-black/35 text-xs mt-1 truncate">{phase ? phase.name : "No phase scheduled"}</p>
+                      <p className="text-white text-sm font-medium leading-none truncate">{c.name}</p>
+                      <p className="text-white/35 text-xs mt-1 truncate">{phase ? phase.name : "No phase scheduled"}</p>
                     </div>
                   </div>
-                  <Pill tone={clientStatusPill(c).tone}>{clientStatusPill(c).label}</Pill>
+                  <Pill tone={clientStatusPill(c).tone} dark>
+                    {clientStatusPill(c).label}
+                  </Pill>
                 </div>
               );
             })}
           </div>
-        </Card>
+        </DarkPanel>
       </div>
 
       <BottomSheet
@@ -1005,6 +1147,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           }}
         />
       )}
+    </div>
     </div>
   );
 }

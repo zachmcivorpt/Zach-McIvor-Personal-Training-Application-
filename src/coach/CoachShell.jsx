@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
+import { MEASURE_BLUE } from "../theme";
 import { LayoutDashboard, Users, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
@@ -237,12 +238,13 @@ export default function CoachShell() {
 
       {/* mobile bottom tab bar — see the top bar above for why translateZ(0) */}
       <div className="dark-chrome md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center" style={{ transform: "translateZ(0)" }}>
-        <div className="w-full bg-[#0A0A0C]/97 backdrop-blur flex px-1 pb-safe">
+        <div className="w-full bg-[#0A0A0C]/97 backdrop-blur flex px-1 pb-safe border-t border-white/[0.06]">
           {MAIN_MENU.map((item) => {
             const Icon = item.icon;
             const active = tab === item.id;
             return (
               <button key={item.id} onClick={() => setTab(item.id)} className="flex-1 flex flex-col items-center gap-1 py-2.5 relative">
+                {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full" style={{ backgroundColor: MEASURE_BLUE }} />}
                 <Icon size={19} className={active ? "text-white" : "text-white/35"} strokeWidth={active ? 2.4 : 2} />
                 <span className={`text-[9px] font-medium leading-none ${active ? "text-white" : "text-white/35"}`}>
                   {item.label}
