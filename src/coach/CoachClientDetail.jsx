@@ -1559,9 +1559,9 @@ function CalendarPanel({ client, showToast }) {
     <div className="px-4 py-5 md:px-6 md:py-6">
       <DarkPanel className="p-4 md:p-5 mb-6">
         <p className="relative text-white font-semibold text-sm mb-0.5">Recent Training Load</p>
-        <p className="relative text-white/40 text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
+        <p className="relative text-white text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
         {muscleBalance.every((m) => m.sets === 0) ? (
-          <p className="relative text-white/30 text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
+          <p className="relative text-white text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
         ) : (
           <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
             {muscleBalance.map((m, i) => (
@@ -1575,7 +1575,7 @@ function CalendarPanel({ client, showToast }) {
                 <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${m.pct}%`, backgroundColor: i < 2 ? OVER_RED : "rgba(255,255,255,0.25)" }} />
                 </div>
-                <span className="text-white/35 text-[11px] w-6 text-right shrink-0">{m.sets}</span>
+                <span className="text-white text-[11px] w-6 text-right shrink-0">{m.sets}</span>
               </div>
             ))}
           </div>
@@ -1591,11 +1591,11 @@ function CalendarPanel({ client, showToast }) {
             { label: "Monthly Nutrition Adherence", stat: monthAdherence.nutrition },
           ].map(({ label, stat }) => (
             <div key={label}>
-              <p className="text-white/50 text-[11px] font-medium mb-1">{label}</p>
+              <p className="text-white text-[11px] font-medium mb-1">{label}</p>
               <div className="flex items-baseline gap-2">
                 <p className="text-white font-bold text-2xl tabular-nums">{stat.pct != null ? `${stat.pct}%` : "—"}</p>
                 {stat.expected > 0 && (
-                  <p className="text-white/30 text-xs tabular-nums">
+                  <p className="text-white text-xs tabular-nums">
                     {stat.completed}/{stat.expected}
                   </p>
                 )}
@@ -1613,14 +1613,14 @@ function CalendarPanel({ client, showToast }) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => shiftMonth(-1)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white/60"
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white"
             >
               <ChevronRight size={17} className="rotate-180" />
             </button>
             <p className="text-white font-bold text-lg w-48 text-center">{monthLabel}</p>
             <button
               onClick={() => shiftMonth(1)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white/60"
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white"
             >
               <ChevronRight size={17} />
             </button>
@@ -1630,14 +1630,14 @@ function CalendarPanel({ client, showToast }) {
               Today
             </button>
             {selectMode ? (
-              <button onClick={exitSelectMode} className="text-white/50 hover:text-white text-sm font-semibold">
+              <button onClick={exitSelectMode} className="text-white hover:text-white text-sm font-semibold">
                 Cancel
               </button>
             ) : (
               <button
                 onClick={() => setSelectMode(true)}
                 aria-label="Select items to delete"
-                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-red-500/10 text-white/50 hover:text-red-400 transition-colors"
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-red-500/10 text-white hover:text-red-400 transition-colors"
               >
                 <Trash2 size={16} />
               </button>
@@ -1650,7 +1650,7 @@ function CalendarPanel({ client, showToast }) {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-white font-semibold text-sm">Bulk delete</p>
-                <p className="text-white/40 text-xs mt-0.5">Filter by type, pick a range, or tap items on the calendar below.</p>
+                <p className="text-white text-xs mt-0.5">Filter by type, pick a range, or tap items on the calendar below.</p>
               </div>
               <button
                 onClick={deleteSelected}
@@ -1662,7 +1662,7 @@ function CalendarPanel({ client, showToast }) {
             </div>
 
             <div>
-              <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">FILTER BY TYPE</p>
+              <p className="text-white text-[11px] font-semibold tracking-wide mb-2">FILTER BY TYPE</p>
               <div className="flex items-center gap-2 flex-wrap">
                 {DELETE_CATEGORIES.map((c) => {
                   const active = activeCategories.has(c.key);
@@ -1671,7 +1671,7 @@ function CalendarPanel({ client, showToast }) {
                       key={c.key}
                       onClick={() => toggleCategory(c.key)}
                       className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                        active ? "bg-white text-black" : "bg-white/5 text-white/50 hover:bg-white/10"
+                        active ? "bg-white text-black" : "bg-white/5 text-white hover:bg-white/10"
                       }`}
                     >
                       {active && <Check size={11} strokeWidth={3} />}
@@ -1683,10 +1683,10 @@ function CalendarPanel({ client, showToast }) {
             </div>
 
             <div className="border-t pt-4" style={{ borderColor: CLIENT_DARK_BORDER }}>
-              <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">DATE RANGE</p>
+              <p className="text-white text-[11px] font-semibold tracking-wide mb-2">DATE RANGE</p>
               <div className="flex items-center gap-2 flex-wrap">
                 <TextInput dark type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} className="!w-auto text-sm py-2" />
-                <ChevronRight size={14} className="text-white/25 shrink-0" />
+                <ChevronRight size={14} className="text-white shrink-0" />
                 <TextInput dark type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} className="!w-auto text-sm py-2" />
                 <button
                   onClick={selectDateRange}
@@ -1702,7 +1702,7 @@ function CalendarPanel({ client, showToast }) {
 
         <div className="relative grid grid-cols-7 border-b pb-2 mb-1" style={{ borderColor: CLIENT_DARK_BORDER }}>
           {CAL_WEEKDAY_LABELS.map((l) => (
-            <p key={l} className="text-white/35 text-xs font-semibold text-center tracking-wide font-sans">
+            <p key={l} className="text-white text-xs font-semibold text-center tracking-wide font-sans">
               {l}
             </p>
           ))}
@@ -1817,7 +1817,7 @@ function CalendarPanel({ client, showToast }) {
                           </div>
                         );
                       })}
-                      {items.length > 4 && <p className="text-white/30 text-[10px]">+{items.length - 4} more</p>}
+                      {items.length > 4 && <p className="text-white text-[10px]">+{items.length - 4} more</p>}
                     </div>
                   </div>
                 );
@@ -1836,7 +1836,7 @@ function CalendarPanel({ client, showToast }) {
           ].map(([color, label]) => (
             <div key={label} className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full border" style={{ borderColor: color }} />
-              <span className="text-white/40 text-xs">{label}</span>
+              <span className="text-white text-xs">{label}</span>
             </div>
           ))}
         </div>
@@ -2316,12 +2316,12 @@ function TrainingProgramPanel({ client, showToast }) {
             </div>
             <div>
               <p className="text-white font-bold text-sm">Session History</p>
-              <p className="text-white/40 text-[11px]">Every completed workout, PRs and stalled lifts flagged automatically</p>
+              <p className="text-white text-[11px]">Every completed workout, PRs and stalled lifts flagged automatically</p>
             </div>
           </div>
           {workoutLogs.length === 0 ? (
             <div className="relative border border-dashed rounded-xl py-8 text-center mt-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
-              <p className="text-white/30 text-sm">No completed workouts yet.</p>
+              <p className="text-white text-sm">No completed workouts yet.</p>
             </div>
           ) : (
             <>
@@ -2333,7 +2333,7 @@ function TrainingProgramPanel({ client, showToast }) {
               {historyLimit < workoutLogs.length && (
                 <button
                   onClick={() => setHistoryLimit((n) => n + 15)}
-                  className="relative w-full text-center text-white/40 hover:text-white text-xs font-semibold py-3 mt-1"
+                  className="relative w-full text-center text-white hover:text-white text-xs font-semibold py-3 mt-1"
                 >
                   Show more ({workoutLogs.length - historyLimit} more)
                 </button>
@@ -2356,7 +2356,7 @@ function TrainingProgramPanel({ client, showToast }) {
             </button>
           </div>
           {sorted.length === 0 ? (
-            <p className="text-white/30 text-xs py-1">No phases yet — add the first one.</p>
+            <p className="text-white text-xs py-1">No phases yet — add the first one.</p>
           ) : (
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               {sorted.map((p) => {
@@ -2367,7 +2367,7 @@ function TrainingProgramPanel({ client, showToast }) {
                     key={p.id}
                     onClick={() => selectPhase(p.id)}
                     className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-colors ${
-                      active ? "bg-white text-black" : "bg-white/10 text-white/60"
+                      active ? "bg-white text-black" : "bg-white/10 text-white"
                     }`}
                   >
                     {p.name}
@@ -2381,8 +2381,8 @@ function TrainingProgramPanel({ client, showToast }) {
 
         {!phase ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
-            <ClipboardList size={28} className="text-white/20 mb-3" />
-            <p className="text-white/50 text-sm">No phase selected yet.</p>
+            <ClipboardList size={28} className="text-white mb-3" />
+            <p className="text-white text-sm">No phase selected yet.</p>
             <button onClick={() => setNewPhaseOpen(true)} className="mt-4 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-opacity hover:opacity-90">
               + Add a phase
             </button>
@@ -2397,19 +2397,19 @@ function TrainingProgramPanel({ client, showToast }) {
 
             <div className="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
               <div className="inline-flex items-center gap-2 rounded-full pl-3 pr-1 py-1.5 shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-                <Calendar size={13} className="text-white/35 shrink-0" />
+                <Calendar size={13} className="text-white shrink-0" />
                 <button
                   type="button"
                   onClick={() => startDateRef.current?.showPicker?.() ?? startDateRef.current?.focus()}
-                  className="text-white/70 text-xs font-semibold whitespace-nowrap"
+                  className="text-white text-xs font-semibold whitespace-nowrap"
                 >
                   {formatDateRangeLabel(phase.startDate)}
                 </button>
-                <span className="text-white/25 text-xs">–</span>
+                <span className="text-white text-xs">–</span>
                 <button
                   type="button"
                   onClick={() => endDateRef.current?.showPicker?.() ?? endDateRef.current?.focus()}
-                  className="text-white/70 text-xs font-semibold whitespace-nowrap"
+                  className="text-white text-xs font-semibold whitespace-nowrap"
                 >
                   {phase.endDate ? formatDateRangeLabel(phase.endDate) : "Set end"}
                 </button>
@@ -2417,21 +2417,21 @@ function TrainingProgramPanel({ client, showToast }) {
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={saveAsMasterProgram}
-                  className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-white hover:text-white text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
                   title="Save this phase as a reusable Master Program"
                 >
                   <Library size={13} /> Save
                 </button>
                 <button
                   onClick={() => setDuplicating(phase)}
-                  className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-white hover:text-white text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
                 >
                   <Copy size={13} /> Duplicate
                 </button>
                 {!confirmDeletePhase || confirmDeletePhase !== phase.id ? (
                   <button
                     onClick={() => setConfirmDeletePhase(phase.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/35 hover:text-red-400 shrink-0"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white hover:text-red-400 shrink-0"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -2483,14 +2483,14 @@ function TrainingProgramPanel({ client, showToast }) {
               <p className="text-white font-semibold text-sm">Workouts</p>
               <div className="flex items-center gap-3 flex-wrap">
                 {!selectMode && days.length > 0 && (
-                  <button onClick={toggleSelectMode} className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-semibold">
+                  <button onClick={toggleSelectMode} className="flex items-center gap-1.5 text-white hover:text-white text-xs font-semibold">
                     <Check size={13} /> Select
                   </button>
                 )}
                 <button onClick={() => setLibraryPickerOpen(true)} className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-80" style={{ color: MEASURE_BLUE }}>
                   <Library size={13} /> From library
                 </button>
-                <button onClick={addWorkout} className="flex items-center gap-1.5 text-white/60 text-xs font-semibold">
+                <button onClick={addWorkout} className="flex items-center gap-1.5 text-white text-xs font-semibold">
                   <Plus size={13} /> New workout
                 </button>
               </div>
@@ -2519,7 +2519,7 @@ function TrainingProgramPanel({ client, showToast }) {
                   >
                     <Trash2 size={12} /> Delete{selectedDayIds.size > 0 ? ` (${selectedDayIds.size})` : ""}
                   </button>
-                  <button onClick={toggleSelectMode} className="text-white/50 hover:text-white text-xs font-semibold px-2">
+                  <button onClick={toggleSelectMode} className="text-white hover:text-white text-xs font-semibold px-2">
                     Cancel
                   </button>
                 </div>
@@ -2528,7 +2528,7 @@ function TrainingProgramPanel({ client, showToast }) {
 
             {days.length === 0 ? (
               <div className="border border-dashed rounded-2xl py-10 text-center" style={{ borderColor: CLIENT_DARK_BORDER }}>
-                <p className="text-white/30 text-sm">No workouts in this phase yet.</p>
+                <p className="text-white text-sm">No workouts in this phase yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -2593,7 +2593,7 @@ function TrainingProgramPanel({ client, showToast }) {
                           <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
                             <span
                               onClick={() => setOpenMenuId(openMenuId === d.id ? null : d.id)}
-                              className="w-7 h-7 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 rounded-lg cursor-pointer"
+                              className="w-7 h-7 flex items-center justify-center text-white hover:text-white hover:bg-white/10 rounded-lg cursor-pointer"
                             >
                               <MoreVertical size={15} />
                             </span>
@@ -2604,13 +2604,13 @@ function TrainingProgramPanel({ client, showToast }) {
                                   className="absolute right-0 top-8 z-20 border rounded-xl shadow-lg py-1.5 w-40"
                                   style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
                                 >
-                                  <button onClick={() => startRename(d)} className="w-full text-left px-3 py-2 text-sm text-white/70 hover:bg-white/10">
+                                  <button onClick={() => startRename(d)} className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10">
                                     Rename
                                   </button>
-                                  <button onClick={() => duplicateWorkoutRow(i)} className="w-full text-left px-3 py-2 text-sm text-white/70 hover:bg-white/10">
+                                  <button onClick={() => duplicateWorkoutRow(i)} className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10">
                                     Duplicate
                                   </button>
-                                  <button onClick={() => saveWorkoutRowToLibrary(d)} className="w-full text-left px-3 py-2 text-sm text-white/70 hover:bg-white/10">
+                                  <button onClick={() => saveWorkoutRowToLibrary(d)} className="w-full text-left px-3 py-2 text-sm text-white hover:bg-white/10">
                                     Save to Library
                                   </button>
                                   <div className="border-t my-1" style={{ borderColor: CLIENT_DARK_BORDER }} />
@@ -2633,12 +2633,12 @@ function TrainingProgramPanel({ client, showToast }) {
                       {/* bottom row: meta + muscle-group tags on the left, primary actions on the right — its own row so it never fights the title for space */}
                       <div className="flex items-center justify-between gap-3 flex-wrap mt-2.5 pl-[52px]">
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
-                          <span className="text-white/40 text-xs font-medium whitespace-nowrap">
+                          <span className="text-white text-xs font-medium whitespace-nowrap">
                             est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
                           </span>
                           {d.muscleGroups?.length > 0 &&
                             d.muscleGroups.map((mg) => (
-                              <span key={mg} className="bg-white/5 text-white/50 text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap">
+                              <span key={mg} className="bg-white/5 text-white text-[11px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap">
                                 {mg}
                               </span>
                             ))}
@@ -2650,7 +2650,7 @@ function TrainingProgramPanel({ client, showToast }) {
                                 e.stopPropagation();
                                 setEditingWorkout({ dayIndex: i, day: d });
                               }}
-                              className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                              className="flex items-center gap-1.5 text-white hover:text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
                             >
                               <Edit3 size={13} /> Edit
                             </span>
@@ -2775,34 +2775,38 @@ function HabitsPanel({ client }) {
 
   return (
     <div className="max-w-xl px-4 py-5 md:px-6 md:py-6">
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <DarkPanel className="p-4 md:p-5">
+        <div className="relative flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
-              <ListChecks size={15} className="text-amber-600" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.12)" }}>
+              <ListChecks size={15} style={{ color: MEASURE_BLUE }} />
             </div>
-            <p className="text-black font-semibold text-sm">Daily Execution</p>
+            <p className="text-white font-semibold text-sm">Daily Execution</p>
           </div>
-          {habits.length > 0 && <Pill tone="muted">{habits.length}</Pill>}
+          {habits.length > 0 && <Pill dark tone="muted">{habits.length}</Pill>}
         </div>
 
         {habits.length === 0 ? (
-          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center mb-4">
-            <p className="text-black/30 text-sm">No habits assigned yet.</p>
+          <div className="relative border border-dashed rounded-xl py-8 text-center mb-4" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <p className="text-white text-sm">No habits assigned yet.</p>
           </div>
         ) : (
-          <div className="space-y-2 mb-4">
+          <div className="relative space-y-2 mb-4">
             {habits.map((h) => {
               const expired = h.endsAt && h.endsAt < now;
               const daysLeft = h.endsAt ? Math.max(0, Math.ceil((h.endsAt - now) / 86400000)) : null;
               return (
-                <div key={h.id} className="flex items-center gap-3 bg-black/[0.02] border border-black/8 rounded-xl px-3.5 py-2.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-                  <span className="text-black text-sm font-medium min-w-0 flex-1 truncate">{h.label}</span>
-                  {h.endsAt && <Pill tone={expired ? "warning" : "default"}>{expired ? "Ended" : `${daysLeft}d left`}</Pill>}
+                <div
+                  key={h.id}
+                  className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 border"
+                  style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
+                >
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />
+                  <span className="text-white text-sm font-medium min-w-0 flex-1 truncate">{h.label}</span>
+                  {h.endsAt && <Pill dark tone={expired ? "warning" : "default"}>{expired ? "Ended" : `${daysLeft}d left`}</Pill>}
                   <button
                     onClick={() => removeHabit(client.id, h.id)}
-                    className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="w-7 h-7 shrink-0 flex items-center justify-center text-white hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                     aria-label="Remove habit"
                   >
                     <Trash2 size={14} />
@@ -2813,14 +2817,14 @@ function HabitsPanel({ client }) {
           </div>
         )}
 
-        <form onSubmit={submit} className="border-t border-black/8 pt-4 space-y-2.5">
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide">ADD A HABIT</p>
+        <form onSubmit={submit} className="relative border-t pt-4 space-y-2.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
+          <p className="text-white text-[11px] font-semibold tracking-wide">ADD A HABIT</p>
           <div className="flex gap-2">
-            <TextInput value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Stretch for 10 minutes" className="flex-1" />
+            <TextInput dark value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Stretch for 10 minutes" className="flex-1" />
             <button
               type="submit"
               disabled={!label.trim()}
-              className="w-11 h-11 shrink-0 rounded-xl bg-black hover:bg-black/85 text-white flex items-center justify-center active:scale-[0.96] transition-all disabled:opacity-30"
+              className="w-11 h-11 shrink-0 rounded-xl bg-white hover:opacity-90 text-black flex items-center justify-center active:scale-[0.96] transition-all disabled:opacity-30"
             >
               <Plus size={18} />
             </button>
@@ -2832,7 +2836,7 @@ function HabitsPanel({ client }) {
                 type="button"
                 onClick={() => setDurationWeeks(opt.weeks)}
                 className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-full transition-colors ${
-                  durationWeeks === opt.weeks ? "bg-black text-white" : "bg-black/5 text-black/50 hover:bg-black/8"
+                  durationWeeks === opt.weeks ? "bg-white text-black" : "bg-white/5 text-white hover:bg-white/10"
                 }`}
               >
                 {opt.label}
@@ -2842,14 +2846,15 @@ function HabitsPanel({ client }) {
         </form>
 
         {availablePresets.length > 0 && (
-          <div className="border-t border-black/8 mt-4 pt-4">
-            <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">QUICK ADD</p>
+          <div className="relative border-t mt-4 pt-4" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <p className="text-white text-[11px] font-semibold tracking-wide mb-2">QUICK ADD</p>
             <div className="flex flex-wrap gap-1.5">
               {availablePresets.map((preset) => (
                 <button
                   key={preset}
                   onClick={() => addHabit(client.id, preset)}
-                  className="text-xs font-medium bg-white border border-dashed border-black/15 text-black/60 hover:border-black/30 hover:text-black px-3 py-1.5 rounded-full transition-colors"
+                  className="text-xs font-medium border border-dashed text-white hover:text-white px-3 py-1.5 rounded-full transition-colors hover:border-white/30"
+                  style={{ borderColor: "rgba(255,255,255,0.15)" }}
                 >
                   + {preset}
                 </button>
@@ -2857,7 +2862,7 @@ function HabitsPanel({ client }) {
             </div>
           </div>
         )}
-      </div>
+      </DarkPanel>
     </div>
   );
 }
@@ -2937,49 +2942,54 @@ function CheckInsPanel({ client, showToast }) {
 
   return (
     <div className="max-w-2xl px-4 py-5 md:px-6 md:py-6 space-y-5">
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <DarkPanel className="p-4 md:p-5">
+        <div className="relative flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-              <NotebookPen size={15} className="text-blue-500" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.12)" }}>
+              <NotebookPen size={15} style={{ color: MEASURE_BLUE }} />
             </div>
-            <p className="text-black font-semibold text-sm">Scheduled Check-ins</p>
+            <p className="text-white font-semibold text-sm">Scheduled Check-ins</p>
           </div>
           <button
             onClick={() => setScheduleOpen(true)}
-            className="flex items-center gap-1.5 bg-black hover:bg-black/85 text-white text-xs font-bold px-3.5 py-2 rounded-xl active:scale-[0.98] transition-all"
+            className="flex items-center gap-1.5 bg-white hover:opacity-90 text-black text-xs font-bold px-3.5 py-2 rounded-xl active:scale-[0.98] transition-all"
           >
             <Plus size={13} /> Schedule
           </button>
         </div>
 
         {schedules.length === 0 ? (
-          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
-            <p className="text-black/30 text-sm">No check-ins scheduled yet.</p>
+          <div className="relative border border-dashed rounded-xl py-8 text-center" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <p className="text-white text-sm">No check-ins scheduled yet.</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="relative space-y-2">
             {schedules.map((s) => {
               const form = formsById[s.formId];
               return (
-                <div key={s.id} className="flex items-center gap-3 bg-black/[0.02] border border-black/8 rounded-xl px-4 py-3">
-                  <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <NotebookPen size={15} className="text-blue-500" />
+                <div
+                  key={s.id}
+                  className="flex items-center gap-3 rounded-xl px-4 py-3 border"
+                  style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
+                >
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.12)" }}>
+                    <NotebookPen size={15} style={{ color: MEASURE_BLUE }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
-                    <p className="text-black/35 text-xs">Every {DAY_LABELS[s.dayOfWeek]}</p>
+                    <p className="text-white font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
+                    <p className="text-white text-xs">Every {DAY_LABELS[s.dayOfWeek]}</p>
                   </div>
                   <button
                     onClick={() => toggleFormSchedule(client.id, s.id)}
-                    className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${s.active ? "bg-blue-500" : "bg-black/15"}`}
+                    className="w-9 h-5 rounded-full relative transition-colors shrink-0"
+                    style={{ backgroundColor: s.active ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }}
                     aria-label={s.active ? "Pause schedule" : "Resume schedule"}
                   >
                     <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${s.active ? "left-[18px]" : "left-0.5"}`} />
                   </button>
                   <button
                     onClick={() => unscheduleForm(client.id, s.id)}
-                    className="w-7 h-7 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60"
+                    className="w-7 h-7 shrink-0 flex items-center justify-center text-white hover:text-white"
                     aria-label="Remove schedule"
                   >
                     <X size={14} />
@@ -2989,24 +2999,24 @@ function CheckInsPanel({ client, showToast }) {
             })}
           </div>
         )}
-      </div>
+      </DarkPanel>
 
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <DarkPanel className="p-4 md:p-5">
+        <div className="relative flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex items-center justify-center shrink-0">
-              <ClipboardList size={15} className="text-purple-500" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.12)" }}>
+              <ClipboardList size={15} style={{ color: MEASURE_BLUE }} />
             </div>
-            <p className="text-black font-semibold text-sm">Responses</p>
+            <p className="text-white font-semibold text-sm">Responses</p>
           </div>
-          {responses.length > 0 && <Pill tone="muted">{responses.length}</Pill>}
+          {responses.length > 0 && <Pill dark tone="muted">{responses.length}</Pill>}
         </div>
         {responses.length === 0 ? (
-          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
-            <p className="text-black/30 text-sm">No check-ins submitted yet.</p>
+          <div className="relative border border-dashed rounded-xl py-8 text-center" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <p className="text-white text-sm">No check-ins submitted yet.</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="relative space-y-2">
             {responses.map((r) => {
               const form = formsById[r.formId];
               return (
@@ -3016,20 +3026,21 @@ function CheckInsPanel({ client, showToast }) {
                     setViewingResponse(r);
                     if (r.read === false) markFormResponseRead(r.id);
                   }}
-                  className="w-full flex items-center gap-3 bg-black/[0.02] border border-black/8 rounded-xl px-4 py-3 text-left hover:bg-black/[0.05] transition-colors"
+                  className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors border hover:bg-white/[0.05]"
+                  style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
                 >
-                  {r.read === false && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />}
+                  {r.read === false && <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: MEASURE_BLUE }} />}
                   <div className="flex-1 min-w-0">
-                    <p className="text-black font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
-                    <p className="text-black/35 text-xs">{new Date(r.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
+                    <p className="text-white font-medium text-sm truncate">{form?.name || "Deleted form"}</p>
+                    <p className="text-white text-xs">{new Date(r.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}</p>
                   </div>
-                  <ChevronRight size={16} className="text-black/25 shrink-0" />
+                  <ChevronRight size={16} className="text-white shrink-0" />
                 </button>
               );
             })}
           </div>
         )}
-      </div>
+      </DarkPanel>
 
       <ScheduleFormSheet open={scheduleOpen} onClose={() => setScheduleOpen(false)} client={client} showToast={showToast} />
 
@@ -3092,43 +3103,45 @@ function TDEECalculator({ client, latestWeight, onApply }) {
 
   return (
     <div>
-      <p className="text-black text-sm font-semibold mb-3">TDEE Calculator</p>
+      <p className="text-white text-sm font-semibold mb-3">TDEE Calculator</p>
       {!ready ? (
-        <p className="text-black/40 text-xs">Add age, sex and height on the Summary tab to enable this.</p>
+        <p className="text-white text-xs">Add age, sex and height on the Summary tab to enable this.</p>
       ) : (
         <div className="space-y-3.5">
-          <div className="grid grid-cols-3 gap-2 text-center bg-black/[0.03] rounded-xl py-2.5">
+          <div className="grid grid-cols-3 gap-2 text-center rounded-xl py-2.5" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
             <div>
-              <p className="text-black/30 text-[10px]">AGE</p>
-              <p className="text-black text-sm font-semibold">{client.age}</p>
+              <p className="text-white text-[10px]">AGE</p>
+              <p className="text-white text-sm font-semibold">{client.age}</p>
             </div>
             <div>
-              <p className="text-black/30 text-[10px]">SEX</p>
-              <p className="text-black text-sm font-semibold">{client.sex}</p>
+              <p className="text-white text-[10px]">SEX</p>
+              <p className="text-white text-sm font-semibold">{client.sex}</p>
             </div>
             <div>
-              <p className="text-black/30 text-[10px]">HEIGHT</p>
-              <p className="text-black text-sm font-semibold">{client.heightCm}cm</p>
+              <p className="text-white text-[10px]">HEIGHT</p>
+              <p className="text-white text-sm font-semibold">{client.heightCm}cm</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-black/40 text-[10px] mb-1">CURRENT WEIGHT (KG)</p>
+              <p className="text-white text-[10px] mb-1">CURRENT WEIGHT (KG)</p>
               <input
                 type="number"
                 min={0}
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder={latestWeight ? String(latestWeight) : "No weigh-ins yet"}
-                className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none"
+                className="w-full border rounded-lg px-2.5 py-1.5 text-white text-sm outline-none placeholder:text-white"
+                style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
               />
             </div>
             <div>
-              <p className="text-black/40 text-[10px] mb-1">ACTIVITY LEVEL</p>
+              <p className="text-white text-[10px] mb-1">ACTIVITY LEVEL</p>
               <select
                 value={activity}
                 onChange={(e) => setActivity(e.target.value)}
-                className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-xs outline-none"
+                className="w-full border rounded-lg px-2.5 py-1.5 text-white text-xs outline-none"
+                style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
               >
                 {ACTIVITY_LEVELS.map((l) => (
                   <option key={l.key} value={l.key}>
@@ -3139,16 +3152,19 @@ function TDEECalculator({ client, latestWeight, onApply }) {
             </div>
           </div>
           <div>
-            <p className="text-black/40 text-[10px] mb-1">GOAL</p>
+            <p className="text-white text-[10px] mb-1">GOAL</p>
             <div className="grid grid-cols-3 gap-1.5">
               {NUTRITION_GOALS.map((g) => (
                 <button
                   key={g.key}
                   type="button"
                   onClick={() => setGoalKey(g.key)}
-                  className={`py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    goalKey === g.key ? "bg-black text-white" : "bg-white border border-black/10 text-black/50"
-                  }`}
+                  className="py-1.5 rounded-lg text-xs font-semibold transition-colors border"
+                  style={
+                    goalKey === g.key
+                      ? { backgroundColor: "#fff", color: "#000", borderColor: "#fff" }
+                      : { backgroundColor: CLIENT_DARK_SURFACE_2, color: "#FFFFFF", borderColor: CLIENT_DARK_BORDER }
+                  }
                 >
                   {g.label}
                 </button>
@@ -3156,12 +3172,12 @@ function TDEECalculator({ client, latestWeight, onApply }) {
             </div>
           </div>
           {w > 0 && (
-            <div className="bg-black/[0.03] rounded-xl px-3.5 py-3">
-              <p className="text-black/40 text-[10px]">BMR {Math.round(bmr)} kcal · TDEE {tdee} kcal</p>
+            <div className="rounded-xl px-3.5 py-3" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+              <p className="text-white text-[10px]">BMR {Math.round(bmr)} kcal · TDEE {tdee} kcal</p>
               <div className="flex items-center justify-between mt-1.5 flex-wrap gap-2">
                 <div>
-                  <p className="text-black text-lg font-bold leading-none">{suggestedCalories} kcal</p>
-                  <p className="text-black/40 text-[11px] mt-1">
+                  <p className="text-white text-lg font-bold leading-none">{suggestedCalories} kcal</p>
+                  <p className="text-white text-[11px] mt-1">
                     P {goal.macros.protein}% · C {goal.macros.carbs}% · F {goal.macros.fat}%
                   </p>
                 </div>
@@ -3175,7 +3191,7 @@ function TDEECalculator({ client, latestWeight, onApply }) {
                       fatPct: goal.macros.fat,
                     })
                   }
-                  className="bg-black text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0"
+                  className="bg-white text-black text-xs font-bold px-3 py-2 rounded-lg shrink-0 hover:opacity-90"
                 >
                   USE THIS
                 </button>
@@ -3381,21 +3397,22 @@ function ClientFoodPreferencesCard({ client, showToast }) {
   }
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 md:p-6">
-      <p className="text-black font-semibold mb-1">Client Nutrition Info</p>
-      <p className="text-black/40 text-xs mb-5">Context for planning meals — occupation, eating pattern, likes/dislikes.</p>
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+    <DarkPanel className="p-5 md:p-6">
+      <p className="relative text-white font-semibold mb-1">Client Nutrition Info</p>
+      <p className="relative text-white text-xs mb-5">Context for planning meals — occupation, eating pattern, likes/dislikes.</p>
+      <div className="relative grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
         <div className="sm:col-span-1">
-          <p className="text-black/40 text-[10px] mb-1">OCCUPATION</p>
+          <p className="text-white text-[10px] mb-1">OCCUPATION</p>
           <input
             value={occupation}
             onChange={(e) => setOccupation(e.target.value)}
             placeholder="e.g. Office worker, tradie"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none placeholder:text-black/25"
+            className="w-full border rounded-lg px-2.5 py-1.5 text-white text-sm outline-none placeholder:text-white"
+            style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
           />
         </div>
         <div className="sm:col-span-1">
-          <p className="text-black/40 text-[10px] mb-1">PREFERRED MEALS/DAY</p>
+          <p className="text-white text-[10px] mb-1">PREFERRED MEALS/DAY</p>
           <input
             type="number"
             min={1}
@@ -3403,12 +3420,13 @@ function ClientFoodPreferencesCard({ client, showToast }) {
             value={mealsPerDay}
             onChange={(e) => setMealsPerDay(e.target.value)}
             placeholder="e.g. 3"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-1.5 text-black text-sm outline-none placeholder:text-black/25"
+            className="w-full border rounded-lg px-2.5 py-1.5 text-white text-sm outline-none placeholder:text-white"
+            style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
           />
         </div>
       </div>
-      <div className="mb-4">
-        <p className="text-black/40 text-[10px] mb-1.5">DIETARY STYLE</p>
+      <div className="relative mb-4">
+        <p className="text-white text-[10px] mb-1.5">DIETARY STYLE</p>
         <div className="flex flex-wrap gap-1.5">
           {PROFILE_DIET_OPTIONS.map((d) => (
             <ProfileChip key={d} active={dietaryStyle.includes(d)} onClick={() => toggleDietaryStyle(d)}>
@@ -3417,64 +3435,69 @@ function ClientFoodPreferencesCard({ client, showToast }) {
           ))}
         </div>
       </div>
-      <div className="mb-4">
-        <p className="text-black/40 text-[10px] mb-1">ALLERGIES / INTOLERANCES</p>
+      <div className="relative mb-4">
+        <p className="text-white text-[10px] mb-1">ALLERGIES / INTOLERANCES</p>
         <textarea
           rows={2}
           value={allergies}
           onChange={(e) => setAllergies(e.target.value)}
           placeholder="e.g. Peanuts, shellfish, lactose intolerant"
-          className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+          className="w-full border rounded-lg px-2.5 py-2 text-white text-xs outline-none placeholder:text-white resize-none"
+          style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
         />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <p className="text-black/40 text-[10px] mb-1">FOODS THEY ENJOY</p>
+          <p className="text-white text-[10px] mb-1">FOODS THEY ENJOY</p>
           <textarea
             rows={3}
             value={likes}
             onChange={(e) => setLikes(e.target.value)}
             placeholder="e.g. Chicken, rice, most fruit, spicy food"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+            className="w-full border rounded-lg px-2.5 py-2 text-white text-xs outline-none placeholder:text-white resize-none"
+            style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
           />
         </div>
         <div>
-          <p className="text-black/40 text-[10px] mb-1">FOODS THEY DISLIKE / AVOID</p>
+          <p className="text-white text-[10px] mb-1">FOODS THEY DISLIKE / AVOID</p>
           <textarea
             rows={3}
             value={dislikes}
             onChange={(e) => setDislikes(e.target.value)}
             placeholder="e.g. Mushrooms, seafood, doesn't like eating breakfast"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+            className="w-full border rounded-lg px-2.5 py-2 text-white text-xs outline-none placeholder:text-white resize-none"
+            style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
           />
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+      <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
         <div>
-          <p className="text-black/40 text-[10px] mb-1">FAVOURITE FOODS</p>
+          <p className="text-white text-[10px] mb-1">FAVOURITE FOODS</p>
           <textarea
             rows={2}
             value={favoriteFoods}
             onChange={(e) => setFavoriteFoods(e.target.value)}
             placeholder="e.g. Go-to meals they'd happily eat every week"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+            className="w-full border rounded-lg px-2.5 py-2 text-white text-xs outline-none placeholder:text-white resize-none"
+            style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
           />
         </div>
         <div>
-          <p className="text-black/40 text-[10px] mb-1">MAIN CHALLENGE</p>
+          <p className="text-white text-[10px] mb-1">MAIN CHALLENGE</p>
           <textarea
             rows={2}
             value={mainChallenge}
             onChange={(e) => setMainChallenge(e.target.value)}
             placeholder="e.g. Late-night snacking, eating out, time constraints"
-            className="w-full bg-white border border-black/10 rounded-lg px-2.5 py-2 text-black text-xs outline-none placeholder:text-black/25 resize-none"
+            className="w-full border rounded-lg px-2.5 py-2 text-white text-xs outline-none placeholder:text-white resize-none"
+            style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
           />
         </div>
       </div>
-      <button onClick={save} disabled={saving} className="w-full sm:w-auto sm:px-8 bg-black text-white text-xs font-bold py-2.5 rounded-xl disabled:opacity-50">
+      <button onClick={save} disabled={saving} className="relative w-full sm:w-auto sm:px-8 bg-white text-black text-xs font-bold py-2.5 rounded-xl disabled:opacity-50">
         {saving ? "SAVING…" : "SAVE NUTRITION INFO"}
       </button>
-    </div>
+    </DarkPanel>
   );
 }
 
@@ -3503,7 +3526,7 @@ const ADHERENCE_MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner"];
 function adherenceStatus(score) {
   if (score >= 80) return { label: "Excellent", color: GOAL_GREEN };
   if (score >= 40) return { label: "On Track", color: MEASURE_BLUE };
-  return { label: "Inconsistent", color: "#EF4444" };
+  return { label: "Inconsistent", color: OVER_RED };
 }
 
 // Scores the `days`-day window ending `endOffset` days ago (0 = ending
@@ -3599,11 +3622,11 @@ function NutritionAdherenceCard({ client }) {
   ];
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6">
-      <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+    <DarkPanel className="p-5 mb-6">
+      <div className="relative flex items-center justify-between flex-wrap gap-2 mb-1">
         <div>
-          <p className="text-black font-semibold">Nutrition Adherence</p>
-          <p className="text-black/40 text-xs mt-0.5">A behavioural snapshot, not just calories vs. target</p>
+          <p className="text-white font-semibold">Nutrition Adherence</p>
+          <p className="text-white/40 text-xs mt-0.5">A behavioural snapshot, not just calories vs. target</p>
         </div>
         <div className="flex gap-1.5">
           {NUTRITION_ADHERENCE_PERIODS.map((p) => (
@@ -3611,7 +3634,7 @@ function NutritionAdherenceCard({ client }) {
               key={p.key}
               onClick={() => setPeriodKey(p.key)}
               className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                periodKey === p.key ? "bg-black text-white" : "bg-black/6 text-black/50"
+                periodKey === p.key ? "bg-white text-black" : "bg-white/10 text-white/50"
               }`}
             >
               {p.label}
@@ -3621,18 +3644,18 @@ function NutritionAdherenceCard({ client }) {
       </div>
 
       {current.loggedCount === 0 ? (
-        <div className="py-10 flex flex-col items-center text-center">
-          <div className="w-12 h-12 rounded-full bg-black/5 flex items-center justify-center mb-3">
-            <Sparkles size={18} className="text-black/25" />
+        <div className="relative py-10 flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-white/[0.06] flex items-center justify-center mb-3">
+            <Sparkles size={18} className="text-white/25" />
           </div>
-          <p className="text-black/50 text-sm font-medium">Not enough data yet</p>
-          <p className="text-black/30 text-xs mt-1 max-w-xs">
+          <p className="text-white/50 text-sm font-medium">Not enough data yet</p>
+          <p className="text-white/30 text-xs mt-1 max-w-xs">
             No nutrition logged in the last {days} days. Adherence unlocks once this client starts logging.
           </p>
         </div>
       ) : (
         <>
-          <div className="flex flex-col sm:flex-row items-center gap-6 py-4">
+          <div className="relative flex flex-col sm:flex-row items-center gap-6 py-4">
             <div className="relative w-40 h-40 shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -3647,13 +3670,13 @@ function NutritionAdherenceCard({ client }) {
                     isAnimationActive={false}
                   >
                     <Cell fill={status.color} />
-                    <Cell fill="rgba(10,10,11,0.06)" />
+                    <Cell fill="rgba(255,255,255,0.08)" />
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-black text-4xl font-bold tabular-nums">{current.score}%</span>
-                <span className="text-black/35 text-[11px] tracking-wide mt-1">ADHERENCE</span>
+                <span className="text-white text-4xl font-bold tabular-nums">{current.score}%</span>
+                <span className="text-white/35 text-[11px] tracking-wide mt-1">ADHERENCE</span>
               </div>
             </div>
 
@@ -3664,37 +3687,37 @@ function NutritionAdherenceCard({ client }) {
               >
                 {status.label}
               </span>
-              <p className="text-black/50 text-sm">Based on the last {days} days of logged nutrition.</p>
+              <p className="text-white/50 text-sm">Based on the last {days} days of logged nutrition.</p>
               {current.loggedCount < 3 && (
-                <p className="text-black/30 text-xs mt-1">
+                <p className="text-white/30 text-xs mt-1">
                   Limited data — only {current.loggedCount} of {days} days logged so far.
                 </p>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+          <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
             {[
               ["Logging Consistency", current.loggingConsistency, `${current.loggedCount} of ${days} days logged`],
               ["Protein Consistency", current.proteinConsistency, "Days hitting protein target"],
               ["Calorie Consistency", current.calorieConsistency, "Within target range"],
               ["Meal Structure", current.mealStructure, `${current.avgCoreMealsPerDay} meals logged per day avg`],
             ].map(([label, value, sub]) => (
-              <div key={label} className="bg-black/[0.03] border border-black/8 rounded-xl p-3">
-                <p className="text-black font-bold text-lg">{value}%</p>
-                <p className="text-black/60 text-[11px] font-medium mt-0.5">{label}</p>
-                <p className="text-black/35 text-[10px] mt-1 leading-snug">{sub}</p>
+              <div key={label} className="rounded-xl p-3 border" style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}>
+                <p className="text-white font-bold text-lg">{value}%</p>
+                <p className="text-white/60 text-[11px] font-medium mt-0.5">{label}</p>
+                <p className="text-white/35 text-[10px] mt-1 leading-snug">{sub}</p>
               </div>
             ))}
           </div>
 
-          <div className="mt-5 pt-4 border-t border-black/8">
+          <div className="relative mt-5 pt-4 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
             <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles size={13} className="text-black/40" />
-              <p className="text-black/35 text-[11px] font-semibold tracking-wide">BEHAVIOUR INSIGHTS</p>
+              <Sparkles size={13} className="text-white/40" />
+              <p className="text-white/35 text-[11px] font-semibold tracking-wide">BEHAVIOUR INSIGHTS</p>
             </div>
             {insights.length === 0 ? (
-              <p className="text-black/30 text-sm">
+              <p className="text-white/30 text-sm">
                 {current.loggedCount < 3
                   ? "Continue logging to unlock nutrition behaviour insights."
                   : "No significant changes detected this period — consistency looks steady."}
@@ -3702,8 +3725,8 @@ function NutritionAdherenceCard({ client }) {
             ) : (
               <ul className="space-y-1.5">
                 {insights.map((text, i) => (
-                  <li key={i} className="text-black/70 text-sm flex items-start gap-2">
-                    <span className="w-1 h-1 rounded-full bg-black/30 mt-2 shrink-0" />
+                  <li key={i} className="text-white/70 text-sm flex items-start gap-2">
+                    <span className="w-1 h-1 rounded-full bg-white/30 mt-2 shrink-0" />
                     {text}
                   </li>
                 ))}
@@ -3712,7 +3735,7 @@ function NutritionAdherenceCard({ client }) {
           </div>
         </>
       )}
-    </div>
+    </DarkPanel>
   );
 }
 
@@ -3746,21 +3769,21 @@ function NutritionGoalSummaryCard({ targets, onEditTargets }) {
   const total = proteinPct + carbsPct + fatPct;
 
   return (
-    <div className="relative overflow-hidden bg-white border border-black/10 shadow-sm mb-6">
+    <div className="relative overflow-hidden border mb-6" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
       <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
       <div className="relative p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-full border border-black/15 flex items-center justify-center shrink-0">
-              <Flame size={16} className="text-black/50" />
+            <div className="w-9 h-9 rounded-full border flex items-center justify-center shrink-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
+              <Flame size={16} className="text-white/50" />
             </div>
-            <p className="text-black font-semibold text-[16px] leading-snug">
+            <p className="text-white font-semibold text-[16px] leading-snug">
               Eat {Math.round(targets.calories || 0)} Calories per day, with the following macro split
             </p>
           </div>
           {onEditTargets && (
-            <button onClick={onEditTargets} aria-label="Edit calories & macros" className="text-black/30 hover:text-black/60 shrink-0 mt-1">
+            <button onClick={onEditTargets} aria-label="Edit calories & macros" className="text-white/30 hover:text-white/60 shrink-0 mt-1">
               <MoreVertical size={16} />
             </button>
           )}
@@ -3773,14 +3796,14 @@ function NutritionGoalSummaryCard({ targets, onEditTargets }) {
               <div style={{ width: `${fatPct}%`, backgroundColor: "#7DB7FF" }} />
             </div>
             <div className="flex justify-between mt-2">
-              <span className="text-black/40 text-xs">
-                Protein Goal <span className="text-black font-semibold">{proteinPct}%</span>
+              <span className="text-white/40 text-xs">
+                Protein Goal <span className="text-white font-semibold">{proteinPct}%</span>
               </span>
-              <span className="text-black/40 text-xs">
-                Carbs Goal <span className="text-black font-semibold">{carbsPct}%</span>
+              <span className="text-white/40 text-xs">
+                Carbs Goal <span className="text-white font-semibold">{carbsPct}%</span>
               </span>
-              <span className="text-black/40 text-xs">
-                Fat Goal <span className="text-black font-semibold">{fatPct}%</span>
+              <span className="text-white/40 text-xs">
+                Fat Goal <span className="text-white font-semibold">{fatPct}%</span>
               </span>
             </div>
           </>
@@ -5056,14 +5079,14 @@ function PlateauAlertCard({ client }) {
         <TrendingDown size={15} style={{ color: MEASURE_BLUE }} className="shrink-0" />
         <div>
           <p className="text-white font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
-          <p className="text-white/40 text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
+          <p className="text-white text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
         </div>
       </div>
       <div className="divide-y border-y" style={{ borderColor: CLIENT_DARK_BORDER }}>
         {plateaus.map((p) => (
           <div key={p.exerciseId} className="flex items-center justify-between py-2.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
             <span className="text-white text-sm font-medium">{p.exerciseName}</span>
-            <span className="text-white/40 text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
+            <span className="text-white text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
           </div>
         ))}
       </div>
@@ -5076,7 +5099,7 @@ function PlateauAlertCard({ client }) {
 // bodyweight, depending on the client's goal).
 function TimelineTrendArrow({ direction }) {
   if (!direction) return null;
-  return direction === "up" ? <TrendingUp size={13} className="text-white/40 shrink-0" /> : <TrendingDown size={13} className="text-white/40 shrink-0" />;
+  return direction === "up" ? <TrendingUp size={13} className="text-white shrink-0" /> : <TrendingDown size={13} className="text-white shrink-0" />;
 }
 
 // Same 30-day snapshot the client sees on their own Progress tab —
@@ -5124,7 +5147,7 @@ function PerformanceTimelineCard({ client }) {
     <DarkPanel className="p-5 mb-6">
       <div className="relative flex items-start justify-between gap-3">
         <div>
-          <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last 30 Days</p>
+          <p className="text-white text-[11px] font-semibold tracking-wide uppercase">Last 30 Days</p>
           <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
         </div>
         <p className="text-white text-xs text-right shrink-0 mt-0.5">
@@ -5136,10 +5159,10 @@ function PerformanceTimelineCard({ client }) {
                 minute: "2-digit",
               })
             : "Never logged in"}
-          <span className="block text-white/40 text-[10px] font-medium mt-0.5">Last active</span>
+          <span className="block text-white text-[10px] font-medium mt-0.5">Last active</span>
         </p>
       </div>
-      <p className="relative text-white/35 text-xs mt-1 mb-4">
+      <p className="relative text-white text-xs mt-1 mb-4">
         A quick read on how {client.name?.split(" ")[0] || "they"}'ve been trending: getting stronger, showing up, hitting new bests.
       </p>
       <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
@@ -5149,8 +5172,8 @@ function PerformanceTimelineCard({ client }) {
               {it.value}
               <TimelineTrendArrow direction={it.trend} />
             </p>
-            <p className="text-white/40 text-[11px] mt-0.5">
-              {it.label} <span className="text-white/25">· {it.sub}</span>
+            <p className="text-white text-[11px] mt-0.5">
+              {it.label} <span className="text-white">· {it.sub}</span>
             </p>
           </div>
         ))}
@@ -5283,7 +5306,7 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   return (
     <DarkPanel className="p-5 md:p-6 mb-6">
       <p className="relative text-white font-semibold mb-1">Weekly Coach Review</p>
-      <p className="relative text-white/40 text-xs mb-4">Training, nutrition, recovery and performance — last 7 days.</p>
+      <p className="relative text-white text-xs mb-4">Training, nutrition, recovery and performance — last 7 days.</p>
 
       <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {stats.map((s) => (
@@ -5300,21 +5323,21 @@ function WeeklyCoachReviewCard({ client, showToast }) {
                 </span>
               )}
             </p>
-            <p className="text-white/40 text-[11px] mt-0.5">
-              {s.label} <span className="text-white/25">· {s.sub}</span>
+            <p className="text-white text-[11px] mt-0.5">
+              {s.label} <span className="text-white">· {s.sub}</span>
             </p>
           </div>
         ))}
       </div>
 
       <div className="relative border-t pt-4" style={{ borderColor: CLIENT_DARK_BORDER }}>
-        <p className="text-white/40 text-[10px] font-semibold tracking-wide mb-1.5">FOCUS FOR NEXT WEEK</p>
+        <p className="text-white text-[10px] font-semibold tracking-wide mb-1.5">FOCUS FOR NEXT WEEK</p>
         <textarea
           value={focus}
           onChange={(e) => setFocus(e.target.value)}
           placeholder={autoFocus}
           rows={2}
-          className="w-full border rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 resize-none"
+          className="w-full border rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white resize-none"
           style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
         />
         <button
@@ -5671,7 +5694,7 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
       <div className="mb-10 pb-10 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
         <div className="mb-5">
           <p className="text-white font-bold text-[16px] tracking-tight">Trainer's Notes</p>
-          <p className="text-white/35 text-xs mt-0.5">Private — only you can see these</p>
+          <p className="text-white text-xs mt-0.5">Private — only you can see these</p>
         </div>
 
         <div>
@@ -5703,7 +5726,7 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
                 onChange={(e) => setNoteInput(e.target.value)}
                 placeholder="e.g. Mentioned a new shoulder niggle on Tuesday's call"
                 rows={2}
-                className="w-full bg-transparent outline-none text-white text-sm placeholder:text-white/25 resize-none"
+                className="w-full bg-transparent outline-none text-white text-sm placeholder:text-white resize-none"
               />
             </UnderlineField>
             <button type="submit" className="mt-2.5 text-xs font-semibold bg-white text-black px-3.5 py-1.5 rounded-lg disabled:opacity-40" disabled={!noteInput.trim()}>
@@ -5714,7 +5737,7 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
           {detecting && (
             <div className="flex items-center gap-1.5 mb-4 px-0.5">
               <Sparkles size={11} className="text-blue-400 animate-pulse" />
-              <p className="text-white/30 text-xs">APEX is checking for useful context…</p>
+              <p className="text-white text-xs">APEX is checking for useful context…</p>
             </div>
           )}
 
@@ -5743,7 +5766,7 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
                       </button>
                       <button
                         onClick={() => setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))}
-                        className="text-xs font-semibold text-white/40"
+                        className="text-xs font-semibold text-white"
                       >
                         Don't Save
                       </button>
@@ -5755,16 +5778,16 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
           )}
 
           <div className="divide-y border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
-            {notes.length === 0 && <p className="text-white/25 text-xs py-4">No notes yet.</p>}
+            {notes.length === 0 && <p className="text-white text-xs py-4">No notes yet.</p>}
             {notes.map((n) => (
               <div key={n.id} className="py-3 flex items-start justify-between gap-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
                 <div>
                   <p className="text-white text-sm">{n.text}</p>
-                  <span className="text-white/30 text-[10px] mt-1 block">
+                  <span className="text-white text-[10px] mt-1 block">
                     {new Date(n.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                   </span>
                 </div>
-                <button onClick={() => deleteClientNote(client.id, n.id)} className="text-white/25 hover:text-red-400 shrink-0 mt-0.5" aria-label="Delete note">
+                <button onClick={() => deleteClientNote(client.id, n.id)} className="text-white hover:text-red-400 shrink-0 mt-0.5" aria-label="Delete note">
                   <X size={13} />
                 </button>
               </div>
@@ -5776,25 +5799,25 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
       <div>
         <div className="mb-5">
           <p className="text-white font-bold text-[16px] tracking-tight">Client Context</p>
-          <p className="text-white/35 text-xs mt-0.5">What APEX Insights uses to understand this client</p>
+          <p className="text-white text-xs mt-0.5">What APEX Insights uses to understand this client</p>
         </div>
         <div>
           {context.length === 0 ? (
-            <p className="text-white/25 text-xs">
+            <p className="text-white text-xs">
               No saved context yet — approve an APEX suggestion above, or context saved here helps APEX Insights understand this client.
             </p>
           ) : (
             <div className="space-y-4">
               {CLIENT_CONTEXT_CATEGORIES.filter((cat) => contextByCategory[cat]?.length).map((cat) => (
                 <div key={cat}>
-                  <p className="text-white/30 text-[10px] font-semibold tracking-wide mb-1.5">{cat.toUpperCase()}</p>
+                  <p className="text-white text-[10px] font-semibold tracking-wide mb-1.5">{cat.toUpperCase()}</p>
                   <div className="divide-y border-y" style={{ borderColor: CLIENT_DARK_BORDER }}>
                     {contextByCategory[cat].map((c) => (
                       <div key={c.id} className="py-2.5 flex items-start justify-between gap-2" style={{ borderColor: CLIENT_DARK_BORDER }}>
-                        <p className="text-white/80 text-sm">{c.text}</p>
+                        <p className="text-white text-sm">{c.text}</p>
                         <button
                           onClick={() => deleteClientContext(client.id, c.id)}
-                          className="text-white/25 hover:text-red-400 shrink-0 mt-0.5"
+                          className="text-white hover:text-red-400 shrink-0 mt-0.5"
                           aria-label="Remove context"
                         >
                           <X size={13} />
@@ -5819,7 +5842,7 @@ function ProfileChip({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${active ? "bg-white text-black" : "bg-white/5 text-white/50 hover:bg-white/10"}`}
+      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${active ? "bg-white text-black" : "bg-white/5 text-white hover:bg-white/10"}`}
     >
       {children}
     </button>
@@ -5938,7 +5961,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             <button
               onClick={() => (client.accessPaused ? setClientAccessPaused(client.id, false) : setConfirmPause(true))}
               className={`w-full mt-2 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors ${
-                client.accessPaused ? "bg-red-500/15 hover:bg-red-500/25 text-red-300" : "bg-white/5 hover:bg-white/10 text-white/60"
+                client.accessPaused ? "bg-red-500/15 hover:bg-red-500/25 text-red-300" : "bg-white/5 hover:bg-white/10 text-white"
               }`}
               title="Restrict this client's access to their program/profile — e.g. for insufficient payment"
             >
@@ -5964,7 +5987,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
                 key={item.id}
                 onClick={() => setClientTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  active ? "text-white" : "text-white/55 hover:bg-white/5 hover:text-white/90"
+                  active ? "text-white" : "text-white hover:bg-white/5 hover:text-white"
                 }`}
                 style={active ? { backgroundColor: MEASURE_BLUE } : undefined}
               >
@@ -5979,7 +6002,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           {!confirmRemove ? (
             <button
               onClick={() => setConfirmRemove(true)}
-              className="w-full text-left px-3.5 py-2 text-white/30 hover:text-white/60 text-xs font-medium"
+              className="w-full text-left px-3.5 py-2 text-white hover:text-white text-xs font-medium"
             >
               Remove client
             </button>
@@ -6000,7 +6023,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               </button>
             </div>
           )}
-          <button onClick={onClose} className="w-full flex items-center gap-2 px-3.5 py-2.5 text-white/50 hover:text-white text-sm font-medium">
+          <button onClick={onClose} className="w-full flex items-center gap-2 px-3.5 py-2.5 text-white hover:text-white text-sm font-medium">
             <ArrowLeft size={15} /> Return to overview
           </button>
         </div>
@@ -6009,7 +6032,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
       {/* mobile header */}
       <div className="md:hidden shrink-0 border-b" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
         <div className="flex items-center gap-2.5 px-3 pt-4 pb-3">
-          <button onClick={onClose} aria-label="Return to overview" className="w-8 h-8 -ml-1 flex items-center justify-center text-white/60 shrink-0">
+          <button onClick={onClose} aria-label="Return to overview" className="w-8 h-8 -ml-1 flex items-center justify-center text-white shrink-0">
             <ArrowLeft size={18} />
           </button>
           <Avatar name={client.name} url={client.avatarUrl} size={38} dark />
@@ -6040,13 +6063,13 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
                 title={client.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
                 className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${client.accessPaused ? "bg-red-500/15" : "bg-white/8"}`}
               >
-                {client.accessPaused ? <Unlock size={15} className="text-red-300" /> : <Lock size={15} className="text-white/50" />}
+                {client.accessPaused ? <Unlock size={15} className="text-red-300" /> : <Lock size={15} className="text-white" />}
               </button>
               <button
                 onClick={() => setMessaging(true)}
                 className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center shrink-0"
               >
-                <MessageCircle size={15} className="text-white/70" />
+                <MessageCircle size={15} className="text-white" />
               </button>
             </>
           ) : (
@@ -6063,7 +6086,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               aria-label="More options"
               className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center"
             >
-              <MoreVertical size={15} className="text-white/70" />
+              <MoreVertical size={15} className="text-white" />
             </button>
             {headerMenuOpen && (
               <>
@@ -6092,7 +6115,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
                 key={item.id}
                 onClick={() => setClientTab(item.id)}
                 className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                  active ? "text-white" : "bg-white/8 text-white/60"
+                  active ? "text-white" : "bg-white/8 text-white"
                 }`}
                 style={active ? { backgroundColor: MEASURE_BLUE } : undefined}
               >
@@ -6103,7 +6126,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
         </div>
         {confirmRemove && (
           <div className="flex items-center gap-2.5 px-3 pb-3 pt-1">
-            <p className="text-white/50 text-xs font-medium flex-1">Remove {client.name} and all their data?</p>
+            <p className="text-white text-xs font-medium flex-1">Remove {client.name} and all their data?</p>
             <button onClick={() => setConfirmRemove(false)} className="bg-white/8 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0">
               Cancel
             </button>

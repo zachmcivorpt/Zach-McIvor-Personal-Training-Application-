@@ -18,8 +18,8 @@ const CATEGORY_ORDER = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 // cast of hues (that palette is retired).
 function categoryStyle(cat) {
   return cat && cat !== "Other"
-    ? { text: "text-white/60", pill: "border-white/15 bg-white/[0.05] text-white/70" }
-    : { text: "text-white/30", pill: "border-white/10 bg-white/[0.03] text-white/35" };
+    ? { text: "text-white", pill: "border-white/15 bg-white/[0.05] text-white" }
+    : { text: "text-white", pill: "border-white/10 bg-white/[0.03] text-white" };
 }
 function mealCategories(m) {
   return m.mealTypes?.length > 0 ? m.mealTypes : ["Other"];
@@ -225,7 +225,7 @@ export default function CoachMealLibrary({ showToast }) {
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <p className="text-white/40 text-sm">{meals.length} total · reusable meals suggested to any client</p>
+        <p className="text-white text-sm">{meals.length} total · reusable meals suggested to any client</p>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleImportAU}
@@ -263,17 +263,17 @@ export default function CoachMealLibrary({ showToast }) {
 
       {meals.length === 0 ? (
         <DarkPanel className="p-5">
-          <p className="text-white/40 text-sm text-center py-6">No meal templates yet — build your first one, or import the AU meal set above.</p>
+          <p className="text-white text-sm text-center py-6">No meal templates yet — build your first one, or import the AU meal set above.</p>
         </DarkPanel>
       ) : (
         <>
           <div className="flex items-center gap-2 bg-white/8 border rounded-xl px-3 py-2.5 mb-4 md:max-w-sm" style={{ borderColor: CLIENT_DARK_BORDER }}>
-            <Search size={16} className="text-white/40 shrink-0" />
+            <Search size={16} className="text-white shrink-0" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search meals"
-              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/25"
+              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white"
             />
           </div>
 
@@ -284,7 +284,7 @@ export default function CoachMealLibrary({ showToast }) {
               style={
                 activeCategory === "All"
                   ? { backgroundColor: MEASURE_BLUE, color: "#fff", borderColor: MEASURE_BLUE }
-                  : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", borderColor: CLIENT_DARK_BORDER }
+                  : { backgroundColor: "rgba(255,255,255,0.06)", color: "#FFFFFF", borderColor: CLIENT_DARK_BORDER }
               }
             >
               All <span className="opacity-60 font-semibold">{meals.length}</span>
@@ -300,7 +300,7 @@ export default function CoachMealLibrary({ showToast }) {
                   style={
                     active
                       ? { backgroundColor: MEASURE_BLUE, color: "#fff", borderColor: MEASURE_BLUE }
-                      : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", borderColor: CLIENT_DARK_BORDER }
+                      : { backgroundColor: "rgba(255,255,255,0.06)", color: "#FFFFFF", borderColor: CLIENT_DARK_BORDER }
                   }
                 >
                   {cat} <span className="opacity-60 font-semibold">{count}</span>
@@ -311,7 +311,7 @@ export default function CoachMealLibrary({ showToast }) {
 
           {totalShown === 0 ? (
             <DarkPanel className="p-5">
-              <p className="text-white/40 text-sm text-center py-6">No meals match "{search}".</p>
+              <p className="text-white text-sm text-center py-6">No meals match "{search}".</p>
             </DarkPanel>
           ) : (
             <div className="space-y-9">
@@ -321,7 +321,7 @@ export default function CoachMealLibrary({ showToast }) {
                     <div className="flex items-center gap-2.5 mb-3.5">
                       <span className={`w-2 h-2 rounded-full ${g.style.text.replace("text-", "bg-")}`} />
                       <h3 className="text-white font-extrabold text-base tracking-tight">{g.label}</h3>
-                      <span className="text-white/30 text-sm font-semibold">{g.meals.length}</span>
+                      <span className="text-white text-sm font-semibold">{g.meals.length}</span>
                     </div>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -333,7 +333,7 @@ export default function CoachMealLibrary({ showToast }) {
                               <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
-                                <Utensils size={26} className="text-white/25" strokeWidth={1.5} />
+                                <Utensils size={26} className="text-white" strokeWidth={1.5} />
                               </div>
                             )}
                             <div className="absolute top-2 right-2 flex items-center gap-1.5">
@@ -354,8 +354,8 @@ export default function CoachMealLibrary({ showToast }) {
                             <p className="text-white font-bold text-sm leading-snug truncate">{m.name}</p>
                             <div className="flex items-center gap-2.5 mt-2 text-xs">
                               <span className="text-white font-bold">{m.cals} kcal</span>
-                              <span className="text-white/25">·</span>
-                              <span className="text-white/40 font-semibold">
+                              <span className="text-white">·</span>
+                              <span className="text-white font-semibold">
                                 P{m.protein} C{m.carbs} F{m.fat}
                               </span>
                             </div>

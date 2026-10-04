@@ -211,7 +211,7 @@ export function clientStatusPill(c) {
 }
 
 function PhaseCell({ phase, needsNewPhase }) {
-  if (!phase) return <span className="text-white/30 text-sm">No phase scheduled</span>;
+  if (!phase) return <span className="text-white text-sm">No phase scheduled</span>;
   const today = localDateKey();
   const pct = (() => {
     if (!phase.endDate) return null;
@@ -224,7 +224,7 @@ function PhaseCell({ phase, needsNewPhase }) {
   return (
     <div className="min-w-[135px]">
       <p className="text-white text-sm font-medium truncate">{phase.name}</p>
-      <p className="text-white/35 text-xs mt-0.5">
+      <p className="text-white text-xs mt-0.5">
         {phase.endDate ? `Ends ${new Date(phase.endDate).toLocaleDateString()}` : "No end date"}
       </p>
       {pct !== null && (
@@ -232,7 +232,7 @@ function PhaseCell({ phase, needsNewPhase }) {
           <div className="w-28">
             <ProgressBar value={pct} max={100} height={5} color={MEASURE_BLUE} trackClassName="bg-white/10" />
           </div>
-          <span className="text-white/40 text-[11px] font-semibold tabular-nums shrink-0">{pct}%</span>
+          <span className="text-white text-[11px] font-semibold tabular-nums shrink-0">{pct}%</span>
         </div>
       )}
       {needsNewPhase && (
@@ -248,11 +248,11 @@ function PhaseCell({ phase, needsNewPhase }) {
 }
 
 function NextPhaseCell({ phase }) {
-  if (!phase) return <span className="text-white/25 text-sm">—</span>;
+  if (!phase) return <span className="text-white text-sm">—</span>;
   return (
     <div className="min-w-[115px]">
-      <p className="text-white/70 text-sm font-medium truncate">{phase.name}</p>
-      <p className="text-white/35 text-xs mt-0.5">Starts {new Date(phase.startDate).toLocaleDateString()}</p>
+      <p className="text-white text-sm font-medium truncate">{phase.name}</p>
+      <p className="text-white text-xs mt-0.5">Starts {new Date(phase.startDate).toLocaleDateString()}</p>
     </div>
   );
 }
@@ -270,7 +270,7 @@ function mainProgramLabel(client) {
 // client — mirrors the same "awaiting reply" / "unread check-in" signals
 // already surfaced in aggregate on the Overview dashboard, just per-row.
 function EngagementBadges({ awaitingReply, pendingCheckins, onOpenMessages, onOpenCheckins }) {
-  if (!awaitingReply && !pendingCheckins) return <span className="text-white/20 text-xs">—</span>;
+  if (!awaitingReply && !pendingCheckins) return <span className="text-white text-xs">—</span>;
   return (
     <div className="flex items-center gap-1.5">
       {awaitingReply && (
@@ -319,7 +319,7 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
         </button>
         <button
           onClick={() => setOpen((v) => !v)}
-          className="text-white/50 px-2 border-l transition-colors hover:bg-white/[0.12]"
+          className="text-white px-2 border-l transition-colors hover:bg-white/[0.12]"
           style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: CLIENT_DARK_BORDER }}
         >
           <ChevronDown size={13} />
@@ -492,12 +492,12 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 mb-4 md:max-w-sm border"
         style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
       >
-        <Search size={15} className="text-white/40" />
+        <Search size={15} className="text-white" />
         <input
           value={search || ""}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search clients"
-          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white"
         />
       </div>
 
@@ -512,19 +512,19 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
           <thead>
             <tr className="border-b" style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}>
               <th className="w-10 px-3 py-3" />
-              <th className="px-2 py-3 text-white/40 text-[11px] font-semibold tracking-wide">NAME</th>
-              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">MAIN PROGRAM</th>
-              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
-              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">NEXT PHASE</th>
-              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">ENGAGEMENT</th>
-              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">STATUS</th>
-              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide text-right">ACTION</th>
+              <th className="px-2 py-3 text-white text-[11px] font-semibold tracking-wide">NAME</th>
+              <th className="px-3 py-3 text-white text-[11px] font-semibold tracking-wide">MAIN PROGRAM</th>
+              <th className="px-3 py-3 text-white text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
+              <th className="px-3 py-3 text-white text-[11px] font-semibold tracking-wide">NEXT PHASE</th>
+              <th className="px-3 py-3 text-white text-[11px] font-semibold tracking-wide">ENGAGEMENT</th>
+              <th className="px-3 py-3 text-white text-[11px] font-semibold tracking-wide">STATUS</th>
+              <th className="px-3 py-3 text-white text-[11px] font-semibold tracking-wide text-right">ACTION</th>
             </tr>
           </thead>
           <tbody>
             {clients.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-5 py-10 text-center text-white/40 text-sm">
+                <td colSpan={8} className="px-5 py-10 text-center text-white text-sm">
                   {dbReady ? "No clients yet — add your first one to get started." : "Loading your clients…"}
                 </td>
               </tr>
@@ -552,12 +552,12 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                       <Avatar name={c.name} url={c.avatarUrl} size={36} dark />
                       <div className="min-w-0">
                         <p className="text-white font-semibold text-sm truncate">{c.name}</p>
-                        <p className="text-white/35 text-xs truncate">{c.email}</p>
+                        <p className="text-white text-xs truncate">{c.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-3 py-3.5">
-                    <span className="text-white/60 text-sm">{mainProgramLabel(c)}</span>
+                    <span className="text-white text-sm">{mainProgramLabel(c)}</span>
                   </td>
                   <td className="px-3 py-3.5">
                     <PhaseCell phase={currentPhase} needsNewPhase={needsNewPhase} />
@@ -621,7 +621,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
       {/* mobile card list */}
       <div className="md:hidden space-y-2.5">
         {clients.length === 0 && (
-          <DarkPanel className="px-5 py-10 text-center text-white/40 text-sm">
+          <DarkPanel className="px-5 py-10 text-center text-white text-sm">
             {dbReady ? "No clients yet — add your first one to get started." : "Loading your clients…"}
           </DarkPanel>
         )}
@@ -649,7 +649,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                 <Avatar name={c.name} url={c.avatarUrl} size={42} dark />
                 <div className="min-w-0 flex-1">
                   <p className="text-white font-semibold text-sm truncate">{c.name}</p>
-                  <p className="text-white/35 text-xs truncate">{mainProgramLabel(c)}</p>
+                  <p className="text-white text-xs truncate">{mainProgramLabel(c)}</p>
                 </div>
                 <button
                   onClick={(e) => {
@@ -677,7 +677,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                     style={
                       c.accessPaused
                         ? { backgroundColor: "rgba(239,68,68,0.12)", color: OVER_RED }
-                        : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }
+                        : { backgroundColor: "rgba(255,255,255,0.06)", color: "#FFFFFF" }
                     }
                   >
                     {c.accessPaused ? <Unlock size={14} /> : <Lock size={14} />}
@@ -702,7 +702,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                 />
               </div>
               {nextPhase && (
-                <p className="text-white/30 text-xs mt-2 pt-2 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
+                <p className="text-white text-xs mt-2 pt-2 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
                   Next: {nextPhase.name} · starts {new Date(nextPhase.startDate).toLocaleDateString()}
                 </p>
               )}

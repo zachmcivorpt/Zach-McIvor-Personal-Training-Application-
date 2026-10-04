@@ -165,7 +165,7 @@ export default function CoachFoodLibrary({ showToast }) {
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <p className="text-white/40 text-sm">
+        <p className="text-white text-sm">
           {customFoods.length} custom · {remainingBuiltIn.length} built-in not yet imported
         </p>
         <div className="flex items-center gap-2 shrink-0">
@@ -190,18 +190,18 @@ export default function CoachFoodLibrary({ showToast }) {
       </div>
 
       <div className="flex items-center gap-2 bg-white/8 border rounded-xl px-3 py-2.5 mb-5 md:max-w-sm" style={{ borderColor: CLIENT_DARK_BORDER }}>
-        <Search size={16} className="text-white/40" />
+        <Search size={16} className="text-white" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search foods"
-          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/25"
+          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white"
         />
       </div>
 
       {filteredCustom.length > 0 && (
         <>
-          <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">YOUR CUSTOM FOODS</p>
+          <p className="text-white text-[11px] font-semibold tracking-wide mb-2">YOUR CUSTOM FOODS</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 mb-6">
             {filteredCustom.map((f) => (
               <DarkPanel key={f.id} chamfer className="active:scale-[0.98] transition-transform">
@@ -218,7 +218,7 @@ export default function CoachFoodLibrary({ showToast }) {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-semibold text-sm truncate">{f.name}</p>
-                    <p className="text-white/40 text-xs truncate mt-0.5">
+                    <p className="text-white text-xs truncate mt-0.5">
                       {f.cals} cal · {f.protein}p / {f.carbs}c / {f.fat}f
                     </p>
                   </div>
@@ -230,7 +230,7 @@ export default function CoachFoodLibrary({ showToast }) {
       )}
 
       {filteredBase.length > 0 && (
-        <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">
+        <p className="text-white text-[11px] font-semibold tracking-wide mb-2">
           BUILT-IN LIBRARY — READ-ONLY UNTIL IMPORTED
         </p>
       )}
@@ -242,12 +242,12 @@ export default function CoachFoodLibrary({ showToast }) {
                 <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border" style={{ borderColor: CLIENT_DARK_BORDER }} />
               ) : (
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border" style={{ backgroundColor: "rgba(255,255,255,0.04)", borderColor: CLIENT_DARK_BORDER }}>
-                  <Apple size={16} className="text-white/30" />
+                  <Apple size={16} className="text-white" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-sm truncate">{f.name}</p>
-                <p className="text-white/40 text-xs truncate mt-0.5">
+                <p className="text-white text-xs truncate mt-0.5">
                   {f.cals} cal · {f.protein}p / {f.carbs}c / {f.fat}f
                 </p>
               </div>
@@ -255,7 +255,7 @@ export default function CoachFoodLibrary({ showToast }) {
           </DarkPanel>
         ))}
         {filteredCustom.length === 0 && filteredBase.length === 0 && (
-          <p className="text-white/30 text-xs col-span-full text-center py-6">No foods match.</p>
+          <p className="text-white text-xs col-span-full text-center py-6">No foods match.</p>
         )}
       </div>
 

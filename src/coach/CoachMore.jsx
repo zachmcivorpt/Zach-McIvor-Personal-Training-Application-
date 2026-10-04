@@ -30,7 +30,7 @@ import {
 function NotifPrefRow({ label, on, onToggle }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-white/70 text-sm">{label}</span>
+      <span className="text-white text-sm">{label}</span>
       <button
         onClick={onToggle}
         className="w-9 h-5 rounded-full relative transition-colors shrink-0"
@@ -88,7 +88,7 @@ function PushNotificationsCard({ userId, notificationPrefs, updateUser, showToas
         </div>
         <div className="flex-1">
           <p className="text-white font-semibold text-sm">Push Notifications</p>
-          <p className="text-white/40 text-xs mt-0.5">Get alerted on this device — even app closed</p>
+          <p className="text-white text-xs mt-0.5">Get alerted on this device — even app closed</p>
         </div>
         <button
           onClick={toggle}
@@ -176,7 +176,7 @@ function AccountCard({ currentUser, updateUser, updateCoachEmail, showToast }) {
         <p className="text-white font-semibold text-sm">Account</p>
       </div>
 
-      <p className="text-white/30 text-[11px] mb-1.5">NAME</p>
+      <p className="text-white text-[11px] mb-1.5">NAME</p>
       <div className="flex gap-2 mb-4">
         <TextInput dark value={name} onChange={(e) => setName(e.target.value)} className="flex-1" />
         <button
@@ -189,11 +189,11 @@ function AccountCard({ currentUser, updateUser, updateCoachEmail, showToast }) {
       </div>
 
       <form onSubmit={saveEmail}>
-        <p className="text-white/30 text-[11px] mb-1.5">LOGIN EMAIL</p>
+        <p className="text-white text-[11px] mb-1.5">LOGIN EMAIL</p>
         <TextInput dark type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         {emailDirty && (
           <>
-            <p className="text-white/30 text-[11px] mt-3 mb-1.5">CURRENT PASSWORD (to confirm)</p>
+            <p className="text-white text-[11px] mt-3 mb-1.5">CURRENT PASSWORD (to confirm)</p>
             <TextInput
               dark
               type="password"
@@ -201,7 +201,7 @@ function AccountCard({ currentUser, updateUser, updateCoachEmail, showToast }) {
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Required to change your email"
             />
-            <p className="text-white/40 text-[11px] mt-2">
+            <p className="text-white text-[11px] mt-2">
               We'll send a verification link to the new address — your login stays on the old one until you click it.
             </p>
           </>
@@ -241,14 +241,14 @@ function DesignAssetRow({
   progress,
   onUpload,
   onRemove,
-  iconClassName = "text-white/20",
+  iconClassName = "text-white",
 }) {
   const fileRef = useRef(null);
 
   return (
     <div>
-      <p className="text-white/30 text-[11px] mb-1.5">{label.toUpperCase()}</p>
-      {description && <p className="text-white/40 text-xs mb-2">{description}</p>}
+      <p className="text-white text-[11px] mb-1.5">{label.toUpperCase()}</p>
+      {description && <p className="text-white text-xs mb-2">{description}</p>}
       <div
         className={`relative rounded-xl overflow-hidden border flex items-center justify-center ${aspectClassName}`}
         style={{ borderColor: CLIENT_DARK_BORDER, backgroundColor: "rgba(255,255,255,0.03)" }}
@@ -264,7 +264,7 @@ function DesignAssetRow({
         )}
         {uploading && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-            <span className="text-white/80 text-xs font-bold">{Math.round((progress || 0) * 100)}%</span>
+            <span className="text-white text-xs font-bold">{Math.round((progress || 0) * 100)}%</span>
           </div>
         )}
       </div>
@@ -530,20 +530,20 @@ function DesignSettingsCard() {
         </div>
         <div>
           <p className="text-white font-semibold text-sm">Design Settings</p>
-          <p className="text-white/40 text-xs mt-0.5">Customize how the app looks for you and your clients</p>
+          <p className="text-white text-xs mt-0.5">Customize how the app looks for you and your clients</p>
         </div>
       </div>
 
       <div className="space-y-5">
         <div>
-          <p className="text-white/30 text-[11px] mb-1.5">CLIENT APP THEME</p>
+          <p className="text-white text-[11px] mb-1.5">CLIENT APP THEME</p>
           <div
             className="flex items-center justify-between rounded-xl px-3.5 py-3 border"
             style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
           >
             <div>
               <p className="text-white text-sm font-medium">{clientDark ? "Dark" : "Light"}</p>
-              <p className="text-white/40 text-xs mt-0.5">Switches every client's app instantly — no update needed</p>
+              <p className="text-white text-xs mt-0.5">Switches every client's app instantly — no update needed</p>
             </div>
             <button
               onClick={toggleClientTheme}
@@ -575,8 +575,8 @@ function DesignSettingsCard() {
         <div className="border-t" style={{ borderColor: CLIENT_DARK_BORDER }} />
 
         <div>
-          <p className="text-white/30 text-[11px] mb-1.5">PROFILE PICTURE</p>
-          <p className="text-white/40 text-xs mb-2">Shown wherever your trainer profile appears</p>
+          <p className="text-white text-[11px] mb-1.5">PROFILE PICTURE</p>
+          <p className="text-white text-xs mb-2">Shown wherever your trainer profile appears</p>
           <div className="flex items-center gap-3">
             <AvatarPicker
               dark
@@ -605,7 +605,7 @@ function DesignSettingsCard() {
           previewUrl={design.appLogoUrlOnDark}
           previewClassName="max-w-[65%] max-h-[65%] object-contain"
           aspectClassName="h-24 !bg-black"
-          iconClassName="text-white/25"
+          iconClassName="text-white"
           uploading={uploadingLogoDark}
           progress={logoDarkProgress}
           onUpload={(file) => setCropRequest({ field: "appLogoUrlOnDark", setUploading: setUploadingLogoDark, setProgress: setLogoDarkProgress, file })}
@@ -737,7 +737,7 @@ function WelcomeMessageCard() {
         </div>
         <div className="flex-1">
           <p className="text-white font-semibold text-sm">Automated Welcome Message</p>
-          <p className="text-white/40 text-xs mt-0.5">Sent to a client automatically the moment they activate their account</p>
+          <p className="text-white text-xs mt-0.5">Sent to a client automatically the moment they activate their account</p>
         </div>
         <button
           onClick={() => setAutoSend((v) => !v)}
@@ -749,25 +749,25 @@ function WelcomeMessageCard() {
         </button>
       </div>
 
-      <p className="text-white/30 text-[11px] mt-3 mb-1.5">
-        MESSAGE — use <span className="font-mono px-1 rounded text-white/80" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>{"{name}"}</span> for the client's first name
+      <p className="text-white text-[11px] mt-3 mb-1.5">
+        MESSAGE — use <span className="font-mono px-1 rounded text-white" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>{"{name}"}</span> for the client's first name
       </p>
       <TextArea dark rows={6} value={text} onChange={(e) => setText(e.target.value)} />
 
-      <p className="text-white/30 text-[11px] mt-4 mb-1.5">ATTACHMENT (OPTIONAL)</p>
+      <p className="text-white text-[11px] mt-4 mb-1.5">ATTACHMENT (OPTIONAL)</p>
       {attachmentUrl ? (
         <div
           className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 border"
           style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
         >
-          <Paperclip size={14} className="text-white/40 shrink-0" />
+          <Paperclip size={14} className="text-white shrink-0" />
           <span className="text-white text-sm flex-1 truncate">{attachmentName}</span>
           <button
             onClick={() => {
               setAttachmentName("");
               setAttachmentUrl("");
             }}
-            className="w-6 h-6 shrink-0 flex items-center justify-center text-white/30 hover:text-white/60"
+            className="w-6 h-6 shrink-0 flex items-center justify-center text-white hover:text-white"
             aria-label="Remove attachment"
           >
             <X size={14} />
@@ -778,7 +778,7 @@ function WelcomeMessageCard() {
           <input ref={fileRef} type="file" accept="application/pdf" onChange={handleFile} className="hidden" />
           <button
             onClick={() => fileRef.current?.click()}
-            className="w-full flex items-center justify-center gap-2 border border-dashed text-white/60 text-sm font-medium py-3 rounded-xl"
+            className="w-full flex items-center justify-center gap-2 border border-dashed text-white text-sm font-medium py-3 rounded-xl"
             style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.15)" }}
           >
             <Upload size={15} /> {uploading ? "Uploading…" : "Attach a PDF (e.g. a nutrition guide)"}
@@ -796,7 +796,7 @@ function WelcomeMessageCard() {
         onClick={save}
         disabled={!dirty || saving}
         className="w-full mt-4 py-3 rounded-xl text-sm font-bold transition-colors"
-        style={!dirty && !saving ? { backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.3)" } : { backgroundColor: "#FFFFFF", color: "#000000" }}
+        style={!dirty && !saving ? { backgroundColor: "rgba(255,255,255,0.08)", color: "#FFFFFF" } : { backgroundColor: "#FFFFFF", color: "#000000" }}
       >
         {saving ? "SAVING…" : justSaved ? "SAVED ✓" : dirty ? "SAVE CHANGES" : "SAVED"}
       </button>
@@ -840,7 +840,7 @@ function DataBackupCard({ db }) {
         </div>
         <div className="flex-1">
           <p className="text-white font-semibold text-sm">Download Data Backup</p>
-          <p className="text-white/40 text-xs mt-0.5">Every client, program and log as one JSON file, saved straight to this device</p>
+          <p className="text-white text-xs mt-0.5">Every client, program and log as one JSON file, saved straight to this device</p>
         </div>
       </div>
       <button
@@ -875,7 +875,7 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
           />
           <div>
             <p className="text-white font-bold">{currentUser?.name}</p>
-            <p className="text-white/40 text-sm">{currentUser?.email}</p>
+            <p className="text-white text-sm">{currentUser?.email}</p>
           </div>
         </div>
       </Card>
@@ -887,13 +887,13 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
       <Card dark onClick={() => onNavigate("library")}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
-            <Video size={18} className="text-white/70" />
+            <Video size={18} className="text-white" />
           </div>
           <div className="flex-1">
             <p className="text-white font-semibold text-sm">Manage Exercise Library</p>
-            <p className="text-white/40 text-xs mt-0.5">Upload custom exercise videos</p>
+            <p className="text-white text-xs mt-0.5">Upload custom exercise videos</p>
           </div>
-          <ChevronRight size={18} className="text-white/30" />
+          <ChevronRight size={18} className="text-white" />
         </div>
       </Card>
 
@@ -915,10 +915,10 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
       </DangerButton>
 
       <div className="flex items-center justify-center gap-4 pt-1">
-        <Link to="/legal/privacy-policy" className="text-white/30 text-xs font-medium">
+        <Link to="/legal/privacy-policy" className="text-white text-xs font-medium">
           Privacy Policy
         </Link>
-        <Link to="/legal/terms-of-service" className="text-white/30 text-xs font-medium">
+        <Link to="/legal/terms-of-service" className="text-white text-xs font-medium">
           Terms of Service
         </Link>
         <button onClick={() => setDeleteOpen(true)} className="text-xs font-medium" style={{ color: OVER_RED, opacity: 0.7 }}>

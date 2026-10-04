@@ -9,7 +9,7 @@
 // Every coach page should import DarkPage/DarkPanel/StatCard/DarkPageHeader
 // from here rather than re-implementing the look, so "exact" actually means
 // exact — the same component, not a close re-creation of it.
-import { CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, CLIENT_DARK_TEXT_MUTED, MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
+import { CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
 import { ChevronRight, ArrowUpRight } from "lucide-react";
 
 // Full-page dark background. CoachShell's shared content wrapper pads every
@@ -102,20 +102,20 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
 // into the cut corner. trendKind: "up" (green, arrow), "alert" (red dot),
 // "link" (blue, icon-only — no trend text), "neutral" (plain muted text).
 export function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral", onClick }) {
-  const trendColor = trendKind === "up" ? GOAL_GREEN : trendKind === "alert" ? OVER_RED : trendKind === "link" ? MEASURE_BLUE : CLIENT_DARK_TEXT_MUTED;
+  const trendColor = trendKind === "up" ? GOAL_GREEN : trendKind === "alert" ? OVER_RED : trendKind === "link" ? MEASURE_BLUE : "#FFFFFF";
   return (
     <DarkPanel chamfer className="active:scale-[0.98] transition-transform">
       <button onClick={onClick} className="relative w-full text-left p-4 sm:p-[18px] transition-colors hover:bg-white/[0.03]" disabled={!onClick}>
         <Icon size={16} style={{ color: MEASURE_BLUE }} />
         <p className="text-white text-[32px] sm:text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
-        <p className="text-white/40 text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5">{label}</p>
+        <p className="text-white text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5">{label}</p>
         <div className="flex items-center justify-between mt-2.5">
           <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: trendColor }}>
             {trendKind === "up" && <ArrowUpRight size={12} />}
             {trendKind === "alert" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: OVER_RED }} />}
             {trendKind === "link" ? <ChevronRight size={14} /> : <span>{trend}</span>}
           </div>
-          {onClick && <ChevronRight size={14} className="text-white/20" />}
+          {onClick && <ChevronRight size={14} className="text-white" />}
         </div>
       </button>
     </DarkPanel>
@@ -136,7 +136,7 @@ export function DarkPageHeader({ title, subtitle, right, texture = false }) {
       <div className="relative flex items-center justify-between gap-3 px-5 py-5 sm:px-7 sm:py-6">
         <div className="min-w-0">
           <h1 className="text-white text-xl sm:text-2xl font-bold leading-tight truncate">{title}</h1>
-          {subtitle && <p className="text-white/40 text-[11px] sm:text-xs font-semibold tracking-[0.1em] uppercase mt-1.5">{subtitle}</p>}
+          {subtitle && <p className="text-white text-[11px] sm:text-xs font-semibold tracking-[0.1em] uppercase mt-1.5">{subtitle}</p>}
         </div>
         {right && <div className="shrink-0">{right}</div>}
       </div>

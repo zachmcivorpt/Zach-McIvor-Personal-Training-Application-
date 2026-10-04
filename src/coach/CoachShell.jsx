@@ -136,7 +136,7 @@ export default function CoachShell() {
       <button
         onClick={() => setTab(item.id)}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-          active ? "bg-white text-black" : "text-white/55 hover:bg-white/8 hover:text-white/90"
+          active ? "bg-white text-black" : "text-white hover:bg-white/8 hover:text-white"
         }`}
       >
         <Icon size={17} strokeWidth={active ? 2.4 : 2} />
@@ -155,14 +155,14 @@ export default function CoachShell() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-4">
-          <p className="text-white/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mb-2">MAIN MENU</p>
+          <p className="text-white text-[10px] font-semibold tracking-[0.15em] px-3.5 mb-2">MAIN MENU</p>
           <div className="space-y-1">
             {MAIN_MENU.map((item) => (
               <NavButton key={item.id} item={item} />
             ))}
           </div>
 
-          <p className="text-white/25 text-[10px] font-semibold tracking-[0.15em] px-3.5 mt-6 mb-2">OTHER</p>
+          <p className="text-white text-[10px] font-semibold tracking-[0.15em] px-3.5 mt-6 mb-2">OTHER</p>
           <div className="space-y-1">
             {OTHER_MENU.map((item) => (
               <NavButton key={item.id} item={item} />
@@ -174,10 +174,10 @@ export default function CoachShell() {
           <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={36} onClick={() => setTab("more")} />
           <div className="flex-1 min-w-0">
             <p className="text-white text-sm font-semibold truncate">{currentUser?.name}</p>
-            <p className="text-white/35 text-[11px] truncate">Coach</p>
+            <p className="text-white text-[11px] truncate">Coach</p>
           </div>
           <button onClick={() => setNotifOpen(true)} className="w-8 h-8 rounded-lg bg-white/8 hover:bg-white/15 flex items-center justify-center shrink-0 relative transition-colors" title="Notifications">
-            <Bell size={14} className="text-white/70" />
+            <Bell size={14} className="text-white" />
             {unreadNotifCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center">
                 {unreadNotifCount}
@@ -185,7 +185,7 @@ export default function CoachShell() {
             )}
           </button>
           <button onClick={doLogout} className="w-8 h-8 rounded-lg bg-white/8 hover:bg-white/15 flex items-center justify-center shrink-0 transition-colors" title="Sign out">
-            <LogOut size={14} className="text-white/70" />
+            <LogOut size={14} className="text-white" />
           </button>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function CoachShell() {
         <div className="flex items-center justify-between px-4 py-3">
           <Logo variant="mark" tone="white" className="h-8 w-auto" />
           <div className="flex items-center gap-2">
-            <button onClick={() => setNotifOpen(true)} className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white/70 relative">
+            <button onClick={() => setNotifOpen(true)} className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white relative">
               <Bell size={16} />
               {unreadNotifCount > 0 && (
                 <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-blue-400" />
@@ -245,8 +245,8 @@ export default function CoachShell() {
             return (
               <button key={item.id} onClick={() => setTab(item.id)} className="flex-1 flex flex-col items-center gap-1 py-2.5 relative">
                 {active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-[2px] rounded-full" style={{ backgroundColor: MEASURE_BLUE }} />}
-                <Icon size={19} className={active ? "text-white" : "text-white/35"} strokeWidth={active ? 2.4 : 2} />
-                <span className={`text-[9px] font-medium leading-none ${active ? "text-white" : "text-white/35"}`}>
+                <Icon size={19} className={active ? "text-white" : "text-white"} strokeWidth={active ? 2.4 : 2} />
+                <span className={`text-[9px] font-medium leading-none ${active ? "text-white" : "text-white"}`}>
                   {item.label}
                 </span>
                 {item.id === "messages" && unreadMessages && (

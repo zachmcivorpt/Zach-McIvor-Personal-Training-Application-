@@ -176,7 +176,7 @@ function StatTile({ label, value, tone = "neutral" }) {
         <p className="text-3xl font-bold leading-none" style={{ color: tone === "blue" ? MEASURE_BLUE : "#fff" }}>
           {value}
         </p>
-        <p className="text-white/40 text-[11px] tracking-wide mt-2">{label}</p>
+        <p className="text-white text-[11px] tracking-wide mt-2">{label}</p>
       </div>
     </DarkPanel>
   );
@@ -223,7 +223,7 @@ function ChallengeCard({ challenge: c, status, metric, clientsById, onView, onEd
             <Pill tone={STATUS_TONE[status]} dark>{STATUS_LABEL[status]}</Pill>
           </div>
           <p className="text-white font-bold mt-2.5 truncate">{c.name}</p>
-          <p className="text-white/40 text-xs mt-0.5">{metric?.label} · {timelineLabel(c, status, localDateKey())}</p>
+          <p className="text-white text-xs mt-0.5">{metric?.label} · {timelineLabel(c, status, localDateKey())}</p>
 
           {status === "active" && (
             <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
@@ -241,7 +241,7 @@ function ChallengeCard({ challenge: c, status, metric, clientsById, onView, onEd
                 ))}
                 {participants.length > 4 && (
                   <div
-                    className="w-[26px] h-[26px] rounded-full ring-2 flex items-center justify-center text-white/50 text-[10px] font-semibold"
+                    className="w-[26px] h-[26px] rounded-full ring-2 flex items-center justify-center text-white text-[10px] font-semibold"
                     style={{ backgroundColor: "rgba(255,255,255,0.08)", ...ringStyle }}
                   >
                     +{participants.length - 4}
@@ -249,7 +249,7 @@ function ChallengeCard({ challenge: c, status, metric, clientsById, onView, onEd
                 )}
               </div>
             ) : (
-              <span className="flex items-center gap-1 text-white/30 text-xs">
+              <span className="flex items-center gap-1 text-white text-xs">
                 <Users size={12} /> No participants
               </span>
             )}
@@ -327,9 +327,9 @@ export default function CoachChallenges({ showToast }) {
 
       {challenges.length === 0 ? (
         <div className="border border-dashed rounded-2xl py-14 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
-          <Trophy size={22} className="text-white/15 mx-auto mb-3" />
-          <p className="text-white/40 text-sm font-medium">No challenges yet</p>
-          <p className="text-white/30 text-xs mt-1">Create one to get clients competing.</p>
+          <Trophy size={22} className="text-white mx-auto mb-3" />
+          <p className="text-white text-sm font-medium">No challenges yet</p>
+          <p className="text-white text-xs mt-1">Create one to get clients competing.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">

@@ -264,7 +264,7 @@ export default function CoachForms({ showToast }) {
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <p className="text-white/40 text-sm">{forms.length} total · schedule any form to recur weekly on a client's calendar</p>
+        <p className="text-white text-sm">{forms.length} total · schedule any form to recur weekly on a client's calendar</p>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={importTemplates}
@@ -286,9 +286,9 @@ export default function CoachForms({ showToast }) {
 
       {forms.length === 0 ? (
         <div className="border border-dashed rounded-2xl py-14 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
-          <NotebookPen size={22} className="text-white/15 mx-auto mb-3" />
-          <p className="text-white/40 text-sm font-medium">No check-in forms yet</p>
-          <p className="text-white/30 text-xs mt-1">Build your first one, e.g. a Weekly Check-in.</p>
+          <NotebookPen size={22} className="text-white mx-auto mb-3" />
+          <p className="text-white text-sm font-medium">No check-in forms yet</p>
+          <p className="text-white text-xs mt-1">Build your first one, e.g. a Weekly Check-in.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -304,7 +304,7 @@ export default function CoachForms({ showToast }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-semibold text-sm truncate">{f.name}</p>
-                    <p className="text-white/40 text-xs truncate mt-0.5">
+                    <p className="text-white text-xs truncate mt-0.5">
                       {f.questions.length} question{f.questions.length === 1 ? "" : "s"}
                     </p>
                   </div>

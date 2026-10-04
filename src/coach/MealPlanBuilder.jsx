@@ -615,8 +615,8 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
   const ring = (label, value, goal) => (
     <div className="text-center">
       <p className="text-white text-lg font-bold tabular-nums">{Math.round(value)}</p>
-      <p className="text-white/40 text-[11px]">{label}</p>
-      <p className="text-white/25 text-[10px] mt-0.5">Goal: {Math.round(goal)}{label !== "Calories" ? "g" : ""}</p>
+      <p className="text-white text-[11px]">{label}</p>
+      <p className="text-white text-[10px] mt-0.5">Goal: {Math.round(goal)}{label !== "Calories" ? "g" : ""}</p>
     </div>
   );
 
@@ -624,7 +624,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
     <FullScreenOverlay>
       <div className="fixed inset-0 z-[100] flex flex-col" style={{ backgroundColor: CLIENT_DARK_BG }}>
         <div className="flex items-center justify-between px-5 pt-6 pb-3 border-b shrink-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
-          <button onClick={onClose} className="text-white/50 text-sm font-medium">
+          <button onClick={onClose} className="text-white text-sm font-medium">
             Cancel
           </button>
           <span className="text-white font-semibold">Meal Guide Builder</span>
@@ -640,7 +640,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 type="button"
                 onClick={removeLastWeek}
                 disabled={weeksCount <= 1}
-                className="w-9 h-9 flex items-center justify-center text-white/60 disabled:opacity-30"
+                className="w-9 h-9 flex items-center justify-center text-white disabled:opacity-30"
               >
                 −
               </button>
@@ -651,7 +651,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 type="button"
                 onClick={addWeek}
                 disabled={weeksCount >= MAX_WEEKS}
-                className="w-9 h-9 flex items-center justify-center text-white/60 disabled:opacity-30"
+                className="w-9 h-9 flex items-center justify-center text-white disabled:opacity-30"
               >
                 +
               </button>
@@ -659,7 +659,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
             <button
               onClick={relabelAsWeekdays}
               title="Rename every day Monday–Sunday automatically"
-              className="text-white/40 hover:text-white/70 text-xs font-semibold px-2.5 py-2 rounded-lg"
+              className="text-white hover:text-white text-xs font-semibold px-2.5 py-2 rounded-lg"
             >
               Label as Mon–Sun
             </button>
@@ -667,7 +667,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
               onClick={duplicateWeek}
               disabled={weeksCount >= MAX_WEEKS}
               title="Copy this week's meals into a brand new week"
-              className="flex items-center gap-1 text-white/40 hover:text-white/70 disabled:opacity-30 text-xs font-semibold px-2.5 py-2 rounded-lg"
+              className="flex items-center gap-1 text-white hover:text-white disabled:opacity-30 text-xs font-semibold px-2.5 py-2 rounded-lg"
             >
               <Copy size={12} /> Duplicate Week
             </button>
@@ -676,7 +676,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
               disabled={weeksCount <= 1}
               title="Delete this week, meals and all"
               className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg disabled:opacity-30 ${
-                confirmDeleteWeek ? "text-white" : "text-white/40 hover:text-[#EF4444]"
+                confirmDeleteWeek ? "text-white" : "text-white hover:text-[#EF4444]"
               }`}
               style={confirmDeleteWeek ? { backgroundColor: OVER_RED } : undefined}
             >
@@ -699,7 +699,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 key={w}
                 onClick={() => selectWeek(w)}
                 className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  w === activeWeek ? "text-white" : "bg-white/5 text-white/50"
+                  w === activeWeek ? "text-white" : "bg-white/5 text-white"
                 }`}
                 style={w === activeWeek ? { backgroundColor: MEASURE_BLUE } : undefined}
               >
@@ -718,7 +718,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 setEditingLabel(false);
               }}
               className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                d.id === activeDay.id ? "bg-white text-black" : "bg-white/5 text-white/50"
+                d.id === activeDay.id ? "bg-white text-black" : "bg-white/5 text-white"
               }`}
             >
               {d.label}
@@ -744,14 +744,14 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
               </div>
             ) : (
               <button onClick={startEditLabel} className="flex items-center gap-1.5 text-white font-semibold text-sm">
-                {activeDay.label} <Pencil size={12} className="text-white/30" />
+                {activeDay.label} <Pencil size={12} className="text-white" />
               </button>
             )}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={copyDay}
                 title="Copy this day's meals"
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-white/50 hover:text-white"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-white hover:text-white"
               >
                 <Copy size={14} />
               </button>
@@ -759,7 +759,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 onClick={pasteDay}
                 disabled={!clipboard}
                 title={clipboard ? "Paste the copied day here" : "Copy a day first"}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-white/50 hover:text-white disabled:opacity-30"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-white hover:text-white disabled:opacity-30"
               >
                 <ClipboardPaste size={14} />
               </button>
@@ -790,7 +790,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                   dragRef.current = null;
                 }}
               >
-                <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">{slot.toUpperCase()}</p>
+                <p className="text-white text-[11px] font-semibold tracking-wide mb-2">{slot.toUpperCase()}</p>
                 <div className="space-y-2.5">
                   {(activeDay.meals[slot] || []).map((mealId, i) => {
                     const m = mealsById[mealId];
@@ -845,7 +845,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                           <p className={`text-[10px] font-bold tracking-wide uppercase ${style.text}`}>{slot}</p>
                           <p className="text-white text-sm font-bold mt-0.5 truncate">{m?.name || "Deleted meal"}</p>
                           {m && (
-                            <p className="text-white/40 text-xs mt-1">
+                            <p className="text-white text-xs mt-1">
                               {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                             </p>
                           )}
@@ -856,14 +856,14 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPickerTarget({ slot })}
-                      className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-white/15 rounded-xl py-2.5 text-white/40 text-sm font-medium"
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-white/15 rounded-xl py-2.5 text-white text-sm font-medium"
                     >
                       <Plus size={14} /> Add to {slot}
                     </button>
                     <button
                       onClick={() => quickFillSlot(slot)}
                       title="Add the best-fit meal for this slot automatically"
-                      className="shrink-0 w-10 flex items-center justify-center border border-dashed border-white/15 rounded-xl text-white/40 hover:text-white"
+                      className="shrink-0 w-10 flex items-center justify-center border border-dashed border-white/15 rounded-xl text-white hover:text-white"
                     >
                       <Sparkles size={14} />
                     </button>

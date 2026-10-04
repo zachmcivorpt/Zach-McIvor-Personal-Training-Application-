@@ -138,7 +138,7 @@ function AvatarStack({ clients, max = 4, dark = false }) {
       ))}
       {extra > 0 && (
         <div
-          className={`w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-semibold ${ringClass} ${dark ? "bg-white/10 text-white/50" : "bg-black/8 text-black/50"}`}
+          className={`w-[30px] h-[30px] rounded-full flex items-center justify-center text-[11px] font-semibold ${ringClass} ${dark ? "bg-white/10 text-white" : "bg-black/8 text-black/50"}`}
           style={ringStyle}
         >
           +{extra}
@@ -158,7 +158,7 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
         <Icon size={16} style={{ color: clients.length ? MEASURE_BLUE : "rgba(255,255,255,0.25)" }} />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white/70 text-sm font-medium truncate">{label}</p>
+        <p className="text-white text-sm font-medium truncate">{label}</p>
       </div>
       {clients.length > 0 ? (
         <div className="flex items-center gap-2.5 shrink-0">
@@ -168,7 +168,7 @@ function SegmentRow({ icon: Icon, label, clients, onViewAll }) {
           </button>
         </div>
       ) : (
-        <span className="text-white/25 text-xs shrink-0">All clear</span>
+        <span className="text-white text-xs shrink-0">All clear</span>
       )}
     </div>
   );
@@ -240,7 +240,7 @@ function NeedsAttentionRow({ alert, onDismiss, onOpen }) {
       >
         <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={32} dark />
         <div className="flex-1 min-w-0">
-          <p className="text-white/80 text-[13px] leading-snug">
+          <p className="text-white text-[13px] leading-snug">
             {isApex && (
               <span className="inline-flex items-center gap-1 font-semibold text-[10px] tracking-wide uppercase mr-1.5 align-middle" style={{ color: MEASURE_BLUE }}>
                 <Sparkles size={10} /> Apex Insight
@@ -248,7 +248,7 @@ function NeedsAttentionRow({ alert, onDismiss, onOpen }) {
             )}
             <span className="font-semibold text-white">{alert.client.name}</span> — {alert.title}
           </p>
-          <p className="text-white/40 text-[11px] mt-0.5">{alert.detail}</p>
+          <p className="text-white text-[11px] mt-0.5">{alert.detail}</p>
         </div>
         <Icon size={16} className="shrink-0" style={{ color: isApex ? MEASURE_BLUE : OVER_RED }} />
       </div>
@@ -399,7 +399,7 @@ function ActivityItem({ item, onClick }) {
     >
       <Avatar name={item.clientName} url={item.clientAvatar} size={32} dark />
       <div className="flex-1 min-w-0">
-        <p className="text-white/80 text-[13px] leading-snug">
+        <p className="text-white text-[13px] leading-snug">
           <span className="font-semibold text-white">{item.clientName}</span> {item.verb}{" "}
           {item.subject && (
             <span className="font-medium" style={{ color: MEASURE_BLUE }}>
@@ -408,7 +408,7 @@ function ActivityItem({ item, onClick }) {
           )}
           {item.suffix}
         </p>
-        <p className="text-white/30 text-[11px] mt-1">
+        <p className="text-white text-[11px] mt-1">
           {timeAgo(item.date)}
           {clickable && <span className="font-medium" style={{ color: MEASURE_BLUE }}> · Tap to view</span>}
         </p>
@@ -486,7 +486,7 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
         }}
         placeholder="Anything to remember — plans, reminders, things to follow up on. Only you can see this."
         rows={4}
-        className="relative w-full border rounded-xl px-3.5 py-3 text-sm text-white outline-none placeholder:text-white/30 resize-none"
+        className="relative w-full border rounded-xl px-3.5 py-3 text-sm text-white outline-none placeholder:text-white resize-none"
         style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
       />
     </DarkPanel>
@@ -804,14 +804,14 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
               <h1 className="text-white text-xl sm:text-[28px] font-bold leading-tight truncate">
                 {timeOfDayGreeting()}, {currentUser?.name?.split(" ")[0] || "Coach"}
               </h1>
-              <p className="text-white/40 text-[11px] sm:text-xs font-semibold tracking-[0.1em] uppercase mt-1.5">Your roster and what needs your attention.</p>
+              <p className="text-white text-[11px] sm:text-xs font-semibold tracking-[0.1em] uppercase mt-1.5">Your roster and what needs your attention.</p>
             </div>
           </div>
           <div className="flex items-center gap-3.5 shrink-0">
-            <span className="text-white/35 text-xs font-medium tabular-nums hidden sm:inline">
+            <span className="text-white text-xs font-medium tabular-nums hidden sm:inline">
               {new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
             </span>
-            <div className="relative text-white/65">
+            <div className="relative text-white">
               <Bell size={18} />
               {unreadNotifCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full border" style={{ backgroundColor: OVER_RED, borderColor: CLIENT_DARK_SURFACE }} />
@@ -898,15 +898,15 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
               <div className="w-11 h-11 rounded-full flex items-center justify-center mb-3 border" style={{ backgroundColor: "rgba(34,197,94,0.08)", borderColor: "rgba(34,197,94,0.2)" }}>
                 <CheckCircle2 size={20} style={{ color: GOAL_GREEN }} />
               </div>
-              <p className="text-white/70 text-xs font-bold tracking-[0.12em] uppercase">All clients are on track</p>
-              <p className="text-white/30 text-xs mt-1.5">Nothing needs your attention right now.</p>
+              <p className="text-white text-xs font-bold tracking-[0.12em] uppercase">All clients are on track</p>
+              <p className="text-white text-xs mt-1.5">Nothing needs your attention right now.</p>
             </div>
           ) : (
             <>
               {visibleNeedsAttention.slice(0, 8).map((a) => (
                 <NeedsAttentionRow key={a.id} alert={a} onDismiss={() => dismissAlert(a.id)} onOpen={setViewingApexAlert} />
               ))}
-              <p className="text-white/25 text-[10px] text-center pt-1 pb-1">Swipe an item left to dismiss it for a week</p>
+              <p className="text-white text-[10px] text-center pt-1 pb-1">Swipe an item left to dismiss it for a week</p>
             </>
           )}
         </div>
@@ -915,11 +915,11 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
       <DarkPanel className="flex flex-col mb-4">
         <div className="relative px-5 pt-5 pb-3">
           <p className="text-white font-semibold">Recent Activity</p>
-          <p className="text-white/30 text-xs mt-0.5">Your latest client activity.</p>
+          <p className="text-white text-xs mt-0.5">Your latest client activity.</p>
         </div>
         <div className="relative px-5 pb-2 max-h-[420px] overflow-y-auto">
           {recentActivity.length === 0 ? (
-            <p className="text-white/30 text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
+            <p className="text-white text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
           ) : (
             <div className="md:columns-2 md:gap-x-8">
               {recentActivity.map((item, i) => (
@@ -933,7 +933,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
       <DarkPanel className="flex flex-col mb-4">
         <div className="relative px-5 pt-5 pb-1">
           <p className="text-white font-semibold">Auto-Tagged Segments</p>
-          <p className="text-white/30 text-xs mt-0.5">Clients grouped by what they need from you next.</p>
+          <p className="text-white text-xs mt-0.5">Clients grouped by what they need from you next.</p>
         </div>
         <div className="relative px-5 pb-2 mt-2">
           <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
@@ -957,24 +957,24 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
               className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
               style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
             >
-              <UserPlus size={16} className="text-white/50" />
-              <span className="text-white/80 text-sm font-medium flex-1 text-left">Add a new client</span>
+              <UserPlus size={16} className="text-white" />
+              <span className="text-white text-sm font-medium flex-1 text-left">Add a new client</span>
             </button>
             <button
               onClick={() => onOpenLibrary("programs")}
               className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
               style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
             >
-              <FilePlus size={16} className="text-white/50" />
-              <span className="text-white/80 text-sm font-medium flex-1 text-left">Build a program template</span>
+              <FilePlus size={16} className="text-white" />
+              <span className="text-white text-sm font-medium flex-1 text-left">Build a program template</span>
             </button>
             <button
               onClick={() => onNavigate("library")}
               className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
               style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
             >
-              <Video size={16} className="text-white/50" />
-              <span className="text-white/80 text-sm font-medium flex-1 text-left">Add an exercise + video</span>
+              <Video size={16} className="text-white" />
+              <span className="text-white text-sm font-medium flex-1 text-left">Add an exercise + video</span>
             </button>
             <button
               onClick={() => setBroadcastOpen(true)}
@@ -983,8 +983,8 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
               className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:hover:bg-transparent"
               style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
             >
-              <Flame size={16} className="text-white/50" />
-              <span className="text-white/80 text-sm font-medium flex-1 text-left">Broadcast today's workout</span>
+              <Flame size={16} className="text-white" />
+              <span className="text-white text-sm font-medium flex-1 text-left">Broadcast today's workout</span>
             </button>
           </div>
         </DarkPanel>
@@ -992,7 +992,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         <DarkPanel className="md:col-span-2 h-fit p-5">
           <p className="relative text-white font-semibold mb-3">Clients</p>
           <div className="relative space-y-2.5">
-            {clients.length === 0 && <p className="text-white/30 text-sm">No clients yet.</p>}
+            {clients.length === 0 && <p className="text-white text-sm">No clients yet.</p>}
             {clients.slice(0, 8).map((c) => {
               const phases = (db.clientPhases || {})[c.id] || [];
               const phase = getCurrentPhase(phases, todayKey);
@@ -1002,7 +1002,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
                     <Avatar name={c.name} url={c.avatarUrl} size={32} dark />
                     <div className="min-w-0">
                       <p className="text-white text-sm font-medium leading-none truncate">{c.name}</p>
-                      <p className="text-white/35 text-xs mt-1 truncate">{phase ? phase.name : "No phase scheduled"}</p>
+                      <p className="text-white text-xs mt-1 truncate">{phase ? phase.name : "No phase scheduled"}</p>
                     </div>
                   </div>
                   <Pill tone={clientStatusPill(c).tone} dark>

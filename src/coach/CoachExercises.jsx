@@ -459,7 +459,7 @@ export default function CoachExercises({ showToast, compact = false }) {
       <div className={`flex items-center justify-between gap-3 flex-wrap ${compact ? "mb-4" : "mb-6"}`}>
         <div className="min-w-0">
           {!compact && <h1 className="text-white text-2xl font-bold">Exercise Library</h1>}
-          <p className="text-white/40 text-sm mt-0.5">{db.exercises.length} total</p>
+          <p className="text-white text-sm mt-0.5">{db.exercises.length} total</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {missingVideoCount > 0 && (
@@ -520,12 +520,12 @@ export default function CoachExercises({ showToast, compact = false }) {
       <DedupeSheet open={dedupeOpen} onClose={() => setDedupeOpen(false)} showToast={showToast} />
 
       <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
-        <Search size={16} className="text-white/40" />
+        <Search size={16} className="text-white" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search exercises"
-          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
+          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white"
         />
       </div>
 
@@ -536,7 +536,7 @@ export default function CoachExercises({ showToast, compact = false }) {
               <ExerciseThumb exercise={ex} size={40} rounded="rounded-xl" dark />
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-sm truncate">{ex.name}</p>
-                <p className="text-white/40 text-xs truncate mt-0.5">
+                <p className="text-white text-xs truncate mt-0.5">
                   {ex.category} · {ex.equipment}
                 </p>
               </div>

@@ -20,7 +20,7 @@ export default function CoachHabitLibrary({ showToast }) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 pb-8 md:px-8">
-      <p className="text-white/40 text-sm mb-4">
+      <p className="text-white text-sm mb-4">
         {presets.length} preset{presets.length === 1 ? "" : "s"} · suggested when you add daily habits to a client's profile
       </p>
 
@@ -33,7 +33,7 @@ export default function CoachHabitLibrary({ showToast }) {
 
       {presets.length === 0 ? (
         <div className="border border-dashed rounded-2xl py-10 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
-          <p className="text-white/30 text-sm">No habit presets yet — add your first above.</p>
+          <p className="text-white text-sm">No habit presets yet — add your first above.</p>
         </div>
       ) : (
         <DarkPanel className="flex flex-col">
@@ -52,7 +52,7 @@ export default function CoachHabitLibrary({ showToast }) {
                     deleteHabitPreset(h.id);
                     showToast("Preset removed");
                   }}
-                  className="w-7 h-7 flex items-center justify-center text-white/30 hover:text-white/60"
+                  className="w-7 h-7 flex items-center justify-center text-white hover:text-white"
                   aria-label={`Remove ${h.label}`}
                 >
                   <Trash2 size={14} />

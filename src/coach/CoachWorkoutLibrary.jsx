@@ -34,7 +34,7 @@ export default function CoachWorkoutLibrary({ showToast }) {
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
       <div className="flex items-center justify-between gap-3 mb-4">
-        <p className="text-white/40 text-sm">{workouts.length} total · reusable building blocks for any program</p>
+        <p className="text-white text-sm">{workouts.length} total · reusable building blocks for any program</p>
         <button
           onClick={() => setEditing({ isNew: true })}
           aria-label="New workout"
@@ -46,9 +46,9 @@ export default function CoachWorkoutLibrary({ showToast }) {
 
       {workouts.length === 0 ? (
         <div className="border border-dashed rounded-2xl py-14 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
-          <Dumbbell size={22} className="text-white/15 mx-auto mb-3" />
-          <p className="text-white/40 text-sm font-medium">No workout templates yet</p>
-          <p className="text-white/30 text-xs mt-1">Build your first one to reuse across programs.</p>
+          <Dumbbell size={22} className="text-white mx-auto mb-3" />
+          <p className="text-white text-sm font-medium">No workout templates yet</p>
+          <p className="text-white text-xs mt-1">Build your first one to reuse across programs.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -64,7 +64,7 @@ export default function CoachWorkoutLibrary({ showToast }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-semibold text-sm truncate">{w.label}</p>
-                    <p className="text-white/40 text-xs truncate mt-0.5">
+                    <p className="text-white text-xs truncate mt-0.5">
                       {countExercises(w.exercises)} exercise{countExercises(w.exercises) === 1 ? "" : "s"}
                       {w.muscleGroups?.length ? ` · ${w.muscleGroups.join(", ")}` : ""}
                     </p>
@@ -75,7 +75,7 @@ export default function CoachWorkoutLibrary({ showToast }) {
                       deleteMasterWorkout(w.id);
                       showToast("Workout template deleted");
                     }}
-                    className="w-7 h-7 shrink-0 flex items-center justify-center text-white/25 hover:text-white/60"
+                    className="w-7 h-7 shrink-0 flex items-center justify-center text-white hover:text-white"
                     aria-label={`Delete ${w.label}`}
                   >
                     <Trash2 size={14} />

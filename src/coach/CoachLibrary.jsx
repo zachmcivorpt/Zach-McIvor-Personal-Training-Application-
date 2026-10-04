@@ -39,7 +39,7 @@ export default function CoachLibrary({ showToast, openTab, onOpenTabHandled }) {
     <DarkPage>
       <div className="mb-5">
         <h1 className="text-white text-2xl font-bold mb-1">Library</h1>
-        <p className="text-white/40 text-sm mb-5">Programs, master workouts, exercises, meals, foods, habits and check-in forms — build once, reuse everywhere.</p>
+        <p className="text-white text-sm mb-5">Programs, master workouts, exercises, meals, foods, habits and check-in forms — build once, reuse everywhere.</p>
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {LIB_TABS.map((t) => (
             <button
@@ -49,7 +49,7 @@ export default function CoachLibrary({ showToast, openTab, onOpenTabHandled }) {
               style={
                 tab === t.id
                   ? { backgroundColor: MEASURE_BLUE, color: "#fff" }
-                  : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)" }
+                  : { backgroundColor: "rgba(255,255,255,0.06)", color: "#FFFFFF" }
               }
             >
               {t.label}
