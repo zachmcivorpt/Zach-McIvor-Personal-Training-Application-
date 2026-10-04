@@ -10,7 +10,7 @@
 // from here rather than re-implementing the look, so "exact" actually means
 // exact — the same component, not a close re-creation of it.
 import { CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
-import { ChevronRight, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 // Full-page dark background. CoachShell's shared content wrapper pads every
 // tab with pt-14/pb-16 on mobile (room for the fixed top/bottom bars) over
@@ -106,9 +106,10 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
 }
 
 // A chamfered instrument tile for a single stat — icon, big number, label,
-// and a trend/status line with the card's own chevron affordance tucked
-// into the cut corner. trendKind: "up" (green, arrow), "alert" (red dot),
-// "link" (blue, icon-only — no trend text), "neutral" (plain muted text).
+// and a trend/status line. The cut corner itself is the only "there's more
+// here" affordance — no separate chevron icon on top of it.
+// trendKind: "up" (green, arrow), "alert" (red dot), "link" (blue, plain
+// "View" text — no trend number to show), "neutral" (plain muted text).
 export function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral", onClick }) {
   const trendColor = trendKind === "up" ? GOAL_GREEN : trendKind === "alert" ? OVER_RED : trendKind === "link" ? MEASURE_BLUE : "#FFFFFF";
   return (
@@ -117,13 +118,10 @@ export function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral
         <Icon size={16} style={{ color: MEASURE_BLUE }} />
         <p className="text-white text-[32px] sm:text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
         <p className="text-white text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5">{label}</p>
-        <div className="flex items-center justify-between mt-2.5">
-          <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: trendColor }}>
-            {trendKind === "up" && <ArrowUpRight size={12} />}
-            {trendKind === "alert" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: OVER_RED }} />}
-            {trendKind === "link" ? <ChevronRight size={14} /> : <span>{trend}</span>}
-          </div>
-          {onClick && <ChevronRight size={14} className="text-white" />}
+        <div className="flex items-center gap-1 text-xs font-semibold mt-2.5" style={{ color: trendColor }}>
+          {trendKind === "up" && <ArrowUpRight size={12} />}
+          {trendKind === "alert" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: OVER_RED }} />}
+          <span>{trendKind === "link" ? "View" : trend}</span>
         </div>
       </button>
     </DarkPanel>
