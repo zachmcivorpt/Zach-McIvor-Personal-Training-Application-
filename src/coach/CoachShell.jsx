@@ -195,7 +195,10 @@ export default function CoachShell() {
           visibly lags behind during a fast scroll instead of staying pinned,
           since WebKit otherwise repaints it as part of the normal scroll
           pipeline rather than compositing it independently every frame. */}
-      <div className="dark-chrome md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0A0C]" style={{ transform: "translateZ(0)" }}>
+      <div
+        className="dark-chrome md:hidden fixed top-0 left-0 right-0 z-40 bg-[#0A0A0C]/90 backdrop-blur-md border-b border-white/[0.06]"
+        style={{ transform: "translateZ(0)" }}
+      >
         <div className="flex items-center justify-between px-4 py-3">
           <Logo variant="mark" tone="white" className="h-8 w-auto" />
           <div className="flex items-center gap-2">
