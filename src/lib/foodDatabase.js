@@ -1306,7 +1306,11 @@ export const FOOD_DATABASE = [
   { id: "al026", name: "Cheese Canneloni (ME 'N'U Italian)", cals: 119, protein: 6.2, carbs: 12.9, fat: 4.4, per: 100, defaultQty: 100 },
   { id: "al027", name: "Cheese Slices (Aldi)", cals: 419, protein: 16.7, carbs: 4.3, fat: 27.6, per: 100, defaultQty: 100 },
   { id: "al028", name: "Cheese Spread (Bramwells)", cals: 287, protein: 11.9, carbs: 3.7, fat: 25.2, per: 100, defaultQty: 100 },
-  { id: "al029", name: "Chicken Breast (Aldi)", cals: 93, protein: 15.5, carbs: 4.5, fat: 1.3, per: 100, defaultQty: 100 },
+  // Corrected from the original Open Food Facts import, which carried an
+  // implausible 4.5g carbs for plain chicken breast (almost certainly a
+  // mismatched/flavoured-variant entry) — replaced with the real Aldi AU
+  // Chicken Breast Fillets panel (confirmed via FatSecret AU).
+  { id: "al029", name: "Chicken Breast Fillets (Aldi)", cals: 115, protein: 21.5, carbs: 0, fat: 3.3, per: 100, defaultQty: 150 },
   { id: "al030", name: "Chicken Breast Tenders (Farmwood)", cals: 197, protein: 15.6, carbs: 9.9, fat: 10, per: 100, defaultQty: 100 },
   { id: "al031", name: "Chicken Korma (International Cuisine)", cals: 151, protein: 5.5, carbs: 20.2, fat: 4.8, per: 100, defaultQty: 100 },
   { id: "al032", name: "Chickpeas (New Season)", cals: 126, protein: 7, carbs: 15, fat: 2.8, per: 100, defaultQty: 100 },
@@ -1456,6 +1460,15 @@ export const FOOD_DATABASE = [
   // diary already showed (159 cal/bun, 124 cal/patty) before being added.
   { id: "al173", name: "Brioche Burger Bun (Aldi)", cals: 316, protein: 10.2, carbs: 51.6, fat: 6.8, per: 100, defaultQty: 50, customUnit: { label: "bun", pluralLabel: "buns", grams: 50 } },
   { id: "al174", name: "Extra Lean Beef Burger (Peppercorn)", cals: 149, protein: 13.3, carbs: 5.5, fat: 8.0, per: 100, defaultQty: 83, customUnit: { label: "patty", pluralLabel: "patties", grams: 83 } },
+  // --- Aldi Australia fresh meat range (verified against FatSecret AU
+  // panels, confirmed via Atwater energy check — Chicken Mince and the
+  // Lamb Leg listings found didn't reconcile against their own stated
+  // calories closely enough to trust, so they were left out rather than
+  // added with unverified numbers). ---
+  { id: "al175", name: "5% Lean Beef Mince (Aldi)", cals: 129, protein: 20.3, carbs: 1.8, fat: 4.5, per: 100, defaultQty: 150 },
+  { id: "al176", name: "10% Fat Beef Steak Mince (Aldi)", cals: 174, protein: 20.2, carbs: 0.5, fat: 10, per: 100, defaultQty: 150, satFat: 4.5 },
+  { id: "al177", name: "Pork Loin Steak (Aldi)", cals: 131, protein: 20.1, carbs: 0, fat: 5.4, per: 100, defaultQty: 150 },
+  { id: "al178", name: "Lean Pork Fillet (Aldi)", cals: 110, protein: 22.8, carbs: 0, fat: 2, per: 100, defaultQty: 150 },
 ];
 
 // Standard weight/volume unit conversions (approximated at water density for
