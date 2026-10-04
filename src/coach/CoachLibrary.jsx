@@ -6,6 +6,8 @@ import CoachMealLibrary from "./CoachMealLibrary";
 import CoachFoodLibrary from "./CoachFoodLibrary";
 import CoachHabitLibrary from "./CoachHabitLibrary";
 import CoachForms from "./CoachForms";
+import { DarkPage } from "./darkUI";
+import { MEASURE_BLUE } from "../theme";
 
 const LIB_TABS = [
   { id: "programs", label: "Programs" },
@@ -30,18 +32,25 @@ export default function CoachLibrary({ showToast, openTab, onOpenTabHandled }) {
   }, [openTab]);
 
   return (
-    <div>
-      <div className="max-w-6xl mx-auto px-4 pt-5 md:px-8 md:pt-8">
-        <h1 className="text-black text-2xl font-bold mb-1">Library</h1>
-        <p className="text-black/40 text-sm mb-5">Programs, master workouts, exercises, meals, foods, habits and check-in forms — build once, reuse everywhere.</p>
-        <div className="flex gap-2 mb-5 overflow-x-auto no-scrollbar">
+    // DarkPage is established ONCE here, at the hub level — the seven
+    // sub-pages below render straight into this same dark backdrop rather
+    // than each wrapping their own DarkPage (which would double up the
+    // mobile top/bottom-bar padding fix DarkPage applies).
+    <DarkPage>
+      <div className="mb-5">
+        <h1 className="text-white text-2xl font-bold mb-1">Library</h1>
+        <p className="text-white/40 text-sm mb-5">Programs, master workouts, exercises, meals, foods, habits and check-in forms — build once, reuse everywhere.</p>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
           {LIB_TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                tab === t.id ? "bg-black text-white" : "bg-black/8 text-black/60"
-              }`}
+              className="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors"
+              style={
+                tab === t.id
+                  ? { backgroundColor: MEASURE_BLUE, color: "#fff" }
+                  : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)" }
+              }
             >
               {t.label}
             </button>
@@ -56,6 +65,6 @@ export default function CoachLibrary({ showToast, openTab, onOpenTabHandled }) {
       {tab === "foods" && <CoachFoodLibrary showToast={showToast} />}
       {tab === "habits" && <CoachHabitLibrary showToast={showToast} />}
       {tab === "forms" && <CoachForms showToast={showToast} />}
-    </div>
+    </DarkPage>
   );
 }

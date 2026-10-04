@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
-import { MEASURE_BLUE } from "../theme";
+import { MEASURE_BLUE, CLIENT_DARK_BG } from "../theme";
 import { LayoutDashboard, Users, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
@@ -147,7 +147,7 @@ export default function CoachShell() {
   }
 
   return (
-    <div className="coach-shell w-full min-h-screen bg-white font-sans flex">
+    <div className="coach-shell w-full min-h-screen font-sans flex" style={{ backgroundColor: CLIENT_DARK_BG }}>
       {/* desktop sidebar */}
       <div className="dark-chrome hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col bg-[#0A0A0C]">
         <div className="px-5 pt-7 pb-6">
