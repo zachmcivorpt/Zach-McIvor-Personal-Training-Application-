@@ -10,7 +10,7 @@
 // from here rather than re-implementing the look, so "exact" actually means
 // exact — the same component, not a close re-creation of it.
 import { CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, MEASURE_BLUE, GOAL_GREEN, OVER_RED } from "../theme";
-import { ArrowUpRight } from "lucide-react";
+import { ChevronRight, ArrowUpRight } from "lucide-react";
 
 // Full-page dark background. CoachShell's shared content wrapper pads every
 // tab with pt-14/pb-16 on mobile (room for the fixed top/bottom bars) over
@@ -73,33 +73,17 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
       }}
     >
       {chamfer ? (
-        <>
-          {/* A lit metal bevel tracing the card's own edge — top edge
-              brightest toward the right corner, down the right edge, then
-              the chamfer's own diagonal cut lit bright — never a gradient
-              band painted across the card's face. */}
-          <div
-            className="pointer-events-none absolute top-0 left-[12%] right-0 h-[4px]"
-            style={{
-              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 55%, rgba(255,255,255,0.9) 100%)",
-              filter: "blur(1.5px)",
-            }}
-          />
-          <div
-            className="pointer-events-none absolute top-0 right-0 bottom-[18px] w-[4px]"
-            style={{
-              background: "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.12) 55%, transparent)",
-              filter: "blur(1.5px)",
-            }}
-          />
-          <div
-            className="pointer-events-none absolute -right-[4px] bottom-[4px] w-[40px] h-[40px]"
-            style={{
-              background: "linear-gradient(135deg, transparent 44%, rgba(255,255,255,0.95) 49% 52%, transparent 58%)",
-              filter: "blur(1.2px)",
-            }}
-          />
-        </>
+        // A single subtle brushed-metal light beam passing across the
+        // card's face, upper-left toward lower-right — low opacity,
+        // elongated, never a bright line or a glow. The thin border
+        // (above) already traces the cut corner; no separate highlight
+        // on top of it.
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background: "linear-gradient(135deg, transparent 38%, rgba(255,255,255,0.07) 48%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.07) 52%, transparent 62%)",
+          }}
+        />
       ) : (
         <div
           className="pointer-events-none absolute -top-10 -right-10 w-28 h-28"
@@ -112,10 +96,9 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
 }
 
 // A chamfered instrument tile for a single stat — icon, big number, label,
-// and a trend/status line. The cut corner itself is the only "there's more
-// here" affordance — no separate chevron icon on top of it.
-// trendKind: "up" (green, arrow), "alert" (red dot), "link" (blue, plain
-// "View" text — no trend number to show), "neutral" (plain muted text).
+// bottom-left status indicator, and a bottom-right chevron.
+// trendKind: "up" (green, arrow), "alert" (red dot), "link" (blue chevron,
+// no trend number to show), "neutral" (plain muted dash/text).
 export function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral", onClick }) {
   const trendColor = trendKind === "up" ? GOAL_GREEN : trendKind === "alert" ? OVER_RED : trendKind === "link" ? MEASURE_BLUE : "#FFFFFF";
   return (
@@ -124,10 +107,13 @@ export function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral
         <Icon size={16} style={{ color: MEASURE_BLUE }} />
         <p className="text-white text-[32px] sm:text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
         <p className="text-white text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5">{label}</p>
-        <div className="flex items-center gap-1 text-xs font-semibold mt-2.5" style={{ color: trendColor }}>
-          {trendKind === "up" && <ArrowUpRight size={12} />}
-          {trendKind === "alert" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: OVER_RED }} />}
-          <span>{trendKind === "link" ? "View" : trend}</span>
+        <div className="flex items-center justify-between mt-2.5">
+          <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: trendColor }}>
+            {trendKind === "up" && <ArrowUpRight size={12} />}
+            {trendKind === "alert" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: OVER_RED }} />}
+            {trendKind === "link" ? <ChevronRight size={14} /> : <span>{trend}</span>}
+          </div>
+          {onClick && <ChevronRight size={14} className="text-white" />}
         </div>
       </button>
     </DarkPanel>
