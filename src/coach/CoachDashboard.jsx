@@ -796,7 +796,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   const recentActivity = activity.slice(0, 12);
 
   return (
-    <DarkPage>
+    <DarkPage padded={false}>
       {/* Hero header — a dark glass panel with a faint layered mountain
           silhouette (plain CSS triangles, not a photo — "atmospheric, not
           a giant photograph") washed into the right edge. */}

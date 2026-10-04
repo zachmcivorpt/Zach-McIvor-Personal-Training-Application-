@@ -18,10 +18,16 @@ import { ChevronRight, ArrowUpRight } from "lucide-react";
 // this page's own dark background fills that gap too, instead of leaving a
 // pale strip above/below the content on mobile while every other (light)
 // tab blends into it unnoticed.
-export function DarkPage({ children, className = "" }) {
+// padded=false drops the base mobile side gutter (md:px-8 on larger
+// screens is unaffected either way) — for a page whose content should
+// read as full screen width on a phone, same as the fixed top/bottom
+// bars around it, rather than floating inset like every other page's
+// cards. Defaults to true so every existing DarkPage caller keeps its
+// current gutter unless it opts out.
+export function DarkPage({ children, className = "", padded = true }) {
   return (
     <div className="-mt-14 -mb-16 pt-14 pb-16 md:mt-0 md:mb-0 md:pt-0 md:pb-0" style={{ backgroundColor: CLIENT_DARK_BG, minHeight: "100%" }}>
-      <div className={`max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8 ${className}`}>{children}</div>
+      <div className={`max-w-7xl mx-auto py-5 md:px-8 md:py-8 ${padded ? "px-4" : ""} ${className}`}>{children}</div>
     </div>
   );
 }
