@@ -2309,23 +2309,23 @@ function TrainingProgramPanel({ client, showToast }) {
 
         <WeeklyCoachReviewCard client={client} showToast={showToast} />
 
-        <div className="bg-gradient-to-br from-white to-emerald-50/40 border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mb-4">
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm shadow-emerald-500/30">
+        <DarkPanel className="p-4 md:p-5 mb-4">
+          <div className="relative flex items-center gap-2.5 mb-1">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: MEASURE_BLUE }}>
               <ClipboardList size={16} className="text-white" />
             </div>
             <div>
-              <p className="text-black font-bold text-sm">Session History</p>
-              <p className="text-black/40 text-[11px]">Every completed workout, PRs and stalled lifts flagged automatically</p>
+              <p className="text-white font-bold text-sm">Session History</p>
+              <p className="text-white/40 text-[11px]">Every completed workout, PRs and stalled lifts flagged automatically</p>
             </div>
           </div>
           {workoutLogs.length === 0 ? (
-            <div className="border border-dashed border-black/12 rounded-xl py-8 text-center mt-3">
-              <p className="text-black/30 text-sm">No completed workouts yet.</p>
+            <div className="relative border border-dashed rounded-xl py-8 text-center mt-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
+              <p className="text-white/30 text-sm">No completed workouts yet.</p>
             </div>
           ) : (
             <>
-              <div className="space-y-2 mt-3">
+              <div className="relative space-y-2 mt-3">
                 {workoutLogs.slice(0, historyLimit).map((log) => (
                   <WorkoutLogCard key={log.id} log={log} exercisesById={exercisesById} allLogs={workoutLogs} />
                 ))}
@@ -2333,30 +2333,30 @@ function TrainingProgramPanel({ client, showToast }) {
               {historyLimit < workoutLogs.length && (
                 <button
                   onClick={() => setHistoryLimit((n) => n + 15)}
-                  className="w-full text-center text-black/40 hover:text-black text-xs font-semibold py-3 mt-1"
+                  className="relative w-full text-center text-white/40 hover:text-white text-xs font-semibold py-3 mt-1"
                 >
                   Show more ({workoutLogs.length - historyLimit} more)
                 </button>
               )}
             </>
           )}
-        </div>
+        </DarkPanel>
 
         {/* phase history — sits right above the program it controls, as a
             horizontal scroller instead of a permanent sidebar column that's
             mostly empty once a client only has one or two phases. */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2.5">
-            <p className="text-black font-semibold text-sm">Training Program</p>
+            <p className="text-white font-semibold text-sm">Training Program</p>
             <button
               onClick={() => setNewPhaseOpen(true)}
-              className="flex items-center gap-1 bg-black text-white text-xs font-bold px-2.5 py-1.5 rounded-lg"
+              className="flex items-center gap-1 bg-white text-black text-xs font-bold px-2.5 py-1.5 rounded-lg transition-opacity hover:opacity-90"
             >
               <Plus size={13} /> ADD
             </button>
           </div>
           {sorted.length === 0 ? (
-            <p className="text-black/30 text-xs py-1">No phases yet — add the first one.</p>
+            <p className="text-white/30 text-xs py-1">No phases yet — add the first one.</p>
           ) : (
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
               {sorted.map((p) => {
@@ -2367,11 +2367,11 @@ function TrainingProgramPanel({ client, showToast }) {
                     key={p.id}
                     onClick={() => selectPhase(p.id)}
                     className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-colors ${
-                      active ? "bg-black text-white" : "bg-black/8 text-black/60"
+                      active ? "bg-white text-black" : "bg-white/10 text-white/60"
                     }`}
                   >
                     {p.name}
-                    {isCurrent && <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-white" : "bg-black"}`} />}
+                    {isCurrent && <span className={`w-1.5 h-1.5 rounded-full ${active ? "bg-black" : "bg-white"}`} />}
                   </button>
                 );
               })}
@@ -2381,9 +2381,9 @@ function TrainingProgramPanel({ client, showToast }) {
 
         {!phase ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-16">
-            <ClipboardList size={28} className="text-black/20 mb-3" />
-            <p className="text-black/50 text-sm">No phase selected yet.</p>
-            <button onClick={() => setNewPhaseOpen(true)} className="mt-4 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl">
+            <ClipboardList size={28} className="text-white/20 mb-3" />
+            <p className="text-white/50 text-sm">No phase selected yet.</p>
+            <button onClick={() => setNewPhaseOpen(true)} className="mt-4 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-opacity hover:opacity-90">
               + Add a phase
             </button>
           </div>
@@ -2392,24 +2392,24 @@ function TrainingProgramPanel({ client, showToast }) {
             <input
               value={phase.name}
               onChange={(e) => updateClientPhase(client.id, phase.id, { name: e.target.value })}
-              className="bg-transparent outline-none text-black text-lg font-bold w-full min-w-0 mb-3"
+              className="bg-transparent outline-none text-white text-lg font-bold w-full min-w-0 mb-3"
             />
 
             <div className="flex items-center gap-2 mb-5 overflow-x-auto no-scrollbar">
-              <div className="inline-flex items-center gap-2 bg-black/[0.04] rounded-full pl-3 pr-1 py-1.5 shrink-0">
-                <Calendar size={13} className="text-black/35 shrink-0" />
+              <div className="inline-flex items-center gap-2 rounded-full pl-3 pr-1 py-1.5 shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
+                <Calendar size={13} className="text-white/35 shrink-0" />
                 <button
                   type="button"
                   onClick={() => startDateRef.current?.showPicker?.() ?? startDateRef.current?.focus()}
-                  className="text-black/70 text-xs font-semibold whitespace-nowrap"
+                  className="text-white/70 text-xs font-semibold whitespace-nowrap"
                 >
                   {formatDateRangeLabel(phase.startDate)}
                 </button>
-                <span className="text-black/25 text-xs">–</span>
+                <span className="text-white/25 text-xs">–</span>
                 <button
                   type="button"
                   onClick={() => endDateRef.current?.showPicker?.() ?? endDateRef.current?.focus()}
-                  className="text-black/70 text-xs font-semibold whitespace-nowrap"
+                  className="text-white/70 text-xs font-semibold whitespace-nowrap"
                 >
                   {phase.endDate ? formatDateRangeLabel(phase.endDate) : "Set end"}
                 </button>
@@ -2417,21 +2417,21 @@ function TrainingProgramPanel({ client, showToast }) {
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   onClick={saveAsMasterProgram}
-                  className="flex items-center gap-1.5 text-black/50 hover:text-black text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
                   title="Save this phase as a reusable Master Program"
                 >
                   <Library size={13} /> Save
                 </button>
                 <button
                   onClick={() => setDuplicating(phase)}
-                  className="flex items-center gap-1.5 text-black/50 hover:text-black text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
+                  className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-semibold px-2 py-1.5 whitespace-nowrap"
                 >
                   <Copy size={13} /> Duplicate
                 </button>
                 {!confirmDeletePhase || confirmDeletePhase !== phase.id ? (
                   <button
                     onClick={() => setConfirmDeletePhase(phase.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-black/35 hover:text-red-500 shrink-0"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/35 hover:text-red-400 shrink-0"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -2471,6 +2471,7 @@ function TrainingProgramPanel({ client, showToast }) {
             />
 
             <TextArea
+              dark
               rows={2}
               value={phase.description || ""}
               onChange={(e) => updateClientPhase(client.id, phase.id, { description: e.target.value })}
@@ -2479,32 +2480,36 @@ function TrainingProgramPanel({ client, showToast }) {
             />
 
             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-              <p className="text-black font-semibold text-sm">Workouts</p>
+              <p className="text-white font-semibold text-sm">Workouts</p>
               <div className="flex items-center gap-3 flex-wrap">
                 {!selectMode && days.length > 0 && (
-                  <button onClick={toggleSelectMode} className="flex items-center gap-1.5 text-black/60 hover:text-black text-xs font-semibold">
+                  <button onClick={toggleSelectMode} className="flex items-center gap-1.5 text-white/60 hover:text-white text-xs font-semibold">
                     <Check size={13} /> Select
                   </button>
                 )}
-                <button onClick={() => setLibraryPickerOpen(true)} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+                <button onClick={() => setLibraryPickerOpen(true)} className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-80" style={{ color: MEASURE_BLUE }}>
                   <Library size={13} /> From library
                 </button>
-                <button onClick={addWorkout} className="flex items-center gap-1.5 text-black/60 text-xs font-semibold">
+                <button onClick={addWorkout} className="flex items-center gap-1.5 text-white/60 text-xs font-semibold">
                   <Plus size={13} /> New workout
                 </button>
               </div>
             </div>
 
             {selectMode && (
-              <div className="flex items-center justify-between gap-3 flex-wrap bg-blue-50 border border-blue-100 rounded-xl px-4 py-2.5 mb-3">
+              <div
+                className="flex items-center justify-between gap-3 flex-wrap rounded-xl px-4 py-2.5 mb-3"
+                style={{ backgroundColor: "rgba(47,143,255,0.08)", border: "1px solid rgba(47,143,255,0.25)" }}
+              >
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setSelectedDayIds(selectedDayIds.size === days.length ? new Set() : new Set(days.map((d) => d.id)))}
-                    className="text-blue-700 text-xs font-semibold"
+                    className="text-xs font-semibold"
+                    style={{ color: MEASURE_BLUE }}
                   >
                     {selectedDayIds.size === days.length ? "Deselect all" : `Select all ${days.length} workout${days.length === 1 ? "" : "s"}`}
                   </button>
-                  <span className="text-blue-700/50 text-xs">{selectedDayIds.size} selected</span>
+                  <span className="text-xs" style={{ color: "rgba(47,143,255,0.6)" }}>{selectedDayIds.size} selected</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -2514,7 +2519,7 @@ function TrainingProgramPanel({ client, showToast }) {
                   >
                     <Trash2 size={12} /> Delete{selectedDayIds.size > 0 ? ` (${selectedDayIds.size})` : ""}
                   </button>
-                  <button onClick={toggleSelectMode} className="text-black/50 hover:text-black text-xs font-semibold px-2">
+                  <button onClick={toggleSelectMode} className="text-white/50 hover:text-white text-xs font-semibold px-2">
                     Cancel
                   </button>
                 </div>
@@ -2522,8 +2527,8 @@ function TrainingProgramPanel({ client, showToast }) {
             )}
 
             {days.length === 0 ? (
-              <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
-                <p className="text-black/30 text-sm">No workouts in this phase yet.</p>
+              <div className="border border-dashed rounded-2xl py-10 text-center" style={{ borderColor: CLIENT_DARK_BORDER }}>
+                <p className="text-white/30 text-sm">No workouts in this phase yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
