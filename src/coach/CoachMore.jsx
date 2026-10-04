@@ -885,7 +885,8 @@ function BarcodeDebugCard() {
     }
   }
 
-  const confidenceColor = trace == null ? "rgba(255,255,255,0.4)" : trace.confidence >= 0.9 ? GOAL_GREEN : trace.confidence > 0 ? MEASURE_BLUE : OVER_RED;
+  const LEVEL_COLORS = { VERIFIED: GOAL_GREEN, LIKELY: GOAL_GREEN, REVIEW: MEASURE_BLUE, UNVERIFIED: OVER_RED, UNKNOWN: "rgba(255,255,255,0.4)" };
+  const confidenceColor = trace ? LEVEL_COLORS[trace.verificationLevel] || "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.4)";
 
   return (
     <DarkPanel className="p-5">
@@ -962,12 +963,25 @@ function BarcodeDebugCard() {
           )}
 
           <div className="flex items-center justify-between">
-            <span className="text-white/50">Confidence</span>
+            <span className="text-white/50">Confidence score</span>
             <span className="font-bold" style={{ color: confidenceColor }}>
-              {Math.round(trace.confidence * 100)}%
+              {trace.confidenceScore}/100 · {trace.verificationLevel}
             </span>
           </div>
-          {trace.confidenceReason && <p className="text-white/40">{trace.confidenceReason}</p>}
+          {trace.confidenceBreakdown?.length > 0 && (
+            <div>
+              <p className="text-white/40 mb-1">Score breakdown</p>
+              {trace.confidenceBreakdown.map((b) => (
+                <div key={b.factor} className="flex items-center justify-between gap-2 py-0.5">
+                  <span className="text-white/60 shrink-0">{b.factor}</span>
+                  <span className="text-white/35 text-right truncate">{b.reason}</span>
+                  <span className="text-white font-mono shrink-0" style={{ color: b.points === b.max ? GOAL_GREEN : b.points === 0 ? OVER_RED : MEASURE_BLUE }}>
+                    {b.points}/{b.max}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {trace.nutritionValidation && !trace.nutritionValidation.plausible && (
             <div className="rounded-xl p-2.5" style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}>

@@ -6,7 +6,7 @@
 // isn't unit-testable this way — it needs a browser with real camera
 // hardware, which is a manual/E2E concern, not something to fake here.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { isVariableWeightBarcode, stableBarcodeKey, validateNutrition, lookupBarcode, debugLookupBarcode } from "./barcodeLookup";
+import { isVariableWeightBarcode, stableBarcodeKey, validateNutrition, lookupBarcode, debugLookupBarcode, detectBarcodeFormat, computeConfidence } from "./barcodeLookup";
 
 describe("isVariableWeightBarcode", () => {
   it("flags a 13-digit code starting with 2 (GS1 AU/NZ restricted-circulation range)", () => {
@@ -215,25 +215,38 @@ describe("debugLookupBarcode", () => {
     vi.restoreAllMocks();
   });
 
-  it("reports a resolved product with high confidence when nutrition checks out", async () => {
+  // A real, check-digit-valid EAN-13 (the standard GS1 example code) —
+  // using an actually-valid barcode here, not an arbitrary test string,
+  // matters now that "barcode validity" is itself a scored factor.
+  const VALID_EAN13 = "4006381333931";
+
+  it("reports a resolved product as VERIFIED with a near-perfect score when everything checks out", async () => {
     global.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
         status: 1,
-        product: { product_name: "Trace Test", nutriments: { "energy-kcal_100g": 129, proteins_100g: 20.3, carbohydrates_100g: 1.8, fat_100g: 4.5 } },
+        product: {
+          product_name: "Trace Test",
+          brands: "TestBrand",
+          serving_size: "35 g",
+          countries_tags: ["en:australia"],
+          nutriments: { "energy-kcal_100g": 129, proteins_100g: 20.3, carbohydrates_100g: 1.8, fat_100g: 4.5 },
+        },
       }),
     });
-    const trace = await debugLookupBarcode("9300000000080");
-    expect(trace.scannedCode).toBe("9300000000080");
+    const trace = await debugLookupBarcode(VALID_EAN13);
+    expect(trace.scannedCode).toBe(VALID_EAN13);
     expect(trace.sourcesSearched).toHaveLength(1);
     expect(trace.sourcesSearched[0].name).toBe("Open Food Facts");
     expect(trace.outcome).toBe("resolved");
-    expect(trace.confidence).toBeGreaterThan(0.9);
+    expect(trace.confidenceScore).toBeGreaterThanOrEqual(90);
+    expect(trace.verificationLevel).toBe("VERIFIED");
+    expect(trace.confidenceBreakdown.length).toBeGreaterThan(0);
     expect(trace.finalFood.name).toBe("Trace Test");
     expect(trace.nutritionValidation.plausible).toBe(true);
   });
 
-  it("reports lower confidence when nutrition data is suspect, without hiding the result", async () => {
+  it("drops to REVIEW/UNVERIFIED and shows why when nutrition data is suspect, without hiding the result", async () => {
     global.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -241,18 +254,99 @@ describe("debugLookupBarcode", () => {
         product: { product_name: "Suspect Trace", nutriments: { "energy-kcal_100g": 1620, proteins_100g: 22.7, carbohydrates_100g: 8.3, fat_100g: 44 } },
       }),
     });
-    const trace = await debugLookupBarcode("9300000000097");
+    const trace = await debugLookupBarcode(VALID_EAN13);
     expect(trace.outcome).toBe("resolved");
-    expect(trace.confidence).toBeLessThan(0.9);
+    expect(trace.confidenceScore).toBeLessThan(90);
+    expect(trace.verificationLevel).not.toBe("VERIFIED");
     expect(trace.nutritionValidation.plausible).toBe(false);
     expect(trace.finalFood).toBeTruthy(); // still returned, just flagged — never silently dropped
+    expect(trace.confidenceBreakdown.find((b) => b.factor === "Nutrition plausibility").points).toBe(0);
   });
 
-  it("reports which variants were tried even when nothing is found", async () => {
+  it("reports which variants were tried, and still credits a validly-formed barcode even when no product is found for it", async () => {
     global.fetch.mockResolvedValue({ ok: true, json: async () => ({ status: 0, product: null }) });
+    // "123456789012" is itself a check-digit-valid UPC-A, so this exercises
+    // "the code is real, we just don't have a record for it" rather than
+    // "the code itself looks wrong" (covered by the UNKNOWN case below).
     const trace = await debugLookupBarcode("123456789012"); // 12-digit — expect 2 variants tried
     expect(trace.variantsTried.length).toBe(2);
     expect(trace.outcome).toBe("not-found");
-    expect(trace.confidence).toBe(0);
+    expect(trace.confidenceScore).toBe(15);
+    expect(trace.verificationLevel).toBe("UNVERIFIED");
+  });
+
+  it("scores a code with a failed check digit as UNKNOWN when no product is found", async () => {
+    global.fetch.mockResolvedValue({ ok: true, json: async () => ({ status: 0, product: null }) });
+    const trace = await debugLookupBarcode("4006381333930"); // tampered check digit (real one ends in 1)
+    expect(trace.outcome).toBe("not-found");
+    expect(trace.confidenceScore).toBe(0);
+    expect(trace.verificationLevel).toBe("UNKNOWN");
+  });
+
+  it("scores a found-but-no-nutrition product as REVIEW, not VERIFIED or UNKNOWN", async () => {
+    global.fetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 1, product: { product_name: "No Nutrition Yet", brands: "SomeBrand", nutriments: {} } }),
+    });
+    const trace = await debugLookupBarcode(VALID_EAN13);
+    expect(trace.outcome).toBe("found-no-nutrition");
+    expect(trace.verificationLevel).toBe("REVIEW");
+    expect(trace.finalFood).toBeNull();
+  });
+});
+
+describe("detectBarcodeFormat", () => {
+  it("validates a real EAN-13 check digit", () => {
+    const result = detectBarcodeFormat("4006381333931");
+    expect(result.format).toBe("EAN-13");
+    expect(result.valid).toBe(true);
+  });
+  it("catches a tampered/misread check digit", () => {
+    const result = detectBarcodeFormat("4006381333930"); // last digit changed from 1 to 0
+    expect(result.format).toBe("EAN-13");
+    expect(result.valid).toBe(false);
+  });
+  it("identifies EAN-8 and UPC-A by length", () => {
+    expect(detectBarcodeFormat("96385074").format).toBe("EAN-8");
+    expect(detectBarcodeFormat("036000291452").format).toBe("UPC-A");
+  });
+  it("reports valid:null (not false) for an unrecognised length", () => {
+    const result = detectBarcodeFormat("12345");
+    expect(result.format).toBe("unknown");
+    expect(result.valid).toBeNull();
+  });
+});
+
+describe("computeConfidence", () => {
+  it("awards full marks for a complete, plausible, AU-tagged product", () => {
+    const formatInfo = { format: "EAN-13", valid: true };
+    const product = { product_name: "Full Product", brands: "Brand", serving_size: "30g", countries_tags: ["en:australia"] };
+    const food = { cals: 100, protein: 10, carbs: 10, fat: 2 };
+    const { score, level } = computeConfidence({ product, food, formatInfo, nutritionValidation: { plausible: true, reason: null } });
+    expect(score).toBe(100);
+    expect(level).toBe("VERIFIED");
+  });
+
+  it("never penalises missing country data as if it were a wrong-market result", () => {
+    const formatInfo = { format: "EAN-13", valid: true };
+    const product = { product_name: "No Country Tag", brands: "Brand", serving_size: "30g" };
+    const food = { cals: 100, protein: 10, carbs: 10, fat: 2 };
+    const withNoCountry = computeConfidence({ product, food, formatInfo, nutritionValidation: { plausible: true, reason: null } });
+    const otherMarketProduct = { ...product, countries_tags: ["en:united-states"] };
+    const withOtherMarket = computeConfidence({ product: otherMarketProduct, food, formatInfo, nutritionValidation: { plausible: true, reason: null } });
+    // missing data scores higher than a confirmed non-AU match, but neither is penalised to zero
+    expect(withNoCountry.score).toBeGreaterThan(withOtherMarket.score);
+  });
+
+  it("scores low (UNVERIFIED) when the barcode is valid but no product was found for it", () => {
+    const { score, level } = computeConfidence({ product: null, food: null, formatInfo: { format: "EAN-13", valid: true }, nutritionValidation: { plausible: false, reason: "n/a" } });
+    expect(score).toBe(15); // barcode validity is the only earnable factor left — no match, no name, nothing else to score
+    expect(level).toBe("UNVERIFIED");
+  });
+
+  it("scores zero (UNKNOWN) when neither the barcode nor a product can be confirmed", () => {
+    const { score, level } = computeConfidence({ product: null, food: null, formatInfo: { format: "EAN-13", valid: false }, nutritionValidation: { plausible: false, reason: "n/a" } });
+    expect(score).toBe(0);
+    expect(level).toBe("UNKNOWN");
   });
 });

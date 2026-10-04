@@ -22,6 +22,7 @@ import {
   onSnapshot,
   writeBatch,
   deleteField,
+  runTransaction,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { auth, db as firestore, functions } from "./firebase";
@@ -1338,15 +1339,42 @@ export function AppProvider({ children }) {
       // Nutrition logged per calendar day — doc id is deterministic
       // (clientId__date) so each day's log is separate, mirroring the
       // scheduledWorkouts date-keyed pattern.
+      //
+      // Runs as a real Firestore transaction — reading the day's doc fresh
+      // from the server inside the transaction, not the local onSnapshot
+      // cache — rather than a plain read-then-setDoc. The old version read
+      // `db.nutritionLogs` (a React state snapshot that can be a beat
+      // behind the server) and did a full overwrite: two adds close
+      // together — a barcode scan confirmed right after a quick-add, two
+      // devices/tabs open on the same client, or a scan whose lookup
+      // resolves just as another add is still in flight — could each read
+      // the same pre-update base and the second write would silently
+      // clobber the first add instead of summing with it. A transaction
+      // retries automatically against the real current doc when Firestore
+      // detects exactly that kind of conflicting concurrent write, so
+      // every add/remove is a true delta against whatever is actually
+      // saved, never a stale local copy.
+      //
+      // Also fixes a second bug found while rewriting this: `base` used to
+      // be hand-built from only {calories, protein, carbs, fat, water,
+      // meals}, silently dropping every micronutrient field (satFat,
+      // fiber, sugar, sodium, etc.) that was actually saved on the doc.
+      // addFood/removeFood read `base[key]` for each of those fields to
+      // compute a running total — with it always undefined, every add
+      // overwrote the day's micronutrient totals with just that one food's
+      // values instead of accumulating them. Passing the full saved
+      // document through (minus its own id/clientId/date, which get
+      // re-set below) fixes that for every field, not just macros.
       async setNutritionForDate(clientId, date, updater) {
         const id = `${clientId}__${date}`;
-        const current = (db.nutritionLogs[clientId] || []).find((n) => n.date === date);
-        const base = current
-          ? { calories: current.calories, protein: current.protein, carbs: current.carbs, fat: current.fat, water: current.water, meals: current.meals }
-          : null;
-        const next = updater(base);
+        const ref = doc(firestore, "nutritionLogs", id);
         try {
-          await setDoc(doc(firestore, "nutritionLogs", id), { id, clientId, date, ...next });
+          await runTransaction(firestore, async (tx) => {
+            const snap = await tx.get(ref);
+            const base = snap.exists() ? (({ id: _id, clientId: _cid, date: _d, ...rest }) => rest)(snap.data()) : null;
+            const next = updater(base);
+            tx.set(ref, { id, clientId, date, ...next });
+          });
         } catch (err) {
           throw new Error("Couldn't save — check your connection and try again");
         }

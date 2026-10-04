@@ -75,7 +75,22 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            {food.brand && <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>{food.brand}</p>}
+            <div className="flex items-center gap-1.5">
+              {food.brand && <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>{food.brand}</p>}
+              {/* High confidence stays out of the way (a small green tick);
+                  anything less than that gets a visible but calm nudge to
+                  double-check — never a loud warning for data that's
+                  merely incomplete rather than wrong (that's what the
+                  red "doesn't add up" banner below is for). */}
+              {(food.verificationLevel === "VERIFIED" || food.verificationLevel === "LIKELY") && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold shrink-0" style={{ color: "#22C55E" }}>
+                  <Check size={10} /> Verified
+                </span>
+              )}
+              {(food.verificationLevel === "REVIEW" || food.verificationLevel === "UNVERIFIED") && !food.nutritionSuspect && (
+                <span className={dark ? "text-[10px] font-semibold shrink-0 text-white/35" : "text-[10px] font-semibold shrink-0 text-black/35"}>⚠ Check nutrition</span>
+              )}
+            </div>
             <p className={dark ? "text-white/50 text-xs mt-0.5" : "text-black/50 text-xs mt-0.5"}>
               Matched from the barcode database — not what you scanned? Close this and search or enter it manually instead.
             </p>
@@ -234,8 +249,15 @@ async function safeStop(instance) {
   }
 }
 
+// A cached barcode result is trusted for this long before it's treated
+// as worth a quiet refresh — long enough that normal use never feels
+// slower (every scan of an already-known barcode still adds instantly
+// off the cache), short enough that a product reformulation or a label
+// correction upstream on Open Food Facts doesn't sit stale indefinitely.
+const CACHE_STALE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
+
 export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
-  const { db, createFood } = useApp();
+  const { db, createFood, updateFood } = useApp();
   const [status, setStatus] = useState("scanning"); // scanning | detected | looking-up | error | not-found
   const [detectedCode, setDetectedCode] = useState("");
   const [error, setError] = useState("");
@@ -290,6 +312,39 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     const known = (db.customFoods || []).find((f) => f.barcode === cacheKey);
     if (known) {
       onAdd({ ...known, per: known.per ?? 100, defaultQty: known.defaultQty ?? 100 });
+      // A user's own correction is never silently refreshed over — it's
+      // the most trustworthy thing on record for this barcode (a human
+      // read it off the real pack) and a later automated re-fetch
+      // overwriting it quietly would undo the whole point of learning
+      // from it. Anything else (an original Open Food Facts result) past
+      // CACHE_STALE_MS gets a silent background re-check so the add the
+      // client is already doing stays instant either way — if the
+      // product's listing changed upstream, the saved entry catches up
+      // next time without ever blocking this scan on it.
+      //
+      // customFoods' own security rules (firestore.rules) only grant
+      // update/delete to a coach — any signed-in user can create one, but
+      // the shared library itself is coach-write-only by design, so one
+      // client's device can't corrupt what every other client reads. That
+      // means this refresh silently no-ops (caught below) for the
+      // overwhelmingly common case of a client scanning on their own
+      // account; it only actually writes back when triggered from a
+      // coach's own auth context (e.g. coaching a client via "View as
+      // Client"). That's the rule working as intended, not a bug in this
+      // feature — a client-writable shared library would be a real
+      // integrity regression, so this isn't loosened to "fix" it.
+      if (!known.correctedByUser && (!known.verifiedAt || Date.now() - known.verifiedAt > CACHE_STALE_MS) && !isVariableWeightBarcode(digits)) {
+        lookupBarcode(cacheKey)
+          .then((fresh) => {
+            const { id: _offId, ...freshData } = fresh;
+            updateFood(known.id, { ...freshData, barcode: cacheKey, verifiedAt: Date.now() });
+          })
+          .catch(() => {
+            // Still not found / still no nutrition on a refresh — leave the
+            // existing cached entry exactly as it is rather than clobbering
+            // a working result with a failed re-check.
+          });
+      }
       return;
     }
     if (isVariableWeightBarcode(digits)) {
@@ -320,7 +375,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       // `off_<code>` id first so createFood mints a real Firestore id instead
       // of writing under a mismatched one.
       const { id: _offId, ...foodData } = food;
-      const saved = createFood({ ...foodData, barcode: cacheKey });
+      const saved = createFood({ ...foodData, barcode: cacheKey, verifiedAt: Date.now() });
       if (closedRef.current) return;
       onAdd(saved);
     } catch (err) {
@@ -513,8 +568,18 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       defaultQty: 100,
     };
     // Always saved to the shared food library — same as Quick Add — so a
-    // barcode that comes up empty only ever needs a manual entry once.
-    onAdd(createFood(lookedUpCodeRef.current ? { ...data, barcode: lookedUpCodeRef.current } : data));
+    // barcode that comes up empty (or scanned data that didn't add up)
+    // only ever needs a manual entry once. Typed straight off the real
+    // pack by a person beats anything a crowd-sourced database returned,
+    // so this is marked VERIFIED outright rather than inheriting
+    // whatever uncertain score the original scan carried — the next
+    // time this exact barcode is scanned, resolveCode's cache check
+    // below returns this corrected entry before any network lookup ever
+    // runs, so the correction sticks for every future scan of it.
+    const withBarcode = lookedUpCodeRef.current
+      ? { ...data, barcode: lookedUpCodeRef.current, verificationLevel: "VERIFIED", confidenceScore: 100, correctedByUser: true, verifiedAt: Date.now() }
+      : data;
+    onAdd(createFood(withBarcode));
   }
 
   if (!open) return null;

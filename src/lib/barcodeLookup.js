@@ -30,6 +30,31 @@ function parseServingGrams(product) {
 // borderline real product shouldn't become unloggable), but so the
 // confirm screen can tell the client "double-check this one against the
 // label" instead of presenting every scan with equal, unearned confidence.
+// Real GS1 check-digit validation, not just a length check — works for
+// every standard GTIN length this app encounters (EAN-8, UPC-A/EAN-12,
+// EAN-13). From the rightmost digit of the payload (everything but the
+// check digit itself), alternate ×3/×1; the check digit is whatever
+// makes the total a multiple of 10. A code of a non-standard length (or
+// one that fails this) isn't necessarily garbage — a damaged/partial
+// decode, a non-retail code, or a format this app doesn't special-case —
+// so this reports `valid: null` ("can't confirm") rather than `false`
+// ("confirmed wrong") when the length itself is unrecognised.
+export function detectBarcodeFormat(code) {
+  const digits = String(code).replace(/\D/g, "");
+  const formatsByLength = { 8: "EAN-8", 12: "UPC-A", 13: "EAN-13", 14: "GTIN-14" };
+  const format = formatsByLength[digits.length] || "unknown";
+  if (!formatsByLength[digits.length]) return { format, valid: null, digits };
+
+  const payload = digits.slice(0, -1);
+  const checkDigit = Number(digits[digits.length - 1]);
+  let sum = 0;
+  for (let i = 0; i < payload.length; i++) {
+    sum += Number(payload[payload.length - 1 - i]) * (i % 2 === 0 ? 3 : 1);
+  }
+  const computedCheck = (10 - (sum % 10)) % 10;
+  return { format, valid: computedCheck === checkDigit, digits };
+}
+
 export function validateNutrition({ cals, protein, carbs, fat }) {
   const reasons = [];
   if (cals == null || cals < 0 || cals > 920) reasons.push("calories outside a plausible per-100g range");
@@ -47,6 +72,92 @@ export function validateNutrition({ cals, protein, carbs, fat }) {
     }
   }
   return reasons.length > 0 ? { plausible: false, reason: reasons[0] } : { plausible: true, reason: null };
+}
+
+// Named verification states, lowest-information to highest — mirrors how
+// the confirm screen should actually treat a result: UNKNOWN means "don't
+// log this without typing it in yourself," VERIFIED means "safe to trust
+// without a second look." A score outside this scale is a bug, not a
+// sixth state, so the fallback is UNVERIFIED (the safest default) rather
+// than silently passing through.
+export const VERIFICATION_LEVELS = { VERIFIED: "VERIFIED", LIKELY: "LIKELY", REVIEW: "REVIEW", UNVERIFIED: "UNVERIFIED", UNKNOWN: "UNKNOWN" };
+
+function levelForScore(score) {
+  if (score >= 90) return VERIFICATION_LEVELS.VERIFIED;
+  if (score >= 75) return VERIFICATION_LEVELS.LIKELY;
+  if (score >= 50) return VERIFICATION_LEVELS.REVIEW;
+  if (score >= 1) return VERIFICATION_LEVELS.UNVERIFIED;
+  return VERIFICATION_LEVELS.UNKNOWN;
+}
+
+// A transparent, additive 0-100 score — every point is earned for a
+// specific, named piece of real evidence this scan actually has, not an
+// arbitrary number. There's exactly one product source wired into this
+// app (Open Food Facts; see the top-of-file note), so "do multiple
+// sources agree" and "manufacturer-confirmed" aren't scoreable factors
+// yet — rather than fake agreement between sources that don't exist,
+// those two factors are left out of the breakdown entirely until a real
+// second source is added (see the barcode scanner audit report for what
+// that would take).
+export function computeConfidence({ product, food, formatInfo, nutritionValidation }) {
+  const breakdown = [];
+  let score = 0;
+
+  function add(factor, points, max, reason) {
+    score += points;
+    breakdown.push({ factor, points, max, reason });
+  }
+
+  // Barcode validity (15 pts) — a real, recognised GTIN format with a
+  // correct check digit is strong evidence the scanner read it right in
+  // the first place, independent of whether a product comes back for it.
+  if (formatInfo.valid === true) add("Barcode validity", 15, 15, `${formatInfo.format}, check digit valid`);
+  else if (formatInfo.valid === null) add("Barcode validity", 8, 15, `${formatInfo.format} — unrecognised length, can't confirm check digit`);
+  else add("Barcode validity", 0, 15, `${formatInfo.format} — check digit does not match`);
+
+  // Exact barcode match (25 pts) — a barcode is a 1:1 identifier by
+  // design, so a product coming back for this exact code at all is the
+  // single strongest signal available; everything else below refines it.
+  add("Exact barcode match", product ? 25 : 0, 25, product ? "product record found for this exact code" : "no record for this code");
+  if (!product) return { score, level: levelForScore(score), breakdown };
+
+  // Product name / brand present (10 + 5 pts) — distinguishes a fully
+  // catalogued product from a bare barcode-only stub.
+  const hasRealName = !!(product.product_name || product.generic_name);
+  add("Product name", hasRealName ? 10 : 0, 10, hasRealName ? `"${product.product_name || product.generic_name}"` : "no name on record");
+  add("Brand", product.brands ? 5 : 0, 5, product.brands ? product.brands : "no brand on record");
+
+  if (!food) return { score, level: levelForScore(score), breakdown };
+
+  // Nutrition completeness (20 pts) — full macro panel vs. partial.
+  const macroFields = [food.cals, food.protein, food.carbs, food.fat];
+  const presentCount = macroFields.filter((v) => v != null).length;
+  add("Nutrition completeness", Math.round((presentCount / 4) * 20), 20, `${presentCount}/4 macro fields present`);
+
+  // Nutrition plausibility (15 pts) — the Atwater sanity check.
+  add(
+    "Nutrition plausibility",
+    nutritionValidation.plausible ? 15 : 0,
+    15,
+    nutritionValidation.plausible ? "calories reconcile with protein/carbs/fat" : nutritionValidation.reason
+  );
+
+  // Serving size (5 pts) — a real parsed serving vs. the 100g fallback.
+  const hasRealServing = product.serving_quantity != null || /\d/.test(String(product.serving_size || ""));
+  add("Serving size data", hasRealServing ? 5 : 0, 5, hasRealServing ? String(product.serving_size || product.serving_quantity) : "no serving size on record, defaulted to 100g");
+
+  // Australian market match (5 pts, bonus — never a penalty). APEX is an
+  // AU app, so AU-tagged data earns a bonus; the common case (no country
+  // tag at all on the record) is scored neutral rather than assumed
+  // wrong, since most OFF entries simply don't carry this field.
+  const countries = (product.countries_tags || []).map((c) => String(c).toLowerCase());
+  const isAu = countries.some((c) => c.includes("australia"));
+  const isOtherMarketOnly = countries.length > 0 && !isAu;
+  if (isAu) add("Australian market match", 5, 5, "tagged en:australia on Open Food Facts");
+  else if (isOtherMarketOnly) add("Australian market match", 0, 5, `tagged ${countries.join(", ")} — not confirmed for the AU market, formulation may differ`);
+  else add("Australian market match", 2, 5, "no country data on record — can't confirm or rule out AU formulation");
+
+  return { score, level: levelForScore(score), breakdown };
 }
 
 async function fetchProduct(code, timeoutMs = 8000) {
@@ -153,7 +264,9 @@ function mapProductToFood(product, code) {
   const hasNutrition = n["energy-kcal_100g"] != null || n["proteins_100g"] != null || n["carbohydrates_100g"] != null || n["fat_100g"] != null;
 
   if (!hasNutrition) {
-    return { notFound: true, reason: "no-nutrition", productName: name };
+    const formatInfo = detectBarcodeFormat(code);
+    const confidence = computeConfidence({ product, food: null, formatInfo, nutritionValidation: { plausible: false, reason: "no nutrition data" } });
+    return { notFound: true, reason: "no-nutrition", productName: name, confidenceScore: confidence.score, verificationLevel: confidence.level, confidenceBreakdown: confidence.breakdown };
   }
 
   const cals = Math.round(n["energy-kcal_100g"] || 0);
@@ -185,6 +298,12 @@ function mapProductToFood(product, code) {
     food.nutritionSuspect = true;
     food.nutritionSuspectReason = validation.reason;
   }
+
+  const formatInfo = detectBarcodeFormat(code);
+  const confidence = computeConfidence({ product, food, formatInfo, nutritionValidation: validation });
+  food.confidenceScore = confidence.score;
+  food.verificationLevel = confidence.level;
+  food.confidenceBreakdown = confidence.breakdown;
 
   // Open Food Facts already reports these when the product's label has been
   // entered in full — real per-100g figures, not estimated — so a scanned
@@ -237,6 +356,7 @@ export async function lookupBarcode(code) {
     err.notFound = true;
     err.productName = result.productName;
     err.scannedCode = digits;
+    err.verificationLevel = result.verificationLevel;
     throw err;
   }
 
@@ -273,37 +393,38 @@ export async function debugLookupBarcode(code) {
 
   const hit = perVariant.find((v) => v.found);
   if (!hit) {
+    const formatInfo = detectBarcodeFormat(code);
+    const confidence = computeConfidence({ product: null, food: null, formatInfo, nutritionValidation: { plausible: false, reason: "no product found" } });
     trace.selectedVariant = null;
     trace.rawProduct = null;
     trace.outcome = "not-found";
-    trace.confidence = 0;
+    trace.confidenceScore = confidence.score;
+    trace.verificationLevel = confidence.level;
+    trace.confidenceBreakdown = confidence.breakdown;
     trace.finalFood = null;
     return trace;
   }
 
   trace.selectedVariant = hit.variant;
   trace.rawProduct = hit.product;
-  // The scanner has exactly one signal to score, by design: did this
-  // exact barcode resolve to an exact record. There's no name/brand
-  // fuzzy-matching step to score separately (unlike a text search), so
-  // "confidence" here means "is this a real exact match with usable,
-  // plausible nutrition" rather than a weighted blend across sources that
-  // don't exist yet.
+  // mapProductToFood computes the one real confidence score this scanner
+  // has (see computeConfidence) and attaches it whether or not usable
+  // nutrition came back — reused here rather than a second, debug-only
+  // scoring pass that could drift from what a real scan actually scores.
   const mapped = mapProductToFood(hit.product, code);
+  trace.confidenceScore = mapped.confidenceScore;
+  trace.verificationLevel = mapped.verificationLevel;
+  trace.confidenceBreakdown = mapped.confidenceBreakdown;
+
   if (mapped.notFound) {
     trace.outcome = "found-no-nutrition";
     trace.productName = mapped.productName;
-    trace.confidence = 0.4; // real product, identity confirmed, but nothing to log yet
     trace.finalFood = null;
     return trace;
   }
 
   trace.outcome = "resolved";
   trace.nutritionValidation = validateNutrition({ cals: mapped.cals, protein: mapped.protein, carbs: mapped.carbs, fat: mapped.fat });
-  trace.confidence = trace.nutritionValidation.plausible ? 0.95 : 0.5;
-  trace.confidenceReason = trace.nutritionValidation.plausible
-    ? "exact barcode match, nutrition data internally consistent"
-    : `exact barcode match, but ${trace.nutritionValidation.reason}`;
   trace.finalFood = mapped;
   return trace;
 }
