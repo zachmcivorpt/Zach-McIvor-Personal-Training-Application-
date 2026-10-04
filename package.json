@@ -13,6 +13,7 @@
   "dependencies": {
     "barcode-detector": "^3.2.2",
     "firebase": "^12.18.0",
+    "firebase-admin": "^12.7.0",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^1.39.0",
     "react": "^19.2.8",

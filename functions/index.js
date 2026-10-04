@@ -1,14 +1,27 @@
-// Cloud Functions — the one piece of this app that genuinely needs a
-// server, because sending a push notification requires a privileged
-// Admin SDK call the browser is never trusted to make itself. Everything
-// else in this app runs entirely client-side against Firestore; this is
-// the deliberate, minimal exception.
+// Cloud Functions — requires Firebase's paid Blaze plan to deploy at all,
+// even at zero usage. Push notifications and the client-activation data
+// migration DON'T actually need this file anymore — see api/notify.js,
+// api/client-activated.js, and api-lib/ instead, which do the exact same
+// job as Vercel serverless functions (already hosting this app, free tier
+// included) called directly from the client right after the write that
+// used to trigger the Cloud Function equivalent below. See
+// PUSH_NOTIFICATIONS_SETUP.txt for the full picture of which path is
+// actually live.
 //
-// Three triggers:
-//   - a new "messages" doc  -> push the other party (coach <-> client), event-driven
-//   - a new "formResponses" doc -> push the coach ("check-in submitted"), event-driven
-//   - a daily schedule -> push a client whose weekly check-in form is due
-//     tomorrow and who hasn't already filled it out this week
+// IMPORTANT if you ever DO deploy this file on Blaze: onNewMessage,
+// onNewGroupMessage, onMealPlanChanged, onClientPhaseChanged, and
+// onNewCheckIn below would then fire ALONGSIDE the equivalent /api/notify
+// calls already wired into AppContext.jsx — every notification would be
+// sent twice. Delete those five exports first (or comment them out) if
+// you deploy this for its other, not-yet-migrated capabilities (the AI
+// insight/nutrition-help functions, the WHOOP integration, and the
+// account-deletion/invite-recovery onCall functions, none of which have
+// a /api equivalent yet).
+//
+// Everything else in this app runs entirely client-side against
+// Firestore; Cloud Functions / this Vercel equivalent is the deliberate,
+// minimal exception, for whichever pieces genuinely need a privileged
+// Admin SDK call the browser can never be trusted to make itself.
 
 const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");

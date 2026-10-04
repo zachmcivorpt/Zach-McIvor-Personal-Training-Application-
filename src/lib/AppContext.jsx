@@ -88,6 +88,48 @@ function newDocId(name) {
   return doc(collection(firestore, name)).id;
 }
 
+// Fires the push-notification side effect for an action that just wrote
+// to Firestore — calls the Vercel serverless function at /api/notify
+// (see api/notify.js), which re-reads the real doc with the Admin SDK and
+// sends the notification. This is the no-Blaze-required replacement for
+// functions/index.js's Firestore-triggered Cloud Functions
+// (onNewMessage/onNewGroupMessage/onMealPlanChanged/onClientPhaseChanged/
+// onNewCheckIn) — same effect, just called directly after the write that
+// used to trigger them, instead of Firestore triggering them itself.
+// Always best-effort: a failed or slow notify call never blocks or
+// surfaces an error for the action that triggered it, same as every other
+// fire-and-forget Firestore write in this file.
+async function pushNotify(kind, payload) {
+  try {
+    const idToken = await auth.currentUser?.getIdToken();
+    if (!idToken) return;
+    await fetch("/api/notify", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ kind, ...payload }),
+    });
+  } catch (err) {
+    console.error(`pushNotify(${kind}) failed:`, err);
+  }
+}
+
+// Counterpart to pushNotify above, for the one-time re-key a freshly
+// activated client's pre-activation data needs — see api/client-activated.js
+// and the matching functions/index.js onClientActivated this replaces.
+async function pushClientActivated(uid, oldId) {
+  try {
+    const idToken = await auth.currentUser?.getIdToken();
+    if (!idToken) return;
+    await fetch("/api/client-activated", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${idToken}` },
+      body: JSON.stringify({ uid, oldId }),
+    });
+  } catch (err) {
+    console.error("pushClientActivated failed:", err);
+  }
+}
+
 // One-time seed of the shared exercise/program library into a brand new
 // Firebase project, so a freshly created coach account isn't empty —
 // mirrors what loadDb() used to default to under localStorage.
@@ -799,12 +841,13 @@ export function AppProvider({ children }) {
         await deleteDoc(inviteRef);
         // Anything a coach already logged for this client pre-activation
         // (e.g. an in-person session via "View as Client") gets carried
-        // over to this new uid server-side — functions/index.js's
-        // onClientActivated trigger does this with the Admin SDK the
-        // instant this users/{uid} doc is created. It can't be done from
-        // here: this code is running as the client's own brand new
+        // over to this new uid server-side — can't be done from here
+        // directly: this code is running as the client's own brand new
         // session, which most of these collections don't grant it write
-        // access to at all.
+        // access to at all. Fired, not awaited — this client's activation
+        // itself must not hang on it, and it's a one-time best-effort
+        // migration either way (see api/client-activated.js).
+        pushClientActivated(uid, email);
         const welcome = raw.welcomeMessage;
         if (welcome?.autoSend && welcome.text?.trim()) {
           const text = welcome.text.replace(/\{name\}/gi, invite.name.split(" ")[0]);
@@ -1078,17 +1121,21 @@ export function AppProvider({ children }) {
           createdAt: Date.now(),
           ...data,
         };
-        setDoc(doc(firestore, "clientPhases", id), stripUndefined(phase)).catch(console.error);
+        setDoc(doc(firestore, "clientPhases", id), stripUndefined(phase))
+          .then(() => pushNotify("clientPhase", { clientId }))
+          .catch(console.error);
         return phase;
       },
 
       // Returns the write's promise (in addition to logging any failure)
       // so a caller that carries user-entered data — like the workout
       // editor — can detect a failed save and keep it on screen instead of
-      // showing "Saved" and quietly losing it.
+      // showing "Saved" and quietly losing it. The notify call is a
+      // separate chain off the same promise, not a replacement for it, so
+      // what a caller awaits is completely unchanged.
       updateClientPhase(clientId, phaseId, patch) {
         const promise = updateDoc(doc(firestore, "clientPhases", phaseId), stripUndefined(patch));
-        promise.catch(console.error);
+        promise.then(() => pushNotify("clientPhase", { clientId })).catch(console.error);
         return promise;
       },
 
@@ -1121,7 +1168,9 @@ export function AppProvider({ children }) {
         if (!src) return null;
         const id = newDocId("clientPhases");
         const cloned = { ...JSON.parse(JSON.stringify(src)), id, clientId, createdAt: Date.now(), ...overrides };
-        setDoc(doc(firestore, "clientPhases", id), stripUndefined(cloned)).catch(console.error);
+        setDoc(doc(firestore, "clientPhases", id), stripUndefined(cloned))
+          .then(() => pushNotify("clientPhase", { clientId }))
+          .catch(console.error);
 
         // Re-create the same schedule shape on the new phase's date range —
         // every session actually scheduled during the OLD phase gets a twin
@@ -1452,7 +1501,9 @@ export function AppProvider({ children }) {
         if (!trimmed && !attachment) return;
         const id = newDocId("messages");
         const msg = { id, clientId, from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}) };
-        setDoc(doc(firestore, "messages", id), msg).catch(console.error);
+        setDoc(doc(firestore, "messages", id), msg)
+          .then(() => pushNotify("message", { id }))
+          .catch(console.error);
       },
 
       // Per-workout comment thread — Trainerize's "Comments" tab on a
@@ -1863,7 +1914,9 @@ export function AppProvider({ children }) {
           memberIds: group?.memberIds || [],
           ...(fromClientId ? { fromClientId, fromName: fromName || "" } : {}),
         };
-        setDoc(doc(firestore, "groupMessages", id), msg).catch(console.error);
+        setDoc(doc(firestore, "groupMessages", id), msg)
+          .then(() => pushNotify("groupMessage", { id }))
+          .catch(console.error);
       },
 
       createSavedMeal(clientId, meal) {
@@ -2034,9 +2087,9 @@ export function AppProvider({ children }) {
       // optional so older plans saved before this field existed still load
       // fine as an undated, single-block plan.
       setMealPlan(clientId, { days, weeks, startDate }) {
-        setDoc(doc(firestore, "mealPlans", clientId), { clientId, days, weeks: weeks || null, startDate: startDate || null, updatedAt: Date.now() }).catch(
-          console.error
-        );
+        setDoc(doc(firestore, "mealPlans", clientId), { clientId, days, weeks: weeks || null, startDate: startDate || null, updatedAt: Date.now() })
+          .then(() => pushNotify("mealPlan", { clientId }))
+          .catch(console.error);
       },
 
       // Lets a client swap one assigned meal for an alternative themselves
@@ -2316,7 +2369,9 @@ export function AppProvider({ children }) {
       submitFormResponse(clientId, { formId, scheduleId, answers }) {
         const id = newDocId("formResponses");
         const response = { id, clientId, formId, scheduleId, date: Date.now(), answers, read: false };
-        setDoc(doc(firestore, "formResponses", id), response).catch(console.error);
+        setDoc(doc(firestore, "formResponses", id), response)
+          .then(() => pushNotify("checkin", {}))
+          .catch(console.error);
         return response;
       },
       markFormResponseRead(id) {

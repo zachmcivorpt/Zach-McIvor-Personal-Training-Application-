@@ -3,80 +3,76 @@ Push Notifications Setup — Zach McIvor Personal Training app
 
 WHAT THIS IS
 ------------
-Real push notifications (message received, check-in submitted) that work
-even when the app isn't open — via Firebase Cloud Messaging (FCM).
+Real push notifications (message received, check-in submitted, meal plan
+or training program updated) that work even when the app isn't open —
+via Firebase Cloud Messaging (FCM).
 
-This is the one part of the app that needs an actual server-side piece
-(a couple of small Cloud Functions), because sending a push requires a
-privileged call the browser can never be trusted to make itself.
-Everything else in the app still runs with no backend, as before — this
-is a deliberate, minimal exception, all still inside the same Firebase
-project you already have.
+Sending a push requires a privileged server call the browser can never
+be trusted to make itself. That used to mean Firebase Cloud Functions,
+which require the paid "Blaze" plan to deploy at all, even at zero
+usage. This now runs instead as Vercel serverless functions — the same
+place this app is already hosted, free tier included, no Blaze needed —
+in api/notify.js and api/client-activated.js. Everything else in the app
+still runs with no backend at all, as before; this is the one deliberate
+exception.
 
-Two things only I can't do for you, because they need your own Firebase
-login and billing details: turning on the Blaze plan, and deploying the
-Cloud Functions. Everything else is already written and pushed.
-
-
-STEP 1 — UPGRADE TO THE BLAZE PLAN
-------------------------------------
-Cloud Functions require Firebase's "Blaze" (pay-as-you-go) plan — the
-free "Spark" plan can't run them at all, even at zero usage.
-
-1. Go to https://console.firebase.google.com and open your project
-   (zach-mcivor-pt-app).
-2. Click "Upgrade" in the bottom-left corner (or Project Settings →
-   Usage and billing).
-3. Follow the prompts to attach a billing method and switch to Blaze.
-
-Don't worry about a surprise bill: Blaze still includes a generous free
-tier (2 million function invocations/month, plus FCM sends are free,
-unlimited). For a one-coach app, you will realistically never be charged
-anything from this. You can also set a budget alert in Google Cloud
-Console if you want peace of mind.
+One thing only I can't do for you, because it needs your own Firebase
+login: generating a service account key and adding it to Vercel.
+Generating this key does NOT require the Blaze plan — it's available on
+the free Spark plan too. Everything else is already written and pushed.
 
 
-STEP 2 — GENERATE A WEB PUSH (VAPID) KEY
+STEP 1 — GENERATE A WEB PUSH (VAPID) KEY
 -------------------------------------------
+(Skip this if VAPID_KEY in src/lib/config.js is already a real value,
+not "PASTE_YOUR_VAPID_KEY_HERE".)
+
 1. In the Firebase Console, go to Project Settings (the gear icon) →
    the "Cloud Messaging" tab.
 2. Scroll to "Web configuration" → "Web Push certificates".
 3. Click "Generate key pair". You'll get a long key string.
 4. Copy it, and paste it in as the value of VAPID_KEY in
-   src/lib/config.js (replacing "PASTE_YOUR_VAPID_KEY_HERE"), then
-   commit/push/redeploy as usual. This value isn't secret — it's fine to
-   commit, same as the rest of your Firebase config.
+   src/lib/config.js, then commit/push/redeploy as usual. This value
+   isn't secret — it's fine to commit, same as the rest of your Firebase
+   config.
 
 Until this is filled in, the "Push Notifications" toggle in the app will
 show a clear error instead of silently failing.
 
 
-STEP 3 — DEPLOY THE CLOUD FUNCTIONS
---------------------------------------
-This needs to be run from a computer with Node.js installed (the
-functions/ folder is already written and included in the repo).
+STEP 2 — GENERATE A FIREBASE SERVICE ACCOUNT KEY
+-----------------------------------------------------
+This is what lets a Vercel serverless function act with full Admin SDK
+privilege against your Firestore project (the same privilege Cloud
+Functions would have had) — free on any Firebase plan, Spark included.
 
-1. Install the Firebase CLI (one-time, if you don't have it):
-     npm install -g firebase-tools
+1. Firebase Console → your project → the gear icon → Project Settings.
+2. "Service accounts" tab.
+3. Click "Generate new private key" → confirm. A .json file downloads —
+   keep it somewhere safe, you can only download it fresh (not re-view
+   an old one), though you can always generate a new one if needed.
+4. Open that file in a text editor and copy its ENTIRE contents (it's
+   one JSON object).
 
-2. Log in with the same Google account that owns the Firebase project:
-     firebase login
 
-3. From the root of this project folder, install the functions'
-   dependencies:
-     cd functions
-     npm install
-     cd ..
+STEP 3 — ADD IT TO VERCEL AS AN ENVIRONMENT VARIABLE
+----------------------------------------------------------
+1. Go to https://vercel.com and open this project
+   (apexcoachingplatform-appl).
+2. Settings → Environment Variables.
+3. Add a new variable:
+     Name: FIREBASE_SERVICE_ACCOUNT_JSON
+     Value: paste the entire JSON file's contents from Step 2
+     Environment: Production (and Preview if you want it working on
+     preview deployments too)
+4. Save, then redeploy (Vercel → Deployments → ⋯ on the latest one →
+   Redeploy) so the new serverless functions pick up the variable — a
+   plain git push also works, since every push redeploys anyway.
 
-4. Deploy just the functions:
-     firebase deploy --only functions
-
-That's it — you should see "onNewMessage", "onNewGroupMessage" and
-"onNewCheckIn" listed as deployed. No further steps needed; they start
-working immediately.
-
-If you ever change functions/index.js, just re-run
-"firebase deploy --only functions" again to push the update.
+That's it. No Firebase CLI, no `firebase deploy`, no billing plan change.
+Push notifications and the client-activation data migration (see "HOW IT
+WORKS" below) go live the moment that variable is set and the app
+redeploys.
 
 
 HOW IT WORKS
@@ -85,33 +81,63 @@ HOW IT WORKS
   (Profile → Push Notifications on the client side, Settings on the
   coach side). This asks the browser/device for notification permission
   and saves a device token onto that person's own user document.
-- When a new chat message is sent, a Cloud Function notifies whichever
-  side didn't send it.
-- When a client submits a check-in, a Cloud Function notifies the coach.
+- Right after a relevant Firestore write succeeds — a new message, a new
+  group chat message, a published meal plan, an added/edited training
+  phase, a submitted check-in — the client calls /api/notify (see
+  api/notify.js), which re-reads the real document with the Admin SDK
+  and sends the notification. Same effect as a Firestore-triggered Cloud
+  Function would have had, just invoked directly instead of by a
+  Firestore trigger.
 - Notifications are per-device — each phone/browser needs the toggle
   turned on separately, and can be turned off the same way.
-- No new Firestore security rules were needed — device tokens are just
-  a new field on the existing users/{uid} document, already covered by
-  the rule that lets you edit your own profile.
-- A client is also notified whenever you schedule/update their training
-  program, publish a meal plan, or send them a message — same mechanism.
+- No new Firestore security rules were needed for any of this — device
+  tokens are just a new field on the existing users/{uid} document,
+  already covered by the rule that lets you edit your own profile; the
+  /api functions authenticate with a real Firebase ID token and only
+  ever read data, they never bypass a rule a client write already had to
+  satisfy.
 - Posting into a group chat (the Groups tab) notifies every other member
   of that group, plus you if a client posted — same "messages" toggle,
   no separate preference for group chat specifically.
+- When a brand new client activates their account (sets a password for
+  the first time), anything you'd already logged for them beforehand
+  (e.g. via "View as Client") gets re-keyed onto their real account —
+  this used to be functions/index.js's onClientActivated Cloud Function;
+  it's now api/client-activated.js, called automatically the moment
+  activation succeeds. No setup step beyond Steps 2-3 above.
 
 
-ALSO BUILT: INACTIVITY NUDGE + AUTO-GENERATED WOD
-----------------------------------------------------
-A client who's gone 4+ days without logging a workout now gets a ready-to-go
-"Reignition Workout" session automatically dropped onto today's
-calendar — built only from exercises already in their own assigned
-program (never anything outside it) — plus a real chat message (from
-you, in their Messages tab) telling them it's there, which also triggers
-the usual push notification. Runs once a day (exports.inactivityWod in
-functions/index.js); re-deploying functions (Step 3 above) is all that's
-needed to turn it on — no new setup step.
-It won't re-nudge the same client again for 5 days, and never overwrites
-a real scheduled day that's already on their calendar.
+WHAT STILL NEEDS THE OLD CLOUD FUNCTIONS PATH (functions/index.js)
+------------------------------------------------------------------------
+Not everything in functions/index.js has a Vercel equivalent yet — these
+still need Blaze + `firebase deploy --only functions` if/when you want
+them (see the comment at the top of that file for the exact list and an
+important warning about not double-deploying the push-related functions
+it still contains):
+
+- The daily check-in reminder and the inactivity-nudge auto-generated
+  workout (checkInReminders, inactivityWod) — these are scheduled jobs,
+  not triggered by a specific action, so they don't fit the "call an API
+  right after a write" pattern the rest of this migration uses. A
+  Vercel Cron equivalent is possible (Vercel's free plan supports daily
+  cron jobs) but isn't built yet.
+- The AI-assisted coach insights (analyzeNoteContext,
+  phraseApexSuggestion) and the Nutrition tab's "AI Nutrition Help"
+  (nutritionAiHelp) — these already fail gracefully today (the app falls
+  back to local keyword heuristics / shows a clear error), so there's no
+  urgency, but they're not migrated.
+- Account deletion (deleteMyAccount, deleteClientAuthAccount) and the
+  pre-auth self-service invite recovery (cleanupOrphanedInvite,
+  regenerateInviteCode) — these still call into functions/index.js via
+  httpsCallable and will error until either Blaze is turned on and that
+  file is deployed, or these get their own /api equivalent later.
+- The WHOOP wearable integration (whoopConnect, whoopDisconnect,
+  whoopSync) — not configured yet anyway (WHOOP_CLIENT_ID in
+  src/lib/config.js is still a placeholder), so lowest priority.
+
+Ask any time you want any of these migrated to the same no-Blaze /api
+pattern — the hard part (the Admin SDK + ID-token-auth plumbing in
+api-lib/firebaseAdmin.js) is already built and reusable for any of them.
 
 
 LATER IDEAS (not built yet)
