@@ -133,6 +133,35 @@ exports.onNewMessage = onDocumentCreated("messages/{id}", async (event) => {
   }
 });
 
+// Same "notify whoever didn't send it" shape as onNewMessage above, for
+// the coach-side Groups tab's group chat. memberIds is already stamped
+// onto the message itself at send time (see sendGroupMessage in
+// AppContext.jsx) — the group's current roster, read once off that
+// message doc rather than a second Firestore read of groups/{groupId}.
+// Reuses the "messages" notification preference rather than adding a
+// separate toggle for group chat specifically.
+exports.onNewGroupMessage = onDocumentCreated("groupMessages/{id}", async (event) => {
+  const m = event.data?.data();
+  if (!m) return;
+  const preview = (m.text || "").slice(0, 120);
+  const memberIds = m.memberIds || [];
+
+  const groupSnap = await db.collection("groups").doc(m.groupId).get();
+  const groupName = groupSnap.data()?.name || "your group";
+
+  if (m.from === "coach") {
+    await Promise.all(memberIds.map((uid) => notifyUser(uid, { title: groupName, body: preview }, "messages")));
+  } else if (m.from === "client") {
+    const title = `${m.fromName || "A member"} · ${groupName}`;
+    const coachId = await getCoachId();
+    const others = memberIds.filter((uid) => uid !== m.fromClientId);
+    await Promise.all([
+      coachId ? notifyUser(coachId, { title, body: preview }, "messages") : Promise.resolve(),
+      ...others.map((uid) => notifyUser(uid, { title, body: preview }, "messages")),
+    ]);
+  }
+});
+
 // A coach publishing a plan (MealPlanBuilder's publish(), the only path
 // that calls setMealPlan) always bumps `updatedAt`; the client's own
 // "swap this meal" action (swapMealPlanMeal) only ever writes `days` and

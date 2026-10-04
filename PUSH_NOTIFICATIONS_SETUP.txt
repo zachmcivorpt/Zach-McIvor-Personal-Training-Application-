@@ -71,8 +71,9 @@ functions/ folder is already written and included in the repo).
 4. Deploy just the functions:
      firebase deploy --only functions
 
-That's it — you should see "onNewMessage" and "onNewCheckIn" listed as
-deployed. No further steps needed; they start working immediately.
+That's it — you should see "onNewMessage", "onNewGroupMessage" and
+"onNewCheckIn" listed as deployed. No further steps needed; they start
+working immediately.
 
 If you ever change functions/index.js, just re-run
 "firebase deploy --only functions" again to push the update.
@@ -94,6 +95,9 @@ HOW IT WORKS
   the rule that lets you edit your own profile.
 - A client is also notified whenever you schedule/update their training
   program, publish a meal plan, or send them a message — same mechanism.
+- Posting into a group chat (the Groups tab) notifies every other member
+  of that group, plus you if a client posted — same "messages" toggle,
+  no separate preference for group chat specifically.
 
 
 ALSO BUILT: INACTIVITY NUDGE + AUTO-GENERATED WOD
