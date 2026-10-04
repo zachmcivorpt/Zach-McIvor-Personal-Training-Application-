@@ -408,6 +408,68 @@ const CAL_WEEKDAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // track as trained-or-avoided).
 const MUSCLE_CATEGORIES = ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs", "Core", "Forearms"];
 
+// primaryMuscles is a free-text field on every exercise (Exercises → Edit
+// → "Primary Muscles", comma-separated) — a coach can type "Lats",
+// "Upper Back", "Pecs", "Quads", "Abs" etc. instead of the exact 8 labels
+// above. Rolling those sub-region/synonym tags up to their parent category
+// here (rather than requiring an exact string match) is what fixes sets
+// silently vanishing from the Training Load bars — e.g. every pull-up/row/
+// lat pulldown tagged "Lats" or "Upper Back" used to count toward nothing
+// at all, making Back (and similarly Chest/Core) read far lower than the
+// client's actual logged volume.
+const MUSCLE_SYNONYMS = {
+  back: "Back",
+  "upper back": "Back",
+  "lower back": "Back",
+  lats: "Back",
+  lat: "Back",
+  latissimus: "Back",
+  traps: "Back",
+  trapezius: "Back",
+  rhomboids: "Back",
+  chest: "Chest",
+  pecs: "Chest",
+  pectorals: "Chest",
+  "pec major": "Chest",
+  "pec minor": "Chest",
+  shoulders: "Shoulders",
+  shoulder: "Shoulders",
+  delts: "Shoulders",
+  deltoids: "Shoulders",
+  "front delts": "Shoulders",
+  "side delts": "Shoulders",
+  "rear delts": "Shoulders",
+  biceps: "Biceps",
+  bicep: "Biceps",
+  triceps: "Triceps",
+  tricep: "Triceps",
+  legs: "Legs",
+  leg: "Legs",
+  quads: "Legs",
+  quadriceps: "Legs",
+  hamstrings: "Legs",
+  glutes: "Legs",
+  calves: "Legs",
+  calf: "Legs",
+  adductors: "Legs",
+  abductors: "Legs",
+  "hip flexors": "Legs",
+  hips: "Legs",
+  core: "Core",
+  abs: "Core",
+  abdominals: "Core",
+  obliques: "Core",
+  forearms: "Forearms",
+  forearm: "Forearms",
+  grip: "Forearms",
+  wrists: "Forearms",
+};
+function normalizeMuscle(raw) {
+  if (!raw) return null;
+  const key = raw.trim().toLowerCase();
+  return MUSCLE_SYNONYMS[key] || (MUSCLE_CATEGORIES.includes(raw.trim()) ? raw.trim() : null);
+}
+
 // Extracts the plain "YYYY-MM-DD" a UTC-anchored grid cell (built via
 // Date.UTC in buildMonthGrid, below) already represents — deliberately
 // UTC, not localDateKey, since these Date objects were never meant to
@@ -1299,7 +1361,8 @@ function CalendarPanel({ client, showToast }) {
         const setCount = (e.sets || []).length;
         const muscles = exercisesById[e.exerciseId]?.primaryMuscles || [];
         muscles.forEach((m) => {
-          if (counts[m] !== undefined) counts[m] += setCount;
+          const bucket = normalizeMuscle(m);
+          if (bucket) counts[bucket] += setCount;
         });
       });
     });

@@ -136,8 +136,31 @@ const KEY_LIFTS = [
   { label: "Bench Press", names: ["bench press", "barbell bench press"] },
   { label: "Barbell Back Squat", names: ["barbell back squat", "back squat", "squat"] },
   { label: "Deadlift", names: ["deadlift", "conventional deadlift", "barbell deadlift"] },
-  { label: "Pull-ups", names: ["pull-up", "pull up", "pullup", "pull-ups", "pull ups"] },
+  {
+    label: "Pull-ups",
+    names: [
+      "pull-up",
+      "pull up",
+      "pullup",
+      "pull-ups",
+      "pull ups",
+      "pullups",
+      "weighted pull-up",
+      "weighted pull up",
+      "weighted pull-ups",
+      "weighted pull ups",
+      "banded pull-up",
+      "banded pull up",
+      "assisted pull-up",
+      "assisted pull up",
+    ],
+  },
   { label: "Overhead Press", names: ["overhead press", "barbell overhead press", "military press"] },
+  {
+    label: "Dumbbell Shoulder Press",
+    names: ["dumbbell shoulder press", "seated dumbbell shoulder press", "standing dumbbell shoulder press", "db shoulder press"],
+  },
+  { label: "Hip Thrust", names: ["hip thrust", "barbell hip thrust", "banded hip thrust", "hip thrusts"] },
 ].map((lift) => ({ ...lift, match: (n) => lift.names.includes(n) }));
 
 // The three big compound lifts always show on the Strength Personal Bests
