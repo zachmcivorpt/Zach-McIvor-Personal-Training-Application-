@@ -1,9 +1,11 @@
 import React, { useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, BottomSheet, Field, TextInput, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
+import { BottomSheet, Field, TextInput, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { matchesSearch } from "../lib/search";
+import { CLIENT_DARK_BORDER, MEASURE_BLUE } from "../theme";
+import { DarkPanel } from "./darkUI";
 import { Plus, Search, Apple, Trash2, Camera, Download } from "lucide-react";
 
 function emptyFood() {
@@ -163,7 +165,7 @@ export default function CoachFoodLibrary({ showToast }) {
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <p className="text-black/40 text-sm">
+        <p className="text-white/40 text-sm">
           {customFoods.length} custom · {remainingBuiltIn.length} built-in not yet imported
         </p>
         <div className="flex items-center gap-2 shrink-0">
@@ -172,81 +174,88 @@ export default function CoachFoodLibrary({ showToast }) {
               onClick={handleImport}
               disabled={importing}
               title="Turns every built-in food into a real, editable entry (add a photo, fix macros) here in your library"
-              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 disabled:opacity-50 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-white/8 hover:bg-white/15 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
             >
               <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "MAKE BUILT-INS EDITABLE"}</span>
             </button>
           )}
-          <button onClick={() => setEditing({ isNew: true })} aria-label="Add food" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
+          <button
+            onClick={() => setEditing({ isNew: true })}
+            aria-label="Add food"
+            className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl shrink-0 hover:opacity-90 transition-opacity"
+          >
             <Plus size={16} /> <span className="hidden sm:inline">ADD FOOD</span>
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
-        <Search size={16} className="text-black/40" />
+      <div className="flex items-center gap-2 bg-white/8 border rounded-xl px-3 py-2.5 mb-5 md:max-w-sm" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        <Search size={16} className="text-white/40" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search foods"
-          className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/25"
         />
       </div>
 
       {filteredCustom.length > 0 && (
         <>
-          <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">YOUR CUSTOM FOODS</p>
+          <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">YOUR CUSTOM FOODS</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 mb-6">
             {filteredCustom.map((f) => (
-              <Card key={f.id} onClick={() => setEditing(f)}>
-                <div className="flex items-center gap-3">
+              <DarkPanel key={f.id} chamfer className="active:scale-[0.98] transition-transform">
+                <div onClick={() => setEditing(f)} className="relative flex items-center gap-3 p-4 cursor-pointer hover:bg-white/[0.03] transition-colors">
                   {f.imageUrl ? (
-                    <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                    <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border" style={{ borderColor: CLIENT_DARK_BORDER }} />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                      <Apple size={16} className="text-blue-500" />
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                      style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
+                    >
+                      <Apple size={16} style={{ color: MEASURE_BLUE }} />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-black font-semibold text-sm truncate">{f.name}</p>
-                    <p className="text-black/40 text-xs truncate mt-0.5">
+                    <p className="text-white font-semibold text-sm truncate">{f.name}</p>
+                    <p className="text-white/40 text-xs truncate mt-0.5">
                       {f.cals} cal · {f.protein}p / {f.carbs}c / {f.fat}f
                     </p>
                   </div>
                 </div>
-              </Card>
+              </DarkPanel>
             ))}
           </div>
         </>
       )}
 
       {filteredBase.length > 0 && (
-        <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">
+        <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">
           BUILT-IN LIBRARY — READ-ONLY UNTIL IMPORTED
         </p>
       )}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
         {filteredBase.map((f) => (
-          <Card key={f.id}>
-            <div className="flex items-center gap-3">
+          <DarkPanel key={f.id} chamfer>
+            <div className="relative flex items-center gap-3 p-4">
               {f.imageUrl ? (
-                <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+                <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border" style={{ borderColor: CLIENT_DARK_BORDER }} />
               ) : (
-                <div className="w-10 h-10 rounded-xl bg-black/8 flex items-center justify-center shrink-0">
-                  <Apple size={16} className="text-black/40" />
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border" style={{ backgroundColor: "rgba(255,255,255,0.04)", borderColor: CLIENT_DARK_BORDER }}>
+                  <Apple size={16} className="text-white/30" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-black font-semibold text-sm truncate">{f.name}</p>
-                <p className="text-black/40 text-xs truncate mt-0.5">
+                <p className="text-white font-semibold text-sm truncate">{f.name}</p>
+                <p className="text-white/40 text-xs truncate mt-0.5">
                   {f.cals} cal · {f.protein}p / {f.carbs}c / {f.fat}f
                 </p>
               </div>
             </div>
-          </Card>
+          </DarkPanel>
         ))}
         {filteredCustom.length === 0 && filteredBase.length === 0 && (
-          <p className="text-black/30 text-xs col-span-full text-center py-6">No foods match.</p>
+          <p className="text-white/30 text-xs col-span-full text-center py-6">No foods match.</p>
         )}
       </div>
 

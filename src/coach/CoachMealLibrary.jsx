@@ -1,9 +1,11 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, SecondaryButton, DangerButton, BottomSheet, TextArea, PrimaryButton } from "../components/ui";
+import { SecondaryButton, DangerButton, BottomSheet, TextArea, PrimaryButton } from "../components/ui";
 import { CreateMealSheet } from "../client/NutritionFeatures";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { matchesSearch } from "../lib/search";
+import { CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, MEASURE_BLUE } from "../theme";
+import { DarkPanel } from "./darkUI";
 import { Plus, Utensils, Trash2, Camera, Download, Image as ImageIcon, ImageOff, Search } from "lucide-react";
 
 // Coach-facing occasion categories, in display order. A meal can belong to
@@ -11,18 +13,13 @@ import { Plus, Utensils, Trash2, Camera, Download, Image as ImageIcon, ImageOff,
 // category it lists — matching how a coach actually browses ("what's
 // dinner-suitable" should include lunch/dinner swing meals too).
 const CATEGORY_ORDER = ["Breakfast", "Lunch", "Dinner", "Snacks"];
-// Reuses the app's existing secondary-accent palette (orange/blue/indigo/
-// emerald already appear elsewhere in the coach console) instead of
-// introducing a new color — no yellow/amber anywhere in this set.
-const CATEGORY_STYLE = {
-  Breakfast: { bg: "bg-orange-50", ring: "ring-orange-100", text: "text-orange-600", pill: "bg-orange-50 text-orange-700 border-orange-100" },
-  Lunch: { bg: "bg-blue-50", ring: "ring-blue-100", text: "text-blue-600", pill: "bg-blue-50 text-blue-700 border-blue-100" },
-  Dinner: { bg: "bg-indigo-50", ring: "ring-indigo-100", text: "text-indigo-600", pill: "bg-indigo-50 text-indigo-700 border-indigo-100" },
-  Snacks: { bg: "bg-emerald-50", ring: "ring-emerald-100", text: "text-emerald-600", pill: "bg-emerald-50 text-emerald-700 border-emerald-100" },
-  Other: { bg: "bg-black/5", ring: "ring-black/10", text: "text-black/40", pill: "bg-black/5 text-black/50 border-black/10" },
-};
+// Monochrome + the single blue accent, per the instrument-panel system —
+// categories are told apart by their label/pill text, not by a rotating
+// cast of hues (that palette is retired).
 function categoryStyle(cat) {
-  return CATEGORY_STYLE[cat] || CATEGORY_STYLE.Other;
+  return cat && cat !== "Other"
+    ? { text: "text-white/60", pill: "border-white/15 bg-white/[0.05] text-white/70" }
+    : { text: "text-white/30", pill: "border-white/10 bg-white/[0.03] text-white/35" };
 }
 function mealCategories(m) {
   return m.mealTypes?.length > 0 ? m.mealTypes : ["Other"];
@@ -228,20 +225,20 @@ export default function CoachMealLibrary({ showToast }) {
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <p className="text-black/40 text-sm">{meals.length} total · reusable meals suggested to any client</p>
+        <p className="text-white/40 text-sm">{meals.length} total · reusable meals suggested to any client</p>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleImportAU}
             disabled={importing}
             title="Imports the full library of common Australian fitness meals, or re-syncs them to the latest names/macros/tags if already imported — your photos are always kept"
-            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 disabled:opacity-50 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-white/8 hover:bg-white/15 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
             <Download size={16} /> <span className="hidden sm:inline">{importing ? "SYNCING…" : "SYNC AU MEAL LIBRARY"}</span>
           </button>
           <button
             onClick={() => setImportPhotosOpen(true)}
             title="Paste a Meal Name | photo URL list to bulk-add photos, same as Import Video List for exercises"
-            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
             <ImageIcon size={16} /> <span className="hidden sm:inline">IMPORT PHOTOS</span>
           </button>
@@ -249,7 +246,7 @@ export default function CoachMealLibrary({ showToast }) {
             <button
               onClick={() => setConfirmClearPhotos(true)}
               title="Remove every meal's photo — an escape hatch if a batch of imported photos doesn't work out"
-              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
             >
               <ImageOff size={16} /> <span className="hidden sm:inline">CLEAR PHOTOS</span>
             </button>
@@ -257,7 +254,7 @@ export default function CoachMealLibrary({ showToast }) {
           <button
             onClick={() => setEditing({ isNew: true })}
             aria-label="New meal"
-            className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
+            className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl shrink-0 hover:opacity-90 transition-opacity"
           >
             <Plus size={16} /> <span className="hidden sm:inline">NEW MEAL</span>
           </button>
@@ -265,27 +262,30 @@ export default function CoachMealLibrary({ showToast }) {
       </div>
 
       {meals.length === 0 ? (
-        <Card>
-          <p className="text-black/40 text-sm text-center py-6">No meal templates yet — build your first one, or import the AU meal set above.</p>
-        </Card>
+        <DarkPanel className="p-5">
+          <p className="text-white/40 text-sm text-center py-6">No meal templates yet — build your first one, or import the AU meal set above.</p>
+        </DarkPanel>
       ) : (
         <>
-          <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-4 md:max-w-sm">
-            <Search size={16} className="text-black/40 shrink-0" />
+          <div className="flex items-center gap-2 bg-white/8 border rounded-xl px-3 py-2.5 mb-4 md:max-w-sm" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <Search size={16} className="text-white/40 shrink-0" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search meals"
-              className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+              className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/25"
             />
           </div>
 
           <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
             <button
               onClick={() => setActiveCategory("All")}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
-                activeCategory === "All" ? "bg-black text-white border-black" : "bg-white text-black/50 border-black/10 hover:border-black/25"
-              }`}
+              className="shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-colors"
+              style={
+                activeCategory === "All"
+                  ? { backgroundColor: MEASURE_BLUE, color: "#fff", borderColor: MEASURE_BLUE }
+                  : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", borderColor: CLIENT_DARK_BORDER }
+              }
             >
               All <span className="opacity-60 font-semibold">{meals.length}</span>
             </button>
@@ -296,9 +296,12 @@ export default function CoachMealLibrary({ showToast }) {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-colors ${
-                    active ? "bg-black text-white border-black" : "bg-white text-black/50 border-black/10 hover:border-black/25"
-                  }`}
+                  className="shrink-0 px-4 py-2 rounded-full text-sm font-bold border transition-colors"
+                  style={
+                    active
+                      ? { backgroundColor: MEASURE_BLUE, color: "#fff", borderColor: MEASURE_BLUE }
+                      : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.5)", borderColor: CLIENT_DARK_BORDER }
+                  }
                 >
                   {cat} <span className="opacity-60 font-semibold">{count}</span>
                 </button>
@@ -307,9 +310,9 @@ export default function CoachMealLibrary({ showToast }) {
           </div>
 
           {totalShown === 0 ? (
-            <Card>
-              <p className="text-black/40 text-sm text-center py-6">No meals match "{search}".</p>
-            </Card>
+            <DarkPanel className="p-5">
+              <p className="text-white/40 text-sm text-center py-6">No meals match "{search}".</p>
+            </DarkPanel>
           ) : (
             <div className="space-y-9">
               {groups.map((g) => (
@@ -317,59 +320,57 @@ export default function CoachMealLibrary({ showToast }) {
                   {activeCategory === "All" && (
                     <div className="flex items-center gap-2.5 mb-3.5">
                       <span className={`w-2 h-2 rounded-full ${g.style.text.replace("text-", "bg-")}`} />
-                      <h3 className="text-black font-extrabold text-base tracking-tight">{g.label}</h3>
-                      <span className="text-black/30 text-sm font-semibold">{g.meals.length}</span>
+                      <h3 className="text-white font-extrabold text-base tracking-tight">{g.label}</h3>
+                      <span className="text-white/30 text-sm font-semibold">{g.meals.length}</span>
                     </div>
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                     {g.meals.map((m) => (
-                      <div
-                        key={`${g.key}-${m.id}`}
-                        onClick={() => setEditing(m)}
-                        className="group rounded-3xl border border-black/8 bg-white overflow-hidden cursor-pointer hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5 hover:border-black/15 transition-all"
-                      >
-                        <div className={`relative aspect-[4/3] ${categoryStyle(m.mealTypes?.[0]).bg} overflow-hidden`}>
-                          {m.photoUrl ? (
-                            <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Utensils size={26} className={categoryStyle(m.mealTypes?.[0]).text} strokeWidth={1.5} />
+                      <DarkPanel key={`${g.key}-${m.id}`} chamfer className="group active:scale-[0.98] transition-transform">
+                        <div onClick={() => setEditing(m)} className="relative cursor-pointer hover:bg-white/[0.03] transition-colors">
+                          <div className="relative aspect-[4/3] overflow-hidden" style={{ backgroundColor: CLIENT_DARK_SURFACE_2 }}>
+                            {m.photoUrl ? (
+                              <img src={m.photoUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Utensils size={26} className="text-white/25" strokeWidth={1.5} />
+                              </div>
+                            )}
+                            <div className="absolute top-2 right-2 flex items-center gap-1.5">
+                              <MealPhotoButton meal={m} showToast={showToast} />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setConfirmDelete(m);
+                                }}
+                                className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-black/60 shadow-sm hover:text-red-500 transition-colors"
+                                aria-label={`Delete ${m.name}`}
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             </div>
-                          )}
-                          <div className="absolute top-2 right-2 flex items-center gap-1.5">
-                            <MealPhotoButton meal={m} showToast={showToast} />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setConfirmDelete(m);
-                              }}
-                              className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-black/60 shadow-sm hover:text-red-500 transition-colors"
-                              aria-label={`Delete ${m.name}`}
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                          </div>
+                          <div className="relative p-3.5">
+                            <p className="text-white font-bold text-sm leading-snug truncate">{m.name}</p>
+                            <div className="flex items-center gap-2.5 mt-2 text-xs">
+                              <span className="text-white font-bold">{m.cals} kcal</span>
+                              <span className="text-white/25">·</span>
+                              <span className="text-white/40 font-semibold">
+                                P{m.protein} C{m.carbs} F{m.fat}
+                              </span>
+                            </div>
+                            {m.mealTypes?.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2.5">
+                                {m.mealTypes.map((t) => (
+                                  <span key={t} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${categoryStyle(t).pill}`}>
+                                    {t}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
-                        <div className="p-3.5">
-                          <p className="text-black font-bold text-sm leading-snug">{m.name}</p>
-                          <div className="flex items-center gap-2.5 mt-2 text-xs">
-                            <span className="text-black font-bold">{m.cals} kcal</span>
-                            <span className="text-black/30">·</span>
-                            <span className="text-black/40 font-semibold">
-                              P{m.protein} C{m.carbs} F{m.fat}
-                            </span>
-                          </div>
-                          {m.mealTypes?.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-2.5">
-                              {m.mealTypes.map((t) => (
-                                <span key={t} className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${categoryStyle(t).pill}`}>
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      </DarkPanel>
                     ))}
                   </div>
                 </div>

@@ -305,7 +305,7 @@ function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessa
         <Avatar name={alert.client.name} url={alert.client.avatarUrl} size={36} />
         <div>
           <p className="text-black font-semibold text-sm">{alert.client.name}</p>
-          <span className="inline-flex items-center gap-1 text-indigo-600 font-semibold text-[10px] tracking-wide uppercase">
+          <span className="inline-flex items-center gap-1 text-blue-600 font-semibold text-[10px] tracking-wide uppercase">
             <Sparkles size={10} /> Apex Insight
           </span>
         </div>
@@ -327,8 +327,8 @@ function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessa
           <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">RELEVANT CLIENT CONTEXT</p>
           <div className="space-y-1.5">
             {alert.relevantContext.map((c) => (
-              <div key={c.id} className="bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
-                <p className="text-indigo-900 text-sm">
+              <div key={c.id} className="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                <p className="text-blue-900 text-sm">
                   {c.source === "note" ? "Previous coach note: " : ""}
                   {c.text}
                 </p>

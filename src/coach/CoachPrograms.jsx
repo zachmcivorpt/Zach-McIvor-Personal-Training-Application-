@@ -6,6 +6,7 @@ import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVerti
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
+import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
 
 function NewProgramSheet({ open, onClose, onCreate }) {
   const [name, setName] = useState("");
@@ -139,13 +140,16 @@ function OverflowMenu({ items, label = "More actions" }) {
     <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="w-8 h-8 flex items-center justify-center text-black/40 hover:text-black rounded-lg hover:bg-black/8"
+        className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
         aria-label={label}
       >
         <MoreVertical size={15} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-black/10 rounded-xl shadow-lg py-1 w-44">
+        <div
+          className="absolute right-0 top-full mt-1 z-20 border rounded-xl shadow-lg py-1 w-44"
+          style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+        >
           {items.map((it, i) => (
             <button
               key={i}
@@ -154,9 +158,10 @@ function OverflowMenu({ items, label = "More actions" }) {
                 it.onClick();
               }}
               disabled={it.disabled}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left disabled:opacity-30 ${
-                it.danger ? "text-red-500 hover:bg-red-50" : "text-black/70 hover:bg-black/5"
+              className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left disabled:opacity-30 transition-colors ${
+                it.danger ? "hover:bg-red-500/10" : "text-white/70 hover:bg-white/10"
               }`}
+              style={it.danger ? { color: OVER_RED } : undefined}
             >
               <it.icon size={13} /> {it.label}
             </button>
@@ -318,19 +323,31 @@ function WorkoutRow({ day, exercisesById, selectMode, selected, onToggleSelect, 
   const firstEx = firstReal ? exercisesById[firstReal.exerciseId] : null;
 
   return (
-    <div className="flex items-center gap-3 bg-black/[0.03] hover:bg-black/[0.06] border border-black/8 rounded-xl px-3.5 py-3 transition-colors">
+    <div
+      className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border rounded-xl px-3.5 py-3 transition-colors"
+      style={{ borderColor: CLIENT_DARK_BORDER }}
+    >
       {selectMode && (
-        <input type="checkbox" checked={selected} onChange={onToggleSelect} className="w-4 h-4 shrink-0 accent-black" aria-label={`Select ${day.label}`} />
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="w-4 h-4 shrink-0"
+          style={{ accentColor: MEASURE_BLUE }}
+          aria-label={`Select ${day.label}`}
+        />
       )}
       <button onClick={selectMode ? onToggleSelect : onOpen} className="shrink-0" aria-label={`Open ${day.label}`}>
-        <ExerciseThumb exercise={firstEx} size={44} rounded="rounded-lg" />
+        <ExerciseThumb exercise={firstEx} size={44} rounded="rounded-lg" dark />
       </button>
       <button onClick={selectMode ? onToggleSelect : onOpen} className="flex-1 min-w-0 text-left">
-        <p className="text-blue-700 font-semibold text-sm truncate hover:underline">{day.label}</p>
-        <p className="text-black/40 text-xs truncate mt-0.5">
+        <p className="font-semibold text-sm truncate hover:underline" style={{ color: MEASURE_BLUE }}>
+          {day.label}
+        </p>
+        <p className="text-white/40 text-xs truncate mt-0.5">
           est. {estimateWorkoutMinutes(exs)} min · {countExercises(exs)} exercise{countExercises(exs) === 1 ? "" : "s"}
         </p>
-        {day.muscleGroups?.length > 0 && <p className="text-black/30 text-[11px] truncate mt-0.5">{day.muscleGroups.join(", ")}</p>}
+        {day.muscleGroups?.length > 0 && <p className="text-white/30 text-[11px] truncate mt-0.5">{day.muscleGroups.join(", ")}</p>}
       </button>
       {!selectMode && (
         <OverflowMenu
@@ -378,36 +395,40 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
   return (
     <div>
       <div className="flex items-center justify-between mb-3 gap-2">
-        <p className="text-black font-semibold text-sm">Workouts {days.length > 0 && `(${days.length})`}</p>
+        <p className="text-white font-semibold text-sm">Workouts {days.length > 0 && `(${days.length})`}</p>
         {!selectMode ? (
           <div className="flex items-center gap-2">
-            <button onClick={onOpenNew} className="flex items-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+            <button onClick={onOpenNew} className="flex items-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90">
               <Plus size={13} /> New
             </button>
-            <button onClick={onOpenFromLibrary} className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3 py-1.5 rounded-lg">
+            <button onClick={onOpenFromLibrary} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors">
               <Library size={13} /> Import
             </button>
             {days.length > 0 && (
-              <button onClick={() => setSelectMode(true)} className="text-black/45 hover:text-black text-xs font-semibold px-1">
+              <button onClick={() => setSelectMode(true)} className="text-white/45 hover:text-white text-xs font-semibold px-1">
                 Select
               </button>
             )}
           </div>
         ) : (
-          <button onClick={exitSelectMode} className="text-black/45 hover:text-black text-xs font-semibold px-1">
+          <button onClick={exitSelectMode} className="text-white/45 hover:text-white text-xs font-semibold px-1">
             Cancel
           </button>
         )}
       </div>
 
       {selectMode && (
-        <div className="flex items-center justify-between gap-2 bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-2.5 mb-3">
-          <label className="flex items-center gap-2 text-black/60 text-xs font-semibold">
+        <div
+          className="flex items-center justify-between gap-2 bg-white/[0.04] border rounded-xl px-3.5 py-2.5 mb-3"
+          style={{ borderColor: CLIENT_DARK_BORDER }}
+        >
+          <label className="flex items-center gap-2 text-white/60 text-xs font-semibold">
             <input
               type="checkbox"
               checked={allChecked}
               onChange={() => toggleAll(filteredIndices)}
-              className="w-4 h-4 accent-black shrink-0"
+              className="w-4 h-4 shrink-0"
+              style={{ accentColor: MEASURE_BLUE }}
               aria-label="Select all workouts"
             />
             {selected.size > 0 ? `${selected.size} selected` : "Select all"}
@@ -416,7 +437,7 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
             <button
               onClick={() => onCopyDays([...selected])}
               disabled={selected.size === 0}
-              className="flex items-center gap-1 text-black/55 hover:text-black text-xs font-semibold disabled:opacity-30"
+              className="flex items-center gap-1 text-white/55 hover:text-white text-xs font-semibold disabled:opacity-30"
             >
               <Copy size={12} /> Copy to
             </button>
@@ -426,7 +447,8 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
                 exitSelectMode();
               }}
               disabled={selected.size === 0}
-              className="flex items-center gap-1 text-red-500 hover:text-red-600 text-xs font-semibold disabled:opacity-30"
+              className="flex items-center gap-1 text-xs font-semibold disabled:opacity-30 hover:brightness-125"
+              style={{ color: OVER_RED }}
             >
               <Trash2 size={12} /> Delete
             </button>
@@ -435,23 +457,23 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
       )}
 
       {days.length > 3 && (
-        <div className="flex items-center gap-2 bg-black/5 rounded-lg px-2.5 py-1.5 mb-3">
-          <Search size={13} className="text-black/40 shrink-0" />
+        <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-1.5 mb-3">
+          <Search size={13} className="text-white/40 shrink-0" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search workouts"
-            className="bg-transparent outline-none text-black text-xs flex-1 placeholder:text-black/30"
+            className="bg-transparent outline-none text-white text-xs flex-1 placeholder:text-white/30"
           />
         </div>
       )}
 
       {days.length === 0 ? (
-        <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
-          <p className="text-black/30 text-sm">No workouts in this phase yet.</p>
+        <div className="border border-dashed rounded-2xl py-10 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
+          <p className="text-white/30 text-sm">No workouts in this phase yet.</p>
         </div>
       ) : filtered.length === 0 ? (
-        <p className="text-black/30 text-sm text-center py-6">No workouts match "{search}".</p>
+        <p className="text-white/30 text-sm text-center py-6">No workouts match "{search}".</p>
       ) : (
         <div className="space-y-2">
           {filtered.map(({ d, i }) => (
@@ -692,15 +714,18 @@ export default function CoachPrograms({ showToast }) {
 
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
-      <p className="text-black/40 text-sm mb-4 md:mb-0">{programs.length} total · reusable phase-based programs for a client's training</p>
+      <p className="text-white/40 text-sm mb-4 md:mb-0">{programs.length} total · reusable phase-based programs for a client's training</p>
 
-      <div className="flex flex-col md:flex-row md:h-[calc(100vh-200px)] md:min-h-[600px] md:mt-4 md:border md:border-black/8 md:rounded-2xl md:overflow-hidden">
+      <div
+        className="flex flex-col md:flex-row md:h-[calc(100vh-200px)] md:min-h-[600px] md:mt-4 md:border md:rounded-2xl md:overflow-hidden"
+        style={{ borderColor: CLIENT_DARK_BORDER }}
+      >
         {/* left: program list, with the active program's phases nested right below it */}
-        <div className="hidden md:flex w-80 shrink-0 border-r border-black/8 flex-col bg-[#F7F7F8]">
-          <div className="p-3 border-b border-black/8 flex items-center gap-1.5">
+        <div className="hidden md:flex w-80 shrink-0 border-r flex-col" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
+          <div className="p-3 border-b flex items-center gap-1.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
             <button
               onClick={() => setNewProgramOpen(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-2.5 rounded-xl transition-opacity hover:opacity-90"
             >
               <Plus size={14} /> NEW PROGRAM
             </button>
@@ -715,29 +740,29 @@ export default function CoachPrograms({ showToast }) {
             />
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
-            {programs.length === 0 && <p className="text-black/30 text-xs px-2 py-4 text-center">No programs yet.</p>}
+            {programs.length === 0 && <p className="text-white/30 text-xs px-2 py-4 text-center">No programs yet.</p>}
             {programs.map((p) => {
               const active = p.id === selected?.id;
               const progPhases = active ? phases : programPhases(p);
               return (
                 <div
                   key={p.id}
-                  className={active ? "rounded-xl bg-white border border-black/10 shadow-sm overflow-hidden" : ""}
+                  className={active ? "rounded-xl border overflow-hidden" : ""}
+                  style={active ? { backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER } : undefined}
                 >
                   <button
                     onClick={() => selectProgram(p.id)}
-                    className={`w-full text-left px-3 py-2.5 transition-colors ${
-                      active ? "bg-black text-white" : "rounded-xl hover:bg-black/5 text-black"
-                    }`}
+                    className={`w-full text-left px-3 py-2.5 transition-colors ${active ? "text-white" : "rounded-xl hover:bg-white/10 text-white/80"}`}
+                    style={active ? { backgroundColor: MEASURE_BLUE } : undefined}
                   >
                     <p className="text-sm font-semibold truncate">{p.name}</p>
-                    <p className={`text-xs mt-0.5 ${active ? "text-white/50" : "text-black/35"}`}>
+                    <p className={`text-xs mt-0.5 ${active ? "text-white/70" : "text-white/35"}`}>
                       {progPhases.length} phase{progPhases.length === 1 ? "" : "s"}
                     </p>
                   </button>
                   {active && (
-                    <div className="p-2 space-y-0.5 border-t border-black/8">
-                      <p className="text-black/30 text-[10px] font-bold tracking-wide px-2 pt-0.5 pb-1">TRAINING PHASES</p>
+                    <div className="p-2 space-y-0.5 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
+                      <p className="text-white/30 text-[10px] font-bold tracking-wide px-2 pt-0.5 pb-1">TRAINING PHASES</p>
                       {phases.map((ph) => {
                         const phActive = ph.id === selectedPhase?.id;
                         return (
@@ -745,14 +770,19 @@ export default function CoachPrograms({ showToast }) {
                             key={ph.id}
                             onClick={() => selectPhase(ph.id)}
                             className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                              phActive ? "bg-black/8 text-black font-semibold" : "text-black/55 hover:bg-black/5"
+                              phActive ? "font-semibold" : "text-white/55 hover:bg-white/10"
                             }`}
+                            style={phActive ? { backgroundColor: "rgba(47,143,255,0.14)", color: MEASURE_BLUE } : undefined}
                           >
-                            {ph.name} <span className="text-black/30">· {(ph.days || []).length}</span>
+                            {ph.name} <span className="text-white/35">· {(ph.days || []).length}</span>
                           </button>
                         );
                       })}
-                      <button onClick={addPhase} className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-blue-600 hover:bg-blue-50 font-semibold">
+                      <button
+                        onClick={addPhase}
+                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-white/10"
+                        style={{ color: MEASURE_BLUE }}
+                      >
                         + Add phase
                       </button>
                     </div>
@@ -770,7 +800,7 @@ export default function CoachPrograms({ showToast }) {
           <div className="flex items-center gap-1.5 mb-3">
             <button
               onClick={() => setNewProgramOpen(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2.5 rounded-xl"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-2.5 rounded-xl transition-opacity hover:opacity-90"
             >
               <Plus size={14} /> NEW PROGRAM
             </button>
@@ -785,7 +815,7 @@ export default function CoachPrograms({ showToast }) {
             />
           </div>
           {programs.length === 0 ? (
-            <p className="text-black/30 text-sm text-center py-10">No programs yet.</p>
+            <p className="text-white/30 text-sm text-center py-10">No programs yet.</p>
           ) : (
             <div className="space-y-1.5">
               {programs.map((p) => {
@@ -797,10 +827,10 @@ export default function CoachPrograms({ showToast }) {
                       selectProgram(p.id);
                       setMobileView("detail");
                     }}
-                    className="w-full text-left px-3.5 py-3 rounded-xl bg-black/[0.03] hover:bg-black/[0.06] transition-colors"
+                    className="w-full text-left px-3.5 py-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
                   >
-                    <p className="text-black text-sm font-semibold truncate">{p.name}</p>
-                    <p className="text-black/40 text-xs mt-0.5">
+                    <p className="text-white text-sm font-semibold truncate">{p.name}</p>
+                    <p className="text-white/40 text-xs mt-0.5">
                       {progPhases.length} phase{progPhases.length === 1 ? "" : "s"}
                     </p>
                   </button>
@@ -816,15 +846,18 @@ export default function CoachPrograms({ showToast }) {
         <div className={`${mobileView === "detail" ? "block" : "hidden"} md:block flex-1 min-w-0 overflow-y-auto p-4 md:p-6`}>
           <button
             onClick={() => setMobileView("list")}
-            className="md:hidden flex items-center gap-1 text-black/50 hover:text-black text-sm font-semibold mb-4"
+            className="md:hidden flex items-center gap-1 text-white/50 hover:text-white text-sm font-semibold mb-4"
           >
             <ChevronLeft size={16} /> Programs
           </button>
           {!selected ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-16">
-              <ClipboardList size={28} className="text-black/20 mb-3" />
-              <p className="text-black/50 text-sm">No program selected yet.</p>
-              <button onClick={() => setNewProgramOpen(true)} className="mt-4 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl">
+              <ClipboardList size={28} className="text-white/20 mb-3" />
+              <p className="text-white/50 text-sm">No program selected yet.</p>
+              <button
+                onClick={() => setNewProgramOpen(true)}
+                className="mt-4 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-opacity hover:opacity-90"
+              >
                 + New program
               </button>
             </div>
@@ -832,19 +865,19 @@ export default function CoachPrograms({ showToast }) {
             <>
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div className="min-w-0 flex-1">
-                  <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1">PROGRAM</p>
-                  <h2 className="text-black text-xl font-bold truncate">{selected.name}</h2>
-                  <p className="text-black/40 text-xs mt-1">
+                  <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-1">PROGRAM</p>
+                  <h2 className="text-white text-xl font-bold truncate">{selected.name}</h2>
+                  <p className="text-white/40 text-xs mt-1">
                     {selected.level} · {phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total
                   </p>
-                  {selected.description && <p className="text-black/50 text-sm mt-2.5 leading-relaxed">{selected.description}</p>}
+                  {selected.description && <p className="text-white/60 text-sm mt-2.5 leading-relaxed">{selected.description}</p>}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 pt-4">
                   <button
                     onClick={() => setEditProgramOpen(true)}
                     aria-label="Edit program"
                     title="Edit program"
-                    className="w-8 h-8 flex items-center justify-center text-black/40 hover:text-black rounded-lg hover:bg-black/8"
+                    className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
                   >
                     <Pencil size={15} />
                   </button>
@@ -856,20 +889,23 @@ export default function CoachPrograms({ showToast }) {
               </div>
 
               {!selectedPhase ? (
-                <div className="border border-dashed border-black/12 rounded-2xl py-10 text-center">
-                  <p className="text-black/30 text-sm">No phases in this program yet.</p>
-                  <button onClick={addPhase} className="mt-4 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl">
+                <div className="border border-dashed rounded-2xl py-10 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
+                  <p className="text-white/30 text-sm">No phases in this program yet.</p>
+                  <button
+                    onClick={addPhase}
+                    className="mt-4 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-opacity hover:opacity-90"
+                  >
                     + Add phase
                   </button>
                 </div>
               ) : (
                 <>
-                  <div className="border-t border-black/8 pt-4 mb-5">
-                    <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-1.5">PHASE</p>
+                  <div className="border-t pt-4 mb-5" style={{ borderColor: CLIENT_DARK_BORDER }}>
+                    <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-1.5">PHASE</p>
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-black font-bold text-base truncate">{selectedPhase.name}</h3>
-                        <p className="text-black/35 text-xs mt-0.5">
+                        <h3 className="text-white font-bold text-base truncate">{selectedPhase.name}</h3>
+                        <p className="text-white/35 text-xs mt-0.5">
                           {selectedPhase.durationWeeks} wk{selectedPhase.durationWeeks === 1 ? "" : "s"} ·{" "}
                           {(selectedPhase.days || []).length} session{(selectedPhase.days || []).length === 1 ? "" : "s"}
                         </p>
@@ -879,7 +915,7 @@ export default function CoachPrograms({ showToast }) {
                           onClick={() => setEditPhaseOpen(true)}
                           aria-label="Edit phase"
                           title="Edit phase"
-                          className="w-8 h-8 flex items-center justify-center text-black/40 hover:text-black rounded-lg hover:bg-black/8"
+                          className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
                         >
                           <Pencil size={14} />
                         </button>

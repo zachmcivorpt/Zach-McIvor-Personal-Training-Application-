@@ -15,7 +15,8 @@ import {
   computePersonalBests,
   computeSessionInsights,
 } from "../lib/trainingStats";
-import { MEASURE_BLUE, GOAL_GREEN } from "../theme";
+import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, CLIENT_DARK_TEXT_MUTED } from "../theme";
+import { DarkPanel } from "./darkUI";
 import { CLIENT_CONTEXT_CATEGORIES } from "../lib/apexInsights";
 import {
   BODY_FAT_CONFIG,
@@ -1556,78 +1557,87 @@ function CalendarPanel({ client, showToast }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6">
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
-        <p className="text-black font-semibold text-sm mb-0.5">Recent Training Load</p>
-        <p className="text-black/40 text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
+      <DarkPanel className="p-4 md:p-5 mb-6">
+        <p className="relative text-white font-semibold text-sm mb-0.5">Recent Training Load</p>
+        <p className="relative text-white/40 text-[11px] mb-3">Sets logged, last 14 days — lowest first</p>
         {muscleBalance.every((m) => m.sets === 0) ? (
-          <p className="text-black/30 text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
+          <p className="relative text-white/30 text-xs">No sessions logged in the last 2 weeks — nothing to compare.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
+          <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2">
             {muscleBalance.map((m, i) => (
               <div key={m.category} className="flex items-center gap-2">
-                <span className={`text-xs w-16 shrink-0 truncate ${i < 2 ? "text-red-600 font-semibold" : "text-black/60 font-medium"}`}>
+                <span
+                  className="text-xs w-16 shrink-0 truncate font-medium"
+                  style={{ color: i < 2 ? OVER_RED : "rgba(255,255,255,0.6)", fontWeight: i < 2 ? 600 : 500 }}
+                >
                   {m.category}
                 </span>
-                <div className="flex-1 h-2 rounded-full bg-black/[0.06] overflow-hidden">
-                  <div className={`h-full rounded-full ${i < 2 ? "bg-red-400" : "bg-black/25"}`} style={{ width: `${m.pct}%` }} />
+                <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${m.pct}%`, backgroundColor: i < 2 ? OVER_RED : "rgba(255,255,255,0.25)" }} />
                 </div>
-                <span className="text-black/35 text-[11px] w-6 text-right shrink-0">{m.sets}</span>
+                <span className="text-white/35 text-[11px] w-6 text-right shrink-0">{m.sets}</span>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </DarkPanel>
 
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mb-6">
-        <p className="text-black font-semibold text-sm mb-3">{monthLabel} Adherence</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-4">
+      <DarkPanel className="p-4 md:p-5 mb-6">
+        <p className="relative text-white font-semibold text-sm mb-3">{monthLabel} Adherence</p>
+        <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-x-8 gap-y-4">
           {[
             { label: "Monthly Training Adherence", stat: monthAdherence.training },
             { label: "Monthly Habit Adherence", stat: monthAdherence.habits },
             { label: "Monthly Nutrition Adherence", stat: monthAdherence.nutrition },
           ].map(({ label, stat }) => (
             <div key={label}>
-              <p className="text-black/50 text-[11px] font-medium mb-1">{label}</p>
+              <p className="text-white/50 text-[11px] font-medium mb-1">{label}</p>
               <div className="flex items-baseline gap-2">
-                <p className="text-black font-bold text-2xl tabular-nums">{stat.pct != null ? `${stat.pct}%` : "—"}</p>
+                <p className="text-white font-bold text-2xl tabular-nums">{stat.pct != null ? `${stat.pct}%` : "—"}</p>
                 {stat.expected > 0 && (
-                  <p className="text-black/30 text-xs tabular-nums">
+                  <p className="text-white/30 text-xs tabular-nums">
                     {stat.completed}/{stat.expected}
                   </p>
                 )}
               </div>
-              <div className="mt-1.5 h-1.5 rounded-full bg-black/[0.06] overflow-hidden">
-                <div className="h-full rounded-full bg-blue-500" style={{ width: `${stat.pct ?? 0}%` }} />
+              <div className="mt-1.5 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${stat.pct ?? 0}%`, backgroundColor: MEASURE_BLUE }} />
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </DarkPanel>
 
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <DarkPanel className="p-4 md:p-5">
+        <div className="relative flex items-center justify-between mb-4 flex-wrap gap-2">
           <div className="flex items-center gap-3">
-            <button onClick={() => shiftMonth(-1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
+            <button
+              onClick={() => shiftMonth(-1)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white/60"
+            >
               <ChevronRight size={17} className="rotate-180" />
             </button>
-            <p className="text-black font-bold text-lg w-48 text-center">{monthLabel}</p>
-            <button onClick={() => shiftMonth(1)} className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-black/15 text-black/60">
+            <p className="text-white font-bold text-lg w-48 text-center">{monthLabel}</p>
+            <button
+              onClick={() => shiftMonth(1)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white/60"
+            >
               <ChevronRight size={17} />
             </button>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={goToday} className="text-blue-600 hover:text-blue-700 text-sm font-semibold">
+            <button onClick={goToday} className="text-sm font-semibold hover:opacity-80" style={{ color: MEASURE_BLUE }}>
               Today
             </button>
             {selectMode ? (
-              <button onClick={exitSelectMode} className="text-black/50 hover:text-black text-sm font-semibold">
+              <button onClick={exitSelectMode} className="text-white/50 hover:text-white text-sm font-semibold">
                 Cancel
               </button>
             ) : (
               <button
                 onClick={() => setSelectMode(true)}
                 aria-label="Select items to delete"
-                className="w-9 h-9 flex items-center justify-center rounded-lg bg-black/8 hover:bg-red-50 text-black/50 hover:text-red-600 transition-colors"
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.06] hover:bg-red-500/10 text-white/50 hover:text-red-400 transition-colors"
               >
                 <Trash2 size={16} />
               </button>
@@ -1636,11 +1646,11 @@ function CalendarPanel({ client, showToast }) {
         </div>
 
         {selectMode && (
-          <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm mb-4 space-y-4">
+          <div className="relative rounded-2xl p-4 md:p-5 mb-4 space-y-4" style={{ backgroundColor: CLIENT_DARK_SURFACE_2, border: `1px solid ${CLIENT_DARK_BORDER}` }}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-black font-semibold text-sm">Bulk delete</p>
-                <p className="text-black/40 text-xs mt-0.5">Filter by type, pick a range, or tap items on the calendar below.</p>
+                <p className="text-white font-semibold text-sm">Bulk delete</p>
+                <p className="text-white/40 text-xs mt-0.5">Filter by type, pick a range, or tap items on the calendar below.</p>
               </div>
               <button
                 onClick={deleteSelected}
@@ -1652,7 +1662,7 @@ function CalendarPanel({ client, showToast }) {
             </div>
 
             <div>
-              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">FILTER BY TYPE</p>
+              <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">FILTER BY TYPE</p>
               <div className="flex items-center gap-2 flex-wrap">
                 {DELETE_CATEGORIES.map((c) => {
                   const active = activeCategories.has(c.key);
@@ -1661,7 +1671,7 @@ function CalendarPanel({ client, showToast }) {
                       key={c.key}
                       onClick={() => toggleCategory(c.key)}
                       className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-colors ${
-                        active ? "bg-black text-white" : "bg-black/5 text-black/50 hover:bg-black/8"
+                        active ? "bg-white text-black" : "bg-white/5 text-white/50 hover:bg-white/10"
                       }`}
                     >
                       {active && <Check size={11} strokeWidth={3} />}
@@ -1672,16 +1682,16 @@ function CalendarPanel({ client, showToast }) {
               </div>
             </div>
 
-            <div className="border-t border-black/8 pt-4">
-              <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">DATE RANGE</p>
+            <div className="border-t pt-4" style={{ borderColor: CLIENT_DARK_BORDER }}>
+              <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">DATE RANGE</p>
               <div className="flex items-center gap-2 flex-wrap">
-                <TextInput type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} className="!w-auto text-sm py-2" />
-                <ChevronRight size={14} className="text-black/25 shrink-0" />
-                <TextInput type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} className="!w-auto text-sm py-2" />
+                <TextInput dark type="date" value={rangeStart} onChange={(e) => setRangeStart(e.target.value)} className="!w-auto text-sm py-2" />
+                <ChevronRight size={14} className="text-white/25 shrink-0" />
+                <TextInput dark type="date" value={rangeEnd} onChange={(e) => setRangeEnd(e.target.value)} className="!w-auto text-sm py-2" />
                 <button
                   onClick={selectDateRange}
                   disabled={!rangeStart || !rangeEnd}
-                  className="bg-black text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 active:scale-[0.98] transition-all disabled:opacity-25 disabled:active:scale-100"
+                  className="bg-white text-black text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 active:scale-[0.98] transition-all disabled:opacity-25 disabled:active:scale-100"
                 >
                   Select range
                 </button>
@@ -1690,9 +1700,9 @@ function CalendarPanel({ client, showToast }) {
           </div>
         )}
 
-        <div className="grid grid-cols-7 border-b border-black/10 pb-2 mb-1">
+        <div className="relative grid grid-cols-7 border-b pb-2 mb-1" style={{ borderColor: CLIENT_DARK_BORDER }}>
           {CAL_WEEKDAY_LABELS.map((l) => (
-            <p key={l} className="text-black/35 text-xs font-semibold text-center tracking-wide font-sans">
+            <p key={l} className="text-white/35 text-xs font-semibold text-center tracking-wide font-sans">
               {l}
             </p>
           ))}
@@ -1700,7 +1710,7 @@ function CalendarPanel({ client, showToast }) {
 
         {/* seamless table — cells share border lines instead of each
             being its own boxed card, matching Trainerize's calendar */}
-        <div className="border-l border-t border-black/10">
+        <div className="relative border-l border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
           {weeks.map((week, wi) => (
             <div key={wi} className="grid grid-cols-7">
               {week.map((date) => {
@@ -1723,14 +1733,20 @@ function CalendarPanel({ client, showToast }) {
                           }
                         : undefined
                     }
-                    className={`min-h-[92px] md:min-h-[112px] border-r border-b border-black/10 text-left px-2 py-1.5 transition-colors duration-150 font-sans ${
-                      inMonth ? "bg-white" : "bg-black/[0.015]"
-                    } ${!selectMode ? "cursor-pointer hover:bg-black/[0.02]" : ""} ${
-                      dragOverDate === dateStr ? "bg-blue-50 ring-2 ring-inset ring-blue-400" : ""
+                    style={{
+                      borderColor: CLIENT_DARK_BORDER,
+                      backgroundColor: dragOverDate === dateStr ? "rgba(47,143,255,0.12)" : inMonth ? CLIENT_DARK_SURFACE : CLIENT_DARK_BG,
+                      boxShadow: dragOverDate === dateStr ? `inset 0 0 0 2px ${MEASURE_BLUE}` : undefined,
+                    }}
+                    className={`min-h-[92px] md:min-h-[112px] border-r border-b text-left px-2 py-1.5 transition-colors duration-150 font-sans ${
+                      !selectMode ? "cursor-pointer hover:bg-white/[0.02]" : ""
                     }`}
                   >
                     <div className="flex justify-end">
-                      <span className={`text-xs font-semibold ${isToday ? "text-blue-600" : inMonth ? "text-black/60" : "text-black/25"}`}>
+                      <span
+                        className="text-xs font-semibold"
+                        style={{ color: isToday ? MEASURE_BLUE : inMonth ? "rgba(255,255,255,0.6)" : "rgba(255,255,255,0.25)" }}
+                      >
                         {date.getUTCDate()}
                       </span>
                     </div>
@@ -1738,14 +1754,14 @@ function CalendarPanel({ client, showToast }) {
                       {items.slice(0, 4).map((it, i) => {
                         const dot =
                           it.type === "workout"
-                            ? { border: "border-blue-500", bg: "bg-blue-500" }
+                            ? { color: MEASURE_BLUE }
                             : it.type === "bodystats"
-                            ? { border: "border-amber-500", bg: "bg-amber-500" }
+                            ? { color: MEASURE_BLUE }
                             : it.type === "habits"
-                            ? { border: "border-purple-500", bg: "bg-purple-500" }
+                            ? { color: MEASURE_BLUE }
                             : it.type === "nutrition"
-                            ? { border: "border-rose-500", bg: "bg-rose-500" }
-                            : { border: "border-emerald-500", bg: "bg-emerald-500" };
+                            ? { color: MEASURE_BLUE }
+                            : { color: GOAL_GREEN };
                         const selectable = selectMode && it.category && activeCategories.has(it.category);
                         const checked = selectable && selectedKeys.has(it.key);
                         // Only a not-yet-completed scheduled workout or body stats
@@ -1770,33 +1786,38 @@ function CalendarPanel({ client, showToast }) {
                                   }
                                 : undefined
                             }
-                            style={
-                              draggableItem ? { touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } : undefined
-                            }
+                            style={{
+                              ...(draggableItem ? { touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } : {}),
+                              color: checked ? OVER_RED : selectMode && !selectable ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.7)",
+                              fontWeight: checked ? 600 : undefined,
+                            }}
                             className={`flex items-center gap-1 text-[10px] md:text-[10.5px] truncate transition-all duration-150 ${
                               selectable ? "cursor-pointer" : ""
                             } ${draggableItem ? "cursor-grab active:cursor-grabbing select-none" : ""} ${
                               dragging ? "opacity-30 scale-[0.97]" : ""
-                            } ${
-                              checked ? "text-red-600 font-semibold" : selectMode && !selectable ? "text-black/25" : "text-black/70"
                             }`}
                           >
                             {selectable ? (
                               <span
-                                className={`w-3 h-3 rounded shrink-0 border-2 flex items-center justify-center ${
-                                  checked ? "bg-red-600 border-red-600" : "border-black/25 bg-white"
-                                }`}
+                                className="w-3 h-3 rounded shrink-0 border-2 flex items-center justify-center"
+                                style={{
+                                  backgroundColor: checked ? OVER_RED : CLIENT_DARK_SURFACE,
+                                  borderColor: checked ? OVER_RED : "rgba(255,255,255,0.25)",
+                                }}
                               >
                                 {checked && <Check size={9} className="text-white" strokeWidth={3} />}
                               </span>
                             ) : (
-                              <span className={`w-2 h-2 rounded-full shrink-0 border ${dot.border} ${it.done ? dot.bg : "bg-transparent"}`} />
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0 border"
+                                style={{ borderColor: dot.color, backgroundColor: it.done ? dot.color : "transparent" }}
+                              />
                             )}
                             <span className="truncate">{it.label}</span>
                           </div>
                         );
                       })}
-                      {items.length > 4 && <p className="text-black/30 text-[10px]">+{items.length - 4} more</p>}
+                      {items.length > 4 && <p className="text-white/30 text-[10px]">+{items.length - 4} more</p>}
                     </div>
                   </div>
                 );
@@ -1805,21 +1826,21 @@ function CalendarPanel({ client, showToast }) {
           ))}
         </div>
 
-        <div className="flex items-center flex-wrap gap-4 mt-5">
+        <div className="relative flex items-center flex-wrap gap-4 mt-5">
           {[
-            ["border-blue-500", "Workout"],
-            ["border-emerald-500", "Completed"],
-            ["border-amber-500", "Body Stats"],
-            ["border-purple-500", "Daily Execution"],
-            ["border-rose-500", "Nutrition Logged"],
-          ].map(([cls, label]) => (
+            [MEASURE_BLUE, "Workout"],
+            [GOAL_GREEN, "Completed"],
+            [MEASURE_BLUE, "Body Stats"],
+            [MEASURE_BLUE, "Daily Execution"],
+            [MEASURE_BLUE, "Nutrition Logged"],
+          ].map(([color, label]) => (
             <div key={label} className="flex items-center gap-1.5">
-              <span className={`w-2.5 h-2.5 rounded-full border ${cls}`} />
-              <span className="text-black/40 text-xs">{label}</span>
+              <span className="w-2.5 h-2.5 rounded-full border" style={{ borderColor: color }} />
+              <span className="text-white/40 text-xs">{label}</span>
             </div>
           ))}
         </div>
-      </div>
+      </DarkPanel>
 
       <DayDetailSheet
         date={selectedDate}
@@ -5015,19 +5036,19 @@ function PlateauAlertCard({ client }) {
   if (plateaus.length === 0) return null;
 
   return (
-    <div className="mb-10 pb-10 border-b border-black/8">
+    <div className="mb-10 pb-10 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
       <div className="flex items-center gap-2.5 mb-3">
-        <TrendingDown size={15} className="text-blue-600 shrink-0" />
+        <TrendingDown size={15} style={{ color: MEASURE_BLUE }} className="shrink-0" />
         <div>
-          <p className="text-black font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
-          <p className="text-black/40 text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
+          <p className="text-white font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
+          <p className="text-white/40 text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
         </div>
       </div>
-      <div className="divide-y divide-black/8 border-y border-black/8">
+      <div className="divide-y border-y" style={{ borderColor: CLIENT_DARK_BORDER }}>
         {plateaus.map((p) => (
-          <div key={p.exerciseId} className="flex items-center justify-between py-2.5">
-            <span className="text-black text-sm font-medium">{p.exerciseName}</span>
-            <span className="text-black/40 text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
+          <div key={p.exerciseId} className="flex items-center justify-between py-2.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <span className="text-white text-sm font-medium">{p.exerciseName}</span>
+            <span className="text-white/40 text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
           </div>
         ))}
       </div>
@@ -5085,8 +5106,8 @@ function PerformanceTimelineCard({ client }) {
   ];
 
   return (
-    <div className="bg-black rounded-2xl p-5 mb-6">
-      <div className="flex items-start justify-between gap-3">
+    <DarkPanel className="p-5 mb-6">
+      <div className="relative flex items-start justify-between gap-3">
         <div>
           <p className="text-white/40 text-[11px] font-semibold tracking-wide uppercase">Last 30 Days</p>
           <p className="text-white font-bold text-lg mt-0.5">Performance Timeline</p>
@@ -5103,10 +5124,10 @@ function PerformanceTimelineCard({ client }) {
           <span className="block text-white/40 text-[10px] font-medium mt-0.5">Last active</span>
         </p>
       </div>
-      <p className="text-white/35 text-xs mt-1 mb-4">
+      <p className="relative text-white/35 text-xs mt-1 mb-4">
         A quick read on how {client.name?.split(" ")[0] || "they"}'ve been trending: getting stronger, showing up, hitting new bests.
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
+      <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-4">
         {items.map((it) => (
           <div key={it.label}>
             <p className="text-white text-xl font-bold tabular-nums flex items-center gap-1">
@@ -5119,7 +5140,7 @@ function PerformanceTimelineCard({ client }) {
           </div>
         ))}
       </div>
-    </div>
+    </DarkPanel>
   );
 }
 
@@ -5245,50 +5266,51 @@ function WeeklyCoachReviewCard({ client, showToast }) {
   ];
 
   return (
-    <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 md:p-6 mb-6">
-      <p className="text-black font-semibold mb-1">Weekly Coach Review</p>
-      <p className="text-black/40 text-xs mb-4">Training, nutrition, recovery and performance — last 7 days.</p>
+    <DarkPanel className="p-5 md:p-6 mb-6">
+      <p className="relative text-white font-semibold mb-1">Weekly Coach Review</p>
+      <p className="relative text-white/40 text-xs mb-4">Training, nutrition, recovery and performance — last 7 days.</p>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
+      <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {stats.map((s) => (
           <div key={s.label}>
-            <p className="text-black text-lg font-bold tabular-nums flex items-center gap-1.5">
+            <p className="text-white text-lg font-bold tabular-nums flex items-center gap-1.5">
               {s.value}
               {s.change != null && s.change !== 0 && (
                 <span
                   className="flex items-center gap-0.5 text-[11px] font-semibold"
-                  style={{ color: s.change > 0 ? GOAL_GREEN : "#EF4444" }}
+                  style={{ color: s.change > 0 ? GOAL_GREEN : OVER_RED }}
                 >
                   {s.change > 0 ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
                   {Math.abs(s.change)}%
                 </span>
               )}
             </p>
-            <p className="text-black/40 text-[11px] mt-0.5">
-              {s.label} <span className="text-black/25">· {s.sub}</span>
+            <p className="text-white/40 text-[11px] mt-0.5">
+              {s.label} <span className="text-white/25">· {s.sub}</span>
             </p>
           </div>
         ))}
       </div>
 
-      <div className="border-t border-black/10 pt-4">
-        <p className="text-black/40 text-[10px] font-semibold tracking-wide mb-1.5">FOCUS FOR NEXT WEEK</p>
+      <div className="relative border-t pt-4" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        <p className="text-white/40 text-[10px] font-semibold tracking-wide mb-1.5">FOCUS FOR NEXT WEEK</p>
         <textarea
           value={focus}
           onChange={(e) => setFocus(e.target.value)}
           placeholder={autoFocus}
           rows={2}
-          className="w-full bg-black/[0.03] border border-black/10 rounded-xl px-3 py-2 text-sm text-black outline-none placeholder:text-black/30 resize-none"
+          className="w-full border rounded-xl px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 resize-none"
+          style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
         />
         <button
           onClick={saveFocus}
           disabled={saving || focus === (client.weeklyFocusNote || "")}
-          className="mt-2 bg-black text-white text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-30"
+          className="mt-2 bg-white text-black text-xs font-bold px-4 py-2 rounded-lg disabled:opacity-30"
         >
           {saving ? "SAVING…" : "SAVE FOCUS"}
         </button>
       </div>
-    </div>
+    </DarkPanel>
   );
 }
 
@@ -5335,22 +5357,23 @@ function QuickSendActions({ client, showToast, onSendLogin }) {
   }
 
   return (
-    <div className="py-4 mb-8 border-y border-black/8 flex flex-wrap items-center gap-4">
+    <div className="py-4 mb-8 border-y flex flex-wrap items-center gap-4" style={{ borderColor: CLIENT_DARK_BORDER }}>
       {client.status === "active" ? (
         <>
-          <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+          <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-80" style={{ color: MEASURE_BLUE }}>
             <MailCheck size={13} /> Send welcome message now
           </button>
           <button
             onClick={sendLoginHelp}
             disabled={sendingReset}
-            className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold disabled:opacity-40"
+            className="flex items-center gap-1.5 text-xs font-semibold disabled:opacity-40 hover:opacity-80"
+            style={{ color: MEASURE_BLUE }}
           >
             <Send size={13} /> {sendingReset ? "Sending…" : "Resend login help"}
           </button>
         </>
       ) : (
-        <button onClick={onSendLogin} className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 text-xs font-semibold">
+        <button onClick={onSendLogin} className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-80" style={{ color: MEASURE_BLUE }}>
           <Send size={13} /> Send Login Details
         </button>
       )}
@@ -5630,10 +5653,10 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
       <PlateauAlertCard client={client} />
 
-      <div className="mb-10 pb-10 border-b border-black/8">
+      <div className="mb-10 pb-10 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
         <div className="mb-5">
-          <p className="text-black font-bold text-[16px] tracking-tight">Trainer's Notes</p>
-          <p className="text-black/35 text-xs mt-0.5">Private — only you can see these</p>
+          <p className="text-white font-bold text-[16px] tracking-tight">Trainer's Notes</p>
+          <p className="text-white/35 text-xs mt-0.5">Private — only you can see these</p>
         </div>
 
         <div>
@@ -5665,10 +5688,10 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
                 onChange={(e) => setNoteInput(e.target.value)}
                 placeholder="e.g. Mentioned a new shoulder niggle on Tuesday's call"
                 rows={2}
-                className="w-full bg-transparent outline-none text-black text-sm placeholder:text-black/25 resize-none"
+                className="w-full bg-transparent outline-none text-white text-sm placeholder:text-white/25 resize-none"
               />
             </UnderlineField>
-            <button type="submit" className="mt-2.5 text-xs font-semibold bg-black text-white px-3.5 py-1.5 rounded-lg disabled:opacity-40" disabled={!noteInput.trim()}>
+            <button type="submit" className="mt-2.5 text-xs font-semibold bg-white text-black px-3.5 py-1.5 rounded-lg disabled:opacity-40" disabled={!noteInput.trim()}>
               Add note
             </button>
           </form>
@@ -5676,21 +5699,21 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
           {detecting && (
             <div className="flex items-center gap-1.5 mb-4 px-0.5">
               <Sparkles size={11} className="text-blue-400 animate-pulse" />
-              <p className="text-black/30 text-xs">APEX is checking for useful context…</p>
+              <p className="text-white/30 text-xs">APEX is checking for useful context…</p>
             </div>
           )}
 
           {pendingContext?.items.length > 0 && (
-            <div className="border border-blue-200 rounded-xl px-3.5 py-3 mb-4">
+            <div className="rounded-xl px-3.5 py-3 mb-4" style={{ backgroundColor: "rgba(47,143,255,0.08)", border: "1px solid rgba(47,143,255,0.25)" }}>
               <div className="flex items-center gap-1.5 mb-2">
-                <Sparkles size={12} className="text-blue-600" />
-                <p className="text-blue-900 text-xs font-semibold">APEX detected potentially useful client context</p>
+                <Sparkles size={12} style={{ color: MEASURE_BLUE }} />
+                <p className="text-sm font-semibold" style={{ color: MEASURE_BLUE }}>APEX detected potentially useful client context</p>
               </div>
-              <div className="divide-y divide-blue-100">
+              <div className="divide-y" style={{ borderColor: "rgba(47,143,255,0.15)" }}>
                 {pendingContext.items.map((item, i) => (
                   <div key={i} className="py-2.5 first:pt-0 last:pb-0">
-                    <p className="text-blue-900/50 text-[10px] font-semibold tracking-wide mb-0.5">{item.category.toUpperCase()}</p>
-                    <p className="text-black text-sm mb-2">{item.suggestion}</p>
+                    <p className="text-[10px] font-semibold tracking-wide mb-0.5" style={{ color: "rgba(47,143,255,0.6)" }}>{item.category.toUpperCase()}</p>
+                    <p className="text-white text-sm mb-2">{item.suggestion}</p>
                     <div className="flex gap-3">
                       <button
                         onClick={() => {
@@ -5698,13 +5721,14 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
                           setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }));
                           showToast?.("Saved to client profile");
                         }}
-                        className="text-xs font-semibold text-blue-600"
+                        className="text-xs font-semibold"
+                        style={{ color: MEASURE_BLUE }}
                       >
                         Save to Client Profile
                       </button>
                       <button
                         onClick={() => setPendingContext((p) => ({ ...p, items: p.items.filter((_, idx) => idx !== i) }))}
-                        className="text-xs font-semibold text-black/40"
+                        className="text-xs font-semibold text-white/40"
                       >
                         Don't Save
                       </button>
@@ -5715,17 +5739,17 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
             </div>
           )}
 
-          <div className="divide-y divide-black/8 border-t border-black/8">
-            {notes.length === 0 && <p className="text-black/25 text-xs py-4">No notes yet.</p>}
+          <div className="divide-y border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            {notes.length === 0 && <p className="text-white/25 text-xs py-4">No notes yet.</p>}
             {notes.map((n) => (
-              <div key={n.id} className="py-3 flex items-start justify-between gap-3">
+              <div key={n.id} className="py-3 flex items-start justify-between gap-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
                 <div>
-                  <p className="text-black text-sm">{n.text}</p>
-                  <span className="text-black/30 text-[10px] mt-1 block">
+                  <p className="text-white text-sm">{n.text}</p>
+                  <span className="text-white/30 text-[10px] mt-1 block">
                     {new Date(n.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                   </span>
                 </div>
-                <button onClick={() => deleteClientNote(client.id, n.id)} className="text-black/25 hover:text-red-500 shrink-0 mt-0.5" aria-label="Delete note">
+                <button onClick={() => deleteClientNote(client.id, n.id)} className="text-white/25 hover:text-red-400 shrink-0 mt-0.5" aria-label="Delete note">
                   <X size={13} />
                 </button>
               </div>
@@ -5736,26 +5760,26 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
 
       <div>
         <div className="mb-5">
-          <p className="text-black font-bold text-[16px] tracking-tight">Client Context</p>
-          <p className="text-black/35 text-xs mt-0.5">What APEX Insights uses to understand this client</p>
+          <p className="text-white font-bold text-[16px] tracking-tight">Client Context</p>
+          <p className="text-white/35 text-xs mt-0.5">What APEX Insights uses to understand this client</p>
         </div>
         <div>
           {context.length === 0 ? (
-            <p className="text-black/25 text-xs">
+            <p className="text-white/25 text-xs">
               No saved context yet — approve an APEX suggestion above, or context saved here helps APEX Insights understand this client.
             </p>
           ) : (
             <div className="space-y-4">
               {CLIENT_CONTEXT_CATEGORIES.filter((cat) => contextByCategory[cat]?.length).map((cat) => (
                 <div key={cat}>
-                  <p className="text-black/30 text-[10px] font-semibold tracking-wide mb-1.5">{cat.toUpperCase()}</p>
-                  <div className="divide-y divide-black/6 border-y border-black/6">
+                  <p className="text-white/30 text-[10px] font-semibold tracking-wide mb-1.5">{cat.toUpperCase()}</p>
+                  <div className="divide-y border-y" style={{ borderColor: CLIENT_DARK_BORDER }}>
                     {contextByCategory[cat].map((c) => (
-                      <div key={c.id} className="py-2.5 flex items-start justify-between gap-2">
-                        <p className="text-black/80 text-sm">{c.text}</p>
+                      <div key={c.id} className="py-2.5 flex items-start justify-between gap-2" style={{ borderColor: CLIENT_DARK_BORDER }}>
+                        <p className="text-white/80 text-sm">{c.text}</p>
                         <button
                           onClick={() => deleteClientContext(client.id, c.id)}
-                          className="text-black/25 hover:text-red-500 shrink-0 mt-0.5"
+                          className="text-white/25 hover:text-red-400 shrink-0 mt-0.5"
                           aria-label="Remove context"
                         >
                           <X size={13} />
@@ -5780,7 +5804,7 @@ function ProfileChip({ active, onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${active ? "bg-black text-white" : "bg-black/5 text-black/50 hover:bg-black/10"}`}
+      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${active ? "bg-white text-black" : "bg-white/5 text-white/50 hover:bg-white/10"}`}
     >
       {children}
     </button>
@@ -5855,31 +5879,31 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
   if (!client) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-white flex flex-col md:flex-row">
+    <div className="fixed inset-0 z-[80] flex flex-col md:flex-row" style={{ backgroundColor: CLIENT_DARK_BG }}>
       {/* client mini-sidebar (desktop) */}
-      <div className="hidden md:flex w-64 shrink-0 h-screen flex-col border-r border-black/8 bg-[#F7F7F8]">
-        <div className="p-5 border-b border-black/8">
+      <div className="hidden md:flex w-64 shrink-0 h-screen flex-col border-r" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
+        <div className="p-5 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
           <div className="flex items-center gap-3">
-            <Avatar name={client.name} url={client.avatarUrl} size={48} />
+            <Avatar name={client.name} url={client.avatarUrl} size={48} dark />
             <div className="min-w-0">
-              <p className="text-black font-bold text-sm truncate">{client.name}</p>
+              <p className="text-white font-bold text-sm truncate">{client.name}</p>
               <div className="flex items-center gap-1.5">
-                <Pill tone={clientStatusPill(client).tone}>{clientStatusPill(client).label}</Pill>
-                {client.accessPaused && <Pill tone="warning">Paused</Pill>}
+                <Pill tone={clientStatusPill(client).tone} dark>{clientStatusPill(client).label}</Pill>
+                {client.accessPaused && <Pill tone="warning" dark>Paused</Pill>}
               </div>
             </div>
           </div>
           {client.status === "active" ? (
             <button
               onClick={() => setMessaging(true)}
-              className="w-full mt-3 flex items-center justify-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-semibold py-2.5 rounded-xl transition-colors"
+              className="w-full mt-3 flex items-center justify-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
             >
               <MessageCircle size={15} /> Message
             </button>
           ) : (
             <button
               onClick={() => setSendOpen(true)}
-              className="w-full mt-3 flex items-center justify-center gap-2 bg-black text-white text-sm font-bold py-2.5 rounded-xl"
+              className="w-full mt-3 flex items-center justify-center gap-2 bg-white text-black text-sm font-bold py-2.5 rounded-xl"
             >
               <Send size={15} /> Send Login Details
             </button>
@@ -5889,7 +5913,8 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               startViewAsClient(client.id);
               navigate("/app");
             }}
-            className="w-full mt-2 flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold py-2.5 rounded-xl transition-colors"
+            className="w-full mt-2 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors"
+            style={{ backgroundColor: "rgba(47,143,255,0.12)", color: MEASURE_BLUE }}
             title="Browse and act in the app exactly as this client — works even before they've activated"
           >
             <Repeat size={15} /> View as Client
@@ -5898,7 +5923,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             <button
               onClick={() => (client.accessPaused ? setClientAccessPaused(client.id, false) : setConfirmPause(true))}
               className={`w-full mt-2 flex items-center justify-center gap-2 text-sm font-semibold py-2.5 rounded-xl transition-colors ${
-                client.accessPaused ? "bg-red-50 hover:bg-red-100 text-red-700" : "bg-black/5 hover:bg-black/10 text-black/60"
+                client.accessPaused ? "bg-red-500/15 hover:bg-red-500/25 text-red-300" : "bg-white/5 hover:bg-white/10 text-white/60"
               }`}
               title="Restrict this client's access to their program/profile — e.g. for insufficient payment"
             >
@@ -5924,8 +5949,9 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
                 key={item.id}
                 onClick={() => setClientTab(item.id)}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  active ? "bg-black text-white" : "text-black/60 hover:bg-black/5 hover:text-black/90"
+                  active ? "text-white" : "text-white/55 hover:bg-white/5 hover:text-white/90"
                 }`}
+                style={active ? { backgroundColor: MEASURE_BLUE } : undefined}
               >
                 <Icon size={16} strokeWidth={active ? 2.4 : 2} />
                 {item.label}
@@ -5934,17 +5960,17 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
           })}
         </div>
 
-        <div className="p-3 border-t border-black/8 space-y-1">
+        <div className="p-3 border-t space-y-1" style={{ borderColor: CLIENT_DARK_BORDER }}>
           {!confirmRemove ? (
             <button
               onClick={() => setConfirmRemove(true)}
-              className="w-full text-left px-3.5 py-2 text-black/30 hover:text-black/60 text-xs font-medium"
+              className="w-full text-left px-3.5 py-2 text-white/30 hover:text-white/60 text-xs font-medium"
             >
               Remove client
             </button>
           ) : (
             <div className="flex gap-1.5 px-1">
-              <button onClick={() => setConfirmRemove(false)} className="flex-1 bg-black/8 text-black text-xs font-semibold py-2 rounded-lg">
+              <button onClick={() => setConfirmRemove(false)} className="flex-1 bg-white/8 text-white text-xs font-semibold py-2 rounded-lg">
                 Cancel
               </button>
               <button
@@ -5959,24 +5985,24 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
               </button>
             </div>
           )}
-          <button onClick={onClose} className="w-full flex items-center gap-2 px-3.5 py-2.5 text-black/50 hover:text-black text-sm font-medium">
+          <button onClick={onClose} className="w-full flex items-center gap-2 px-3.5 py-2.5 text-white/50 hover:text-white text-sm font-medium">
             <ArrowLeft size={15} /> Return to overview
           </button>
         </div>
       </div>
 
       {/* mobile header */}
-      <div className="md:hidden shrink-0 bg-[#F7F7F8] border-b border-black/8">
+      <div className="md:hidden shrink-0 border-b" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
         <div className="flex items-center gap-2.5 px-3 pt-4 pb-3">
-          <button onClick={onClose} aria-label="Return to overview" className="w-8 h-8 -ml-1 flex items-center justify-center text-black/60 shrink-0">
+          <button onClick={onClose} aria-label="Return to overview" className="w-8 h-8 -ml-1 flex items-center justify-center text-white/60 shrink-0">
             <ArrowLeft size={18} />
           </button>
-          <Avatar name={client.name} url={client.avatarUrl} size={38} />
+          <Avatar name={client.name} url={client.avatarUrl} size={38} dark />
           <div className="min-w-0 flex-1">
-            <p className="text-black font-bold text-sm truncate">{client.name}</p>
+            <p className="text-white font-bold text-sm truncate">{client.name}</p>
             <div className="flex items-center gap-1.5">
-              <Pill tone={clientStatusPill(client).tone}>{clientStatusPill(client).label}</Pill>
-              {client.accessPaused && <Pill tone="warning">Paused</Pill>}
+              <Pill tone={clientStatusPill(client).tone} dark>{clientStatusPill(client).label}</Pill>
+              {client.accessPaused && <Pill tone="warning" dark>Paused</Pill>}
             </div>
           </div>
           <button
@@ -5986,9 +6012,10 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             }}
             aria-label="View as client"
             title="Browse and act in the app exactly as this client — works even before they've activated"
-            className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0"
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: "rgba(47,143,255,0.12)" }}
           >
-            <Repeat size={15} className="text-blue-700" />
+            <Repeat size={15} style={{ color: MEASURE_BLUE }} />
           </button>
           {client.status === "active" ? (
             <>
@@ -5996,21 +6023,21 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
                 onClick={() => (client.accessPaused ? setClientAccessPaused(client.id, false) : setConfirmPause(true))}
                 aria-label={client.accessPaused ? "Resume access" : "Pause access"}
                 title={client.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${client.accessPaused ? "bg-red-50" : "bg-black/8"}`}
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${client.accessPaused ? "bg-red-500/15" : "bg-white/8"}`}
               >
-                {client.accessPaused ? <Unlock size={15} className="text-red-700" /> : <Lock size={15} className="text-black/50" />}
+                {client.accessPaused ? <Unlock size={15} className="text-red-300" /> : <Lock size={15} className="text-white/50" />}
               </button>
               <button
                 onClick={() => setMessaging(true)}
-                className="w-9 h-9 rounded-full bg-black/8 flex items-center justify-center shrink-0"
+                className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center shrink-0"
               >
-                <MessageCircle size={15} className="text-black/70" />
+                <MessageCircle size={15} className="text-white/70" />
               </button>
             </>
           ) : (
             <button
               onClick={() => setSendOpen(true)}
-              className="flex items-center gap-1.5 bg-black text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0"
+              className="flex items-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-2 rounded-lg shrink-0"
             >
               <Send size={13} /> Send
             </button>
@@ -6019,20 +6046,20 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
             <button
               onClick={() => setHeaderMenuOpen((v) => !v)}
               aria-label="More options"
-              className="w-9 h-9 rounded-full bg-black/8 flex items-center justify-center"
+              className="w-9 h-9 rounded-full bg-white/8 flex items-center justify-center"
             >
-              <MoreVertical size={15} className="text-black/70" />
+              <MoreVertical size={15} className="text-white/70" />
             </button>
             {headerMenuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setHeaderMenuOpen(false)} />
-                <div className="absolute right-0 top-11 z-20 bg-white border border-black/10 rounded-xl shadow-lg py-1.5 w-44">
+                <div className="absolute right-0 top-11 z-20 border rounded-xl shadow-lg py-1.5 w-44" style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}>
                   <button
                     onClick={() => {
                       setHeaderMenuOpen(false);
                       setConfirmRemove(true);
                     }}
-                    className="w-full text-left px-3.5 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                    className="w-full text-left px-3.5 py-2.5 text-sm text-red-400 hover:bg-red-500/10"
                   >
                     Remove client
                   </button>
@@ -6050,8 +6077,9 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
                 key={item.id}
                 onClick={() => setClientTab(item.id)}
                 className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                  active ? "bg-black text-white" : "bg-black/8 text-black/60"
+                  active ? "text-white" : "bg-white/8 text-white/60"
                 }`}
+                style={active ? { backgroundColor: MEASURE_BLUE } : undefined}
               >
                 <Icon size={13} strokeWidth={active ? 2.4 : 2} /> {item.label}
               </button>
@@ -6060,8 +6088,8 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
         </div>
         {confirmRemove && (
           <div className="flex items-center gap-2.5 px-3 pb-3 pt-1">
-            <p className="text-black/50 text-xs font-medium flex-1">Remove {client.name} and all their data?</p>
-            <button onClick={() => setConfirmRemove(false)} className="bg-black/8 text-black text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0">
+            <p className="text-white/50 text-xs font-medium flex-1">Remove {client.name} and all their data?</p>
+            <button onClick={() => setConfirmRemove(false)} className="bg-white/8 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shrink-0">
               Cancel
             </button>
             <button
@@ -6079,7 +6107,7 @@ export default function CoachClientDetail({ clientId, onClose, showToast, initia
       </div>
 
       {/* main panel */}
-      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto bg-[#F7F7F8]">
+      <div className="flex-1 min-w-0 min-h-0 overflow-y-auto" style={{ backgroundColor: CLIENT_DARK_BG }}>
         <LiveSessionBanner live={db.liveSessions[client.id]} exercises={db.exercises} />
         {clientTab === "summary" && (
           <SummaryPanel client={client} showToast={showToast} onSendLogin={() => setSendOpen(true)} onClose={onClose} />

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useApp } from "../lib/AppContext";
-import { Card, Pill, Field, TextInput, TextArea, Select, SecondaryButton, DangerButton, FullScreenOverlay, Avatar, BottomSheet } from "../components/ui";
+import { Pill, Field, TextInput, TextArea, Select, SecondaryButton, DangerButton, FullScreenOverlay, Avatar, BottomSheet } from "../components/ui";
 import { CHALLENGE_METRICS, computeLeaderboard, challengeStatus } from "../lib/challengeMetrics";
 import { localDateKey } from "../lib/dateKey";
+import { MEASURE_BLUE, CLIENT_DARK_BORDER, CLIENT_DARK_SURFACE } from "../theme";
+import { DarkPage, DarkPanel, DarkPageHeader } from "./darkUI";
 import { Trophy, Plus, ChevronLeft, Trash2, Users } from "lucide-react";
 
 function emptyDraft() {
@@ -169,10 +171,14 @@ function LeaderboardSheet({ challenge, clientsById, onClose }) {
 
 function StatTile({ label, value, tone = "neutral" }) {
   return (
-    <Card className="!p-4">
-      <p className={`text-3xl font-bold leading-none ${tone === "blue" ? "text-blue-500" : "text-black"}`}>{value}</p>
-      <p className="text-black/40 text-[11px] tracking-wide mt-2">{label}</p>
-    </Card>
+    <DarkPanel chamfer>
+      <div className="relative p-4">
+        <p className="text-3xl font-bold leading-none" style={{ color: tone === "blue" ? MEASURE_BLUE : "#fff" }}>
+          {value}
+        </p>
+        <p className="text-white/40 text-[11px] tracking-wide mt-2">{label}</p>
+      </div>
+    </DarkPanel>
   );
 }
 
@@ -200,60 +206,67 @@ function ChallengeCard({ challenge: c, status, metric, clientsById, onView, onEd
     status === "active"
       ? Math.min(100, Math.max(0, Math.round(((today - new Date(c.startDate)) / (new Date(c.endDate) - new Date(c.startDate))) * 100)))
       : null;
-  const ACCENT = { active: "bg-blue-500", upcoming: "bg-black/25", ended: "bg-black/10" };
+  const ACCENT = { active: MEASURE_BLUE, upcoming: "rgba(255,255,255,0.25)", ended: "rgba(255,255,255,0.1)" };
   const STATUS_TONE = { active: "solid", upcoming: "outline", ended: "muted" };
   const STATUS_LABEL = { active: "Active", upcoming: "Upcoming", ended: "Ended" };
+  const ringStyle = { "--tw-ring-color": CLIENT_DARK_SURFACE };
 
   return (
-    <Card onClick={onView} className="!p-0 overflow-hidden hover:shadow-md transition cursor-pointer">
-      <div className={`h-1 ${ACCENT[status]}`} />
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-            <Trophy size={17} className="text-blue-500" />
-          </div>
-          <Pill tone={STATUS_TONE[status]}>{STATUS_LABEL[status]}</Pill>
-        </div>
-        <p className="text-black font-bold mt-2.5 truncate">{c.name}</p>
-        <p className="text-black/40 text-xs mt-0.5">{metric?.label} · {timelineLabel(c, status, localDateKey())}</p>
-
-        {status === "active" && (
-          <div className="mt-3 h-1.5 rounded-full bg-black/8 overflow-hidden">
-            <div className="h-full rounded-full bg-blue-500" style={{ width: `${pctElapsed}%` }} />
-          </div>
-        )}
-
-        <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-black/5">
-          {participants.length > 0 ? (
-            <div className="flex items-center -space-x-2">
-              {participants.slice(0, 4).map((p) => (
-                <div key={p.id} className="ring-2 ring-white rounded-full">
-                  <Avatar name={p.name} url={p.avatarUrl} size={26} />
-                </div>
-              ))}
-              {participants.length > 4 && (
-                <div className="w-[26px] h-[26px] rounded-full bg-black/8 ring-2 ring-white flex items-center justify-center text-black/50 text-[10px] font-semibold">
-                  +{participants.length - 4}
-                </div>
-              )}
+    <DarkPanel chamfer className="active:scale-[0.98] transition-transform">
+      <div onClick={onView} className="relative cursor-pointer hover:bg-white/[0.03] transition-colors">
+        <div className="h-1" style={{ backgroundColor: ACCENT[status] }} />
+        <div className="relative p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border" style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}>
+              <Trophy size={17} style={{ color: MEASURE_BLUE }} />
             </div>
-          ) : (
-            <span className="flex items-center gap-1 text-black/30 text-xs">
-              <Users size={12} /> No participants
-            </span>
+            <Pill tone={STATUS_TONE[status]} dark>{STATUS_LABEL[status]}</Pill>
+          </div>
+          <p className="text-white font-bold mt-2.5 truncate">{c.name}</p>
+          <p className="text-white/40 text-xs mt-0.5">{metric?.label} · {timelineLabel(c, status, localDateKey())}</p>
+
+          {status === "active" && (
+            <div className="mt-3 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+              <div className="h-full rounded-full" style={{ width: `${pctElapsed}%`, backgroundColor: MEASURE_BLUE }} />
+            </div>
           )}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-            className="text-blue-600 hover:text-blue-700 text-xs font-semibold shrink-0"
-          >
-            Edit
-          </button>
+
+          <div className="flex items-center justify-between mt-3.5 pt-3 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            {participants.length > 0 ? (
+              <div className="flex items-center -space-x-2">
+                {participants.slice(0, 4).map((p) => (
+                  <div key={p.id} className="ring-2 rounded-full" style={ringStyle}>
+                    <Avatar name={p.name} url={p.avatarUrl} size={26} dark />
+                  </div>
+                ))}
+                {participants.length > 4 && (
+                  <div
+                    className="w-[26px] h-[26px] rounded-full ring-2 flex items-center justify-center text-white/50 text-[10px] font-semibold"
+                    style={{ backgroundColor: "rgba(255,255,255,0.08)", ...ringStyle }}
+                  >
+                    +{participants.length - 4}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <span className="flex items-center gap-1 text-white/30 text-xs">
+                <Users size={12} /> No participants
+              </span>
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="text-xs font-semibold shrink-0 hover:opacity-80"
+              style={{ color: MEASURE_BLUE }}
+            >
+              Edit
+            </button>
+          </div>
         </div>
       </div>
-    </Card>
+    </DarkPanel>
   );
 }
 
@@ -289,21 +302,23 @@ export default function CoachChallenges({ showToast }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pt-5 pb-8 md:px-8 md:pt-8">
-      <div className="flex items-center justify-between gap-3 mb-1">
-        <h1 className="text-black text-2xl font-bold">Challenges</h1>
-        <button
-          onClick={() => setEditing({ isNew: true })}
-          aria-label="New challenge"
-          className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
-        >
-          <Plus size={16} /> <span className="hidden sm:inline">NEW CHALLENGE</span>
-        </button>
-      </div>
-      <p className="text-black/40 text-sm mb-5">Leaderboards computed automatically from real workout, weigh-in and check-in data.</p>
+    <DarkPage>
+      <DarkPageHeader
+        title="Challenges"
+        subtitle="Leaderboards computed automatically from real workout, weigh-in and check-in data."
+        right={
+          <button
+            onClick={() => setEditing({ isNew: true })}
+            aria-label="New challenge"
+            className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl shrink-0 transition-opacity hover:opacity-90"
+          >
+            <Plus size={16} /> <span className="hidden sm:inline">NEW CHALLENGE</span>
+          </button>
+        }
+      />
 
       {challenges.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mb-6 max-w-md">
+        <div className="grid grid-cols-3 gap-3 mb-4 max-w-md">
           <StatTile label="ACTIVE" value={statuses.filter((s) => s === "active").length} tone="blue" />
           <StatTile label="UPCOMING" value={statuses.filter((s) => s === "upcoming").length} />
           <StatTile label="ENDED" value={statuses.filter((s) => s === "ended").length} />
@@ -311,10 +326,10 @@ export default function CoachChallenges({ showToast }) {
       )}
 
       {challenges.length === 0 ? (
-        <div className="border border-dashed border-black/12 rounded-2xl py-14 text-center">
-          <Trophy size={22} className="text-black/15 mx-auto mb-3" />
-          <p className="text-black/40 text-sm font-medium">No challenges yet</p>
-          <p className="text-black/30 text-xs mt-1">Create one to get clients competing.</p>
+        <div className="border border-dashed rounded-2xl py-14 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
+          <Trophy size={22} className="text-white/15 mx-auto mb-3" />
+          <p className="text-white/40 text-sm font-medium">No challenges yet</p>
+          <p className="text-white/30 text-xs mt-1">Create one to get clients competing.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -342,6 +357,6 @@ export default function CoachChallenges({ showToast }) {
         />
       )}
       <LeaderboardSheet challenge={viewing} clientsById={clientsById} onClose={() => setViewing(null)} />
-    </div>
+    </DarkPage>
   );
 }

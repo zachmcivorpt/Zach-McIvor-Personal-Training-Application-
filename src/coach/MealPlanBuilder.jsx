@@ -16,6 +16,8 @@ import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { X, Plus, Search, Utensils, Trash2, Copy, ClipboardPaste, Sparkles, Wand2, Pencil, Check, RefreshCw, ArrowRightLeft } from "lucide-react";
 import { matchPct, bestMatches, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
+import { CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, MEASURE_BLUE, OVER_RED } from "../theme";
+import { DarkPanel } from "./darkUI";
 
 const MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -23,14 +25,15 @@ const MAX_WEEKS = 12;
 // Rough default share of a day's calories/macros per meal slot — used only
 // to give the auto-fill engine a per-slot target to match meals against.
 const SLOT_SPLIT = { Breakfast: 0.25, Lunch: 0.35, Dinner: 0.3, Snacks: 0.1 };
-// Same secondary-accent palette the Meal Library cards use per slot, so a
-// meal placed in the plan reads as the same "thing" a coach already knows
-// from the library, not a re-skinned one-off.
+// Builder screen is dark (premium instrument-panel theme) — one accent
+// color across every slot rather than the Meal Library's rotating
+// per-slot palette, so the placeholder art and slot label share the
+// same CLIENT_DARK_SURFACE_2 / MEASURE_BLUE treatment for every meal.
 const SLOT_STYLE = {
-  Breakfast: { bg: "bg-orange-50", text: "text-orange-600" },
-  Lunch: { bg: "bg-blue-50", text: "text-blue-600" },
-  Dinner: { bg: "bg-indigo-50", text: "text-indigo-600" },
-  Snacks: { bg: "bg-emerald-50", text: "text-emerald-600" },
+  Breakfast: { bg: "bg-[#1C1C1C]", text: "text-[#2F8FFF]" },
+  Lunch: { bg: "bg-[#1C1C1C]", text: "text-[#2F8FFF]" },
+  Dinner: { bg: "bg-[#1C1C1C]", text: "text-[#2F8FFF]" },
+  Snacks: { bg: "bg-[#1C1C1C]", text: "text-[#2F8FFF]" },
 };
 
 // Small square thumbnail for compact list contexts (the meal picker) —
@@ -611,44 +614,44 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
 
   const ring = (label, value, goal) => (
     <div className="text-center">
-      <p className="text-black text-lg font-bold tabular-nums">{Math.round(value)}</p>
-      <p className="text-black/40 text-[11px]">{label}</p>
-      <p className="text-black/25 text-[10px] mt-0.5">Goal: {Math.round(goal)}{label !== "Calories" ? "g" : ""}</p>
+      <p className="text-white text-lg font-bold tabular-nums">{Math.round(value)}</p>
+      <p className="text-white/40 text-[11px]">{label}</p>
+      <p className="text-white/25 text-[10px] mt-0.5">Goal: {Math.round(goal)}{label !== "Calories" ? "g" : ""}</p>
     </div>
   );
 
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[100] bg-white flex flex-col">
-        <div className="flex items-center justify-between px-5 pt-6 pb-3 border-b border-black/8 shrink-0">
-          <button onClick={onClose} className="text-black/50 text-sm font-medium">
+      <div className="fixed inset-0 z-[100] flex flex-col" style={{ backgroundColor: CLIENT_DARK_BG }}>
+        <div className="flex items-center justify-between px-5 pt-6 pb-3 border-b shrink-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
+          <button onClick={onClose} className="text-white/50 text-sm font-medium">
             Cancel
           </button>
-          <span className="text-black font-semibold">Meal Guide Builder</span>
-          <button onClick={publish} className="text-black font-bold text-sm">
+          <span className="text-white font-semibold">Meal Guide Builder</span>
+          <button onClick={publish} className="font-bold text-sm" style={{ color: MEASURE_BLUE }}>
             Publish
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-2 px-5 py-3 border-b border-black/8 shrink-0 flex-wrap">
+        <div className="flex items-center justify-between gap-2 px-5 py-3 border-b shrink-0 flex-wrap" style={{ borderColor: CLIENT_DARK_BORDER }}>
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-black/5 rounded-xl">
+            <div className="flex items-center rounded-xl border" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: CLIENT_DARK_BORDER }}>
               <button
                 type="button"
                 onClick={removeLastWeek}
                 disabled={weeksCount <= 1}
-                className="w-9 h-9 flex items-center justify-center text-black/60 disabled:opacity-30"
+                className="w-9 h-9 flex items-center justify-center text-white/60 disabled:opacity-30"
               >
                 −
               </button>
-              <span className="px-2 text-sm font-bold text-black tabular-nums whitespace-nowrap">
+              <span className="px-2 text-sm font-bold text-white tabular-nums whitespace-nowrap">
                 {weeksCount} week{weeksCount === 1 ? "" : "s"}
               </span>
               <button
                 type="button"
                 onClick={addWeek}
                 disabled={weeksCount >= MAX_WEEKS}
-                className="w-9 h-9 flex items-center justify-center text-black/60 disabled:opacity-30"
+                className="w-9 h-9 flex items-center justify-center text-white/60 disabled:opacity-30"
               >
                 +
               </button>
@@ -656,7 +659,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
             <button
               onClick={relabelAsWeekdays}
               title="Rename every day Monday–Sunday automatically"
-              className="text-black/40 hover:text-black/70 text-xs font-semibold px-2.5 py-2 rounded-lg"
+              className="text-white/40 hover:text-white/70 text-xs font-semibold px-2.5 py-2 rounded-lg"
             >
               Label as Mon–Sun
             </button>
@@ -664,7 +667,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
               onClick={duplicateWeek}
               disabled={weeksCount >= MAX_WEEKS}
               title="Copy this week's meals into a brand new week"
-              className="flex items-center gap-1 text-black/40 hover:text-black/70 disabled:opacity-30 text-xs font-semibold px-2.5 py-2 rounded-lg"
+              className="flex items-center gap-1 text-white/40 hover:text-white/70 disabled:opacity-30 text-xs font-semibold px-2.5 py-2 rounded-lg"
             >
               <Copy size={12} /> Duplicate Week
             </button>
@@ -673,8 +676,9 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
               disabled={weeksCount <= 1}
               title="Delete this week, meals and all"
               className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-2 rounded-lg disabled:opacity-30 ${
-                confirmDeleteWeek ? "bg-red-500 text-white" : "text-black/40 hover:text-red-600"
+                confirmDeleteWeek ? "text-white" : "text-white/40 hover:text-[#EF4444]"
               }`}
+              style={confirmDeleteWeek ? { backgroundColor: OVER_RED } : undefined}
             >
               <Trash2 size={12} /> {confirmDeleteWeek ? "Confirm delete?" : "Delete Week"}
             </button>
@@ -682,21 +686,22 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
           <button
             onClick={() => setOptionsScope("plan")}
             title="Fill every empty slot in the whole plan, and reroll any already auto-built ones, with the best-fit meals from your library"
-            className="flex items-center gap-1.5 bg-black text-white text-xs font-bold px-3.5 py-2.5 rounded-xl shrink-0"
+            className="flex items-center gap-1.5 bg-white text-black text-xs font-bold px-3.5 py-2.5 rounded-xl shrink-0"
           >
             <Wand2 size={13} /> AUTO-BUILD PLAN
           </button>
         </div>
 
         {weeksCount > 1 && (
-          <div className="flex items-center gap-2 px-5 py-2.5 border-b border-black/8 overflow-x-auto shrink-0">
+          <div className="flex items-center gap-2 px-5 py-2.5 border-b overflow-x-auto shrink-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
             {Array.from({ length: weeksCount }, (_, w) => w).map((w) => (
               <button
                 key={w}
                 onClick={() => selectWeek(w)}
                 className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                  w === activeWeek ? "bg-blue-500 text-white" : "bg-black/5 text-black/50"
+                  w === activeWeek ? "text-white" : "bg-white/5 text-white/50"
                 }`}
+                style={w === activeWeek ? { backgroundColor: MEASURE_BLUE } : undefined}
               >
                 Week {w + 1}
               </button>
@@ -704,7 +709,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
           </div>
         )}
 
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-black/8 overflow-x-auto shrink-0">
+        <div className="flex items-center gap-2 px-5 py-3 border-b overflow-x-auto shrink-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
           {daysInActiveWeek.map((d) => (
             <button
               key={d.id}
@@ -713,7 +718,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 setEditingLabel(false);
               }}
               className={`shrink-0 px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                d.id === activeDay.id ? "bg-black text-white" : "bg-black/5 text-black/50"
+                d.id === activeDay.id ? "bg-white text-black" : "bg-white/5 text-white/50"
               }`}
             >
               {d.label}
@@ -726,26 +731,27 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
             {editingLabel ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <TextInput
+                  dark
                   autoFocus
                   value={labelDraft}
                   onChange={(e) => setLabelDraft(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && saveLabel()}
                   className="flex-1 min-w-0"
                 />
-                <button onClick={saveLabel} className="shrink-0 w-9 h-9 flex items-center justify-center bg-black text-white rounded-xl">
+                <button onClick={saveLabel} className="shrink-0 w-9 h-9 flex items-center justify-center bg-white text-black rounded-xl">
                   <Check size={15} />
                 </button>
               </div>
             ) : (
-              <button onClick={startEditLabel} className="flex items-center gap-1.5 text-black font-semibold text-sm">
-                {activeDay.label} <Pencil size={12} className="text-black/30" />
+              <button onClick={startEditLabel} className="flex items-center gap-1.5 text-white font-semibold text-sm">
+                {activeDay.label} <Pencil size={12} className="text-white/30" />
               </button>
             )}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 onClick={copyDay}
                 title="Copy this day's meals"
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/5 text-black/50 hover:text-black"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-white/50 hover:text-white"
               >
                 <Copy size={14} />
               </button>
@@ -753,26 +759,26 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                 onClick={pasteDay}
                 disabled={!clipboard}
                 title={clipboard ? "Paste the copied day here" : "Copy a day first"}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/5 text-black/50 hover:text-black disabled:opacity-30"
+                className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 text-white/50 hover:text-white disabled:opacity-30"
               >
                 <ClipboardPaste size={14} />
               </button>
               <button
                 onClick={() => setOptionsScope("day")}
                 title={dayHasAuto ? "Reroll this day's auto-built slots (manual picks are left alone)" : "Fill this day's empty slots with the best-fit meal from your library"}
-                className="flex items-center gap-1.5 bg-black/8 hover:bg-black/15 text-black text-xs font-bold px-3 py-2 rounded-lg"
+                className="flex items-center gap-1.5 bg-white/8 hover:bg-white/15 text-white text-xs font-bold px-3 py-2 rounded-lg"
               >
                 {dayHasAuto ? <RefreshCw size={13} /> : <Sparkles size={13} />} {dayHasAuto ? "REGENERATE DAY" : "AUTO-BUILD DAY"}
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 bg-black/[0.03] border border-black/8 rounded-2xl p-4 mb-5">
+          <DarkPanel className="grid grid-cols-4 gap-2 p-4 mb-5">
             {ring("Calories", totals.cals, targets.calories)}
             {ring("Protein", totals.protein, targets.protein)}
             {ring("Carbs", totals.carbs, targets.carbs)}
             {ring("Fat", totals.fat, targets.fat)}
-          </div>
+          </DarkPanel>
 
           <div className="space-y-4">
             {MEAL_SLOTS.map((slot) => (
@@ -784,7 +790,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                   dragRef.current = null;
                 }}
               >
-                <p className="text-black/35 text-[11px] font-semibold tracking-wide mb-2">{slot.toUpperCase()}</p>
+                <p className="text-white/35 text-[11px] font-semibold tracking-wide mb-2">{slot.toUpperCase()}</p>
                 <div className="space-y-2.5">
                   {(activeDay.meals[slot] || []).map((mealId, i) => {
                     const m = mealsById[mealId];
@@ -796,7 +802,8 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                         onDragStart={() => {
                           dragRef.current = { slot, index: i };
                         }}
-                        className="rounded-2xl border border-black/8 bg-white overflow-hidden shadow-sm cursor-grab active:cursor-grabbing"
+                        className="rounded-2xl border overflow-hidden cursor-grab active:cursor-grabbing"
+                        style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}
                       >
                         <div className={`relative h-40 sm:h-48 ${style.bg} overflow-hidden`}>
                           {m?.photoUrl ? (
@@ -836,9 +843,9 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                         </div>
                         <div className="px-3.5 py-3">
                           <p className={`text-[10px] font-bold tracking-wide uppercase ${style.text}`}>{slot}</p>
-                          <p className="text-black text-sm font-bold mt-0.5 truncate">{m?.name || "Deleted meal"}</p>
+                          <p className="text-white text-sm font-bold mt-0.5 truncate">{m?.name || "Deleted meal"}</p>
                           {m && (
-                            <p className="text-black/40 text-xs mt-1">
+                            <p className="text-white/40 text-xs mt-1">
                               {m.cals} kcal · P{m.protein} C{m.carbs} F{m.fat}
                             </p>
                           )}
@@ -849,14 +856,14 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPickerTarget({ slot })}
-                      className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-black/15 rounded-xl py-2.5 text-black/40 text-sm font-medium"
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-white/15 rounded-xl py-2.5 text-white/40 text-sm font-medium"
                     >
                       <Plus size={14} /> Add to {slot}
                     </button>
                     <button
                       onClick={() => quickFillSlot(slot)}
                       title="Add the best-fit meal for this slot automatically"
-                      className="shrink-0 w-10 flex items-center justify-center border border-dashed border-black/15 rounded-xl text-black/40 hover:text-black"
+                      className="shrink-0 w-10 flex items-center justify-center border border-dashed border-white/15 rounded-xl text-white/40 hover:text-white"
                     >
                       <Sparkles size={14} />
                     </button>

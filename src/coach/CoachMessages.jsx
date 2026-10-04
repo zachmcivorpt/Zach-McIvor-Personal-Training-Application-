@@ -3,6 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { FullScreenOverlay, Avatar } from "../components/ui";
 import { Search, Send, ChevronLeft, MessageCircle, FileText, Video, Paperclip, Image as ImageIcon, X } from "lucide-react";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
+import { CLIENT_DARK_BG, CLIENT_DARK_BORDER, MEASURE_BLUE_SOFT } from "../theme";
 
 // A send-attachment button previously just showed its static icon the whole
 // time a file was compressing/uploading — with no percentage yet (file
@@ -14,10 +15,12 @@ import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib
 function attachButtonContent(icon, uploadPct) {
   if (uploadPct === null) return icon;
   if (uploadPct > 0) return <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span>;
-  return <span className="w-4 h-4 border-2 rounded-full animate-spin border-black/30 border-t-black" />;
+  return <span className="w-4 h-4 border-2 rounded-full animate-spin border-white/30 border-t-white" />;
 }
 
-function AttachmentPill({ attachment, tone = "light" }) {
+// tone="mine" = the coach's own (solid white) bubble, needs a dark chip.
+// tone="theirs" = the client's (dark/translucent) bubble, needs a light chip.
+function AttachmentPill({ attachment, tone = "theirs" }) {
   if (!attachment) return null;
   if (attachment.type === "video") {
     return <video src={attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />;
@@ -41,7 +44,7 @@ function AttachmentPill({ attachment, tone = "light" }) {
       target="_blank"
       rel="noopener noreferrer"
       className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${
-        tone === "dark" ? "bg-white/15 text-white" : "bg-black/8 text-black"
+        tone === "mine" ? "bg-black/8 text-black" : "bg-white/15 text-white"
       }`}
     >
       <FileText size={14} className="shrink-0" />
@@ -137,13 +140,13 @@ function ThreadMessages({ client }) {
   return (
     <>
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
-        {thread.length === 0 && <p className="text-black/30 text-sm text-center py-10">No messages yet with {client.name?.split(" ")[0] || "them"}.</p>}
+        {thread.length === 0 && <p className="text-white/30 text-sm text-center py-10">No messages yet with {client.name?.split(" ")[0] || "them"}.</p>}
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "coach" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "coach" ? "bg-black text-white" : "bg-black/8 text-black/85"}`}>
+            <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "coach" ? "bg-white text-black" : "bg-white/8 text-white/85"}`}>
               {m.text && <p className="whitespace-pre-line">{m.text}</p>}
-              <AttachmentPill attachment={m.attachment} tone={m.from === "coach" ? "dark" : "light"} />
-              <p className={`text-[10px] mt-1 ${m.from === "coach" ? "text-white/40" : "text-black/30"}`}>
+              <AttachmentPill attachment={m.attachment} tone={m.from === "coach" ? "mine" : "theirs"} />
+              <p className={`text-[10px] mt-1 ${m.from === "coach" ? "text-black/40" : "text-white/30"}`}>
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>
             </div>
@@ -153,20 +156,20 @@ function ThreadMessages({ client }) {
       </div>
 
       {uploadError && (
-        <div className="mx-5 mb-2 flex items-center justify-between gap-2 bg-red-50 border border-red-100 text-red-700 text-xs px-3 py-2 rounded-lg">
+        <div className="mx-5 mb-2 flex items-center justify-between gap-2 bg-red-500/10 border border-red-500/25 text-red-400 text-xs px-3 py-2 rounded-lg">
           <span>{uploadError}</span>
           <button onClick={() => setUploadError("")} aria-label="Dismiss">
             <X size={13} />
           </button>
         </div>
       )}
-      <div className="flex gap-2 px-5 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t border-black/5">
+      <div className="flex gap-2 px-5 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
         <button
           onClick={() => videoInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a video"
-          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
         >
           {attachButtonContent(<Video size={17} />, uploadPct)}
         </button>
@@ -175,7 +178,7 @@ function ThreadMessages({ client }) {
           onClick={() => pdfInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a PDF"
-          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
         >
           {attachButtonContent(<Paperclip size={17} />, uploadPct)}
         </button>
@@ -184,7 +187,7 @@ function ThreadMessages({ client }) {
           onClick={() => imageInputRef.current?.click()}
           disabled={uploadPct !== null}
           aria-label="Attach a photo"
-          className="w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"
+          className="w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50"
         >
           {attachButtonContent(<ImageIcon size={17} />, uploadPct)}
         </button>
@@ -193,10 +196,10 @@ function ThreadMessages({ client }) {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder={`Message ${client.name?.split(" ")[0] || "your client"}...`}
-          className="flex-1 min-w-0 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"
+          className="flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30"
         />
-        <button onClick={send} className="w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0">
-          <Send size={16} className="text-white" />
+        <button onClick={send} className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0">
+          <Send size={16} className="text-black" />
         </button>
       </div>
     </>
@@ -208,15 +211,15 @@ function ThreadMessages({ client }) {
 export function ThreadView({ client, onClose }) {
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[90] bg-white flex flex-col">
-        <div className="flex items-center gap-3 px-5 pt-6 pb-3 border-b border-black/5">
-          <button onClick={onClose} className="w-9 h-9 -ml-2 flex items-center justify-center text-black/60">
+      <div className="fixed inset-0 z-[90] flex flex-col" style={{ backgroundColor: CLIENT_DARK_BG }}>
+        <div className="flex items-center gap-3 px-5 pt-6 pb-3 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
+          <button onClick={onClose} className="w-9 h-9 -ml-2 flex items-center justify-center text-white/60">
             <ChevronLeft size={20} />
           </button>
-          <Avatar name={client.name} url={client.avatarUrl} size={36} />
+          <Avatar name={client.name} url={client.avatarUrl} size={36} dark />
           <div>
-            <p className="text-black font-semibold text-sm leading-none">{client.name}</p>
-            <p className="text-black/30 text-xs mt-1">{client.username}</p>
+            <p className="text-white font-semibold text-sm leading-none">{client.name}</p>
+            <p className="text-white/40 text-xs mt-1">{client.username}</p>
           </div>
         </div>
         <ThreadMessages client={client} />
@@ -243,29 +246,35 @@ export default function CoachMessages() {
   const openClient = clients.find((c) => c.id === openClientId) || db.users.find((u) => u.id === openClientId) || null;
 
   return (
-    <div className="h-screen md:h-screen flex flex-col">
+    <div
+      className="h-screen md:h-screen flex flex-col -mt-14 -mb-16 pt-14 pb-16 md:mt-0 md:mb-0 md:pt-0 md:pb-0"
+      style={{ backgroundColor: CLIENT_DARK_BG }}
+    >
       <div className={`px-4 pt-5 pb-4 md:px-8 md:pt-8 shrink-0 ${openClientId ? "hidden md:block" : ""}`}>
-        <h1 className="text-black text-2xl font-bold">Messages</h1>
-        <p className="text-black/40 text-sm mt-0.5">Direct chat with your active clients</p>
+        <h1 className="text-white text-2xl font-bold">Messages</h1>
+        <p className="text-white/40 text-sm mt-0.5">Direct chat with your active clients</p>
       </div>
 
-      <div className="flex-1 min-h-0 flex md:border-t border-black/8">
-        <div className={`w-full md:w-80 shrink-0 md:border-r border-black/8 flex-col min-h-0 ${openClientId ? "hidden md:flex" : "flex"}`}>
+      <div className="flex-1 min-h-0 flex md:border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        <div
+          className={`w-full md:w-80 shrink-0 md:border-r flex-col min-h-0 ${openClientId ? "hidden md:flex" : "flex"}`}
+          style={{ borderColor: CLIENT_DARK_BORDER }}
+        >
           <div className="p-4">
-            <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5">
-              <Search size={15} className="text-black/40" />
+            <div className="flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5">
+              <Search size={15} className="text-white/40" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search clients"
-                className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+                className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
               />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto px-2 pb-4">
             {clients.length === 0 && (
-              <p className="text-black/30 text-sm text-center py-10 px-4">
-                <MessageCircle size={20} className="mx-auto mb-2 text-black/20" />
+              <p className="text-white/30 text-sm text-center py-10 px-4">
+                <MessageCircle size={20} className="mx-auto mb-2 text-white/15" />
                 No active clients to message yet.
               </p>
             )}
@@ -273,21 +282,20 @@ export default function CoachMessages() {
               <button
                 key={c.id}
                 onClick={() => setOpenClientId(c.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors ${
-                  openClientId === c.id ? "bg-black/10" : "hover:bg-black/5"
-                }`}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors hover:bg-white/[0.06]"
+                style={openClientId === c.id ? { backgroundColor: MEASURE_BLUE_SOFT } : undefined}
               >
-                <Avatar name={c.name} url={c.avatarUrl} size={40} />
+                <Avatar name={c.name} url={c.avatarUrl} size={40} dark />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-black font-semibold text-sm truncate">{c.name}</p>
+                    <p className="text-white font-semibold text-sm truncate">{c.name}</p>
                     {c.lastMsg && (
-                      <span className="text-black/30 text-[11px] shrink-0 ml-2">
+                      <span className="text-white/30 text-[11px] shrink-0 ml-2">
                         {new Date(c.lastMsg.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                       </span>
                     )}
                   </div>
-                  <p className="text-black/40 text-xs truncate mt-0.5">
+                  <p className="text-white/40 text-xs truncate mt-0.5">
                     {c.lastMsg ? `${c.lastMsg.from === "coach" ? "You: " : ""}${c.lastMsg.text}` : "No messages yet"}
                   </p>
                 </div>
@@ -299,23 +307,23 @@ export default function CoachMessages() {
         <div className={`flex-1 min-w-0 flex-col ${openClientId ? "flex" : "hidden md:flex"}`}>
           {openClient ? (
             <>
-              <div className="flex items-center gap-2 px-3 md:px-5 py-3 md:py-3.5 border-b border-black/8">
+              <div className="flex items-center gap-2 px-3 md:px-5 py-3 md:py-3.5 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
                 <button
                   onClick={() => setOpenClientId(null)}
                   aria-label="Back to clients"
-                  className="md:hidden w-8 h-8 -ml-1 flex items-center justify-center text-black/60 shrink-0"
+                  className="md:hidden w-8 h-8 -ml-1 flex items-center justify-center text-white/60 shrink-0"
                 >
                   <ChevronLeft size={19} />
                 </button>
-                <Avatar name={openClient.name} url={openClient.avatarUrl} size={34} />
-                <p className="text-black font-semibold text-sm">{openClient.name}</p>
+                <Avatar name={openClient.name} url={openClient.avatarUrl} size={34} dark />
+                <p className="text-white font-semibold text-sm">{openClient.name}</p>
               </div>
               <ThreadMessages client={openClient} />
             </>
           ) : (
             <div className="flex-1 flex-col items-center justify-center text-center hidden md:flex">
-              <MessageCircle size={28} className="text-black/15 mb-3" />
-              <p className="text-black/30 text-sm">Select a client to start messaging.</p>
+              <MessageCircle size={28} className="text-white/15 mb-3" />
+              <p className="text-white/30 text-sm">Select a client to start messaging.</p>
             </div>
           )}
         </div>

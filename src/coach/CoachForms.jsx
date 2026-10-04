@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { newId } from "../lib/id";
-import { Card, Field, TextInput, TextArea, SecondaryButton, DangerButton, FullScreenOverlay } from "../components/ui";
+import { Field, TextInput, TextArea, SecondaryButton, DangerButton, FullScreenOverlay } from "../components/ui";
 import { NotebookPen, Plus, ChevronLeft, ChevronUp, ChevronDown, Trash2, Type, Hash, Star, Camera, ListChecks, X, Download } from "lucide-react";
 import { CHECKIN_TEMPLATES } from "../lib/checkinTemplates";
+import { DarkPanel } from "./darkUI";
+import { MEASURE_BLUE } from "../theme";
 
 const QUESTION_TYPES = [
   { type: "text", label: "Short text", icon: Type },
@@ -262,20 +264,20 @@ export default function CoachForms({ showToast }) {
   return (
     <div className="max-w-6xl mx-auto px-4 pb-8 md:px-8">
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-        <p className="text-black/40 text-sm">{forms.length} total · schedule any form to recur weekly on a client's calendar</p>
+        <p className="text-white/40 text-sm">{forms.length} total · schedule any form to recur weekly on a client's calendar</p>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={importTemplates}
             disabled={importing}
             aria-label="Import check-in templates"
-            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
           >
             <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "IMPORT WEEKLY CHECK-IN"}</span>
           </button>
           <button
             onClick={() => setEditing({ isNew: true })}
             aria-label="New form"
-            className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
+            className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl shrink-0 transition-opacity hover:opacity-90"
           >
             <Plus size={16} /> <span className="hidden sm:inline">NEW FORM</span>
           </button>
@@ -283,25 +285,32 @@ export default function CoachForms({ showToast }) {
       </div>
 
       {forms.length === 0 ? (
-        <Card>
-          <p className="text-black/40 text-sm text-center py-6">No check-in forms yet — build your first one, e.g. a Weekly Check-in.</p>
-        </Card>
+        <div className="border border-dashed rounded-2xl py-14 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
+          <NotebookPen size={22} className="text-white/15 mx-auto mb-3" />
+          <p className="text-white/40 text-sm font-medium">No check-in forms yet</p>
+          <p className="text-white/30 text-xs mt-1">Build your first one, e.g. a Weekly Check-in.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {forms.map((f) => (
-            <Card key={f.id} onClick={() => setEditing(f)}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                  <NotebookPen size={16} className="text-blue-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-black font-semibold text-sm truncate">{f.name}</p>
-                  <p className="text-black/40 text-xs truncate mt-0.5">
-                    {f.questions.length} question{f.questions.length === 1 ? "" : "s"}
-                  </p>
+            <DarkPanel key={f.id} chamfer className="active:scale-[0.98] transition-transform">
+              <div onClick={() => setEditing(f)} className="relative cursor-pointer hover:bg-white/[0.03] transition-colors p-4">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                    style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
+                  >
+                    <NotebookPen size={16} style={{ color: MEASURE_BLUE }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-sm truncate">{f.name}</p>
+                    <p className="text-white/40 text-xs truncate mt-0.5">
+                      {f.questions.length} question{f.questions.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </Card>
+            </DarkPanel>
           ))}
         </div>
       )}

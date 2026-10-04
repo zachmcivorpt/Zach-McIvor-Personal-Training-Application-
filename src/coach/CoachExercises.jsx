@@ -458,8 +458,8 @@ export default function CoachExercises({ showToast, compact = false }) {
     <div className={compact ? "max-w-6xl mx-auto px-4 pb-8 md:px-8" : "max-w-6xl mx-auto px-4 py-5 md:px-8 md:py-8"}>
       <div className={`flex items-center justify-between gap-3 flex-wrap ${compact ? "mb-4" : "mb-6"}`}>
         <div className="min-w-0">
-          {!compact && <h1 className="text-black text-2xl font-bold">Exercise Library</h1>}
-          <p className="text-black/40 text-sm mt-0.5">{db.exercises.length} total</p>
+          {!compact && <h1 className="text-white text-2xl font-bold">Exercise Library</h1>}
+          <p className="text-white/40 text-sm mt-0.5">{db.exercises.length} total</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {missingVideoCount > 0 && (
@@ -468,7 +468,7 @@ export default function CoachExercises({ showToast, compact = false }) {
               disabled={fillingVideos}
               aria-label="Fill missing exercise videos"
               title="Adds a YouTube search link (not a specific hand-picked video) to every exercise that doesn't have one yet"
-              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
             >
               <Upload size={16} />{" "}
               <span className="hidden sm:inline">{fillingVideos ? "FILLING…" : `FILL ${missingVideoCount} MISSING VIDEO${missingVideoCount === 1 ? "" : "S"}`}</span>
@@ -479,7 +479,7 @@ export default function CoachExercises({ showToast, compact = false }) {
               onClick={copyExerciseNames}
               aria-label="Copy names of exercises needing a real video"
               title="Copies the names of every exercise that still only has a generic search link, so they can be searched by exact name"
-              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
             >
               <Copy size={16} /> <span className="hidden sm:inline">COPY {needsRealVideoCount} NAME{needsRealVideoCount === 1 ? "" : "S"}</span>
             </button>
@@ -488,7 +488,7 @@ export default function CoachExercises({ showToast, compact = false }) {
             onClick={() => setImportVideosOpen(true)}
             aria-label="Import a list of specific videos"
             title="Paste a list of Exercise Name | video URL lines to set real, specific videos in bulk"
-            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            className="flex items-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
           >
             <Upload size={16} /> <span className="hidden sm:inline">IMPORT VIDEO LIST</span>
           </button>
@@ -497,7 +497,7 @@ export default function CoachExercises({ showToast, compact = false }) {
               onClick={() => setDedupeOpen(true)}
               aria-label="Remove duplicate exercises"
               title="Finds exercises with the same name and removes the extra copies, keeping the most complete one"
-              className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
             >
               <Layers size={16} /> <span className="hidden sm:inline">{duplicateExtraCount} DUPLICATE{duplicateExtraCount === 1 ? "" : "S"}</span>
             </button>
@@ -506,11 +506,11 @@ export default function CoachExercises({ showToast, compact = false }) {
             onClick={importSeedExercises}
             disabled={importing}
             aria-label="Import seed exercises"
-            className="flex items-center gap-2 bg-black/8 hover:bg-black/15 text-black text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 bg-white/8 hover:bg-white/15 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
           >
             <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "IMPORT MORE EXERCISES"}</span>
           </button>
-          <button onClick={() => setEditing({ isNew: true })} aria-label="New exercise" className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
+          <button onClick={() => setEditing({ isNew: true })} aria-label="New exercise" className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl shrink-0">
             <Plus size={16} /> <span className="hidden sm:inline">NEW EXERCISE</span>
           </button>
         </div>
@@ -519,28 +519,28 @@ export default function CoachExercises({ showToast, compact = false }) {
       <ImportVideosSheet open={importVideosOpen} onClose={() => setImportVideosOpen(false)} showToast={showToast} />
       <DedupeSheet open={dedupeOpen} onClose={() => setDedupeOpen(false)} showToast={showToast} />
 
-      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
-        <Search size={16} className="text-black/40" />
+      <div className="flex items-center gap-2 bg-white/5 rounded-xl px-3 py-2.5 mb-5 md:max-w-sm">
+        <Search size={16} className="text-white/40" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search exercises"
-          className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
         {filtered.map((ex) => (
-          <Card key={ex.id} onClick={() => setEditing(ex)}>
+          <Card key={ex.id} onClick={() => setEditing(ex)} dark>
             <div className="flex items-center gap-3">
-              <ExerciseThumb exercise={ex} size={40} rounded="rounded-xl" />
+              <ExerciseThumb exercise={ex} size={40} rounded="rounded-xl" dark />
               <div className="flex-1 min-w-0">
-                <p className="text-black font-semibold text-sm truncate">{ex.name}</p>
-                <p className="text-black/40 text-xs truncate mt-0.5">
+                <p className="text-white font-semibold text-sm truncate">{ex.name}</p>
+                <p className="text-white/40 text-xs truncate mt-0.5">
                   {ex.category} · {ex.equipment}
                 </p>
               </div>
-              <Pill tone="outline">{ex.difficulty}</Pill>
+              <Pill tone="outline" dark>{ex.difficulty}</Pill>
             </div>
           </Card>
         ))}

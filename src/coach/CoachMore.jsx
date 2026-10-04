@@ -5,6 +5,8 @@ import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput, DeleteA
 import { fileToDataUrl, removeFlatLogoBackground } from "../lib/image";
 import { enablePush, disablePush } from "../lib/push";
 import { uploadDesignImage, uploadLoginBackground } from "../lib/storage";
+import { DarkPage, DarkPageHeader } from "./darkUI";
+import { MEASURE_BLUE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
 import {
   Video,
   LogOut,
@@ -28,10 +30,11 @@ import {
 function NotifPrefRow({ label, on, onToggle }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-black/70 text-sm">{label}</span>
+      <span className="text-white/70 text-sm">{label}</span>
       <button
         onClick={onToggle}
-        className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${on ? "bg-blue-500" : "bg-black/15"}`}
+        className="w-9 h-5 rounded-full relative transition-colors shrink-0"
+        style={{ backgroundColor: on ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }}
         aria-label={`Turn ${on ? "off" : "on"} ${label.toLowerCase()} notifications`}
       >
         <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${on ? "left-[18px]" : "left-0.5"}`} />
@@ -75,31 +78,39 @@ function PushNotificationsCard({ userId, notificationPrefs, updateUser, showToas
   }
 
   return (
-    <Card>
+    <Card dark>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-          <BellRing size={18} className="text-blue-500" />
+        <div
+          className="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0"
+          style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
+        >
+          <BellRing size={18} style={{ color: MEASURE_BLUE }} />
         </div>
         <div className="flex-1">
-          <p className="text-black font-semibold text-sm">Push Notifications</p>
-          <p className="text-black/40 text-xs mt-0.5">Get alerted on this device — even app closed</p>
+          <p className="text-white font-semibold text-sm">Push Notifications</p>
+          <p className="text-white/40 text-xs mt-0.5">Get alerted on this device — even app closed</p>
         </div>
         <button
           onClick={toggle}
           disabled={busy}
-          className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${enabled ? "bg-blue-500" : "bg-black/15"}`}
+          className="w-11 h-6 rounded-full relative transition-colors shrink-0"
+          style={{ backgroundColor: enabled ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }}
           aria-label={enabled ? "Turn off push notifications" : "Turn on push notifications"}
         >
           <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
         </button>
       </div>
       {enabled && (
-        <div className="mt-3.5 pt-3.5 border-t border-black/8 space-y-2.5">
+        <div className="mt-3.5 pt-3.5 border-t space-y-2.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
           <NotifPrefRow label="New messages" on={prefs.messages} onToggle={() => togglePref("messages")} />
           <NotifPrefRow label="Check-in submissions" on={prefs.checkins} onToggle={() => togglePref("checkins")} />
         </div>
       )}
-      {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
+      {error && (
+        <p className="text-sm rounded-xl px-3.5 py-2.5 mt-3 border" style={{ backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: OVER_RED }}>
+          {error}
+        </p>
+      )}
     </Card>
   );
 }
@@ -154,49 +165,57 @@ function AccountCard({ currentUser, updateUser, updateCoachEmail, showToast }) {
   }
 
   return (
-    <Card>
+    <Card dark>
       <div className="flex items-center gap-3 mb-3.5">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-          <User size={18} className="text-blue-500" />
+        <div
+          className="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0"
+          style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
+        >
+          <User size={18} style={{ color: MEASURE_BLUE }} />
         </div>
-        <p className="text-black font-semibold text-sm">Account</p>
+        <p className="text-white font-semibold text-sm">Account</p>
       </div>
 
-      <p className="text-black/30 text-[11px] mb-1.5">NAME</p>
+      <p className="text-white/30 text-[11px] mb-1.5">NAME</p>
       <div className="flex gap-2 mb-4">
-        <TextInput value={name} onChange={(e) => setName(e.target.value)} className="flex-1" />
+        <TextInput dark value={name} onChange={(e) => setName(e.target.value)} className="flex-1" />
         <button
           onClick={saveName}
           disabled={!nameDirty || savingName}
-          className="bg-black text-white text-xs font-bold px-4 rounded-xl disabled:opacity-30 shrink-0"
+          className="bg-white text-black text-xs font-bold px-4 rounded-xl disabled:opacity-30 shrink-0"
         >
           {savingName ? "…" : "Save"}
         </button>
       </div>
 
       <form onSubmit={saveEmail}>
-        <p className="text-black/30 text-[11px] mb-1.5">LOGIN EMAIL</p>
-        <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <p className="text-white/30 text-[11px] mb-1.5">LOGIN EMAIL</p>
+        <TextInput dark type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         {emailDirty && (
           <>
-            <p className="text-black/30 text-[11px] mt-3 mb-1.5">CURRENT PASSWORD (to confirm)</p>
+            <p className="text-white/30 text-[11px] mt-3 mb-1.5">CURRENT PASSWORD (to confirm)</p>
             <TextInput
+              dark
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Required to change your email"
             />
-            <p className="text-black/40 text-[11px] mt-2">
+            <p className="text-white/40 text-[11px] mt-2">
               We'll send a verification link to the new address — your login stays on the old one until you click it.
             </p>
           </>
         )}
-        {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
+        {error && (
+          <p className="text-sm rounded-xl px-3.5 py-2.5 mt-3 border" style={{ backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: OVER_RED }}>
+            {error}
+          </p>
+        )}
         {emailDirty && (
           <button
             type="submit"
             disabled={savingEmail}
-            className="w-full mt-3 bg-black text-white text-sm font-bold py-2.5 rounded-xl disabled:opacity-50"
+            className="w-full mt-3 bg-white text-black text-sm font-bold py-2.5 rounded-xl disabled:opacity-50"
           >
             {savingEmail ? "Sending…" : "Update Email"}
           </button>
@@ -222,16 +241,17 @@ function DesignAssetRow({
   progress,
   onUpload,
   onRemove,
-  iconClassName = "text-black/20",
+  iconClassName = "text-white/20",
 }) {
   const fileRef = useRef(null);
 
   return (
     <div>
-      <p className="text-black/30 text-[11px] mb-1.5">{label.toUpperCase()}</p>
-      {description && <p className="text-black/40 text-xs mb-2">{description}</p>}
+      <p className="text-white/30 text-[11px] mb-1.5">{label.toUpperCase()}</p>
+      {description && <p className="text-white/40 text-xs mb-2">{description}</p>}
       <div
-        className={`relative rounded-xl overflow-hidden border border-black/10 bg-black/[0.03] flex items-center justify-center ${aspectClassName}`}
+        className={`relative rounded-xl overflow-hidden border flex items-center justify-center ${aspectClassName}`}
+        style={{ borderColor: CLIENT_DARK_BORDER, backgroundColor: "rgba(255,255,255,0.03)" }}
       >
         {previewUrl ? (
           previewType === "video" ? (
@@ -243,8 +263,8 @@ function DesignAssetRow({
           <ImageIcon size={22} className={iconClassName} />
         )}
         {uploading && (
-          <div className="absolute inset-0 bg-white/75 flex items-center justify-center">
-            <span className="text-black/60 text-xs font-bold">{Math.round((progress || 0) * 100)}%</span>
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+            <span className="text-white/80 text-xs font-bold">{Math.round((progress || 0) * 100)}%</span>
           </div>
         )}
       </div>
@@ -263,7 +283,8 @@ function DesignAssetRow({
         <button
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="flex-1 flex items-center justify-center gap-1.5 bg-black/5 border border-black/10 text-black text-xs font-semibold py-2 rounded-lg disabled:opacity-50"
+          className="flex-1 flex items-center justify-center gap-1.5 border text-white text-xs font-semibold py-2 rounded-lg disabled:opacity-50"
+          style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: CLIENT_DARK_BORDER }}
         >
           <Upload size={12} /> {previewUrl ? "Replace" : "Upload"}
         </button>
@@ -271,7 +292,8 @@ function DesignAssetRow({
           <button
             onClick={onRemove}
             disabled={uploading}
-            className="px-3.5 bg-red-50 border border-red-100 text-red-600 text-xs font-semibold py-2 rounded-lg disabled:opacity-50"
+            className="px-3.5 border text-xs font-semibold py-2 rounded-lg disabled:opacity-50"
+            style={{ backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: OVER_RED }}
           >
             Remove
           </button>
@@ -498,29 +520,36 @@ function DesignSettingsCard() {
   }
 
   return (
-    <Card>
+    <Card dark>
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-          <Palette size={18} className="text-blue-500" />
+        <div
+          className="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0"
+          style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
+        >
+          <Palette size={18} style={{ color: MEASURE_BLUE }} />
         </div>
         <div>
-          <p className="text-black font-semibold text-sm">Design Settings</p>
-          <p className="text-black/40 text-xs mt-0.5">Customize how the app looks for you and your clients</p>
+          <p className="text-white font-semibold text-sm">Design Settings</p>
+          <p className="text-white/40 text-xs mt-0.5">Customize how the app looks for you and your clients</p>
         </div>
       </div>
 
       <div className="space-y-5">
         <div>
-          <p className="text-black/30 text-[11px] mb-1.5">CLIENT APP THEME</p>
-          <div className="flex items-center justify-between bg-black/[0.03] border border-black/8 rounded-xl px-3.5 py-3">
+          <p className="text-white/30 text-[11px] mb-1.5">CLIENT APP THEME</p>
+          <div
+            className="flex items-center justify-between rounded-xl px-3.5 py-3 border"
+            style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+          >
             <div>
-              <p className="text-black text-sm font-medium">{clientDark ? "Dark" : "Light"}</p>
-              <p className="text-black/40 text-xs mt-0.5">Switches every client's app instantly — no update needed</p>
+              <p className="text-white text-sm font-medium">{clientDark ? "Dark" : "Light"}</p>
+              <p className="text-white/40 text-xs mt-0.5">Switches every client's app instantly — no update needed</p>
             </div>
             <button
               onClick={toggleClientTheme}
               disabled={savingTheme}
-              className={`w-11 h-6 rounded-full relative transition-colors shrink-0 disabled:opacity-50 ${clientDark ? "bg-blue-500" : "bg-black/15"}`}
+              className="w-11 h-6 rounded-full relative transition-colors shrink-0 disabled:opacity-50"
+              style={{ backgroundColor: clientDark ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }}
               aria-label={`Switch client app to ${clientDark ? "light" : "dark"} mode`}
             >
               <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${clientDark ? "left-[22px]" : "left-0.5"}`} />
@@ -528,7 +557,7 @@ function DesignSettingsCard() {
           </div>
         </div>
 
-        <div className="border-t border-black/8" />
+        <div className="border-t" style={{ borderColor: CLIENT_DARK_BORDER }} />
 
         <DesignAssetRow
           label="Login Background"
@@ -543,13 +572,14 @@ function DesignSettingsCard() {
           onRemove={() => handleRemove("loginBackgroundUrl")}
         />
 
-        <div className="border-t border-black/8" />
+        <div className="border-t" style={{ borderColor: CLIENT_DARK_BORDER }} />
 
         <div>
-          <p className="text-black/30 text-[11px] mb-1.5">PROFILE PICTURE</p>
-          <p className="text-black/40 text-xs mb-2">Shown wherever your trainer profile appears</p>
+          <p className="text-white/30 text-[11px] mb-1.5">PROFILE PICTURE</p>
+          <p className="text-white/40 text-xs mb-2">Shown wherever your trainer profile appears</p>
           <div className="flex items-center gap-3">
             <AvatarPicker
+              dark
               name={currentUser?.name}
               url={currentUser?.avatarUrl}
               size={56}
@@ -558,7 +588,8 @@ function DesignSettingsCard() {
             {currentUser?.avatarUrl && (
               <button
                 onClick={() => updateUser(currentUser.id, { avatarUrl: null })}
-                className="bg-red-50 border border-red-100 text-red-600 text-xs font-semibold px-3.5 py-2 rounded-lg"
+                className="text-xs font-semibold px-3.5 py-2 rounded-lg border"
+                style={{ backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: OVER_RED }}
               >
                 Remove
               </button>
@@ -566,7 +597,7 @@ function DesignSettingsCard() {
           </div>
         </div>
 
-        <div className="border-t border-black/8" />
+        <div className="border-t" style={{ borderColor: CLIENT_DARK_BORDER }} />
 
         <DesignAssetRow
           label="Logo — Dark Backgrounds"
@@ -586,7 +617,8 @@ function DesignSettingsCard() {
           description="Your client app when its theme is set to Light above — needs a dark-colored mark"
           previewUrl={design.appLogoUrlOnLight}
           previewClassName="max-w-[65%] max-h-[65%] object-contain"
-          aspectClassName="h-24"
+          aspectClassName="h-24 !bg-white"
+          iconClassName="text-black/20"
           uploading={uploadingLogoLight}
           progress={logoLightProgress}
           onUpload={(file) => setCropRequest({ field: "appLogoUrlOnLight", setUploading: setUploadingLogoLight, setProgress: setLogoLightProgress, file })}
@@ -594,7 +626,11 @@ function DesignSettingsCard() {
         />
       </div>
 
-      {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-4">{error}</p>}
+      {error && (
+        <p className="text-sm rounded-xl px-3.5 py-2.5 mt-4 border" style={{ backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: OVER_RED }}>
+          {error}
+        </p>
+      )}
 
       {cropRequest && (
         <LogoCropModal
@@ -691,40 +727,47 @@ function WelcomeMessageCard() {
   }
 
   return (
-    <Card>
+    <Card dark>
       <div className="flex items-center gap-3 mb-1">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-          <MessageSquareText size={18} className="text-blue-500" />
+        <div
+          className="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0"
+          style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
+        >
+          <MessageSquareText size={18} style={{ color: MEASURE_BLUE }} />
         </div>
         <div className="flex-1">
-          <p className="text-black font-semibold text-sm">Automated Welcome Message</p>
-          <p className="text-black/40 text-xs mt-0.5">Sent to a client automatically the moment they activate their account</p>
+          <p className="text-white font-semibold text-sm">Automated Welcome Message</p>
+          <p className="text-white/40 text-xs mt-0.5">Sent to a client automatically the moment they activate their account</p>
         </div>
         <button
           onClick={() => setAutoSend((v) => !v)}
-          className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${autoSend ? "bg-blue-500" : "bg-black/15"}`}
+          className="w-11 h-6 rounded-full relative transition-colors shrink-0"
+          style={{ backgroundColor: autoSend ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }}
           aria-label={autoSend ? "Turn off auto-send" : "Turn on auto-send"}
         >
           <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${autoSend ? "left-[22px]" : "left-0.5"}`} />
         </button>
       </div>
 
-      <p className="text-black/30 text-[11px] mt-3 mb-1.5">
-        MESSAGE — use <span className="font-mono bg-black/5 px-1 rounded">{"{name}"}</span> for the client's first name
+      <p className="text-white/30 text-[11px] mt-3 mb-1.5">
+        MESSAGE — use <span className="font-mono px-1 rounded text-white/80" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>{"{name}"}</span> for the client's first name
       </p>
-      <TextArea rows={6} value={text} onChange={(e) => setText(e.target.value)} />
+      <TextArea dark rows={6} value={text} onChange={(e) => setText(e.target.value)} />
 
-      <p className="text-black/30 text-[11px] mt-4 mb-1.5">ATTACHMENT (OPTIONAL)</p>
+      <p className="text-white/30 text-[11px] mt-4 mb-1.5">ATTACHMENT (OPTIONAL)</p>
       {attachmentUrl ? (
-        <div className="flex items-center gap-2 bg-black/5 border border-black/10 rounded-xl px-3.5 py-2.5">
-          <Paperclip size={14} className="text-black/40 shrink-0" />
-          <span className="text-black text-sm flex-1 truncate">{attachmentName}</span>
+        <div
+          className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 border"
+          style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+        >
+          <Paperclip size={14} className="text-white/40 shrink-0" />
+          <span className="text-white text-sm flex-1 truncate">{attachmentName}</span>
           <button
             onClick={() => {
               setAttachmentName("");
               setAttachmentUrl("");
             }}
-            className="w-6 h-6 shrink-0 flex items-center justify-center text-black/30 hover:text-black/60"
+            className="w-6 h-6 shrink-0 flex items-center justify-center text-white/30 hover:text-white/60"
             aria-label="Remove attachment"
           >
             <X size={14} />
@@ -735,21 +778,25 @@ function WelcomeMessageCard() {
           <input ref={fileRef} type="file" accept="application/pdf" onChange={handleFile} className="hidden" />
           <button
             onClick={() => fileRef.current?.click()}
-            className="w-full flex items-center justify-center gap-2 bg-black/5 border border-dashed border-black/15 text-black/60 text-sm font-medium py-3 rounded-xl"
+            className="w-full flex items-center justify-center gap-2 border border-dashed text-white/60 text-sm font-medium py-3 rounded-xl"
+            style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.15)" }}
           >
             <Upload size={15} /> {uploading ? "Uploading…" : "Attach a PDF (e.g. a nutrition guide)"}
           </button>
         </>
       )}
 
-      {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
+      {error && (
+        <p className="text-sm rounded-xl px-3.5 py-2.5 mt-3 border" style={{ backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.3)", color: OVER_RED }}>
+          {error}
+        </p>
+      )}
 
       <button
         onClick={save}
         disabled={!dirty || saving}
-        className={`w-full mt-4 py-3 rounded-xl text-sm font-bold transition-colors ${
-          !dirty && !saving ? "bg-black/8 text-black/30" : "bg-black text-white"
-        }`}
+        className="w-full mt-4 py-3 rounded-xl text-sm font-bold transition-colors"
+        style={!dirty && !saving ? { backgroundColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.3)" } : { backgroundColor: "#FFFFFF", color: "#000000" }}
       >
         {saving ? "SAVING…" : justSaved ? "SAVED ✓" : dirty ? "SAVE CHANGES" : "SAVED"}
       </button>
@@ -783,20 +830,24 @@ function DataBackupCard({ db }) {
   }
 
   return (
-    <Card>
+    <Card dark>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-          <Download size={18} className="text-blue-500" />
+        <div
+          className="w-10 h-10 rounded-xl border flex items-center justify-center shrink-0"
+          style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
+        >
+          <Download size={18} style={{ color: MEASURE_BLUE }} />
         </div>
         <div className="flex-1">
-          <p className="text-black font-semibold text-sm">Download Data Backup</p>
-          <p className="text-black/40 text-xs mt-0.5">Every client, program and log as one JSON file, saved straight to this device</p>
+          <p className="text-white font-semibold text-sm">Download Data Backup</p>
+          <p className="text-white/40 text-xs mt-0.5">Every client, program and log as one JSON file, saved straight to this device</p>
         </div>
       </div>
       <button
         onClick={download}
         disabled={downloading}
-        className="w-full mt-3 flex items-center justify-center gap-2 bg-black/5 border border-black/10 text-black text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50"
+        className="w-full mt-3 flex items-center justify-center gap-2 border text-white text-sm font-semibold py-2.5 rounded-xl disabled:opacity-50"
+        style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: CLIENT_DARK_BORDER }}
       >
         <Download size={14} /> {downloading ? "Preparing…" : "Download Backup"}
       </button>
@@ -809,22 +860,22 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   return (
-    <div className="max-w-xl px-4 py-5 md:px-8 md:py-8 space-y-4">
-      <div>
-        <h1 className="text-black text-2xl font-bold">Settings</h1>
-      </div>
+    <DarkPage>
+      <div className="max-w-xl mx-auto space-y-4">
+      <DarkPageHeader title="Settings" />
 
-      <Card>
+      <Card dark>
         <div className="flex items-center gap-4">
           <AvatarPicker
+            dark
             name={currentUser?.name}
             url={currentUser?.avatarUrl}
             size={64}
             onChange={(dataUrl) => updateUser(currentUser.id, { avatarUrl: dataUrl })}
           />
           <div>
-            <p className="text-black font-bold">{currentUser?.name}</p>
-            <p className="text-black/40 text-sm">{currentUser?.email}</p>
+            <p className="text-white font-bold">{currentUser?.name}</p>
+            <p className="text-white/40 text-sm">{currentUser?.email}</p>
           </div>
         </div>
       </Card>
@@ -833,16 +884,16 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
 
       <DesignSettingsCard />
 
-      <Card onClick={() => onNavigate("library")}>
+      <Card dark onClick={() => onNavigate("library")}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-black/10 flex items-center justify-center shrink-0">
-            <Video size={18} className="text-black" />
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+            <Video size={18} className="text-white/70" />
           </div>
           <div className="flex-1">
-            <p className="text-black font-semibold text-sm">Manage Exercise Library</p>
-            <p className="text-black/40 text-xs mt-0.5">Upload custom exercise videos</p>
+            <p className="text-white font-semibold text-sm">Manage Exercise Library</p>
+            <p className="text-white/40 text-xs mt-0.5">Upload custom exercise videos</p>
           </div>
-          <ChevronRight size={18} className="text-black/30" />
+          <ChevronRight size={18} className="text-white/30" />
         </div>
       </Card>
 
@@ -859,24 +910,24 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
 
       <DataBackupCard db={db} />
 
-      <DangerButton className="w-full" onClick={onLogout}>
+      <DangerButton className="w-full" dark onClick={onLogout}>
         <LogOut size={14} /> Sign out
       </DangerButton>
 
       <div className="flex items-center justify-center gap-4 pt-1">
-        <Link to="/legal/privacy-policy" className="text-black/30 text-xs font-medium">
+        <Link to="/legal/privacy-policy" className="text-white/30 text-xs font-medium">
           Privacy Policy
         </Link>
-        <Link to="/legal/terms-of-service" className="text-black/30 text-xs font-medium">
+        <Link to="/legal/terms-of-service" className="text-white/30 text-xs font-medium">
           Terms of Service
         </Link>
-        <button onClick={() => setDeleteOpen(true)} className="text-red-500/70 text-xs font-medium">
+        <button onClick={() => setDeleteOpen(true)} className="text-xs font-medium" style={{ color: OVER_RED, opacity: 0.7 }}>
           Delete account
         </button>
       </div>
 
       <div className="flex justify-center pt-4">
-        <Tagline />
+        <Tagline tone="white" />
       </div>
 
       <DeleteAccountSheet
@@ -887,6 +938,7 @@ export default function CoachMore({ onNavigate, onLogout, showToast }) {
           await deleteMyAccount(password);
         }}
       />
-    </div>
+      </div>
+    </DarkPage>
   );
 }

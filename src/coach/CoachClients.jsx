@@ -4,7 +4,8 @@ import { useApp, getCurrentPhase, getNextPhase, needsNewPhaseSoon } from "../lib
 import { localDateKey } from "../lib/dateKey";
 import { Pill, BottomSheet, Field, TextInput, PrimaryButton, SecondaryButton, DangerButton, Avatar, ProgressBar } from "../components/ui";
 import CoachClientDetail from "./CoachClientDetail";
-import { MEASURE_BLUE } from "../theme";
+import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
+import { DarkPage, DarkPanel, DarkPageHeader } from "./darkUI";
 import { UserPlus, Search, Copy, RefreshCw, Mail, ChevronDown, MessageCircle, NotebookPen, Trash2, X, Repeat, Lock, Unlock, AlertTriangle } from "lucide-react";
 
 const APP_STORE_URL = "https://apps.apple.com/app/id6810194114";
@@ -210,7 +211,7 @@ export function clientStatusPill(c) {
 }
 
 function PhaseCell({ phase, needsNewPhase }) {
-  if (!phase) return <span className="text-black/30 text-sm">No phase scheduled</span>;
+  if (!phase) return <span className="text-white/30 text-sm">No phase scheduled</span>;
   const today = localDateKey();
   const pct = (() => {
     if (!phase.endDate) return null;
@@ -222,20 +223,23 @@ function PhaseCell({ phase, needsNewPhase }) {
   })();
   return (
     <div className="min-w-[135px]">
-      <p className="text-black text-sm font-medium truncate">{phase.name}</p>
-      <p className="text-black/35 text-xs mt-0.5">
+      <p className="text-white text-sm font-medium truncate">{phase.name}</p>
+      <p className="text-white/35 text-xs mt-0.5">
         {phase.endDate ? `Ends ${new Date(phase.endDate).toLocaleDateString()}` : "No end date"}
       </p>
       {pct !== null && (
         <div className="mt-1.5 flex items-center gap-2">
           <div className="w-28">
-            <ProgressBar value={pct} max={100} height={5} color={MEASURE_BLUE} />
+            <ProgressBar value={pct} max={100} height={5} color={MEASURE_BLUE} trackClassName="bg-white/10" />
           </div>
-          <span className="text-black/40 text-[11px] font-semibold tabular-nums shrink-0">{pct}%</span>
+          <span className="text-white/40 text-[11px] font-semibold tabular-nums shrink-0">{pct}%</span>
         </div>
       )}
       {needsNewPhase && (
-        <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[11px] font-bold px-1.5 py-0.5 rounded-md mt-1.5">
+        <span
+          className="inline-flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md mt-1.5"
+          style={{ backgroundColor: "rgba(239,68,68,0.12)", color: OVER_RED }}
+        >
           <AlertTriangle size={10} /> Needs new phase
         </span>
       )}
@@ -244,11 +248,11 @@ function PhaseCell({ phase, needsNewPhase }) {
 }
 
 function NextPhaseCell({ phase }) {
-  if (!phase) return <span className="text-black/25 text-sm">—</span>;
+  if (!phase) return <span className="text-white/25 text-sm">—</span>;
   return (
     <div className="min-w-[115px]">
-      <p className="text-black/70 text-sm font-medium truncate">{phase.name}</p>
-      <p className="text-black/35 text-xs mt-0.5">Starts {new Date(phase.startDate).toLocaleDateString()}</p>
+      <p className="text-white/70 text-sm font-medium truncate">{phase.name}</p>
+      <p className="text-white/35 text-xs mt-0.5">Starts {new Date(phase.startDate).toLocaleDateString()}</p>
     </div>
   );
 }
@@ -266,7 +270,7 @@ function mainProgramLabel(client) {
 // client — mirrors the same "awaiting reply" / "unread check-in" signals
 // already surfaced in aggregate on the Overview dashboard, just per-row.
 function EngagementBadges({ awaitingReply, pendingCheckins, onOpenMessages, onOpenCheckins }) {
-  if (!awaitingReply && !pendingCheckins) return <span className="text-black/20 text-xs">—</span>;
+  if (!awaitingReply && !pendingCheckins) return <span className="text-white/20 text-xs">—</span>;
   return (
     <div className="flex items-center gap-1.5">
       {awaitingReply && (
@@ -276,7 +280,8 @@ function EngagementBadges({ awaitingReply, pendingCheckins, onOpenMessages, onOp
             e.stopPropagation();
             onOpenMessages?.();
           }}
-          className="flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[11px] font-bold px-1.5 py-1 rounded-md transition-colors"
+          className="flex items-center gap-1 text-[11px] font-bold px-1.5 py-1 rounded-md transition-colors hover:brightness-125"
+          style={{ backgroundColor: "rgba(47,143,255,0.14)", color: MEASURE_BLUE }}
         >
           <MessageCircle size={11} /> 1
         </button>
@@ -288,7 +293,8 @@ function EngagementBadges({ awaitingReply, pendingCheckins, onOpenMessages, onOp
             e.stopPropagation();
             onOpenCheckins?.();
           }}
-          className="flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-600 text-[11px] font-bold px-1.5 py-1 rounded-md transition-colors"
+          className="flex items-center gap-1 text-[11px] font-bold px-1.5 py-1 rounded-md transition-colors hover:brightness-125"
+          style={{ backgroundColor: "rgba(47,143,255,0.14)", color: MEASURE_BLUE }}
         >
           <NotebookPen size={11} /> {pendingCheckins}
         </button>
@@ -303,13 +309,18 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="relative flex justify-end" onClick={(e) => e.stopPropagation()}>
-      <div className="flex items-stretch rounded-lg overflow-hidden border border-black/10">
-        <button onClick={onOpen} className="bg-black/8 hover:bg-black/15 text-black text-xs font-semibold px-3.5 py-2 transition-colors">
+      <div className="flex items-stretch rounded-lg overflow-hidden border" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        <button
+          onClick={onOpen}
+          className="text-white text-xs font-semibold px-3.5 py-2 transition-colors hover:bg-white/[0.12]"
+          style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+        >
           OPEN
         </button>
         <button
           onClick={() => setOpen((v) => !v)}
-          className="bg-black/8 hover:bg-black/15 text-black/50 px-2 border-l border-black/10 transition-colors"
+          className="text-white/50 px-2 border-l transition-colors hover:bg-white/[0.12]"
+          style={{ backgroundColor: "rgba(255,255,255,0.06)", borderColor: CLIENT_DARK_BORDER }}
         >
           <ChevronDown size={13} />
         </button>
@@ -317,14 +328,18 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-20 bg-white border border-black/10 rounded-xl shadow-lg overflow-hidden w-48">
+          <div
+            className="absolute right-0 top-full mt-1 z-20 border rounded-xl shadow-lg overflow-hidden w-48"
+            style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+          >
             {onTogglePause && (
               <button
                 onClick={() => {
                   setOpen(false);
                   onTogglePause();
                 }}
-                className="w-full flex items-center gap-2 px-3.5 py-2.5 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+                className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm font-medium hover:bg-red-500/10 transition-colors"
+                style={{ color: OVER_RED }}
               >
                 {paused ? (
                   <>
@@ -342,7 +357,8 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
                 setOpen(false);
                 onRemove();
               }}
-              className="w-full flex items-center gap-2 px-3.5 py-2.5 text-red-600 text-sm font-medium hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3.5 py-2.5 text-sm font-medium hover:bg-red-500/10 transition-colors"
+              style={{ color: OVER_RED }}
             >
               <Trash2 size={13} /> Remove client
             </button>
@@ -436,69 +452,79 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8">
+    <DarkPage>
       {checkedIds.size > 0 ? (
-        <div className="flex items-center justify-between gap-3 mb-6 bg-black text-white rounded-xl px-4 py-3">
+        <div
+          className="flex items-center justify-between gap-3 mb-4 rounded-xl px-4 py-3 border"
+          style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+        >
           <div className="flex items-center gap-3">
-            <button onClick={() => setCheckedIds(new Set())} className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10">
+            <button onClick={() => setCheckedIds(new Set())} className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 text-white">
               <X size={14} />
             </button>
-            <p className="text-sm font-semibold">{checkedIds.size} selected</p>
+            <p className="text-sm font-semibold text-white">{checkedIds.size} selected</p>
           </div>
           <button
             onClick={() => setConfirmRemove(true)}
-            className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-colors hover:brightness-110"
+            style={{ backgroundColor: OVER_RED }}
           >
             <Trash2 size={13} /> REMOVE
           </button>
         </div>
       ) : (
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <div className="min-w-0">
-            <h1 className="text-black text-2xl font-bold">Clients</h1>
-            <p className="text-black/40 text-sm mt-0.5 truncate">{clients.length} total · access every client's full profile</p>
-          </div>
-          <button
-            onClick={() => setAddOpen(true)}
-            aria-label="Add client"
-            className="flex items-center gap-2 bg-black text-white text-sm font-bold px-4 py-2.5 rounded-xl shrink-0"
-          >
-            <UserPlus size={16} /> <span className="hidden sm:inline">ADD CLIENT</span>
-          </button>
-        </div>
+        <DarkPageHeader
+          title="Clients"
+          subtitle={`${clients.length} total · access every client's full profile`}
+          right={
+            <button
+              onClick={() => setAddOpen(true)}
+              aria-label="Add client"
+              className="flex items-center gap-2 bg-white text-black text-sm font-bold px-4 py-2.5 rounded-xl shrink-0 transition-opacity hover:opacity-90"
+            >
+              <UserPlus size={16} /> <span className="hidden sm:inline">ADD CLIENT</span>
+            </button>
+          }
+        />
       )}
 
-      <div className="flex items-center gap-2 bg-black/5 rounded-xl px-3.5 py-2.5 mb-5 md:max-w-sm">
-        <Search size={15} className="text-black/40" />
+      <div
+        className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 mb-4 md:max-w-sm border"
+        style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+      >
+        <Search size={15} className="text-white/40" />
         <input
           value={search || ""}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search clients"
-          className="bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"
+          className="bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30"
         />
       </div>
 
       {/* desktop table — horizontally scrollable on any viewport narrower than
           its min-width, with momentum scrolling on iOS Safari so a swipe
           actually glides instead of just nudging a pixel at a time */}
-      <div className="hidden md:block border border-black/8 rounded-2xl overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+      <div
+        className="hidden md:block border rounded-2xl overflow-x-auto"
+        style={{ WebkitOverflowScrolling: "touch", backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}
+      >
         <table className="w-full min-w-[1080px] text-left border-collapse">
           <thead>
-            <tr className="bg-black/[0.03] border-b border-black/8">
+            <tr className="border-b" style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}>
               <th className="w-10 px-3 py-3" />
-              <th className="px-2 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NAME</th>
-              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">MAIN PROGRAM</th>
-              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
-              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">NEXT PHASE</th>
-              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">ENGAGEMENT</th>
-              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide">STATUS</th>
-              <th className="px-3 py-3 text-black/40 text-[11px] font-semibold tracking-wide text-right">ACTION</th>
+              <th className="px-2 py-3 text-white/40 text-[11px] font-semibold tracking-wide">NAME</th>
+              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">MAIN PROGRAM</th>
+              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">CURRENT PHASE</th>
+              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">NEXT PHASE</th>
+              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">ENGAGEMENT</th>
+              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide">STATUS</th>
+              <th className="px-3 py-3 text-white/40 text-[11px] font-semibold tracking-wide text-right">ACTION</th>
             </tr>
           </thead>
           <tbody>
             {clients.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-5 py-10 text-center text-black/40 text-sm">
+                <td colSpan={8} className="px-5 py-10 text-center text-white/40 text-sm">
                   {dbReady ? "No clients yet — add your first one to get started." : "Loading your clients…"}
                 </td>
               </tr>
@@ -509,29 +535,29 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                 <tr
                   key={c.id}
                   onClick={() => openClient(c.id)}
-                  className={`border-b border-black/5 last:border-0 hover:bg-black/[0.03] cursor-pointer transition-colors ${
-                    checkedIds.has(c.id) ? "bg-blue-50/50" : ""
-                  }`}
+                  className="border-b last:border-0 hover:bg-white/[0.03] cursor-pointer transition-colors"
+                  style={{ borderColor: CLIENT_DARK_BORDER, backgroundColor: checkedIds.has(c.id) ? "rgba(47,143,255,0.08)" : undefined }}
                 >
                   <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={checkedIds.has(c.id)}
                       onChange={() => toggleChecked(c.id)}
-                      className="w-4 h-4 rounded accent-black cursor-pointer"
+                      className="w-4 h-4 rounded cursor-pointer"
+                      style={{ accentColor: MEASURE_BLUE }}
                     />
                   </td>
                   <td className="px-2 py-3.5">
                     <div className="flex items-center gap-2.5">
-                      <Avatar name={c.name} url={c.avatarUrl} size={36} />
+                      <Avatar name={c.name} url={c.avatarUrl} size={36} dark />
                       <div className="min-w-0">
-                        <p className="text-black font-semibold text-sm truncate">{c.name}</p>
-                        <p className="text-black/35 text-xs truncate">{c.email}</p>
+                        <p className="text-white font-semibold text-sm truncate">{c.name}</p>
+                        <p className="text-white/35 text-xs truncate">{c.email}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-3 py-3.5">
-                    <span className="text-black/60 text-sm">{mainProgramLabel(c)}</span>
+                    <span className="text-white/60 text-sm">{mainProgramLabel(c)}</span>
                   </td>
                   <td className="px-3 py-3.5">
                     <PhaseCell phase={currentPhase} needsNewPhase={needsNewPhase} />
@@ -549,8 +575,14 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                   </td>
                   <td className="px-3 py-3.5">
                     <div className="flex items-center gap-1.5">
-                      <Pill tone={clientStatusPill(c).tone}>{clientStatusPill(c).label}</Pill>
-                      {c.accessPaused && <Pill tone="warning">Paused</Pill>}
+                      <Pill tone={clientStatusPill(c).tone} dark>
+                        {clientStatusPill(c).label}
+                      </Pill>
+                      {c.accessPaused && (
+                        <Pill tone="warning" dark>
+                          Paused
+                        </Pill>
+                      )}
                     </div>
                   </td>
                   <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
@@ -562,7 +594,8 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                         }}
                         title="Browse and act in the app exactly as this client — works even before they've activated"
                         aria-label={`View as ${c.name}`}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors shrink-0"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors shrink-0"
+                        style={{ backgroundColor: "rgba(47,143,255,0.12)", color: MEASURE_BLUE }}
                       >
                         <Repeat size={14} />
                       </button>
@@ -588,9 +621,9 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
       {/* mobile card list */}
       <div className="md:hidden space-y-2.5">
         {clients.length === 0 && (
-          <div className="border border-black/8 rounded-2xl px-5 py-10 text-center text-black/40 text-sm">
+          <DarkPanel className="px-5 py-10 text-center text-white/40 text-sm">
             {dbReady ? "No clients yet — add your first one to get started." : "Loading your clients…"}
-          </div>
+          </DarkPanel>
         )}
         {clients.map((c) => {
           const { currentPhase, nextPhase, awaitingReply, pendingCheckins, needsNewPhase } = rowData(c);
@@ -601,7 +634,8 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
               tabIndex={0}
               onClick={() => openClient(c.id)}
               onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openClient(c.id)}
-              className="w-full text-left border border-black/8 rounded-2xl p-4 active:bg-black/[0.03] transition-colors cursor-pointer"
+              className="w-full text-left border rounded-2xl p-4 active:bg-white/[0.03] transition-colors cursor-pointer"
+              style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}
             >
               <div className="flex items-center gap-3 mb-3">
                 <input
@@ -609,12 +643,13 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                   checked={checkedIds.has(c.id)}
                   onChange={() => toggleChecked(c.id)}
                   onClick={(e) => e.stopPropagation()}
-                  className="w-4 h-4 rounded accent-black cursor-pointer shrink-0"
+                  className="w-4 h-4 rounded cursor-pointer shrink-0"
+                  style={{ accentColor: MEASURE_BLUE }}
                 />
-                <Avatar name={c.name} url={c.avatarUrl} size={42} />
+                <Avatar name={c.name} url={c.avatarUrl} size={42} dark />
                 <div className="min-w-0 flex-1">
-                  <p className="text-black font-semibold text-sm truncate">{c.name}</p>
-                  <p className="text-black/35 text-xs truncate">{mainProgramLabel(c)}</p>
+                  <p className="text-white font-semibold text-sm truncate">{c.name}</p>
+                  <p className="text-white/35 text-xs truncate">{mainProgramLabel(c)}</p>
                 </div>
                 <button
                   onClick={(e) => {
@@ -624,7 +659,8 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                   }}
                   title="Browse and act in the app exactly as this client — works even before they've activated"
                   aria-label={`View as ${c.name}`}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-700 shrink-0"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0"
+                  style={{ backgroundColor: "rgba(47,143,255,0.12)", color: MEASURE_BLUE }}
                 >
                   <Repeat size={14} />
                 </button>
@@ -637,17 +673,22 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                     }}
                     title={c.accessPaused ? "Resume access" : "Pause access (e.g. insufficient payment)"}
                     aria-label={c.accessPaused ? `Resume access for ${c.name}` : `Pause access for ${c.name}`}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg shrink-0 ${
-                      c.accessPaused ? "bg-red-50 text-red-700" : "bg-black/5 text-black/40"
-                    }`}
+                    className="w-8 h-8 flex items-center justify-center rounded-lg shrink-0"
+                    style={
+                      c.accessPaused
+                        ? { backgroundColor: "rgba(239,68,68,0.12)", color: OVER_RED }
+                        : { backgroundColor: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.4)" }
+                    }
                   >
                     {c.accessPaused ? <Unlock size={14} /> : <Lock size={14} />}
                   </button>
                 )}
-                <Pill tone={clientStatusPill(c).tone}>{clientStatusPill(c).label}</Pill>
+                <Pill tone={clientStatusPill(c).tone} dark>
+                  {clientStatusPill(c).label}
+                </Pill>
               </div>
               {c.accessPaused && (
-                <p className="flex items-center gap-1 text-red-700 text-xs font-medium mb-2.5">
+                <p className="flex items-center gap-1 text-xs font-medium mb-2.5" style={{ color: OVER_RED }}>
                   <Lock size={11} /> Access paused
                 </p>
               )}
@@ -661,7 +702,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
                 />
               </div>
               {nextPhase && (
-                <p className="text-black/30 text-xs mt-2 pt-2 border-t border-black/5">
+                <p className="text-white/30 text-xs mt-2 pt-2 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
                   Next: {nextPhase.name} · starts {new Date(nextPhase.startDate).toLocaleDateString()}
                 </p>
               )}
@@ -760,6 +801,6 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
           <Lock size={14} /> Pause access
         </DangerButton>
       </BottomSheet>
-    </div>
+    </DarkPage>
   );
 }
