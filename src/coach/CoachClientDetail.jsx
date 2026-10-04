@@ -15,7 +15,7 @@ import {
   computePersonalBests,
   computeSessionInsights,
 } from "../lib/trainingStats";
-import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, CLIENT_DARK_TEXT_MUTED } from "../theme";
+import { MEASURE_BLUE, GOAL_GREEN, OVER_RED, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER } from "../theme";
 import { DarkPanel } from "./darkUI";
 import { CLIENT_CONTEXT_CATEGORIES } from "../lib/apexInsights";
 import {
@@ -29,7 +29,6 @@ import {
   BodyMeasurementsListCard,
   ConsistencyHeatmap,
   PersonalBestsCard,
-  axisStyle,
   axisStyleDark,
 } from "../components/ProgressWidgets";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ReferenceLine, Tooltip, ResponsiveContainer } from "recharts";
@@ -4935,15 +4934,15 @@ function ProgressPanel({ client, showToast }) {
 
   return (
     <div className="max-w-3xl px-4 py-5 md:px-6 md:py-6 space-y-5">
-      <PersonalBestsCard personalBests={personalBests} />
+      <PersonalBestsCard dark personalBests={personalBests} />
 
-      <ConsistencyHeatmap logs={logs} scheduledWorkouts={scheduledWorkouts} />
+      <ConsistencyHeatmap dark logs={logs} scheduledWorkouts={scheduledWorkouts} />
 
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
-        <div className="flex items-center justify-between">
+      <DarkPanel className="p-4 md:p-5">
+        <div className="relative flex items-center justify-between">
           <div>
-            <p className="text-black font-semibold text-sm">Body Weight</p>
-            <p className="text-black/40 text-xs mt-0.5">
+            <p className="text-white font-semibold text-sm">Body Weight</p>
+            <p className="text-white text-xs mt-0.5">
               {weighIns.length === 0
                 ? "No weigh-ins logged yet"
                 : weighIns.length === 1
@@ -4955,7 +4954,7 @@ function ProgressPanel({ client, showToast }) {
           </div>
         </div>
         {weighIns.length >= 2 ? (
-          <button onClick={() => setWeightHistoryOpen(true)} className="w-full h-40 mt-3 -ml-4 block">
+          <button onClick={() => setWeightHistoryOpen(true)} className="relative w-full h-40 mt-3 -ml-4 block">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={weightChartData}>
                 <defs>
@@ -4964,9 +4963,9 @@ function ProgressPanel({ client, showToast }) {
                     <stop offset="100%" stopColor={MEASURE_BLUE} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-                <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyle} axisLine={false} tickLine={false} width={30} />
-                <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid rgba(10,10,11,0.1)", borderRadius: 12, fontSize: 12, color: "#0A0A0B" }} />
+                <XAxis dataKey="date" tick={axisStyleDark} axisLine={false} tickLine={false} />
+                <YAxis domain={["dataMin - 1", "dataMax + 1"]} tick={axisStyleDark} axisLine={false} tickLine={false} width={30} />
+                <Tooltip contentStyle={{ background: CLIENT_DARK_SURFACE_2, border: `1px solid ${CLIENT_DARK_BORDER}`, borderRadius: 12, fontSize: 12, color: "#FFFFFF" }} />
                 <Area type="monotone" dataKey="value" stroke={MEASURE_BLUE} strokeWidth={2} fill="url(#coachWGrad)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -4974,40 +4973,41 @@ function ProgressPanel({ client, showToast }) {
         ) : (
           <button
             onClick={() => setWeightHistoryOpen(true)}
-            className="w-full mt-3 text-center text-black/30 text-xs py-6 border border-dashed border-black/10 rounded-xl"
+            className="relative w-full mt-3 text-center text-white text-xs py-6 border border-dashed rounded-xl"
+            style={{ borderColor: CLIENT_DARK_BORDER }}
           >
             {weighIns.length === 0 ? "No weigh-ins logged yet" : "Needs another weigh-in to see a trend"}
           </button>
         )}
-      </div>
+      </DarkPanel>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <BodyMetricCard config={BODY_FAT_CONFIG} entries={bodyMetricEntries.bodyFatPct} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
-        <BodyMetricCard config={LEAN_MASS_CONFIG} entries={bodyMetricEntries.leanMassKg} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
+        <BodyMetricCard dark config={BODY_FAT_CONFIG} entries={bodyMetricEntries.bodyFatPct} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
+        <BodyMetricCard dark config={LEAN_MASS_CONFIG} entries={bodyMetricEntries.leanMassKg} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
       </div>
 
-      <BodyMeasurementsListCard entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
+      <BodyMeasurementsListCard dark entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
 
-      <div className="bg-white border border-black/10 rounded-2xl p-4 md:p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <DarkPanel className="p-4 md:p-5">
+        <div className="relative flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-              <ImageIcon size={15} className="text-blue-500" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.12)" }}>
+              <ImageIcon size={15} style={{ color: MEASURE_BLUE }} />
             </div>
-            <p className="text-black font-semibold text-sm">Progress Photos</p>
+            <p className="text-white font-semibold text-sm">Progress Photos</p>
           </div>
-          {photos.length > 0 && <Pill tone="muted">{photos.length}</Pill>}
+          {photos.length > 0 && <Pill dark tone="muted">{photos.length}</Pill>}
         </div>
         {photos.length === 0 ? (
-          <div className="border border-dashed border-black/12 rounded-xl py-8 text-center">
-            <p className="text-black/30 text-sm">No photos uploaded by this client yet.</p>
+          <div className="relative border border-dashed rounded-xl py-8 text-center" style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <p className="text-white text-sm">No photos uploaded by this client yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+          <div className="relative grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
             {photos.map((p) => {
               const w = closestWeighIn(weighIns, p.date);
               return (
-                <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden bg-black/5 shadow-sm">
+                <div key={p.id} className="relative aspect-square rounded-xl overflow-hidden bg-white/5">
                   <img src={p.url} alt="Progress" className="w-full h-full object-cover" />
                   <span className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-[10px] font-medium px-1.5 py-1 text-center">
                     {new Date(p.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
@@ -5018,10 +5018,11 @@ function ProgressPanel({ client, showToast }) {
             })}
           </div>
         )}
-      </div>
+      </DarkPanel>
 
       {weightHistoryOpen && (
         <BodyMetricHistoryScreen
+          dark
           config={{ key: "weight", label: "Body Weight", unit: "kg", icon: Scale }}
           entries={weighIns.map((w) => ({ id: w.id, date: w.date, value: w.weight }))}
           onClose={() => setWeightHistoryOpen(false)}
@@ -5040,6 +5041,7 @@ function ProgressPanel({ client, showToast }) {
 
       {historyMetricConfig && (
         <BodyMetricHistoryScreen
+          dark
           config={historyMetricConfig}
           entries={bodyMetricEntries[historyMetricConfig.key]}
           onClose={() => setHistoryMetricConfig(null)}
@@ -5069,8 +5071,8 @@ const SEX_OPTIONS = ["Male", "Female", "Other"];
 function UnderlineField({ label, children }) {
   return (
     <label className="block">
-      <p className="text-black/35 text-[9.5px] font-semibold tracking-wide mb-1">{label.toUpperCase()}</p>
-      <div className="border-b border-black/10 focus-within:border-blue-500 pb-1 transition-colors">{children}</div>
+      <p className="text-white text-[9.5px] font-semibold tracking-wide mb-1">{label.toUpperCase()}</p>
+      <div className="border-b border-[#2A2A2A] focus-within:border-[#2F8FFF] pb-1 transition-colors">{children}</div>
     </label>
   );
 }
@@ -5517,25 +5519,25 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
   }
 
   return (
-    <div className="mb-10 pb-10 border-b border-black/8">
+    <div className="mb-10 pb-10 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
       <div className="flex items-center justify-between gap-3 mb-5">
         <div className="min-w-0">
-          <p className="text-black font-bold text-[15px] tracking-tight">Personal Details</p>
-          <p className="text-black/35 text-[11px] mt-0.5 leading-snug">The essentials for planning their training and nutrition</p>
+          <p className="text-white font-bold text-[15px] tracking-tight">Personal Details</p>
+          <p className="text-white text-[11px] mt-0.5 leading-snug">The essentials for planning their training and nutrition</p>
         </div>
         <button
           onClick={save}
           disabled={saving || !dirty}
           className={`shrink-0 flex items-center gap-1 text-[11px] font-bold px-3.5 py-1.5 rounded-full transition-all active:scale-95 ${
-            dirty ? "bg-black text-white" : "bg-black/[0.05] text-black/35"
+            dirty ? "bg-white text-black" : "bg-white/[0.06] text-white"
           } disabled:active:scale-100`}
         >
           {saving ? "Saving…" : dirty ? "Save" : (<><Check size={12} /> Saved</>)}
         </button>
       </div>
 
-      <div className="grid grid-cols-3 divide-x divide-black/8 border-y border-black/8 -mx-4 md:-mx-6 mb-6">
-        <div className="flex flex-col items-center justify-center py-3 px-2">
+      <div className="grid grid-cols-3 divide-x border-y -mx-4 md:-mx-6 mb-6" style={{ borderColor: CLIENT_DARK_BORDER }}>
+        <div className="flex flex-col items-center justify-center py-3 px-2" style={{ borderColor: CLIENT_DARK_BORDER }}>
           <input
             type="number"
             inputMode="numeric"
@@ -5543,14 +5545,17 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
             value={age}
             onChange={(e) => setAge(e.target.value)}
             placeholder="—"
-            className="w-full bg-transparent outline-none text-blue-600 font-bold text-[15px] leading-5 tabular-nums text-center placeholder:text-black/15"
+            className="w-full bg-transparent outline-none font-bold text-[15px] leading-5 tabular-nums text-center placeholder:text-white"
+            style={{ color: MEASURE_BLUE }}
           />
-          <p className="text-black/40 text-[9px] font-semibold tracking-wider uppercase mt-0.5">Age</p>
+          <p className="text-white text-[9px] font-semibold tracking-wider uppercase mt-0.5">Age</p>
         </div>
-        <div className="flex flex-col items-center justify-center py-3 px-2">
+        <div className="flex flex-col items-center justify-center py-3 px-2" style={{ borderColor: CLIENT_DARK_BORDER }}>
           {/* iOS ignores text-align on <select>, so show a centred label and lay the real select invisibly on top */}
           <div className="relative w-full text-center">
-            <span className={`block font-bold text-[15px] leading-5 ${sex ? "text-blue-600" : "text-black/15"}`}>{sex || "—"}</span>
+            <span className="block font-bold text-[15px] leading-5" style={{ color: sex ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }}>
+              {sex || "—"}
+            </span>
             <select
               value={sex}
               onChange={(e) => setSex(e.target.value)}
@@ -5565,9 +5570,9 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
               ))}
             </select>
           </div>
-          <p className="text-black/40 text-[9px] font-semibold tracking-wider uppercase mt-0.5">Sex</p>
+          <p className="text-white text-[9px] font-semibold tracking-wider uppercase mt-0.5">Sex</p>
         </div>
-        <div className="flex flex-col items-center justify-center py-3 px-2">
+        <div className="flex flex-col items-center justify-center py-3 px-2" style={{ borderColor: CLIENT_DARK_BORDER }}>
           <div className="flex items-baseline justify-center">
             <input
               type="number"
@@ -5576,18 +5581,20 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
               value={heightCm}
               onChange={(e) => setHeightCm(e.target.value)}
               placeholder="—"
-              style={{ width: `${Math.max(String(heightCm || "").length, 1) + 0.6}ch` }}
-              className="bg-transparent outline-none text-blue-600 font-bold text-[15px] leading-5 tabular-nums text-center placeholder:text-black/15 p-0"
+              style={{ width: `${Math.max(String(heightCm || "").length, 1) + 0.6}ch`, color: MEASURE_BLUE }}
+              className="bg-transparent outline-none font-bold text-[15px] leading-5 tabular-nums text-center placeholder:text-white p-0"
             />
-            {heightCm !== "" && heightCm != null && <span className="text-blue-600/60 font-semibold text-[10px] ml-0.5">cm</span>}
+            {heightCm !== "" && heightCm != null && (
+              <span className="font-semibold text-[10px] ml-0.5" style={{ color: "rgba(47,143,255,0.6)" }}>cm</span>
+            )}
           </div>
-          <p className="text-black/40 text-[9px] font-semibold tracking-wider uppercase mt-0.5">Height</p>
+          <p className="text-white text-[9px] font-semibold tracking-wider uppercase mt-0.5">Height</p>
         </div>
       </div>
 
       <div className="space-y-4">
         <UnderlineField label="Name">
-          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-transparent outline-none text-black text-[13px]" />
+          <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-transparent outline-none text-white text-[13px]" />
         </UnderlineField>
         <div>
           <UnderlineField label="Email">
@@ -5598,10 +5605,10 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
               autoCorrect="off"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent outline-none text-black text-[13px]"
+              className="w-full bg-transparent outline-none text-white text-[13px]"
             />
           </UnderlineField>
-          <p className="text-black/35 text-[10.5px] leading-snug mt-1.5">
+          <p className="text-white text-[10.5px] leading-snug mt-1.5">
             {client._source === "invite"
               ? "This is who they'll activate their account as — no login exists yet."
               : "Changing email here updates their profile everywhere in the app, but not what they log in with — only they can change that themselves, from their own account."}
@@ -5619,7 +5626,7 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
                 if (computed != null) setAge(String(computed));
               }}
               max={localDateKey()}
-              className="w-full min-w-0 bg-transparent outline-none text-black text-[13px] text-left [color-scheme:light]"
+              className="w-full min-w-0 bg-transparent outline-none text-white text-[13px] text-left [color-scheme:dark]"
             />
           </UnderlineField>
           <UnderlineField label="Phone">
@@ -5628,7 +5635,7 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="e.g. 0412 345 678"
-              className="w-full bg-transparent outline-none text-black text-[13px] placeholder:text-black/25"
+              className="w-full bg-transparent outline-none text-white text-[13px] placeholder:text-white"
             />
           </UnderlineField>
         </div>
@@ -5639,7 +5646,7 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
               value={goals}
               onChange={(e) => setGoals(e.target.value)}
               placeholder="e.g. Build muscle, lose fat, improve strength on main lifts..."
-              className="w-full bg-transparent outline-none text-black text-[13px] leading-snug placeholder:text-black/25 resize-none"
+              className="w-full bg-transparent outline-none text-white text-[13px] leading-snug placeholder:text-white resize-none"
             />
           </UnderlineField>
           <UnderlineField label="Training history">
@@ -5648,7 +5655,7 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
               value={trainingHistory}
               onChange={(e) => setTrainingHistory(e.target.value)}
               placeholder="e.g. 2 years lifting on and off, new to structured programming"
-              className="w-full bg-transparent outline-none text-black text-[13px] leading-snug placeholder:text-black/25 resize-none"
+              className="w-full bg-transparent outline-none text-white text-[13px] leading-snug placeholder:text-white resize-none"
             />
           </UnderlineField>
           <UnderlineField label="Injuries / limitations">
@@ -5657,7 +5664,7 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
               value={injuries}
               onChange={(e) => setInjuries(e.target.value)}
               placeholder="e.g. Bad left knee, avoid deep squats"
-              className="w-full bg-transparent outline-none text-black text-[13px] leading-snug placeholder:text-black/25 resize-none"
+              className="w-full bg-transparent outline-none text-white text-[13px] leading-snug placeholder:text-white resize-none"
             />
           </UnderlineField>
           <div className="md:col-span-2">
@@ -5667,7 +5674,7 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
                 value={otherInfo}
                 onChange={(e) => setOtherInfo(e.target.value)}
                 placeholder="Anything else worth knowing about this client"
-                className="w-full bg-transparent outline-none text-black text-[13px] leading-snug placeholder:text-black/25 resize-none"
+                className="w-full bg-transparent outline-none text-white text-[13px] leading-snug placeholder:text-white resize-none"
               />
             </UnderlineField>
           </div>
@@ -5675,7 +5682,7 @@ function PersonalDetailsCard({ client, showToast, onClose }) {
         <button
           onClick={save}
           disabled={saving || !dirty}
-          className="w-full bg-black text-white text-[12px] font-bold py-2.5 rounded-xl transition-all active:scale-[0.98] disabled:bg-black/[0.05] disabled:text-black/30 disabled:active:scale-100"
+          className="w-full bg-white text-black text-[12px] font-bold py-2.5 rounded-xl transition-all active:scale-[0.98] disabled:bg-white/[0.06] disabled:text-white disabled:active:scale-100"
         >
           {saving ? "Saving…" : dirty ? "Save changes" : "All changes saved"}
         </button>
