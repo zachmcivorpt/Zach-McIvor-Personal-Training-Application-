@@ -15,8 +15,6 @@ targets:
       - ApexCoach
     dependencies:
       - package: Firebase
-        product: FirebaseCore
-      - package: Firebase
         product: FirebaseMessaging
     info:
       path: Generated-Info.plist
