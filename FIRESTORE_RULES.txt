@@ -24,11 +24,14 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-New `groups` and `groupMessages` collections for the coach-side Groups
-tab — coach-managed groups of clients with a group chat. Both are
-coach-only, read and write, for now: there's no client-facing Groups UI
-yet, so clients have no access to either collection at the rules level
-until that ships.
+Groups now has a client-facing side too: a client who's a member of a
+group can read that group and its messages, and can post their own
+messages into it (never anyone else's). Creating a group, naming it, and
+managing membership stays a coach-only action either way.
+
+Older change: new `groups` and `groupMessages` collections for the
+coach-side Groups tab — coach-managed groups of clients with a group
+chat.
 
 Older change: new `liveSessions` collection — one ephemeral doc per
 client (doc id == clientId, like mealPlans/habitLog), written while that
@@ -346,18 +349,28 @@ service cloud.firestore {
       allow write: if isCoach();
     }
 
-    // --- groups/{id}, groupMessages/{id}: the coach-side Groups tab —
-    //     coach-managed groups of clients with a group chat. Coach-only for
-    //     now, both read and write: there's no client-facing Groups UI yet
-    //     (mirrors clientNotes/clientContext above, which stay coach-only
-    //     at the rules level until a feature actually reads them from the
-    //     client app). Opening client read/write access is a rules change
-    //     to make alongside that future client-side UI, not ahead of it. ---
+    // --- groups/{id}: coach creates/manages (name, description,
+    //     membership) — same shape as challenges/{id} above. A member can
+    //     read their own group but never edit its membership/settings
+    //     directly; that stays a coach-only action via the Groups tab. ---
     match /groups/{id} {
-      allow read, write: if isCoach();
+      allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.memberIds);
+      allow write: if isCoach();
     }
+    // --- groupMessages/{id}: the chat for a single group. memberIds is
+    //     stamped onto every message at send time (see sendGroupMessage in
+    //     AppContext.jsx) from the group's roster at that moment — a
+    //     member can read/post into a group they're currently in; the
+    //     `from`/`fromClientId` check on create stops a client from
+    //     posting a message under anyone else's identity. Editing or
+    //     deleting a message stays coach-only, same as the 1:1 messages
+    //     collection above. ---
     match /groupMessages/{id} {
-      allow read, write: if isCoach();
+      allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.memberIds);
+      allow create: if isCoach() ||
+        (isSignedIn() && request.auth.uid in request.resource.data.memberIds &&
+         request.resource.data.from == "client" && request.resource.data.fromClientId == request.auth.uid);
+      allow update, delete: if isCoach();
     }
 
     // --- whoopTokens/{clientId}: a connected client's WHOOP OAuth

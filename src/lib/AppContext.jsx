@@ -392,9 +392,9 @@ export function AppProvider({ children }) {
       watch("bodyStatsSchedules", "bodyStatsSchedules");
       watch("notifications", "notifications");
       watch("challenges", "challenges");
-      // Coach-only for now — there's no client-facing Groups UI yet, so
-      // clients never watch these two collections (mirrors how
-      // clientNotes/clientContext are also coach-only watches above).
+      // The coach watches every group/message unfiltered (same as
+      // challenges above) — a client's own watch further down is scoped to
+      // just the groups they're a member of.
       watch("groups", "groups");
       watch("groupMessages", "groupMessages");
       watch("nutritionLogs", "nutritionLogs");
@@ -420,6 +420,12 @@ export function AppProvider({ children }) {
       watch("mealPlans", "mealPlans", [where("clientId", "==", uid)]);
       watch("liveSessions", "liveSessions", [where("clientId", "==", uid)]);
       watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
+      // Same array-contains-membership shape as challenges above — only
+      // the groups this client is actually in, and (since memberIds is
+      // stamped onto every groupMessage at send time, not looked up live)
+      // only the messages belonging to those groups.
+      watch("groups", "groups", [where("memberIds", "array-contains", uid)]);
+      watch("groupMessages", "groupMessages", [where("memberIds", "array-contains", uid)]);
       // clientNotes/clientContext intentionally NOT synced here — they're
       // the coach's private notes (and APEX's approved context derived from
       // them) about the client, never shown in the client app.
@@ -555,9 +561,8 @@ export function AppProvider({ children }) {
       bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
       notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       challenges: (raw.challenges || []).slice().sort((a, b) => b.createdAt - a.createdAt),
-      // Coach-only for now (see the Groups tab) — groupMessages buckets by
-      // groupId rather than clientId, since a group message belongs to the
-      // group, not to any one client.
+      // groupMessages buckets by groupId rather than clientId, since a
+      // group message belongs to the group, not to any one client.
       groups: (raw.groups || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       groupMessages: bucketBy(raw.groupMessages, "groupId", (a, b) => a.date - b.date),
       coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
@@ -1834,11 +1839,30 @@ export function AppProvider({ children }) {
           throw new Error("Couldn't delete that group — " + (err.message || "please try again."));
         }
       },
-      sendGroupMessage(groupId, text) {
+      // fromClientId/fromName are only passed when a CLIENT is sending —
+      // the coach's own composer omits them, same shape as the existing
+      // 1:1 sendMessage's "coach"/"client" `from`. memberIds is stamped
+      // from the group's CURRENT roster at send time, which does double
+      // duty: it's what makes this message match a member's own
+      // array-contains watch (see the client-side `groupMessages` watch
+      // above), AND — since a client can't read another client's `users`
+      // doc, so can't look up a fellow member's name the way the coach's
+      // own view does via clientsById — it's the only way another
+      // member's display name ever reaches a client's screen at all.
+      sendGroupMessage(groupId, text, fromClientId, fromName) {
         const trimmed = (text || "").trim();
         if (!trimmed) return;
+        const group = (db.groups || []).find((g) => g.id === groupId);
         const id = newDocId("groupMessages");
-        const msg = { id, groupId, from: "coach", text: trimmed, date: Date.now() };
+        const msg = {
+          id,
+          groupId,
+          from: fromClientId ? "client" : "coach",
+          text: trimmed,
+          date: Date.now(),
+          memberIds: group?.memberIds || [],
+          ...(fromClientId ? { fromClientId, fromName: fromName || "" } : {}),
+        };
         setDoc(doc(firestore, "groupMessages", id), msg).catch(console.error);
       },
 

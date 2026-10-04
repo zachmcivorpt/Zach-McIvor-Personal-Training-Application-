@@ -21,6 +21,7 @@ import {
   Footprints,
   Heart,
   Trophy,
+  Users2,
   Search,
   Bell,
   Settings,
@@ -777,6 +778,146 @@ function ActiveChallengesCard({ challenges, userId }) {
   );
 }
 
+// The client-facing half of the coach's Groups tab — a client only ever
+// sees the groups they're actually a member of (same shape/placement as
+// ActiveChallengesCard above: a simple vertical stack, rendered nowhere at
+// all if there's nothing to show). Creating a group, naming it, and
+// managing membership stays a coach-only action; a client just reads and
+// chats.
+function ClientGroupsCard({ groups, onOpen }) {
+  const dark = useClientDark();
+  if (groups.length === 0) return null;
+
+  return (
+    <div className="px-2.5 space-y-2.5">
+      {groups.map((g) => {
+        const memberCount = (g.memberIds || []).length;
+        return (
+          <button
+            key={g.id}
+            onClick={() => onOpen(g.id)}
+            className={`w-full flex items-center gap-3 rounded-2xl p-4 border text-left ${dark ? "border-white/8" : "border-black/8"}`}
+            style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+          >
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.15)" }}>
+              <Users2 size={17} style={{ color: MEASURE_BLUE }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`font-semibold text-sm truncate ${dark ? "text-white" : "text-black"}`}>{g.name}</p>
+              <p className={`text-xs mt-0.5 ${dark ? "text-white/45" : "text-black/45"}`}>
+                {memberCount} member{memberCount === 1 ? "" : "s"}
+              </p>
+            </div>
+            <ChevronRight size={16} className={dark ? "text-white/30" : "text-black/30"} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Bolds "@everyone" and "@CoachFirstName" tokens that actually match a
+// real candidate — a client can't read other clients' names (no `users`
+// access outside their own doc), so unlike the coach's own view, this
+// can't recognize a mention of a fellow member by name, only "everyone"
+// and the coach. A plain "@" that doesn't match stays plain text.
+function GroupMessageText({ text, candidates }) {
+  const tokens = text.split(/(\s+)/);
+  return (
+    <p className="whitespace-pre-line">
+      {tokens.map((tok, i) => {
+        if (!tok.startsWith("@")) return <React.Fragment key={i}>{tok}</React.Fragment>;
+        const word = tok.slice(1).replace(/[.,!?;:]+$/, "");
+        const isMention = candidates.some((c) => c.toLowerCase() === word.toLowerCase());
+        if (!isMention) return <React.Fragment key={i}>{tok}</React.Fragment>;
+        return (
+          <span key={i} className="font-bold" style={{ color: MEASURE_BLUE }}>
+            {tok}
+          </span>
+        );
+      })}
+    </p>
+  );
+}
+
+// The actual group chat — deliberately as close to the existing 1:1
+// MessagesSheet as possible (same BottomSheet wrapper, same bubble/sticky-
+// composer structure) rather than a new pattern, since the only real
+// difference is more than one possible sender.
+function GroupChatSheet({ open, group, messages, currentUserId, coachName, onClose, onSend }) {
+  const dark = useClientDark();
+  const [input, setInput] = useState("");
+  const endRef = useRef(null);
+  const mentionCandidates = useMemo(() => ["everyone", ...(coachName ? [coachName.split(" ")[0]] : [])], [coachName]);
+
+  useEffect(() => {
+    if (open) setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 50);
+  }, [open, messages.length]);
+
+  function send() {
+    if (!input.trim()) return;
+    onSend(input);
+    setInput("");
+  }
+
+  if (!group) return null;
+
+  return (
+    <BottomSheet dark={dark} open={open} onClose={onClose} title={group.name}>
+      <div className="flex flex-col" style={{ minHeight: "50vh" }}>
+        <div className="flex-1 overflow-y-auto space-y-2.5 pb-3">
+          {messages.length === 0 && (
+            <p className={`text-sm text-center py-10 ${dark ? "text-white/40" : "text-black/40"}`}>No messages yet — say hello to the group.</p>
+          )}
+          {messages.map((m) => {
+            const mine = m.from === "client" && m.fromClientId === currentUserId;
+            const senderName = m.from === "coach" ? coachName || "Coach" : m.fromName || "Member";
+            return (
+              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className="max-w-[80%]">
+                  {!mine && <p className={`text-[11px] font-medium mb-0.5 px-1 ${dark ? "text-white/40" : "text-black/40"}`}>{senderName}</p>}
+                  <div
+                    className={`rounded-2xl px-4 py-2.5 text-sm ${
+                      mine ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/85" : "bg-black/8 text-black/85"
+                    }`}
+                  >
+                    <GroupMessageText text={m.text} candidates={mentionCandidates} />
+                    <p className={`text-[10px] mt-1 ${mine ? (dark ? "text-black/40" : "text-white/40") : dark ? "text-white/30" : "text-black/30"}`}>
+                      {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={endRef} />
+        </div>
+        <div className="flex gap-2 pt-2 sticky bottom-0" style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder="Message the group..."
+            className={
+              dark
+                ? "flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white"
+                : "flex-1 min-w-0 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black"
+            }
+          />
+          <button
+            onClick={send}
+            disabled={!input.trim()}
+            className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 disabled:opacity-40"
+            style={{ backgroundColor: dark ? "#fff" : "#000" }}
+          >
+            <Send size={16} className={dark ? "text-black" : "text-white"} />
+          </button>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}
+
 // Surfaces the push-notifications opt-in proactively on Home instead of
 // leaving it buried in Profile settings — dismissed once enabled, or once
 // the client explicitly closes it (both remembered per-device). Enabling
@@ -957,6 +1098,8 @@ function HomeScreen({
   userId,
   cardioLogs,
   dbReady,
+  groups,
+  onOpenGroup,
 }) {
   const dark = useClientDark();
   return (
@@ -976,6 +1119,7 @@ function HomeScreen({
           </button>
         </div>
       )}
+      <ClientGroupsCard groups={groups} onOpen={onOpenGroup} />
       <ActiveChallengesCard challenges={challenges} userId={userId} />
       <TodayWorkoutCard
         todaySession={daySession}
@@ -7611,6 +7755,7 @@ export default function ClientApp() {
     setNutritionForDate,
     logout,
     sendMessage,
+    sendGroupMessage,
     addProgressPhoto,
     deleteProgressPhoto,
     createSavedMeal,
@@ -7676,6 +7821,7 @@ export default function ClientApp() {
   const [toast, setToast] = useState({ show: false, message: "" });
   const [coachOpen, setCoachOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
+  const [openGroupId, setOpenGroupId] = useState(null);
   const [seenMessageCount, setSeenMessageCount] = useState(0);
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
@@ -8464,6 +8610,8 @@ export default function ClientApp() {
             userId={currentUser.id}
             cardioLogs={cardioLogsForSelectedDate}
             dbReady={dbReady}
+            groups={db.groups || []}
+            onOpenGroup={setOpenGroupId}
           />
         )}
         {tab === "workouts" && (
@@ -8694,6 +8842,15 @@ export default function ClientApp() {
           thread={thread}
           onSend={(text, attachment) => sendMessage(currentUser.id, "client", text, attachment)}
           coachName={coachUser?.name}
+        />
+        <GroupChatSheet
+          open={!!openGroupId}
+          group={(db.groups || []).find((g) => g.id === openGroupId)}
+          messages={db.groupMessages[openGroupId] || []}
+          currentUserId={currentUser.id}
+          coachName={coachUser?.name}
+          onClose={() => setOpenGroupId(null)}
+          onSend={(text) => sendGroupMessage(openGroupId, text, currentUser.id, currentUser.name)}
         />
         <NotificationsCenterSheet open={notifOpen} onClose={() => setNotifOpen(false)} items={notificationItems} />
         <Toast dark={dark} message={toast.message} show={toast.show} />
