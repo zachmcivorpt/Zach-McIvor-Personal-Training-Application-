@@ -32,7 +32,6 @@ import {
   Bell,
   ChevronRight,
   ArrowUpRight,
-  Minus,
   CheckCircle2,
 } from "lucide-react";
 
@@ -49,23 +48,31 @@ function DarkPanel({ children, className = "", chamfer = false, style }) {
       style={{
         background: chamfer ? "linear-gradient(165deg, #1A1A1A, #121212 55%)" : CLIENT_DARK_SURFACE,
         borderColor: chamfer ? "rgba(255,255,255,0.14)" : CLIENT_DARK_BORDER,
-        clipPath: chamfer ? "polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px))" : undefined,
+        clipPath: chamfer ? "polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%)" : undefined,
         ...style,
       }}
     >
       {chamfer ? (
-        // A single diagonal light-reflection streak across the card — the
-        // "light reflection" the reference calls for. Only on the chamfered
-        // instrument tiles (stat cards); the full-width panels below (Needs
-        // Attention, Recent Activity, ...) keep the plainer corner glow so a
-        // streak this wide doesn't read as a stray diagonal bar across them.
-        <div
-          className="pointer-events-none absolute inset-y-0 left-[-20%] w-[70%]"
-          style={{
-            background:
-              "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.1) 46%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.1) 54%, transparent 70%)",
-          }}
-        />
+        <>
+          {/* A bright hairline right at the top edge — the reference's own
+              "glint" along the top of each tile — plus the diagonal
+              reflection streak crossing through it. Only on the chamfered
+              instrument tiles (stat cards); the full-width panels below
+              (Needs Attention, Recent Activity, ...) keep the plainer
+              corner glow so a streak this wide doesn't read as a stray
+              diagonal bar across them. */}
+          <div
+            className="pointer-events-none absolute top-0 left-[10%] right-[10%] h-px"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 left-[-20%] w-[70%]"
+            style={{
+              background:
+                "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.1) 46%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.1) 54%, transparent 70%)",
+            }}
+          />
+        </>
       ) : (
         <div
           className="pointer-events-none absolute -top-10 -right-10 w-28 h-28"
@@ -152,19 +159,20 @@ function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral", onCl
   const trendColor = trendKind === "up" ? GOAL_GREEN : trendKind === "alert" ? OVER_RED : trendKind === "link" ? MEASURE_BLUE : CLIENT_DARK_TEXT_MUTED;
   return (
     <DarkPanel chamfer className="active:scale-[0.98] transition-transform">
-      <button onClick={onClick} className="relative w-full text-left p-4 sm:p-5 transition-colors hover:bg-white/[0.03]">
+      <button onClick={onClick} className="relative w-full text-left p-4 sm:p-[18px] transition-colors hover:bg-white/[0.03]">
         <Icon size={16} style={{ color: MEASURE_BLUE }} />
         <p className="text-white text-[32px] sm:text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>
         <p className="text-white/40 text-[10px] font-bold tracking-[0.15em] uppercase mt-2.5">{label}</p>
-        {trend && (
-          <div className="flex items-center gap-1 mt-3 text-xs font-semibold" style={{ color: trendColor }}>
+        <div className="flex items-center justify-between mt-2.5">
+          <div className="flex items-center gap-1 text-xs font-semibold" style={{ color: trendColor }}>
             {trendKind === "up" && <ArrowUpRight size={12} />}
             {trendKind === "alert" && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: OVER_RED }} />}
-            {trendKind === "neutral" && <Minus size={12} />}
-            {trendKind === "link" && <ChevronRight size={12} />}
-            <span>{trend}</span>
+            {trendKind === "link" ? <ChevronRight size={14} /> : <span>{trend}</span>}
           </div>
-        )}
+          {/* The card's own clickability affordance — tucked beside the
+              chamfered bottom-right corner, same spot the reference uses. */}
+          <ChevronRight size={14} className="text-white/20" />
+        </div>
       </button>
     </DarkPanel>
   );
@@ -570,6 +578,11 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   const active = clients.filter((c) => c.status === "active");
   const todayKey = localDateKey();
   const newActiveThisWeek = active.filter((c) => c.createdAt && Date.now() - c.createdAt <= 7 * 86400000).length;
+  const unreadNotifCount = (db.notifications || []).filter((n) => !n.read).length;
+  const coachNameParts = (currentUser?.name || "").trim().split(/\s+/).filter(Boolean);
+  const coachInitials = coachNameParts.length > 1
+    ? `${coachNameParts[0][0]}${coachNameParts[coachNameParts.length - 1][0]}`.toUpperCase()
+    : (coachNameParts[0]?.[0] || "?").toUpperCase();
   const [viewingActivity, setViewingActivity] = useState(null); // the clicked Recent Activity item (workout or check-in) for the detail sheet
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [viewingApexAlert, setViewingApexAlert] = useState(null); // the tapped APEX Insight row, for its detail sheet
@@ -864,26 +877,35 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
     // unnoticed.
     <div className="-mt-14 -mb-16 pt-14 pb-16 md:mt-0 md:mb-0 md:pt-0 md:pb-0" style={{ backgroundColor: CLIENT_DARK_BG, minHeight: "100%" }}>
     <div className="max-w-7xl mx-auto px-4 py-5 md:px-8 md:py-8">
-      {/* Hero header — a dark glass panel with a bare, low-opacity mountain
-          silhouette washed into the right edge (atmospheric, not a photo —
-          see the radial mask below that fades it into the panel rather
-          than letting it read as a hard-edged image). */}
+      {/* Hero header — a dark glass panel with a faint layered mountain
+          silhouette (plain CSS triangles, not a photo — "atmospheric, not
+          a giant photograph") washed into the right edge. */}
       <div className="relative overflow-hidden rounded-2xl mb-4 border" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
         <div
-          className="absolute inset-0 opacity-[0.14]"
+          className="absolute inset-0 overflow-hidden"
           style={{
-            backgroundImage: "url(/brand/mark-white.png)",
-            backgroundRepeat: "no-repeat",
-            backgroundPosition: "right -40px bottom -60px",
-            backgroundSize: "340px",
-            maskImage: "linear-gradient(to left, black, transparent 70%)",
-            WebkitMaskImage: "linear-gradient(to left, black, transparent 70%)",
+            maskImage: "linear-gradient(to left, black, transparent 65%)",
+            WebkitMaskImage: "linear-gradient(to left, black, transparent 65%)",
           }}
-        />
+        >
+          <div
+            className="absolute -bottom-6 -right-10 w-[320px] h-[150px] opacity-60"
+            style={{ background: "linear-gradient(160deg, #222a33, #121519)", clipPath: "polygon(30% 0%, 75% 40%, 100% 100%, 0% 100%)" }}
+          />
+          <div
+            className="absolute -bottom-6 right-[-5%] w-[260px] h-[220px] opacity-55"
+            style={{ background: "linear-gradient(160deg, #2a3442, #15191f)", clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" }}
+          />
+          <div
+            className="absolute -bottom-6 right-[8%] w-[180px] h-[160px] opacity-50"
+            style={{ background: "linear-gradient(160deg, #3a4858, #1a1f26)", clipPath: "polygon(40% 0%, 100% 100%, 0% 100%)" }}
+          />
+        </div>
         <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
         <div className="relative flex items-center justify-between gap-3 px-5 py-6 sm:px-7 sm:py-7">
           <div className="flex items-center gap-4 min-w-0">
             <Logo variant="mark" tone="white" className="h-10 w-auto shrink-0 hidden sm:block" />
+            <div className="w-px self-stretch shrink-0 hidden sm:block" style={{ backgroundColor: "rgba(255,255,255,0.14)" }} />
             <div className="min-w-0">
               <h1 className="text-white text-xl sm:text-[28px] font-bold leading-tight truncate">
                 {timeOfDayGreeting()}, {currentUser?.name?.split(" ")[0] || "Coach"}
@@ -891,14 +913,22 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
               <p className="text-white/40 text-[11px] sm:text-xs font-semibold tracking-[0.1em] uppercase mt-1.5">Your roster and what needs your attention.</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-3.5 shrink-0">
             <span className="text-white/35 text-xs font-medium tabular-nums hidden sm:inline">
               {new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
             </span>
-            <div className="w-9 h-9 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60">
-              <Bell size={15} />
+            <div className="relative text-white/65">
+              <Bell size={18} />
+              {unreadNotifCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full border" style={{ backgroundColor: OVER_RED, borderColor: CLIENT_DARK_SURFACE }} />
+              )}
             </div>
-            <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={34} dark />
+            <div
+              className="rounded-full flex items-center justify-center text-white font-bold shrink-0"
+              style={{ width: 34, height: 34, fontSize: 12, backgroundColor: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
+            >
+              {coachInitials}
+            </div>
           </div>
         </div>
       </div>
@@ -911,7 +941,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           icon={Users}
           label="Active Clients"
           value={active.length}
-          trend={newActiveThisWeek > 0 ? `+${newActiveThisWeek} this week` : "No change"}
+          trend={newActiveThisWeek > 0 ? `+${newActiveThisWeek}` : "—"}
           trendKind={newActiveThisWeek > 0 ? "up" : "neutral"}
           onClick={() => onNavigate("clients")}
         />
