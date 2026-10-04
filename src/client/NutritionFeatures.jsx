@@ -309,6 +309,11 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   })();
   const lookedUpCodeRef = useRef(""); // the digits actually resolved — tagged onto a food saved to the library so the next scan/entry of the same barcode is instant
   const scannerRef = useRef(null);
+  // Mirrors this scan session's openedAt/detectedAt out of the scanning
+  // effect below so resolveCode — a sibling function, not part of that
+  // effect — can compute and log the full detection/lookup/total latency
+  // breakdown Phase 16 of a real audit calls for, instead of guessing.
+  const scanTimingRef = useRef({ openedAt: null, detectedAt: null });
   const elId = "barcode-scanner-region";
   // Same check used to decide the scan region below — when true, detection
   // runs on the full camera frame (see the big comment in the effect), so
@@ -344,6 +349,19 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   // then falls back to the real network lookup.
   async function resolveCode(code) {
     const digits = String(code).replace(/\D/g, "");
+    // Real latency breakdown, logged at every terminal outcome — not a
+    // guess. detectionLatencyMs is how long the camera took to find a
+    // trustworthy barcode at all; lookupLatencyMs is purely the product
+    // lookup (cache or network); totalLatencyMs is what the person
+    // actually experienced start to finish (POINT -> PRODUCT).
+    const { openedAt, detectedAt } = scanTimingRef.current;
+    const detectionLatencyMs = openedAt != null && detectedAt != null ? Math.round(detectedAt - openedAt) : null;
+    function logOutcome(outcome, extra) {
+      const lookupLatencyMs = Math.round(performance.now() - (detectedAt ?? performance.now()));
+      const totalLatencyMs = openedAt != null ? Math.round(performance.now() - openedAt) : null;
+      // eslint-disable-next-line no-console
+      console.debug("[barcode-scan-perf]", { outcome, code: digits, detectionLatencyMs, lookupLatencyMs, totalLatencyMs, ...extra });
+    }
     // A deli/meat/produce scale barcode bakes that day's price or weight
     // into the code itself — the SAME item comes out as a different full
     // barcode every time it's weighed. Cache and re-look-up by just its
@@ -361,6 +379,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     }
     const known = (db.customFoods || []).find((f) => f.barcode === cacheKey);
     if (known) {
+      logOutcome("cache-hit", { verificationLevel: known.verificationLevel, confidenceScore: known.confidenceScore });
       if (debugEnabled) {
         setDebugInfo((d) => ({
           ...d,
@@ -369,6 +388,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
           }`,
         }));
       }
+      if (closedRef.current) return;
       onAdd({ ...known, per: known.per ?? 100, defaultQty: known.defaultQty ?? 100 });
       // A user's own correction is never silently refreshed over — it's
       // the most trustworthy thing on record for this barcode (a human
@@ -411,6 +431,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       // skip the network round-trip that can only ever come back empty
       // and go straight to manual entry, saved under the stable key above
       // so this same deli item is a one-time entry, not a repeat chore.
+      logOutcome("variable-weight-skip-network");
       if (debugEnabled) {
         setDebugInfo((d) => ({ ...d, lookup: "skipped network lookup — variable-weight (deli/scale) barcode" }));
       }
@@ -426,8 +447,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     const lookupStartedAt = performance.now();
     try {
       const food = await lookupBarcode(digits);
-      // eslint-disable-next-line no-console
-      console.debug("[barcode-scan-perf]", { outcome: "lookup-resolved", code: digits, lookupMs: Math.round(performance.now() - lookupStartedAt) });
+      logOutcome("network-hit", { verificationLevel: food.verificationLevel, confidenceScore: food.confidenceScore });
       if (debugEnabled) {
         setDebugInfo((d) => ({
           ...d,
@@ -451,8 +471,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       if (closedRef.current) return;
       onAdd(saved);
     } catch (err) {
-      // eslint-disable-next-line no-console
-      console.debug("[barcode-scan-perf]", { outcome: "lookup-failed", code: digits, lookupMs: Math.round(performance.now() - lookupStartedAt), notFound: !!err.notFound });
+      logOutcome(err.notFound ? "not-found" : "lookup-error", { notFound: !!err.notFound });
       if (debugEnabled) {
         setDebugInfo((d) => ({
           ...d,
@@ -497,6 +516,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     // captured once per sheet-open, not per camera-constraint retry, so it
     // reflects what the person actually experienced end to end.
     const perf = { openedAt: performance.now(), cameraReadyAt: null, detectedAt: null, framesProcessed: 0 };
+    scanTimingRef.current = { openedAt: perf.openedAt, detectedAt: null };
     function logPerf(outcome, extra) {
       const t = (ms) => (ms == null ? null : Math.round(ms - perf.openedAt));
       // eslint-disable-next-line no-console
@@ -522,34 +542,53 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
 
     async function onDecoded(decodedText) {
       if (stopped) return;
+      const detectedDigits = decodedText.replace(/\D/g, "");
+      // Reject a decode the checksum itself proves is wrong BEFORE locking
+      // the scan session to it, instead of accepting every raw detection
+      // blindly. A barcode whose length matches a real GTIN format
+      // (EAN-8/UPC-A/EAN-13) but whose check digit doesn't match is strong
+      // evidence of a genuine misread (motion blur, a reflection off glossy
+      // packaging catching one digit wrong) — not a real product that
+      // happens to be missing from the database. Silently ignoring it and
+      // continuing to scan is the "LOW CONFIDENCE -> ignore" behaviour;
+      // locking onto it would instead dead-end the person on a "not found"
+      // screen for a barcode that was never real. A format this function
+      // can't check (CODE_128/CODE_39/ITF, or an unrecognised length)
+      // reports `valid: null` ("can't confirm either way") and is never
+      // rejected here — only a *confirmed* failure is.
+      const formatCheck = detectBarcodeFormat(detectedDigits);
+      if (formatCheck.valid === false) {
+        logPerf("rejected-bad-checksum", { code: detectedDigits, format: formatCheck.format });
+        if (debugEnabled) {
+          setDebugInfo((d) => ({
+            ...d,
+            lastDetection: detectedDigits,
+            lastFormatCheck: `${formatCheck.format} · check digit FAIL — ignored, still scanning`,
+          }));
+        }
+        return; // camera keeps running, foreverScan schedules the next frame itself
+      }
       stopped = true;
       perf.detectedAt = performance.now();
-      const detectedDigits = decodedText.replace(/\D/g, "");
-      logPerf("detected", { code: detectedDigits });
+      scanTimingRef.current.detectedAt = perf.detectedAt;
+      logPerf("detected", { code: detectedDigits, format: formatCheck.format });
       if (debugEnabled) {
-        const formatCheck = detectBarcodeFormat(detectedDigits);
         setDebugInfo((d) => ({
           ...d,
           lastDetection: detectedDigits,
-          lastFormatCheck: `${formatCheck.format} · check digit ${formatCheck.valid === true ? "PASS" : formatCheck.valid === false ? "FAIL" : "n/a"}`,
+          lastFormatCheck: `${formatCheck.format} · check digit ${formatCheck.valid === true ? "PASS" : "n/a"}`,
           detectedMs: Math.round(perf.detectedAt - perf.openedAt),
         }));
       }
       await safeStop(activeScanner);
-      // A brief, explicit "got it" beat before the lookup spinner takes
-      // over — confirms the decode itself succeeded (this exact code was
-      // read off the barcode) as a separate fact from whatever the lookup
-      // turns up next, per the "clear feedback when detected" requirement.
-      setDetectedCode(decodedText.replace(/\D/g, ""));
+      // Instant feedback that the decode itself succeeded — one React
+      // paint, not a timed pause. The lookup starts in the very same tick
+      // (resolveCode is called directly below, not deferred behind a
+      // setTimeout) — a fixed delay here would be dead time added to every
+      // single scan for no reason, exactly what a fast scanner can't afford.
+      setDetectedCode(detectedDigits);
       setStatus("detected");
-      // Just long enough to register as a deliberate "got it" beat, not a
-      // pause — every extra ms here is dead time tacked onto every single
-      // scan before the lookup even starts. 250ms used to be spent doing
-      // nothing; a real product lookup (or an instant hit off the local
-      // food library) can easily finish before a slower flash would have.
-      setTimeout(() => {
-        if (!cancelled) resolveCode(decodedText);
-      }, 120);
+      if (!cancelled) resolveCode(decodedText);
     }
 
     // THE fix for "detects slowly or not at all": html5-qrcode's `qrbox`
@@ -614,16 +653,23 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     // so a device that can't deliver 1080p still ends up scanning instead
     // of failing outright.
     // `advanced` constraints are "best effort" per spec — a browser that
-    // doesn't understand focusMode just ignores that entry rather than
-    // failing the whole getUserMedia call, so this is safe to ask for
+    // doesn't understand one of these keys just ignores that entry rather
+    // than failing the whole getUserMedia call, so this is safe to ask for
     // unconditionally rather than feature-detecting it first. Continuous
     // autofocus matters a lot for a barcode held at an arbitrary distance
     // (a tub pulled out of the fridge, not a flat card held at a fixed
     // spot) — without it, some devices default to a fixed focus plane that
-    // never resolves a barcode held closer or farther than that.
+    // never resolves a barcode held closer or farther than that. Continuous
+    // exposure/white-balance matter just as much for real supermarket
+    // conditions this app is actually used in — bright overhead strip
+    // lighting, dim fridge/freezer aisles, glossy or foil packaging
+    // throwing a hard reflection — a camera locked to whatever exposure it
+    // happened to start with won't adapt as the product or lighting
+    // changes mid-scan the way a continuous mode does.
+    const CONTINUOUS_CAMERA_ADVANCED = [{ focusMode: "continuous", exposureMode: "continuous", whiteBalanceMode: "continuous" }];
     const constraintAttempts = [
-      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: "continuous" }] },
-      { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 }, advanced: [{ focusMode: "continuous" }] },
+      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: CONTINUOUS_CAMERA_ADVANCED },
+      { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 }, advanced: CONTINUOUS_CAMERA_ADVANCED },
       { facingMode: "environment" },
       {},
     ];
