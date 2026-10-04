@@ -79,10 +79,10 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
             style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)" }}
           />
           <div
-            className="pointer-events-none absolute inset-y-0 left-[-20%] w-[70%]"
+            className="pointer-events-none absolute inset-y-0 right-[-15%] w-[65%]"
             style={{
               background:
-                "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.1) 46%, rgba(255,255,255,0.22) 50%, rgba(255,255,255,0.1) 54%, transparent 70%)",
+                "linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.14) 46%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.14) 54%, transparent 70%)",
             }}
           />
         </>
