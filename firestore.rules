@@ -281,5 +281,26 @@ service cloud.firestore {
          request.resource.data.from == "client" && request.resource.data.fromClientId == request.auth.uid);
       allow update, delete: if isCoach();
     }
+
+    // --- whoopTokens/{clientId}: a connected client's WHOOP OAuth
+    //     access/refresh tokens. Deliberately NO allow rules — only
+    //     Cloud Functions (Admin SDK, bypasses these rules) ever touch
+    //     this collection. Not even the coach can read it from the app;
+    //     there's nothing in here a coach dashboard needs; the synced
+    //     recovery/sleep/strain numbers themselves land in the already-
+    //     readable bodyMetrics collection instead. ---
+    match /whoopTokens/{clientId} {
+      allow read, write: if false;
+    }
+
+    // --- liveSessions/{clientId}: doc id IS the client's uid. A real-time
+    //     mirror of a workout session WHILE it's in progress — only the
+    //     owning client ever writes it (from their own device, the moment
+    //     they're mid-session); the coach only ever reads it, to watch a
+    //     remote session live from CoachClientDetail. ---
+    match /liveSessions/{clientId} {
+      allow read: if isCoach() || ownsClientId(clientId);
+      allow write: if ownsClientId(clientId);
+    }
   }
 }
