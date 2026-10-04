@@ -79,18 +79,24 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
               the chamfer's own diagonal cut lit bright — never a gradient
               band painted across the card's face. */}
           <div
-            className="pointer-events-none absolute top-0 left-[12%] right-0 h-[2px]"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.25) 55%, rgba(255,255,255,0.85) 100%)" }}
-          />
-          <div
-            className="pointer-events-none absolute top-0 right-0 bottom-[18px] w-[2px]"
-            style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.15) 60%, transparent)" }}
-          />
-          <div
-            className="pointer-events-none absolute -right-[2px] bottom-[6px] w-[34px] h-[34px]"
+            className="pointer-events-none absolute top-0 left-[12%] right-0 h-[4px]"
             style={{
-              background:
-                "linear-gradient(135deg, transparent 46%, rgba(255,255,255,0.95) 49.5%, rgba(255,255,255,0.95) 51.5%, transparent 55%)",
+              background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.18) 55%, rgba(255,255,255,0.9) 100%)",
+              filter: "blur(1.5px)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute top-0 right-0 bottom-[18px] w-[4px]"
+            style={{
+              background: "linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.12) 55%, transparent)",
+              filter: "blur(1.5px)",
+            }}
+          />
+          <div
+            className="pointer-events-none absolute -right-[4px] bottom-[4px] w-[40px] h-[40px]"
+            style={{
+              background: "linear-gradient(135deg, transparent 44%, rgba(255,255,255,0.95) 49% 52%, transparent 58%)",
+              filter: "blur(1.2px)",
             }}
           />
         </>
