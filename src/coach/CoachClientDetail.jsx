@@ -30,6 +30,7 @@ import {
   ConsistencyHeatmap,
   PersonalBestsCard,
   axisStyle,
+  axisStyleDark,
 } from "../components/ProgressWidgets";
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, ReferenceLine, Tooltip, ResponsiveContainer } from "recharts";
 import { ThreadView } from "./CoachMessages";
@@ -3626,7 +3627,7 @@ function NutritionAdherenceCard({ client }) {
       <div className="relative flex items-center justify-between flex-wrap gap-2 mb-1">
         <div>
           <p className="text-white font-semibold">Nutrition Adherence</p>
-          <p className="text-white/40 text-xs mt-0.5">A behavioural snapshot, not just calories vs. target</p>
+          <p className="text-white text-xs mt-0.5">A behavioural snapshot, not just calories vs. target</p>
         </div>
         <div className="flex gap-1.5">
           {NUTRITION_ADHERENCE_PERIODS.map((p) => (
@@ -3634,7 +3635,7 @@ function NutritionAdherenceCard({ client }) {
               key={p.key}
               onClick={() => setPeriodKey(p.key)}
               className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                periodKey === p.key ? "bg-white text-black" : "bg-white/10 text-white/50"
+                periodKey === p.key ? "bg-white text-black" : "bg-white/10 text-white"
               }`}
             >
               {p.label}
@@ -3646,10 +3647,10 @@ function NutritionAdherenceCard({ client }) {
       {current.loggedCount === 0 ? (
         <div className="relative py-10 flex flex-col items-center text-center">
           <div className="w-12 h-12 rounded-full bg-white/[0.06] flex items-center justify-center mb-3">
-            <Sparkles size={18} className="text-white/25" />
+            <Sparkles size={18} className="text-white" />
           </div>
-          <p className="text-white/50 text-sm font-medium">Not enough data yet</p>
-          <p className="text-white/30 text-xs mt-1 max-w-xs">
+          <p className="text-white text-sm font-medium">Not enough data yet</p>
+          <p className="text-white text-xs mt-1 max-w-xs">
             No nutrition logged in the last {days} days. Adherence unlocks once this client starts logging.
           </p>
         </div>
@@ -3676,7 +3677,7 @@ function NutritionAdherenceCard({ client }) {
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-white text-4xl font-bold tabular-nums">{current.score}%</span>
-                <span className="text-white/35 text-[11px] tracking-wide mt-1">ADHERENCE</span>
+                <span className="text-white text-[11px] tracking-wide mt-1">ADHERENCE</span>
               </div>
             </div>
 
@@ -3687,9 +3688,9 @@ function NutritionAdherenceCard({ client }) {
               >
                 {status.label}
               </span>
-              <p className="text-white/50 text-sm">Based on the last {days} days of logged nutrition.</p>
+              <p className="text-white text-sm">Based on the last {days} days of logged nutrition.</p>
               {current.loggedCount < 3 && (
-                <p className="text-white/30 text-xs mt-1">
+                <p className="text-white text-xs mt-1">
                   Limited data — only {current.loggedCount} of {days} days logged so far.
                 </p>
               )}
@@ -3705,19 +3706,19 @@ function NutritionAdherenceCard({ client }) {
             ].map(([label, value, sub]) => (
               <div key={label} className="rounded-xl p-3 border" style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}>
                 <p className="text-white font-bold text-lg">{value}%</p>
-                <p className="text-white/60 text-[11px] font-medium mt-0.5">{label}</p>
-                <p className="text-white/35 text-[10px] mt-1 leading-snug">{sub}</p>
+                <p className="text-white text-[11px] font-medium mt-0.5">{label}</p>
+                <p className="text-white text-[10px] mt-1 leading-snug">{sub}</p>
               </div>
             ))}
           </div>
 
           <div className="relative mt-5 pt-4 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
             <div className="flex items-center gap-1.5 mb-2">
-              <Sparkles size={13} className="text-white/40" />
-              <p className="text-white/35 text-[11px] font-semibold tracking-wide">BEHAVIOUR INSIGHTS</p>
+              <Sparkles size={13} className="text-white" />
+              <p className="text-white text-[11px] font-semibold tracking-wide">BEHAVIOUR INSIGHTS</p>
             </div>
             {insights.length === 0 ? (
-              <p className="text-white/30 text-sm">
+              <p className="text-white text-sm">
                 {current.loggedCount < 3
                   ? "Continue logging to unlock nutrition behaviour insights."
                   : "No significant changes detected this period — consistency looks steady."}
@@ -3725,7 +3726,7 @@ function NutritionAdherenceCard({ client }) {
             ) : (
               <ul className="space-y-1.5">
                 {insights.map((text, i) => (
-                  <li key={i} className="text-white/70 text-sm flex items-start gap-2">
+                  <li key={i} className="text-white text-sm flex items-start gap-2">
                     <span className="w-1 h-1 rounded-full bg-white/30 mt-2 shrink-0" />
                     {text}
                   </li>
@@ -3776,14 +3777,14 @@ function NutritionGoalSummaryCard({ targets, onEditTargets }) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
             <div className="w-9 h-9 rounded-full border flex items-center justify-center shrink-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
-              <Flame size={16} className="text-white/50" />
+              <Flame size={16} className="text-white" />
             </div>
             <p className="text-white font-semibold text-[16px] leading-snug">
               Eat {Math.round(targets.calories || 0)} Calories per day, with the following macro split
             </p>
           </div>
           {onEditTargets && (
-            <button onClick={onEditTargets} aria-label="Edit calories & macros" className="text-white/30 hover:text-white/60 shrink-0 mt-1">
+            <button onClick={onEditTargets} aria-label="Edit calories & macros" className="text-white hover:text-white shrink-0 mt-1">
               <MoreVertical size={16} />
             </button>
           )}
@@ -3796,13 +3797,13 @@ function NutritionGoalSummaryCard({ targets, onEditTargets }) {
               <div style={{ width: `${fatPct}%`, backgroundColor: "#7DB7FF" }} />
             </div>
             <div className="flex justify-between mt-2">
-              <span className="text-white/40 text-xs">
+              <span className="text-white text-xs">
                 Protein Goal <span className="text-white font-semibold">{proteinPct}%</span>
               </span>
-              <span className="text-white/40 text-xs">
+              <span className="text-white text-xs">
                 Carbs Goal <span className="text-white font-semibold">{carbsPct}%</span>
               </span>
-              <span className="text-white/40 text-xs">
+              <span className="text-white text-xs">
                 Fat Goal <span className="text-white font-semibold">{fatPct}%</span>
               </span>
             </div>
@@ -3845,7 +3846,7 @@ function NutritionGraphCard({ client, showToast }) {
   const average = loggedValues.length ? Math.round(loggedValues.reduce((a, b) => a + b, 0) / loggedValues.length) : null;
 
   return (
-    <div className="relative overflow-hidden bg-white border border-black/10 shadow-sm mb-6">
+    <div className="relative overflow-hidden border mb-6" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
       {/* Thin blue gradient line top and bottom — no glow, no corner
           brackets, just the lines. */}
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
@@ -3854,15 +3855,15 @@ function NutritionGraphCard({ client, showToast }) {
       <div className="relative p-5">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div>
-          <p className="text-black font-semibold">Nutrition Graph</p>
-          <p className="text-black/40 text-xs mt-0.5">Daily {metric.label.toLowerCase()} against this client's own goal</p>
+          <p className="text-white font-semibold">Nutrition Graph</p>
+          <p className="text-white text-xs mt-0.5">Daily {metric.label.toLowerCase()} against this client's own goal</p>
         </div>
         <div className="flex items-center gap-1.5">
           {NUTRITION_ADHERENCE_PERIODS.map((p) => (
             <button
               key={p.key}
               onClick={() => setPeriodKey(p.key)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold ${periodKey === p.key ? "bg-black text-white" : "bg-black/6 text-black/50"}`}
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${periodKey === p.key ? "bg-white text-black" : "bg-white/10 text-white"}`}
             >
               {p.label}
             </button>
@@ -3871,20 +3872,23 @@ function NutritionGraphCard({ client, showToast }) {
             <button
               onClick={() => setMenuOpen((v) => !v)}
               aria-label="Nutrition graph options"
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60"
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 text-white"
             >
               <MoreVertical size={14} />
             </button>
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-9 z-20 w-48 bg-white border border-black/10 rounded-xl shadow-lg py-1.5">
+                <div
+                  className="absolute right-0 top-9 z-20 w-48 border rounded-xl shadow-lg py-1.5"
+                  style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+                >
                   <button
                     onClick={() => {
                       setMenuOpen(false);
                       setTargetsOpen(true);
                     }}
-                    className="w-full text-left px-3.5 py-2 text-sm text-black/80 hover:bg-black/5"
+                    className="w-full text-left px-3.5 py-2 text-sm text-white hover:bg-white/10"
                   >
                     Edit calories &amp; macros
                   </button>
@@ -3900,7 +3904,7 @@ function NutritionGraphCard({ client, showToast }) {
           <button
             key={m.key}
             onClick={() => setMetricKey(m.key)}
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${metricKey === m.key ? "text-white" : "bg-black/6 text-black/50"}`}
+            className={`px-3 py-1 rounded-full text-xs font-semibold ${metricKey === m.key ? "text-white" : "bg-white/10 text-white"}`}
             style={metricKey === m.key ? { backgroundColor: MEASURE_BLUE } : undefined}
           >
             {m.label}
@@ -3909,14 +3913,14 @@ function NutritionGraphCard({ client, showToast }) {
       </div>
 
       <div className="flex items-center gap-4 text-xs mb-2">
-        <p className="text-black/40 flex items-center gap-1.5">
+        <p className="text-white flex items-center gap-1.5">
           <span className="inline-block w-3 h-0" style={{ borderTop: `1.5px solid ${MEASURE_BLUE}` }} />
-          Goal: <span className="text-black font-semibold">{targetValue > 0 ? `${targetValue}${metric.unit}` : "Not set"}</span>
+          Goal: <span className="text-white font-semibold">{targetValue > 0 ? `${targetValue}${metric.unit}` : "Not set"}</span>
         </p>
         {average != null && (
-          <p className="text-black/40 flex items-center gap-1.5">
-            <span className="inline-block w-3 h-0 border-t border-dashed" style={{ borderColor: "rgba(10,10,11,0.4)" }} />
-            Average: <span className="text-black font-semibold">{average}{metric.unit}</span>
+          <p className="text-white flex items-center gap-1.5">
+            <span className="inline-block w-3 h-0 border-t border-dashed" style={{ borderColor: "rgba(255,255,255,0.4)" }} />
+            Average: <span className="text-white font-semibold">{average}{metric.unit}</span>
           </p>
         )}
       </div>
@@ -3924,14 +3928,14 @@ function NutritionGraphCard({ client, showToast }) {
       <div className="h-48 -ml-2">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={series} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid vertical={false} stroke="rgba(10,10,11,0.06)" />
-            <XAxis dataKey="date" tick={axisStyle} axisLine={false} tickLine={false} />
-            <YAxis tick={axisStyle} axisLine={false} tickLine={false} width={34} />
+            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.08)" />
+            <XAxis dataKey="date" tick={axisStyleDark} axisLine={false} tickLine={false} />
+            <YAxis tick={axisStyleDark} axisLine={false} tickLine={false} width={34} />
             {targetValue > 0 && <ReferenceLine y={targetValue} stroke={MEASURE_BLUE} strokeWidth={1.5} />}
-            {average != null && <ReferenceLine y={average} stroke="rgba(10,10,11,0.4)" strokeDasharray="4 4" />}
+            {average != null && <ReferenceLine y={average} stroke="rgba(255,255,255,0.4)" strokeDasharray="4 4" />}
             <Bar dataKey="value" radius={[3, 3, 0, 0]} isAnimationActive={false}>
               {series.map((d, i) => (
-                <Cell key={i} fill={d.logged ? MEASURE_BLUE : "rgba(10,10,11,0.07)"} />
+                <Cell key={i} fill={d.logged ? MEASURE_BLUE : "rgba(255,255,255,0.08)"} />
               ))}
             </Bar>
           </BarChart>
@@ -4014,14 +4018,14 @@ function NutritionPanel({ client, showToast }) {
 
   return (
     <div className="px-4 py-5 md:px-6 md:py-6 pb-16">
-      <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5 mb-6 -mx-4 md:-mx-6">
+      <div className="border p-5 mb-6 -mx-4 md:-mx-6" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
         <div className="flex items-center justify-between mb-4">
-          <p className="text-black font-semibold">{navTitle}</p>
+          <p className="text-white font-semibold">{navTitle}</p>
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setNavOffset((o) => (o + 1) % 7)}
               aria-label={navOffset === 0 ? "View an earlier day" : "Step back a day"}
-              className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
+              className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 text-white active:scale-90 transition-transform"
             >
               <ChevronLeft size={14} />
             </button>
@@ -4029,20 +4033,23 @@ function NutritionPanel({ client, showToast }) {
               <button
                 onClick={() => setMenuOpen((v) => !v)}
                 aria-label="Nutrition options"
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-black/5 text-black/60 active:scale-90 transition-transform"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-white/10 text-white active:scale-90 transition-transform"
               >
                 <MoreVertical size={14} />
               </button>
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-9 z-20 w-48 bg-white border border-black/10 rounded-xl shadow-lg py-1.5">
+                  <div
+                    className="absolute right-0 top-9 z-20 w-48 border rounded-xl shadow-lg py-1.5"
+                    style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+                  >
                     <button
                       onClick={() => {
                         setMenuOpen(false);
                         setTargetsOpen(true);
                       }}
-                      className="w-full text-left px-3.5 py-2 text-sm text-black/80 hover:bg-black/5"
+                      className="w-full text-left px-3.5 py-2 text-sm text-white hover:bg-white/10"
                     >
                       Edit calories &amp; macros
                     </button>
@@ -4052,7 +4059,7 @@ function NutritionPanel({ client, showToast }) {
                           setMenuOpen(false);
                           setConfirmReset(true);
                         }}
-                        className="w-full text-left px-3.5 py-2 text-sm text-red-600 hover:bg-red-50"
+                        className="w-full text-left px-3.5 py-2 text-sm text-red-400 hover:bg-red-500/10"
                       >
                         Clear {navOffset === 0 ? "today's" : "this day's"} log
                       </button>
@@ -4064,30 +4071,30 @@ function NutritionPanel({ client, showToast }) {
           </div>
         </div>
         {!nutrition ? (
-          <p className="text-black/30 text-sm py-6 text-center">Nothing logged yet.</p>
+          <p className="text-white text-sm py-6 text-center">Nothing logged yet.</p>
         ) : (
           <>
             {/* Plain divided stat row instead of a boxed tile grid — one
                 flat strip reads calmer than a card nested inside a card. */}
-            <div className="grid grid-cols-4 divide-x divide-black/8 border-y border-black/8 mb-1">
+            <div className="grid grid-cols-4 divide-x border-y mb-1" style={{ borderColor: CLIENT_DARK_BORDER }}>
               {[
                 ["Calories", Math.round(nutrition.calories || 0), Math.round(targets.calories || 0), ""],
                 ["Protein", Math.round(nutrition.protein || 0), Math.round(targets.protein || 0), "g"],
                 ["Carbs", Math.round(nutrition.carbs || 0), Math.round(targets.carbs || 0), "g"],
                 ["Fat", Math.round(nutrition.fat || 0), Math.round(targets.fat || 0), "g"],
               ].map(([l, v, t, unit]) => (
-                <div key={l} className="text-center py-3 px-1 min-w-0">
+                <div key={l} className="text-center py-3 px-1 min-w-0" style={{ borderColor: CLIENT_DARK_BORDER }}>
                   <p className="font-bold text-[13px] tabular-nums leading-tight whitespace-nowrap">
-                    <span className="text-blue-600">
+                    <span style={{ color: MEASURE_BLUE }}>
                       {v}
                       {unit}
                     </span>
-                    <span className="text-black/35 font-medium text-[10px]">
+                    <span className="text-white font-medium text-[10px]">
                       /{t}
                       {unit}
                     </span>
                   </p>
-                  <p className="text-black/40 text-[9px] font-semibold tracking-wide uppercase mt-1 truncate">{l}</p>
+                  <p className="text-white text-[9px] font-semibold tracking-wide uppercase mt-1 truncate">{l}</p>
                 </div>
               ))}
             </div>
@@ -4099,15 +4106,15 @@ function NutritionPanel({ client, showToast }) {
               // instead of a separate bordered/background box per meal —
               // the category name is itself a strong enough section break.
               return (
-                <div className="divide-y divide-black/6 mb-1">
+                <div className="divide-y mb-1" style={{ borderColor: CLIENT_DARK_BORDER }}>
                   {loggedCategories.map((cat) => {
                     const items = nutrition.meals[cat] || [];
                     const totalCals = Math.round(items.reduce((a, f) => a + (f.cals || 0), 0));
                     return (
-                      <div key={cat} className="py-3">
+                      <div key={cat} className="py-3" style={{ borderColor: CLIENT_DARK_BORDER }}>
                         <div className="flex items-center justify-between mb-1.5">
-                          <p className="text-black font-semibold text-sm">{cat}</p>
-                          <p className="text-black/35 text-xs">
+                          <p className="text-white font-semibold text-sm">{cat}</p>
+                          <p className="text-white text-xs">
                             {totalCals} kcal · {items.length} item{items.length === 1 ? "" : "s"}
                           </p>
                         </div>
@@ -4115,27 +4122,27 @@ function NutritionPanel({ client, showToast }) {
                           {items.map((f) =>
                             confirmRemoveItem?.category === cat && confirmRemoveItem?.id === f.id ? (
                               <div key={f.id} className="flex items-center justify-between gap-2 py-0.5">
-                                <p className="text-black/50 text-[12px] truncate">Remove "{f.name}"?</p>
+                                <p className="text-white text-[12px] truncate">Remove "{f.name}"?</p>
                                 <div className="flex items-center gap-2 shrink-0">
-                                  <button onClick={() => setConfirmRemoveItem(null)} className="text-black/40 text-[11px] font-semibold">
+                                  <button onClick={() => setConfirmRemoveItem(null)} className="text-white text-[11px] font-semibold">
                                     Cancel
                                   </button>
-                                  <button onClick={() => removeFoodItem(cat, f.id)} className="text-red-600 text-[11px] font-bold">
+                                  <button onClick={() => removeFoodItem(cat, f.id)} className="text-red-400 text-[11px] font-bold">
                                     Remove
                                   </button>
                                 </div>
                               </div>
                             ) : (
                               <div key={f.id} className="group flex items-center justify-between gap-3">
-                                <p className="text-black/70 text-[13px] truncate">{f.name}</p>
+                                <p className="text-white text-[13px] truncate">{f.name}</p>
                                 <div className="flex items-center gap-2 shrink-0">
-                                  <p className="text-black/35 text-[11px] whitespace-nowrap tabular-nums">
+                                  <p className="text-white text-[11px] whitespace-nowrap tabular-nums">
                                     {Math.round(f.cals || 0)} kcal · P{round1(f.protein || 0)} C{round1(f.carbs || 0)} F{round1(f.fat || 0)}
                                   </p>
                                   <button
                                     onClick={() => setConfirmRemoveItem({ category: cat, id: f.id, name: f.name })}
                                     aria-label={`Remove ${f.name}`}
-                                    className="w-5 h-5 flex items-center justify-center rounded text-black/20 hover:text-red-500 hover:bg-red-50"
+                                    className="w-5 h-5 flex items-center justify-center rounded text-white hover:text-red-400 hover:bg-red-500/10"
                                   >
                                     <X size={12} />
                                   </button>
@@ -4154,10 +4161,11 @@ function NutritionPanel({ client, showToast }) {
         )}
         {confirmReset && (
           <div className="flex gap-2 max-w-xs mt-3">
-            <SecondaryButton className="flex-1" onClick={() => setConfirmReset(false)}>
+            <SecondaryButton dark className="flex-1" onClick={() => setConfirmReset(false)}>
               Cancel
             </SecondaryButton>
             <DangerButton
+              dark
               className="flex-1"
               onClick={() => {
                 setNutritionForDate(client.id, viewDateKey, () => ({
@@ -4184,31 +4192,31 @@ function NutritionPanel({ client, showToast }) {
       <NutritionAdherenceCard client={client} />
 
       <div className="space-y-6">
-        <div className="bg-white border border-black/10 rounded-2xl shadow-sm p-5">
-          <div className="flex items-center justify-between mb-1">
+        <DarkPanel className="p-5">
+          <div className="relative flex items-center justify-between mb-1">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                <Utensils size={15} className="text-blue-500" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.12)" }}>
+                <Utensils size={15} style={{ color: MEASURE_BLUE }} />
               </div>
-              <p className="text-black font-semibold text-sm">Meal Guide</p>
+              <p className="text-white font-semibold text-sm">Meal Guide</p>
             </div>
           </div>
-          <p className="text-black/40 text-xs mb-4 ml-[42px]">
+          <p className="relative text-white text-xs mb-4 ml-[42px]">
             {mealPlan
               ? `${mealPlanWeeks ? `${mealPlanWeeks}-week guide · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
               : "This client has no meal guide yet — build one from your Meal Library."}
           </p>
-          <div className="flex gap-2">
-            <PrimaryButton className={mealPlan ? "flex-1" : "w-full"} onClick={() => setMealPlanOpen(true)}>
+          <div className="relative flex gap-2">
+            <PrimaryButton dark className={mealPlan ? "flex-1" : "w-full"} onClick={() => setMealPlanOpen(true)}>
               {mealPlan ? "EDIT MEAL GUIDE" : "BUILD MEAL GUIDE"}
             </PrimaryButton>
             {mealPlan && (
-              <SecondaryButton className="flex-1" onClick={() => setShoppingListOpen(true)}>
+              <SecondaryButton dark className="flex-1" onClick={() => setShoppingListOpen(true)}>
                 SHOPPING LIST
               </SecondaryButton>
             )}
           </div>
-        </div>
+        </DarkPanel>
       </div>
 
       <div className="mt-6">
