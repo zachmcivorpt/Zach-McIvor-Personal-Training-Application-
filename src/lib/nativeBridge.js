@@ -26,6 +26,13 @@ if (typeof window !== "undefined") {
   window.__apexNativePush = {
     setToken(token) {
       if (!token) return;
+      // Mirrors enablePush()'s own localStorage write (src/lib/push.js) so
+      // the Push Notifications toggle in Settings reflects reality on the
+      // native build too — without this, that screen read pushToken as
+      // never-set and showed "Turn on" even though push was already
+      // registered and working, and tapping it then threw "not supported"
+      // (WKWebView has no Web Push API, so enablePush() always fails here).
+      localStorage.setItem("pushToken", token);
       if (currentUid) {
         saveNativeFcmToken(currentUid, token);
       } else {

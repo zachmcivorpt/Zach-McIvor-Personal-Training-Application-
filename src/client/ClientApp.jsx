@@ -860,6 +860,16 @@ function GroupChatSheet({ open, group, messages, currentUserId, coachName, onClo
     setInput("");
   }
 
+  // If the group is deleted (or the client is removed from it) while this
+  // sheet is open, `group` goes undefined on the next snapshot and the
+  // early return below used to unmount the whole sheet — including
+  // BottomSheet's own backdrop/close button — with nothing left to tap to
+  // dismiss it, and the parent's openGroupId never got reset. Closing it
+  // ourselves here keeps that in sync instead of leaving a dangling open id.
+  useEffect(() => {
+    if (open && !group) onClose();
+  }, [open, group, onClose]);
+
   if (!group) return null;
 
   return (
@@ -6447,7 +6457,7 @@ function ProfileScreen({
   onOpenCheckIns,
 }) {
   const dark = useClientDark();
-  const { deleteMyAccount } = useApp();
+  const { deleteMyAccount, viewingAsClient } = useApp();
   const [prefSection, setPrefSection] = useState(null);
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [pushOpen, setPushOpen] = useState(false);
@@ -6459,7 +6469,14 @@ function ProfileScreen({
     { label: "Nutrition preferences", icon: Utensils, onClick: () => setPrefSection("nutrition") },
     { label: "Notifications", icon: Bell, onClick: onOpenNotifications },
     { label: "Push Notifications", icon: BellRing, onClick: () => setPushOpen(true) },
-    { label: "Connected devices", icon: Heart, onClick: () => setDevicesOpen(true) },
+    // Both of these act on the real signed-in Firebase Auth account, never
+    // the client being impersonated — connecting WHOOP or deleting while
+    // "viewing as" a client would silently hit the coach's own account
+    // instead (WHOOP tokens would land on the coach's user doc; deleting
+    // would re-authenticate with the coach's own password and permanently
+    // delete the coach's account, not the client's). Hidden entirely during
+    // impersonation rather than left reachable with a confusing result.
+    ...(viewingAsClient ? [] : [{ label: "Connected devices", icon: Heart, onClick: () => setDevicesOpen(true) }]),
   ];
   return (
     <div className="pb-28">
@@ -6565,9 +6582,11 @@ function ProfileScreen({
         <Link to="/legal/terms-of-service" className={dark ? "text-white/30 text-xs font-medium" : "text-black/30 text-xs font-medium"}>
           Terms of Service
         </Link>
-        <button onClick={() => setDeleteOpen(true)} className="text-red-500/70 text-xs font-medium">
-          Delete account
-        </button>
+        {!viewingAsClient && (
+          <button onClick={() => setDeleteOpen(true)} className="text-red-500/70 text-xs font-medium">
+            Delete account
+          </button>
+        )}
       </div>
 
       <div className="flex justify-center mt-8">
@@ -6575,10 +6594,12 @@ function ProfileScreen({
       </div>
 
       <PreferencesSheet section={prefSection} open={!!prefSection} onClose={() => setPrefSection(null)} user={user} />
-      <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} connected={!!user.whoopConnected} showToast={showToast} />
+      {!viewingAsClient && (
+        <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} connected={!!user.whoopConnected} showToast={showToast} />
+      )}
       <PushNotificationsSheet open={pushOpen} onClose={() => setPushOpen(false)} showToast={showToast} userId={user.id} />
       <DeleteAccountSheet
-        open={deleteOpen}
+        open={!viewingAsClient && deleteOpen}
         onClose={() => setDeleteOpen(false)}
         dark={dark}
         warning="This permanently deletes your account, training history, nutrition logs, progress photos and messages. Your coach will no longer be able to see your profile. This can't be undone."

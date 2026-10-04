@@ -1294,12 +1294,22 @@ export default function WorkoutEditor({ open, day, exercises, onClose, onSave, s
         </div>
       </div>
 
-      <ExerciseSheet
-        exercise={editingExercise}
-        open={!!editingExercise}
-        onClose={() => setEditingExercise(null)}
-        showToast={showToast || (() => {})}
-      />
+      {/* Keyed by id and conditionally mounted — ExerciseSheet only seeds its
+          form state once, on mount (see toFormState in CoachExercises.jsx),
+          with no resync if the `exercise` prop later changes. Rendering it
+          unconditionally here kept the same instance alive across different
+          exercises, so editing exercise A then editing B without closing in
+          between showed B's sheet still holding A's (or blank) form data,
+          and saving would overwrite B with the wrong values. */}
+      {editingExercise && (
+        <ExerciseSheet
+          key={editingExercise.id}
+          exercise={editingExercise}
+          open
+          onClose={() => setEditingExercise(null)}
+          showToast={showToast || (() => {})}
+        />
+      )}
 
       {/* Floating "ghost" that tracks the finger/cursor once a drag has
           started — without this the dragged row/card just sits there dimmed

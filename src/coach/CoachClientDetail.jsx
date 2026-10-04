@@ -2062,8 +2062,29 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
 
           <div className="mt-5 border-t border-black/5">
             {day.exercises.map((e, i) => {
+              // A Rest row has no exerciseId by design (WorkoutEditor.jsx's
+              // emptyRest()) — returning null for it here used to also
+              // silently swallow any row whose exercise had since been
+              // deleted from the library, with no indication anything was
+              // missing, and countExercises() (which only excludes Rest
+              // rows, not missing ones) kept counting it — so the header's
+              // "N exercises" and the visible row count would disagree.
+              if (e.isRest) {
+                return (
+                  <div key={i} className="py-3.5 border-b border-black/5 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center shrink-0 text-orange-500 text-xs font-bold">
+                      ⏱
+                    </div>
+                    <p className="text-black/60 font-semibold text-[15px]">
+                      Rest · {(() => {
+                        const s = e.restSeconds ?? 90;
+                        return s === 0 ? "None" : s >= 60 ? `${s / 60} min` : `${s} sec`;
+                      })()}
+                    </p>
+                  </div>
+                );
+              }
               const ex = exercisesById[e.exerciseId];
-              if (!ex) return null;
               const stale = isExerciseStale(e, phaseCreatedAt);
               return (
                 <div key={i} className="py-3.5 border-b border-black/5">
@@ -2072,7 +2093,7 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
                       <ExerciseThumb exercise={ex} size={40} rounded="rounded-lg" />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-black font-semibold text-[15px] truncate">{ex.name}</p>
+                          <p className="text-black font-semibold text-[15px] truncate">{ex?.name || "Unknown exercise"}</p>
                           {e.dropSet && (
                             <span className="bg-orange-100 text-orange-600 text-[9px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0">
                               DROPSET
@@ -2086,7 +2107,7 @@ function DayPreviewSheet({ day, exercises, onClose, onSchedule, onEdit, phaseCre
                         </p>
                       </div>
                     </div>
-                    <span className="text-black/30 text-xs shrink-0">{ex.equipment}</span>
+                    <span className="text-black/30 text-xs shrink-0">{ex?.equipment || ""}</span>
                   </div>
                   {stale && (
                     <div className="mt-2.5 flex items-center justify-between gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
