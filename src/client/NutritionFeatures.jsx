@@ -198,6 +198,7 @@ const BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.UPC_A,
   Html5QrcodeSupportedFormats.UPC_E,
   Html5QrcodeSupportedFormats.CODE_128,
+  Html5QrcodeSupportedFormats.CODE_39,
   Html5QrcodeSupportedFormats.ITF,
 ];
 
@@ -271,6 +272,13 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   const lookedUpCodeRef = useRef(""); // the digits actually resolved — tagged onto a food saved to the library so the next scan/entry of the same barcode is instant
   const scannerRef = useRef(null);
   const elId = "barcode-scanner-region";
+  // Same check used to decide the scan region below — when true, detection
+  // runs on the full camera frame (see the big comment in the effect), so
+  // html5-qrcode never draws its own shaded aiming box. This purely
+  // cosmetic overlay replaces it so the person still has a guide to line
+  // the barcode up against, without that box being what actually limits
+  // detection.
+  const hasNativeDetector = typeof window !== "undefined" && "BarcodeDetector" in window;
   // Set true the instant this sheet closes (or unmounts) — a scan's lookup
   // is a network round-trip that can easily still be in flight when the
   // client backs out, and without this, that lookup finishing late would
@@ -362,8 +370,11 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       setStatus("not-found");
       return;
     }
+    const lookupStartedAt = performance.now();
     try {
       const food = await lookupBarcode(digits);
+      // eslint-disable-next-line no-console
+      console.debug("[barcode-scan-perf]", { outcome: "lookup-resolved", code: digits, lookupMs: Math.round(performance.now() - lookupStartedAt) });
       // Save every successful lookup into the shared food library — permanently,
       // for every client, not just the manual-entry fallback for a "not found"
       // scan — otherwise a real, fully-resolved product (found on Open Food
@@ -379,6 +390,8 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       if (closedRef.current) return;
       onAdd(saved);
     } catch (err) {
+      // eslint-disable-next-line no-console
+      console.debug("[barcode-scan-perf]", { outcome: "lookup-failed", code: digits, lookupMs: Math.round(performance.now() - lookupStartedAt), notFound: !!err.notFound });
       if (closedRef.current) return;
       setError(err.message);
       setErrorDetail("");
@@ -412,9 +425,28 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     let stopped = false;
     let activeScanner = null; // the instance that actually succeeded, if any
 
+    // Dev-only timing/frame instrumentation (console only — never surfaced
+    // to a normal user). openedAt is captured once per sheet-open, not per
+    // camera-constraint retry, so it reflects what the person actually
+    // experienced end to end.
+    const perf = { openedAt: performance.now(), cameraReadyAt: null, detectedAt: null, framesProcessed: 0 };
+    function logPerf(outcome, extra) {
+      const t = (ms) => (ms == null ? null : Math.round(ms - perf.openedAt));
+      // eslint-disable-next-line no-console
+      console.debug("[barcode-scan-perf]", {
+        outcome,
+        cameraReadyMs: t(perf.cameraReadyAt),
+        detectedMs: t(perf.detectedAt),
+        framesProcessed: perf.framesProcessed,
+        ...extra,
+      });
+    }
+
     async function onDecoded(decodedText) {
       if (stopped) return;
       stopped = true;
+      perf.detectedAt = performance.now();
+      logPerf("detected", { code: decodedText.replace(/\D/g, "") });
       await safeStop(activeScanner);
       // A brief, explicit "got it" beat before the lookup spinner takes
       // over — confirms the decode itself succeeded (this exact code was
@@ -432,24 +464,45 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       }, 120);
     }
 
-    // A bigger box is both easier to line a barcode up in (less fiddly
-    // aiming, fewer failed attempts) and gives the decoder more pixels of
-    // the barcode to work with per frame — scale it off the actual
-    // viewfinder instead of a fixed size so it's still comfortably sized
-    // on a narrow phone and doesn't overrun a wider one. A real barcode is
-    // much wider than it is tall, so the box follows that ratio rather
-    // than being square.
+    // THE fix for "detects slowly or not at all": html5-qrcode's `qrbox`
+    // isn't a visual-only guide — it's a hard crop. The library draws
+    // *only* that rectangle of the video frame onto the canvas it hands to
+    // the decoder (native BarcodeDetector or the zxing-js fallback); any
+    // barcode outside it is never even looked at, no matter how long you
+    // hold the camera still (confirmed by reading html5-qrcode's own
+    // source, not assumed). A barcode on a curved tub, printed small, or
+    // simply not dead-centre in frame was being silently skipped — that's
+    // a miss, not a slow detection, and it's exactly the "ice cream tub"
+    // failure case. Scanning the full frame instead is what MyFitnessPal
+    // and most commercial scanners actually do; the on-screen box is
+    // purely a user-aiming aid there, decoupled from what gets scanned.
+    //
+    // The browser's native BarcodeDetector (used automatically via
+    // useBarCodeDetectorIfSupported below) decodes a frame in single-digit
+    // milliseconds — hardware-accelerated, not a JS loop — so scanning the
+    // full frame on it costs nothing noticeable. The zxing-js JS fallback
+    // (older/unsupported browsers) is real CPU work per pixel, so going
+    // full-frame there risks dropping fps on a low-end device; it gets a
+    // generously larger box than before instead of true full-frame, a
+    // real reliability/performance trade rather than a blind copy-paste.
     const scanConfig = {
       fps: 30,
-      qrbox: (viewfinderWidth, viewfinderHeight) => {
-        const width = Math.round(Math.min(340, viewfinderWidth * 0.9));
-        const height = Math.round(Math.min(viewfinderHeight * 0.55, width * 0.5));
-        return { width, height };
-      },
       disableFlip: true,
+      ...(hasNativeDetector
+        ? {}
+        : {
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const width = Math.round(viewfinderWidth * 0.95);
+              const height = Math.round(Math.min(viewfinderHeight * 0.8, width * 0.7));
+              return { width, height };
+            },
+          }),
     };
     const noop = () => {
-      // per-frame "no code found yet" callback — expected, ignore
+      // per-frame "no code found yet" callback — expected, just tallied
+      // for the dev perf log so a slow/failing scan shows exactly how
+      // many frames were actually looked at before giving up or hitting.
+      perf.framesProcessed += 1;
     };
 
     // Prefer the rear camera, but a device that rejects that constraint
@@ -465,9 +518,17 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     // of — falling back to the old 1280x720 ask, then no constraint at all,
     // so a device that can't deliver 1080p still ends up scanning instead
     // of failing outright.
+    // `advanced` constraints are "best effort" per spec — a browser that
+    // doesn't understand focusMode just ignores that entry rather than
+    // failing the whole getUserMedia call, so this is safe to ask for
+    // unconditionally rather than feature-detecting it first. Continuous
+    // autofocus matters a lot for a barcode held at an arbitrary distance
+    // (a tub pulled out of the fridge, not a flat card held at a fixed
+    // spot) — without it, some devices default to a fixed focus plane that
+    // never resolves a barcode held closer or farther than that.
     const constraintAttempts = [
-      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
-      { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+      { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: "continuous" }] },
+      { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 }, advanced: [{ focusMode: "continuous" }] },
       { facingMode: "environment" },
       {},
     ];
@@ -489,6 +550,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
             safeStop(instance).finally(() => instance.clear());
             return;
           }
+          perf.cameraReadyAt = performance.now();
           activeScanner = instance;
           scannerRef.current = instance;
           // Torch support varies by device/browser and isn't knowable ahead
@@ -513,6 +575,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       }
       if (!cancelled) {
         const classified = classifyCameraError(lastErr);
+        logPerf("camera-failed", { reason: classified.raw });
         setError(classified.text);
         setErrorDetail(classified.raw);
         setStatus("error");
@@ -601,6 +664,19 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
         <div className={status === "scanning" ? "" : "hidden"}>
           <div className="px-5 relative">
             <div id={elId} className={dark ? "w-full rounded-2xl overflow-hidden bg-black" : "w-full rounded-2xl overflow-hidden bg-white"} />
+            {hasNativeDetector && (
+              // Purely a visual aiming aid — detection itself runs on the
+              // full frame (see the effect above), not just this box, so a
+              // barcode slightly outside it still gets picked up. No
+              // shading/clipping trick here on purpose — this sits as a
+              // sibling of the html5-qrcode-managed #elId div (which that
+              // library clears/rewrites directly), so it stays a simple,
+              // self-contained border rather than anything that needs to
+              // be clipped against the camera feed itself.
+              <div className="pointer-events-none absolute inset-5 flex items-center justify-center">
+                <div className="w-[95%] aspect-[2/1] max-h-[80%] rounded-xl border-2 border-white/80" />
+              </div>
+            )}
             {torchSupported && (
               <button
                 onClick={toggleTorch}
