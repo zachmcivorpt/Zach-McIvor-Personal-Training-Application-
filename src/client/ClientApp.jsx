@@ -4072,6 +4072,11 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
   const [exchanges, setExchanges] = useState([]); // { id, query, reply, suggestions, shownNames, loading, error }
   const [input, setInput] = useState("");
   const [detailSuggestion, setDetailSuggestion] = useState(null);
+  // Keyed by `${exchangeId}-${index}` — this inline chip (unlike the
+  // detail sheet's own "Add to Log" button, which closes immediately) had
+  // nothing stopping a fast double-tap from calling addSuggestion twice,
+  // double-logging the same suggestion to today's food diary.
+  const [addedSuggestionKeys, setAddedSuggestionKeys] = useState(() => new Set());
   const sending = exchanges.some((e) => e.loading);
   const inputRef = useRef(null);
 
@@ -4157,7 +4162,9 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
     setExchanges((prev) => prev.filter((e) => e.id !== id));
   }
 
-  function addSuggestion(s) {
+  function addSuggestion(s, key) {
+    if (key && addedSuggestionKeys.has(key)) return;
+    if (key) setAddedSuggestionKeys((prev) => new Set(prev).add(key));
     onAddFood(guessMealForNow(), { id: `ai-${Date.now()}`, name: s.name, cals: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat });
     showToast("Added to today's food log.");
   }
@@ -4222,7 +4229,10 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
                     </p>
                     {e.suggestions?.length > 0 && (
                       <div className="mt-2 space-y-2">
-                        {e.suggestions.map((s, j) => (
+                        {e.suggestions.map((s, j) => {
+                          const suggestionKey = `${e.id}-${j}`;
+                          const added = addedSuggestionKeys.has(suggestionKey);
+                          return (
                           <button
                             key={j}
                             onClick={() => setDetailSuggestion(s)}
@@ -4239,15 +4249,20 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
                             <span
                               onClick={(ev) => {
                                 ev.stopPropagation();
-                                addSuggestion(s);
+                                addSuggestion(s, suggestionKey);
                               }}
-                              className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border-[1.5px] active:scale-95 transition-transform whitespace-nowrap"
-                              style={{ borderColor: MEASURE_BLUE, color: MEASURE_BLUE }}
+                              className={`shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border-[1.5px] whitespace-nowrap ${added ? "" : "active:scale-95 transition-transform"}`}
+                              style={
+                                added
+                                  ? { borderColor: dark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)", color: dark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.35)" }
+                                  : { borderColor: MEASURE_BLUE, color: MEASURE_BLUE }
+                              }
                             >
-                              ADD TO LOG
+                              {added ? "ADDED ✓" : "ADD TO LOG"}
                             </span>
                           </button>
-                        ))}
+                          );
+                        })}
                         <button
                           onClick={() => refreshSuggestions(e.id)}
                           className={dark ? "flex items-center gap-1.5 text-[11px] font-semibold text-white/50 active:text-white/80 mt-0.5" : "flex items-center gap-1.5 text-[11px] font-semibold text-black/45 active:text-black/80 mt-0.5"}
