@@ -6,6 +6,27 @@ application state (as of the date below) is the production baseline** —
 these tests exist to stop any of these specific bugs from coming back, not
 to gate new feature work.
 
+## Standing rule: no bug is closed without a validated regression test
+
+For every critical/confirmed bug found in this app, going forward:
+
+1. Fix it.
+2. Write a regression test that fails if the bug is ever reintroduced.
+3. **Validate the test is real**, not a trivial pass: temporarily put the
+   broken code back (revert the fix only, in the working tree —
+   never commit this state), run the test, confirm it actually fails
+   against the bug, then restore the correct fix and confirm the suite is
+   green again.
+4. Only after both the fix *and* its validated test pass is the bug
+   considered closed. A fix with no test, or a test that was never proven
+   to fail, is not done.
+
+Where a true automated chain-test isn't practical (no component-test
+harness, no access to real hardware/third-party OAuth), document the
+exact manual regression script instead — see the "What still requires
+manual testing" section at the bottom — and say so explicitly rather than
+silently skipping it.
+
 ## Release gate — read this before every production deploy
 
 > **NO PRODUCTION RELEASE IS COMPLETE IF THE REGRESSION SUITE FAILS.**
@@ -310,6 +331,29 @@ silence.
 - **Manual verification**: trigger any write failure (e.g. toggle
   DevTools offline) and confirm the resulting toast/error references the
   real failure, not a generic fallback.
+- **Date added**: 2026-10-05
+
+### 16. Body stats check-ins (weigh-ins) missing from the coach's Recent Activity feed
+- **Root cause**: `CoachDashboard.jsx`'s Recent Activity feed merged
+  workouts, cardio, messages, form check-ins, and nutrition goal hits
+  across every active client — but never read from `db.weighIns`, so a
+  client logging a body stats check-in produced no coach-visible
+  activity at all, unlike every other client action.
+- **Fix**: the feed-building logic was pulled out of the component into a
+  pure, exported `buildRecentActivity(active, db, resolveNutritionTargets)`
+  (`src/lib/recentActivity.js`) — both to make it testable and so future
+  activity types don't have to be verified by eyeballing the dashboard —
+  and a `weighin` entry (client name, weight, timestamp) was added
+  alongside the existing types. `CoachDashboard.jsx` now just calls this
+  function; no behavior other than the new entry type changed.
+- **Regression test**: `src/lib/recentActivity.test.js` — asserts a
+  logged weigh-in appears in the feed with the right client/weight, that
+  multiple weigh-ins sort correctly alongside other activity types, that
+  every pre-existing activity type still appears (no regression from the
+  extraction), and that the 12-entry cap still holds. Verified to fail
+  (2/4 tests) when the weigh-in block is removed; restored and
+  re-verified green.
+- **Manual verification**: N/A — fully automated.
 - **Date added**: 2026-10-05
 
 ---
