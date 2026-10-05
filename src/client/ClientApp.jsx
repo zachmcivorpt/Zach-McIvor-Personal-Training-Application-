@@ -986,8 +986,13 @@ function CoachChatBubble({ coachUser, unreadCount, onOpen }) {
 function NotificationsPromptCard({ userId, showToast }) {
   const dark = useClientDark();
   const [supported, setSupported] = useState(false);
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem("pushPromptDismissed") === "1");
-  const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
+  // Namespaced per userId (same pattern as lastTabKey/activeSessionKey
+  // below) — these used to be bare global keys, so on a shared device a
+  // second client signing in after the first had enabled push saw this
+  // card as already dismissed/enabled based on the FIRST client's choice,
+  // with no way to tell the UI was lying about their own actual state.
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(`pushPromptDismissed_${userId}`) === "1");
+  const [enabled, setEnabled] = useState(() => !!localStorage.getItem(`pushToken_${userId}`));
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -997,7 +1002,7 @@ function NotificationsPromptCard({ userId, showToast }) {
   if (!supported || dismissed || enabled) return null;
 
   function dismiss() {
-    localStorage.setItem("pushPromptDismissed", "1");
+    localStorage.setItem(`pushPromptDismissed_${userId}`, "1");
     setDismissed(true);
   }
 
@@ -1005,7 +1010,7 @@ function NotificationsPromptCard({ userId, showToast }) {
     setBusy(true);
     try {
       const token = await enablePush(userId);
-      localStorage.setItem("pushToken", token);
+      localStorage.setItem(`pushToken_${userId}`, token);
       setEnabled(true);
       showToast?.("Notifications turned on");
     } catch (err) {
@@ -6354,7 +6359,10 @@ function ConnectedDevicesSheet({ open, onClose, connected, showToast }) {
 
 function PushNotificationsSheet({ open, onClose, showToast, userId }) {
   const dark = useClientDark();
-  const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
+  // Namespaced per userId — see NotificationsPromptCard's comment above
+  // for why a bare "pushToken" key leaks one client's enabled state (and
+  // active token) onto the next client who signs in on the same device.
+  const [enabled, setEnabled] = useState(() => !!localStorage.getItem(`pushToken_${userId}`));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -6363,13 +6371,13 @@ function PushNotificationsSheet({ open, onClose, showToast, userId }) {
     setBusy(true);
     try {
       if (enabled) {
-        await disablePush(userId, localStorage.getItem("pushToken"));
-        localStorage.removeItem("pushToken");
+        await disablePush(userId, localStorage.getItem(`pushToken_${userId}`));
+        localStorage.removeItem(`pushToken_${userId}`);
         setEnabled(false);
         showToast("Push notifications turned off");
       } else {
         const token = await enablePush(userId);
-        localStorage.setItem("pushToken", token);
+        localStorage.setItem(`pushToken_${userId}`, token);
         setEnabled(true);
         showToast("Push notifications enabled");
       }
@@ -6878,9 +6886,14 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
   const dark = useClientDark();
   const [answers, setAnswers] = useState({});
   const [uploading, setUploading] = useState(null);
+  const [photoError, setPhotoError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (open) setAnswers({});
+    if (open) {
+      setAnswers({});
+      setSubmitting(false);
+    }
   }, [open, form?.id]);
 
   if (!form) return null;
@@ -6891,10 +6904,22 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
 
   async function handlePhoto(qId, file) {
     if (!file) return;
+    setPhotoError(null);
     setUploading(qId);
-    const dataUrl = await fileToCompressedDataUrl(file);
-    set(qId, dataUrl);
-    setUploading(null);
+    try {
+      const dataUrl = await fileToCompressedDataUrl(file);
+      set(qId, dataUrl);
+    } catch {
+      // A corrupt file or anything else that isn't actually a readable
+      // image (accept="image/*" on the input is only an OS-level hint,
+      // not an enforced filter) used to leave this stuck on "Uploading…"
+      // forever with no catch — the question never got answered and, if
+      // required, silently blocked submitting the whole check-in with no
+      // way out short of closing the sheet and losing every other answer.
+      setPhotoError("Couldn't use that photo — try a different file.");
+    } finally {
+      setUploading(null);
+    }
   }
 
   const canSubmit = form.questions.every((q) => !q.required || (answers[q.id] !== undefined && answers[q.id] !== ""));
@@ -6985,14 +7010,26 @@ function FillCheckInSheet({ schedule, form, open, onClose, onSubmit }) {
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handlePhoto(q.id, e.target.files?.[0])} />
                   </label>
                 )}
+                {photoError && uploading === null && !answers[q.id] && (
+                  <p className="text-red-500 text-xs mt-1.5">{photoError}</p>
+                )}
               </div>
             )}
           </div>
         ))}
       </div>
       <button
-        onClick={() => onSubmit(answers)}
-        disabled={!canSubmit}
+        onClick={() => {
+          // Nothing stopped two click events landing before the sheet
+          // actually unmounts (its own closing is driven by the parent
+          // clearing `form`, which doesn't happen synchronously) — a fast
+          // double-tap could call onSubmit twice, creating two separate
+          // formResponses docs for the same check-in.
+          if (submitting) return;
+          setSubmitting(true);
+          onSubmit(answers);
+        }}
+        disabled={!canSubmit || submitting}
         className={dark ? "w-full mt-6 bg-white text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30" : "w-full mt-6 bg-black text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 disabled:opacity-30"}
       >
         <Check size={18} strokeWidth={3} /> SUBMIT CHECK-IN
@@ -7843,7 +7880,12 @@ export default function ClientApp() {
   const [coachOpen, setCoachOpen] = useState(false);
   const [messagesOpen, setMessagesOpen] = useState(false);
   const [openGroupId, setOpenGroupId] = useState(null);
-  const [seenMessageCount, setSeenMessageCount] = useState(0);
+  // Persisted on the user doc (messagesSeenCount), same pattern as
+  // mealPlanSeenAt below — plain local state here reset to 0 on every
+  // mount/reload, so the unread badge (and the "N new messages"
+  // notification item) showed the FULL historical coach-message count as
+  // unread again after every refresh, even for messages already read.
+  const [seenMessageCount, setSeenMessageCount] = useState(currentUser.messagesSeenCount || 0);
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
   const [autoOpenWeighIn, setAutoOpenWeighIn] = useState(0);
@@ -8159,8 +8201,7 @@ export default function ClientApp() {
         subtitle: "From your coach",
         onClick: () => {
           setNotifOpen(false);
-          setSeenMessageCount(thread.filter((m) => m.from === "coach").length);
-          setMessagesOpen(true);
+          openMessages();
         },
       });
     }
@@ -8533,6 +8574,20 @@ export default function ClientApp() {
       navigate("/coach");
       return;
     }
+    // This device's push token is tied to whichever account enabled it —
+    // left registered, the NEXT client who signs in on this same device
+    // would keep this one's push notifications arriving here too (wrong
+    // person's messages/check-in reviews), since nothing else ever clears
+    // it. Best-effort: logout must still proceed even if this fails.
+    const myPushToken = localStorage.getItem(`pushToken_${currentUser.id}`);
+    if (myPushToken) {
+      try {
+        await disablePush(currentUser.id, myPushToken);
+      } catch {
+        // ignore — logging out matters more than this cleanup succeeding
+      }
+      localStorage.removeItem(`pushToken_${currentUser.id}`);
+    }
     // Navigating before Firebase has actually finished signing out left
     // `currentUser` briefly stale on the screen underneath — LoginScreen's
     // own "already signed in, bounce to /app" redirect could then fire
@@ -8545,7 +8600,12 @@ export default function ClientApp() {
   }
 
   function openMessages() {
-    setSeenMessageCount(thread.filter((m) => m.from === "coach").length);
+    const count = thread.filter((m) => m.from === "coach").length;
+    setSeenMessageCount(count);
+    // Best-effort — same pattern as mealPlanSeenAt just below: if this
+    // write fails, the badge is just wrong again until the next open,
+    // never worth blocking on or surfacing an error for.
+    updateUser(currentUser.id, { messagesSeenCount: count }).catch(() => {});
     setMessagesOpen(true);
   }
 
@@ -8708,8 +8768,16 @@ export default function ClientApp() {
           <ProgressScreen
             userId={currentUser.id}
             photos={photos}
-            onAddPhoto={addProgressPhoto}
-            onDeletePhoto={deleteProgressPhoto}
+            onAddPhoto={(clientId, dataUrl, caption, dateKey) =>
+              addProgressPhoto(clientId, dataUrl, caption, dateKey)
+                .then(() => showToast("Photo saved"))
+                .catch((err) => showToast(err.message || "Couldn't save that photo — check your connection and try again"))
+            }
+            onDeletePhoto={(clientId, photoId) =>
+              deleteProgressPhoto(clientId, photoId)
+                .then(() => showToast("Photo removed"))
+                .catch((err) => showToast(err.message || "Couldn't remove that photo — check your connection and try again"))
+            }
             weighIns={weighIns}
             onLogWeight={(w, dateKey) =>
               logWeight(currentUser.id, w, dateKey)

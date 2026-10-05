@@ -19,6 +19,7 @@ import {
   getDocs,
   query,
   where,
+  documentId,
   onSnapshot,
   writeBatch,
   deleteField,
@@ -477,7 +478,16 @@ export function AppProvider({ children }) {
       watch("nutritionLogs", "nutritionLogs", [where("clientId", "==", uid)]);
       watch("bodyMetrics", "bodyMetrics", [where("clientId", "==", uid)]);
       watch("mealPlans", "mealPlans", [where("clientId", "==", uid)]);
-      watch("liveSessions", "liveSessions", [where("clientId", "==", uid)]);
+      // liveSessions/{clientId} — unlike its neighbors above, this rule
+      // checks the DOCUMENT PATH's id (doc id IS the client's uid), not a
+      // `clientId` field on the document. A where("clientId", "==", uid)
+      // filter can't satisfy a path-based rule — Firestore has no way to
+      // prove a field matches the path wildcard for every possible result
+      // of a collection query — so this client-side listener was denied
+      // on every load, repeatedly, with a console error, never actually
+      // resolving. Filtering by documentId() instead constrains the query
+      // to exactly this client's own doc path, which does satisfy the rule.
+      watch("liveSessions", "liveSessions", [where(documentId(), "==", uid)]);
       watch("challenges", "challenges", [where("participantIds", "array-contains", uid)]);
       // Same array-contains-membership shape as challenges above — only
       // the groups this client is actually in, and (since memberIds is
@@ -1547,18 +1557,33 @@ export function AppProvider({ children }) {
       // `dateKey` (YYYY-MM-DD) backdates the photo — same reasoning as
       // logWeight below: a past date is stamped at midday local time so it
       // can never drift onto the neighbouring day in any timezone view.
-      addProgressPhoto(clientId, dataUrl, caption = "", dateKey) {
+      // Awaited and rejecting on failure (not the old fire-and-forget +
+      // console.error-only pattern) — same reasoning as logWorkout above:
+      // a client adding/removing a progress photo saw the upload sheet
+      // close and got no error at all if the write actually failed,
+      // identical to success from their side.
+      async addProgressPhoto(clientId, dataUrl, caption = "", dateKey) {
         const id = newDocId("progressPhotos");
         let date = Date.now();
         if (dateKey && dateKey !== localDateKey()) {
           const [y, m, d] = dateKey.split("-").map(Number);
           date = new Date(y, m - 1, d, 12, 0, 0).getTime();
         }
-        setDoc(doc(firestore, "progressPhotos", id), { id, clientId, url: dataUrl, date, caption }).catch(console.error);
+        try {
+          await setDoc(doc(firestore, "progressPhotos", id), { id, clientId, url: dataUrl, date, caption });
+        } catch (err) {
+          logClientError(clientId, "Add progress photo", err.message || "unknown error");
+          throw new Error("Couldn't save that photo — " + (err.message || "check your connection and try again."));
+        }
       },
 
-      deleteProgressPhoto(clientId, photoId) {
-        deleteDoc(doc(firestore, "progressPhotos", photoId)).catch(console.error);
+      async deleteProgressPhoto(clientId, photoId) {
+        try {
+          await deleteDoc(doc(firestore, "progressPhotos", photoId));
+        } catch (err) {
+          logClientError(clientId, "Delete progress photo", err.message || "unknown error");
+          throw new Error("Couldn't remove that photo — " + (err.message || "check your connection and try again."));
+        }
       },
 
       // `dateKey` (YYYY-MM-DD) backdates the weigh-in — e.g. importing a
