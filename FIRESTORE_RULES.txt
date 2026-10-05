@@ -228,12 +228,12 @@ service cloud.firestore {
     // --- per-client data: coach reads/writes all, client reads/writes
     //     only their own (matched by the clientId field on each doc) ---
     match /workoutLogs/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /weighIns/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
@@ -253,7 +253,7 @@ service cloud.firestore {
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /bodyMetrics/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
@@ -261,7 +261,7 @@ service cloud.firestore {
       // Doc id == clientId. Only the coach creates/deletes a plan; a
       // client may update() their own doc (used by the "swap this meal"
       // feature) but can never reassign it to a different clientId.
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create, delete: if isCoach();
       allow update: if isCoach() ||
         (isSignedIn() && resource.data.clientId == request.auth.uid && request.resource.data.clientId == resource.data.clientId);
@@ -269,17 +269,17 @@ service cloud.firestore {
     match /scheduledWorkouts/{id} {
       // A client can drag-reschedule their own calendar (create the moved
       // copy + delete the original), same as the coach already could.
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /bodyStatsSchedules/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /messages/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach();
     }
@@ -288,12 +288,12 @@ service cloud.firestore {
     //     workout's own client can read/post; only the coach can edit or
     //     delete an entry (mirrors messages). ---
     match /workoutComments/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach();
     }
     match /progressPhotos/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
@@ -301,25 +301,25 @@ service cloud.firestore {
       // "My Meals" is each client's own personal saved-meal list — not a
       // shared library, so read is scoped to the creating client (or the
       // coach, who can see every client's), same as progressPhotos.
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /habits/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
     match /clientPhases/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow write: if isCoach();
     }
     match /formSchedules/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow write: if isCoach();
     }
     match /formResponses/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach();
     }
@@ -364,7 +364,7 @@ service cloud.firestore {
     // --- challenges/{id}: coach creates/manages; a client can read one
     //     only while they're listed as a participant. ---
     match /challenges/{id} {
-      allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.participantIds);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || request.auth.uid in resource.data.participantIds));
       allow write: if isCoach();
     }
 
@@ -373,7 +373,7 @@ service cloud.firestore {
     //     read their own group but never edit its membership/settings
     //     directly; that stays a coach-only action via the Groups tab. ---
     match /groups/{id} {
-      allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.memberIds);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || request.auth.uid in resource.data.memberIds));
       allow write: if isCoach();
     }
     // --- groupMessages/{id}: the chat for a single group. memberIds is
@@ -385,7 +385,7 @@ service cloud.firestore {
     //     deleting a message stays coach-only, same as the 1:1 messages
     //     collection above. ---
     match /groupMessages/{id} {
-      allow read: if isCoach() || (isSignedIn() && request.auth.uid in resource.data.memberIds);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || request.auth.uid in resource.data.memberIds));
       allow create: if isCoach() ||
         (isSignedIn() && request.auth.uid in request.resource.data.memberIds &&
          request.resource.data.from == "client" && request.resource.data.fromClientId == request.auth.uid);
