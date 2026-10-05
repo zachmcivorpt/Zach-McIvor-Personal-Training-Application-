@@ -494,7 +494,7 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
 }
 
 export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary, showToast }) {
-  const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout, phraseApexSuggestion } = useApp();
+  const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout, phraseApexSuggestion, dismissErrorLog } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = localDateKey();
@@ -918,6 +918,60 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           )}
         </div>
       </DarkPanel>
+
+      {/* A client's own save (nutrition, workout, weigh-in, habit, check-in)
+          can fail silently on their end — the only way a coach used to find
+          out was the client screenshotting the generic error toast and
+          sending it over. Every one of those failures now also writes a
+          lightweight record here, so it shows up on its own instead of
+          depending on a client to report it. Only rendered when there's
+          something to show — an empty state here would just be noise next
+          to "All clients are on track" above. */}
+      {db.errorLogs.length > 0 && (
+        <DarkPanel className="flex flex-col mb-4">
+          <div className="relative px-5 pt-5 pb-1 flex items-center gap-2.5">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
+              style={{ backgroundColor: "rgba(239,68,68,0.12)", borderColor: "rgba(239,68,68,0.3)" }}
+            >
+              <AlertTriangle size={15} style={{ color: OVER_RED }} />
+            </div>
+            <p className="text-white font-semibold">Client-Side Errors</p>
+            <span className="text-white text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: OVER_RED }}>
+              {db.errorLogs.length}
+            </span>
+          </div>
+          <div className="relative px-5 pb-3">
+            <p className="text-white text-xs mb-2">A save failed on a client's device — they may not have noticed.</p>
+            <div className="divide-y" style={{ borderColor: CLIENT_DARK_BORDER }}>
+              {db.errorLogs.slice(0, 8).map((e) => {
+                const client = clients.find((c) => c.id === e.clientId);
+                return (
+                  <div key={e.id} className="flex items-start gap-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium">
+                        {client?.name || "Unknown client"} <span className="text-white/40 font-normal">— {e.action}</span>
+                      </p>
+                      <p className="text-white/50 text-xs mt-0.5 truncate">{e.message}</p>
+                      <p className="text-white/30 text-[11px] mt-0.5">{timeAgo(e.createdAt)}</p>
+                    </div>
+                    <button
+                      onClick={() => dismissErrorLog(e.id)}
+                      className="text-white/40 text-xs font-semibold px-2 py-1 rounded-lg shrink-0"
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {db.errorLogs.length > 8 && (
+              <p className="text-white/40 text-[11px] text-center pt-2">+{db.errorLogs.length - 8} more</p>
+            )}
+          </div>
+        </DarkPanel>
+      )}
 
       <DarkPanel className="flex flex-col mb-4">
         <div className="relative px-5 pt-5 pb-3">

@@ -88,6 +88,22 @@ function newDocId(name) {
   return doc(collection(firestore, name)).id;
 }
 
+// A client's own save failing used to be visible only to that client, as
+// a toast — the coach had no way to know it happened short of the client
+// screenshotting it and sending it over. Writes a lightweight record a
+// coach can see on their Dashboard instead. Always fire-and-forget and
+// silently swallowed on its own failure: logging that logging failed
+// isn't worth cascading into another error, and must never block or
+// surface on top of the real error the client already saw.
+function logClientError(clientId, action, message) {
+  try {
+    const id = newDocId("errorLogs");
+    setDoc(doc(firestore, "errorLogs", id), { id, clientId, action, message, createdAt: Date.now() }).catch(() => {});
+  } catch {
+    // ignore
+  }
+}
+
 // Fires the push-notification side effect for an action that just wrote
 // to Firestore — calls the Vercel serverless function at /api/notify
 // (see api/notify.js), which re-reads the real doc with the Admin SDK and
@@ -434,6 +450,7 @@ export function AppProvider({ children }) {
       watch("bodyStatsSchedules", "bodyStatsSchedules");
       watch("notifications", "notifications");
       watch("challenges", "challenges");
+      watch("errorLogs", "errorLogs");
       // The coach watches every group/message unfiltered (same as
       // challenges above) — a client's own watch further down is scoped to
       // just the groups they're a member of.
@@ -603,6 +620,9 @@ export function AppProvider({ children }) {
       bodyStatsSchedules: bucket(raw.bodyStatsSchedules, (a, b) => a.date.localeCompare(b.date)),
       notifications: (raw.notifications || []).slice().sort((a, b) => b.createdAt - a.createdAt),
       challenges: (raw.challenges || []).slice().sort((a, b) => b.createdAt - a.createdAt),
+      // Capped to the most recent 100 for display — the collection itself
+      // keeps growing, but a coach only ever needs to see what's recent.
+      errorLogs: (raw.errorLogs || []).slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 100),
       // groupMessages buckets by groupId rather than clientId, since a
       // group message belongs to the group, not to any one client.
       groups: (raw.groups || []).slice().sort((a, b) => b.createdAt - a.createdAt),
@@ -1400,6 +1420,7 @@ export function AppProvider({ children }) {
         try {
           await setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry });
         } catch (err) {
+          logClientError(clientId, "Log workout", err.message || "unknown error");
           throw new Error("Couldn't save your workout — " + (err.message || "check your connection and try again."));
         }
       },
@@ -1492,6 +1513,7 @@ export function AppProvider({ children }) {
             tx.set(ref, { id, clientId, date, ...next });
           });
         } catch (err) {
+          logClientError(clientId, "Log nutrition/water", err.message || "unknown error");
           throw new Error("Couldn't save — " + (err.message || "check your connection and try again."));
         }
       },
@@ -1553,6 +1575,7 @@ export function AppProvider({ children }) {
         try {
           await setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date });
         } catch (err) {
+          logClientError(clientId, "Log weigh-in", err.message || "unknown error");
           throw new Error("Couldn't save your weigh-in — " + (err.message || "check your connection and try again."));
         }
       },
@@ -1579,6 +1602,7 @@ export function AppProvider({ children }) {
         try {
           await deleteDoc(doc(firestore, "weighIns", weighInId));
         } catch (err) {
+          logClientError(clientId, "Remove weigh-in", err.message || "unknown error");
           throw new Error("Couldn't remove that weigh-in — " + (err.message || "check your connection and try again."));
         }
       },
@@ -1959,7 +1983,10 @@ export function AppProvider({ children }) {
         const dateKey = localDateKey();
         const current = (db.habitLog[clientId] || {})[dateKey] || [];
         const next = current.includes(habitId) ? current.filter((id) => id !== habitId) : [...current, habitId];
-        return setDoc(doc(firestore, "habitLog", clientId), { [dateKey]: next }, { merge: true });
+        return setDoc(doc(firestore, "habitLog", clientId), { [dateKey]: next }, { merge: true }).catch((err) => {
+          logClientError(clientId, "Toggle habit", err.message || "unknown error");
+          throw err;
+        });
       },
 
       // Master workout templates — reusable building blocks, independent of
@@ -2371,11 +2398,19 @@ export function AppProvider({ children }) {
         const response = { id, clientId, formId, scheduleId, date: Date.now(), answers, read: false };
         setDoc(doc(firestore, "formResponses", id), response)
           .then(() => pushNotify("checkin", {}))
-          .catch(console.error);
+          .catch((err) => {
+            logClientError(clientId, "Submit check-in", err.message || "unknown error");
+            console.error(err);
+          });
         return response;
       },
       markFormResponseRead(id) {
         updateDoc(doc(firestore, "formResponses", id), { read: true }).catch(console.error);
+      },
+      // Once a coach has seen a client-side save failure there's nothing
+      // further to act on — removed rather than left to pile up forever.
+      dismissErrorLog(id) {
+        deleteDoc(doc(firestore, "errorLogs", id)).catch(console.error);
       },
     }),
     [db, raw, hasCoach]

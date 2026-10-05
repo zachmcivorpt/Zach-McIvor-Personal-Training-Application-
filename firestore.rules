@@ -251,6 +251,15 @@ service cloud.firestore {
       allow update, delete: if isCoach();
     }
 
+    // --- errorLogs/{id}: a client's own save failure, written client-side
+    //     so a coach can see it without the client having to report it.
+    //     Same access shape as notifications/{id} above. ---
+    match /errorLogs/{id} {
+      allow read: if isCoach();
+      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      allow update, delete: if isCoach();
+    }
+
     // --- challenges/{id}: coach creates/manages; a client can read one
     //     only while they're listed as a participant. ---
     match /challenges/{id} {
