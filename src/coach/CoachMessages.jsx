@@ -56,7 +56,7 @@ function AttachmentPill({ attachment, tone = "theirs" }) {
 // The message list + composer, with no header/chrome of its own — reused by
 // both the full-screen ThreadView (opened from a client's own profile) and
 // the inline right-hand panel of the desktop Messages screen.
-function ThreadMessages({ client }) {
+export function ThreadMessages({ client }) {
   const { db, sendMessage, updateUser } = useApp();
   const [input, setInput] = useState("");
   const [uploadPct, setUploadPct] = useState(null);
@@ -318,7 +318,17 @@ export default function CoachMessages() {
                 <Avatar name={openClient.name} url={openClient.avatarUrl} size={34} dark />
                 <p className="text-white font-semibold text-sm">{openClient.name}</p>
               </div>
-              <ThreadMessages client={openClient} />
+              {/* Keyed by client id so switching the open thread directly
+                  from one client to another (desktop two-pane view) remounts
+                  this component instead of reusing it — without this, its
+                  local `input`/`uploadPct`/`uploadError` state (and the
+                  "mark as seen" effect) carried over from the PREVIOUS
+                  client, so an unsent draft typed for client A could end up
+                  sent to client B after switching. The mobile list view
+                  already got this for free (it unmounts through `null`
+                  before showing a new thread); this key makes the desktop
+                  split view behave the same way. */}
+              <ThreadMessages key={openClient.id} client={openClient} />
             </>
           ) : (
             <div className="flex-1 flex-col items-center justify-center text-center hidden md:flex">

@@ -356,6 +356,55 @@ silence.
 - **Manual verification**: N/A — fully automated.
 - **Date added**: 2026-10-05
 
+### 17. Desktop Messages composer leaking an unsent draft across clients
+- **Root cause**: `CoachMessages.jsx`'s `ThreadMessages` keeps its
+  draft/upload state (`input`, `uploadPct`, `uploadError`) in local
+  `useState`. On the desktop two-pane layout, clicking directly from one
+  client's conversation to another's (no intermediate "closed" state)
+  only changed the `client` prop — React reused the same component
+  instance rather than unmounting it, so an unsent draft typed for client
+  A was still sitting in the composer (and could be sent) after switching
+  to client B. The mobile layout never hit this because it fully
+  unmounts through a `null` state between threads.
+- **Fix**: `<ThreadMessages key={openClient.id} client={openClient} />`
+  at its one call site that can switch directly between two open clients
+  — the explicit `key` forces a remount on client switch.
+- **Regression test**: `src/coach/CoachMessages.test.jsx` — drives the
+  real exported `CoachMessages` component end-to-end (clicks between two
+  clients, types a draft, confirms it doesn't carry over), so it
+  exercises the actual render-site fix rather than hand-keying the
+  component in the test. Verified to fail (draft carried over to Bob's
+  composer) when the `key` is removed from `CoachMessages.jsx`; restored
+  and re-verified green.
+- **Manual verification**: N/A — fully automated.
+- **Date added**: 2026-10-05
+
+### 18. No re-entrancy guard on Create Challenge / Create Group / Add Group Member
+- **Root cause**: `ChallengeEditor`'s and `GroupEditor`'s Save buttons,
+  and `AddMemberSheet`'s Add button, were only disabled by form validity
+  (`!canSave` / `picked.length === 0`) — never by an in-flight "saving"
+  flag — while the underlying write (`createChallenge`, `createGroup`,
+  `updateGroup`) is async and awaited before the sheet closes. A fast
+  double-click fired the handler twice before the first write resolved:
+  `createChallenge`/`createGroup` mint a fresh doc id per call, so two
+  clicks created two duplicate documents; `AddMemberSheet.addPicked` read
+  the same stale `group.memberIds` prop twice, writing the same member id
+  in twice. Every other save action in the coach app already had this
+  guard (`GroupSettingsSheet.save`, `CoachClientDetail.jsx`,
+  `CoachClients.jsx`) — this was an inconsistency on these three actions
+  specifically, not an intentional design choice.
+- **Fix**: added a `saving` state to all three, guarding both the handler
+  (`if (!canSave || saving) return;`) and the button's `disabled` prop,
+  matching the existing `GroupSettingsSheet.save` pattern exactly.
+- **Regression test**: `src/coach/doubleSubmitGuards.test.jsx` — renders
+  each of the three components with a save/add call that never resolves
+  on its own, fires the button 2-3 times rapidly, and asserts the
+  underlying handler was only called once. Verified to fail (2-3 calls
+  instead of 1, across all three) when the guards are removed; restored
+  and re-verified green.
+- **Manual verification**: N/A — fully automated.
+- **Date added**: 2026-10-05
+
 ---
 
 ## What still requires manual testing

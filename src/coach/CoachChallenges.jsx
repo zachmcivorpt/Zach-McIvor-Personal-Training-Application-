@@ -13,10 +13,11 @@ function emptyDraft() {
   return { name: "", description: "", type: "leaderboard", metric: "workouts", startDate: today, endDate: inFourWeeks, goalValue: 10, participantIds: [] };
 }
 
-function ChallengeEditor({ challenge, activeClients, onClose, onSave, onDelete }) {
+export function ChallengeEditor({ challenge, activeClients, onClose, onSave, onDelete }) {
   const isNew = !challenge;
   const [draft, setDraft] = useState(() => (challenge ? { ...challenge } : emptyDraft()));
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   function toggleParticipant(clientId) {
     setDraft((d) => ({
@@ -35,7 +36,19 @@ function ChallengeEditor({ challenge, activeClients, onClose, onSave, onDelete }
             <ChevronLeft size={20} />
           </button>
           <span className="text-black font-semibold">{isNew ? "New Challenge" : "Edit Challenge"}</span>
-          <button onClick={() => canSave && onSave(draft)} disabled={!canSave} className="text-sm font-bold text-black disabled:text-black/20">
+          <button
+            onClick={async () => {
+              if (!canSave || saving) return;
+              setSaving(true);
+              try {
+                await onSave(draft);
+              } finally {
+                setSaving(false);
+              }
+            }}
+            disabled={!canSave || saving}
+            className="text-sm font-bold text-black disabled:text-black/20"
+          >
             Save
           </button>
         </div>

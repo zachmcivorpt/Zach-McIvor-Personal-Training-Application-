@@ -42,8 +42,9 @@ function ClientChecklist({ clients, checkedIds, onToggle, emptyText }) {
   );
 }
 
-function GroupEditor({ activeClients, onClose, onSave }) {
+export function GroupEditor({ activeClients, onClose, onSave }) {
   const [draft, setDraft] = useState(emptyDraft);
+  const [saving, setSaving] = useState(false);
   const canSave = draft.name.trim().length > 0;
 
   function toggleMember(clientId) {
@@ -58,7 +59,19 @@ function GroupEditor({ activeClients, onClose, onSave }) {
             <ChevronLeft size={20} />
           </button>
           <span className="text-black font-semibold">New Group</span>
-          <button onClick={() => canSave && onSave(draft)} disabled={!canSave} className="text-sm font-bold text-black disabled:text-black/20">
+          <button
+            onClick={async () => {
+              if (!canSave || saving) return;
+              setSaving(true);
+              try {
+                await onSave(draft);
+              } finally {
+                setSaving(false);
+              }
+            }}
+            disabled={!canSave || saving}
+            className="text-sm font-bold text-black disabled:text-black/20"
+          >
             Save
           </button>
         </div>
@@ -81,9 +94,10 @@ function GroupEditor({ activeClients, onClose, onSave }) {
   );
 }
 
-function AddMemberSheet({ open, group, activeClients, onClose, showToast }) {
+export function AddMemberSheet({ open, group, activeClients, onClose, showToast }) {
   const { updateGroup } = useApp();
   const [picked, setPicked] = useState([]);
+  const [saving, setSaving] = useState(false);
   const candidates = activeClients.filter((c) => !(group?.memberIds || []).includes(c.id));
 
   function toggle(clientId) {
@@ -91,7 +105,8 @@ function AddMemberSheet({ open, group, activeClients, onClose, showToast }) {
   }
 
   async function addPicked() {
-    if (picked.length === 0) return;
+    if (picked.length === 0 || saving) return;
+    setSaving(true);
     try {
       await updateGroup(group.id, { memberIds: [...(group.memberIds || []), ...picked] });
       showToast(`Added ${picked.length} member${picked.length === 1 ? "" : "s"}`);
@@ -99,6 +114,8 @@ function AddMemberSheet({ open, group, activeClients, onClose, showToast }) {
       onClose();
     } catch (err) {
       showToast(err.message || "Couldn't add members");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -106,7 +123,7 @@ function AddMemberSheet({ open, group, activeClients, onClose, showToast }) {
     <BottomSheet open={open} onClose={onClose} title="Add a Member">
       <ClientChecklist clients={candidates} checkedIds={picked} onToggle={toggle} emptyText="Every active client is already in this group." />
       {candidates.length > 0 && (
-        <SecondaryButton className="w-full mt-4" disabled={picked.length === 0} onClick={addPicked}>
+        <SecondaryButton className="w-full mt-4" disabled={picked.length === 0 || saving} onClick={addPicked}>
           Add {picked.length > 0 ? `(${picked.length})` : ""}
         </SecondaryButton>
       )}
