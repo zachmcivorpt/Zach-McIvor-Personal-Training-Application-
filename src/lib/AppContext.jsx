@@ -1400,7 +1400,7 @@ export function AppProvider({ children }) {
         try {
           await setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry });
         } catch (err) {
-          throw new Error("Couldn't save your workout — check your connection and try again");
+          throw new Error("Couldn't save your workout — " + (err.message || "check your connection and try again."));
         }
       },
 
@@ -1492,7 +1492,7 @@ export function AppProvider({ children }) {
             tx.set(ref, { id, clientId, date, ...next });
           });
         } catch (err) {
-          throw new Error("Couldn't save — check your connection and try again");
+          throw new Error("Couldn't save — " + (err.message || "check your connection and try again."));
         }
       },
 
@@ -1553,7 +1553,7 @@ export function AppProvider({ children }) {
         try {
           await setDoc(doc(firestore, "weighIns", id), { id, clientId, weight, date });
         } catch (err) {
-          throw new Error("Couldn't save your weigh-in — check your connection and try again");
+          throw new Error("Couldn't save your weigh-in — " + (err.message || "check your connection and try again."));
         }
       },
 
@@ -1579,7 +1579,7 @@ export function AppProvider({ children }) {
         try {
           await deleteDoc(doc(firestore, "weighIns", weighInId));
         } catch (err) {
-          throw new Error("Couldn't remove that weigh-in — check your connection and try again");
+          throw new Error("Couldn't remove that weigh-in — " + (err.message || "check your connection and try again."));
         }
       },
 
@@ -1732,7 +1732,7 @@ export function AppProvider({ children }) {
         try {
           await updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) });
         } catch (err) {
-          throw new Error("Couldn't save your changes — check your connection and try again");
+          throw new Error("Couldn't save your changes — " + (err.message || "check your connection and try again."));
         }
       },
 

@@ -27,7 +27,7 @@ export default function CoachWorkoutLibrary({ showToast }) {
       }
       setEditing(null);
     } catch (err) {
-      showToast("Couldn't save that workout — check your connection and try again");
+      showToast(err.message || "Couldn't save that workout — check your connection and try again");
     }
   }
 

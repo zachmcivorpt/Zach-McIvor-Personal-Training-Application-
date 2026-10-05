@@ -630,7 +630,7 @@ export default function CoachPrograms({ showToast }) {
     try {
       await savePhases(nextPhases);
     } catch (err) {
-      showToast("Couldn't save that workout — check your connection and try again");
+      showToast(err.message || "Couldn't save that workout — check your connection and try again");
       return;
     }
     setEditingWorkout(null);

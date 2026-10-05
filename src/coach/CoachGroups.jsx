@@ -147,7 +147,7 @@ function GroupSettingsSheet({ open, group, clientsById, onClose, onDeleted, show
   }
 
   function removeMember(clientId) {
-    updateGroup(group.id, { memberIds: group.memberIds.filter((id) => id !== clientId) }).catch(() => showToast("Couldn't remove that member"));
+    updateGroup(group.id, { memberIds: group.memberIds.filter((id) => id !== clientId) }).catch((err) => showToast(err.message || "Couldn't remove that member"));
   }
 
   async function confirmAndDelete() {

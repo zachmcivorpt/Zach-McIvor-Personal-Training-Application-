@@ -3000,7 +3000,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
       setEditingWorkout(null);
       showToast?.("Workout saved");
     } catch (err) {
-      showToast?.("Couldn't save that workout — check your connection and try again");
+      showToast?.(err.message || "Couldn't save that workout — check your connection and try again");
     }
   }
 
@@ -8610,7 +8610,7 @@ export default function ClientApp() {
             habits={habits}
             completedHabitIds={completedHabitIds}
             onToggleHabit={(habitId) =>
-              toggleHabitToday(currentUser.id, habitId).catch(() => showToast?.("Couldn't save — check your connection"))
+              toggleHabitToday(currentUser.id, habitId).catch((err) => showToast?.(err.message || "Couldn't save — check your connection"))
             }
             onAvatarClick={() => setTab("profile")}
             dayOffset={dayOffset}

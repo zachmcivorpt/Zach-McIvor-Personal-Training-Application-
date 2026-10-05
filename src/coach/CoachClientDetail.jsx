@@ -2280,7 +2280,7 @@ function TrainingProgramPanel({ client, showToast }) {
       setEditingWorkout(null);
       showToast("Workout saved");
     } catch (err) {
-      showToast("Couldn't save that workout — check your connection and try again");
+      showToast(err.message || "Couldn't save that workout — check your connection and try again");
     }
   }
 
@@ -2296,7 +2296,7 @@ function TrainingProgramPanel({ client, showToast }) {
       await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
       showToast("Kept — won't flag again for another 45 days");
     } catch (err) {
-      showToast("Couldn't update — check your connection and try again");
+      showToast(err.message || "Couldn't update — check your connection and try again");
     }
   }
 
@@ -2306,7 +2306,7 @@ function TrainingProgramPanel({ client, showToast }) {
     try {
       await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
     } catch (err) {
-      showToast("Couldn't delete that workout — check your connection and try again");
+      showToast(err.message || "Couldn't delete that workout — check your connection and try again");
     }
   }
 
@@ -2316,7 +2316,7 @@ function TrainingProgramPanel({ client, showToast }) {
     try {
       await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
     } catch (err) {
-      showToast("Couldn't save that photo — check your connection and try again");
+      showToast(err.message || "Couldn't save that photo — check your connection and try again");
     }
   }
 
@@ -2345,7 +2345,7 @@ function TrainingProgramPanel({ client, showToast }) {
       setSelectedDayIds(new Set());
       setSelectMode(false);
     } catch (err) {
-      showToast("Couldn't delete — check your connection and try again");
+      showToast(err.message || "Couldn't delete — check your connection and try again");
     }
   }
 
@@ -2362,7 +2362,7 @@ function TrainingProgramPanel({ client, showToast }) {
       await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
       showToast("Workout duplicated");
     } catch (err) {
-      showToast("Couldn't duplicate — check your connection and try again");
+      showToast(err.message || "Couldn't duplicate — check your connection and try again");
     }
     setOpenMenuId(null);
   }
@@ -2382,7 +2382,7 @@ function TrainingProgramPanel({ client, showToast }) {
     try {
       await updateClientPhase(client.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
     } catch (err) {
-      showToast("Couldn't rename — check your connection and try again");
+      showToast(err.message || "Couldn't rename — check your connection and try again");
     }
   }
 
@@ -2396,7 +2396,7 @@ function TrainingProgramPanel({ client, showToast }) {
       });
       showToast("Saved to Workout Library");
     } catch (err) {
-      showToast("Couldn't save to Library");
+      showToast(err.message || "Couldn't save to Library");
     }
     setOpenMenuId(null);
   }
@@ -4107,7 +4107,7 @@ function NutritionPanel({ client, showToast }) {
       };
     })
       .then(() => showToast("Entry removed"))
-      .catch(() => showToast("Couldn't remove — check your connection and try again"));
+      .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again"));
     setConfirmRemoveItem(null);
   }
 
@@ -4270,7 +4270,7 @@ function NutritionPanel({ client, showToast }) {
                   fat: 0,
                   water: 0,
                   meals: { Breakfast: [], Lunch: [], Dinner: [], Snacks: [], "Pre-workout": [], "Post-workout": [] },
-                })).catch(() => showToast("Couldn't clear — check your connection and try again"));
+                })).catch((err) => showToast(err.message || "Couldn't clear — check your connection and try again"));
                 setConfirmReset(false);
                 showToast(`${navOffset === 0 ? "Today's" : navLabel + "'s"} nutrition log cleared`);
               }}
@@ -5408,7 +5408,7 @@ function WeeklyCoachReviewCard({ client, showToast }) {
       await updateUser(client.id, { weeklyFocusNote: focus });
       showToast("Focus saved");
     } catch (err) {
-      showToast("Couldn't save — check your connection and try again");
+      showToast(err.message || "Couldn't save — check your connection and try again");
     } finally {
       setSaving(false);
     }
