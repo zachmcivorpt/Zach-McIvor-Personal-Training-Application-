@@ -1455,12 +1455,11 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
               <div className={`-mx-5 border-y divide-y ${dark ? "border-white/10 divide-white/10" : "border-black/10 divide-black/10"}`}>
                 {group.items.map(({ exMeta: e, i }) => {
                   const ex = exercisesById[e.exerciseId];
-                  if (!ex) return null;
                   return (
                     <button
                       type="button"
                       key={i}
-                      onClick={() => setDetailExercise(ex)}
+                      onClick={() => ex && setDetailExercise(ex)}
                       className="w-full flex items-center gap-3 text-left px-5 py-3.5"
                     >
                       <ExerciseThumb dark={dark} exercise={ex} width={64} height={64} rounded="rounded-lg" className="shrink-0" />
@@ -1470,7 +1469,7 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <p className={`${dark ? "text-white" : "text-black"} font-semibold text-[12px] tracking-wide uppercase truncate`}>
-                            {ex.name}
+                            {ex?.name || "Unknown exercise"}
                           </p>
                           {e.dropSet && (
                             <span className={`text-[8px] font-bold tracking-wide px-1.5 py-0.5 rounded shrink-0 border ${dark ? "border-white/20 text-white/50" : "border-black/15 text-black/45"}`}>
@@ -2544,8 +2543,7 @@ function WorkoutSession({
               )}
               <div className="space-y-4">
                 {group.items.map(({ exMeta, i }) => {
-                  const exercise = exercisesById[exMeta.exerciseId];
-                  if (!exercise) return null;
+                  const exercise = exercisesById[exMeta.exerciseId] || { id: exMeta.exerciseId, name: "Unknown exercise" };
                   const swap = exMeta.originalExerciseId ? exerciseSwaps[exMeta.originalExerciseId] : null;
                   return (
                     <ExerciseBlock
