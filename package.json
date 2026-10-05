@@ -8,7 +8,8 @@
     "build": "vite build && node scripts/deploy-firestore-rules.js",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:rules": "firebase emulators:exec --only firestore \"vitest run src/lib/firestoreRules.rules.test.js\""
   },
   "dependencies": {
     "barcode-detector": "^3.2.2",
@@ -22,12 +23,14 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
     "autoprefixer": "^10.5.4",
     "firebase-tools": "^15.32.1",
+    "jsdom": "^30.1.2",
     "oxlint": "^1.79.0",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
