@@ -4062,7 +4062,7 @@ function guessMealForNow() {
 // here. Backed entirely by src/lib/restaurantNutrition.js — a local,
 // deterministic matcher (restaurant menu database + this app's own meal
 // library), not an external AI call, so it works instantly with no setup.
-function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, showToast, dark }) {
+export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, showToast, dark }) {
   const { nutritionAiHelp } = useApp();
   // One entry per question asked — not a flat chat log — so each answer
   // can be dismissed or refreshed (different suggestions for the same
@@ -4070,6 +4070,10 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
   const [exchanges, setExchanges] = useState([]); // { id, query, reply, suggestions, shownNames, loading, error }
   const [input, setInput] = useState("");
   const [detailSuggestion, setDetailSuggestion] = useState(null);
+  // The detail sheet's own "ADD TO LOG" needs the same suggestionKey the
+  // inline chip uses, so it can be guarded by the same addedSuggestionKeys
+  // set below rather than only relying on the sheet closing in time.
+  const [detailSuggestionKey, setDetailSuggestionKey] = useState(null);
   // Keyed by `${exchangeId}-${index}` — this inline chip (unlike the
   // detail sheet's own "Add to Log" button, which closes immediately) had
   // nothing stopping a fast double-tap from calling addSuggestion twice,
@@ -4233,7 +4237,10 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
                           return (
                           <button
                             key={j}
-                            onClick={() => setDetailSuggestion(s)}
+                            onClick={() => {
+                              setDetailSuggestion(s);
+                              setDetailSuggestionKey(suggestionKey);
+                            }}
                             className="w-full text-left rounded-xl border px-3 py-2.5 flex items-center justify-between gap-3 active:opacity-70 transition-opacity"
                             style={{ borderColor: dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)", backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : "#fff" }}
                           >
@@ -4330,7 +4337,15 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
       </div>
     </div>
 
-    <BottomSheet dark={dark} open={!!detailSuggestion} onClose={() => setDetailSuggestion(null)} title={detailSuggestion?.name || ""}>
+    <BottomSheet
+      dark={dark}
+      open={!!detailSuggestion}
+      onClose={() => {
+        setDetailSuggestion(null);
+        setDetailSuggestionKey(null);
+      }}
+      title={detailSuggestion?.name || ""}
+    >
       {detailSuggestion && (
         <div>
           <div className={dark ? "grid grid-cols-4 gap-2 bg-white/[0.04] border border-white/8 rounded-lg p-3.5" : "grid grid-cols-4 gap-2 bg-black/[0.02] border border-black/8 rounded-lg p-3.5"}>
@@ -4407,8 +4422,9 @@ function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddF
             dark={dark}
             className="w-full mt-5"
             onClick={() => {
-              addSuggestion(detailSuggestion);
+              addSuggestion(detailSuggestion, detailSuggestionKey);
               setDetailSuggestion(null);
+              setDetailSuggestionKey(null);
             }}
           >
             <Plus size={16} /> ADD TO LOG
@@ -8530,10 +8546,14 @@ export default function ClientApp() {
       });
       return {
         ...base,
-        calories: Math.round((base.calories || 0) + (Number(food.cals) || 0)),
-        protein: round1((base.protein || 0) + (Number(food.protein) || 0)),
-        carbs: round1((base.carbs || 0) + (Number(food.carbs) || 0)),
-        fat: round1((base.fat || 0) + (Number(food.fat) || 0)),
+        // Clamped the same way removeFood below already clamps its
+        // subtraction — a food with a bad (e.g. negative) macro value,
+        // however it got into the library, can push a day's total below
+        // zero otherwise.
+        calories: Math.max(0, Math.round((base.calories || 0) + (Number(food.cals) || 0))),
+        protein: Math.max(0, round1((base.protein || 0) + (Number(food.protein) || 0))),
+        carbs: Math.max(0, round1((base.carbs || 0) + (Number(food.carbs) || 0))),
+        fat: Math.max(0, round1((base.fat || 0) + (Number(food.fat) || 0))),
         ...micros,
         // base.meals[meal] can be missing on an older doc saved before this
         // category existed (e.g. Pre-workout/Post-workout added later) —

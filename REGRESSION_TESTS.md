@@ -405,6 +405,84 @@ silence.
 - **Manual verification**: N/A — fully automated.
 - **Date added**: 2026-10-05
 
+### 19. Fuel IQ / Macro Match detail sheet could still double-log a suggestion
+- **Root cause**: the inline "ADD TO LOG" chip (bug #9 above) is guarded
+  by an `addedSuggestionKeys` set, but the same suggestion's own detail
+  sheet (opened by tapping its card) called `addSuggestion(detailSuggestion)`
+  with **no key**, so that guard never engaged there. A suggestion card
+  stays visible in the chat after use, so a client could reopen its
+  detail sheet and tap "ADD TO LOG" again, double-logging (and double-
+  counting the calories/macros of) the same suggestion.
+- **Fix**: added a `detailSuggestionKey` state threaded alongside
+  `detailSuggestion` (set when a card is tapped, passed to `addSuggestion`
+  from the detail sheet's own Add button, cleared on close) — reuses the
+  exact same `addedSuggestionKeys` guard the inline chip already has.
+- **Regression test**: `src/client/fuelIqDoubleLog.test.jsx` — opens the
+  detail sheet, adds once, reopens the same card, adds again, and asserts
+  `onAddFood` was only called once total. Verified to fail (2 calls) when
+  the key isn't threaded through; restored and re-verified green. (An
+  initial version of this test tried to simulate a same-tick double
+  click via two batched native events — that variant turned out to
+  **not** actually be reachable in the real app, since the Add button is
+  removed from the DOM the instant the first click's state update
+  commits, in both the buggy and fixed code. The "reopen and add again"
+  path is the one that's actually exploitable, so that's what's tested.)
+- **Manual verification**: N/A — fully automated.
+- **Date added**: 2026-10-05
+
+### 20. Custom food macros accepted negative values, corrupting the shared food library and daily totals
+- **Root cause**: both manual food-entry paths (`QuickAddFoodSheet.submit`
+  and the barcode sheet's "add manually", `src/client/NutritionFeatures.jsx`)
+  did `Number(manual.cals) || 0` etc. with no floor, so a client could
+  type e.g. "-500" into calories and save it straight to the **shared**
+  `customFoods` library (searchable by every client). `addFood`
+  (`ClientApp.jsx`) then added that value into a day's running total with
+  no clamp either (only `removeFood`, right next to it, already clamped
+  its subtraction to zero) — a negative-calorie food could push a day's
+  calorie/macro totals below zero.
+- **Fix**: both manual-entry paths now clamp every macro field to
+  `Math.max(0, …)` before saving; `addFood`'s running-total calculation
+  now clamps the same way `removeFood` already does.
+- **Regression test**: `src/client/quickAddFoodValidation.test.jsx` —
+  asserts negative input is saved as 0 and that ordinary positive values
+  pass through unchanged. Verified to fail (saved value was -500, not 0)
+  when the clamp is removed from `QuickAddFoodSheet.submit`; restored and
+  re-verified green. `addFood`'s own clamp (the day-total defense-in-depth
+  half of this fix) is covered by code review/build rather than a
+  dedicated test — it lives inside the large `ClientApp` component with
+  no isolated render path; see the barcode-sheet manual-verification note
+  below for that half plus the barcode "add manually" path, which shares
+  the identical fix but couldn't reasonably be rendered in this
+  environment (camera/`Html5Qrcode` dependencies).
+- **Manual verification**: for the barcode sheet's "add manually" path
+  and `addFood`'s running-total clamp — scan (or fail to scan) a barcode,
+  choose "Enter manually," type a negative calorie value, save, then log
+  it to a day that already has food logged — the day's total must not go
+  negative and the saved library entry's calories must read 0, not
+  negative.
+- **Date added**: 2026-10-05
+
+### 21. New meal plan's startDate stamped in UTC instead of local time
+- **Root cause**: `MealPlanBuilder.jsx`'s `publish()` used `new
+  Date().toISOString().slice(0, 10)` for a brand-new plan's `startDate` —
+  the exact previously-fixed anti-pattern (see `src/lib/dateKey.js`'s
+  `localDateKey`), just not applied here. For any timezone ahead of UTC
+  (this app's data is Australia-specific, AEST/AEDT = UTC+10/+11),
+  publishing between local midnight and ~10-11am stores the **previous**
+  calendar day. Since `startDate` is reused forever once set
+  (`existing?.startDate ||`), this is a permanent off-by-one-day anchor —
+  the client's plan viewer computes "current week"/"current day" from
+  it, so it's shifted by a day for the plan's entire lifetime.
+- **Fix**: `publish()` now uses `localDateKey()`.
+- **Regression test**: `src/coach/MealPlanBuilder.test.jsx` — sets the
+  system clock to 8:30am AEDT (9:30pm UTC the previous day) with
+  `TZ=Australia/Sydney`, publishes a new plan, and asserts `startDate` is
+  the LOCAL day (Oct 5), not the UTC day (Oct 4). Verified to fail
+  (got "2026-10-04") when reverted to `toISOString().slice(0,10)`;
+  restored and re-verified green.
+- **Manual verification**: N/A — fully automated.
+- **Date added**: 2026-10-05
+
 ---
 
 ## What still requires manual testing

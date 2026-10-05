@@ -18,6 +18,7 @@ import { matchPct, bestMatches, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, MEASURE_BLUE, OVER_RED } from "../theme";
 import { DarkPanel } from "./darkUI";
+import { localDateKey } from "../lib/dateKey";
 
 const MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -605,7 +606,7 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
   }
 
   function publish() {
-    setMealPlan(client.id, { days, weeks: weeksCount, startDate: existing?.startDate || new Date().toISOString().slice(0, 10) });
+    setMealPlan(client.id, { days, weeks: weeksCount, startDate: existing?.startDate || localDateKey() });
     showToast(`Meal guide saved for ${client.name}`);
     onClose();
   }

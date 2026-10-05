@@ -768,12 +768,16 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
 
   function addManual() {
     if (!manual.name.trim() || manual.cals === "") return;
+    // Clamped to zero — this entry is saved to the SHARED food library
+    // (every client can find and log it by name), so a typo like a
+    // leading "-" can't quietly push every future day it's logged on
+    // below zero or corrupt the library with a nonsensical value.
     const data = {
       name: manual.name.trim(),
-      cals: Math.round(Number(manual.cals) || 0),
-      protein: Number(manual.protein) || 0,
-      carbs: Number(manual.carbs) || 0,
-      fat: Number(manual.fat) || 0,
+      cals: Math.max(0, Math.round(Number(manual.cals) || 0)),
+      protein: Math.max(0, Number(manual.protein) || 0),
+      carbs: Math.max(0, Number(manual.carbs) || 0),
+      fat: Math.max(0, Number(manual.fat) || 0),
       per: 100,
       defaultQty: 100,
     };
@@ -1041,12 +1045,15 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
     // instead of silently treating a 250g serving's macros as if they were
     // per 100g and scaling everything wrong from there.
     const per = Math.round(Number(manual.per)) || 100;
+    // Clamped to zero — same reasoning as the barcode "add manually"
+    // path: this is saved to the SHARED food library, so a stray "-" or
+    // an absurd value can't corrupt it for every client who finds it.
     const data = {
       name: manual.name.trim(),
-      cals: Math.round(Number(manual.cals) || 0),
-      protein: Number(manual.protein) || 0,
-      carbs: Number(manual.carbs) || 0,
-      fat: Number(manual.fat) || 0,
+      cals: Math.max(0, Math.round(Number(manual.cals) || 0)),
+      protein: Math.max(0, Number(manual.protein) || 0),
+      carbs: Math.max(0, Number(manual.carbs) || 0),
+      fat: Math.max(0, Number(manual.fat) || 0),
       per,
       defaultQty: per,
     };
@@ -1054,7 +1061,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
     // actually typed something in — an untouched field means "unknown", not
     // "zero", same distinction the barcode-scan path makes.
     [...MICRO_FIELDS_G, ...MICRO_FIELDS_MG].forEach((key) => {
-      if (manual[key] !== "") data[key] = Number(manual[key]) || 0;
+      if (manual[key] !== "") data[key] = Math.max(0, Number(manual[key]) || 0);
     });
     // Always saved to the shared food library — a food only needs to be
     // typed in once, then it's searchable by every client from here on.
