@@ -146,8 +146,18 @@ service cloud.firestore {
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
+    // setNutritionForDate (AppContext.jsx) reads this doc inside a
+    // transaction to check whether it already exists before deciding
+    // whether to create or merge — for a client's first-ever nutrition log
+    // on a given day, that document doesn't exist yet, so `resource` is
+    // null. Without the `resource == null` clause, `resource.data.clientId`
+    // on a null resource throws, and Firestore treats any error while
+    // evaluating a rule as a denial — so every brand-new client's very
+    // first save failed with "Missing or insufficient permissions" before
+    // it ever reached the create step. A nonexistent document has nothing
+    // to protect, so it's safe to let the existence check through.
     match /nutritionLogs/{id} {
-      allow read: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
       allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
       allow update, delete: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid);
     }
