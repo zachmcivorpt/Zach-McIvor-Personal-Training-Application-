@@ -387,7 +387,7 @@ function ApexInsightSheet({ alert, onClose, onDismiss, onReviewClient, sendMessa
 }
 
 function ActivityItem({ item, onClick }) {
-  const clickable = (item.type === "workout" && !!item.log) || (item.type === "checkin" && !!item.response);
+  const clickable = (item.type === "workout" && !!item.log) || (item.type === "checkin" && !!item.response) || (item.type === "weighin" && !!item.clientId);
   return (
     <div
       onClick={clickable ? onClick : undefined}
@@ -887,7 +887,11 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           ) : (
             <div className="md:columns-2 md:gap-x-8">
               {recentActivity.map((item, i) => (
-                <ActivityItem key={i} item={item} onClick={() => setViewingActivity(item)} />
+                <ActivityItem
+                  key={i}
+                  item={item}
+                  onClick={() => (item.type === "weighin" ? onOpenClient?.(item.clientId, { tab: "progress" }) : setViewingActivity(item))}
+                />
               ))}
             </div>
           )}

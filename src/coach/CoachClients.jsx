@@ -369,7 +369,7 @@ function RowActions({ onOpen, onRemove, paused, onTogglePause }) {
   );
 }
 
-export default function CoachClients({ showToast, search, setSearch, openClientId, onOpenClientHandled }) {
+export default function CoachClients({ showToast, search, setSearch, openClientId, openClientAction, onOpenClientHandled }) {
   const navigate = useNavigate();
   const { db, removeClient, startViewAsClient, setClientAccessPaused, usersReady: dbReady } = useApp();
   const [addOpen, setAddOpen] = useState(false);
@@ -391,7 +391,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
   // would, then tell the parent it's been handled so this doesn't re-fire.
   useEffect(() => {
     if (!openClientId) return;
-    openClient(openClientId);
+    openClient(openClientId, openClientAction);
     onOpenClientHandled?.();
   }, [openClientId]);
   const [checkedIds, setCheckedIds] = useState(() => new Set());

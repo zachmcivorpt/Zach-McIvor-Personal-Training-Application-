@@ -89,9 +89,15 @@ export default function CoachShell() {
   // APEX Insight) needs to jump straight into one specific client's detail
   // view rather than just landing on the roster list.
   const [pendingClientId, setPendingClientId] = useState(null);
+  // Mirrors CoachClients.jsx's own openClient(id, action) — set when a
+  // caller outside the Clients tab (e.g. Recent Activity's "body stats
+  // logged" row) needs to land on one specific sub-tab, like Progress,
+  // instead of always landing on Summary.
+  const [pendingClientAction, setPendingClientAction] = useState(null);
 
-  function openClient(clientId) {
+  function openClient(clientId, action = null) {
     setPendingClientId(clientId);
+    setPendingClientAction(action);
     setTab("clients");
   }
 
@@ -227,7 +233,11 @@ export default function CoachShell() {
             search={clientSearch}
             setSearch={setClientSearch}
             openClientId={pendingClientId}
-            onOpenClientHandled={() => setPendingClientId(null)}
+            openClientAction={pendingClientAction}
+            onOpenClientHandled={() => {
+              setPendingClientId(null);
+              setPendingClientAction(null);
+            }}
           />
         )}
         {tab === "library" && (

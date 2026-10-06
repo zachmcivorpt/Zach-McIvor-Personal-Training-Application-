@@ -608,6 +608,37 @@ silence.
 - **Manual verification**: N/A — fully automated.
 - **Date added**: 2026-10-06
 
+### 27. Recent Activity's body-stats row had no way to jump to the client's weight graph
+- **Context**: feature request, not a bug — a coach asked to be able to
+  tap a "body stats logged" row in Recent Activity and land on that
+  client's weight graph in Progress, matching how tapping a workout or
+  check-in row already opens its own detail view.
+- **Change**: `CoachDashboard.jsx`'s `weighin` activity rows are now
+  clickable and call `onOpenClient(clientId, { tab: "progress" })`. That
+  action now threads all the way through: `CoachShell.jsx` stores it
+  alongside the pending client id (`pendingClientAction`) and passes it
+  to `CoachClients.jsx` as a new `openClientAction` prop, which hands it
+  to `openClient(id, action)` exactly the same way a badge click on the
+  roster already does — `CoachClientDetail` receives `initialTab="progress"`
+  and opens straight onto the Progress tab's weight chart.
+- **Regression test**: `src/coach/CoachClients.test.jsx` — renders
+  `CoachClients` with `openClientId`/`openClientAction={{tab:"progress"}}`
+  set (what `CoachShell` now passes through) and asserts the mounted
+  client detail view receives `initialTab="progress"`, against a
+  stubbed `CoachClientDetail` (too large/data-heavy to render for real in
+  a unit test). Verified to fail (`tab=summary` instead of
+  `tab=progress`) when the action isn't forwarded through `CoachClients`'
+  own effect; restored and re-verified green. The `CoachShell.jsx` half
+  of the chain (storing/forwarding `pendingClientAction`) and the
+  `CoachDashboard.jsx` half (the weighin row's onClick) are plain prop
+  plumbing with no independent branching logic, covered by code review
+  and the build rather than a dedicated test.
+- **Manual verification**: as the coach, tap a "logged a body stats
+  check-in" row in Recent Activity — it should open that client directly
+  on the Progress tab, scrolled to (or at least showing) the Body Weight
+  chart, not Summary.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing
