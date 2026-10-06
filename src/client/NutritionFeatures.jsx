@@ -65,6 +65,13 @@ function presetsFor(food, unit) {
 export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
   const [unitId, setUnitId] = useState("g");
   const [qty, setQty] = useState(100);
+  // onConfirm can be a real Firestore write (barcode scan / quick add /
+  // search -> nutrition log) that's slow on a bad connection. Without this,
+  // tapping ADD gave no feedback until the sheet happened to close, which
+  // on a slow save looked exactly like the tap did nothing — leading to a
+  // second scan-and-confirm of the same item, and a second, fully genuine
+  // add landing in the log once the first one finally went through too.
+  const [saving, setSaving] = useState(false);
 
   const units = food ? unitsFor(food) : [];
 
@@ -72,10 +79,27 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
     if (food) {
       setUnitId("g");
       setQty(food.defaultQty || 100);
+      setSaving(false);
     }
   }, [food]);
 
   if (!food) return null;
+
+  async function confirm() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onConfirm(scaled);
+    } catch {
+      // A rejected save leaves the sheet open (onConfirm's own caller
+      // already shows an error toast explaining why) so retrying doesn't
+      // require backing out and re-scanning — just re-enable the button
+      // below rather than leaving it stuck, or letting this become an
+      // unhandled rejection.
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const unit = units.find((u) => u.id === unitId) || UNIT_DEFS.g;
   const step = unit.id === "g" || unit.id === "ml" ? 10 : unit.id === "cup" ? 0.25 : 1;
@@ -201,8 +225,8 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
         ))}
       </div>
 
-      <PrimaryButton dark={dark} className="w-full" disabled={qty <= 0} onClick={() => onConfirm(scaled)}>
-        <Check size={16} /> ADD
+      <PrimaryButton dark={dark} className="w-full" disabled={qty <= 0 || saving} onClick={confirm}>
+        <Check size={16} /> {saving ? "ADDING…" : "ADD"}
       </PrimaryButton>
     </BottomSheet>
   );

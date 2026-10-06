@@ -4523,7 +4523,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
   const filteredFoods = allFoods.filter((f) => matchesSearch(f.name, search));
 
   function addAndClose(food) {
-    onAddFood(activeMeal, food, viewDateKey);
+    onAddFood(activeMeal, food, viewDateKey)?.catch(() => {});
     setBarcodeOpen(false);
     setPhotoOpen(false);
     setSheetOpen(false);
@@ -4545,7 +4545,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
   }
 
   function logSavedMeal(meal, category) {
-    onAddFood(category, { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat }, viewDateKey);
+    onAddFood(category, { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat }, viewDateKey)?.catch(() => {});
   }
 
   const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
@@ -4950,7 +4950,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
             targets={targets}
             todayNutrition={todayNutrition}
             nutritionProfile={currentUser.nutritionProfile || {}}
-            onAddFood={(meal, food) => onAddFood(meal, food, localDateKey())}
+            onAddFood={(meal, food) => onAddFood(meal, food, localDateKey())?.catch(() => {})}
             showToast={showToast}
             dark={dark}
           />
@@ -5233,8 +5233,14 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         dark={dark}
         food={pendingFood}
         onClose={() => setPendingFood(null)}
-        onConfirm={(scaled) => {
-          onAddFood(activeMeal, scaled, viewDateKey);
+        onConfirm={async (scaled) => {
+          // Only closes on a confirmed successful save — closing first
+          // (the old behaviour) made a slow save look identical to one
+          // that silently did nothing, which is exactly what sent a
+          // client back to scan the same item again and log it twice. On
+          // failure this stays open (the error toast from addFood already
+          // says why) so retrying doesn't need a second scan.
+          await onAddFood(activeMeal, scaled, viewDateKey);
           setPendingFood(null);
           setSheetOpen(false);
         }}
@@ -8620,7 +8626,7 @@ export default function ClientApp() {
   }
 
   function addFood(meal, food, dateKey = todayDateKey) {
-    setNutritionForDate(currentUser.id, dateKey, (n) => {
+    return setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       const micros = {};
       // Most foods don't carry micronutrient data (only a barcode scan or a
@@ -8647,7 +8653,16 @@ export default function ClientApp() {
       };
     })
       .then(() => showToast(`${food.name} added to ${meal}`))
-      .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));
+      .catch((err) => {
+        showToast(err.message || "Couldn't save — check your connection and try again", true);
+        // Re-thrown so a caller that actually waits on this (the quantity
+        // sheet's Add button) can tell the save failed and let the client
+        // retry instead of assuming it worked. Every other call site here
+        // fires this and moves on without awaiting it — the toast above is
+        // already their only feedback — so each one swallows this re-throw
+        // itself rather than leaving it an unhandled rejection.
+        throw err;
+      });
   }
 
   function removeFood(meal, entryId, dateKey = todayDateKey) {

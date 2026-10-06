@@ -877,6 +877,36 @@ silence.
   weight × reps summed across sets.
 - **Date added**: 2026-10-06
 
+### 35. Scanning a product that "seemed to not add" led to it being logged twice
+- **Root cause**: `FoodQuantitySheet`'s ADD button fired `onConfirm` and the
+  caller (`ClientApp.jsx`) closed the sheet (`setPendingFood(null)`)
+  immediately, without waiting to see whether the underlying save
+  (`addFood` → `setNutritionForDate`, a real Firestore transaction) had
+  actually finished or failed. On a slow connection the tap gave no
+  feedback and the sheet vanished either way, so it looked identical to
+  the tap doing nothing — leading a client to scan and confirm the same
+  product again. Both saves were genuinely processed, so the item landed
+  in the log twice.
+- **Fix**: `addFood` now returns its save promise instead of discarding
+  it (and re-throws after showing its error toast, so a caller that
+  awaits it can tell the save failed — the three fire-and-forget callers
+  elsewhere in `ClientApp.jsx` that don't need to know now swallow that
+  re-throw explicitly). `FoodQuantitySheet`'s ADD button disables itself
+  and shows "ADDING…" the instant it's tapped, and the sheet's
+  `onConfirm` now only closes the sheet after that save actually
+  resolves — a failure leaves it open for an immediate retry instead of
+  silently vanishing.
+- **Regression test**: `src/client/foodQuantityDoubleAdd.test.jsx` — a
+  second tap while the first save is still pending is ignored (`onConfirm`
+  called exactly once, button disabled); a rejected save re-enables the
+  button for a retry instead of leaving it stuck. Verified to fail (a
+  second tap called `onConfirm` twice) when reverted to the old
+  unguarded button; restored and re-verified green.
+- **Manual verification**: throttle the network (dev tools "Slow 3G"),
+  scan/confirm a product, and confirm the ADD button shows "ADDING…" and
+  can't be tapped again until the save completes or fails.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing
