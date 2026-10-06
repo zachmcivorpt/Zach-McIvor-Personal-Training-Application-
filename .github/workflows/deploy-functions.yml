@@ -48,6 +48,14 @@ jobs:
           EOF
 
       - name: Deploy to Firebase
-        run: npx firebase-tools deploy --only functions --project zach-mcivor-pt-app --non-interactive
+        # --force: deploy --non-interactive refuses to delete a function
+        # that's live in the project but no longer in functions/index.js —
+        # it just aborts the WHOLE deploy (nothing changes, old function
+        # keeps running) waiting for an interactive confirmation that can
+        # never come in CI. A function genuinely does get deleted here
+        # sometimes (see REGRESSION_TESTS.md #37 — six duplicate
+        # notification triggers removed), so this needs to go through
+        # rather than silently no-op the entire deploy.
+        run: npx firebase-tools deploy --only functions --project zach-mcivor-pt-app --non-interactive --force
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
