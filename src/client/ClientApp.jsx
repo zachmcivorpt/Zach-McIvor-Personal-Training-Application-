@@ -67,7 +67,7 @@ import {
   ArrowRight,
   StickyNote,
 } from "lucide-react";
-import { enablePush, disablePush, pushSupported } from "../lib/push";
+import { enablePush, disablePush, pushSupported, isNativeApp } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
 import {
   LineChart,
@@ -1006,7 +1006,7 @@ function CoachChatBubble({ coachUser, unreadCount, onOpen }) {
   );
 }
 
-function NotificationsPromptCard({ userId, showToast }) {
+export function NotificationsPromptCard({ userId, showToast }) {
   const dark = useClientDark();
   const [supported, setSupported] = useState(false);
   // Namespaced per userId (same pattern as lastTabKey/activeSessionKey
@@ -1019,6 +1019,15 @@ function NotificationsPromptCard({ userId, showToast }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    // pushSupported() checks the browser Push API, which WKWebView never
+    // has — it would resolve false here on every native install, hiding
+    // this nudge entirely even for a client who hasn't granted the OS
+    // permission yet. Native supports push too, just through a different
+    // (OS-level) channel, so it counts as "supported" on its own terms.
+    if (isNativeApp) {
+      setSupported(true);
+      return;
+    }
     pushSupported().then(setSupported);
   }, []);
 
@@ -1030,6 +1039,13 @@ function NotificationsPromptCard({ userId, showToast }) {
   }
 
   async function enable() {
+    if (isNativeApp) {
+      // Same reasoning as PushNotificationsSheet's toggle: native grants
+      // this once via a one-time OS prompt, with no in-app re-prompt, so
+      // enablePush()'s browser-only path can never succeed here.
+      window.location.href = "app-settings:";
+      return;
+    }
     setBusy(true);
     try {
       const token = await enablePush(userId);
@@ -6428,7 +6444,7 @@ function ConnectedDevicesSheet({ open, onClose, connected, showToast }) {
   );
 }
 
-function PushNotificationsSheet({ open, onClose, showToast, userId }) {
+export function PushNotificationsSheet({ open, onClose, showToast, userId }) {
   const dark = useClientDark();
   // Namespaced per userId — see NotificationsPromptCard's comment above
   // for why a bare "pushToken" key leaks one client's enabled state (and
@@ -6439,6 +6455,16 @@ function PushNotificationsSheet({ open, onClose, showToast, userId }) {
 
   async function toggle() {
     setError("");
+    if (!enabled && isNativeApp) {
+      // On native, push is granted/denied once via the OS permission
+      // prompt on first launch — there's no in-app re-prompt, and the
+      // one thing a tap here could otherwise do is call enablePush()'s
+      // browser-only Push API path, which always throws "not supported"
+      // inside WKWebView regardless of the real permission state. Send
+      // the client to the one place that actually controls this instead.
+      window.location.href = "app-settings:";
+      return;
+    }
     setBusy(true);
     try {
       if (enabled) {
@@ -6470,11 +6496,16 @@ function PushNotificationsSheet({ open, onClose, showToast, userId }) {
           onClick={toggle}
           disabled={busy}
           className={`w-11 h-6 rounded-full relative transition-colors shrink-0 ${enabled ? "bg-blue-500" : dark ? "bg-white/15" : "bg-black/15"}`}
-          aria-label={enabled ? "Turn off push notifications" : "Turn on push notifications"}
+          aria-label={enabled ? "Turn off push notifications" : isNativeApp ? "Open iOS Settings to turn on push notifications" : "Turn on push notifications"}
         >
           <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
         </button>
       </div>
+      {!enabled && isNativeApp && (
+        <p className={dark ? "text-white/40 text-xs mt-3" : "text-black/40 text-xs mt-3"}>
+          Controlled by iOS, not this app — tap the switch to open Settings → Notifications and turn it on there.
+        </p>
+      )}
       {error && <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-3.5 py-2.5 mt-3">{error}</p>}
       <p className={dark ? "text-white/30 text-[11px] mt-3" : "text-black/30 text-[11px] mt-3"}>This is per-device — turn it on separately on each phone or browser you use.</p>
     </BottomSheet>

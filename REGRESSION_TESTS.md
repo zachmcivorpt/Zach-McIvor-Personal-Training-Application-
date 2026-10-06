@@ -1009,6 +1009,59 @@ silence.
 - **Manual verification**: send a 1:1 message, a group message, publish a
   meal plan update, update a training phase, and submit a check-in —
   each should produce exactly one push notification, not two.
+- **Follow-up catch**: the first deploy of this fix actually failed —
+  `firebase deploy --non-interactive` refuses to delete a function
+  that's live but no longer in source, and aborts the ENTIRE deploy
+  waiting for an interactive confirmation that can never come in CI, so
+  the six duplicate triggers were still live (still double-sending)
+  after that push went out. Caught by checking the GitHub Actions run
+  directly rather than assuming success; fixed by adding `--force` to
+  `.github/workflows/deploy-functions.yml`'s deploy step, then manually
+  re-triggered via `workflow_dispatch` — confirmed this run actually
+  deleted all six and deployed cleanly, again by reading its logs
+  directly, not assuming.
+- **Date added**: 2026-10-06
+
+### 38. Client-side push toggle had the same native dead-end as the coach's
+- **Root cause**: same bug class as #36, in the client app's own two push
+  UI surfaces (`ClientApp.jsx`'s `PushNotificationsSheet` and
+  `NotificationsPromptCard`). `PushNotificationsSheet`'s toggle called
+  `enablePush()` unconditionally — on native, with push not yet
+  registered (OS permission denied or not yet asked), this threw the
+  same browser-only "not supported" error. `NotificationsPromptCard` had
+  a different symptom of the same root cause: it gated its own
+  visibility on `pushSupported()` (a browser Push API check), which
+  always resolves `false` inside WKWebView regardless of whether native
+  push is actually workable — so this nudge banner silently never
+  appeared at all on the native app, even for a client who hadn't
+  granted the OS permission yet and would have benefited from the nudge.
+- **Fix**: extracted the native-build check (`isNativeApp`, reading
+  `window.__apexNativePush`, which only exists inside the native app)
+  into a shared export from `src/lib/push.js` — used by both
+  `CoachMore.jsx` (replacing its own local copy of the same check) and
+  `ClientApp.jsx`. `PushNotificationsSheet`'s toggle now opens iOS
+  Settings instead of calling `enablePush()` when disabled on native,
+  matching the coach fix exactly. `NotificationsPromptCard` now treats
+  native as "supported" on its own terms (bypassing the browser-API
+  check that was never meaningful there) and its ENABLE action opens iOS
+  Settings the same way, so the nudge banner now actually shows up and
+  works for native clients instead of silently never appearing.
+- **Regression test**: `src/client/pushNotificationsNativeAware.test.jsx`
+  — on native, `PushNotificationsSheet`'s toggle never calls `enablePush`;
+  off native it still does, unchanged; `NotificationsPromptCard` shows on
+  native even though the browser Push API itself is unsupported there,
+  its ENABLE action never calls `enablePush` on native, and it still
+  correctly stays hidden off native when the browser genuinely doesn't
+  support push. Verified each native-path assertion to fail against the
+  prior code; restored and re-verified green. (Also updated
+  `src/coach/pushNotificationsKeyMismatch.test.jsx`'s mock of
+  `../lib/push` to supply `isNativeApp` now that it's imported rather
+  than locally defined — re-verified all 4 of those tests still pass.)
+- **Manual verification**: on the native iOS app, sign in as a client who
+  hasn't granted the OS notification permission yet — the "turn on
+  notifications" nudge on Home should appear and, when tapped, open iOS
+  Settings rather than show any "not supported" error; same for the
+  Profile → Push Notifications screen's toggle.
 - **Date added**: 2026-10-06
 
 ---

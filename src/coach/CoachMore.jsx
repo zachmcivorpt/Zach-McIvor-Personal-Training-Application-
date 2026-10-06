@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput, DeleteAccountSheet } from "../components/ui";
 import { fileToDataUrl, removeFlatLogoBackground } from "../lib/image";
-import { enablePush, disablePush } from "../lib/push";
+import { enablePush, disablePush, isNativeApp } from "../lib/push";
 import { uploadDesignImage, uploadLoginBackground } from "../lib/storage";
 import { DarkPage, DarkPageHeader, DarkPanel } from "./darkUI";
 import { MEASURE_BLUE, GOAL_GREEN, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
@@ -44,12 +44,6 @@ function NotifPrefRow({ label, on, onToggle }) {
     </div>
   );
 }
-
-// window.__apexNativePush only ever exists inside the native iOS App
-// Store build (src/lib/nativeBridge.js defines it there and nowhere
-// else) — the one place enablePush()'s browser Push API path can never
-// work, since WKWebView doesn't have one at all.
-const isNativeApp = typeof window !== "undefined" && !!window.__apexNativePush;
 
 export function PushNotificationsCard({ userId, notificationPrefs, updateUser, showToast }) {
   // Namespaced per userId — matches the key src/lib/nativeBridge.js

@@ -24,6 +24,13 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 vi.mock("../lib/push", () => ({
   enablePush: vi.fn(),
   disablePush: vi.fn(),
+  // A getter, not a plain value — isNativeApp needs to reflect whatever
+  // window.__apexNativePush is set to AT THE TIME CoachMore.jsx (which
+  // re-evaluates on each test's fresh dynamic import, see loadCard below)
+  // actually reads it, not whatever it was when this factory first ran.
+  get isNativeApp() {
+    return typeof window !== "undefined" && !!window.__apexNativePush;
+  },
 }));
 
 afterEach(() => {

@@ -14,6 +14,17 @@ import { VAPID_KEY } from "./config";
 // documented pattern for apps that already have another service worker.
 const SW_SCOPE = "/firebase-cloud-messaging-push-scope";
 
+// window.__apexNativePush only ever exists inside the native iOS App
+// Store build (src/lib/nativeBridge.js defines it there and nowhere
+// else) — the one place enablePush()'s browser Push API path can never
+// work (pushSupported() always resolves false there, regardless of the
+// real OS notification permission state), since WKWebView doesn't have
+// a Push API at all. Push there is instead granted/denied once via a
+// native OS prompt on first launch, with no in-app re-prompt — any
+// screen offering to "turn on" push needs to check this and send the
+// person to iOS Settings instead of calling enablePush().
+export const isNativeApp = typeof window !== "undefined" && !!window.__apexNativePush;
+
 export async function pushSupported() {
   if (typeof window === "undefined" || !("Notification" in window) || !("serviceWorker" in navigator)) return false;
   try {
