@@ -133,6 +133,7 @@ import {
   suggestNextSet,
 } from "../lib/trainingStats";
 import { resolveNutritionTargets, MICRO_DV_ROWS } from "../lib/nutritionTargets";
+import { isPersistedSessionStale } from "../lib/sessionStaleness";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
@@ -7884,7 +7885,24 @@ export default function ClientApp() {
   } = useApp();
   const dark = db.appDesign?.clientDarkMode === true;
   const navigate = useNavigate();
-  const persistedSession = loadActiveSession(currentUser.id);
+  // A session left open (backgrounded, or the tab/app closed before the
+  // client explicitly finished or canceled it) persists across reloads so
+  // a returning client lands back inside it — but only within the SAME
+  // calendar day. Without this check, once a new day began, today's
+  // fresh, never-started session silently inherited yesterday's (or
+  // older) leftover sets/swaps: "RESUME WORKOUT" with a stray set count
+  // on a workout the client genuinely never touched today, or — since
+  // sessionOpen itself was also restored as true — the app could drop
+  // the client straight into that old day's live logging screen on
+  // their very next launch.
+  const rawPersistedSession = loadActiveSession(currentUser.id);
+  const persistedSessionIsStale = isPersistedSessionStale(rawPersistedSession, localDateKey());
+  if (persistedSessionIsStale) {
+    try {
+      localStorage.removeItem(activeSessionKey(currentUser.id));
+    } catch {}
+  }
+  const persistedSession = persistedSessionIsStale ? null : rawPersistedSession;
   const [tab, setTab] = useState(() => loadLastTab(currentUser.id));
   const [activeLog, setActiveLog] = useState(persistedSession?.activeLog || null); // {exerciseId: [sets]} while a session is open
   // Which session is actually being run right now — defaults to todaySession

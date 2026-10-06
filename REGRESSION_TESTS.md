@@ -639,6 +639,43 @@ silence.
   chart, not Summary.
 - **Date added**: 2026-10-06
 
+### 28. A stale cross-day session showed "RESUME WORKOUT" with leftover sets on a workout the client never started
+- **Root cause**: a live, urgent production bug, reported directly by the
+  user, on top of bug #26. `ClientApp.jsx` persists the in-progress
+  session (`activeLog`, `runningSession`, `sessionOpen`, etc.) to
+  localStorage on every change so a backgrounded/killed app resumes where
+  it left off — but restored it **unconditionally** on every load, with
+  no check against which calendar day it actually belonged to. Once a
+  new day began, a client reopening the app inherited yesterday's (or
+  older) leftover sets on TODAY's fresh, never-started session —
+  `TodayWorkoutCard`'s `started` flag is only `isToday && !!activeLog &&
+  !completedOnDate`, with no check that the active log's session date
+  actually matches the day being shown, so it showed "RESUME WORKOUT"
+  with a stray set count (e.g. "12/21 sets") on a session the client
+  never touched. Because `sessionOpen` was restored too, this could also
+  drop the client straight into that old day's live logging screen on
+  their very next launch, not just show a misleading card.
+- **Fix**: `src/lib/sessionStaleness.js`'s `isPersistedSessionStale`
+  checks the persisted `runningSession.date` against today's date; if it
+  doesn't match, `ClientApp.jsx` discards the whole persisted session
+  (and clears the stale localStorage entry) at load time, before any of
+  `activeLog`/`runningSession`/`sessionOpen`/etc. are ever seeded from
+  it — so today's session always starts genuinely fresh.
+- **Regression test**: `src/lib/sessionStaleness.test.js` — covers a
+  different-day persisted session (stale), a same-day one (not stale),
+  no persisted session, and a persisted draft with no `runningSession`
+  at all. Verified to fail (the stale case returned `false`) when gutted
+  to always return `false`; restored and re-verified green. The
+  integration (that `ClientApp.jsx` actually discards state on this
+  signal) isn't separately rendered — `ClientApp` is the ~8,800-line root
+  component with no isolated mount path — covered by code review and the
+  build.
+- **Manual verification**: start a workout, log a few sets, then leave
+  without finishing or canceling it (background the tab, or close the
+  app). The next calendar day, reopen the app — Today's card must show
+  "START WORKOUT" with no stray set count, not "RESUME WORKOUT."
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing
