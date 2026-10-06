@@ -845,6 +845,38 @@ silence.
   icon, stays longer) from a normal successful save toast.
 - **Date added**: 2026-10-06
 
+### 34. Coach's "Possible plateau" flag used estimated 1RM instead of reps/sets/volume progression
+- **Root cause**: `computePlateaus` (`src/lib/trainingStats.js`) flagged an
+  exercise as stuck by comparing each session's best estimated 1RM (Epley
+  formula off the single best set) against the best e1RM from before a
+  3-week window. A single heavy low-rep set can inflate e1RM even while
+  the client's actual working sets — the reps and sets they're actually
+  doing — haven't progressed at all, so a real plateau could go unflagged
+  (or a genuine low-volume PR test could mask one). The card itself had
+  also been misplaced in the Summary tab instead of the Training tab,
+  fixed separately in commit 248c359.
+- **Fix**: switched the metric from best-set e1RM to total session volume
+  (sum of weight × reps across every set that session) — this directly
+  reflects "no progression in reps or sets," not just a 1-rep-max
+  estimate. Comparison logic (3+ sessions in the last 3 weeks, best value
+  in that window vs. best before it, 2% noise tolerance) is unchanged.
+  Also renamed the surfaced field (`currentBest` → `currentVolume`) and
+  updated the card's label from "kg e1RM" to "kg volume."
+- **Regression test**: `src/lib/trainingStats.test.js` — a scenario with
+  real working-set history (100kg × 8 × 3 sets) followed by three
+  single-heavy-rep sessions (130kg × 1) that would have beaten the old
+  e1RM (making the old code NOT flag it) now correctly flags as a
+  plateau under the volume metric; a genuinely-progressing-reps scenario
+  stays unflagged; the existing 3-session-minimum and
+  no-history-before-window guards are also covered. Verified to fail
+  (the e1RM-beating scenario wasn't flagged) when reverted to the old
+  e1RM-based metric; restored and re-verified green.
+- **Manual verification**: on a client with 3+ sessions of the same lift
+  in the last 3 weeks and flat reps/sets, confirm "Possible plateau"
+  shows that exercise with a volume figure that matches hand-calculated
+  weight × reps summed across sets.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing

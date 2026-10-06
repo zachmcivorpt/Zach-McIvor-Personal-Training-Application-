@@ -5180,11 +5180,12 @@ function UnderlineField({ label, children }) {
 // structured enough for the TDEE calculator in the Nutrition tab to read
 // directly off the client doc.
 // Surfaces exercises the client has trained consistently (3+ sessions in
-// the last 3 weeks) without their best e1RM actually improving — the kind
-// of thing that's easy to miss scrolling through individual session logs
-// but jumps out immediately here, prompting a program change (new rep
-// range, a swap, a deload) before the client gets discouraged on their own.
-// Renders nothing at all when there's nothing to flag.
+// the last 3 weeks) without their reps, sets, or total volume actually
+// progressing — the kind of thing that's easy to miss scrolling through
+// individual session logs but jumps out immediately here, prompting a
+// program change (new rep range, a swap, a deload) before the client gets
+// discouraged on their own. Renders nothing at all when there's nothing to
+// flag.
 function PlateauAlertCard({ client }) {
   const { db } = useApp();
   const logs = db.workoutLogs[client.id] || [];
@@ -5206,7 +5207,7 @@ function PlateauAlertCard({ client }) {
         {plateaus.map((p) => (
           <div key={p.exerciseId} className="flex items-center justify-between py-2.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
             <span className="text-white text-sm font-medium">{p.exerciseName}</span>
-            <span className="text-white text-xs">{p.sessions} sessions · stuck ~{p.currentBest}kg e1RM</span>
+            <span className="text-white text-xs">{p.sessions} sessions · stuck ~{p.currentVolume}kg volume</span>
           </div>
         ))}
       </div>
