@@ -396,7 +396,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   );
 }
 
-function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
+export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onDiscard, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
   const dark = useClientDark();
   const outerMargin = fullWidth ? "" : "mx-2.5";
   const outerRadius = fullWidth ? "rounded-none" : "rounded-2xl";
@@ -406,6 +406,7 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
   const muted20 = dark ? "text-white/20" : "text-black/20";
   const muted30 = dark ? "text-white/45" : "text-black/45";
   const muted70 = dark ? "text-white/70" : "text-black/70";
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   if (!todaySession) {
     return (
@@ -478,6 +479,27 @@ function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, isToday = 
             View
           </button>
         </div>
+        {/* No way to clear a stuck "Resume" state existed before this —
+            exiting the live session screen (the X/Cancel button) only
+            closed it, it never cleared the logged-so-far sets, so this
+            card could get stuck showing "RESUME WORKOUT" with a stray set
+            count indefinitely with nothing to do about it short of
+            logging out. */}
+        {started && onDiscard && (
+          <button
+            onClick={() => {
+              if (confirmDiscard) {
+                onDiscard();
+                setConfirmDiscard(false);
+              } else {
+                setConfirmDiscard(true);
+              }
+            }}
+            className={`w-full text-center text-[11px] font-medium mt-3 ${confirmDiscard ? "text-white" : "text-white/45"}`}
+          >
+            {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1089,6 +1111,7 @@ function HomeScreen({
   todaySession,
   activeLog,
   onStartWorkout,
+  onDiscardWorkout,
   onViewWorkout,
   dayNutrition,
   targets,
@@ -1141,6 +1164,7 @@ function HomeScreen({
         todaySession={daySession}
         activeLog={activeLog}
         onStart={onStartWorkout}
+        onDiscard={onDiscardWorkout}
         onView={onViewWorkout}
         isToday={isToday}
         completedOnDate={completedOnDate}
@@ -3179,7 +3203,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
   );
 }
 
-function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsByDate, activeLog, completedOnDate, onStart, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
+function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsByDate, activeLog, completedOnDate, onStart, onDiscardWorkout, onViewWorkout, onPreviewWorkout, logsForClient, exercisesById, onLogCardio, dbReady, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, viewingAsClient, saveScheduledWorkout, deleteScheduledWorkoutById } = useApp();
   const [tab, setTab] = useState("today");
@@ -3294,6 +3318,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
             todaySession={todaySession}
             activeLog={activeLog}
             onStart={onStart}
+            onDiscard={onDiscardWorkout}
             onView={onViewWorkout}
             isToday
             completedOnDate={completedOnDate}
@@ -8555,6 +8580,28 @@ export default function ClientApp() {
     setFinishingWorkout(false);
   }
 
+  // Lets a client (or a coach who finds a client stuck on this) clear an
+  // in-progress session without finishing it — no sets are saved anywhere.
+  // Exiting the live session screen (its X/Cancel) never did this; it only
+  // closed the screen, leaving activeLog/runningSession (and the
+  // persisted localStorage snapshot built from them) exactly as they
+  // were, so the home card could get stuck on "RESUME WORKOUT" with a
+  // stray set count with no way to clear it short of logging out.
+  function discardActiveSession() {
+    clearExerciseNotes(currentUser.id, Object.keys(exerciseNotes));
+    clearSessionNote(currentUser.id);
+    setActiveLog(null);
+    setExerciseNotes({});
+    setSessionNote("");
+    setExerciseSwaps({});
+    setExtraExercises([]);
+    setEditingLogId(null);
+    setSessionOpen(false);
+    setRunningSession(null);
+    clearLiveSession(currentUser.id);
+    showToast("Workout progress discarded");
+  }
+
   function openPreview(session, canStart, isTodayLog = false) {
     if (!session) return;
     setPreviewSession(session);
@@ -8722,6 +8769,7 @@ export default function ClientApp() {
             todaySession={todaySession}
             activeLog={activeLog}
             onStartWorkout={() => startWorkout(daySession)}
+            onDiscardWorkout={discardActiveSession}
             onViewWorkout={() => openPreview(daySession, !completedOnDate, isToday && completedOnDate)}
             dayNutrition={dayNutrition}
             targets={targets}
@@ -8764,6 +8812,7 @@ export default function ClientApp() {
             activeLog={activeLog}
             completedOnDate={completedToday}
             onStart={() => startWorkout()}
+            onDiscardWorkout={discardActiveSession}
             onViewWorkout={() => openPreview(todaySession, !completedToday, completedToday)}
             onPreviewWorkout={(day) => openPreview(day, true)}
             logsForClient={logsForClient}

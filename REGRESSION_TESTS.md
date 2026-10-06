@@ -676,6 +676,39 @@ silence.
   "START WORKOUT" with no stray set count, not "RESUME WORKOUT."
 - **Date added**: 2026-10-06
 
+### 29. No way to clear a stuck "RESUME WORKOUT" card once it had any logged sets
+- **Root cause**: found while investigating bug #28 continuing to
+  reproduce for one specific client even after that fix shipped —
+  exiting the live session screen (its X/Cancel button, `onExit` in
+  `ClientApp.jsx`) only ever did `setSessionOpen(false)` and
+  `clearLiveSession(...)` (the Firestore mirror the coach watches). It
+  never cleared `activeLog`/`runningSession` themselves. So ANY visit to
+  the live session screen that logs at least one set — including a coach
+  previewing/testing a client's session, not just the client's own use —
+  left that client's card permanently stuck on "RESUME WORKOUT" with
+  that set count, on the SAME day, with literally no UI path to clear
+  it short of logging the client out (which wipes localStorage,
+  including the stale session snapshot, as a side effect — not an
+  intentional fix).
+- **Fix**: `TodayWorkoutCard` now shows a "Not started this — discard
+  progress" action whenever it's showing "RESUME WORKOUT", behind a
+  two-tap confirm (first tap asks for confirmation, only the second
+  actually discards) so it can't erase real in-progress sets with one
+  accidental tap. Wired to a new `discardActiveSession()` in
+  `ClientApp.jsx` that clears `activeLog`, `runningSession`,
+  `sessionOpen`, `exerciseSwaps`, `extraExercises`, `editingLogId`, and
+  the draft exercise/session notes — the same full reset
+  `finishWorkout()` already does on its own cleanup path, just without
+  saving a workout log.
+- **Regression test**: `src/client/discardWorkout.test.jsx` — asserts
+  the first tap does NOT call the discard handler (only flips to the
+  confirming label), the second tap does, and that no discard option
+  renders at all when nothing has been started. Verified to fail (fired
+  on the first tap) when the two-tap guard is removed; restored and
+  re-verified green.
+- **Manual verification**: N/A — fully automated.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing
