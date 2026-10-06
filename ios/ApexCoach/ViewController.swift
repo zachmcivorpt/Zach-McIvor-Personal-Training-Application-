@@ -6,10 +6,11 @@ import WebKit
 // (progress photos, messages) both flow straight through WKWebView's native
 // getUserMedia/file-input support; the matching usage-description strings live
 // in Info.plist since iOS silently kills the process without them.
-final class ViewController: UIViewController, WKNavigationDelegate {
+final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler {
     private var webView: WKWebView!
     private let spinner = UIActivityIndicatorView(style: .large)
     private let siteURL = URL(string: "https://apexcoachingplatform-appl.vercel.app")!
+    private let nearBlack = UIColor(red: 9.0 / 255.0, green: 9.0 / 255.0, blue: 9.0 / 255.0, alpha: 1)
 
     // The FCM token AppDelegate obtains from APNs often arrives before the
     // page has finished its first load (or before GoogleService-Info.plist
@@ -17,6 +18,27 @@ final class ViewController: UIViewController, WKNavigationDelegate {
     // flushed once the web app is actually ready to run JS against it.
     private var pendingFCMToken: String?
     private var webViewReady = false
+
+    // The strip above the webview (status bar + notch) is this view's own
+    // background showing through — it doesn't track the page's background
+    // on its own. The coach console is always dark but the client app (and
+    // the login/activate screens) are light, so this is driven by a
+    // postMessage from the web app (src/App.jsx's NativeStatusBarSync)
+    // rather than hardcoded, which would otherwise put a black bar over
+    // the client app's and auth screens' light backgrounds. Starts false
+    // so a cold launch (before the page has loaded and posted anything)
+    // matches today's existing white strip exactly.
+    private var isDarkBackground = false {
+        didSet {
+            guard isDarkBackground != oldValue else { return }
+            view.backgroundColor = isDarkBackground ? nearBlack : .white
+            setNeedsStatusBarAppearanceUpdate()
+        }
+    }
+
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        isDarkBackground ? .lightContent : .darkContent
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,6 +51,7 @@ final class ViewController: UIViewController, WKNavigationDelegate {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
+        config.userContentController.add(self, name: "apexTheme")
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
@@ -84,8 +107,23 @@ final class ViewController: UIViewController, WKNavigationDelegate {
         webView.evaluateJavaScript("window.__apexNativePush && window.__apexNativePush.setToken(\"\(escaped)\");")
     }
 
+    // window.webkit.messageHandlers.apexTheme.postMessage({ dark }) —
+    // src/App.jsx posts this once on mount and again every time the
+    // active route changes.
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "apexTheme",
+              let body = message.body as? [String: Any],
+              let dark = body["dark"] as? Bool
+        else { return }
+        isDarkBackground = dark
+    }
+
     deinit {
         NotificationCenter.default.removeObserver(self)
+        // WKUserContentController holds a strong reference to its message
+        // handler — without removing it, this ViewController (and its
+        // WKWebView) would never deallocate.
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexTheme")
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

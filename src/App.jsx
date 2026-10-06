@@ -1,5 +1,5 @@
-import React, { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { lazy, Suspense, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AppProvider, useApp } from "./lib/AppContext";
 import { Logo } from "./components/ui";
 import LoginScreen from "./auth/LoginScreen";
@@ -45,36 +45,58 @@ function RootRedirect() {
   return <Navigate to={currentUser.role === "coach" ? "/coach" : "/app"} replace />;
 }
 
+// The iOS App Store build (ios/ApexCoach/ViewController.swift) wraps this
+// whole app in a bare WKWebView pinned below the safe area — the strip
+// above it (status bar + notch) is that view's own background color, which
+// doesn't automatically track whatever this page is showing. Only the
+// coach console is always dark; the client app and the login/activate
+// screens are light, so this tells native which one's current rather than
+// hardcoding dark everywhere, which would put a black bar over the
+// client's light screens. A no-op everywhere else (regular browser,
+// Android) since window.webkit only exists inside that WKWebView.
+export function NativeStatusBarSync() {
+  const location = useLocation();
+  useEffect(() => {
+    try {
+      window.webkit?.messageHandlers?.apexTheme?.postMessage({ dark: location.pathname.startsWith("/coach") });
+    } catch {}
+  }, [location.pathname]);
+  return null;
+}
+
 function Routed() {
   return (
-    <Routes>
-      <Route path="/login" element={<LoginScreen />} />
-      <Route path="/activate" element={<ActivateScreen />} />
-      <Route path="/privacy" element={<Navigate to="/legal/privacy-policy" replace />} />
-      <Route path="/legal/:slug" element={<LegalPage />} />
-      <Route
-        path="/coach/*"
-        element={
-          <RequireRole role="coach">
-            <Suspense fallback={<SessionLoadingScreen />}>
-              <CoachShell />
-            </Suspense>
-          </RequireRole>
-        }
-      />
-      <Route
-        path="/app/*"
-        element={
-          <RequireRole role="client">
-            <Suspense fallback={<SessionLoadingScreen />}>
-              <ClientApp />
-            </Suspense>
-          </RequireRole>
-        }
-      />
-      <Route path="/" element={<RootRedirect />} />
-      <Route path="*" element={<RootRedirect />} />
-    </Routes>
+    <>
+      <NativeStatusBarSync />
+      <Routes>
+        <Route path="/login" element={<LoginScreen />} />
+        <Route path="/activate" element={<ActivateScreen />} />
+        <Route path="/privacy" element={<Navigate to="/legal/privacy-policy" replace />} />
+        <Route path="/legal/:slug" element={<LegalPage />} />
+        <Route
+          path="/coach/*"
+          element={
+            <RequireRole role="coach">
+              <Suspense fallback={<SessionLoadingScreen />}>
+                <CoachShell />
+              </Suspense>
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/app/*"
+          element={
+            <RequireRole role="client">
+              <Suspense fallback={<SessionLoadingScreen />}>
+                <ClientApp />
+              </Suspense>
+            </RequireRole>
+          }
+        />
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="*" element={<RootRedirect />} />
+      </Routes>
+    </>
   );
 }
 
