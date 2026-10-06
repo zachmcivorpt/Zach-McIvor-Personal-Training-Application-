@@ -45,8 +45,15 @@ function NotifPrefRow({ label, on, onToggle }) {
   );
 }
 
-function PushNotificationsCard({ userId, notificationPrefs, updateUser, showToast }) {
-  const [enabled, setEnabled] = useState(() => !!localStorage.getItem("pushToken"));
+export function PushNotificationsCard({ userId, notificationPrefs, updateUser, showToast }) {
+  // Namespaced per userId — matches the key src/lib/nativeBridge.js
+  // actually writes to on the native iOS build (registerToken), and the
+  // client-side equivalent of this screen (ClientApp.jsx's
+  // PushNotificationsSheet). A bare "pushToken" key here never saw that
+  // native registration, so this screen always showed "off" and then
+  // threw "not supported" when tapped, even though push was already
+  // registered and working in the background.
+  const [enabled, setEnabled] = useState(() => !!localStorage.getItem(`pushToken_${userId}`));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const prefs = { messages: true, checkins: true, ...notificationPrefs };
@@ -56,13 +63,13 @@ function PushNotificationsCard({ userId, notificationPrefs, updateUser, showToas
     setBusy(true);
     try {
       if (enabled) {
-        await disablePush(userId, localStorage.getItem("pushToken"));
-        localStorage.removeItem("pushToken");
+        await disablePush(userId, localStorage.getItem(`pushToken_${userId}`));
+        localStorage.removeItem(`pushToken_${userId}`);
         setEnabled(false);
         showToast?.("Push notifications turned off");
       } else {
         const token = await enablePush(userId);
-        localStorage.setItem("pushToken", token);
+        localStorage.setItem(`pushToken_${userId}`, token);
         setEnabled(true);
         showToast?.("Push notifications enabled");
       }

@@ -916,6 +916,37 @@ silence.
   until the save completes or fails.
 - **Date added**: 2026-10-06
 
+### 36. Coach's Push Notifications toggle always showed "off" and threw "not supported" on the native iOS app
+- **Root cause**: `src/lib/nativeBridge.js` (what actually registers push
+  on the native App Store build — the device gets a real APNs/FCM token
+  natively and hands it to the web app) saves that token to a
+  per-account `localStorage` key, `pushToken_<uid>`. The coach-side
+  toggle (`PushNotificationsCard` in `src/coach/CoachMore.jsx`) was still
+  reading/writing the old, bare, unnamespaced `"pushToken"` key that
+  native registration never touches — so even with push already
+  registered and working in the background, this screen always
+  initialized to "off." Tapping it to "turn on" then called the
+  browser-only `enablePush()` path, which always throws "Push
+  notifications aren't supported on this device or browser" inside the
+  native app's WKWebView (it has no Web Push API at all). The
+  client-side equivalent (`ClientApp.jsx`'s `PushNotificationsSheet`)
+  already used the correct namespaced key — this migration was just
+  never applied to the coach screen.
+- **Fix**: `PushNotificationsCard` now reads/writes `pushToken_<userId>`,
+  matching what `nativeBridge.js` actually writes and the client-side
+  screen's own pattern.
+- **Regression test**: `src/coach/pushNotificationsKeyMismatch.test.jsx`
+  — with `pushToken_<userId>` already set (simulating native having
+  already registered), the card renders as enabled; the old bare
+  `pushToken` key alone does not count as enabled. Verified to fail
+  (card showed as disabled/not-enabled in both cases) against the prior
+  bare-key code; restored and re-verified green.
+- **Manual verification**: on the native iOS app, sign in as the coach,
+  open More → Push Notifications — it should show as already enabled
+  (no "not supported" error) since native registers the token
+  automatically on sign-in.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing
