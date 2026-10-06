@@ -112,7 +112,15 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
   }
 
   return (
-    <BottomSheet dark={dark} open={!!food} onClose={onClose} title={food.name}>
+    // While a save is in flight, both the X button and the backdrop tap
+    // normally call onClose straight through — that's how a client could
+    // dismiss this sheet a beat after tapping ADD (before anything visibly
+    // happened) and go rescan, while the save that was already running
+    // kept going in the background and landed a second, genuine entry a
+    // moment later. Swallowing onClose while saving forces them to wait
+    // for the ADD button's own outcome instead of being able to bail out
+    // from under it.
+    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name}>
       {food.fromBarcode && (
         <div className={dark ? "flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
           {food.imageUrl ? (

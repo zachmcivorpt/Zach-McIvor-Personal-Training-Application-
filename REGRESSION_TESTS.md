@@ -878,33 +878,42 @@ silence.
 - **Date added**: 2026-10-06
 
 ### 35. Scanning a product that "seemed to not add" led to it being logged twice
-- **Root cause**: `FoodQuantitySheet`'s ADD button fired `onConfirm` and the
-  caller (`ClientApp.jsx`) closed the sheet (`setPendingFood(null)`)
-  immediately, without waiting to see whether the underlying save
-  (`addFood` → `setNutritionForDate`, a real Firestore transaction) had
-  actually finished or failed. On a slow connection the tap gave no
-  feedback and the sheet vanished either way, so it looked identical to
-  the tap doing nothing — leading a client to scan and confirm the same
-  product again. Both saves were genuinely processed, so the item landed
-  in the log twice.
+- **Root cause (two compounding bugs)**: (1) `FoodQuantitySheet`'s ADD
+  button fired `onConfirm` and the caller (`ClientApp.jsx`) closed the
+  sheet (`setPendingFood(null)`) immediately, without waiting to see
+  whether the underlying save (`addFood` → `setNutritionForDate`, a real
+  Firestore transaction) had actually finished or failed. (2) Once ADD
+  itself was guarded against a double-tap, the sheet's own X button and
+  backdrop tap (both wired straight to `onClose` by the shared
+  `BottomSheet` component) still closed it regardless of an in-flight
+  save — a client could tap ADD, then almost immediately tap away to back
+  out, well before a real network round trip settles, and go rescan while
+  the first save kept running in the background and landed anyway once it
+  finished. Either path made a save in progress look identical to the tap
+  doing nothing, so a client scanned and confirmed the same product
+  again — and both saves were genuinely processed, landing it twice.
 - **Fix**: `addFood` now returns its save promise instead of discarding
   it (and re-throws after showing its error toast, so a caller that
   awaits it can tell the save failed — the three fire-and-forget callers
   elsewhere in `ClientApp.jsx` that don't need to know now swallow that
   re-throw explicitly). `FoodQuantitySheet`'s ADD button disables itself
-  and shows "ADDING…" the instant it's tapped, and the sheet's
-  `onConfirm` now only closes the sheet after that save actually
-  resolves — a failure leaves it open for an immediate retry instead of
+  and shows "ADDING…" the instant it's tapped, ignoring a repeat tap; its
+  `onConfirm` only closes the sheet after that save actually resolves; and
+  while a save is in flight its X button/backdrop tap are swallowed
+  (no-op) instead of closing the sheet out from under the save — a
+  failure re-enables everything for an immediate retry instead of
   silently vanishing.
 - **Regression test**: `src/client/foodQuantityDoubleAdd.test.jsx` — a
-  second tap while the first save is still pending is ignored (`onConfirm`
+  second ADD tap while the first save is pending is ignored (`onConfirm`
   called exactly once, button disabled); a rejected save re-enables the
-  button for a retry instead of leaving it stuck. Verified to fail (a
-  second tap called `onConfirm` twice) when reverted to the old
-  unguarded button; restored and re-verified green.
+  button for a retry; the sheet's close (X) button is ignored while
+  saving and works normally again once the save settles. Verified each to
+  fail (double-fired `onConfirm`; `onClose` fired mid-save) against the
+  prior code; restored and re-verified green.
 - **Manual verification**: throttle the network (dev tools "Slow 3G"),
-  scan/confirm a product, and confirm the ADD button shows "ADDING…" and
-  can't be tapped again until the save completes or fails.
+  scan/confirm a product, and confirm the ADD button shows "ADDING…",
+  can't be tapped again, and the sheet can't be dismissed (X/backdrop)
+  until the save completes or fails.
 - **Date added**: 2026-10-06
 
 ---
