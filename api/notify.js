@@ -39,7 +39,20 @@ export default async function handler(req, res) {
         const preview = (m.text || "Sent an attachment").slice(0, 120);
         if (m.from === "client") {
           const coachId = await getCoachId(db);
-          if (coachId) await notifyUser(db, messaging, coachId, { title: "New message", body: preview }, "messages");
+          if (coachId) {
+            // The message doc itself only ever carries clientId, not a
+            // name — unlike group chat's m.fromName (stamped at send
+            // time there, since a client can't read a fellow member's
+            // users doc to look it up). A 1:1 thread has no such
+            // restriction: the coach can read any client's profile, so
+            // this looks the name up fresh rather than needing it
+            // stamped on every message. Without it, every push just said
+            // the generic "New message" — no way to tell which client
+            // without opening the app.
+            const clientSnap = await db.collection("users").doc(m.clientId).get();
+            const clientName = clientSnap.data()?.name || "A client";
+            await notifyUser(db, messaging, coachId, { title: clientName, body: preview }, "messages");
+          }
         } else if (m.from === "coach" && m.clientId) {
           await notifyUser(db, messaging, m.clientId, { title: "Your coach sent a message", body: preview });
         }

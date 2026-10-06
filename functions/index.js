@@ -140,7 +140,11 @@ exports.onNewMessage = onDocumentCreated("messages/{id}", async (event) => {
 
   if (m.from === "client") {
     const coachId = await getCoachId();
-    if (coachId) await notifyUser(coachId, { title: "New message", body: preview }, "messages");
+    if (coachId) {
+      const clientSnap = await db.collection("users").doc(m.clientId).get();
+      const clientName = clientSnap.data()?.name || "A client";
+      await notifyUser(coachId, { title: clientName, body: preview }, "messages");
+    }
   } else if (m.from === "coach" && m.clientId) {
     await notifyUser(m.clientId, { title: "Your coach sent a message", body: preview });
   }
