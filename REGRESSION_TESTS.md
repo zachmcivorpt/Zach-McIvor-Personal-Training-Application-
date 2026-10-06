@@ -483,6 +483,131 @@ silence.
 - **Manual verification**: N/A — fully automated.
 - **Date added**: 2026-10-05
 
+### 22. Removed group members retained permanent read access to the group's chat history
+- **Root cause**: `sendGroupMessage` stamps `memberIds` onto each
+  `groupMessages` doc as a one-time snapshot of the group's roster AT
+  SEND TIME (needed so the client-side `array-contains` watch and the
+  Firestore rule both work, and so a client can see a fellow member's
+  display name without read access to the `users` collection). Removing
+  a member from the group only ever updated the `groups` doc itself —
+  every already-sent message kept the removed uid in its own `memberIds`
+  forever, and the rule (`request.auth.uid in resource.data.memberIds`)
+  kept matching it, so removal blocked future messages but never revoked
+  access to history.
+- **Fix**: `AppContext.jsx`'s `updateGroup` now detects which member ids
+  are being removed (`src/lib/groupMembership.js`'s `removedMemberIds`)
+  and batch-strips them from every existing `groupMessages` doc for that
+  group via `arrayRemove`, so removal revokes history too.
+- **Regression test**: `src/lib/groupMembership.test.js` covers the pure
+  "who was removed" computation (verified to fail when gutted to always
+  return `[]`). `src/lib/firestoreRules.rules.test.js`'s new
+  `groupMessages` test proves the actual mechanism against the real
+  rules engine: seeds a message with both members able to read it,
+  strips one member's uid via `arrayRemove` (simulating what `updateGroup`
+  now does), and confirms that member's read is denied afterward while
+  the other member's still succeeds.
+- **Manual verification**: the full wiring inside `updateGroup` (looping
+  over cached `groupMessages`, chunking into batches of 400, calling
+  `batch.update(...)`) isn't separately end-to-end tested — no isolated
+  render path for it without mounting the whole data-layer provider. To
+  verify by hand: as the coach, remove a member from a group with prior
+  message history, then check in the Firebase Console that every
+  existing `groupMessages` doc for that group no longer lists the
+  removed uid in `memberIds`.
+- **Date added**: 2026-10-05
+
+### 23. Moving/saving/reverting a scheduled workout was a non-atomic create-then-delete
+- **Root cause**: `moveScheduledWorkout`, `saveScheduledWorkout`, and
+  `revertWorkoutLogToScheduled` (`AppContext.jsx`) each did a `setDoc`
+  followed by a separately-awaited `deleteDoc` — two independent network
+  round-trips, not a `writeBatch`/transaction, unlike `deleteClientPhase`/
+  `duplicateClientPhase` right next to them which already use
+  `writeBatch` for exactly this kind of multi-doc consistency. If the
+  connection dropped between the two calls (or the app backgrounded),
+  the new doc could be committed with the old one never removed —
+  duplicating the workout on both the old and new date with no rollback.
+- **Fix**: all three now use a single `writeBatch` (`.set()`/`.delete()`,
+  one `.commit()`), so the pair either both apply or neither does.
+- **Regression test**: not independently automated — Firestore's batch
+  atomicity is a documented SDK guarantee that a unit test can't
+  meaningfully re-verify without actually killing a connection mid-write,
+  and these functions live inside the same large provider as the rest of
+  `AppContext.jsx` with no isolated render path. Covered by code
+  review + the existing build/lint pass; this is a mechanical "two
+  awaited calls -> one batch" change with the exact same pattern already
+  proven correct elsewhere in this file.
+- **Manual verification**: drag-reschedule a workout on the client
+  calendar, then check the Firebase Console — exactly one
+  `scheduledWorkouts` doc should exist for that workout (on the new
+  date), never two.
+- **Date added**: 2026-10-05
+
+### 24. Challenge leaderboard gave distinct ranks to tied scores
+- **Root cause**: `computeLeaderboard` (`src/lib/challengeMetrics.js`)
+  sorted participants by score, then assigned sequential ranks
+  (`i + 1`) with no tie-check — e.g. two participants who both logged 12
+  workouts got ranks 1 and 2 instead of sharing rank 1.
+- **Fix**: standard competition ranking — a tied participant shares the
+  previous rank; the next distinct (lower) score resumes at its actual
+  position (e.g. 12, 12, 8 -> ranks 1, 1, 3).
+- **Regression test**: `src/lib/challengeMetrics.test.js` — asserts tied
+  scores share a rank and the next rank skips appropriately, and that
+  distinct scores still rank sequentially with no ties. Verified to fail
+  (tied participants got ranks 1 and 2) when reverted to plain
+  `i + 1`; restored and re-verified green.
+- **Manual verification**: N/A — fully automated.
+- **Date added**: 2026-10-05
+
+### 25. Challenge progress bar mixed a real "now" instant with a UTC-midnight date boundary
+- **Root cause**: `ChallengeCard`'s `pctElapsed` (`CoachChallenges.jsx`)
+  compared `new Date()` (the coach's actual current moment) against
+  `new Date(c.startDate)`/`new Date(c.endDate)` (UTC midnight of those
+  date-key strings) — for a coach in a timezone ahead of UTC, that skews
+  the displayed percent-elapsed by the coach's own UTC offset. Cosmetic
+  only, confirmed no effect on `challengeStatus`/scoring (both already
+  used `localDateKey()` consistently).
+- **Fix**: compares `new Date(localDateKey())` against the same
+  UTC-midnight-of-date-key boundaries instead, so all three sides of the
+  calculation are parsed the same way.
+- **Manual verification**: N/A — cosmetic, low-severity, not independently
+  automated (no isolated render path for `ChallengeCard` without the
+  full `CoachChallenges` tree); verify by hand if ever revisited by
+  comparing the displayed "% through" against a manual day-count for a
+  challenge while in a UTC+ timezone.
+- **Date added**: 2026-10-05
+
+### 26. Rest rows rendered as a blank "Unknown exercise" card in the client app
+- **Root cause**: a live production bug reported directly by the user,
+  with screenshots. A Rest row (`WorkoutEditor.jsx`'s `emptyRest()` —
+  `{ isRest: true, restSeconds }`, deliberately no `exerciseId`) was
+  never filtered out of the client-facing exercise lists in
+  `ClientApp.jsx` — neither the workout preview (`WorkoutPreviewSheet`)
+  nor the live logging session (`WorkoutSession`'s `exercisesForSession`).
+  Both treated every entry as a real exercise to resolve against
+  `exercisesById`. Before bug #11 in this register (deleted exercises
+  falling back instead of vanishing), a Rest row's failed lookup
+  silently returned `null` — invisible, which happened to look correct
+  for a Rest row even though the mechanism was unrelated. Bug #11's fix
+  gave every unresolvable row a visible "Unknown exercise" fallback
+  instead, which was correct for an actually-deleted exercise but wrong
+  for a Rest row, which was never meant to show as an exercise at all —
+  it started showing as a blank, unloggable "Unknown exercise" card with
+  no sets/reps in both the warm-up and main session.
+- **Fix**: Rest rows are now filtered out before either rendering path
+  ever sees them — `WorkoutPreviewSheet` filters `session.exercises`
+  before grouping, and `WorkoutSession`'s `exercisesForSession` filters
+  `daySession.exercises` at its source, so every downstream consumer
+  (`SessionIntelligenceCard`, the live `ExerciseBlock` list, the
+  "exclude already-used exercises" set for Add Exercise) is correct too.
+- **Regression test**: `src/client/restRowNotExercise.test.jsx` — renders
+  both `WorkoutPreviewSheet` and `WorkoutSession` with a session
+  containing one real exercise and one Rest row, asserting the real
+  exercise renders and "Unknown exercise" never appears. Verified to
+  fail (both screens showed "Unknown exercise") when either filter is
+  reverted; restored and re-verified green.
+- **Manual verification**: N/A — fully automated.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing

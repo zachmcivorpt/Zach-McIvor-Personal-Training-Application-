@@ -10,7 +10,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { assertFails, assertSucceeds, initializeTestEnvironment } from "@firebase/rules-unit-testing";
-import { collection, deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { arrayRemove, collection, deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 const emulatorRunning = !!process.env.FIRESTORE_EMULATOR_HOST;
 const [EMULATOR_HOST, EMULATOR_PORT] = (process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080").split(":");
@@ -264,6 +264,42 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
           text: "intruder",
         })
       );
+    });
+
+    // Regression for a removed group member retaining permanent read
+    // access to the group's historical chat: memberIds is stamped onto
+    // each message at SEND time (a snapshot of the roster then, not a
+    // live link), so removing a member from the group doc alone never
+    // touched already-sent messages — the removed uid stayed in their
+    // memberIds array forever, and the rule below (`request.auth.uid in
+    // resource.data.memberIds`) kept matching it. The fix
+    // (AppContext.jsx's updateGroup) strips the removed uid from every
+    // existing message's memberIds via arrayRemove when membership
+    // shrinks — this proves that once that strip happens, the rule
+    // itself actually revokes the read, i.e. the fix's mechanism works
+    // against the real rules engine, not just in application code.
+    it("revokes a removed member's read access to a message once their uid is stripped from it", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "groupMessages", "msg-history"), {
+          memberIds: [CLIENT_A, CLIENT_B],
+          from: "client",
+          fromClientId: CLIENT_A,
+          text: "before removal",
+        });
+      });
+      const dbB = dbAs(CLIENT_B);
+      // Still a member — can read the message.
+      await assertSucceeds(getDoc(doc(dbB, "groupMessages", "msg-history")));
+
+      // Coach removes B from the group — simulates updateGroup's retroactive cleanup.
+      const coachDb = dbAs(COACH_UID);
+      await assertSucceeds(updateDoc(doc(coachDb, "groupMessages", "msg-history"), { memberIds: arrayRemove(CLIENT_B) }));
+
+      // B can no longer read that same message.
+      await assertFails(getDoc(doc(dbB, "groupMessages", "msg-history")));
+      // A (still a member) can still read it.
+      const dbA = dbAs(CLIENT_A);
+      await assertSucceeds(getDoc(doc(dbA, "groupMessages", "msg-history")));
     });
   });
 

@@ -214,10 +214,14 @@ function timelineLabel(c, status, todayKey) {
 
 function ChallengeCard({ challenge: c, status, metric, clientsById, onView, onEdit }) {
   const participants = (c.participantIds || []).map((id) => clientsById[id]).filter(Boolean);
-  const today = new Date();
+  // Both sides as date-key-string midnights (like timelineLabel above),
+  // not a real "now" instant against a UTC-midnight boundary — mixing
+  // those two skewed the percentage by the coach's own UTC offset.
+  const todayKeyForPct = new Date(localDateKey());
+  const totalMs = new Date(c.endDate) - new Date(c.startDate);
   const pctElapsed =
-    status === "active"
-      ? Math.min(100, Math.max(0, Math.round(((today - new Date(c.startDate)) / (new Date(c.endDate) - new Date(c.startDate))) * 100)))
+    status === "active" && totalMs > 0
+      ? Math.min(100, Math.max(0, Math.round(((todayKeyForPct - new Date(c.startDate)) / totalMs) * 100)))
       : null;
   const ACCENT = { active: MEASURE_BLUE, upcoming: "rgba(255,255,255,0.25)", ended: "rgba(255,255,255,0.1)" };
   const STATUS_TONE = { active: "solid", upcoming: "outline", ended: "muted" };

@@ -1308,7 +1308,7 @@ function PreviewStat({ icon: Icon, value, label, dark, accent }) {
   );
 }
 
-function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, onStart, onContinue, onClose, showToast }) {
+export function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, onStart, onContinue, onClose, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, addWorkoutComment, moveScheduledWorkout } = useApp();
   const [commentDraft, setCommentDraft] = useState("");
@@ -1449,7 +1449,10 @@ function WorkoutPreviewSheet({ session, exercisesById, logsForClient, canStart, 
             </div>
           )}
 
-          {sectionedExercises(session.exercises.map((exMeta) => exMeta)).map((group) => (
+          {/* A Rest row has no exerciseId — excluded the same way
+              countExercises() above already excludes it from the count,
+              so it doesn't render as a blank "Unknown exercise" row. */}
+          {sectionedExercises(session.exercises.filter((exMeta) => !exMeta.isRest)).map((group) => (
             <div key={group.key} className="mb-4">
               {group.showHeader && <p className={dark ? "text-white/40 text-[11px] font-bold tracking-wide mb-1.5" : "text-black/40 text-[11px] font-bold tracking-wide mb-1.5"}>{group.label.toUpperCase()}</p>}
               <div className={`-mx-5 border-y divide-y ${dark ? "border-white/10 divide-white/10" : "border-black/10 divide-black/10"}`}>
@@ -2305,7 +2308,7 @@ function AddExerciseSheet({ open, allExercises, excludeIds, onClose, onConfirm }
   );
 }
 
-function WorkoutSession({
+export function WorkoutSession({
   session: daySession,
   activeLog,
   setActiveLog,
@@ -2405,6 +2408,13 @@ function WorkoutSession({
   const exercisesForSession = useMemo(
     () =>
       daySession.exercises
+        // A Rest row (WorkoutEditor.jsx's emptyRest()) has no exerciseId at
+        // all — it's a timer placeholder between exercises, not something
+        // to log sets against. This list feeds the live set-logging UI
+        // directly, so it must never include one: with no exerciseId to
+        // resolve, it rendered as a blank "Unknown exercise" card with no
+        // sets/reps and nothing to log.
+        .filter((exMeta) => !exMeta.isRest)
         .map((exMeta) => {
           const swap = exerciseSwaps[exMeta.exerciseId];
           if (!swap) return exMeta;

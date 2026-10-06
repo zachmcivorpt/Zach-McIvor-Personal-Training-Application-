@@ -24,6 +24,7 @@ import {
   writeBatch,
   deleteField,
   runTransaction,
+  arrayRemove,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { auth, db as firestore, functions } from "./firebase";
@@ -32,6 +33,7 @@ import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
 import { COACH_SETUP_CODE } from "./config";
 import { localDateKey } from "./dateKey";
 import { detectNoteContext } from "./apexInsights";
+import { removedMemberIds } from "./groupMembership";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -1695,8 +1697,15 @@ export function AppProvider({ children }) {
         const id = `${clientId}__${date}`;
         const entry = { id, clientId, date, label, muscleGroups: muscleGroups || [], exercises: exercises || [], instructions: instructions || "", ...(wod ? { wod: true } : {}) };
         try {
-          await setDoc(doc(firestore, "scheduledWorkouts", id), entry);
-          if (previousId && previousId !== id) await deleteDoc(doc(firestore, "scheduledWorkouts", previousId));
+          // One batch, not two separate awaited calls — a connection drop
+          // between the create and the delete used to leave the new doc
+          // committed with the old one never removed, duplicating the
+          // workout on both dates with no rollback and no retry logic
+          // anywhere to detect or merge it.
+          const batch = writeBatch(firestore);
+          batch.set(doc(firestore, "scheduledWorkouts", id), entry);
+          if (previousId && previousId !== id) batch.delete(doc(firestore, "scheduledWorkouts", previousId));
+          await batch.commit();
         } catch (err) {
           throw new Error("Couldn't save that workout — " + (err.message || "please try again."));
         }
@@ -1749,7 +1758,12 @@ export function AppProvider({ children }) {
         if (!entry) return;
         const newId = newDocId("scheduledWorkouts");
         try {
-          await setDoc(doc(firestore, "scheduledWorkouts", newId), {
+          // One batch — see saveScheduledWorkout's comment above for why
+          // a create-then-separately-awaited-delete can duplicate the
+          // workout on both the old and new date if the second call
+          // fails after the first already committed.
+          const batch = writeBatch(firestore);
+          batch.set(doc(firestore, "scheduledWorkouts", newId), {
             id: newId,
             clientId,
             date: toDate,
@@ -1759,7 +1773,8 @@ export function AppProvider({ children }) {
             instructions: entry.instructions || "",
             ...(entry.wod ? { wod: true } : {}),
           });
-          await deleteDoc(doc(firestore, "scheduledWorkouts", workoutId));
+          batch.delete(doc(firestore, "scheduledWorkouts", workoutId));
+          await batch.commit();
         } catch (err) {
           throw new Error("Couldn't move that workout — " + (err.message || "please try again."));
         }
@@ -1806,7 +1821,13 @@ export function AppProvider({ children }) {
         }));
         const id = `${log.clientId}__${dateKey}`;
         try {
-          await setDoc(doc(firestore, "scheduledWorkouts", id), {
+          // One batch — same reasoning as moveScheduledWorkout/
+          // saveScheduledWorkout above: without it, a connection drop
+          // between the two separate awaited calls could leave the
+          // workout recreated as "scheduled" AND still sitting in
+          // workoutLogs as "completed."
+          const batch = writeBatch(firestore);
+          batch.set(doc(firestore, "scheduledWorkouts", id), {
             id,
             clientId: log.clientId,
             date: dateKey,
@@ -1814,7 +1835,8 @@ export function AppProvider({ children }) {
             muscleGroups: [],
             exercises,
           });
-          await deleteDoc(doc(firestore, "workoutLogs", log.id));
+          batch.delete(doc(firestore, "workoutLogs", log.id));
+          await batch.commit();
         } catch (err) {
           throw new Error("Couldn't revert that workout — " + (err.message || "please try again."));
         }
@@ -1916,6 +1938,30 @@ export function AppProvider({ children }) {
       },
       async updateGroup(id, data) {
         try {
+          // A removed member's uid was stamped onto every PAST
+          // groupMessages doc's memberIds at send time (see
+          // sendGroupMessage below) — that snapshot was never revisited
+          // on membership change, so the Firestore rule's `request.auth
+          // .uid in resource.data.memberIds` check kept matching old
+          // messages forever even after removal, letting a removed
+          // member keep reading the group's entire chat history. Strip
+          // their uid from every existing message for this group at the
+          // same time their membership actually changes, so removal
+          // revokes access to history too, not just future messages.
+          if (data.memberIds) {
+            const current = (db.groups || []).find((g) => g.id === id);
+            const removedIds = removedMemberIds(current?.memberIds, data.memberIds);
+            if (removedIds.length > 0) {
+              const msgs = db.groupMessages[id] || [];
+              for (let i = 0; i < msgs.length; i += 400) {
+                const batch = writeBatch(firestore);
+                msgs.slice(i, i + 400).forEach((m) => {
+                  batch.update(doc(firestore, "groupMessages", m.id), { memberIds: arrayRemove(...removedIds) });
+                });
+                await batch.commit();
+              }
+            }
+          }
           await updateDoc(doc(firestore, "groups", id), data);
         } catch (err) {
           throw new Error("Couldn't save that group — " + (err.message || "please try again."));

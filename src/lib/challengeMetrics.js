@@ -46,7 +46,15 @@ export function computeLeaderboard(challenge, db) {
     value: scoreForClient(challenge.metric, clientId, data, challenge.startDate, challenge.endDate),
   }));
   rows.sort((a, b) => b.value - a.value);
-  return rows.map((r, i) => ({ ...r, rank: i + 1 }));
+  // Standard competition ranking — two participants with the identical
+  // score share the same rank (e.g. 12, 12, 8 -> ranks 1, 1, 3), instead
+  // of the tied second-place participant getting a lower rank than the
+  // first just because of array order.
+  let rank = 0;
+  return rows.map((r, i) => {
+    if (i === 0 || r.value !== rows[i - 1].value) rank = i + 1;
+    return { ...r, rank };
+  });
 }
 
 export function challengeStatus(challenge, todayKey) {
