@@ -925,26 +925,39 @@ silence.
   reading/writing the old, bare, unnamespaced `"pushToken"` key that
   native registration never touches — so even with push already
   registered and working in the background, this screen always
-  initialized to "off." Tapping it to "turn on" then called the
+  initialized to "off." The client-side equivalent (`ClientApp.jsx`'s
+  `PushNotificationsSheet`) already used the correct namespaced key —
+  this migration was just never applied to the coach screen. Fixing
+  only that wasn't the whole story, though: tapping the toggle while
+  genuinely not yet enabled on native (the coach denied iOS's one-time
+  permission prompt, or hasn't been asked yet) fell through to the
   browser-only `enablePush()` path, which always throws "Push
-  notifications aren't supported on this device or browser" inside the
-  native app's WKWebView (it has no Web Push API at all). The
-  client-side equivalent (`ClientApp.jsx`'s `PushNotificationsSheet`)
-  already used the correct namespaced key — this migration was just
-  never applied to the coach screen.
+  notifications aren't supported on this device or browser" inside
+  WKWebView — true regardless of the real OS permission state, since
+  that API doesn't exist there at all, and iOS never lets an app
+  re-trigger its own permission prompt after a denial.
 - **Fix**: `PushNotificationsCard` now reads/writes `pushToken_<userId>`,
-  matching what `nativeBridge.js` actually writes and the client-side
-  screen's own pattern.
+  matching what `nativeBridge.js` actually writes. On native specifically
+  (detected via `window.__apexNativePush`, which only ever exists inside
+  that build), tapping the toggle while disabled no longer calls
+  `enablePush()` at all — it opens the device's iOS Settings page for
+  this app instead (`app-settings:`, routed there by
+  `ViewController.swift`'s existing out-of-app-link navigation policy, no
+  native code change needed), with on-screen copy explaining push is
+  controlled by iOS, not the app, on that build.
 - **Regression test**: `src/coach/pushNotificationsKeyMismatch.test.jsx`
   — with `pushToken_<userId>` already set (simulating native having
   already registered), the card renders as enabled; the old bare
-  `pushToken` key alone does not count as enabled. Verified to fail
-  (card showed as disabled/not-enabled in both cases) against the prior
-  bare-key code; restored and re-verified green.
+  `pushToken` key alone does not count as enabled; on native with no
+  token, tapping the toggle never calls `enablePush` (confirmed to fail —
+  it called `enablePush` — against the prior code, before this specific
+  guard existed); off native, tapping still goes through `enablePush` as
+  before. All verified to fail against the respective prior code;
+  restored and re-verified green.
 - **Manual verification**: on the native iOS app, sign in as the coach,
-  open More → Push Notifications — it should show as already enabled
-  (no "not supported" error) since native registers the token
-  automatically on sign-in.
+  open More → Push Notifications. If push was already registered it
+  should show enabled immediately; if not, tapping the toggle should open
+  iOS Settings rather than show any "not supported" error.
 - **Date added**: 2026-10-06
 
 ---

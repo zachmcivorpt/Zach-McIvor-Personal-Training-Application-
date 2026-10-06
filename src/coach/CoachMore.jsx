@@ -45,14 +45,19 @@ function NotifPrefRow({ label, on, onToggle }) {
   );
 }
 
+// window.__apexNativePush only ever exists inside the native iOS App
+// Store build (src/lib/nativeBridge.js defines it there and nowhere
+// else) — the one place enablePush()'s browser Push API path can never
+// work, since WKWebView doesn't have one at all.
+const isNativeApp = typeof window !== "undefined" && !!window.__apexNativePush;
+
 export function PushNotificationsCard({ userId, notificationPrefs, updateUser, showToast }) {
   // Namespaced per userId — matches the key src/lib/nativeBridge.js
   // actually writes to on the native iOS build (registerToken), and the
   // client-side equivalent of this screen (ClientApp.jsx's
   // PushNotificationsSheet). A bare "pushToken" key here never saw that
-  // native registration, so this screen always showed "off" and then
-  // threw "not supported" when tapped, even though push was already
-  // registered and working in the background.
+  // native registration, so this screen always showed "off" even when
+  // push was already registered and working in the background.
   const [enabled, setEnabled] = useState(() => !!localStorage.getItem(`pushToken_${userId}`));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -60,6 +65,21 @@ export function PushNotificationsCard({ userId, notificationPrefs, updateUser, s
 
   async function toggle() {
     setError("");
+    if (!enabled && isNativeApp) {
+      // On native, push is granted/denied once via the OS permission
+      // prompt on first launch — there's no in-app re-prompt, and the
+      // one thing a tap here could otherwise do is call enablePush()'s
+      // browser-only Push API path, which always throws "not supported"
+      // inside WKWebView regardless of the real permission state. Send
+      // the coach to the one place that actually controls this instead
+      // of showing them an error about something that was never true.
+      // app-settings: isn't this app's own host, so ViewController.swift's
+      // existing navigation policy already routes it to
+      // UIApplication.shared.open(...) — opening this app's iOS Settings
+      // page — with no native code change needed for this.
+      window.location.href = "app-settings:";
+      return;
+    }
     setBusy(true);
     try {
       if (enabled) {
@@ -104,11 +124,16 @@ export function PushNotificationsCard({ userId, notificationPrefs, updateUser, s
           disabled={busy}
           className="w-11 h-6 rounded-full relative transition-colors shrink-0"
           style={{ backgroundColor: enabled ? MEASURE_BLUE : "rgba(255,255,255,0.15)" }}
-          aria-label={enabled ? "Turn off push notifications" : "Turn on push notifications"}
+          aria-label={enabled ? "Turn off push notifications" : isNativeApp ? "Open iOS Settings to turn on push notifications" : "Turn on push notifications"}
         >
           <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${enabled ? "left-[22px]" : "left-0.5"}`} />
         </button>
       </div>
+      {!enabled && isNativeApp && (
+        <p className="text-white text-xs mt-3">
+          Controlled by iOS, not this app — tap the switch to open Settings → Notifications and turn it on there.
+        </p>
+      )}
       {enabled && (
         <div className="mt-3.5 pt-3.5 border-t space-y-2.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
           <NotifPrefRow label="New messages" on={prefs.messages} onToggle={() => togglePref("messages")} />
