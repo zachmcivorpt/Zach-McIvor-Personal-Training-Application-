@@ -1037,7 +1037,7 @@ function NotificationsPromptCard({ userId, showToast }) {
       setEnabled(true);
       showToast?.("Notifications turned on");
     } catch (err) {
-      showToast?.(err.message);
+      showToast?.(err.message, true);
     } finally {
       setBusy(false);
     }
@@ -1632,7 +1632,7 @@ export function WorkoutPreviewSheet({ session, exercisesById, logsForClient, can
                 `Moved to ${new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`
               );
             } catch (err) {
-              showToast?.(err.message || "Couldn't move that workout — check your connection and try again");
+              showToast?.(err.message || "Couldn't move that workout — check your connection and try again", true);
             }
           }}
         />
@@ -3038,7 +3038,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
       setEditingWorkout(null);
       showToast?.("Workout saved");
     } catch (err) {
-      showToast?.(err.message || "Couldn't save that workout — check your connection and try again");
+      showToast?.(err.message || "Couldn't save that workout — check your connection and try again", true);
     }
   }
 
@@ -3280,7 +3280,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
       );
     } catch (err) {
       // Editor stays open (wodEditing untouched) so nothing built is lost.
-      showToast?.(err.message || "Couldn't save that workout — check your connection and try again");
+      showToast?.(err.message || "Couldn't save that workout — check your connection and try again", true);
     }
   }
 
@@ -6380,7 +6380,7 @@ function ConnectedDevicesSheet({ open, onClose, connected, showToast }) {
       await disconnectWhoop();
       showToast?.("WHOOP disconnected");
     } catch (err) {
-      showToast?.(err.message || "Couldn't disconnect — check your connection and try again");
+      showToast?.(err.message || "Couldn't disconnect — check your connection and try again", true);
     } finally {
       setBusy(false);
     }
@@ -7995,7 +7995,7 @@ export default function ClientApp() {
     if (state !== expectedState || !redirectUri) return;
     connectWhoop(code, redirectUri)
       .then(() => showToast("WHOOP connected"))
-      .catch((err) => showToast(err.message || "Couldn't connect WHOOP — please try again"));
+      .catch((err) => showToast(err.message || "Couldn't connect WHOOP — please try again", true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -8340,9 +8340,19 @@ export default function ClientApp() {
     return items;
   }, [unreadCount, thread, todaySession, completedOnDate, dueCheckInsCount, bodyStatsDueToday, mealPlan, currentUser.id, currentUser.mealPlanSeenAt]);
 
-  function showToast(message) {
-    setToast({ show: true, message });
-    setTimeout(() => setToast({ show: false, message: "" }), 1800);
+  // A save failure used to show as the exact same fleeting green-check
+  // toast as a success — easy to miss mid-workout, and worse, easy to
+  // misread as confirmation that something DID save when it didn't. A
+  // client reported exactly this: food they'd entered sometimes wasn't
+  // actually recorded, with no obvious sign anything had gone wrong.
+  // isError renders red with a distinct icon (Toast component) and stays
+  // up noticeably longer than a routine success confirmation — and since
+  // this is the same showToast every nested sheet/component already
+  // receives (as a prop or closure), no new prop needs threading through
+  // the app to reach it from an error's catch block.
+  function showToast(message, isError = false) {
+    setToast({ show: true, message, tone: isError ? "error" : "success" });
+    setTimeout(() => setToast({ show: false, message: "" }), isError ? 4500 : 1800);
   }
 
   function startWorkout(session = todaySession) {
@@ -8559,7 +8569,7 @@ export default function ClientApp() {
       // is lost; the client can just hit Finish again once reconnected,
       // instead of the whole workout silently vanishing.
       setFinishingWorkout(false);
-      showToast(err.message || "Couldn't save your workout — check your connection and try again");
+      showToast(err.message || "Couldn't save your workout — check your connection and try again", true);
       return;
     }
 
@@ -8637,7 +8647,7 @@ export default function ClientApp() {
       };
     })
       .then(() => showToast(`${food.name} added to ${meal}`))
-      .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"));
+      .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));
   }
 
   function removeFood(meal, entryId, dateKey = todayDateKey) {
@@ -8661,7 +8671,7 @@ export default function ClientApp() {
       };
     })
       .then(() => showToast("Entry removed"))
-      .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again"));
+      .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again", true));
   }
 
   function addWater(liters, dateKey = todayDateKey) {
@@ -8670,7 +8680,7 @@ export default function ClientApp() {
       return { ...base, water: Math.round((base.water + liters) * 100) / 100 };
     })
       .then(() => showToast(`+${Math.round(liters * 1000)}ml logged`))
-      .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"));
+      .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));
   }
 
   async function doLogout() {
@@ -8736,7 +8746,7 @@ export default function ClientApp() {
     if (!workoutId) return;
     moveScheduledWorkout(currentUser.id, workoutId, toDate)
       .then(() => showToast("Workout rescheduled"))
-      .catch((err) => showToast(err.message || "Couldn't move that workout"));
+      .catch((err) => showToast(err.message || "Couldn't move that workout", true));
   }
 
   return (
@@ -8779,7 +8789,7 @@ export default function ClientApp() {
             habits={habits}
             completedHabitIds={completedHabitIds}
             onToggleHabit={(habitId) =>
-              toggleHabitToday(currentUser.id, habitId).catch((err) => showToast?.(err.message || "Couldn't save — check your connection"))
+              toggleHabitToday(currentUser.id, habitId).catch((err) => showToast?.(err.message || "Couldn't save — check your connection", true))
             }
             onAvatarClick={() => setTab("profile")}
             dayOffset={dayOffset}
@@ -8820,7 +8830,7 @@ export default function ClientApp() {
             onLogCardio={(cardio) => {
               logWorkout(currentUser.id, { dayLabel: `${cardio.activityLabel} (Cardio)`, entries: [], cardio })
                 .then(() => showToast(`${cardio.activityLabel} logged`))
-                .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"));
+                .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));
             }}
             dbReady={dbReady}
             showToast={showToast}
@@ -8870,7 +8880,7 @@ export default function ClientApp() {
               if (!weighInId) return;
               deleteWeighIn(currentUser.id, weighInId)
                 .then(() => showToast("Weigh-in removed"))
-                .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again"));
+                .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again", true));
             }}
           />
         )}
@@ -8881,23 +8891,23 @@ export default function ClientApp() {
             onAddPhoto={(clientId, dataUrl, caption, dateKey) =>
               addProgressPhoto(clientId, dataUrl, caption, dateKey)
                 .then(() => showToast("Photo saved"))
-                .catch((err) => showToast(err.message || "Couldn't save that photo — check your connection and try again"))
+                .catch((err) => showToast(err.message || "Couldn't save that photo — check your connection and try again", true))
             }
             onDeletePhoto={(clientId, photoId) =>
               deleteProgressPhoto(clientId, photoId)
                 .then(() => showToast("Photo removed"))
-                .catch((err) => showToast(err.message || "Couldn't remove that photo — check your connection and try again"))
+                .catch((err) => showToast(err.message || "Couldn't remove that photo — check your connection and try again", true))
             }
             weighIns={weighIns}
             onLogWeight={(w, dateKey) =>
               logWeight(currentUser.id, w, dateKey)
                 .then(() => showToast("Weigh-in saved"))
-                .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again"))
+                .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true))
             }
             onDeleteWeighIn={(id) =>
               deleteWeighIn(currentUser.id, id)
                 .then(() => showToast("Weigh-in removed"))
-                .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again"))
+                .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again", true))
             }
             logsForClient={logsForClient}
             exercisesById={exercisesById}
@@ -9052,7 +9062,7 @@ export default function ClientApp() {
           onSend={(text) => sendGroupMessage(openGroupId, text, currentUser.id, currentUser.name)}
         />
         <NotificationsCenterSheet open={notifOpen} onClose={() => setNotifOpen(false)} items={notificationItems} />
-        <Toast dark={dark} message={toast.message} show={toast.show} />
+        <Toast dark={dark} message={toast.message} show={toast.show} tone={toast.tone} />
       </div>
     </div>
     </ClientThemeContext.Provider>

@@ -817,6 +817,34 @@ silence.
 - **Manual verification**: N/A — fully automated.
 - **Date added**: 2026-10-06
 
+### 33. Error toasts looked identical to success toasts (client reported "sometimes app doesn't record foods entered")
+- **Root cause**: `Toast` (`src/components/ui.jsx`) always rendered the
+  same green checkmark regardless of what the message said, and
+  `showToast()` in `ClientApp.jsx` had no way to mark a message as an
+  error in the first place. Every failed save (nutrition log, barcode
+  add, weigh-in, etc.) still popped a toast with the error text, but it
+  looked exactly like a routine success toast — in a noisy gym, glanced
+  at quickly, a failure was indistinguishable from "saved". The client's
+  report of food entries silently not recording was this: the save was
+  failing and reporting it, but the report didn't register as an error.
+- **Fix**: `showToast(message, isError = false)` now carries a `tone`
+  ("success"/"error") into toast state; `Toast` takes a `tone` prop and
+  renders a distinct `AlertCircle` icon on an `OVER_RED` background for
+  `tone="error"` (vs. the existing black/white checkmark for success),
+  and stays on screen longer (4.5s vs 1.8s) so it's not missed. All 18
+  existing error-path `showToast(err.message, ...)` call sites in
+  `ClientApp.jsx` now pass `true` for `isError`.
+- **Regression test**: `src/components/Toast.test.jsx` — renders `Toast`
+  with the default tone and asserts a checkmark (not the error icon);
+  renders it with `tone="error"` and asserts the error icon (not a
+  checkmark). Verified to fail (error case found no distinct icon) when
+  the conditional icon rendering was reverted to the old unconditional
+  checkmark; restored and re-verified green.
+- **Manual verification**: trigger a real save failure (e.g. go offline,
+  log a food) and confirm the toast is visually distinct (red, alert
+  icon, stays longer) from a normal successful save toast.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing

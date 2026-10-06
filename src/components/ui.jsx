@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, Check, Camera, Dumbbell, Video, Play, Search, Sparkles, ChevronDown } from "lucide-react";
+import { X, Check, AlertCircle, Camera, Dumbbell, Video, Play, Search, Sparkles, ChevronDown } from "lucide-react";
 import {
   SURFACE,
   SURFACE_RAISED,
   BORDER,
   ACCENT,
   MEASURE_BLUE,
+  OVER_RED,
   CLIENT_DARK_SURFACE,
   CLIENT_DARK_SURFACE_2,
   CLIENT_DARK_BORDER,
@@ -471,8 +472,9 @@ export function DeleteAccountSheet({ open, onClose, onConfirm, dark = false, war
   );
 }
 
-export function Toast({ message, show, dark = false }) {
+export function Toast({ message, show, dark = false, tone = "success" }) {
   if (typeof document === "undefined") return null;
+  const isError = tone === "error";
   return createPortal(
     <div
       className={`fixed left-1/2 -translate-x-1/2 bottom-24 z-[120] transition-all duration-300 ${
@@ -480,12 +482,20 @@ export function Toast({ message, show, dark = false }) {
       }`}
     >
       <div
-        className={`text-sm font-medium px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 ${
-          dark ? "bg-white text-black" : "bg-black text-white"
+        // An error toast used to render with the exact same green
+        // checkmark as a success one — a save failure and a save
+        // success looked identical at a glance, which is exactly the
+        // kind of thing that gets missed mid-workout in a noisy gym. A
+        // failure (tone="error", set via showToast's isError arg in
+        // ClientApp.jsx) now gets a visibly different, longer-lived
+        // treatment instead.
+        className={`text-sm font-medium px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 max-w-[90vw] ${
+          isError ? "text-white" : dark ? "bg-white text-black" : "bg-black text-white"
         }`}
+        style={isError ? { backgroundColor: OVER_RED } : undefined}
       >
-        <Check size={16} strokeWidth={3} />
-        {message}
+        {isError ? <AlertCircle size={16} strokeWidth={2.5} className="shrink-0" /> : <Check size={16} strokeWidth={3} className="shrink-0" />}
+        <span>{message}</span>
       </div>
     </div>,
     document.body
