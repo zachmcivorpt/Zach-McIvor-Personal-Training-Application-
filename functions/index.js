@@ -1,29 +1,28 @@
-// Cloud Functions — requires Firebase's paid Blaze plan to deploy at all,
-// even at zero usage. Push notifications and the client-activation data
-// migration DON'T actually need this file anymore — see api/notify.js,
-// api/client-activated.js, and api-lib/ instead, which do the exact same
-// job as Vercel serverless functions (already hosting this app, free tier
-// included) called directly from the client right after the write that
-// used to trigger the Cloud Function equivalent below. See
-// PUSH_NOTIFICATIONS_SETUP.txt for the full picture of which path is
-// actually live.
-//
-// IMPORTANT if you ever DO deploy this file on Blaze: onNewMessage,
-// onNewGroupMessage, onMealPlanChanged, onClientPhaseChanged, and
-// onNewCheckIn below would then fire ALONGSIDE the equivalent /api/notify
-// calls already wired into AppContext.jsx — every notification would be
-// sent twice. Delete those five exports first (or comment them out) if
-// you deploy this for its other, not-yet-migrated capabilities (the AI
-// insight/nutrition-help functions, the WHOOP integration, and the
-// account-deletion/invite-recovery onCall functions, none of which have
-// a /api equivalent yet).
+// Cloud Functions — requires Firebase's paid Blaze plan, which this project
+// is actually on (see .github/workflows/deploy-functions.yml, which
+// auto-deploys this whole file to Firebase on every push to main that
+// touches functions/**). Push notifications and the client-activation data
+// migration used to live here as Firestore triggers (onNewMessage,
+// onNewGroupMessage, onMealPlanChanged, onClientPhaseChanged, onNewCheckIn,
+// onClientActivated) but were migrated to api/notify.js,
+// api/client-activated.js, and api-lib/ — Vercel serverless functions
+// (already hosting this app, free tier included) called directly from the
+// client right after the write that used to trigger the Cloud Function
+// equivalent. Those six triggers stayed in this file, un-deleted, for
+// months after that migration while this file kept being redeployed for
+// unrelated changes (AI features, WHOOP, etc.) — so every message, group
+// message, meal plan update, phase update, and check-in sent TWO push
+// notifications (one from here, one from /api/notify.js), and every client
+// activation ran its id-migration logic twice. See PUSH_NOTIFICATIONS_SETUP.txt
+// for the full picture of which path is actually live — this file no
+// longer has any Firestore triggers at all; everything below is either an
+// onCall function or an onSchedule job with no /api equivalent.
 //
 // Everything else in this app runs entirely client-side against
-// Firestore; Cloud Functions / this Vercel equivalent is the deliberate,
+// Firestore; Cloud Functions / its Vercel equivalent is the deliberate,
 // minimal exception, for whichever pieces genuinely need a privileged
 // Admin SDK call the browser can never be trusted to make itself.
 
-const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
@@ -67,25 +66,6 @@ async function notifyUser(uid, { title, body }, prefKey) {
   }
 }
 
-// An account recovery (delete the wrong Firebase Auth user, recreate the
-// coach account fresh) can leave more than one users/{uid} doc with
-// role: "coach" behind — the old one's login is gone, but nothing ever
-// deletes its Firestore doc automatically. A plain `.limit(1)` query has no
-// way to prefer one over the other, so it could just as easily hand push
-// notifications to the dead account as the live one. Ordering by whoever
-// actually logged in most recently picks the real, currently-used account
-// every time, with no manual cleanup required after a recovery like that.
-async function getCoachId() {
-  // Sorted in JS rather than via .orderBy() in the query itself — combining
-  // that with the equality filter above would need a composite index, and
-  // there's realistically only ever one or two coach docs to look at, so
-  // there's nothing to gain from pushing the sort into Firestore here.
-  const snap = await db.collection("users").where("role", "==", "coach").get();
-  if (snap.empty) return null;
-  const docs = snap.docs.slice().sort((a, b) => (b.data().lastLoginAt || 0) - (a.data().lastLoginAt || 0));
-  return docs[0].id;
-}
-
 // Every per-client collection keyed by a `clientId` field (see
 // AppContext.jsx's per-client Firestore listeners for the same list).
 const CLIENT_ID_COLLECTIONS = [
@@ -94,129 +74,6 @@ const CLIENT_ID_COLLECTIONS = [
   "scheduledWorkouts", "bodyStatsSchedules", "nutritionLogs", "bodyMetrics",
   "notifications", "clientNotes",
 ];
-
-// Before a client accepts their invite, there's no real Firebase Auth
-// account for them yet — so the coach can still build out their whole
-// program, schedule, notes, etc. against a synthetic id (their invite's
-// email-derived username; see activateAccount()'s comment in
-// AppContext.jsx). The moment they set a password and Firebase Auth mints
-// their real, randomly-generated uid, every one of those documents is left
-// keyed to that OLD id — invisible from their real account forever unless
-// it gets re-keyed to the new uid. A client's own Firestore rules can't
-// safely do this re-keying themselves (most of these collections aren't
-// even client-writable at all, by design), so it happens here, server-side
-// with the Admin SDK, the instant their real account doc is created.
-exports.onClientActivated = onDocumentCreated("users/{uid}", async (event) => {
-  const uid = event.params.uid;
-  const data = event.data?.data();
-  if (!data || data.role !== "client") return;
-  const oldId = (data.email || "").trim().toLowerCase();
-  // Nothing to migrate for a brand new client who never had pre-activation
-  // data built for them (or if, somehow, the ids already match).
-  if (!oldId || oldId === uid) return;
-
-  for (const name of CLIENT_ID_COLLECTIONS) {
-    const snap = await db.collection(name).where("clientId", "==", oldId).get();
-    if (snap.empty) continue;
-    const batch = db.batch();
-    snap.docs.forEach((d) => batch.update(d.ref, { clientId: uid }));
-    await batch.commit();
-  }
-
-  // habitLog/{clientId}: the doc id itself IS the clientId, not a field on
-  // it, so this one's a read-write-delete rather than a field update.
-  const oldHabitLogRef = db.collection("habitLog").doc(oldId);
-  const oldHabitLogSnap = await oldHabitLogRef.get();
-  if (oldHabitLogSnap.exists) {
-    await db.collection("habitLog").doc(uid).set(oldHabitLogSnap.data(), { merge: true });
-    await oldHabitLogRef.delete();
-  }
-});
-
-exports.onNewMessage = onDocumentCreated("messages/{id}", async (event) => {
-  const m = event.data?.data();
-  if (!m) return;
-  const preview = (m.text || "Sent an attachment").slice(0, 120);
-
-  if (m.from === "client") {
-    const coachId = await getCoachId();
-    if (coachId) {
-      const clientSnap = await db.collection("users").doc(m.clientId).get();
-      const clientName = clientSnap.data()?.name || "A client";
-      await notifyUser(coachId, { title: clientName, body: preview }, "messages");
-    }
-  } else if (m.from === "coach" && m.clientId) {
-    await notifyUser(m.clientId, { title: "Your coach sent a message", body: preview });
-  }
-});
-
-// Same "notify whoever didn't send it" shape as onNewMessage above, for
-// the coach-side Groups tab's group chat. memberIds is already stamped
-// onto the message itself at send time (see sendGroupMessage in
-// AppContext.jsx) — the group's current roster, read once off that
-// message doc rather than a second Firestore read of groups/{groupId}.
-// Reuses the "messages" notification preference rather than adding a
-// separate toggle for group chat specifically.
-exports.onNewGroupMessage = onDocumentCreated("groupMessages/{id}", async (event) => {
-  const m = event.data?.data();
-  if (!m) return;
-  const preview = (m.text || "").slice(0, 120);
-  const memberIds = m.memberIds || [];
-
-  const groupSnap = await db.collection("groups").doc(m.groupId).get();
-  const groupName = groupSnap.data()?.name || "your group";
-
-  if (m.from === "coach") {
-    await Promise.all(memberIds.map((uid) => notifyUser(uid, { title: groupName, body: preview }, "messages")));
-  } else if (m.from === "client") {
-    const title = `${m.fromName || "A member"} · ${groupName}`;
-    const coachId = await getCoachId();
-    const others = memberIds.filter((uid) => uid !== m.fromClientId);
-    await Promise.all([
-      coachId ? notifyUser(coachId, { title, body: preview }, "messages") : Promise.resolve(),
-      ...others.map((uid) => notifyUser(uid, { title, body: preview }, "messages")),
-    ]);
-  }
-});
-
-// A coach publishing a plan (MealPlanBuilder's publish(), the only path
-// that calls setMealPlan) always bumps `updatedAt`; the client's own
-// "swap this meal" action (swapMealPlanMeal) only ever writes `days` and
-// never touches it — that's the signal used to notify only on an actual
-// coach-made change, not the client's own edit to their own plan.
-exports.onMealPlanChanged = onDocumentWritten("mealPlans/{clientId}", async (event) => {
-  const after = event.data?.after?.data();
-  if (!after) return; // deleted
-  const before = event.data?.before?.data();
-  const isNew = !before;
-  if (!isNew && after.updatedAt === before.updatedAt) return;
-  await notifyUser(
-    event.params.clientId,
-    { title: isNew ? "New meal plan" : "Your meal plan was updated", body: "Your coach just updated your meal plan — check the Nutrition tab." },
-    "mealPlanUpdates"
-  );
-});
-
-// clientPhases has no client write path at all (see FIRESTORE_RULES.txt),
-// so any create/update here is always the coach assigning or editing a
-// training phase — no extra "who changed it" check needed like mealPlans.
-exports.onClientPhaseChanged = onDocumentWritten("clientPhases/{id}", async (event) => {
-  const after = event.data?.after?.data();
-  if (!after || !after.clientId) return;
-  const before = event.data?.before?.data();
-  await notifyUser(
-    after.clientId,
-    { title: before ? "Your training program was updated" : "New training program", body: "Your coach just updated your training — check the Training tab." },
-    "programUpdates"
-  );
-});
-
-exports.onNewCheckIn = onDocumentCreated("formResponses/{id}", async () => {
-  const coachId = await getCoachId();
-  if (coachId) {
-    await notifyUser(coachId, { title: "New check-in submitted", body: "A client just submitted a check-in — tap to review." }, "checkins");
-  }
-});
 
 // Same "already done it" window the client app itself uses (CheckInsScreen's
 // isCheckInDue) — a check-in stays satisfied for 7 days after it's filled
@@ -467,9 +324,14 @@ exports.inactivityWod = onSchedule(
 
       // A real chat message rather than a bare push notification — it
       // persists in the client's Messages tab (so it's still there if the
-      // push gets missed/dismissed), and onNewMessage above already pushes
-      // a notification for any coach-authored message, so this is the
-      // only send needed; no separate notifyUser call.
+      // push gets missed/dismissed). This used to rely on the onNewMessage
+      // Firestore trigger (removed — see this file's header comment) to
+      // push a notification for any coach-authored message; that trigger
+      // only ever watched Firestore, so a client-side AppContext.jsx send
+      // still reaches /api/notify.js, but this server-side write never did
+      // and would otherwise go out silently with no push at all. Sends the
+      // same notification directly instead, matching what onNewMessage
+      // used to send for a coach-authored message.
       const messageId = db.collection("messages").doc().id;
       await db.collection("messages").doc(messageId).set({
         id: messageId,
@@ -478,6 +340,7 @@ exports.inactivityWod = onSchedule(
         text: `It's been ${daysSince} days since your last session — your "${label}" has been added to your calendar for today, built from your own program and ready whenever you are.`,
         date: Date.now(),
       });
+      await notifyUser(uid, { title: "Your coach sent a message", body: `It's been ${daysSince} days since your last session...` });
     }
   }
 );

@@ -960,6 +960,57 @@ silence.
   iOS Settings rather than show any "not supported" error.
 - **Date added**: 2026-10-06
 
+### 37. Every push notification sent twice (duplicate Cloud Function + Vercel notify)
+- **Root cause**: an earlier migration moved push notifications from
+  Firebase Cloud Functions (`functions/index.js`) to Vercel serverless
+  functions (`api/notify.js`, `api/client-activated.js`) specifically to
+  avoid needing the paid Blaze plan — but this project turned out to
+  already be on Blaze, with `.github/workflows/deploy-functions.yml`
+  auto-deploying `functions/index.js` to real Cloud Functions on every
+  push to `main` that touches `functions/**`. The six old Firestore
+  triggers this migration was meant to retire (`onNewMessage`,
+  `onNewGroupMessage`, `onMealPlanChanged`, `onClientPhaseChanged`,
+  `onNewCheckIn`, `onClientActivated`) were never actually deleted from
+  the file, so every unrelated change to it (AI features, WHOOP, etc.)
+  kept silently redeploying them alongside the new `/api/notify.js`
+  calls already wired into `AppContext.jsx` — sending every message,
+  group message, meal plan update, phase update, and check-in as two
+  separate push notifications, and running the client-activation
+  id-migration logic twice per signup. Confirmed directly (not assumed)
+  by checking actual GitHub Actions run history — 13 successful deploys
+  of this file — and by the user reproducing a literal duplicate "Hi"
+  notification on a real device.
+- **Fix**: deleted all six Firestore-trigger exports and the now-orphaned
+  `getCoachId()` helper (only those six ever called it) from
+  `functions/index.js`, along with the now-unused
+  `onDocumentCreated`/`onDocumentWritten` imports. Kept everything with
+  no `/api` equivalent: the two `onSchedule` jobs
+  (`checkInReminders`, `whoopSync`) and all nine `onCall` functions
+  (account deletion, invite recovery, AI insight/nutrition-help, WHOOP
+  connect/disconnect) — `notifyUser` and `CLIENT_ID_COLLECTIONS` stay
+  since those are still used by `checkInReminders` and `deleteMyAccount`
+  respectively. Caught and fixed one real dependency on the removed
+  triggers before shipping: `inactivityWod` (another kept `onSchedule`
+  job) posts a message document directly via the Admin SDK and relied on
+  the now-deleted `onNewMessage` trigger to actually push a notification
+  for it — since that was a server-side Firestore write, not a client
+  call through `AppContext.jsx`'s `sendMessage()`, `/api/notify.js` was
+  never going to fire for it either. Added an explicit `notifyUser` call
+  there matching what `onNewMessage` used to send, so that notification
+  keeps working.
+- **Regression test**: none automated — `functions/` has no test harness
+  in this repo (no test script in `functions/package.json`, nothing
+  wired into the root Vitest suite). Verified `node --check
+  functions/index.js` passes (valid syntax) and grepped the whole file
+  for every removed identifier to confirm no other caller was left
+  dangling. The real verification is the GitHub Actions deploy itself
+  succeeding against the live Firebase project — checked directly via
+  the Actions API after pushing, not assumed.
+- **Manual verification**: send a 1:1 message, a group message, publish a
+  meal plan update, update a training phase, and submit a check-in —
+  each should produce exactly one push notification, not two.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing
