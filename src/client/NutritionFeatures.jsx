@@ -288,7 +288,7 @@ const CACHE_STALE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 const BARCODE_DEBUG_FLAG = "apex_barcode_scan_debug";
 
 export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
-  const { db, createFood, updateFood } = useApp();
+  const { db, createFood, updateFood, findCustomFoodByBarcode } = useApp();
   const [status, setStatus] = useState("scanning"); // scanning | detected | looking-up | error | not-found
   const [detectedCode, setDetectedCode] = useState("");
   const [error, setError] = useState("");
@@ -467,7 +467,15 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       // `off_<code>` id first so createFood mints a real Firestore id instead
       // of writing under a mismatched one.
       const { id: _offId, ...foodData } = food;
-      const saved = createFood({ ...foodData, barcode: cacheKey, verifiedAt: Date.now() });
+      // A fresh (not locally-cached) check right before creating — closes
+      // most of the window where another client scanning this exact
+      // barcode moments earlier already landed a library entry that
+      // hasn't synced down to this device's own cache yet. Catches what
+      // the db.customFoods cache check above the whole scan can't: that
+      // check only ever sees what this device already knew when the scan
+      // started, not what happened while the network lookup was in flight.
+      const existing = await findCustomFoodByBarcode(cacheKey);
+      const saved = existing ? { ...existing, per: existing.per ?? 100, defaultQty: existing.defaultQty ?? 100 } : createFood({ ...foodData, barcode: cacheKey, verifiedAt: Date.now() });
       if (closedRef.current) return;
       onAdd(saved);
     } catch (err) {

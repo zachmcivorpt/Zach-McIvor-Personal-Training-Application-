@@ -34,6 +34,7 @@ import { COACH_SETUP_CODE } from "./config";
 import { localDateKey } from "./dateKey";
 import { detectNoteContext } from "./apexInsights";
 import { removedMemberIds } from "./groupMembership";
+import { workoutLogDocId } from "./workoutLogId";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -1428,7 +1429,13 @@ export function AppProvider({ children }) {
       },
 
       async logWorkout(clientId, entry) {
-        const id = newDocId("workoutLogs");
+        // A scheduled-day finish gets a deterministic id so the same
+        // client finishing the same scheduled workout twice (e.g. from
+        // two devices at once) overwrites the one real log instead of
+        // creating a duplicate — see workoutLogId.js. Unscheduled logs
+        // (ad-hoc cardio etc.) keep a fresh random id since those
+        // legitimately repeat multiple times a day.
+        const id = workoutLogDocId(clientId, entry, () => newDocId("workoutLogs"));
         try {
           await setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry });
         } catch (err) {
@@ -2212,6 +2219,27 @@ export function AppProvider({ children }) {
         const food = { id, name: "", cals: 0, protein: 0, carbs: 0, fat: 0, ...data };
         setDoc(doc(firestore, "customFoods", id), food).catch(console.error);
         return food;
+      },
+      // A live (not locally-cached) check for an existing customFoods entry
+      // for a given barcode — used immediately before creating one, so two
+      // clients scanning the SAME product within the same network round-trip
+      // (neither has the other's write synced down to their own local cache
+      // yet) converge on the one that actually landed first instead of each
+      // creating their own near-duplicate. A deterministic doc id would be
+      // the more airtight fix, but customFoods' own rule only lets a COACH
+      // update an existing doc (see firestore.rules) — the second client's
+      // write would hit that as a permission-denied error instead of a
+      // harmless duplicate, which is worse. This narrows the race window
+      // to the gap between this read and the create, rather than closing
+      // it completely, without touching that access model.
+      async findCustomFoodByBarcode(barcode) {
+        if (!barcode) return null;
+        try {
+          const snap = await getDocs(query(collection(firestore, "customFoods"), where("barcode", "==", barcode)));
+          return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+        } catch {
+          return null;
+        }
       },
       updateFood(id, data) {
         updateDoc(doc(firestore, "customFoods", id), data).catch(console.error);

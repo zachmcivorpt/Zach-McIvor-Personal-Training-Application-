@@ -709,6 +709,95 @@ silence.
 - **Manual verification**: N/A — fully automated.
 - **Date added**: 2026-10-06
 
+### 30. Finishing the same scheduled workout from two devices at once created two completed logs
+- **Context**: raised directly — "have you considered the app being used
+  by multiple users at a time?" Checked every concurrent-write path in
+  the app; this and #31 were the two real, confirmed gaps (everything
+  per-client is already isolated by `clientId`, and nutrition logging
+  already uses a real Firestore transaction).
+- **Root cause**: `logWorkout` (`AppContext.jsx`) always minted a brand-
+  new random doc id, with no check against what already existed. A
+  client signed in on two devices at once (phone + tablet, same
+  account — not unusual in a gym, starting on a phone and finishing on a
+  propped-up tablet) finishing the SAME scheduled workout around the
+  same moment created two separate completed-workout log docs instead of
+  one, double-counting it in history, PRs and stats.
+- **Fix**: `src/lib/workoutLogId.js`'s `workoutLogDocId` gives a
+  scheduled-day finish (one with a `scheduledDate`) a deterministic id —
+  `clientId + scheduledDate + a hash of dayLabel` — so a second finish of
+  the exact same scheduled workout overwrites the one real log via
+  `setDoc` instead of creating a duplicate. An unscheduled log (ad-hoc
+  cardio, which legitimately repeats multiple times a day) keeps a fresh
+  random id, unchanged.
+- **Regression test**: `src/lib/workoutLogId.test.js` covers the id
+  function and the branch decision in isolation (verified to fail when
+  the hash was made non-deterministic). `src/lib/firestoreRules.rules.test.js`'s
+  new `workoutLogs` test drives the exact two-device scenario — each
+  "device" independently computes its own id via `workoutLogDocId` (not
+  a precomputed id reused for both writes, which would have passed even
+  with a non-deterministic generator) and writes against the real rules
+  engine — confirming exactly one document results, with the second
+  write's data winning, AND that the client is actually permitted to make
+  that second write (an UPDATE under the real `workoutLogs` rule, since
+  the doc already exists). Verified to fail (2 documents instead of 1)
+  when the id generator was reverted to non-deterministic; restored and
+  re-verified green on both test files.
+- **Manual verification**: `logWorkout`'s own branch (choosing
+  `workoutLogDocId`'s output over a fresh random id when `scheduledDate`
+  is present) isn't independently wired-tested — it lives inside the
+  large `AppContext` provider with no isolated call path. Covered by code
+  review and the build.
+- **Date added**: 2026-10-06
+
+### 31. Two clients scanning the same barcode at once could each create a duplicate shared food-library entry
+- **Root cause**: `createFood` (`AppContext.jsx`) always minted a fresh
+  random doc id. The barcode scan flow already checks the LOCAL cache
+  (`db.customFoods`) for a matching barcode before deciding to look it up
+  and save it — but that check only ever reflects what this one device's
+  own snapshot already knew when the scan started. Two different clients
+  scanning the same uncached product within the same network round-trip
+  (neither has the other's write synced down to their own cache yet)
+  would each independently decide "not found" and each create their own
+  near-duplicate entry in the SHARED `customFoods` library.
+- **Why not the same fix as #30**: a deterministic id (barcode-derived)
+  was considered and rejected — `customFoods`' own rule only lets a
+  COACH update an existing doc (`allow update, delete: if isCoach()`;
+  any signed-in client may only `create`). With a deterministic id, the
+  SECOND client's write would be classified as an UPDATE (the doc already
+  exists) and get flatly rejected with permission-denied — trading a
+  harmless duplicate for a hard, confusing error. That access model is
+  intentional (clients can add to the library but never edit what's
+  already there) and wasn't loosened.
+- **Fix**: a new `findCustomFoodByBarcode(barcode)` does a LIVE (not
+  cached) Firestore query by the barcode field, called immediately before
+  `createFood` in the automated network-lookup-save path
+  (`NutritionFeatures.jsx`). If another client's entry for that exact
+  barcode has landed server-side by the time this client's lookup
+  finishes, it's reused instead of creating a duplicate. This narrows the
+  race window to the gap between this read and the create, rather than
+  closing it completely — the only way to close it fully conflicts with
+  the access model above. Deliberately NOT applied to the manual-
+  correction entry path (typing in nutrition after a failed scan,
+  `correctedByUser: true`) — that's a deliberate human correction meant
+  to be authoritative, and silently discarding it in favor of "whatever
+  another client already saved" would be actively worse than the rare
+  duplicate it might occasionally produce.
+- **Regression test**: `src/lib/firestoreRules.rules.test.js`'s new
+  `customFoods barcode lookup` tests confirm a signed-in client can
+  actually perform this exact query (`where("barcode", "==", ...)`) and
+  correctly finds another client's just-created entry, or correctly finds
+  nothing for an unscanned barcode — against the real rules engine, not
+  assumed. The `NutritionFeatures.jsx` wiring itself (the
+  check-before-create ternary) isn't independently rendered — `BarcodeScanSheet`
+  depends on live camera/`Html5Qrcode` APIs with no practical render path
+  in this environment — covered by code review and the build.
+- **Manual verification**: have two different client accounts scan the
+  exact same never-before-seen barcode at effectively the same time (or
+  simulate it by having one finish its lookup while the other is still in
+  flight) — the shared food library should end up with one entry for that
+  barcode, not two.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing

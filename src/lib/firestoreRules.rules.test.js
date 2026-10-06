@@ -10,7 +10,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { assertFails, assertSucceeds, initializeTestEnvironment } from "@firebase/rules-unit-testing";
-import { arrayRemove, collection, deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { arrayRemove, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { workoutLogDocId } from "./workoutLogId";
 
 const emulatorRunning = !!process.env.FIRESTORE_EMULATOR_HOST;
 const [EMULATOR_HOST, EMULATOR_PORT] = (process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080").split(":");
@@ -330,5 +331,75 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
     const anon = dbAs(null);
     await assertFails(getDoc(doc(anon, "nutritionLogs", "any-id")));
     await assertFails(getDoc(doc(anon, "liveSessions", CLIENT_A)));
+  });
+
+  // --- workoutLogs: same-client, two-devices-at-once duplicate-finish ---
+  // logWorkout (AppContext.jsx) used to mint a fresh random doc id every
+  // call, so a client finishing the same scheduled workout from two
+  // devices around the same moment created two separate completed logs.
+  // The fix gives a scheduled-day finish a deterministic id
+  // (scheduledWorkoutLogId) so a second finish overwrites the first
+  // instead of duplicating it. This drives the exact write both devices
+  // would make and confirms exactly one document results, with the
+  // second write's data winning — against the real rules engine, not a
+  // mock, so it also proves the client is actually allowed to perform
+  // that second write (an UPDATE, since the doc already exists) under
+  // the real workoutLogs rule.
+  it("a client finishing the same scheduled workout twice (simulating two devices) ends up with one log, not two", async () => {
+    const dbA = dbAs(CLIENT_A);
+    const entry = { scheduledDate: "2026-10-06", dayLabel: "Push Day" };
+    // Each "device" independently computes its own id for the finish call
+    // it's making, exactly as two separate real devices would — reusing
+    // one precomputed id for both writes would pass even if the id
+    // generator were non-deterministic, which is the actual bug this
+    // guards against.
+    const idFromDeviceOne = workoutLogDocId(CLIENT_A, entry, () => "should-not-be-used");
+    const idFromDeviceTwo = workoutLogDocId(CLIENT_A, entry, () => "should-not-be-used");
+
+    await assertSucceeds(
+      setDoc(doc(dbA, "workoutLogs", idFromDeviceOne), { id: idFromDeviceOne, clientId: CLIENT_A, date: 1000, dayLabel: "Push Day", scheduledDate: "2026-10-06", entries: [{ exerciseId: "ex-1" }] })
+    );
+    // The second device finishes moments later with (slightly) different data.
+    await assertSucceeds(
+      setDoc(doc(dbA, "workoutLogs", idFromDeviceTwo), { id: idFromDeviceTwo, clientId: CLIENT_A, date: 2000, dayLabel: "Push Day", scheduledDate: "2026-10-06", entries: [{ exerciseId: "ex-1" }, { exerciseId: "ex-2" }] })
+    );
+
+    // Count via an admin (rules-disabled) context — the direct way to
+    // confirm the COLLECTION itself holds exactly one document, sidestepping
+    // any ambiguity in how the client's own read rule applies to a list query.
+    let snap;
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      snap = await getDocs(collection(ctx.firestore(), "workoutLogs"));
+    });
+    expect(snap.size).toBe(1);
+    expect(snap.docs[0].data().entries).toHaveLength(2);
+  });
+
+  // --- customFoods: concurrent-barcode-scan dedup check -----------------
+  // findCustomFoodByBarcode (AppContext.jsx) does a live query by barcode
+  // field immediately before createFood, to narrow the window where two
+  // clients scanning the same product concurrently would each create a
+  // near-duplicate shared-library entry. A deterministic id wasn't used
+  // here (unlike workoutLogs above) because customFoods' own rule only
+  // lets a COACH update an existing doc — a second client's write to an
+  // existing id would be a permission-denied error, not a harmless
+  // duplicate. This proves the query itself is actually allowed for a
+  // signed-in client (not just assumed) and returns the right entry.
+  describe("customFoods barcode lookup", () => {
+    it("a signed-in client can query by barcode and finds another client's just-created entry", async () => {
+      const dbA = dbAs(CLIENT_A);
+      await assertSucceeds(setDoc(doc(dbA, "customFoods", "food-1"), { name: "Protein Bar", barcode: "012345678905", cals: 200 }));
+
+      const dbB = dbAs(CLIENT_B);
+      const found = await assertSucceeds(getDocs(query(collection(dbB, "customFoods"), where("barcode", "==", "012345678905"))));
+      expect(found.size).toBe(1);
+      expect(found.docs[0].data().name).toBe("Protein Bar");
+    });
+
+    it("querying a barcode nobody has scanned yet returns nothing, not an error", async () => {
+      const dbA = dbAs(CLIENT_A);
+      const found = await assertSucceeds(getDocs(query(collection(dbA, "customFoods"), where("barcode", "==", "999999999999"))));
+      expect(found.empty).toBe(true);
+    });
   });
 });
