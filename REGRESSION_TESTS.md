@@ -798,6 +798,25 @@ silence.
   barcode, not two.
 - **Date added**: 2026-10-06
 
+### 32. Coach's new-message push notification said "New message" with no sender name
+- **Root cause**: `api/notify.js` (the live push-notification code path —
+  `functions/index.js`'s Cloud Functions equivalent exists but isn't
+  deployed; see its own header comment) hardcoded the push title to
+  "New message" for every client message, regardless of who sent it. The
+  `messages` doc itself only ever carries `clientId`, not a name.
+- **Fix**: looks the sending client's name up from their `users` profile
+  doc before notifying the coach, and uses it as the title (matching how
+  group-chat notifications already show the sender). Falls back to "A
+  client" if the profile has no name set. Also updated the matching
+  (currently undeployed) logic in `functions/index.js` per its own
+  "keep these in sync" header comment.
+- **Regression test**: `api/notify.test.js` — asserts the push title is
+  the client's real name, and the "A client" fallback when no name is
+  set. Verified to fail (title stayed "New message") when reverted;
+  restored and re-verified green.
+- **Manual verification**: N/A — fully automated.
+- **Date added**: 2026-10-06
+
 ---
 
 ## What still requires manual testing
