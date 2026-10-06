@@ -2407,6 +2407,8 @@ function TrainingProgramPanel({ client, showToast }) {
       <div className="flex-1 min-w-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
         <PerformanceTimelineCard client={client} />
 
+        <PlateauAlertCard client={client} />
+
         <WeeklyCoachReviewCard client={client} showToast={showToast} />
 
         <DarkPanel className="p-4 md:p-5 mb-4">
@@ -5192,15 +5194,15 @@ function PlateauAlertCard({ client }) {
   if (plateaus.length === 0) return null;
 
   return (
-    <div className="mb-10 pb-10 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
-      <div className="flex items-center gap-2.5 mb-3">
+    <DarkPanel className="p-5 mb-6">
+      <div className="relative flex items-center gap-2.5 mb-3">
         <TrendingDown size={15} style={{ color: MEASURE_BLUE }} className="shrink-0" />
         <div>
           <p className="text-white font-semibold text-sm">Possible plateau{plateaus.length === 1 ? "" : "s"}</p>
           <p className="text-white text-xs">Trained consistently, but not getting stronger — might be worth a change</p>
         </div>
       </div>
-      <div className="divide-y border-y" style={{ borderColor: CLIENT_DARK_BORDER }}>
+      <div className="relative divide-y border-y" style={{ borderColor: CLIENT_DARK_BORDER }}>
         {plateaus.map((p) => (
           <div key={p.exerciseId} className="flex items-center justify-between py-2.5" style={{ borderColor: CLIENT_DARK_BORDER }}>
             <span className="text-white text-sm font-medium">{p.exerciseName}</span>
@@ -5208,7 +5210,7 @@ function PlateauAlertCard({ client }) {
           </div>
         ))}
       </div>
-    </div>
+    </DarkPanel>
   );
 }
 
@@ -5815,8 +5817,6 @@ function SummaryPanel({ client, showToast, onSendLogin, onClose }) {
       <QuickSendActions client={client} showToast={showToast} onSendLogin={onSendLogin} />
 
       <PersonalDetailsCard client={client} showToast={showToast} onClose={onClose} />
-
-      <PlateauAlertCard client={client} />
 
       <div className="mb-10 pb-10 border-b" style={{ borderColor: CLIENT_DARK_BORDER }}>
         <div className="mb-5">
