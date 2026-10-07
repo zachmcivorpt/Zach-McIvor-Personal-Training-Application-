@@ -1064,6 +1064,41 @@ silence.
   Profile → Push Notifications screen's toggle.
 - **Date added**: 2026-10-06
 
+### 39. Rest timer "freezes" when leaving the app and coming back
+- **Root cause**: the rest timer's display is already wall-clock-based
+  (`WorkoutSession`'s `tick()` recomputes remaining time from
+  `restEndAtRef.current - Date.now()`, not a plain per-second decrement),
+  and its "catch up the instant the client returns" handler listened for
+  `visibilitychange`. That's not enough on the native iOS App Store build
+  (a bare WKWebView wrapper): `document.visibilityState` doesn't reliably
+  update when the WHOLE APP is backgrounded/foregrounded via the home
+  button or app switcher — there's no browser tab being hidden, just the
+  native window losing and regaining focus — so `visibilitychange` could
+  go an entire session without firing there, and the catch-up logic
+  silently never ran. The display only ever corrected once the throttled
+  `setInterval` eventually ticked again on its own, which is exactly what
+  looked like "freezing" (reported as: stuck on return, but still counting
+  down again once it caught up) until it self-corrected.
+- **Fix**: the catch-up handler now also listens for `window`'s `focus`
+  event, which WKWebView does fire reliably for this — the same
+  combination already used (and already working) for this file's
+  session-duration tracker (`sessionActiveMsRef`'s `sync()`), just never
+  applied to the rest timer's own catch-up logic.
+- **Regression test**: `src/client/restTimerBackgroundCatchup.test.jsx` —
+  starts a 90s rest timer, fast-forwards wall-clock time by 70s with no
+  interval ticks (simulating OS-suspended timers), then fires only a
+  `window` `focus` event (no `visibilitychange`) and asserts the display
+  already shows the correct `0:20`, not the stale `1:30`; a second test
+  confirms the existing `visibilitychange`-only path still works
+  unchanged. Verified the focus-only test fails (stayed on the stale
+  `1:30`) against the prior visibilitychange-only code; restored and
+  re-verified both green.
+- **Manual verification**: on the native iOS app, start a rest timer,
+  background the app (home button) for under a minute, then reopen it —
+  the countdown should immediately show the correct remaining time, not a
+  stale pre-background number that only corrects a second or more later.
+- **Date added**: 2026-10-07
+
 ---
 
 ## What still requires manual testing

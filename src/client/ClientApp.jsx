@@ -2412,9 +2412,23 @@ export function WorkoutSession({
   // see the stale pre-background number for up to another second until the
   // next interval tick, or (worse) not realize rest already finished while
   // they were away since nothing fired the ding for them.
+  //
+  // visibilitychange alone isn't enough on the native iOS app: WKWebView
+  // doesn't reliably update document.visibilityState when the WHOLE APP
+  // (not a browser tab) is backgrounded/foregrounded via the home button
+  // or app switcher — there's no page to hide, just the native window
+  // losing/regaining focus — so that event can go an entire app session
+  // without ever actually firing there, and this catch-up silently never
+  // ran. The display then only self-corrected once the throttled
+  // setInterval eventually ticked again on its own, which is exactly what
+  // looked like "freezing" before it caught up and resumed counting down.
+  // window's own focus event is one WKWebView does fire reliably for
+  // this — see the session-duration tracker lower in this file
+  // (sessionActiveMsRef's sync()), which already uses visibilitychange +
+  // window blur/focus together for exactly this reason.
   useEffect(() => {
     function onVisible() {
-      if (document.visibilityState !== "visible" || !resting) return;
+      if (!resting) return;
       // The tap/unlock that just brought the tab back to "visible" is as
       // close to a real user gesture as this handler ever gets — re-arm
       // right here, before checking whether rest already finished while
@@ -2428,8 +2442,15 @@ export function WorkoutSession({
         playTimerDing();
       }
     }
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") onVisible();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onVisible);
+    };
   }, [resting]);
 
   // Re-arms the shared AudioContext on every real tap anywhere in the
