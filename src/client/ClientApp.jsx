@@ -5152,38 +5152,47 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
           />
         </div>
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => {
-              setSheetOpen(false);
-              setBarcodeOpen(true);
-            }}
-            className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-          >
-            <ScanLine size={18} />
-            Scan barcode
-          </button>
-          <button
-            onClick={() => {
-              setSheetOpen(false);
-              setPhotoOpen(true);
-            }}
-            className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-          >
-            <Camera size={18} />
-            Photo
-          </button>
-          <button
-            onClick={() => {
-              setSheetOpen(false);
-              setQuickAddOpen(true);
-            }}
-            className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-          >
-            <Zap size={18} />
-            Quick add
-          </button>
-        </div>
+        {!search.trim() && (
+          // Hidden once there's an active search query — on iOS, WKWebView
+          // (unlike Safari) never resizes the page for the on-screen
+          // keyboard, so every bit of vertical space these three buttons
+          // hold onto is space the search results list doesn't get while
+          // the keyboard is up, pushing real results further down behind
+          // it. Standard search UX anyway: once you're typing, you're
+          // searching, not reaching for an alternate way to add a food.
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => {
+                setSheetOpen(false);
+                setBarcodeOpen(true);
+              }}
+              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
+            >
+              <ScanLine size={18} />
+              Scan barcode
+            </button>
+            <button
+              onClick={() => {
+                setSheetOpen(false);
+                setPhotoOpen(true);
+              }}
+              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
+            >
+              <Camera size={18} />
+              Photo
+            </button>
+            <button
+              onClick={() => {
+                setSheetOpen(false);
+                setQuickAddOpen(true);
+              }}
+              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
+            >
+              <Zap size={18} />
+              Quick add
+            </button>
+          </div>
+        )}
 
         {search.trim() ? (
           (() => {

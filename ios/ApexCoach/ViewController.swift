@@ -12,6 +12,20 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private let siteURL = URL(string: "https://apexcoachingplatform-appl.vercel.app")!
     private let nearBlack = UIColor(red: 9.0 / 255.0, green: 9.0 / 255.0, blue: 9.0 / 255.0, alpha: 1)
 
+    // WKWebView — unlike Safari's own browser chrome — never resizes its own
+    // frame for the on-screen keyboard; it just lets the keyboard overlay on
+    // top of whatever was already rendered there. That means the page's own
+    // `window.visualViewport`/`window.innerHeight` never change either, so
+    // no amount of web-side JS (listening for a resize that never fires) can
+    // detect the keyboard at all — confirmed the real cause after a web-side
+    // visualViewport fix still left bottom sheets' search results and footer
+    // buttons genuinely covered by the keyboard in production. The actual
+    // fix has to happen here: shrink the webView's own bottom anchor by the
+    // keyboard's real height when it shows, so the page's viewport ACTUALLY
+    // resizes — which then makes visualViewport/innerHeight correctly
+    // reflect the smaller space for any web-side layout that depends on it.
+    private var webViewBottomConstraint: NSLayoutConstraint!
+
     // The FCM token AppDelegate obtains from APNs often arrives before the
     // page has finished its first load (or before GoogleService-Info.plist
     // exists at all, in which case this just never fires) — held here and
@@ -64,12 +78,17 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // Pin below the status bar/notch — a bare WKWebView doesn't auto-inset
         // for the safe area the way Safari does, so without this the app's own
         // header renders underneath the system status bar and its buttons.
+        webViewBottomConstraint = webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         NSLayoutConstraint.activate([
             webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            webViewBottomConstraint,
         ])
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(keyboardWillChangeFrame(_:)), name: UIResponder.keyboardWillChangeFrameNotification, object: nil
+        )
 
         spinner.color = .gray
         spinner.center = view.center
@@ -96,6 +115,41 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         } else {
             pendingFCMToken = token
         }
+    }
+
+    // keyboardWillChangeFrame (not just WillShow) also covers switching
+    // between keyboards of different heights (e.g. the numeric pad handing
+    // off to a full QWERTY one) and iPad's floating/undocked keyboard,
+    // neither of which fires a plain WillShow again once already visible.
+    // The end frame is reported in SCREEN coordinates; converting it into
+    // this view's own coordinate space (rather than assuming it matches
+    // `view.bounds` exactly) is what makes this correct in a split-screen
+    // iPad multitasking layout too, not just full-screen iPhone.
+    @objc private func keyboardWillChangeFrame(_ note: Notification) {
+        guard
+            let endFrameValue = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue,
+            let duration = note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double,
+            let curveRaw = note.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt
+        else { return }
+        let endFrameInView = view.convert(endFrameValue.cgRectValue, from: nil)
+        // A keyboard that's undocked/floating (iPad) or being dismissed
+        // reports an end frame below/outside this view — in both cases the
+        // overlap with THIS view is what matters, not the keyboard's own
+        // full height, so this is clamped to 0 rather than ever going
+        // negative or over-subtracting a keyboard that isn't really here.
+        let overlap = max(0, view.bounds.maxY - endFrameInView.minY)
+        // The webView's bottom anchor is already pinned to the view's own
+        // bottom (which can include the home-indicator safe area) — only
+        // the keyboard height BEYOND that safe-area inset should actually
+        // shrink the webView, or the page would get double-inset by the
+        // same bottom safe area once the keyboard also covers it.
+        let additionalInset = max(0, overlap - view.safeAreaInsets.bottom)
+        webViewBottomConstraint.constant = -additionalInset
+        let curve = UIView.AnimationCurve(rawValue: Int(curveRaw)) ?? .easeInOut
+        let animator = UIViewPropertyAnimator(duration: duration, curve: curve) {
+            self.view.layoutIfNeeded()
+        }
+        animator.startAnimation()
     }
 
     // Hands the token to window.__apexNativePush.setToken (src/lib/nativeBridge.js),
