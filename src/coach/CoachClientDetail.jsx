@@ -4089,7 +4089,7 @@ function NutritionPanel({ client, showToast }) {
   // ClientApp.jsx, mirrored here since the coach view has no access to
   // that component-local function.
   function removeFoodItem(category, entryId) {
-    setNutritionForDate(client.id, viewDateKey, (n) => {
+    return setNutritionForDate(client.id, viewDateKey, (n) => {
       if (!n) return n;
       const items = n.meals?.[category] || [];
       const entry = items.find((f) => f.id === entryId);

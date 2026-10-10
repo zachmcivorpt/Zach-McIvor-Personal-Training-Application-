@@ -2601,7 +2601,19 @@ export function WorkoutSession({
                 />
               )}
             </button>
-            <button onClick={onExit} className={dark ? "text-white/60 text-sm font-medium" : "text-black/60 text-sm font-medium"}>
+            <button
+              onClick={onExit}
+              disabled={finishing}
+              className={
+                finishing
+                  ? dark
+                    ? "text-white/25 text-sm font-medium"
+                    : "text-black/25 text-sm font-medium"
+                  : dark
+                    ? "text-white/60 text-sm font-medium"
+                    : "text-black/60 text-sm font-medium"
+              }
+            >
               Cancel
             </button>
           </div>
@@ -3498,15 +3510,26 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
 // Swipe (or drag) a row left past the threshold to delete it — reveals a red
 // trash affordance underneath as it moves. Works with touch and mouse alike
 // since it's built on pointer events.
-function SwipeableRow({ onDelete, children }) {
+export function SwipeableRow({ onDelete, children }) {
   const dark = useClientDark();
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  // Swiping already moves the row off-screen before the delete it triggers
+  // has actually confirmed — the whole point is for it to feel instant.
+  // But `onDelete` is a real network write that can fail (offline,
+  // contention, a rejected transaction), and nothing used to resync this
+  // row's position with that outcome: a failed delete left it permanently
+  // swiped away — blank, taking up space, impossible to tell apart from a
+  // frozen app — while the underlying entry was still right there in the
+  // data. `deleting` blocks a second swipe from firing mid-delete; on a
+  // rejection, the row snaps back into view instead of staying stuck.
+  const [deleting, setDeleting] = useState(false);
   const startXRef = useRef(0);
   const widthRef = useRef(0);
   const rowRef = useRef(null);
 
   function onPointerDown(e) {
+    if (deleting) return;
     startXRef.current = e.clientX;
     widthRef.current = rowRef.current?.offsetWidth || 300;
     setDragging(true);
@@ -3527,7 +3550,18 @@ function SwipeableRow({ onDelete, children }) {
     e.currentTarget.releasePointerCapture?.(e.pointerId);
     if (dragX < -(widthRef.current * 0.35)) {
       setDragX(-widthRef.current);
-      setTimeout(onDelete, 150);
+      setDeleting(true);
+      setTimeout(() => {
+        Promise.resolve(onDelete())
+          .catch(() => {
+            setDragX(0);
+            setDeleting(false);
+          });
+        // No `finally` resetting `deleting` on success: the row's parent
+        // list shrinking (the real data updating) is what removes this
+        // component from the DOM entirely in that case — there's nothing
+        // left to re-enable.
+      }, 150);
     } else {
       setDragX(0);
     }
@@ -8766,7 +8800,16 @@ export default function ClientApp() {
   }
 
   function removeFood(meal, entryId, dateKey = todayDateKey) {
-    setNutritionForDate(currentUser.id, dateKey, (n) => {
+    // Returned (not fire-and-forget) so a caller that renders an optimistic
+    // "it's gone" state before the write confirms — SwipeableRow swiping a
+    // row off-screen immediately, well before this Firestore transaction
+    // actually settles — can tell whether it genuinely succeeded and undo
+    // its own animation if not. Without this, a failed delete (network
+    // blip, contention) left the row permanently swiped away with nothing
+    // to put it back: the entry was still in the data, but visually gone,
+    // which is exactly the "swiped it, froze, still shows doubled up"
+    // production report this fixes.
+    return setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       const items = base.meals[meal] || [];
       const entry = items.find((f) => f.id === entryId);
@@ -8786,7 +8829,10 @@ export default function ClientApp() {
       };
     })
       .then(() => showToast("Entry removed"))
-      .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again", true));
+      .catch((err) => {
+        showToast(err.message || "Couldn't remove — check your connection and try again", true);
+        throw err;
+      });
   }
 
   function addWater(liters, dateKey = todayDateKey) {

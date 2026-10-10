@@ -1306,6 +1306,63 @@ silence.
   show "No matches," never vanish.
 - **Date added**: 2026-10-10
 
+### 46. Swiped a food entry to delete it — row froze off-screen, never actually deleted (part of the original duplicate-meal report)
+- **Root cause**: two compounding bugs on the same path. (1) `removeFood`
+  (`ClientApp.jsx`) never `return`ed its own save promise — fire-and-forget
+  — so a caller had no way to know whether the delete actually succeeded.
+  (2) `SwipeableRow` moves a row off-screen optimistically the instant a
+  swipe crosses the delete threshold, well before the write it triggers
+  has confirmed — the whole point is for it to feel instant — but nothing
+  ever resynced that animation with the real outcome. A failed delete
+  (offline, a rejected transaction, contention from the duplicate-add bug
+  this was originally reported alongside) left the row permanently swiped
+  away: blank, still taking up space, impossible to tell apart from the
+  app being frozen, while the entry itself was still sitting right there
+  in the data underneath it.
+- **Fix**: `removeFood` now returns its save promise (and re-throws on
+  failure, same pattern as `addFood`). `SwipeableRow` awaits `onDelete()`
+  and, on rejection, snaps the row back into view instead of leaving it
+  stuck, and blocks a second swipe from firing while a delete is already
+  in flight. Mirrored the same missing `return` fix in
+  `CoachClientDetail.jsx`'s `removeFoodItem` (same bug, no `SwipeableRow`
+  there since that flow uses a confirm dialog instead of swipe, so no
+  animation to desync — just the same defensive-correctness gap).
+- **Regression test**: `src/client/swipeDeleteFreeze.test.jsx` — swiping
+  a row with a rejecting `onDelete` must snap it back to
+  `translateX(0px)` instead of leaving it at `translateX(-300px)`; a
+  second test confirms a second swipe while the first delete is still
+  pending doesn't fire `onDelete` again. Verified both fail against the
+  prior fire-and-forget `SwipeableRow` (the first with the exact stuck
+  `-300px` transform); restored and re-verified both passing.
+- **Manual verification**: with two of the same food logged (or on a
+  flaky connection), swipe one to delete — on success it's removed
+  cleanly; simulating a failure should bring the row back into view
+  rather than leaving a frozen blank row.
+- **Date added**: 2026-10-10
+
+### 47. WorkoutSession's Cancel button had no guard against a save still in flight
+- **Root cause**: diagnosed earlier this session but not yet fixed — the
+  header's "Cancel" button (`onClick={onExit}`) had no `disabled`/guard
+  against being tapped while "Complete Workout" was still saving
+  (`finishing`). A client on a slow connection could tap Complete, see
+  "Saving…" for a beat, tap Cancel believing nothing was happening, and
+  exit — while the original save kept running in the background and
+  landed anyway once it finished, with the client having no reason to
+  think it had, risking exactly the duplicate-entry confusion already
+  fixed elsewhere this session (FoodQuantitySheet, bug #35; the saved-meal
+  Plus button, bug #40).
+- **Fix**: `disabled={finishing}` added to the Cancel button, same
+  guarding pattern as the "Complete Workout" button right next to it.
+- **Regression test**: `src/client/workoutCancelGuard.test.jsx` — Cancel
+  must be disabled and not call `onExit` while `finishing` is true; a
+  second test confirms it still works normally when nothing is saving.
+  Verified the first case fails (button enabled, `onExit` called) against
+  the unguarded button; restored and re-verified both passing.
+- **Manual verification**: on a slow connection, tap Complete Workout,
+  then immediately tap Cancel while it still shows "Saving…" — it should
+  do nothing until the save settles.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
