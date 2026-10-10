@@ -135,16 +135,15 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
     // moment later. Swallowing onClose while saving forces them to wait
     // for the ADD button's own outcome instead of being able to bail out
     // from under it.
-    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name}>
+    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name} keyboardSafeScroll>
       {food.fromBarcode && (
         <div className={dark ? "flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
-          {food.imageUrl ? (
-            <img src={food.imageUrl} alt="" className={dark ? "w-14 h-14 rounded-xl object-cover shrink-0 bg-black" : "w-14 h-14 rounded-xl object-cover shrink-0 bg-white"} />
-          ) : (
-            <div className={dark ? "w-14 h-14 rounded-xl bg-white/8 flex items-center justify-center shrink-0" : "w-14 h-14 rounded-xl bg-black/8 flex items-center justify-center shrink-0"}>
-              <ScanLine size={20} className={dark ? "text-white/25" : "text-black/25"} />
-            </div>
-          )}
+          {/* Information-first: a scanned product's own catalog photo is
+              decorative, not needed to log it accurately, so this always
+              shows the plain scan icon rather than food/product imagery. */}
+          <div className={dark ? "w-14 h-14 rounded-xl bg-white/8 flex items-center justify-center shrink-0" : "w-14 h-14 rounded-xl bg-black/8 flex items-center justify-center shrink-0"}>
+            <ScanLine size={20} className={dark ? "text-white/25" : "text-black/25"} />
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               {food.brand && <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>{food.brand}</p>}
@@ -1092,16 +1091,27 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
   const { createFood } = useApp();
   const [manual, setManual] = useState(EMPTY_QUICK_ADD);
   const [moreOpen, setMoreOpen] = useState(false);
+  // createFood() is a fire-and-forget Firestore write (returns immediately,
+  // before the doc is actually saved) — a real double-tap on "Log it"
+  // before this sheet closes called submit() twice, each creating its own
+  // customFoods doc for the same food. A plain ref (not state) catches the
+  // second tap in the same beat, before React would ever get a chance to
+  // disable the button via a re-render — same pattern as ClientApp.jsx's
+  // addBusyRef guard for the direct-add paths.
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (open) {
       setManual(EMPTY_QUICK_ADD);
       setMoreOpen(false);
+      submittingRef.current = false;
     }
   }, [open]);
 
   function submit() {
     if (!manual.name.trim() || manual.cals === "") return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     // The macros typed in are for whatever serving size is entered here —
     // not always 100g. Saving `per` as that same size means logging this
     // food again later (at that size, or scaled up/down) stays accurate,
@@ -1132,7 +1142,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Quick Add">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Quick Add" keyboardSafeScroll>
       <p className={dark ? "text-white/30 text-xs tracking-wide mb-2" : "text-black/30 text-xs tracking-wide mb-2"}>LOG A FOOD BY NAME</p>
       <div className="space-y-2.5">
         <TextInput dark={dark}
@@ -1227,6 +1237,12 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   const [pendingFood, setPendingFood] = useState(null);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const fileRef = useRef(null);
+  // "ADD TO TODAY" goes through ClientApp.jsx's guardedAdd (already
+  // double-tap safe). "ALSO SAVE AS A MEAL" calls onSaveAsMeal directly —
+  // its own fire-and-forget Firestore write had no equivalent guard, so a
+  // real double-tap there could create two saved-meal docs for the same
+  // photo estimate.
+  const savingMealRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -1237,6 +1253,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
       setSearch("");
       setManualOpen(false);
       setBarcodeOpen(false);
+      savingMealRef.current = false;
     }
   }, [open]);
 
@@ -1282,7 +1299,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log a Meal Photo">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log a Meal Photo" keyboardSafeScroll>
       {status === "pick" && (
         <div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
@@ -1424,7 +1441,11 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
             <SecondaryButton dark={dark}
               className="w-full mt-2.5"
               disabled={!name.trim() || ingredients.length === 0}
-              onClick={() => onSaveAsMeal(buildResult())}
+              onClick={() => {
+                if (savingMealRef.current) return;
+                savingMealRef.current = true;
+                onSaveAsMeal(buildResult());
+              }}
             >
               <UtensilsCrossed size={15} /> ALSO SAVE AS A MEAL
             </SecondaryButton>
@@ -1468,6 +1489,11 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [pendingFood, setPendingFood] = useState(null);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
+  // Same reasoning as QuickAddFoodSheet's submittingRef: onSave's own
+  // Firestore write is fire-and-forget, so a real double-tap on "Save"
+  // before the sheet closes could create two saved-meal docs for the
+  // same meal. A plain ref catches the second tap in the same beat.
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -1478,6 +1504,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
       setSearch("");
       setManualOpen(false);
       setBarcodeOpen(false);
+      savingRef.current = false;
     }
   }, [open, prefill]);
 
@@ -1511,6 +1538,8 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
 
   function save() {
     if (!name.trim() || ingredients.length === 0) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     onSave({ name: name.trim(), ingredients, mealTypes, instructions: instructions.trim(), ...totals });
   }
 
@@ -1525,7 +1554,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   const dividerBorder = dark ? "border-white/8" : "border-black/5";
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Create Meal" dark={dark}>
+    <BottomSheet open={open} onClose={onClose} title="Create Meal" dark={dark} keyboardSafeScroll>
       <Field label="MEAL NAME" dark={dark}>
         <TextInput dark={dark} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. My go-to breakfast" />
       </Field>

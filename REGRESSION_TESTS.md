@@ -1632,6 +1632,203 @@ silence.
   default/selected unit alongside tbsp/tsp, with no grams option.
 - **Date added**: 2026-10-10
 
+### 54. Keyboard-safe scroll spacer generalized into the shared BottomSheet, instead of being re-implemented per Nutrition sheet
+- **Root cause**: bug #52's keyboard-safe scroll spacer (a large spacer
+  reserved below a sheet's content while a text input inside it has
+  focus — see bug #51/#52 for why visualViewport-based detection doesn't
+  work in this app's native WKWebView shell) was wired up as bespoke
+  state (`searchFocused`) and a bespoke `<div>` directly inside
+  `NutritionScreen`'s "Add to [meal]" sheet in `ClientApp.jsx`. Every
+  *other* sheet with a text input — `QuickAddFoodSheet`,
+  `CreateMealSheet`, `PhotoEstimateSheet`, `FoodQuantitySheet` (all in
+  `NutritionFeatures.jsx`) — had no equivalent protection at all, despite
+  each one having a text field followed by a Save/Add/Log button that the
+  keyboard could just as easily cover. This duplication (one sheet fixed,
+  siblings left exposed) is exactly the pattern behind the repeated
+  keyboard/bottom-sheet regressions (#42, #44, #45, #51, #52): each fix
+  solved one screen instead of the shared component underneath all of
+  them.
+- **Fix**: moved the mechanism into the shared `BottomSheet` component
+  itself (`src/components/ui.jsx`) as a new opt-in `keyboardSafeScroll`
+  prop. When passed, `BottomSheet` tracks focus/blur on its own panel
+  (capture-phase listeners, so any input anywhere inside it is covered
+  without each one needing its own handlers) and renders the same 45vh
+  spacer whenever a text-entry element (`<input>` of a text-like type, or
+  `<textarea>`) inside it has focus — clearing it on blur, unless focus
+  moved straight to another text input in the same sheet (no flicker when
+  tabbing between fields). Off by default, so every sheet that doesn't
+  pass it — the large majority of `BottomSheet` usages across the whole
+  app (workout sheets, messages, weigh-ins, account deletion, etc.) — is
+  completely unaffected; this only changes behavior where it's explicitly
+  opted into.
+- **Migrated onto it** (one sheet at a time, each re-verified after):
+  `NutritionScreen`'s "Add to [meal]" sheet (replacing its old bespoke
+  `searchFocused` state/spacer with the new prop — same visible behavior,
+  now generic), `QuickAddFoodSheet`, `CreateMealSheet`,
+  `PhotoEstimateSheet`, and `FoodQuantitySheet`. Each of these sheets'
+  own content, styling, and existing functionality is untouched — only
+  the `<BottomSheet ...>` opening tag gained the new prop.
+- **Regression test**: `src/components/bottomSheetKeyboardCover.test.jsx`
+  — new component-level coverage (alongside the existing visualViewport
+  shrink test in the same file): no spacer when `keyboardSafeScroll` is
+  omitted even with a focused input; no spacer before any input is
+  focused; spacer appears on focus and is removed on blur; a non-text
+  focus target (e.g. a button) never triggers it; focus moving between
+  two text inputs in the same sheet keeps the spacer up without
+  flickering. `src/client/nutritionKeyboardScrollSpacer.test.jsx` (bug
+  #52's original test, unmodified) still passes unchanged against the
+  migrated implementation. Verified with the standard revert/fail/restore
+  cycle: removing the spacer line from `BottomSheet` was confirmed to
+  fail 3 of the new component tests plus the existing Nutrition test,
+  then restoring brought all of them back to green.
+- **Manual verification — native WKWebView unverified, same limitation as
+  #51/#52**: no device/TestFlight build access from this environment.
+  Once on a real device/build: open Quick Add, Create Meal, Log a Meal
+  Photo, and the quantity sheet after a search/scan, focus each sheet's
+  text field, and confirm the Save/Add/Log button can still be scrolled
+  into view above the keyboard, the same way "Add to [meal]" already
+  could after #52.
+- **Date added**: 2026-10-10
+
+### 55. Nutrition Overhaul audit — food/product images removed; three double-tap duplicate-record gaps found and fixed; units, barcode accuracy and keyboard/scroll-lock audited and confirmed already compliant
+Full audit per the Nutrition Overhaul master prompt, on `claude/nutrition-overhaul`. Covers several of the prompt's sections; results below are grouped by what actually changed vs. what was inspected and found already correct (not re-implemented, per the standing rule against rebuilding working functionality).
+
+- **Food/product images removed** (requirement: clean, information-first
+  Nutrition layout). Two render sites found: a search result row's
+  `f.imageUrl` thumbnail in `ClientApp.jsx`'s `NutritionScreen`, and a
+  scanned product's catalog photo in `FoodQuantitySheet`
+  (`NutritionFeatures.jsx`) — both removed; the latter now always shows
+  the existing plain scan-icon placeholder instead of conditionally
+  showing a photo. A client's own meal photo (`photoUrl` — the "Log a
+  Meal Photo" feature, shown on saved meals/logged entries) was
+  deliberately left untouched: that's a user-driven feature, not
+  decorative product/catalog imagery, and removing it would delete
+  working functionality the prompt doesn't ask for.
+  **Regression test**: `src/client/nutritionNoFoodImages.test.jsx` (new)
+  — confirms no `<img>` renders for a scanned product in
+  `FoodQuantitySheet` even when `imageUrl` is present. Verified via
+  revert/fail/restore: reverting the fix made both new tests fail
+  (asserting the exact `<img>` the fix removes), restoring brought them
+  back to green.
+- **Units/measurement classification — audited, found already compliant,
+  no code change needed.** `unitsFor()`'s base unit is always `g` or
+  `ml` (never a hardcoded default of kg/lb/lbs/a generic container) for
+  every entry in the static database and for barcode-scanned shapes;
+  kg/lb/oz only ever appear as optional extra conversions further down a
+  solid's unit list, never as the default/selected unit. Many entries
+  already carry a specific piece-based `customUnit` (egg, bread slice,
+  wrap, bagel, rice cake, carrot, tomato, avocado, garlic clove, etc.)
+  rather than falling back to generic weight units. Locked in with a new
+  **regression test** (`src/lib/foodDatabase.test.js`): every entry in
+  `FOOD_DATABASE`, plus a barcode-scanned solid/liquid shape, never
+  defaults to kg/lb/lbs.
+- **Barcode scanning accuracy — audited, found already compliant, no
+  code change needed.** `lookupBarcode()` fetches Open Food Facts'
+  `/api/v2/product/<code>.json` by the *exact* scanned barcode (not a
+  name/fuzzy search), which is what distinguishes flavours/variants/
+  package sizes in the first place — different variants carry different
+  real-world barcodes. `computeConfidence()`/`validateNutrition()`
+  already produce a `verificationLevel` (VERIFIED/LIKELY/REVIEW/
+  UNVERIFIED) and a `nutritionSuspect` flag surfaced in the UI (bug #41),
+  with a `notFound` path when a product can't be confidently resolved
+  rather than silently substituting one. 37 existing tests in
+  `barcodeLookup.test.js` continue to pass unchanged.
+- **Duplicate logging / duplicate records — 3 real gaps found and
+  fixed.** `FoodQuantitySheet`'s ADD (bug class already fixed) and
+  `ClientApp.jsx`'s `guardedAdd`/`addBusyRef` (covers saved meals/recent
+  foods/photo "ADD TO TODAY") were already double-tap safe. Three sibling
+  write paths were not: `QuickAddFoodSheet`'s "Log it" (creates a shared
+  `customFoods` doc), `CreateMealSheet`'s "Save" (creates a saved-meal
+  doc), and `PhotoEstimateSheet`'s "ALSO SAVE AS A MEAL" (same) each
+  fired a synchronous, fire-and-forget Firestore write with no guard —
+  a genuine double-tap before the sheet closed could create two
+  duplicate library/saved-meal docs for the same food/meal. Fixed with
+  the same plain-ref pattern `addBusyRef` already established
+  (`submittingRef`, `savingRef`, `savingMealRef` — reset on each sheet
+  open). **Regression test**:
+  `src/client/nutritionDuplicateSubmitGuards.test.jsx` (new, 3 tests) —
+  two rapid taps on each of the three buttons calls its handler exactly
+  once. Verified via revert/fail/restore: reverting the three guards made
+  all 3 tests fail (2 calls instead of 1), restoring brought them back
+  to green.
+- **Keyboard/background-scroll-lock — audited, confirmed unaffected.**
+  `src/components/bodyScrollLockIOS.test.jsx` (pre-existing, app-wide)
+  and the Phase 2 `keyboardSafeScroll`/visualViewport coverage both still
+  pass unchanged; no duplicate keyboard-handling implementation was
+  introduced.
+- **Full suite**: 190 passed, 38 files passed, 1 file skipped
+  (emulator-only, pre-existing), 59 tests skipped (pre-existing) — up
+  from 184/184 before this audit, nothing newly broken. `npm run lint`:
+  exit 0, no new warnings. `npm run build`: clean.
+- **Not done in this pass, and why**: a live-data migration for existing
+  Firestore documents (custom foods/saved meals/logged entries that may
+  already hold an invalid unit or a true duplicate record) was not
+  attempted — this environment has no access to the production Firestore
+  database, and the master prompt itself says to stop and investigate
+  rather than guess when a change risks corrupting data. The validation
+  rules above apply going forward (new custom foods, new barcode scans,
+  new saved meals); auditing and safely correcting *existing* stored
+  data needs to happen with real database access, as a separate,
+  explicitly-scoped pass.
+- **Manual verification — unverified, no device/TestFlight access from
+  this environment**: the no-images layout, double-tap guards, and
+  barcode confidence UI should all be exercised on a real device/build —
+  confirm Quick Add/Create Meal/Photo Meal no longer show a scanned
+  product's photo, that rapid real double-taps on each affected button
+  produce exactly one food/meal, and that an unverifiable barcode scan
+  clearly prompts for manual entry rather than guessing.
+- **Date added**: 2026-10-10
+
+### 56. Nutrition Overhaul Section 7 audit — end-to-end workflow consistency traced; no new bugs found, closed a real end-to-end test-coverage gap
+Traced the complete client journey described in the Nutrition Overhaul's
+Section 7 through the actual code (not just re-confirming unit-level
+fixes already in place): search → select a result → quantity sheet →
+change serving/unit → confirm → log, across every entry path (search
+results, saved meals matched by search, recent foods, quick add,
+barcode, photo estimates, the meal-plan's "log this meal"), plus
+edit/remove → daily totals, across date changes via the date-nav.
+
+- **Finding: no new bugs.** Every path traced funnels through the same
+  two choke points — `FoodQuantitySheet` (scaling) and
+  `onAddFood(meal, food, dateKey)`/`onRemoveFood(meal, id, dateKey)`
+  (the Firestore transaction) — using `viewDateKey` (the date actually
+  being browsed, not always today) and `activeMeal` consistently. Saved
+  meals log at a fixed serving by design (no quantity step) — the same
+  on every path that reaches them (search match, My Meals list, meal
+  plan), not an inconsistency. `removeFood`'s own transaction is already
+  naturally idempotent against a duplicate remove call (a missing entry
+  is a no-op, not an error). The three double-tap gaps found and fixed
+  in bug #55 were the only genuine defects this journey had; nothing
+  further surfaced here.
+- **What was added instead: real end-to-end test coverage.** The
+  existing suite verified each piece in isolation (scaling math, double-
+  tap guards, unit classification) but had no test exercising the full
+  NutritionScreen journey end-to-end with assertions on exactly what
+  reaches `onAddFood`/`onRemoveFood`. New
+  **`src/client/nutritionWorkflowConsistency.test.jsx`** (3 tests):
+  searching "Chicken Breast," changing the quantity sheet to 300g, and
+  confirming logs the correctly scaled macros (495 cal, not the
+  unscaled 165) to the right meal and today's date; stepping back a day
+  via the date-nav before logging sends that day's key, not today's;
+  swiping to remove an entry on a non-today date calls `onRemoveFood`
+  with that same date's key. Verified these are real checks, not
+  trivially-passing scaffolding: temporarily routing the confirm handler
+  through the wrong date variable made both date-sensitive tests fail
+  (one assertion failure, one thrown reference error), then restoring
+  brought all 3 back to green.
+- **No application code changed in this pass** — only the new test
+  file. `git status` after this pass shows exactly one new file.
+- **Full suite**: 193 passed, 39 files passed, 1 file skipped
+  (emulator-only, pre-existing), 59 tests skipped (pre-existing) — up
+  from 190/190 before this pass. `npm run lint`: exit 0. `npm run
+  build`: clean.
+- **Manual verification — unverified, no device access from this
+  environment**: the underlying logic is now covered end-to-end in
+  jsdom, but real touch/swipe gestures, real Firestore round-trips, and
+  real date-boundary behavior (midnight rollover, timezone edge cases)
+  on an actual device remain unverified.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
