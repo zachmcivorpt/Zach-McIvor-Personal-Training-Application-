@@ -328,6 +328,15 @@ function mapProductToFood(product, code) {
     per: 100,
     defaultQty: servingGrams || 100,
     fromBarcode: true,
+    // Open Food Facts gave no real serving size for this product — the
+    // 100 above is a last-resort placeholder to keep the quantity sheet
+    // usable, never a real figure read off the product, and that
+    // distinction matters: a client trusting it as "the actual serving
+    // size" could log a wildly wrong amount. Flagged (separate from
+    // nutritionSuspect, which is about the macros not reconciling, not
+    // the serving size) so the confirm screen can say so plainly instead
+    // of presenting a guess as fact.
+    ...(servingGrams == null ? { servingSizeUnverified: true } : {}),
     // Lets unitsFor() (foodDatabase.js) show ml/cup/tbsp instead of
     // g/oz/lb/kg, and offer a "1 container (...)" unit at the real
     // package size — both read straight off Open Food Facts' own

@@ -1520,9 +1520,28 @@ export function isLiquidFood(food) {
   return PLAIN_LIQUID_RE.test(name);
 }
 
+// A pourable cooking liquid (oil, cream, a liquid condiment) is still
+// measured by the spoonful even though it's a liquid — unlike an actual
+// drink (water, milk, a sports drink, a smoothie), which nobody measures
+// in tablespoons. The real production bug this fixes: a scanned sports
+// drink ("Berry Ice," a Powerade, 27 cal/100ml) offered — and even
+// defaulted to — "tbsps" as a unit, which isn't how anyone drinks it.
+const POURABLE_LIQUID_RE = /\boil\b|\bcream\b/i;
+
 function autoUnitIds(food, liquid) {
   const name = food.name || "";
-  if (liquid) return ["cup", "tbsp"];
+  if (liquid) {
+    if (CONDIMENT_RE.test(name) || POURABLE_LIQUID_RE.test(name)) return ["cup", "tbsp", "tsp"];
+    // Plain milk/juice/water is also genuinely measured by the
+    // tablespoon (coffee, baking, recipes) — but an actual DRINK isn't,
+    // whether that's recognised from a strong beverage phrase in its
+    // name ("Protein Smoothie...") or (the real production bug this
+    // fixes) a barcode scan's own package data explicitly flagging it as
+    // liquid with no matching name pattern at all, e.g. "Berry Ice," a
+    // Powerade sports drink — nobody measures that in tablespoons.
+    if (PLAIN_LIQUID_RE.test(name) && !STRONG_LIQUID_RE.test(name)) return ["cup", "tbsp"];
+    return ["cup"];
+  }
   if (SPREAD_RE.test(name)) return ["tbsp", "tsp", "cup", "pat", "stick"];
   if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp"];
   return ["oz", "lb", "kg"];
@@ -1601,7 +1620,14 @@ export function scaleFood(food, grams) {
 // whatever unit the client actually picked.
 export function scaleFoodByUnit(food, unitId, qty) {
   const units = unitsFor(food);
-  const unit = units.find((u) => u.id === unitId) || UNIT_DEFS.g;
+  // Falls back to this food's own base unit (units[0]), never a
+  // hardcoded UNIT_DEFS.g — an invalid/stale unitId for a LIQUID food
+  // used to silently resolve to grams (numerically identical to ml at
+  // 1:1, since both share `grams: 1`, which is exactly why this went
+  // unnoticed) but mislabeled the logged entry's name/unitId as "g" for
+  // what was actually a serving measured in ml — a real stored-data
+  // mismatch between the unit shown and the unit the calculation used.
+  const unit = units.find((u) => u.id === unitId) || units[0] || UNIT_DEFS.g;
   const q = Math.max(0, Number(qty) || 0);
   const grams = q * unit.grams;
   const resolved = scaleFood(food, grams);

@@ -77,7 +77,19 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
 
   useEffect(() => {
     if (food) {
-      setUnitId("g");
+      // unitsFor()'s own first entry IS this food's correct base unit —
+      // "ml" for a liquid, "g" otherwise — never hardcoded. Defaulting
+      // to a bare "g" regardless of food type (the actual production
+      // bug) meant a liquid's quantity sheet opened on a unit that
+      // doesn't even exist in its own unit list: nothing in the "How
+      // much did you have?" row matched, so the resolved unit silently
+      // fell back to plain UNIT_DEFS.g elsewhere in this component too —
+      // mislabeling the quantity shown ("600g" for a 600ml drink) and,
+      // worse, once an extra unit like tbsp existed in the list, there
+      // was nothing anchoring the fallback to the food's own base unit
+      // instead of whatever button a stale state value happened to
+      // still reference.
+      setUnitId(unitsFor(food)[0].id);
       setQty(food.defaultQty || 100);
       setSaving(false);
     }
@@ -101,7 +113,10 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
     }
   }
 
-  const unit = units.find((u) => u.id === unitId) || UNIT_DEFS.g;
+  // Falls back to this food's own base unit (units[0] — "ml" for a
+  // liquid, "g" otherwise), never a hardcoded UNIT_DEFS.g, so a stale
+  // unitId can't silently mislabel a liquid's quantity as grams.
+  const unit = units.find((u) => u.id === unitId) || units[0] || UNIT_DEFS.g;
   const step = unit.id === "g" || unit.id === "ml" ? 10 : unit.id === "cup" ? 0.25 : 1;
   const presets = presetsFor(food, unit);
   const scaled = scaleFoodByUnit(food, unitId, qty);
@@ -158,6 +173,14 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
           <p className={dark ? "text-[#EF4444] text-xs font-semibold" : "text-red-700 text-xs font-semibold"}>Double-check this against the label</p>
           <p className={dark ? "text-white/50 text-[11px] mt-0.5" : "text-black/50 text-[11px] mt-0.5"}>
             The scanned data doesn't add up cleanly ({food.nutritionSuspectReason}) — the source listing may be wrong or mismatched. Check it against the pack before adding; close this and enter it manually if the numbers don't match.
+          </p>
+        </div>
+      )}
+      {food.servingSizeUnverified && (
+        <div className={dark ? "bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
+          <p className={dark ? "text-white/60 text-xs font-semibold" : "text-black/60 text-xs font-semibold"}>Serving size not on the label</p>
+          <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
+            This product didn't have a serving size on record — the quantity below is just a starting point, not a real figure from the pack. Check the label and adjust it before adding.
           </p>
         </div>
       )}

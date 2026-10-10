@@ -1363,6 +1363,65 @@ silence.
   do nothing until the save settles.
 - **Date added**: 2026-10-10
 
+### 48. A scanned sports drink offered — and even defaulted to — tablespoons as a unit
+- **Root cause**: two compounding bugs, both in the unit system added
+  earlier this session (bug #43). (1) `FoodQuantitySheet`'s default-unit
+  effect was still hardcoded to `setUnitId("g")` regardless of food type
+  — never updated when liquids started using "ml" as their base unit
+  instead of "g". For a liquid, "g" doesn't exist in its own unit list at
+  all, so the sheet opened on a unit that matched nothing: the resolved
+  unit silently fell back to a hardcoded `UNIT_DEFS.g` elsewhere in the
+  component (and in `scaleFoodByUnit` itself), mislabeling the quantity
+  shown (a 600ml drink's preset read "600g") and — a real data-integrity
+  issue, not just a display one — storing the logged entry's own
+  `unitId` as `"g"` for a serving that was actually measured in ml. (2)
+  the auto-unit classifier handed every liquid tbsp/tsp unconditionally
+  — correct for a pourable cooking liquid (oil, cream) or plain
+  milk/juice/water (genuinely used by the tablespoon in recipes/coffee),
+  wrong for an actual drink. A real scan of "Berry Ice" (a Powerade sports
+  drink, 27 cal/100ml) showed "tbsps" as a selectable unit and even
+  defaulted to it — 1 tbsp (15ml) selected instead of the real 600ml
+  package size — nobody measures a sports drink in tablespoons.
+- **Fix**: `FoodQuantitySheet` now defaults to `unitsFor(food)[0].id` —
+  this food's own real base unit — never a hardcoded value; its own
+  fallback (and `scaleFoodByUnit`'s) now falls back to `units[0]` instead
+  of a hardcoded `UNIT_DEFS.g` too, so an invalid/stale unitId can no
+  longer mislabel a liquid as grams. The auto-unit classifier now only
+  gives tbsp/tsp to a liquid that's a pourable cooking ingredient
+  (oil/cream/condiment) or plain milk/juice/water — an actual drink
+  (recognised by name, or explicitly flagged `liquid: true` from a
+  barcode scan's real package data with no matching name pattern at
+  all, exactly "Berry Ice"'s case) only ever offers ml/cup/container.
+  Also added a `servingSizeUnverified` flag (set when Open Food Facts has
+  no real serving size for a scanned product) surfaced as a plain note on
+  the confirm screen, per the "never guess a unit/serving size silently"
+  requirement — the 100-unit placeholder used to keep the sheet usable
+  was never distinguishable from a real figure read off the product.
+- **Regression test**: `src/client/foodQuantityUnitDefault.test.jsx`
+  (new) — a scanned drink defaults to ml (not tbsp/grams) at its real
+  600ml package size, correctly labeled; never offers tbsp at all; still
+  offers tbsp for a pourable cooking liquid (oil); recalculates correctly
+  across a unit switch; shows the new "serving size not on the label"
+  note only when flagged. `src/lib/foodDatabase.test.js` gained cases for
+  the drink-vs-milk-vs-pourable-liquid distinction (including the exact
+  "Berry Ice" scenario: explicitly flagged liquid, no name-pattern match)
+  and for `scaleFoodByUnit`'s corrected fallback (asserting it resolves
+  to `"ml"`/`"600ml"`, never `"g"`/`"600g"`, for an invalid unitId on a
+  liquid food). Verified the default-unit case fails against the prior
+  hardcoded `"g"`; the drink/tbsp cases fail against the prior
+  liquid-always-gets-tbsp classifier; the fallback case fails against the
+  prior hardcoded `UNIT_DEFS.g` fallback — all three with the exact
+  pre-fix symptom reproduced (tbsp selected / mislabeled "g"). Restored
+  and re-verified all passing; full suite (31 files, 147 tests) and
+  production build both clean.
+- **Manual verification**: scan a drink (water, soft drink, sports drink,
+  juice) — the quantity sheet should default to ml at the real package
+  size, with cup and (if the pack size is known) a container option, and
+  never a tbsp option; scan or search a cooking oil/cream/milk — tbsp
+  should still be offered; switch units on a logged item and confirm the
+  macros scale correctly each time.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing

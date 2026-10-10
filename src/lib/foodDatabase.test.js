@@ -96,6 +96,36 @@ describe("unitsFor — automatic unit sets by food type", () => {
     const ids = units.map((u) => u.id);
     expect(ids.filter((id) => id === "g" || id === "ml")).toHaveLength(1);
   });
+
+  // Real production report: a scanned sports drink ("Berry Ice," a
+  // Powerade) offered tablespoons as a unit — nobody measures a drink in
+  // tablespoons. The barcode path sets `liquid: true` explicitly (real
+  // package data, not a name guess), with no "milk/juice/water" word in
+  // the name for the plain-liquid carve-out to match, which is exactly
+  // what's being tested here: an explicitly-flagged drink with no
+  // matching name pattern must still correctly drop tbsp.
+  it("never offers tablespoons for an actual drink — whether recognised by name or flagged explicitly from barcode package data", () => {
+    const sportsDrink = unitsFor({ name: "Berry Ice", brand: "Powerade", liquid: true, containerGrams: 600 });
+    expect(sportsDrink.map((u) => u.id)).not.toContain("tbsp");
+
+    const smoothie = unitsFor({ name: "Rokeby Protein Smoothie Choc Honeycomb" });
+    expect(smoothie.map((u) => u.id)).not.toContain("tbsp");
+
+    // Not plain milk/juice/water and not a STRONG_LIQUID_RE phrase either
+    // — isLiquidFood() itself wouldn't flag this from the name alone, so
+    // this only matters once something (e.g. a barcode scan) sets
+    // `liquid: true` on it directly; covered for completeness since a
+    // real scan of a soda would do exactly that.
+    const soda = unitsFor({ name: "Coca-Cola Classic", liquid: true });
+    expect(soda.map((u) => u.id)).not.toContain("tbsp");
+  });
+
+  it("still offers tablespoons for plain milk/juice/water (genuinely used that way in recipes/coffee) and for pourable cooking liquids (oil, cream)", () => {
+    expect(unitsFor({ name: "Milk (full cream)" }).map((u) => u.id)).toContain("tbsp");
+    expect(unitsFor({ name: "Orange Juice" }).map((u) => u.id)).toContain("tbsp");
+    expect(unitsFor({ name: "Olive Oil", liquid: true }).map((u) => u.id)).toContain("tbsp");
+    expect(unitsFor({ name: "Thickened Cream", liquid: true }).map((u) => u.id)).toContain("tbsp");
+  });
 });
 
 describe("scaleFoodByUnit — correct macro recalculation across the newly-added unit types", () => {
@@ -119,6 +149,20 @@ describe("scaleFoodByUnit — correct macro recalculation across the newly-added
     expect(pat.cals).toBe(Math.round(717 * 0.05));
     const stick = scaleFoodByUnit(butter, "stick", 1);
     expect(stick.cals).toBe(Math.round(717 * 1.13));
+  });
+
+  // Real production bug: an invalid/stale unitId used to fall back to a
+  // hardcoded UNIT_DEFS.g — numerically harmless for a liquid (ml and g
+  // share `grams: 1`, which is exactly why this went unnoticed), but it
+  // mislabeled the resolved entry's name and stored `unitId` as "g" for
+  // what was actually a serving measured in ml: a real mismatch between
+  // the unit shown/stored and the food's actual base unit.
+  it("falls back to the food's own base unit (not a hardcoded 'g') for an invalid unitId", () => {
+    const berryIce = { id: "off_1", name: "Berry Ice", cals: 27, protein: 0, carbs: 6, fat: 0, per: 100, defaultQty: 600, liquid: true, containerGrams: 600 };
+    const scaled = scaleFoodByUnit(berryIce, "not-a-real-unit", 600);
+    expect(scaled.unitId).toBe("ml");
+    expect(scaled.name).toMatch(/600ml/);
+    expect(scaled.name).not.toMatch(/600g\b/);
   });
 });
 
