@@ -40,6 +40,65 @@ describe("isLiquidFood", () => {
     expect(isLiquidFood({ name: "Lean Beef Mince (5% fat)" })).toBe(false);
     expect(isLiquidFood({ name: "Washed White Potatoes" })).toBe(false);
   });
+
+  // Real misclassifications found by auditing every entry in the static
+  // FOOD_DATABASE (not just spot checks) — each confirmed against the
+  // entry's own real-world defaultQty (grams for a solid, ml for a
+  // liquid) before being fixed, not just by eyeballing the name.
+  describe("full-database audit fixes", () => {
+    it("never classifies a solid food as liquid just because 'water' describes its packaging, not the food itself", () => {
+      // Real entry: cals/protein/fat per 100g, defaultQty 100 — a canned
+      // fish, not a drink.
+      expect(isLiquidFood({ name: "Tuna (canned, spring water)" })).toBe(false);
+      // A vegetable whose own name happens to contain the word "water".
+      expect(isLiquidFood({ name: "Water Chestnuts" })).toBe(false);
+      expect(isLiquidFood({ name: "Water Chestnuts (sliced)" })).toBe(false); // plural still matches with any trailing text
+      // Porridge made with water is still porridge, eaten by the bowl.
+      expect(isLiquidFood({ name: "Oatmeal (cooked with water)" })).toBe(false);
+    });
+
+    it("never classifies 'Baking Soda' as liquid just because it contains 'soda'", () => {
+      expect(isLiquidFood({ name: "Baking Soda" })).toBe(false);
+    });
+
+    it("never classifies a dry powder as liquid, however its name otherwise reads", () => {
+      // Real entries: defaultQty 5g (a bouillon-powder teaspoon) and 45g
+      // (a protein-powder scoop) — neither is a ready-to-drink liquid,
+      // despite "Stock" and "Milkshake" in their names.
+      expect(isLiquidFood({ name: "Massel Chicken Style Stock Powder" })).toBe(false);
+      expect(isLiquidFood({ name: "Musashi P30 High Protein Powder Chocolate Milkshake" })).toBe(false);
+      expect(isLiquidFood({ name: "Bulk Nutrients BCAA Energy Drink Mix" })).toBe(false);
+    });
+
+    it("classifies brand-name soft drinks and sports drinks as liquid — these were missed entirely before the audit", () => {
+      // None of these contain "milk," "juice," or "water," so the plain
+      // name heuristic alone never caught them; real entries all have a
+      // genuine ml-scale defaultQty (Coca-Cola 375ml, Powerade 600ml, a
+      // Hungry Jack's Sprite 340-630ml by size).
+      expect(isLiquidFood({ name: "Coca-Cola" })).toBe(true);
+      expect(isLiquidFood({ name: "Coca-Cola No Sugar" })).toBe(true);
+      expect(isLiquidFood({ name: "Fanta Orange (Small, Hungry Jack's)" })).toBe(true);
+      expect(isLiquidFood({ name: "Sprite (Medium, Hungry Jack's)" })).toBe(true);
+      expect(isLiquidFood({ name: "Gatorade Sports Drink" })).toBe(true);
+      expect(isLiquidFood({ name: "Powerade Ion4" })).toBe(true);
+      expect(isLiquidFood({ name: "Hydralyte Electrolyte Drink" })).toBe(true);
+      expect(isLiquidFood({ name: "Jack'd Up Dirty Cola (Hungry Jack's)" })).toBe(true);
+    });
+
+    it("classifies alcoholic drinks as liquid — also missed entirely before the audit", () => {
+      expect(isLiquidFood({ name: "Beer" })).toBe(true);
+      expect(isLiquidFood({ name: "Wine (red)" })).toBe(true);
+      expect(isLiquidFood({ name: "White Wine" })).toBe(true);
+    });
+
+    it("never misfires the alcohol/drink words on an unrelated solid food name", () => {
+      // "rum" inside "Drumstick", "gin" inside a transliterated dish
+      // name — neither has a word boundary around the alcohol word, so
+      // neither should match.
+      expect(isLiquidFood({ name: "Chicken Drumstick" })).toBe(false);
+      expect(isLiquidFood({ name: "Jin Ga Ne Vegetable Pancake (Arum)" })).toBe(false);
+    });
+  });
 });
 
 describe("unitsFor — automatic unit sets by food type", () => {
@@ -172,6 +231,25 @@ describe("real library data sanity check", () => {
       const units = unitsFor(food);
       expect(units.length).toBeGreaterThan(0);
       expect(["g", "ml"]).toContain(units[0].id);
+    });
+  });
+
+  // Pinned by id (not just by re-typed name) against the REAL, live
+  // database entries found misclassified during a full audit of every
+  // one of its ~1,330 entries — this is what actually regresses if a
+  // future edit to the classifier (or to these specific entries' names)
+  // undoes the fix, not just a reconstructed test fixture.
+  it("classifies real, specific database entries correctly by id (locks in the full-database audit)", () => {
+    const byId = Object.fromEntries(FOOD_DATABASE.map((f) => [f.id, f]));
+    const solid = ["f02", "g08", "v41", "bk08", "w068", "w119"]; // Tuna (spring water), Oatmeal (water), Water Chestnuts, Baking Soda, Massel Stock Powder, BCAA Energy Drink Mix
+    const liquid = ["b05", "b07", "b08"]; // Coca-Cola, Beer, Wine (red)
+    solid.forEach((id) => {
+      expect(byId[id], `missing fixture id ${id} — database entry may have been renumbered`).toBeTruthy();
+      expect(isLiquidFood(byId[id]), byId[id]?.name).toBe(false);
+    });
+    liquid.forEach((id) => {
+      expect(byId[id], `missing fixture id ${id} — database entry may have been renumbered`).toBeTruthy();
+      expect(isLiquidFood(byId[id]), byId[id]?.name).toBe(true);
     });
   });
 });

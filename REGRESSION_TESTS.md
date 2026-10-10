@@ -1470,6 +1470,75 @@ silence.
   sums to the totals shown above it.
 - **Date added**: 2026-10-10
 
+### 50. Full database audit — several real entries were still misclassified liquid/solid
+- **Context**: after shipping the automatic liquid/solid unit classifier
+  (bug #43) on a spot-check basis, ran an actual full audit of every one
+  of the ~1,330 entries in the static `FOOD_DATABASE` (not spot checks —
+  every single entry's `isLiquidFood()` result dumped and reviewed, cross-
+  checked against each entry's own real `defaultQty`/`per` to confirm
+  whether it's genuinely weighed in grams or measured in ml) and found six
+  real misclassifications plus a whole missed category.
+- **Root cause / fix** (each confirmed against the entry's real
+  `defaultQty`, not just its name):
+  - `Tuna (canned, spring water)` (defaultQty 100g), `Water Chestnuts`
+    (80g, a vegetable), `Oatmeal (cooked with water)` (250g, porridge
+    eaten by the bowl) — all misclassified liquid because the plain
+    "water" match didn't distinguish a food's own packaging/preparation
+    description from an actual drink. Added `tuna`, `chestnuts?`,
+    `oatmeal`/`porridge` to the solid-override list.
+  - `Baking Soda` — misclassified liquid because "soda" alone matched (meant
+    to catch soft drinks). Dropped the standalone "soda" alternative,
+    kept it only inside "soft drink."
+  - `Massel Chicken Style Stock Powder` (5g), `Musashi P30 High Protein
+    Powder ... Milkshake` ×2 (45g), `Bulk Nutrients BCAA Energy Drink
+    Mix` (10g) — all real powder scoops/sachets, misclassified liquid
+    because "stock"/"milkshake"/"energy drink" matched regardless of
+    "Powder"/"Mix" also being in the name. Added a blanket `/\bpowder\b/`
+    check (before every other check — a dry powder is never a ready
+    liquid, whatever else its name says) and a `(?!\s+mix)` negative
+    lookahead on both "energy drink" and the new generic "drink" word
+    below, for the one case ("...Mix") that doesn't literally say
+    "powder."
+  - **The missed category**: brand-name soft drinks and sports drinks
+    (Coca-Cola, Fanta, Sprite, Gatorade, Powerade, a "Dirty Cola") and
+    alcoholic drinks (Beer, Wine) contain none of "milk/juice/water" or
+    any of the existing phrase list at all — every one of them was still
+    defaulting to grams with no ml/cup/container options, the exact
+    opposite-direction version of the same bug class. Added a
+    `BEVERAGE_BRAND_RE` (cola, fanta, sprite, gatorade, powerade,
+    lemonade, electrolyte, "sports drink," "fruit drink," a generic
+    "drink," beer, wine, cider, champagne, prosecco, and spirits),
+    checked after the solid-override list (same position as the existing
+    plain milk/juice/water check) so it can't override a genuinely solid
+    food that happens to share one of these words.
+  - Caught and fixed one self-inflicted regression before it shipped: an
+    editing mistake while adding the beverage-brand list accidentally
+    deleted the `SPREAD_RE`/`CONDIMENT_RE` declarations entirely
+    (`ReferenceError` on every run touching a condiment/spread), and the
+    new generic "drink" word reclassified "BCAA Energy Drink Mix" back
+    to liquid since its own `(?!\s+mix)` guard wasn't there yet — both
+    caught by the regression tests below failing immediately, not by
+    separately re-reading the diff.
+- **Regression test**: `src/lib/foodDatabase.test.js` — a new
+  "full-database audit fixes" suite (7 cases) covering every misfire
+  above by name, including a guard against the alcohol/drink words
+  false-matching inside an unrelated word ("rum" inside "Drumstick," "gin"
+  inside a transliterated dish name — neither has a word boundary, so
+  neither should match). A new "classifies real, specific database
+  entries correctly by id" case pins the fix against the ACTUAL live
+  `FOOD_DATABASE` entries by id (not a re-typed name fixture), so a
+  future edit to either the classifier or these specific entries'
+  real names is caught directly. Verified all 6 of the misclassification
+  cases fail against the prior regex set (confirmed each one reproduces
+  the exact original misfire); restored and re-verified all 27 cases in
+  the file passing. Full suite (33 files, 167 tests) and production
+  build both clean.
+- **Manual verification**: search/log "Coca-Cola," "Beer," "Water
+  Chestnuts," and "Baking Soda" — the drinks should default to ml with
+  cup/container options and no grams option; the two solid foods should
+  stay g/oz/lb/kg as normal, not switch to ml.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing

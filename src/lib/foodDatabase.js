@@ -1504,10 +1504,35 @@ export const UNIT_DEFS = {
 // so an actual chocolate BAR/candy/dessert ("Milk Chocolate", "Milk Creme")
 // never gets classified as a drinkable liquid just because "milk" appears
 // in its name.
+// "soda" alone was dropped (kept only inside "soft drink") — it matched
+// "Baking Soda" (a solid powder), a real misclassification found during a
+// full audit of the static database's liquid/solid split. "energy drink"
+// excludes a trailing "mix" the same way — "BCAA Energy Drink Mix" is a
+// powder scoop (defaultQty 10g), not a ready-to-drink liquid.
 const STRONG_LIQUID_RE =
-  /\b(hot chocolate|iced chocolate|iced tea|iced latte|iced mocha|chai latte|flat white|cappuccino|macchiato|babyccino|latte|mocha|smoothie|milkshake|protein shake|kombucha|cordial|soda|soft drink|energy drink|coconut water|stock|broth)\b/i;
-const SOLID_OVERRIDE_RE = /\b(chocolate|bar|biscuit|wafer|candy|liquorice|fudge|cookie|cream pie|creme|yoghurt|yogurt|cheese|pudding|custard|ice cream)\b/i;
+  /\b(hot chocolate|iced chocolate|iced tea|iced latte|iced mocha|chai latte|flat white|cappuccino|macchiato|babyccino|latte|mocha|smoothie|milkshake|protein shake|kombucha|cordial|soft drink|energy drink(?!\s+mix)|coconut water|stock|broth)\b/i;
+// Same audit found: a canned-tuna product packed in water/springwater
+// ("Tuna (canned, spring water)"), a vegetable that's simply named with
+// "water" in it ("Water Chestnuts"), and porridge made with water
+// ("Oatmeal (cooked with water)") were all misclassified liquid by the
+// plain "water" match below — none of them are something you'd pour or
+// drink. "powder" is checked separately, before anything else (see
+// isLiquidFood), since a dry powder is never a ready liquid regardless of
+// what else its name says (a "stock POWDER," a protein "POWDER
+// Milkshake") — that single check alone fixed several otherwise
+// hard-to-enumerate cases.
+const SOLID_OVERRIDE_RE = /\b(chocolate|bar|biscuit|wafer|candy|liquorice|fudge|cookie|cream pie|creme|yoghurt|yogurt|cheese|pudding|custard|ice cream|chestnuts?|tuna|oatmeal|porridge)\b/i;
 const PLAIN_LIQUID_RE = /\b(milk|juice|water)\b/i;
+// Same audit: brand-name soft drinks and sports drinks (Coca-Cola, Fanta,
+// Sprite, Gatorade, Powerade, a "Dirty Cola") don't contain any of the
+// generic words above at all, so every one of them was missed entirely —
+// still defaulting to grams with no ml/cup/container options, the same
+// bug class as the rest of this audit, just the opposite direction
+// (wrongly left solid instead of wrongly made liquid). Checked after
+// SOLID_OVERRIDE, same as PLAIN_LIQUID_RE, so a hypothetical solid food
+// that happened to share one of these words would still be excluded.
+const BEVERAGE_BRAND_RE =
+  /\b(cola|fanta|sprite|gatorade|powerade|lemonade|electrolyte|sports drink|fruit drink|drink(?!\s+mix)|beer|wine|cider|champagne|prosecco|vodka|whisky|whiskey|rum|gin|spirits?)\b/i;
 const SPREAD_RE = /\b(butter|margarine|ghee)\b/i;
 const CONDIMENT_RE = /\b(honey|sauce|syrup|jam|dressing|mayonnaise|mayo|peanut butter|nut butter|nutella|vinegar|gravy)\b/i;
 
@@ -1515,9 +1540,10 @@ export function isLiquidFood(food) {
   if (food.liquid === true) return true;
   if (food.liquid === false) return false;
   const name = food.name || "";
+  if (/\bpowder\b/i.test(name)) return false;
   if (STRONG_LIQUID_RE.test(name)) return true;
   if (SOLID_OVERRIDE_RE.test(name)) return false;
-  return PLAIN_LIQUID_RE.test(name);
+  return PLAIN_LIQUID_RE.test(name) || BEVERAGE_BRAND_RE.test(name);
 }
 
 // A pourable cooking liquid (oil, cream, a liquid condiment) is still
