@@ -29,6 +29,7 @@ const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { getAuth } = require("firebase-admin/auth");
+const { buildSuggestions } = require("./nutritionContents");
 
 initializeApp();
 const db = getFirestore();
@@ -655,7 +656,8 @@ Rules:
 - Never make a medical or diagnostic claim. Never tell the client to skip a meal or go hungry just to hit an exact number — food is still the point.
 - Keep the conversational reply short (2-5 sentences), warm but direct, no filler disclaimers beyond what's naturally relevant.
 - When you have a concrete food/menu suggestion with real-enough numbers to act on, include it in "suggestions" (0-3 items) so the app can offer an "Add to food log" button — each with an approximate calories/protein/carbs/fat. Leave "suggestions" empty for general advice that isn't a specific loggable food.
-- Respond with ONLY a JSON object, no markdown fences, no prose outside the JSON: {"reply": "...", "suggestions": [{"name": "...", "calories": number, "protein": number, "carbs": number, "fat": number}]}`;
+- When a suggestion is a multi-item combo (e.g. "Big Mac Meal" = burger + medium fries + Coke, common for a "Macro Match at [restaurant]" request), you may include a "contents" array breaking it into its individual items, each {"name": "...", "calories": number, "protein": number, "carbs": number, "fat": number}. The contents' own calories/protein/carbs/fat MUST sum to exactly the parent suggestion's own totals — do the addition yourself before responding. Omit "contents" entirely for a single, non-combo item.
+- Respond with ONLY a JSON object, no markdown fences, no prose outside the JSON: {"reply": "...", "suggestions": [{"name": "...", "calories": number, "protein": number, "carbs": number, "fat": number, "contents": [{"name": "...", "calories": number, "protein": number, "carbs": number, "fat": number}]}]}`;
 
   const historyText = history.length
     ? `Conversation so far:\n${history.map((h) => `${h.role === "user" ? "Client" : "You"}: ${h.text}`).join("\n")}\n\n`
@@ -678,18 +680,17 @@ Rules:
   }
   if (!parsed || typeof parsed.reply !== "string") throw new HttpsError("internal", "Unexpected response shape.");
 
-  const suggestions = Array.isArray(parsed.suggestions)
-    ? parsed.suggestions
-        .filter((s) => s && typeof s.name === "string")
-        .slice(0, 3)
-        .map((s) => ({
-          name: s.name,
-          calories: Math.round(Number(s.calories)) || 0,
-          protein: Math.round(Number(s.protein)) || 0,
-          carbs: Math.round(Number(s.carbs)) || 0,
-          fat: Math.round(Number(s.fat)) || 0,
-        }))
-    : [];
+  // buildSuggestions (nutritionContents.js) maps each suggestion AND, when
+  // the model included an optional multi-item "contents" breakdown (e.g.
+  // "Big Mac Meal" = burger + fries + Coke), validates that it genuinely
+  // sums to the parent suggestion's own totals before letting it through
+  // — the model is asked to do that addition itself in the system prompt
+  // above, but an LLM's arithmetic isn't guaranteed, and a mismatched
+  // breakdown shown next to a confident parent total would be actively
+  // misleading. Pulled into its own dependency-free module so this exact
+  // logic is covered by an automated test (nutritionContents.test.js)
+  // rather than only trusted by reading it.
+  const suggestions = buildSuggestions(parsed.suggestions);
 
   return { reply: parsed.reply, suggestions };
 });

@@ -1422,6 +1422,54 @@ silence.
   macros scale correctly each time.
 - **Date added**: 2026-10-10
 
+### 49. "Macro Match" combo breakdown was permanently dead code — the backend never produced or passed it through
+- **Root cause**: the client UI (`NutritionScreen`'s AI Nutrition Help,
+  `ClientApp.jsx`) has had code ready for a while to render a suggestion's
+  "contents" — a multi-item combo broken into its individual pieces (e.g.
+  "Big Mac Meal" → Big Mac + fries + Coke listed separately, each with
+  its own macros) — but the `nutritionAiHelp` Cloud Function behind it
+  (`functions/index.js`) never actually asked the model for a `contents`
+  field in its system prompt, and even if the model had produced one
+  anyway, the response-mapping code reconstructed each suggestion with
+  only `{name, calories, protein, carbs, fat}` — silently dropping it.
+  That whole section of the confirm screen could never render.
+- **Fix**: the system prompt now explicitly asks for an optional
+  `contents` array on combo-type suggestions, with the model told to sum
+  its own items to match the parent total. That's never trusted blind
+  server-side though — a new `validatedContents()` (pulled into its own
+  dependency-free `functions/nutritionContents.js` so it's unit-testable)
+  re-sums the model's own breakdown and only lets it through when it
+  genuinely reconciles with the parent suggestion's totals (a few
+  calories/grams of per-item rounding slack tolerated, a real mismatch
+  not) — per this app's explicit "Macro Match combos — their contents
+  must still sum exactly to the parent total" requirement. A breakdown
+  that fails this check is dropped entirely; the parent suggestion itself
+  is never rejected over it.
+- **Regression test**: `functions/nutritionContents.test.js` (new,
+  11 cases) — a reconciling breakdown is kept; one missing an item (bad
+  model arithmetic) is dropped; per-item rounding slack is tolerated, not
+  flagged as a mismatch; an empty/missing/non-array `contents` returns no
+  breakdown; an item with no name is filtered out (and correctly drops
+  the whole breakdown once that changes what the remaining items sum to);
+  `buildSuggestions` end-to-end cases cover a validated breakdown
+  surviving, a bad one being omitted (not left as an empty/broken array)
+  while the parent total stays intact, a plain single-item suggestion
+  with no breakdown at all, the existing 3-suggestion cap, and missing/
+  no-name filtering. Verified the three reconciliation-specific cases
+  fail against an unvalidated pass-through stub (the equivalent of
+  blindly trusting the model); restored and re-verified all 11 passing.
+  Syntax-checked `functions/index.js` and `functions/nutritionContents.js`
+  with `node --check` (no local Firebase install to actually run them
+  against), and confirmed the wiring end-to-end with a direct Node
+  `require()` smoke test. Full suite (33 files, 160 tests) and production
+  build both clean.
+- **Manual verification**: can't be fully exercised without a live
+  Anthropic API call through the deployed Cloud Function — ask "Macro
+  Match at [a restaurant with combo meals]" and open a suggestion's
+  detail view; a combo should show a "WHAT'S IN IT" breakdown that visibly
+  sums to the totals shown above it.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
@@ -1434,6 +1482,12 @@ sandbox):
   reading a real product barcode). `src/lib/barcodeLookup.test.js` covers
   the pure parsing/lookup/confidence logic once a barcode string exists —
   it cannot exercise the camera itself.
+- **"Macro Match" AI combo breakdown** (bug #49) — needs a live Anthropic
+  API call through the deployed Cloud Function to confirm the model
+  actually honors the new `contents` instruction in practice (the
+  validation logic that checks whatever it returns is unit-tested in
+  `functions/nutritionContents.test.js`, but cannot exercise a real model
+  call from this environment).
 - **Real camera access** for progress photos / check-in photos (browser
   `getUserMedia` permission prompt, actual device camera).
 - **Real file-picker / photo upload** end-to-end (OS-level file picker,
