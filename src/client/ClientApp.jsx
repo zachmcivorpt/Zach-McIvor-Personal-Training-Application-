@@ -4509,7 +4509,7 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
   );
 }
 
-function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
+export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal } = useApp();
   const [navOffset, setNavOffset] = useState(0); // 0 = today, 1 = yesterday, 2 = day before, ...
@@ -4537,6 +4537,16 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
   const [detailMeal, setDetailMeal] = useState(null);
   const [waterSheetOpen, setWaterSheetOpen] = useState(false);
   const [search, setSearch] = useState("");
+  // iOS doesn't dismiss the on-screen keyboard just because the search
+  // results list it was typed into scrolls or a result gets tapped — the
+  // input stays focused (and the keyboard stays up, often covering the
+  // very result list the client is trying to see) until something
+  // explicitly blurs it. Every path that logically "finishes" this search
+  // — picking a food/meal, or closing the sheet — blurs it directly.
+  const searchInputRef = useRef(null);
+  function dismissKeyboard() {
+    searchInputRef.current?.blur();
+  }
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -4559,8 +4569,29 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
   const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
   const filteredFoods = allFoods.filter((f) => matchesSearch(f.name, search));
 
+  // A plain ref, not state: these direct-add paths (recent foods, saved
+  // meals, photo estimates) fire onAddFood straight through with no
+  // quantity sheet in between, so there's no "ADDING…" disabled-button
+  // render to rely on for a double-tap guard — by the time React commits a
+  // state update, a second quick tap has often already fired. A ref flips
+  // synchronously, so the second tap in the same beat is dropped even
+  // before any re-render happens. This is what was actually producing
+  // doubled meal entries (e.g. a saved meal's own Plus button, which had
+  // no guard at all) despite FoodQuantitySheet's ADD already being safe.
+  const addBusyRef = useRef(false);
+  function guardedAdd(food, meal = activeMeal, dateKey = viewDateKey) {
+    if (addBusyRef.current) return;
+    addBusyRef.current = true;
+    Promise.resolve(onAddFood(meal, food, dateKey))
+      .catch(() => {})
+      .finally(() => {
+        addBusyRef.current = false;
+      });
+  }
+
   function addAndClose(food) {
-    onAddFood(activeMeal, food, viewDateKey)?.catch(() => {});
+    dismissKeyboard();
+    guardedAdd(food);
     setBarcodeOpen(false);
     setPhotoOpen(false);
     setSheetOpen(false);
@@ -4582,7 +4613,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
   }
 
   function logSavedMeal(meal, category) {
-    onAddFood(category, { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat }, viewDateKey)?.catch(() => {});
+    guardedAdd({ id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat }, category);
   }
 
   const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
@@ -5065,6 +5096,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         dark={dark}
         open={sheetOpen}
         onClose={() => {
+          dismissKeyboard();
           setSheetOpen(false);
           setSearch("");
         }}
@@ -5073,9 +5105,16 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
         <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
           <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
           <input
+            ref={searchInputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search foods or meals"
+            type="search"
+            enterKeyHint="search"
+            autoCorrect="off"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") dismissKeyboard();
+            }}
             className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
           />
         </div>
@@ -5126,6 +5165,7 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
                   <button
                     key={`meal_${m.id}`}
                     onClick={() => {
+                      dismissKeyboard();
                       logSavedMeal(m, activeMeal);
                       showToast(`Logged "${m.name}" to ${activeMeal}`);
                       setSheetOpen(false);
@@ -5150,7 +5190,10 @@ function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood,
                 {matchedFoods.map((f) => (
                   <button
                     key={`food_${f.id}`}
-                    onClick={() => setPendingFood(f)}
+                    onClick={() => {
+                      dismissKeyboard();
+                      setPendingFood(f);
+                    }}
                     className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
                   >
                     {f.imageUrl && <img src={f.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}

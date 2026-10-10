@@ -157,7 +157,22 @@ export function computeConfidence({ product, food, formatInfo, nutritionValidati
   else if (isOtherMarketOnly) add("Australian market match", 0, 5, `tagged ${countries.join(", ")} — not confirmed for the AU market, formulation may differ`);
   else add("Australian market match", 2, 5, "no country data on record — can't confirm or rule out AU formulation");
 
-  return { score, level: levelForScore(score), breakdown };
+  let level = levelForScore(score);
+  // The 15-point plausibility deduction alone isn't always enough to pull
+  // a product below the VERIFIED/LIKELY threshold — a product with a
+  // complete macro panel, a real brand/name and a parsed serving size can
+  // still clear 75+ points even when its own calories don't reconcile
+  // with its macros at all (the real "Protein Smoothie" report: label and
+  // macros disagreed by 4x, yet the other factors alone scored LIKELY).
+  // Showing a reassuring "Verified"/"Likely" checkmark on data that's
+  // actively flagged as internally inconsistent is worse than not scoring
+  // it at all, so implausible nutrition caps the level at REVIEW no
+  // matter how well everything else scores.
+  if (nutritionValidation && nutritionValidation.plausible === false && (level === VERIFICATION_LEVELS.VERIFIED || level === VERIFICATION_LEVELS.LIKELY)) {
+    level = VERIFICATION_LEVELS.REVIEW;
+  }
+
+  return { score, level, breakdown };
 }
 
 async function fetchProduct(code, timeoutMs = 8000) {

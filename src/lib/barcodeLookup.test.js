@@ -349,4 +349,22 @@ describe("computeConfidence", () => {
     expect(score).toBe(0);
     expect(level).toBe("UNKNOWN");
   });
+
+  // Real production report: "Protein Smoothie Choc Honeycomb" scanned with
+  // a complete macro panel, a real brand/name and a parsed serving size —
+  // everything BUT the plausibility check scored well enough that the
+  // 15-point plausibility deduction alone wasn't enough to drop it out of
+  // LIKELY, so the confirm screen showed a green "Verified" checkmark
+  // directly alongside the red "doesn't add up" banner. Never acceptable:
+  // implausible nutrition must cap the level at REVIEW regardless of how
+  // well everything else scores.
+  it("never reports VERIFIED or LIKELY when the nutrition data itself doesn't reconcile, however well everything else scores", () => {
+    const formatInfo = { format: "EAN-13", valid: true };
+    const product = { product_name: "Protein Smoothie Choc Honeycomb", brands: "TestBrand", serving_size: "425 g", countries_tags: ["en:australia"] };
+    const food = { cals: 253, protein: 5, carbs: 5, fat: 2 }; // 5*4+5*4+2*9=58 cal, nowhere near 253
+    const nutritionValidation = { plausible: false, reason: "label says 253 cal, but macros work out to ~58 cal" };
+    const { score, level } = computeConfidence({ product, food, formatInfo, nutritionValidation });
+    expect(score).toBeGreaterThanOrEqual(75); // every other factor alone clears LIKELY/VERIFIED
+    expect(level).toBe("REVIEW");
+  });
 });

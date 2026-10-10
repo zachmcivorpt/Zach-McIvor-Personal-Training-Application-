@@ -1099,6 +1099,84 @@ silence.
   stale pre-background number that only corrects a second or more later.
 - **Date added**: 2026-10-07
 
+### 40. Food logged once landed in the diary twice ("Pea Protein Shake" doubled up)
+- **Root cause**: `FoodQuantitySheet`'s own ADD button was already
+  guarded against a fast double-tap (bug #35), but several other
+  direct-add paths in `NutritionScreen` (`ClientApp.jsx`) were not: a
+  recent food's row, a saved meal's own Plus button, and a saved meal
+  matched by search all called `onAddFood` straight through with nothing
+  stopping a second, near-simultaneous tap (a touchstart/click
+  double-fire, or just an impatient second tap before any visual feedback
+  appeared) from firing it twice — each call is a genuine, independent
+  Firestore write, so two taps meant two real entries.
+- **Fix**: all of these now route through a single ref-based guard
+  (`NutritionScreen`'s `guardedAdd`/`addBusyRef`) that drops a second call
+  while the first is still in flight. A ref rather than state, because two
+  taps in the same tick can both run before a state update's re-render
+  ever lands and disables anything.
+- **Regression test**: `src/client/nutritionDuplicateAdd.test.jsx` — logs
+  a recent food, then a saved meal, each via two rapid taps while the
+  (mocked, deferred) save is still pending, and asserts `onAddFood` was
+  only called once per case. Verified both fail (called twice) with the
+  guard removed; restored and re-verified both green.
+- **Manual verification**: on a slow connection, open "Add to [meal]",
+  tap a recent food or a saved meal's Plus button twice quickly — only one
+  entry should appear in the log, both before and after the save settles.
+- **Date added**: 2026-10-10
+
+### 41. A barcode scan with mismatched nutrition still showed a green "Verified" checkmark
+- **Root cause**: `computeConfidence` (`barcodeLookup.js`) only deducted
+  15 of its 100 points for a failed Atwater plausibility check (label
+  calories not reconciling with protein/carbs/fat) — a product with a
+  complete macro panel, a real brand/name, and a parsed serving size could
+  still clear 75+ points (LIKELY) or more purely on those other factors,
+  even when its own calories and macros disagreed by 4x. The confirm
+  screen's badge logic (`NutritionFeatures.jsx`) shows a green "✓
+  Verified" checkmark for both VERIFIED and LIKELY, so a scan already
+  flagged with the red "doesn't add up" banner could simultaneously show
+  a reassuring verified badge — directly contradicting it, and exactly
+  what a real scan of "Protein Smoothie Choc Honeycomb" (253 cal label vs
+  ~58 cal from its own macros) did.
+- **Fix**: `computeConfidence` now caps the result at REVIEW whenever the
+  nutrition plausibility check fails, regardless of how well every other
+  factor scores — a product can never read as VERIFIED or LIKELY while
+  its own numbers don't reconcile.
+- **Regression test**: `src/lib/barcodeLookup.test.js` — a product with a
+  complete macro panel, real brand/name, parsed serving size, and
+  AU-market tag, but calories that don't reconcile with its macros at all,
+  scores ≥75 on the other factors alone yet must report REVIEW, not
+  LIKELY/VERIFIED. Verified it fails (reported LIKELY) without the cap;
+  restored and re-verified green.
+- **Manual verification**: scan a product whose label calories obviously
+  don't match its macros — the confirm screen should show only the red
+  "double-check this" banner, never a green "Verified"/"Likely" badge
+  alongside it.
+- **Date added**: 2026-10-10
+
+### 42. On-screen keyboard stayed up after searching and logging a food
+- **Root cause**: the Nutrition "Add to [meal]" search input
+  (`NutritionScreen` in `ClientApp.jsx`) was never explicitly blurred.
+  iOS only dismisses its on-screen keyboard when the focused element is
+  blurred (or something else takes focus) — not just because a sibling
+  button gets tapped or the list it's typing into scrolls — so after
+  searching for and logging a food, the keyboard stayed up and covered
+  the screen instead of dismissing the way a native app would.
+- **Fix**: added a `searchInputRef` + `dismissKeyboard()` helper, called
+  on every path that logically finishes the search: picking a food from
+  search results, picking a saved meal from search results or the recent
+  list, and closing the "Add to [meal]" sheet (X button or backdrop).
+  Also added `type="search"`/`enterKeyHint="search"` so iOS offers a
+  dedicated dismiss affordance on the keyboard itself.
+- **Regression test**: `src/client/nutritionSearchKeyboardDismiss.test.jsx`
+  — focuses the search input, then closes the sheet (asserts it's no
+  longer the active element) and separately searches for and taps a
+  matching saved meal (same assertion). Verified both fail with
+  `dismissKeyboard` stubbed to a no-op; restored and re-verified green.
+- **Manual verification**: on an iPhone, open "Add to [meal]", type in
+  the search bar, then tap a result — the keyboard should dismiss
+  immediately, not stay covering the screen.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
