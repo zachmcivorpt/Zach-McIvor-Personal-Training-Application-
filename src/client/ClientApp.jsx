@@ -5153,9 +5153,14 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
         {search.trim() ? (
           (() => {
-            const q = search.trim().toLowerCase();
-            const matchedMeals = (savedMeals || []).filter((m) => m.name.toLowerCase().includes(q));
-            const matchedFoods = allFoods.filter((f) => f.name.toLowerCase().includes(q));
+            // matchesSearch() null-guards its `text` argument — a raw
+            // `.name.toLowerCase()` here would throw on any malformed
+            // entry (a custom/saved food or meal with a missing/null
+            // name), and since this recomputes on every keystroke while
+            // the sheet is open, a single bad entry would crash the whole
+            // sheet mid-search rather than just failing to match.
+            const matchedMeals = (savedMeals || []).filter((m) => matchesSearch(m?.name, search));
+            const matchedFoods = allFoods.filter((f) => matchesSearch(f?.name, search));
             return (
               <div className="space-y-1">
                 {matchedMeals.length === 0 && matchedFoods.length === 0 && (

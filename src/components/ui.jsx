@@ -316,14 +316,42 @@ export function AvatarPicker({ name, url, size = 72, onChange, dark = false }) {
 // the other was still open, permanently locking the whole app's scroll.
 // Counting locks instead means only the very last one to close ever clears
 // it, regardless of what order they opened or closed in.
+//
+// `overflow: hidden` alone is NOT enough on iOS Safari/WKWebView (the real
+// production report this was fixed for: a bottom sheet open over the
+// Nutrition screen, the page visibly scrollable underneath it) — iOS's
+// touch-driven scrolling ignores the body's own overflow rule as long as
+// SOME ancestor further down the tree is independently scrollable, which
+// is true of nearly every screen in this app. The actually-reliable
+// technique on iOS is to additionally pin the body in place with
+// `position: fixed` (after recording the current scroll offset as its
+// `top`), which touch-scrolling can't bypass; it's restored, and the
+// original scroll position re-applied, once the last lock releases.
 let bodyScrollLockCount = 0;
+let bodyScrollLockY = 0;
 function lockBodyScroll() {
-  if (bodyScrollLockCount === 0) document.body.style.overflow = "hidden";
+  if (bodyScrollLockCount === 0) {
+    bodyScrollLockY = window.scrollY || window.pageYOffset || 0;
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${bodyScrollLockY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    document.body.style.overflow = "hidden";
+  }
   bodyScrollLockCount++;
 }
 function unlockBodyScroll() {
   bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
-  if (bodyScrollLockCount === 0) document.body.style.overflow = "";
+  if (bodyScrollLockCount === 0) {
+    document.body.style.position = "";
+    document.body.style.top = "";
+    document.body.style.left = "";
+    document.body.style.right = "";
+    document.body.style.width = "";
+    document.body.style.overflow = "";
+    window.scrollTo(0, bodyScrollLockY);
+  }
 }
 
 // Every full-screen sheet in the app (workout session, workout preview,

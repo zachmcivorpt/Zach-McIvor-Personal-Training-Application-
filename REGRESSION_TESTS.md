@@ -1222,6 +1222,67 @@ silence.
   mince, chicken, potatoes etc. should offer g/oz/lb/kg.
 - **Date added**: 2026-10-10
 
+### 44. Background page still scrollable underneath an open bottom sheet (iOS)
+- **Root cause**: `lockBodyScroll()`/`unlockBodyScroll()` (`src/components/
+  ui.jsx`, shared by every `BottomSheet` and `FullScreenOverlay` in the
+  app) only ever set `document.body.style.overflow = "hidden"`. That's
+  enough on desktop and Android Chrome, but iOS Safari/WKWebView's
+  touch-driven scrolling ignores the body's own `overflow` rule as long as
+  some ancestor further down the tree is independently scrollable — true
+  of nearly every screen here — so on the one platform this app actually
+  ships on (see `CLAUDE.md`: a published App Store app), the page behind
+  an "open" sheet stayed fully scrollable. Screen-recorded report: opening
+  "Add to Lunch" over the Nutrition screen, the page visibly scrolled
+  underneath it.
+- **Fix**: on lock, additionally pin the body with `position: fixed` (the
+  actually-reliable technique on iOS) at its current scroll offset;
+  restore it and re-apply that scroll position when the last lock
+  releases. Reference counting (already in place for nested sheets) is
+  unchanged.
+- **Regression test**: `src/components/bodyScrollLockIOS.test.jsx` — a
+  mounted `FullScreenOverlay` must set `position: fixed` (not just
+  `overflow: hidden`) and restore both on unmount; a second test asserts
+  the original scroll offset is re-applied; a third asserts two nested
+  overlays only release the lock once the last one closes. Verified all 3
+  fail against the prior overflow-only code; restored and re-verified all
+  3 passing.
+- **Manual verification**: on an iPhone, scroll partway down the Nutrition
+  screen, open "Add to Lunch," then try to drag the darkened area behind
+  the sheet — the page underneath should not move at all.
+- **Date added**: 2026-10-10
+
+### 45. Nutrition search sheet vanished mid-search, keyboard left open over a scrollable background
+- **Root cause**: the "Add to [meal]" search-results filter
+  (`NutritionScreen` in `ClientApp.jsx`) called `.name.toLowerCase()`
+  directly on every saved meal and food, with no null-guard — unlike
+  `matchesSearch()` (the shared helper every other search in this app
+  already uses, which already handles a missing `text`). A single
+  malformed entry (a saved meal or custom food with a missing/null
+  `name` — plausible fallout from the same class of corrupted-data bug as
+  #40's duplicate-entry report) threw a `TypeError` on every keystroke
+  once the typed query reached it, crashing the sheet's render — which, in
+  React, unmounts the whole subtree, including the search input the
+  keyboard was still attached to and the body-scroll-lock effect's cleanup
+  (compounding bug #44 above: the background was then both visible AND,
+  before that fix, scrollable). Screen-recorded report: typing in the
+  search bar, the entire "Add to Lunch" sheet disappeared instantly,
+  keyboard still up, background page visible and draggable.
+- **Fix**: both filters now go through `matchesSearch()` instead of a raw,
+  unguarded `.toLowerCase()` chain — consistent with every other search in
+  this file, and null-safe against a malformed entry.
+- **Regression test**: `src/client/nutritionSearchCrashGuard.test.jsx` —
+  a saved meal with `name: null` in the list, typing in the search box
+  must not throw and the sheet (its search box) must still be on screen
+  afterwards; a second test confirms well-formed entries still match
+  correctly. Verified the first case throws
+  `TypeError: Cannot read properties of null (reading 'toLowerCase')`
+  against the prior unguarded code — the exact crash mechanism; restored
+  and re-verified both passing.
+- **Manual verification**: with a malformed saved-meal/food entry present,
+  open "Add to [meal]" and search — the sheet must stay open and simply
+  show "No matches," never vanish.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
