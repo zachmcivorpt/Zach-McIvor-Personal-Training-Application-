@@ -1580,6 +1580,60 @@ silence.
 
 ---
 
+### 52. Keyboard-safe scroll spacer added for nutrition search, as a further web-deployable mitigation for bug #51
+- **Root cause**: bug #51's native fix (shrinking the WKWebView's own
+  frame for the keyboard) requires a new App Store build to reach users.
+  Button-row collapsing alone wasn't enough real extra room — users could
+  still find a search result sitting right where the keyboard covers it.
+- **Fix**: `ClientApp.jsx`'s "Add to [meal]" sheet now reserves a large
+  (45vh) spacer below the results list whenever the search box has focus.
+  This deliberately doesn't try to detect the keyboard's real height —
+  WKWebView never reports it to the page at all — so a big, unconditional
+  spacer guarantees a result can always be scrolled clear of wherever the
+  keyboard actually sits, using the same plain scroll gesture already used
+  for the list itself. Works immediately on the current web build, no
+  native release required.
+- **Regression test**: `src/client/nutritionKeyboardScrollSpacer.test.jsx`
+  (new) — no spacer before the search box is focused, spacer appears on
+  focus, spacer is removed on blur.
+- **Manual verification**: open "Add to [meal]," tap the search box, and
+  confirm there's extra scroll room below the results even while the
+  on-screen keyboard is up.
+- **Date added**: 2026-10-10
+
+### 53. A scanned BBQ sauce defaulted to grams with no ml option — sauces/condiments weren't classified as liquid
+- **Root cause**: `isLiquidFood()`/`autoUnitIds()` in `foodDatabase.js`
+  never treated a sauce/condiment name (honey, sauce, syrup, jam,
+  dressing, mayo, vinegar, gravy) as liquid at all — it stayed base-unit
+  "g" with tbsp/tsp merely added as extra options, and a grams option
+  always remained. A Coles barcode-scanned BBQ sauce showed g (selected)/
+  tbsps/tsps with no ml option at all, defaulting to "20g".
+- **Fix**: `isLiquidFood()` now classifies a non-dish-sized condiment name
+  match as liquid (ml base unit, no grams option) — and this check runs
+  *before*, and overrides, any explicit `food.liquid === false` a barcode
+  scan's own package data might set, since the user's requirement is that
+  ALL sauces/condiments are ml-based regardless of what OFF's weight
+  labeling says. `autoUnitIds()`'s liquid branch gives condiments
+  `["tbsp", "tsp"]` only (no cup) while oils/cream keep `["cup", "tbsp",
+  "tsp"]`. A dish-sized item that merely contains a condiment word as an
+  ingredient (e.g. "Honey Bar," reusing the existing dish-size/dish-word
+  heuristic) is unaffected and keeps its normal weight units. Thick nut
+  spreads (peanut butter, nutella) were split out of the condiment regex
+  into their own `NUT_SPREAD_RE` and stay solid/grams like butter, since
+  they're scooped, not poured.
+- **Regression test**: `src/lib/foodDatabase.test.js` — new tests confirm
+  a sauce/condiment (including one explicitly flagged `liquid: false`,
+  modelling the exact barcode-scan case) comes out ml-based with no grams
+  option, that peanut butter/nutella stay solid, and that existing
+  dish-sized/spread/liquid classifications are unaffected. Full existing
+  suite (28 prior tests in this file) still passes unchanged.
+- **Manual verification**: scan or search a sauce (BBQ sauce, honey,
+  mayo, dressing) in nutrition logging — confirm it shows ml as the
+  default/selected unit alongside tbsp/tsp, with no grams option.
+- **Date added**: 2026-10-10
+
+---
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

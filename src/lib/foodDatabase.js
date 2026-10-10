@@ -1534,12 +1534,33 @@ const PLAIN_LIQUID_RE = /\b(milk|juice|water)\b/i;
 const BEVERAGE_BRAND_RE =
   /\b(cola|fanta|sprite|gatorade|powerade|lemonade|electrolyte|sports drink|fruit drink|drink(?!\s+mix)|beer|wine|cider|champagne|prosecco|vodka|whisky|whiskey|rum|gin|spirits?)\b/i;
 const SPREAD_RE = /\b(butter|margarine|ghee)\b/i;
-const CONDIMENT_RE = /\b(honey|sauce|syrup|jam|dressing|mayonnaise|mayo|peanut butter|nut butter|nutella|vinegar|gravy)\b/i;
+// True nut/seed spreads (peanut butter, nutella) are thick and scooped, not
+// poured — they stay solid/grams like any other spread, same as SPREAD_RE,
+// so they're kept out of CONDIMENT_RE below rather than becoming ml-based.
+const NUT_SPREAD_RE = /\b(peanut butter|nut butter|nutella)\b/i;
+const CONDIMENT_RE = /\b(honey|sauce|syrup|jam|dressing|mayonnaise|mayo|vinegar|gravy)\b/i;
+
+// A dollop/drizzle-sized condiment entry ("BBQ Sauce," "Capilano Honey")
+// should always be ml-based — but a whole DISH that merely contains one as
+// an ingredient ("Butter Chicken," "Honey Bar," "Salt and Vinegar Chips")
+// matched the same word while being logged at a full-serving size, and
+// needs to stay in its normal weight units. Shared between isLiquidFood and
+// autoUnitIds so both apply the exact same dish/condiment split.
+function looksLikeDish(food) {
+  const name = food.name || "";
+  return /\b(bar|chips|salad|chicken|beans?|wrap|sandwich|pot|bites?|pie)\b/i.test(name) || (food.defaultQty || 100) > 60;
+}
 
 export function isLiquidFood(food) {
+  const name = food.name || "";
+  // Real production bug: a barcode-scanned BBQ sauce defaulted to grams
+  // with no ml option at all — sauces/condiments are always logged in
+  // ml/tbsp/tsp, never grams, regardless of what a barcode scan's own
+  // `food.liquid` flag (or package weight labeling) says, so this check
+  // runs before — and overrides — the explicit liquid/solid flags below.
+  if (CONDIMENT_RE.test(name) && !looksLikeDish(food)) return true;
   if (food.liquid === true) return true;
   if (food.liquid === false) return false;
-  const name = food.name || "";
   if (/\bpowder\b/i.test(name)) return false;
   if (STRONG_LIQUID_RE.test(name)) return true;
   if (SOLID_OVERRIDE_RE.test(name)) return false;
@@ -1557,7 +1578,10 @@ const POURABLE_LIQUID_RE = /\boil\b|\bcream\b/i;
 function autoUnitIds(food, liquid) {
   const name = food.name || "";
   if (liquid) {
-    if (CONDIMENT_RE.test(name) || POURABLE_LIQUID_RE.test(name)) return ["cup", "tbsp", "tsp"];
+    // A sauce/condiment is measured by the spoonful, never the cup — unlike
+    // an oil or cream, which genuinely is poured by the cup in cooking.
+    if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp"];
+    if (POURABLE_LIQUID_RE.test(name)) return ["cup", "tbsp", "tsp"];
     // Plain milk/juice/water is also genuinely measured by the
     // tablespoon (coffee, baking, recipes) — but an actual DRINK isn't,
     // whether that's recognised from a strong beverage phrase in its
@@ -1582,9 +1606,12 @@ function autoUnitIds(food, liquid) {
   // a genuine condiment needs; above either, keep the normal weight units
   // and let tbsp/tsp ride along as a harmless bonus rather than replacing
   // them.
-  const looksLikeDish = /\b(bar|chips|salad|chicken|beans?|wrap|sandwich|pot|bites?|pie)\b/i.test(name) || (food.defaultQty || 100) > 60;
-  if (SPREAD_RE.test(name)) return looksLikeDish ? ["tbsp", "tsp", "oz", "lb", "kg"] : ["tbsp", "tsp", "cup", "pat", "stick"];
-  if (CONDIMENT_RE.test(name)) return looksLikeDish ? ["tbsp", "tsp", "oz", "lb", "kg"] : ["tbsp", "tsp"];
+  const dish = looksLikeDish(food);
+  if (SPREAD_RE.test(name) || NUT_SPREAD_RE.test(name)) return dish ? ["tbsp", "tsp", "oz", "lb", "kg"] : ["tbsp", "tsp", "cup", "pat", "stick"];
+  // Only reached for a dish-sized condiment (a non-dish condiment is
+  // already liquid-classified above, in isLiquidFood) — a dish-sized one
+  // keeps its normal weight units with tbsp/tsp riding along as a bonus.
+  if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp", "oz", "lb", "kg"];
   return ["oz", "lb", "kg"];
 }
 

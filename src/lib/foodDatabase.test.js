@@ -125,6 +125,47 @@ describe("unitsFor — automatic unit sets by food type", () => {
     expect(ids).not.toContain("lb");
   });
 
+  // Real production report: a Coles barcode-scanned BBQ sauce offered
+  // g/tbsp/tsp with no ml option, defaulting to grams. Sauces/condiments
+  // (honey, sauce, syrup, jam, dressing, mayo, vinegar, gravy) must always
+  // be ml-based with tbsp/tsp — never a grams option — for both the static
+  // database AND a future barcode scan, even one whose own OFF package
+  // data says otherwise (`liquid: false`).
+  it("classifies a sauce/condiment as liquid (ml base, no grams option) — including from barcode scan data that says otherwise", () => {
+    const bbqSauce = unitsFor({ name: "BBQ Sauce", defaultQty: 20 });
+    const ids = bbqSauce.map((u) => u.id);
+    expect(ids[0]).toBe("ml");
+    expect(ids).not.toContain("g");
+    expect(ids).toEqual(expect.arrayContaining(["tbsp", "tsp"]));
+    expect(ids).not.toContain("cup");
+
+    // The exact reported case: a scanned product whose own package data
+    // set `liquid: false` (e.g. derived from a weight-labeled OFF
+    // `quantity` field) must still come out ml-based by name alone.
+    const scannedFood = { name: "Coles Barbeque Sauce", defaultQty: 20, liquid: false };
+    expect(isLiquidFood(scannedFood)).toBe(true);
+    const scannedIds = unitsFor(scannedFood).map((u) => u.id);
+    expect(scannedIds[0]).toBe("ml");
+    expect(scannedIds).not.toContain("g");
+
+    expect(isLiquidFood({ name: "Capilano Pure Honey", defaultQty: 15 })).toBe(true);
+    expect(isLiquidFood({ name: "Maple Syrup", defaultQty: 20 })).toBe(true);
+    expect(isLiquidFood({ name: "French Dressing", defaultQty: 15 })).toBe(true);
+    expect(isLiquidFood({ name: "Beef Gravy", defaultQty: 50 })).toBe(true);
+    expect(isLiquidFood({ name: "Malt Vinegar", defaultQty: 15 })).toBe(true);
+    expect(isLiquidFood({ name: "Whole Egg Mayonnaise", defaultQty: 15 })).toBe(true);
+  });
+
+  // Peanut butter/nutella are thick, scooped spreads, not pourable
+  // liquids — they should stay solid/grams, like butter itself, rather
+  // than becoming ml-based just because they're a "condiment."
+  it("keeps thick nut spreads (peanut butter, nutella) solid/grams, unlike pourable sauces", () => {
+    expect(isLiquidFood({ name: "Peanut Butter", defaultQty: 20 })).toBe(false);
+    expect(isLiquidFood({ name: "Nutella", defaultQty: 20 })).toBe(false);
+    const ids = unitsFor({ name: "Peanut Butter", defaultQty: 20 }).map((u) => u.id);
+    expect(ids[0]).toBe("g");
+  });
+
   // Real misclassifications found auditing every entry in the static
   // database: a whole DISH that merely contains a spread/condiment word
   // as an ingredient ("Butter Chicken," "Butter Beans," "Caesar Salad
