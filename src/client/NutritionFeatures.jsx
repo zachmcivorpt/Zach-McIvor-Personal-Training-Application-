@@ -135,7 +135,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
     // moment later. Swallowing onClose while saving forces them to wait
     // for the ADD button's own outcome instead of being able to bail out
     // from under it.
-    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name} keyboardSafeScroll>
+    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name}>
       {food.fromBarcode && (
         <div className={dark ? "flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
           {food.imageUrl ? (
@@ -1132,7 +1132,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Quick Add" keyboardSafeScroll>
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Quick Add">
       <p className={dark ? "text-white/30 text-xs tracking-wide mb-2" : "text-black/30 text-xs tracking-wide mb-2"}>LOG A FOOD BY NAME</p>
       <div className="space-y-2.5">
         <TextInput dark={dark}
@@ -1282,7 +1282,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log a Meal Photo" keyboardSafeScroll>
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log a Meal Photo">
       {status === "pick" && (
         <div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
@@ -1525,7 +1525,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   const dividerBorder = dark ? "border-white/8" : "border-black/5";
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Create Meal" dark={dark} keyboardSafeScroll>
+    <BottomSheet open={open} onClose={onClose} title="Create Meal" dark={dark}>
       <Field label="MEAL NAME" dark={dark}>
         <TextInput dark={dark} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. My go-to breakfast" />
       </Field>
