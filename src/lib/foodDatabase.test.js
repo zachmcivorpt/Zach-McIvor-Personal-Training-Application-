@@ -174,28 +174,40 @@ describe("unitsFor — automatic unit sets by food type", () => {
   // logged at a full-serving size (100-350g, real defaultQty values) but
   // lost its normal weight units entirely to a spoon-only set — nobody
   // logs a plate of butter chicken in tablespoons.
-  it("keeps normal weight units (not spoon-only) for a full-size dish that merely contains a spread/condiment word", () => {
+  it("keeps normal weight units (not spoon-only, and never kg) for a full-size dish that merely contains a spread/condiment word", () => {
     const butterChicken = unitsFor({ name: "Butter Chicken", defaultQty: 250 });
-    expect(butterChicken.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(butterChicken.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
     expect(butterChicken.map((u) => u.id)).not.toContain("pat");
+    expect(butterChicken.map((u) => u.id)).not.toContain("kg");
 
     const butterBeans = unitsFor({ name: "Butter Beans (cooked)", defaultQty: 150 });
-    expect(butterBeans.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(butterBeans.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
     expect(butterBeans.map((u) => u.id)).not.toContain("pat");
+    expect(butterBeans.map((u) => u.id)).not.toContain("kg");
 
     const caesarSalad = unitsFor({ name: "Caesar Salad (with dressing)", defaultQty: 200 });
-    expect(caesarSalad.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(caesarSalad.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(caesarSalad.map((u) => u.id)).not.toContain("kg");
 
     const chips = unitsFor({ name: "Salt and Vinegar Crinkle Cut Potato Chips (Aldi)", defaultQty: 100 });
-    expect(chips.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(chips.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(chips.map((u) => u.id)).not.toContain("kg");
 
     const honeyBar = unitsFor({ name: "Nature Valley Oats & Honey Bar", defaultQty: 42 });
-    expect(honeyBar.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(honeyBar.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(honeyBar.map((u) => u.id)).not.toContain("kg");
   });
 
-  it("gives a generic weighed solid oz/lb/kg on top of grams, matching MyFitnessPal's potato unit list", () => {
+  // Nutrition fix (generalized beyond meat): kg is never offered as a
+  // selectable logging unit for ANY individual solid food serving — not
+  // just meat/fish. Nobody logs a potato, a slice of cheese, or a plate
+  // of butter chicken in kilograms. oz/lb stay, since those genuinely are
+  // used for a single portion.
+  it("gives a generic weighed solid oz/lb on top of grams, matching MyFitnessPal's potato unit list — but never kg", () => {
     const potatoes = unitsFor({ name: "Washed White Potatoes" });
-    expect(potatoes.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    const ids = potatoes.map((u) => u.id);
+    expect(ids).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(ids).not.toContain("kg");
   });
 
   // Real production report: an individual meat/fish portion (a chicken
@@ -228,7 +240,8 @@ describe("unitsFor — automatic unit sets by food type", () => {
     const units = unitsFor({ name: "Sanitarium Weet-Bix", customUnit: { label: "biscuit", pluralLabel: "biscuits", grams: 15 } });
     const ids = units.map((u) => u.id);
     expect(ids).toContain("piece");
-    expect(ids).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(ids).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(ids).not.toContain("kg");
   });
 
   // Tried and removed per real client feedback: a "container" unit (1
@@ -287,23 +300,23 @@ describe("scaleFoodByUnit — correct macro recalculation across the newly-added
     expect(scaled.protein).toBeCloseTo(26 * 4.5359, 0);
   });
 
-  it("recalculates correctly for 0.5 kg (a non-meat solid, where kg is still offered)", () => {
-    const rice = { id: "rice", name: "White Rice (cooked)", cals: 130, protein: 2.4, carbs: 28, fat: 0.3, per: 100, defaultQty: 180 };
-    const scaled = scaleFoodByUnit(rice, "kg", 0.5);
-    expect(scaled.cals).toBe(Math.round(130 * 5));
-  });
-
-  // Meat/fish no longer offer kg at all (see the unitsFor test above) — a
-  // caller still requesting it falls back to the food's own base unit (g),
-  // same safe fallback the "invalid unitId" case below already relies on,
-  // rather than silently doing kg-scale math against a unit that isn't
-  // really offered.
-  it("falls back to grams (not kg-scale math) when 'kg' is requested for a meat/fish food", () => {
+  // No individual solid food — meat/fish included, or any other solid —
+  // offers kg as a selectable logging unit any more (see the unitsFor
+  // tests above). A caller still requesting it falls back to the food's
+  // own base unit (g), the same safe fallback the "invalid unitId" case
+  // below already relies on, rather than silently doing kg-scale math
+  // against a unit that isn't really offered.
+  it("falls back to grams (not kg-scale math) when 'kg' is requested for any solid food", () => {
     const scaled = scaleFoodByUnit(mince, "kg", 0.5);
     expect(scaled.unitId).toBe("g");
     // "kg" isn't a real unit for this food, so the requested quantity (0.5)
     // is treated as 0.5 of the base unit (grams), not 0.5kg.
     expect(scaled.cals).toBe(Math.round((172 * 0.5) / 100));
+
+    const rice = { id: "rice", name: "White Rice (cooked)", cals: 130, protein: 2.4, carbs: 28, fat: 0.3, per: 100, defaultQty: 180 };
+    const riceScaled = scaleFoodByUnit(rice, "kg", 0.5);
+    expect(riceScaled.unitId).toBe("g");
+    expect(riceScaled.cals).toBe(Math.round((130 * 0.5) / 100));
   });
 
   const butter = { id: "butter", name: "Butter, Salted", cals: 717, protein: 0.9, carbs: 0.1, fat: 81, per: 100, defaultQty: 10 };
@@ -339,23 +352,39 @@ describe("real library data sanity check", () => {
     });
   });
 
-  // Nutrition Overhaul requirement: kg/lb are never acceptable DEFAULT
-  // serving units for an individual food — nobody opens a food's quantity
-  // sheet and sees "0.15 lb of chicken breast" pre-selected. They may
-  // still appear further down a solid's unit list as an optional
-  // conversion (unitsFor already offers oz/lb/kg there), but the first
-  // entry — the one a food's quantity sheet actually defaults to — must
-  // always be g or ml, for every entry in the static database and for any
-  // barcode-scanned product shape, regardless of its own `liquid` flag.
-  it("never defaults an individual food's quantity to kg/lb/lbs, in the static database or a barcode-scanned shape", () => {
+  // Nutrition Overhaul requirement: lb is never an acceptable DEFAULT
+  // serving unit for an individual food — nobody opens a food's quantity
+  // sheet and sees "0.15 lb of chicken breast" pre-selected; the first
+  // entry (what the sheet actually defaults to) must always be g or ml.
+  it("never defaults an individual food's quantity to lb/lbs, in the static database or a barcode-scanned shape", () => {
     FOOD_DATABASE.forEach((food) => {
       const defaultUnit = unitsFor(food)[0];
-      expect(["kg", "lb", "lbs"]).not.toContain(defaultUnit.id);
+      expect(["lb", "lbs"]).not.toContain(defaultUnit.id);
     });
     const scannedSolid = { name: "Mystery Snack Bar", defaultQty: 40, liquid: false };
     const scannedLiquid = { name: "Mystery Drink", defaultQty: 330, liquid: true };
-    expect(["kg", "lb", "lbs"]).not.toContain(unitsFor(scannedSolid)[0].id);
-    expect(["kg", "lb", "lbs"]).not.toContain(unitsFor(scannedLiquid)[0].id);
+    expect(["lb", "lbs"]).not.toContain(unitsFor(scannedSolid)[0].id);
+    expect(["lb", "lbs"]).not.toContain(unitsFor(scannedLiquid)[0].id);
+  });
+
+  // Stronger follow-up fix: kg isn't just kept out of the DEFAULT unit —
+  // it's never offered as a selectable unit at all, anywhere, for any
+  // individual food serving (static database, or a barcode-scanned/
+  // custom-food shape), full stop. The only kg usage left in the app is
+  // unrelated to food logging entirely: body-weight tracking
+  // (CoachClientDetail.jsx) and the shopping list's own bulk/aggregated
+  // display (shoppingList.js) — neither goes through unitsFor().
+  it("never offers kg as a selectable unit at all, for any individual food", () => {
+    FOOD_DATABASE.forEach((food) => {
+      const ids = unitsFor(food).map((u) => u.id);
+      expect(ids, food.name).not.toContain("kg");
+    });
+    const scannedSolid = { name: "Mystery Snack Bar", defaultQty: 40, liquid: false };
+    const scannedLiquid = { name: "Mystery Drink", defaultQty: 330, liquid: true };
+    const customMeat = { name: "Coach-added Lamb Shoulder", defaultQty: 300, liquid: false };
+    expect(unitsFor(scannedSolid).map((u) => u.id)).not.toContain("kg");
+    expect(unitsFor(scannedLiquid).map((u) => u.id)).not.toContain("kg");
+    expect(unitsFor(customMeat).map((u) => u.id)).not.toContain("kg");
   });
 
   // Pinned by id (not just by re-typed name) against the REAL, live

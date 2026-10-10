@@ -1556,16 +1556,6 @@ const SPREAD_RE = /\b(butter|margarine|ghee)\b/i;
 // so they're kept out of CONDIMENT_RE below rather than becoming ml-based.
 const NUT_SPREAD_RE = /\b(peanut butter|nut butter|nutella)\b/i;
 const CONDIMENT_RE = /\b(honey|sauce|syrup|jam|dressing|mayonnaise|mayo|vinegar|gravy)\b/i;
-// Real production report: individual meat/fish portions (a chicken
-// breast, a steak, a scoop of mince) offered kg as a loggable unit — a
-// bulk/wholesale unit nobody uses for a single meal ("0.15kg of chicken
-// breast"). oz/lb stay (genuinely used for a single cut — "an 8oz
-// steak," "a pound of mince" — unlike kg), but kg is dropped specifically
-// for this category. Matched against the actual meat/fish/poultry names
-// in the static database (both the "Meat & poultry" and "Fish &
-// seafood" sections).
-const MEAT_RE =
-  /\b(chicken|turkey|beef|steak|mince|pork|lamb|bacon|ham|sausage|salami|chorizo|prosciutto|venison|duck|veal|rabbit|goat meat|jerky|kangaroo|corned beef|schnitzel|salmon|tuna|cod|barramundi|white fish|prawns?|calamari|sardines|mussels?|crab|scallops?|anchov(?:y|ies)|trout|mackerel|halibut|snapper|swordfish|lobster|oysters?|clams?|octopus|fish)\b/i;
 
 // A dollop/drizzle-sized condiment entry ("BBQ Sauce," "Capilano Honey")
 // should always be ml-based — but a whole DISH that merely contains one as
@@ -1640,16 +1630,25 @@ function autoUnitIds(food, liquid) {
   // and let tbsp/tsp ride along as a harmless bonus rather than replacing
   // them.
   const dish = looksLikeDish(food);
-  if (SPREAD_RE.test(name) || NUT_SPREAD_RE.test(name)) return dish ? ["tbsp", "tsp", "oz", "lb", "kg"] : ["tbsp", "tsp", "cup", "pat", "stick"];
+  // kg is never offered as a selectable logging unit for an individual
+  // solid food serving — a client logs a chicken breast, a potato, a
+  // slice of cheese, a plate of butter chicken, in grams/oz/lb, never
+  // kilograms ("0.15kg of chicken breast"). oz/lb stay (genuinely used
+  // for a single portion — "an 8oz steak," "a pound of mince" — unlike
+  // kg, a bulk/wholesale unit). This applies across every individual
+  // food category (meat/fish included — no separate case needed, since
+  // this is the one fallback every weighed solid without a more specific
+  // unit set already goes through) and is unrelated to, and doesn't
+  // touch, kg used elsewhere for genuinely different things: body-weight
+  // tracking (CoachClientDetail.jsx) and the shopping list's own bulk/
+  // aggregated-across-a-week display (shoppingList.js) — neither goes
+  // through unitsFor()/autoUnitIds() at all.
+  if (SPREAD_RE.test(name) || NUT_SPREAD_RE.test(name)) return dish ? ["tbsp", "tsp", "oz", "lb"] : ["tbsp", "tsp", "cup", "pat", "stick"];
   // Only reached for a dish-sized condiment (a non-dish condiment is
   // already liquid-classified above, in isLiquidFood) — a dish-sized one
   // keeps its normal weight units with tbsp/tsp riding along as a bonus.
-  if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp", "oz", "lb", "kg"];
-  // Individual meat/fish portions: grams stays the base unit (unaffected
-  // here), oz/lb stay as real single-cut conversions, but kg is dropped —
-  // nobody logs a single serving in kilograms.
-  if (MEAT_RE.test(name)) return ["oz", "lb"];
-  return ["oz", "lb", "kg"];
+  if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp", "oz", "lb"];
+  return ["oz", "lb"];
 }
 
 // The full list of loggable units for a food, in display order: the base
