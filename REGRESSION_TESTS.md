@@ -1222,7 +1222,7 @@ silence.
   mince, chicken, potatoes etc. should offer g/oz/lb/kg.
 - **Date added**: 2026-10-10
 
-### 44. Background page still scrollable underneath an open bottom sheet (iOS)
+### 44. Background page still scrollable underneath an open bottom sheet (iOS) — and the first fix froze the page on keyboard dismiss
 - **Root cause**: `lockBodyScroll()`/`unlockBodyScroll()` (`src/components/
   ui.jsx`, shared by every `BottomSheet` and `FullScreenOverlay` in the
   app) only ever set `document.body.style.overflow = "hidden"`. That's
@@ -1234,21 +1234,44 @@ silence.
   an "open" sheet stayed fully scrollable. Screen-recorded report: opening
   "Add to Lunch" over the Nutrition screen, the page visibly scrolled
   underneath it.
-- **Fix**: on lock, additionally pin the body with `position: fixed` (the
-  actually-reliable technique on iOS) at its current scroll offset;
-  restore it and re-apply that scroll position when the last lock
-  releases. Reference counting (already in place for nested sheets) is
-  unchanged.
+- **First fix attempt (reverted)**: additionally pinned the body with
+  `position: fixed` at its current scroll offset — the usual recipe for
+  this on iOS. Shipped, then a second real report came in: dismissing the
+  keyboard while a sheet with a search box was open froze the whole page
+  solid. The keyboard opening/closing resizes the visual viewport, which
+  forces a recompute of the fixed-position body against it — a
+  recalculation this app's actual native shell (a bare WKWebView wrapper,
+  not real mobile Safari) got stuck on. A document-level `touchmove`
+  blocker was tried next and rejected before shipping: it would have
+  risked breaking scrolling in every OTHER full-screen overlay in the app
+  (workout session, messages, video player, etc.), since none of those
+  mark themselves as an allowed scroll area the way only `BottomSheet`
+  would have.
+- **Actual fix**: backed the body-pin out entirely (back to plain
+  `overflow: hidden`, still reference-counted for nested sheets) and
+  stopped the background from moving with pure CSS, scoped to
+  `BottomSheet` alone: `touch-none` (`touch-action: none`) on its backdrop
+  (nothing there needs to scroll in the first place) and
+  `overscroll-contain` (`overscroll-behavior: contain`) on its own
+  scrollable content (stops a scroll that hits the top/bottom of the
+  sheet's list from "chaining" into the page behind it — the other classic
+  iOS cause of a sheet's background visibly moving). Neither touches body
+  layout, so neither can conflict with the keyboard's viewport resize.
 - **Regression test**: `src/components/bodyScrollLockIOS.test.jsx` — a
-  mounted `FullScreenOverlay` must set `position: fixed` (not just
-  `overflow: hidden`) and restore both on unmount; a second test asserts
-  the original scroll offset is re-applied; a third asserts two nested
-  overlays only release the lock once the last one closes. Verified all 3
-  fail against the prior overflow-only code; restored and re-verified all
-  3 passing.
+  mounted `FullScreenOverlay` sets `overflow: hidden` and explicitly must
+  NOT set `position: fixed` (locks in the keyboard-freeze fix, so it can't
+  silently regress back); a second test asserts two nested overlays only
+  release the lock once the last one closes; a third/fourth assert
+  `BottomSheet`'s backdrop carries `touch-none` and its scrollable content
+  carries `overscroll-contain`. Verified the `position: fixed` case fails
+  against the (briefly shipped) pinned-body code, confirming the test
+  would have caught that regression before it shipped; restored and
+  re-verified all 4 passing against the final fix.
 - **Manual verification**: on an iPhone, scroll partway down the Nutrition
-  screen, open "Add to Lunch," then try to drag the darkened area behind
-  the sheet — the page underneath should not move at all.
+  screen, open "Add to Lunch," try to drag the darkened area behind the
+  sheet (should not move), scroll the sheet's own result list past its
+  top/bottom (should not move the background either), then dismiss the
+  keyboard — the page must stay fully responsive, not freeze.
 - **Date added**: 2026-10-10
 
 ### 45. Nutrition search sheet vanished mid-search, keyboard left open over a scrollable background

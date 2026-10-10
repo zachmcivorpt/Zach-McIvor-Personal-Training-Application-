@@ -317,41 +317,37 @@ export function AvatarPicker({ name, url, size = 72, onChange, dark = false }) {
 // Counting locks instead means only the very last one to close ever clears
 // it, regardless of what order they opened or closed in.
 //
-// `overflow: hidden` alone is NOT enough on iOS Safari/WKWebView (the real
-// production report this was fixed for: a bottom sheet open over the
-// Nutrition screen, the page visibly scrollable underneath it) — iOS's
-// touch-driven scrolling ignores the body's own overflow rule as long as
-// SOME ancestor further down the tree is independently scrollable, which
-// is true of nearly every screen in this app. The actually-reliable
-// technique on iOS is to additionally pin the body in place with
-// `position: fixed` (after recording the current scroll offset as its
-// `top`), which touch-scrolling can't bypass; it's restored, and the
-// original scroll position re-applied, once the last lock releases.
+// `overflow: hidden` on its own is already a bit weak on iOS Safari/
+// WKWebView — touch-driven scrolling can ignore the body's own overflow
+// rule when something further down the tree is independently scrollable.
+// A `position: fixed` body-pin was tried here as the usual fix for that,
+// but it interacts badly with the on-screen keyboard specifically (a real
+// production report: dismissing the keyboard while a sheet with a search
+// box was open froze the whole page solid) — the keyboard resizing the
+// visual viewport forces a recompute of the fixed body against it, which
+// this app's actual native shell (a bare WKWebView wrapper, not real
+// mobile Safari) can get stuck on. A document-level touchmove blocker was
+// also tried and risked breaking scrolling in every OTHER full-screen
+// overlay in the app (workout session, messages, video player, etc. —
+// nothing outside BottomSheet marks itself as an allowed scroll area).
+//
+// Kept deliberately simple instead: `overflow: hidden` here, with the
+// actual background-can-still-be-dragged behaviour fixed locally in
+// BottomSheet via `touch-action: none` on its backdrop (nothing to
+// scroll there in the first place) and `overscroll-behavior: contain` on
+// its own scrollable content (stops a scroll that hits the top/bottom of
+// the sheet's list from "chaining" into the page behind it, the other
+// classic iOS cause of a sheet's background visibly moving). Both are
+// pure CSS — no event listeners, nothing that can conflict with the
+// keyboard's viewport resize.
 let bodyScrollLockCount = 0;
-let bodyScrollLockY = 0;
 function lockBodyScroll() {
-  if (bodyScrollLockCount === 0) {
-    bodyScrollLockY = window.scrollY || window.pageYOffset || 0;
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${bodyScrollLockY}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
-    document.body.style.overflow = "hidden";
-  }
+  if (bodyScrollLockCount === 0) document.body.style.overflow = "hidden";
   bodyScrollLockCount++;
 }
 function unlockBodyScroll() {
   bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
-  if (bodyScrollLockCount === 0) {
-    document.body.style.position = "";
-    document.body.style.top = "";
-    document.body.style.left = "";
-    document.body.style.right = "";
-    document.body.style.width = "";
-    document.body.style.overflow = "";
-    window.scrollTo(0, bodyScrollLockY);
-  }
+  if (bodyScrollLockCount === 0) document.body.style.overflow = "";
 }
 
 // Every full-screen sheet in the app (workout session, workout preview,
@@ -398,11 +394,17 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
     <FullScreenOverlay>
       <div className="fixed inset-0 z-[110] flex items-end justify-center">
         <div
-          className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
+          // touch-none: nothing here scrolls anyway (it's a backdrop), but
+          // without this a drag starting on it can still move the page
+          // behind it on iOS — the actual production report this fixes.
+          className={`absolute inset-0 bg-black/50 touch-none transition-opacity duration-300 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
           onClick={onClose}
         />
         <div
-          className={`relative w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-t-3xl max-h-[88vh] overflow-y-auto border-t transition-transform duration-300 ease-out ${
+          // overscroll-contain: stops a scroll that hits the top/bottom of
+          // THIS list from "chaining" into scrolling the page behind the
+          // sheet, the other classic iOS cause of the same symptom.
+          className={`relative w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-t-3xl max-h-[88vh] overflow-y-auto overscroll-contain border-t transition-transform duration-300 ease-out ${
             dark ? "border-white/10" : "border-black/10"
           } ${visible ? "translate-y-0" : "translate-y-full"}`}
           style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
