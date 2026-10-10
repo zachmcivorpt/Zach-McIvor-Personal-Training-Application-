@@ -5019,9 +5019,6 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                 style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
               >
                 <button onClick={() => setDetailMeal(meal)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
-                  <div className={dark ? "w-11 h-11 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0" : "w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"}>
-                    <UtensilsCrossed size={18} className="text-blue-500" />
-                  </div>
                   <div className="min-w-0">
                     <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{meal}</p>
                     <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
