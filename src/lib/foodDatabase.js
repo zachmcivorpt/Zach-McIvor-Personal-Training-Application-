@@ -468,6 +468,23 @@ export const FOOD_DATABASE = [
   { id: "b18", name: "Tomato Juice", cals: 17, protein: 0.8, carbs: 3.5, fat: 0.1, per: 100, defaultQty: 250, units: ["ml"] },
   { id: "b19", name: "Cranberry Juice", cals: 46, protein: 0, carbs: 12, fat: 0.1, per: 100, defaultQty: 250, units: ["ml"] },
   { id: "b20", name: "White Wine", cals: 82, protein: 0.1, carbs: 2.6, fat: 0, per: 100, defaultQty: 150, units: ["ml"] },
+  // Generic café coffees, distinct from the existing b03/b04 (black/flat
+  // white) and the brand-specific McCafé/Jack's Cafe entries elsewhere —
+  // searchable without a brand qualifier. `liquid: true` set explicitly on
+  // each (rather than only relying on STRONG_LIQUID_RE, which doesn't cover
+  // "espresso"/"long black"/"americano"/"iced coffee" at all) so these are
+  // correctly ml-based regardless of future edits to that regex. Values are
+  // typical/representative (same unsourced-but-realistic convention as the
+  // existing b03/b04/b14-b16 entries), not a specific product's verified
+  // label — black coffee, milk-based coffee and sweetened/mocha coffee are
+  // kept as separate entries since their nutrition genuinely differs.
+  { id: "b21", name: "Espresso / Short Black", cals: 9, protein: 0.5, carbs: 1.7, fat: 0.2, per: 100, defaultQty: 30, liquid: true },
+  { id: "b22", name: "Long Black / Americano", cals: 3, protein: 0.3, carbs: 0.5, fat: 0.1, per: 100, defaultQty: 200, liquid: true },
+  { id: "b23", name: "Latte", cals: 58, protein: 3.4, carbs: 4.6, fat: 3.0, per: 100, defaultQty: 280, liquid: true },
+  { id: "b24", name: "Cappuccino", cals: 56, protein: 3.3, carbs: 4.3, fat: 2.9, per: 100, defaultQty: 190, liquid: true },
+  { id: "b25", name: "Macchiato", cals: 15, protein: 1.0, carbs: 1.8, fat: 0.6, per: 100, defaultQty: 60, liquid: true },
+  { id: "b26", name: "Mocha", cals: 80, protein: 3.4, carbs: 9.5, fat: 3.2, sugar: 8, per: 100, defaultQty: 280, liquid: true },
+  { id: "b27", name: "Iced Coffee", cals: 85, protein: 3.0, carbs: 11, fat: 3.5, sugar: 10, per: 100, defaultQty: 350, liquid: true },
 
   // --- Baking & flours ---
   { id: "bk01", name: "White Flour (plain)", cals: 364, protein: 10, carbs: 76, fat: 1, per: 100, defaultQty: 50, units: ["cup"] },
@@ -1539,6 +1556,16 @@ const SPREAD_RE = /\b(butter|margarine|ghee)\b/i;
 // so they're kept out of CONDIMENT_RE below rather than becoming ml-based.
 const NUT_SPREAD_RE = /\b(peanut butter|nut butter|nutella)\b/i;
 const CONDIMENT_RE = /\b(honey|sauce|syrup|jam|dressing|mayonnaise|mayo|vinegar|gravy)\b/i;
+// Real production report: individual meat/fish portions (a chicken
+// breast, a steak, a scoop of mince) offered kg as a loggable unit — a
+// bulk/wholesale unit nobody uses for a single meal ("0.15kg of chicken
+// breast"). oz/lb stay (genuinely used for a single cut — "an 8oz
+// steak," "a pound of mince" — unlike kg), but kg is dropped specifically
+// for this category. Matched against the actual meat/fish/poultry names
+// in the static database (both the "Meat & poultry" and "Fish &
+// seafood" sections).
+const MEAT_RE =
+  /\b(chicken|turkey|beef|steak|mince|pork|lamb|bacon|ham|sausage|salami|chorizo|prosciutto|venison|duck|veal|rabbit|goat meat|jerky|kangaroo|corned beef|schnitzel|salmon|tuna|cod|barramundi|white fish|prawns?|calamari|sardines|mussels?|crab|scallops?|anchov(?:y|ies)|trout|mackerel|halibut|snapper|swordfish|lobster|oysters?|clams?|octopus|fish)\b/i;
 
 // A dollop/drizzle-sized condiment entry ("BBQ Sauce," "Capilano Honey")
 // should always be ml-based — but a whole DISH that merely contains one as
@@ -1574,6 +1601,11 @@ export function isLiquidFood(food) {
 // drink ("Berry Ice," a Powerade, 27 cal/100ml) offered — and even
 // defaulted to — "tbsps" as a unit, which isn't how anyone drinks it.
 const POURABLE_LIQUID_RE = /\boil\b|\bcream\b/i;
+// A single/double-shot black coffee (espresso, long black/Americano,
+// macchiato) is a 30-60ml serving — far too small for "cup" to be a
+// sensible unit, unlike a milk-based coffee (latte, cappuccino, mocha) or
+// a traditional iced coffee, which are genuinely cup-sized drinks.
+const SHOT_COFFEE_RE = /\b(espresso|short black|long black|americano|macchiato)\b/i;
 
 function autoUnitIds(food, liquid) {
   const name = food.name || "";
@@ -1590,6 +1622,7 @@ function autoUnitIds(food, liquid) {
     // liquid with no matching name pattern at all, e.g. "Berry Ice," a
     // Powerade sports drink — nobody measures that in tablespoons.
     if (PLAIN_LIQUID_RE.test(name) && !STRONG_LIQUID_RE.test(name)) return ["cup", "tbsp"];
+    if (SHOT_COFFEE_RE.test(name)) return [];
     return ["cup"];
   }
   // A real condiment/spread SERVING (what defaultQty actually holds for
@@ -1612,6 +1645,10 @@ function autoUnitIds(food, liquid) {
   // already liquid-classified above, in isLiquidFood) — a dish-sized one
   // keeps its normal weight units with tbsp/tsp riding along as a bonus.
   if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp", "oz", "lb", "kg"];
+  // Individual meat/fish portions: grams stays the base unit (unaffected
+  // here), oz/lb stay as real single-cut conversions, but kg is dropped —
+  // nobody logs a single serving in kilograms.
+  if (MEAT_RE.test(name)) return ["oz", "lb"];
   return ["oz", "lb", "kg"];
 }
 
