@@ -369,6 +369,41 @@ export function FullScreenOverlay({ children }) {
   );
 }
 
+// The real production bug this fixes: typing into a search box inside a
+// bottom sheet, the on-screen keyboard covered the lower half of the
+// sheet — including the very results list the client was searching for.
+// `position: fixed` in iOS Safari/WKWebView is anchored to the LAYOUT
+// viewport, which doesn't shrink when the keyboard opens — only the
+// VISUAL viewport does, and nothing was tracking that, so `inset-0` kept
+// stretching the sheet's wrapper over the full (keyboard-obscured)
+// screen height regardless. `window.visualViewport` is the one API that
+// reports the actual visible area above the keyboard in real time;
+// tracking its `height` and `offsetTop` and applying them directly (not
+// `100vh`/`100dvh`, whose keyboard behavior is inconsistent across iOS
+// versions in a WKWebView specifically, not just real Safari) repositions
+// the whole overlay to the space that's actually visible, every time.
+function useVisualViewportInsets() {
+  const [insets, setInsets] = useState(() => ({
+    height: typeof window !== "undefined" ? window.innerHeight : 800,
+    offsetTop: 0,
+  }));
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return;
+    function update() {
+      setInsets({ height: vv.height, offsetTop: vv.offsetTop });
+    }
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+  return insets;
+}
+
 export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5" }) {
   // Opening already slid up smoothly, but closing just vanished the instant
   // `open` went false — no exit animation at all, which is exactly the kind
@@ -378,6 +413,7 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
   // close the same smooth way it opened, since they all share this component.
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(open);
+  const viewport = useVisualViewportInsets();
   useEffect(() => {
     if (open) {
       setMounted(true);
@@ -392,7 +428,10 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
   if (!mounted) return null;
   return (
     <FullScreenOverlay>
-      <div className="fixed inset-0 z-[110] flex items-end justify-center">
+      <div
+        className="fixed left-0 right-0 z-[110] flex items-end justify-center"
+        style={{ top: viewport.offsetTop, height: viewport.height }}
+      >
         <div
           // touch-none: nothing here scrolls anyway (it's a backdrop), but
           // without this a drag starting on it can still move the page
@@ -404,10 +443,14 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
           // overscroll-contain: stops a scroll that hits the top/bottom of
           // THIS list from "chaining" into scrolling the page behind the
           // sheet, the other classic iOS cause of the same symptom.
-          className={`relative w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-t-3xl max-h-[88vh] overflow-y-auto overscroll-contain border-t transition-transform duration-300 ease-out ${
+          // max-height is a fraction of the actual VISIBLE area (tracked
+          // above), not a static vh/dvh unit — when the keyboard opens and
+          // shrinks that visible area, this sheet shrinks with it instead
+          // of staying sized for the full, now-partly-hidden screen.
+          className={`relative w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-t-3xl overflow-y-auto overscroll-contain border-t transition-transform duration-300 ease-out ${
             dark ? "border-white/10" : "border-black/10"
           } ${visible ? "translate-y-0" : "translate-y-full"}`}
-          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
+          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, maxHeight: Math.round(viewport.height * 0.88) }}
         >
           <div
             className="sticky top-0 pt-3 pb-2 px-5 border-b flex items-center justify-between"
