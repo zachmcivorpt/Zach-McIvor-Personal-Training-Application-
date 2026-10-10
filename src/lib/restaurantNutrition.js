@@ -729,6 +729,39 @@ function wantsMealType(message) {
   return null;
 }
 
+// Mirrors ClientApp.jsx's guessMealForNow() thresholds exactly, so a tap
+// with no explicit meal-type keyword (every QUICK_PROMPTS button except
+// "High protein dinner") still matches the client's current local time —
+// new Date().getHours() already reflects the device's own time zone.
+function currentMealPeriod() {
+  const h = new Date().getHours();
+  if (h < 11) return "Breakfast";
+  if (h < 15) return "Lunch";
+  if (h < 21) return "Dinner";
+  return "Snacks";
+}
+
+// Name-based classifier for restaurant menu items, since RESTAURANT_MENUS
+// entries carry no meal-period metadata (only allergy/diet tags) — same
+// convention as the regex-based name classifiers used elsewhere in this
+// codebase. Deliberately excludes "toastie"/"bagel"/"croissant": those are
+// reasonably all-day items at the chains that sell them, not breakfast-only.
+const BREAKFAST_ITEM_RE = /\b(mcmuffin|muffin|hash brown|brekkie|brekky|pancake|hotcake)\b|\begg\b/i;
+
+function isBreakfastItem(item) {
+  return BREAKFAST_ITEM_RE.test(item.name);
+}
+
+// Filters a restaurant menu to the given meal period. Several chains (KFC,
+// Taco Bell, Grill'd, Nando's, Domino's, fish and chips, 7-Eleven, APCO)
+// have no breakfast-specific items at all, so — same graceful-fallback
+// pattern as the allergy/meal-type filters below — an empty result falls
+// back to the full menu rather than leaving the client with nothing.
+function filterMenuByMealPeriod(menu, period) {
+  const filtered = period === "Breakfast" ? menu.filter(isBreakfastItem) : menu.filter((i) => !isBreakfastItem(i));
+  return filtered.length ? filtered : menu;
+}
+
 // "Eating out" (with no restaurant named yet) should prompt for which
 // chain rather than silently falling through to home-cooked meal-library
 // suggestions — that's not what someone typing this actually wants.
@@ -907,7 +940,7 @@ export function getLocalNutritionSuggestion(message, context, excludeNames) {
         suggestions: [],
       };
     }
-    const menu = RESTAURANT_MENUS[brand.key];
+    const menu = filterMenuByMealPeriod(RESTAURANT_MENUS[brand.key], wantsMealType(message) || currentMealPeriod());
     const allowed = menu.filter((i) => passesAllergyFilter(i, flags, needsVegetarian));
     const pool = allowed.length ? allowed : menu;
     const target = {
@@ -925,7 +958,7 @@ export function getLocalNutritionSuggestion(message, context, excludeNames) {
   }
 
   if (brand) {
-    const menu = RESTAURANT_MENUS[brand.key];
+    const menu = filterMenuByMealPeriod(RESTAURANT_MENUS[brand.key], wantsMealType(message) || currentMealPeriod());
     const budget = parsedTarget || remainingBudget;
     const allowed = menu.filter((i) => passesAllergyFilter(i, flags, needsVegetarian));
     const pool = allowed.length ? allowed : menu;
@@ -945,7 +978,7 @@ export function getLocalNutritionSuggestion(message, context, excludeNames) {
 
   // No specific chain named — search the app's own 400+ real meal library
   // instead, which already carries real, verified macros.
-  const mealType = wantsMealType(message);
+  const mealType = wantsMealType(message) || currentMealPeriod();
   const toCandidate = (meal) => ({
     name: meal.name,
     calories: meal.cals,
