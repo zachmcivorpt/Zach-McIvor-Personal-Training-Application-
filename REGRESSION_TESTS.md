@@ -1779,6 +1779,56 @@ Full audit per the Nutrition Overhaul master prompt, on `claude/nutrition-overha
   clearly prompts for manual entry rather than guessing.
 - **Date added**: 2026-10-10
 
+### 56. Nutrition Overhaul Section 7 audit — end-to-end workflow consistency traced; no new bugs found, closed a real end-to-end test-coverage gap
+Traced the complete client journey described in the Nutrition Overhaul's
+Section 7 through the actual code (not just re-confirming unit-level
+fixes already in place): search → select a result → quantity sheet →
+change serving/unit → confirm → log, across every entry path (search
+results, saved meals matched by search, recent foods, quick add,
+barcode, photo estimates, the meal-plan's "log this meal"), plus
+edit/remove → daily totals, across date changes via the date-nav.
+
+- **Finding: no new bugs.** Every path traced funnels through the same
+  two choke points — `FoodQuantitySheet` (scaling) and
+  `onAddFood(meal, food, dateKey)`/`onRemoveFood(meal, id, dateKey)`
+  (the Firestore transaction) — using `viewDateKey` (the date actually
+  being browsed, not always today) and `activeMeal` consistently. Saved
+  meals log at a fixed serving by design (no quantity step) — the same
+  on every path that reaches them (search match, My Meals list, meal
+  plan), not an inconsistency. `removeFood`'s own transaction is already
+  naturally idempotent against a duplicate remove call (a missing entry
+  is a no-op, not an error). The three double-tap gaps found and fixed
+  in bug #55 were the only genuine defects this journey had; nothing
+  further surfaced here.
+- **What was added instead: real end-to-end test coverage.** The
+  existing suite verified each piece in isolation (scaling math, double-
+  tap guards, unit classification) but had no test exercising the full
+  NutritionScreen journey end-to-end with assertions on exactly what
+  reaches `onAddFood`/`onRemoveFood`. New
+  **`src/client/nutritionWorkflowConsistency.test.jsx`** (3 tests):
+  searching "Chicken Breast," changing the quantity sheet to 300g, and
+  confirming logs the correctly scaled macros (495 cal, not the
+  unscaled 165) to the right meal and today's date; stepping back a day
+  via the date-nav before logging sends that day's key, not today's;
+  swiping to remove an entry on a non-today date calls `onRemoveFood`
+  with that same date's key. Verified these are real checks, not
+  trivially-passing scaffolding: temporarily routing the confirm handler
+  through the wrong date variable made both date-sensitive tests fail
+  (one assertion failure, one thrown reference error), then restoring
+  brought all 3 back to green.
+- **No application code changed in this pass** — only the new test
+  file. `git status` after this pass shows exactly one new file.
+- **Full suite**: 193 passed, 39 files passed, 1 file skipped
+  (emulator-only, pre-existing), 59 tests skipped (pre-existing) — up
+  from 190/190 before this pass. `npm run lint`: exit 0. `npm run
+  build`: clean.
+- **Manual verification — unverified, no device access from this
+  environment**: the underlying logic is now covered end-to-end in
+  jsdom, but real touch/swipe gestures, real Firestore round-trips, and
+  real date-boundary behavior (midnight rollover, timezone edge cases)
+  on an actual device remain unverified.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
