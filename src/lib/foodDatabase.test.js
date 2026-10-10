@@ -168,12 +168,14 @@ describe("unitsFor — automatic unit sets by food type", () => {
     expect(ids).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
   });
 
-  it("adds a 'container' unit at the real package size when one is known (e.g. from a barcode scan)", () => {
+  // Tried and removed per real client feedback: a "container" unit (1
+  // container = the whole package) didn't read as a meaningful answer to
+  // "how much did you have" — it implied the whole package regardless of
+  // how much was actually consumed. `containerGrams` on a food object is
+  // now simply ignored rather than turned into a selectable unit.
+  it("never offers a 'container' unit, even when containerGrams is set on the food", () => {
     const units = unitsFor({ name: "Scanned Milk", liquid: true, containerGrams: 3000 });
-    const container = units.find((u) => u.id === "container");
-    expect(container).toBeTruthy();
-    expect(container.grams).toBe(3000);
-    expect(container.label).toMatch(/3000ml/);
+    expect(units.find((u) => u.id === "container")).toBeUndefined();
   });
 
   it("never offers both 'g' and 'ml' for the same food (the base unit replaces, not adds to, the other)", () => {

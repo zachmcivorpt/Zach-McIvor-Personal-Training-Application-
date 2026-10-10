@@ -338,11 +338,14 @@ function mapProductToFood(product, code) {
     // of presenting a guess as fact.
     ...(servingGrams == null ? { servingSizeUnverified: true } : {}),
     // Lets unitsFor() (foodDatabase.js) show ml/cup/tbsp instead of
-    // g/oz/lb/kg, and offer a "1 container (...)" unit at the real
-    // package size — both read straight off Open Food Facts' own
-    // `quantity` field rather than guessing from the product name, since
-    // every scanned product has this real, structured data available.
-    ...(packageInfo ? { liquid: packageInfo.liquid, containerGrams: packageInfo.grams } : {}),
+    // g/oz/lb/kg — read straight off Open Food Facts' own `quantity`
+    // field rather than guessing from the product name, since every
+    // scanned product has this real, structured data available. (A
+    // "container" unit at this package size was tried too and removed —
+    // real client feedback: it didn't read as a meaningful answer to
+    // "how much did you have," just the whole package regardless of how
+    // much was actually consumed.)
+    ...(packageInfo ? { liquid: packageInfo.liquid } : {}),
   };
 
   const validation = validateNutrition({ cals, protein, carbs, fat });

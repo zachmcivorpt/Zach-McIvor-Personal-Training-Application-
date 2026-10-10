@@ -1588,26 +1588,18 @@ function autoUnitIds(food, liquid) {
   return ["oz", "lb", "kg"];
 }
 
-// A known real-world package size (e.g. a 3L milk jug, a 500g mince tray) —
-// set on the static database per-item, or parsed from a barcode scan's own
-// Open Food Facts `quantity` field (see barcodeLookup.js) — becomes a
-// "container" unit, same as MyFitnessPal's "1 container (3,000.00 ml)".
-function containerUnit(grams, liquid) {
-  const amount = Math.round(grams * 100) / 100;
-  const suffix = liquid ? "ml" : "g";
-  return {
-    id: "container",
-    label: `container (${amount}${suffix})`,
-    pluralLabel: `containers (${amount}${suffix})`,
-    grams,
-  };
-}
-
 // The full list of loggable units for a food, in display order: the base
 // unit first (grams, or ml for a liquid), then its own "piece" unit if it
 // has one, then every unit its product type automatically earns (see
-// autoUnitIds) plus any hand-curated extras from `food.units`, then a
-// known package-size "container" unit if one is set.
+// autoUnitIds) plus any hand-curated extras from `food.units`.
+//
+// A "container" unit (1 container = the real package size) was tried and
+// removed — a real client report: it didn't read as meaningful next to
+// the quantity actually consumed ("How much did you have? → 1 container
+// (600ml)" for a drink someone only partly drank reads as "the whole
+// bottle," not a real answer to the question), and defaulted to it ahead
+// of plain ml. ml/cup (and ml/oz/lb/kg for a solid) already cover "how
+// much did you have" without implying "the whole package."
 export function unitsFor(food) {
   const liquid = isLiquidFood(food);
   const base = liquid ? UNIT_DEFS.ml : UNIT_DEFS.g;
@@ -1616,7 +1608,6 @@ export function unitsFor(food) {
   [...autoUnitIds(food, liquid), ...(food.units || [])].forEach((id) => {
     if (UNIT_DEFS[id] && id !== base.id && !list.some((u) => u.id === id)) list.push(UNIT_DEFS[id]);
   });
-  if (food.containerGrams) list.push(containerUnit(food.containerGrams, liquid));
   return list;
 }
 

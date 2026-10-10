@@ -142,7 +142,7 @@ describe("lookupBarcode", () => {
     expect(food.nutritionSuspectReason).toBeTruthy();
   });
 
-  it("reads the real package size off Open Food Facts' own `quantity` field, for ml foods (a container unit + liquid flag)", async () => {
+  it("reads the real liquid/solid signal off Open Food Facts' own `quantity` field, for ml foods", async () => {
     mockOff(1, {
       product_name: "Test Milk",
       quantity: "3 L",
@@ -150,10 +150,9 @@ describe("lookupBarcode", () => {
     });
     const food = await lookupBarcode("9300000000081");
     expect(food.liquid).toBe(true);
-    expect(food.containerGrams).toBe(3000);
   });
 
-  it("reads the real package size off Open Food Facts' own `quantity` field, for weighed-solid foods", async () => {
+  it("reads the real liquid/solid signal off Open Food Facts' own `quantity` field, for weighed-solid foods", async () => {
     mockOff(1, {
       product_name: "Test Mince",
       quantity: "500 g",
@@ -161,17 +160,15 @@ describe("lookupBarcode", () => {
     });
     const food = await lookupBarcode("9300000000098");
     expect(food.liquid).toBe(false);
-    expect(food.containerGrams).toBe(500);
   });
 
-  it("leaves liquid/containerGrams unset when Open Food Facts has no usable quantity field", async () => {
+  it("leaves liquid unset when Open Food Facts has no usable quantity field", async () => {
     mockOff(1, {
       product_name: "Test Item With No Quantity",
       nutriments: { "energy-kcal_100g": 200, proteins_100g: 10, carbohydrates_100g: 10, fat_100g: 5 },
     });
     const food = await lookupBarcode("9300000000104");
     expect(food.liquid).toBeUndefined();
-    expect(food.containerGrams).toBeUndefined();
   });
 
   it("throws a notFound error with the product name when nutrition data is missing", async () => {
