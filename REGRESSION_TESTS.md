@@ -1539,6 +1539,45 @@ silence.
   stay g/oz/lb/kg as normal, not switch to ml.
 - **Date added**: 2026-10-10
 
+### 51. Keyboard still genuinely covered the nutrition search, after the visualViewport fix (bug "keyboard genuinely covers search results") — real root cause was native, not web
+- **Root cause**: the earlier web-side fix (tracking `window.visualViewport`
+  in `BottomSheet`) assumed WKWebView resizes its viewport for the
+  keyboard the way Safari does. Screen-recorded proof it still didn't
+  work in production led to the real cause: WKWebView never resizes its
+  own frame for the on-screen keyboard at all — it just lets the keyboard
+  overlay on top of whatever was already rendered. `window.visualViewport`
+  / `window.innerHeight` never change, so no amount of web-side JS
+  (listening for a resize that never fires) could ever detect the
+  keyboard. The visualViewport fix was correct logic with nothing to
+  react to.
+- **Fix**: `ios/ApexCoach/ViewController.swift` now observes
+  `keyboardWillChangeFrameNotification` and shrinks the `WKWebView`'s own
+  bottom anchor constraint by the keyboard's real height (converted into
+  the view's own coordinate space, so this is correct under iPad
+  split-screen multitasking and a floating/undocked keyboard too, not
+  just a full-screen iPhone) — this makes the PAGE'S viewport genuinely
+  resize, which is what the web-side visualViewport fix needed all along.
+  **This requires a new native build shipped through TestFlight/App Store
+  review to reach users — it cannot be deployed the way the web app's own
+  fixes are** (no `npm run build` / Vercel deploy covers native Swift
+  code). As an immediate, web-deployable mitigation that doesn't need to
+  wait on that release: the "Scan barcode / Photo / Quick add" row in
+  "Add to [meal]" now hides once a search query is typed, freeing real
+  vertical space for results right away.
+- **Regression test**: `src/client/nutritionSearchButtonsCollapse.test.jsx`
+  (new) — the three buttons show before any search text, hide once text
+  is entered, and reappear once it's cleared. The native Swift change has
+  no automated test (no Swift toolchain in this environment to compile/
+  run one against); verified by careful manual re-read of the file and
+  the standard `keyboardWillChangeFrameNotification` API contract.
+- **Manual verification — REQUIRES A NEW NATIVE BUILD, not just the next
+  web deploy**: build and submit a new version through Xcode/TestFlight;
+  only once that's installed, open "Add to [meal]," tap the search box,
+  and confirm the results list is no longer covered by the keyboard. The
+  web-only mitigation (buttons collapsing) can be checked immediately on
+  the current build without waiting for that.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
