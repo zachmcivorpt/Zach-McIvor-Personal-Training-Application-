@@ -1844,6 +1844,15 @@ Two targeted fixes to `src/lib/foodDatabase.js`, each with new regression tests.
 - **Manual verification — unverified, no device/live-Firestore access from this environment**: that a real barcode-scanned meat product (not just the static database) correctly loses the kg option; that the new coffee entries render, search, and log correctly in the actual app UI on a device; that no existing user's already-logged meat entries were affected (expected, per the "frozen snapshot" reasoning above, but not observable without real account data).
 - **Date added**: 2026-10-10
 
+### 58. Nutrition search results now show kcal only (no macro breakdown) — compact mobile layout
+`NutritionScreen`'s "Add to [meal]" search results list showed each matched food/saved meal's full `P{protein} · C{carbs} · F{fat}` breakdown under its name, plus calories again as a separate right-aligned pill. Changed to match MyFitnessPal's compact mobile list: the name with only `"{cals} kcal"` directly underneath (for a saved meal, `"My Meals · {cals} kcal"`), the macro line and the separate kcal pill both removed.
+
+- **Scoped to search results only, exactly as requested.** The recent-foods list (shown before any search text is typed — not a search *result*), the My Meals tab, the quantity sheet (`FoodQuantitySheet`), and the meal-detail sheet all keep their full macro breakdown untouched — only the two result rows inside the active-search branch (`matchedMeals`/`matchedFoods`) changed.
+- **Search, keyboard, and logging behavior unchanged.** Typing still filters the same way; tapping a result still opens the same quantity sheet for that exact food with its full macros and quantity controls; tapping a matched saved meal still logs it the same way. No change to `matchesSearch`, `guardedAdd`, `FoodQuantitySheet`, or any Firestore write path — this is a display-only change to one list.
+- **Regression test**: `src/client/nutritionSearchKcalOnly.test.jsx` (new, 4 tests) — a searched food shows only its kcal line, no P/C/F text; a matched saved meal shows `"My Meals · {cals} kcal"`, no P/C/F text; the recent-foods list (not a search result) still shows its full macro breakdown unchanged; search filtering and opening the quantity sheet on tap still work. Verified via revert/fail/restore: reverting the matchedFoods row back to showing macros made 2 of the 4 tests fail, restoring brought all 4 back to green.
+- **Manual verification — unverified, no device access from this environment**: the actual rendered spacing/compactness on a real phone screen, and that this reads as intentionally "MyFitnessPal-compact" rather than merely sparse, are visual judgments that need a real device or at minimum a browser screenshot to confirm.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing

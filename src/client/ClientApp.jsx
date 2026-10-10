@@ -5231,9 +5231,13 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     )}
                     <div className="text-left flex-1 min-w-0">
                       <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>My Meals · P{round1(m.protein)} · C{round1(m.carbs)} · F{round1(m.fat)}</p>
+                      {/* Search results show kcal only, matching MyFitnessPal's
+                          compact mobile list — the full macro breakdown is
+                          still shown everywhere a food is actually being
+                          logged/reviewed (the quantity sheet, meal detail,
+                          recent foods, My Meals tab), just not in this list. */}
+                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>My Meals · {m.cals} kcal</p>
                     </div>
-                    <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{m.cals} kcal</span>
                   </button>
                 ))}
                 {matchedFoods.map((f) => (
@@ -5247,11 +5251,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                   >
                     <div className="text-left flex-1 min-w-0">
                       <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                        P{f.protein} · C{f.carbs} · F{f.fat}
-                      </p>
+                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{f.cals} kcal</p>
                     </div>
-                    <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{f.cals} kcal</span>
                   </button>
                 ))}
               </div>
