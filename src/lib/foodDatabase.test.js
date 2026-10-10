@@ -303,6 +303,25 @@ describe("real library data sanity check", () => {
     });
   });
 
+  // Nutrition Overhaul requirement: kg/lb are never acceptable DEFAULT
+  // serving units for an individual food — nobody opens a food's quantity
+  // sheet and sees "0.15 lb of chicken breast" pre-selected. They may
+  // still appear further down a solid's unit list as an optional
+  // conversion (unitsFor already offers oz/lb/kg there), but the first
+  // entry — the one a food's quantity sheet actually defaults to — must
+  // always be g or ml, for every entry in the static database and for any
+  // barcode-scanned product shape, regardless of its own `liquid` flag.
+  it("never defaults an individual food's quantity to kg/lb/lbs, in the static database or a barcode-scanned shape", () => {
+    FOOD_DATABASE.forEach((food) => {
+      const defaultUnit = unitsFor(food)[0];
+      expect(["kg", "lb", "lbs"]).not.toContain(defaultUnit.id);
+    });
+    const scannedSolid = { name: "Mystery Snack Bar", defaultQty: 40, liquid: false };
+    const scannedLiquid = { name: "Mystery Drink", defaultQty: 330, liquid: true };
+    expect(["kg", "lb", "lbs"]).not.toContain(unitsFor(scannedSolid)[0].id);
+    expect(["kg", "lb", "lbs"]).not.toContain(unitsFor(scannedLiquid)[0].id);
+  });
+
   // Pinned by id (not just by re-typed name) against the REAL, live
   // database entries found misclassified during a full audit of every
   // one of its ~1,330 entries — this is what actually regresses if a

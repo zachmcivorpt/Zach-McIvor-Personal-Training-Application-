@@ -5245,7 +5245,6 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     }}
                     className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
                   >
-                    {f.imageUrl && <img src={f.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
                     <div className="text-left flex-1 min-w-0">
                       <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
                       <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>

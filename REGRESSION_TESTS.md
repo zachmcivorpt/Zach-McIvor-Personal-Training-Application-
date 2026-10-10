@@ -1690,6 +1690,95 @@ silence.
   could after #52.
 - **Date added**: 2026-10-10
 
+### 55. Nutrition Overhaul audit — food/product images removed; three double-tap duplicate-record gaps found and fixed; units, barcode accuracy and keyboard/scroll-lock audited and confirmed already compliant
+Full audit per the Nutrition Overhaul master prompt, on `claude/nutrition-overhaul`. Covers several of the prompt's sections; results below are grouped by what actually changed vs. what was inspected and found already correct (not re-implemented, per the standing rule against rebuilding working functionality).
+
+- **Food/product images removed** (requirement: clean, information-first
+  Nutrition layout). Two render sites found: a search result row's
+  `f.imageUrl` thumbnail in `ClientApp.jsx`'s `NutritionScreen`, and a
+  scanned product's catalog photo in `FoodQuantitySheet`
+  (`NutritionFeatures.jsx`) — both removed; the latter now always shows
+  the existing plain scan-icon placeholder instead of conditionally
+  showing a photo. A client's own meal photo (`photoUrl` — the "Log a
+  Meal Photo" feature, shown on saved meals/logged entries) was
+  deliberately left untouched: that's a user-driven feature, not
+  decorative product/catalog imagery, and removing it would delete
+  working functionality the prompt doesn't ask for.
+  **Regression test**: `src/client/nutritionNoFoodImages.test.jsx` (new)
+  — confirms no `<img>` renders for a scanned product in
+  `FoodQuantitySheet` even when `imageUrl` is present. Verified via
+  revert/fail/restore: reverting the fix made both new tests fail
+  (asserting the exact `<img>` the fix removes), restoring brought them
+  back to green.
+- **Units/measurement classification — audited, found already compliant,
+  no code change needed.** `unitsFor()`'s base unit is always `g` or
+  `ml` (never a hardcoded default of kg/lb/lbs/a generic container) for
+  every entry in the static database and for barcode-scanned shapes;
+  kg/lb/oz only ever appear as optional extra conversions further down a
+  solid's unit list, never as the default/selected unit. Many entries
+  already carry a specific piece-based `customUnit` (egg, bread slice,
+  wrap, bagel, rice cake, carrot, tomato, avocado, garlic clove, etc.)
+  rather than falling back to generic weight units. Locked in with a new
+  **regression test** (`src/lib/foodDatabase.test.js`): every entry in
+  `FOOD_DATABASE`, plus a barcode-scanned solid/liquid shape, never
+  defaults to kg/lb/lbs.
+- **Barcode scanning accuracy — audited, found already compliant, no
+  code change needed.** `lookupBarcode()` fetches Open Food Facts'
+  `/api/v2/product/<code>.json` by the *exact* scanned barcode (not a
+  name/fuzzy search), which is what distinguishes flavours/variants/
+  package sizes in the first place — different variants carry different
+  real-world barcodes. `computeConfidence()`/`validateNutrition()`
+  already produce a `verificationLevel` (VERIFIED/LIKELY/REVIEW/
+  UNVERIFIED) and a `nutritionSuspect` flag surfaced in the UI (bug #41),
+  with a `notFound` path when a product can't be confidently resolved
+  rather than silently substituting one. 37 existing tests in
+  `barcodeLookup.test.js` continue to pass unchanged.
+- **Duplicate logging / duplicate records — 3 real gaps found and
+  fixed.** `FoodQuantitySheet`'s ADD (bug class already fixed) and
+  `ClientApp.jsx`'s `guardedAdd`/`addBusyRef` (covers saved meals/recent
+  foods/photo "ADD TO TODAY") were already double-tap safe. Three sibling
+  write paths were not: `QuickAddFoodSheet`'s "Log it" (creates a shared
+  `customFoods` doc), `CreateMealSheet`'s "Save" (creates a saved-meal
+  doc), and `PhotoEstimateSheet`'s "ALSO SAVE AS A MEAL" (same) each
+  fired a synchronous, fire-and-forget Firestore write with no guard —
+  a genuine double-tap before the sheet closed could create two
+  duplicate library/saved-meal docs for the same food/meal. Fixed with
+  the same plain-ref pattern `addBusyRef` already established
+  (`submittingRef`, `savingRef`, `savingMealRef` — reset on each sheet
+  open). **Regression test**:
+  `src/client/nutritionDuplicateSubmitGuards.test.jsx` (new, 3 tests) —
+  two rapid taps on each of the three buttons calls its handler exactly
+  once. Verified via revert/fail/restore: reverting the three guards made
+  all 3 tests fail (2 calls instead of 1), restoring brought them back
+  to green.
+- **Keyboard/background-scroll-lock — audited, confirmed unaffected.**
+  `src/components/bodyScrollLockIOS.test.jsx` (pre-existing, app-wide)
+  and the Phase 2 `keyboardSafeScroll`/visualViewport coverage both still
+  pass unchanged; no duplicate keyboard-handling implementation was
+  introduced.
+- **Full suite**: 190 passed, 38 files passed, 1 file skipped
+  (emulator-only, pre-existing), 59 tests skipped (pre-existing) — up
+  from 184/184 before this audit, nothing newly broken. `npm run lint`:
+  exit 0, no new warnings. `npm run build`: clean.
+- **Not done in this pass, and why**: a live-data migration for existing
+  Firestore documents (custom foods/saved meals/logged entries that may
+  already hold an invalid unit or a true duplicate record) was not
+  attempted — this environment has no access to the production Firestore
+  database, and the master prompt itself says to stop and investigate
+  rather than guess when a change risks corrupting data. The validation
+  rules above apply going forward (new custom foods, new barcode scans,
+  new saved meals); auditing and safely correcting *existing* stored
+  data needs to happen with real database access, as a separate,
+  explicitly-scoped pass.
+- **Manual verification — unverified, no device/TestFlight access from
+  this environment**: the no-images layout, double-tap guards, and
+  barcode confidence UI should all be exercised on a real device/build —
+  confirm Quick Add/Create Meal/Photo Meal no longer show a scanned
+  product's photo, that rapid real double-taps on each affected button
+  produce exactly one food/meal, and that an unverifiable barcode scan
+  clearly prompts for manual entry rather than guessing.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
