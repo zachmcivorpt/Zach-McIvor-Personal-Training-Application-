@@ -1632,6 +1632,64 @@ silence.
   default/selected unit alongside tbsp/tsp, with no grams option.
 - **Date added**: 2026-10-10
 
+### 54. Keyboard-safe scroll spacer generalized into the shared BottomSheet, instead of being re-implemented per Nutrition sheet
+- **Root cause**: bug #52's keyboard-safe scroll spacer (a large spacer
+  reserved below a sheet's content while a text input inside it has
+  focus — see bug #51/#52 for why visualViewport-based detection doesn't
+  work in this app's native WKWebView shell) was wired up as bespoke
+  state (`searchFocused`) and a bespoke `<div>` directly inside
+  `NutritionScreen`'s "Add to [meal]" sheet in `ClientApp.jsx`. Every
+  *other* sheet with a text input — `QuickAddFoodSheet`,
+  `CreateMealSheet`, `PhotoEstimateSheet`, `FoodQuantitySheet` (all in
+  `NutritionFeatures.jsx`) — had no equivalent protection at all, despite
+  each one having a text field followed by a Save/Add/Log button that the
+  keyboard could just as easily cover. This duplication (one sheet fixed,
+  siblings left exposed) is exactly the pattern behind the repeated
+  keyboard/bottom-sheet regressions (#42, #44, #45, #51, #52): each fix
+  solved one screen instead of the shared component underneath all of
+  them.
+- **Fix**: moved the mechanism into the shared `BottomSheet` component
+  itself (`src/components/ui.jsx`) as a new opt-in `keyboardSafeScroll`
+  prop. When passed, `BottomSheet` tracks focus/blur on its own panel
+  (capture-phase listeners, so any input anywhere inside it is covered
+  without each one needing its own handlers) and renders the same 45vh
+  spacer whenever a text-entry element (`<input>` of a text-like type, or
+  `<textarea>`) inside it has focus — clearing it on blur, unless focus
+  moved straight to another text input in the same sheet (no flicker when
+  tabbing between fields). Off by default, so every sheet that doesn't
+  pass it — the large majority of `BottomSheet` usages across the whole
+  app (workout sheets, messages, weigh-ins, account deletion, etc.) — is
+  completely unaffected; this only changes behavior where it's explicitly
+  opted into.
+- **Migrated onto it** (one sheet at a time, each re-verified after):
+  `NutritionScreen`'s "Add to [meal]" sheet (replacing its old bespoke
+  `searchFocused` state/spacer with the new prop — same visible behavior,
+  now generic), `QuickAddFoodSheet`, `CreateMealSheet`,
+  `PhotoEstimateSheet`, and `FoodQuantitySheet`. Each of these sheets'
+  own content, styling, and existing functionality is untouched — only
+  the `<BottomSheet ...>` opening tag gained the new prop.
+- **Regression test**: `src/components/bottomSheetKeyboardCover.test.jsx`
+  — new component-level coverage (alongside the existing visualViewport
+  shrink test in the same file): no spacer when `keyboardSafeScroll` is
+  omitted even with a focused input; no spacer before any input is
+  focused; spacer appears on focus and is removed on blur; a non-text
+  focus target (e.g. a button) never triggers it; focus moving between
+  two text inputs in the same sheet keeps the spacer up without
+  flickering. `src/client/nutritionKeyboardScrollSpacer.test.jsx` (bug
+  #52's original test, unmodified) still passes unchanged against the
+  migrated implementation. Verified with the standard revert/fail/restore
+  cycle: removing the spacer line from `BottomSheet` was confirmed to
+  fail 3 of the new component tests plus the existing Nutrition test,
+  then restoring brought all of them back to green.
+- **Manual verification — native WKWebView unverified, same limitation as
+  #51/#52**: no device/TestFlight build access from this environment.
+  Once on a real device/build: open Quick Add, Create Meal, Log a Meal
+  Photo, and the quantity sheet after a search/scan, focus each sheet's
+  text field, and confirm the Save/Add/Log button can still be scrolled
+  into view above the keyboard, the same way "Add to [meal]" already
+  could after #52.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing

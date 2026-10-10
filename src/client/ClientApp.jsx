@@ -4581,10 +4581,6 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
   function dismissKeyboard() {
     searchInputRef.current?.blur();
   }
-  // Tracks whether the search box currently has focus — used to reserve
-  // extra scroll room below the results while the on-screen keyboard is
-  // (presumably) up. See the spacer this drives, further down.
-  const [searchFocused, setSearchFocused] = useState(false);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -5139,6 +5135,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           setSearch("");
         }}
         title={`Add to ${activeMeal}`}
+        keyboardSafeScroll
       >
         <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
           <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
@@ -5146,8 +5143,6 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             ref={searchInputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
             placeholder="Search foods or meals"
             type="search"
             enterKeyHint="search"
@@ -5360,19 +5355,6 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
               </div>
             )}
           </>
-        )}
-        {searchFocused && (
-          // Reserves generous extra scroll room below whatever's actually
-          // showing, while the search box has focus. This is deliberately
-          // NOT trying to detect the keyboard's real height — on iOS,
-          // WKWebView (this app's actual native shell, unlike Safari)
-          // never reports the keyboard to the page at all, so no amount
-          // of on-screen-keyboard detection can be trusted here. A big
-          // empty spacer works regardless: it just means there's always
-          // more room to scroll a result past wherever the keyboard
-          // happens to sit, using the same plain scroll gesture a client
-          // already uses for the list itself.
-          <div style={{ height: "45vh" }} aria-hidden="true" />
         )}
       </BottomSheet>
 
