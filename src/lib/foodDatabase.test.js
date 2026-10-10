@@ -6,6 +6,7 @@
 // hand-curated.
 import { describe, it, expect } from "vitest";
 import { isLiquidFood, unitsFor, scaleFoodByUnit, FOOD_DATABASE } from "./foodDatabase";
+import { matchesSearch } from "./search";
 
 describe("isLiquidFood", () => {
   it("classifies plain milks and waters as liquid", () => {
@@ -173,40 +174,74 @@ describe("unitsFor — automatic unit sets by food type", () => {
   // logged at a full-serving size (100-350g, real defaultQty values) but
   // lost its normal weight units entirely to a spoon-only set — nobody
   // logs a plate of butter chicken in tablespoons.
-  it("keeps normal weight units (not spoon-only) for a full-size dish that merely contains a spread/condiment word", () => {
+  it("keeps normal weight units (not spoon-only, and never kg) for a full-size dish that merely contains a spread/condiment word", () => {
     const butterChicken = unitsFor({ name: "Butter Chicken", defaultQty: 250 });
-    expect(butterChicken.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(butterChicken.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
     expect(butterChicken.map((u) => u.id)).not.toContain("pat");
+    expect(butterChicken.map((u) => u.id)).not.toContain("kg");
 
     const butterBeans = unitsFor({ name: "Butter Beans (cooked)", defaultQty: 150 });
-    expect(butterBeans.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(butterBeans.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
     expect(butterBeans.map((u) => u.id)).not.toContain("pat");
+    expect(butterBeans.map((u) => u.id)).not.toContain("kg");
 
     const caesarSalad = unitsFor({ name: "Caesar Salad (with dressing)", defaultQty: 200 });
-    expect(caesarSalad.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(caesarSalad.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(caesarSalad.map((u) => u.id)).not.toContain("kg");
 
     const chips = unitsFor({ name: "Salt and Vinegar Crinkle Cut Potato Chips (Aldi)", defaultQty: 100 });
-    expect(chips.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(chips.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(chips.map((u) => u.id)).not.toContain("kg");
 
     const honeyBar = unitsFor({ name: "Nature Valley Oats & Honey Bar", defaultQty: 42 });
-    expect(honeyBar.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(honeyBar.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(honeyBar.map((u) => u.id)).not.toContain("kg");
   });
 
-  it("gives a generic weighed solid oz/lb/kg on top of grams, matching MyFitnessPal's mince/potato unit lists", () => {
-    const mince = unitsFor({ name: "5% Lean Beef Mince (Aldi)" });
-    const minceIds = mince.map((u) => u.id);
-    expect(minceIds[0]).toBe("g");
-    expect(minceIds).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
-
+  // Nutrition fix (generalized beyond meat): kg is never offered as a
+  // selectable logging unit for ANY individual solid food serving — not
+  // just meat/fish. Nobody logs a potato, a slice of cheese, or a plate
+  // of butter chicken in kilograms. oz/lb stay, since those genuinely are
+  // used for a single portion.
+  it("gives a generic weighed solid oz/lb on top of grams, matching MyFitnessPal's potato unit list — but never kg", () => {
     const potatoes = unitsFor({ name: "Washed White Potatoes" });
-    expect(potatoes.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    const ids = potatoes.map((u) => u.id);
+    expect(ids).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(ids).not.toContain("kg");
+  });
+
+  // Real production report: an individual meat/fish portion (a chicken
+  // breast, a steak, a scoop of mince) offered kg as a loggable unit — a
+  // bulk/wholesale unit nobody uses for a single meal. oz/lb stay
+  // (genuinely used for a single cut — "an 8oz steak," "a pound of
+  // mince"), but kg is dropped specifically for this category, at the
+  // shared classifier level so it never reappears from any source
+  // (static database, barcode scan, custom food, saved meal).
+  it("gives meat/fish an individual-portion unit set — g base, oz/lb, but never kg", () => {
+    const meatNames = [
+      "5% Lean Beef Mince (Aldi)",
+      "Chicken Breast",
+      "Scotch Fillet Steak (ribeye, grilled)",
+      "Pork Loin",
+      "Lamb Chops (grilled)",
+      "Salmon Fillet",
+      "Cod",
+    ];
+    meatNames.forEach((name) => {
+      const ids = unitsFor({ name, defaultQty: 150 }).map((u) => u.id);
+      expect(ids[0], name).toBe("g");
+      expect(ids, name).toContain("oz");
+      expect(ids, name).toContain("lb");
+      expect(ids, name).not.toContain("kg");
+    });
   });
 
   it("still applies a food's own customUnit (e.g. Weet-Bix's 'biscuit') alongside the auto-detected weight units", () => {
     const units = unitsFor({ name: "Sanitarium Weet-Bix", customUnit: { label: "biscuit", pluralLabel: "biscuits", grams: 15 } });
     const ids = units.map((u) => u.id);
     expect(ids).toContain("piece");
-    expect(ids).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(ids).toEqual(expect.arrayContaining(["oz", "lb"]));
+    expect(ids).not.toContain("kg");
   });
 
   // Tried and removed per real client feedback: a "container" unit (1
@@ -265,9 +300,23 @@ describe("scaleFoodByUnit — correct macro recalculation across the newly-added
     expect(scaled.protein).toBeCloseTo(26 * 4.5359, 0);
   });
 
-  it("recalculates correctly for 0.5 kg", () => {
+  // No individual solid food — meat/fish included, or any other solid —
+  // offers kg as a selectable logging unit any more (see the unitsFor
+  // tests above). A caller still requesting it falls back to the food's
+  // own base unit (g), the same safe fallback the "invalid unitId" case
+  // below already relies on, rather than silently doing kg-scale math
+  // against a unit that isn't really offered.
+  it("falls back to grams (not kg-scale math) when 'kg' is requested for any solid food", () => {
     const scaled = scaleFoodByUnit(mince, "kg", 0.5);
-    expect(scaled.cals).toBe(Math.round(172 * 5));
+    expect(scaled.unitId).toBe("g");
+    // "kg" isn't a real unit for this food, so the requested quantity (0.5)
+    // is treated as 0.5 of the base unit (grams), not 0.5kg.
+    expect(scaled.cals).toBe(Math.round((172 * 0.5) / 100));
+
+    const rice = { id: "rice", name: "White Rice (cooked)", cals: 130, protein: 2.4, carbs: 28, fat: 0.3, per: 100, defaultQty: 180 };
+    const riceScaled = scaleFoodByUnit(rice, "kg", 0.5);
+    expect(riceScaled.unitId).toBe("g");
+    expect(riceScaled.cals).toBe(Math.round((130 * 0.5) / 100));
   });
 
   const butter = { id: "butter", name: "Butter, Salted", cals: 717, protein: 0.9, carbs: 0.1, fat: 81, per: 100, defaultQty: 10 };
@@ -303,23 +352,39 @@ describe("real library data sanity check", () => {
     });
   });
 
-  // Nutrition Overhaul requirement: kg/lb are never acceptable DEFAULT
-  // serving units for an individual food — nobody opens a food's quantity
-  // sheet and sees "0.15 lb of chicken breast" pre-selected. They may
-  // still appear further down a solid's unit list as an optional
-  // conversion (unitsFor already offers oz/lb/kg there), but the first
-  // entry — the one a food's quantity sheet actually defaults to — must
-  // always be g or ml, for every entry in the static database and for any
-  // barcode-scanned product shape, regardless of its own `liquid` flag.
-  it("never defaults an individual food's quantity to kg/lb/lbs, in the static database or a barcode-scanned shape", () => {
+  // Nutrition Overhaul requirement: lb is never an acceptable DEFAULT
+  // serving unit for an individual food — nobody opens a food's quantity
+  // sheet and sees "0.15 lb of chicken breast" pre-selected; the first
+  // entry (what the sheet actually defaults to) must always be g or ml.
+  it("never defaults an individual food's quantity to lb/lbs, in the static database or a barcode-scanned shape", () => {
     FOOD_DATABASE.forEach((food) => {
       const defaultUnit = unitsFor(food)[0];
-      expect(["kg", "lb", "lbs"]).not.toContain(defaultUnit.id);
+      expect(["lb", "lbs"]).not.toContain(defaultUnit.id);
     });
     const scannedSolid = { name: "Mystery Snack Bar", defaultQty: 40, liquid: false };
     const scannedLiquid = { name: "Mystery Drink", defaultQty: 330, liquid: true };
-    expect(["kg", "lb", "lbs"]).not.toContain(unitsFor(scannedSolid)[0].id);
-    expect(["kg", "lb", "lbs"]).not.toContain(unitsFor(scannedLiquid)[0].id);
+    expect(["lb", "lbs"]).not.toContain(unitsFor(scannedSolid)[0].id);
+    expect(["lb", "lbs"]).not.toContain(unitsFor(scannedLiquid)[0].id);
+  });
+
+  // Stronger follow-up fix: kg isn't just kept out of the DEFAULT unit —
+  // it's never offered as a selectable unit at all, anywhere, for any
+  // individual food serving (static database, or a barcode-scanned/
+  // custom-food shape), full stop. The only kg usage left in the app is
+  // unrelated to food logging entirely: body-weight tracking
+  // (CoachClientDetail.jsx) and the shopping list's own bulk/aggregated
+  // display (shoppingList.js) — neither goes through unitsFor().
+  it("never offers kg as a selectable unit at all, for any individual food", () => {
+    FOOD_DATABASE.forEach((food) => {
+      const ids = unitsFor(food).map((u) => u.id);
+      expect(ids, food.name).not.toContain("kg");
+    });
+    const scannedSolid = { name: "Mystery Snack Bar", defaultQty: 40, liquid: false };
+    const scannedLiquid = { name: "Mystery Drink", defaultQty: 330, liquid: true };
+    const customMeat = { name: "Coach-added Lamb Shoulder", defaultQty: 300, liquid: false };
+    expect(unitsFor(scannedSolid).map((u) => u.id)).not.toContain("kg");
+    expect(unitsFor(scannedLiquid).map((u) => u.id)).not.toContain("kg");
+    expect(unitsFor(customMeat).map((u) => u.id)).not.toContain("kg");
   });
 
   // Pinned by id (not just by re-typed name) against the REAL, live
@@ -338,6 +403,102 @@ describe("real library data sanity check", () => {
     liquid.forEach((id) => {
       expect(byId[id], `missing fixture id ${id} — database entry may have been renumbered`).toBeTruthy();
       expect(isLiquidFood(byId[id]), byId[id]?.name).toBe(true);
+    });
+  });
+
+  // Catches any future accidental duplicate before it ships — same food
+  // and variant represented twice (by name) inflates search results and
+  // invites a client to pick the "wrong" copy of what's really one food.
+  it("has no two entries with the exact same name (case-insensitive)", () => {
+    const seen = new Map();
+    const dupes = [];
+    FOOD_DATABASE.forEach((f) => {
+      const key = (f.name || "").toLowerCase().trim();
+      if (seen.has(key)) dupes.push([seen.get(key), f.id]);
+      else seen.set(key, f.id);
+    });
+    expect(dupes).toEqual([]);
+  });
+});
+
+describe("generic café coffees (espresso, long black/americano, latte, cappuccino, macchiato, mocha, iced coffee)", () => {
+  const COFFEE_NAMES = ["Espresso / Short Black", "Long Black / Americano", "Latte", "Cappuccino", "Macchiato", "Mocha", "Iced Coffee"];
+
+  function byName(name) {
+    return FOOD_DATABASE.find((f) => f.name === name);
+  }
+
+  it("exists exactly once each, found by id (locks in the real database entries, not a reconstructed fixture)", () => {
+    COFFEE_NAMES.forEach((name) => {
+      const matches = FOOD_DATABASE.filter((f) => f.name === name);
+      expect(matches.length, name).toBe(1);
+    });
+  });
+
+  it("is searchable by its own name and by each listed synonym", () => {
+    const queries = ["espresso", "short black", "long black", "americano", "latte", "cappuccino", "macchiato", "mocha", "iced coffee", "flat white"];
+    queries.forEach((q) => {
+      const hit = FOOD_DATABASE.some((f) => matchesSearch(f.name, q));
+      expect(hit, `no food matches search "${q}"`).toBe(true);
+    });
+    // "flat white" already matches the existing b04 entry — confirms no
+    // duplicate "Flat White" entry was needed alongside it.
+    expect(matchesSearch("Coffee with Milk (flat white)", "flat white")).toBe(true);
+  });
+
+  it("classifies every one of them as liquid, ml-based (never grams)", () => {
+    COFFEE_NAMES.forEach((name) => {
+      const food = byName(name);
+      expect(food, name).toBeTruthy();
+      expect(isLiquidFood(food), name).toBe(true);
+      expect(unitsFor(food)[0].id, name).toBe("ml");
+    });
+  });
+
+  it("never offers 'cup' for a shot-sized black coffee (espresso, long black/americano, macchiato)", () => {
+    ["Espresso / Short Black", "Long Black / Americano", "Macchiato"].forEach((name) => {
+      const ids = unitsFor(byName(name)).map((u) => u.id);
+      expect(ids, name).not.toContain("cup");
+      expect(ids, name).not.toContain("tbsp");
+    });
+  });
+
+  it("offers 'cup' for the larger milk-based/sweetened coffees (latte, cappuccino, mocha, iced coffee)", () => {
+    ["Latte", "Cappuccino", "Mocha", "Iced Coffee"].forEach((name) => {
+      const ids = unitsFor(byName(name)).map((u) => u.id);
+      expect(ids, name).toContain("cup");
+    });
+  });
+
+  it("represents black, milk-based and sweetened/mocha coffee as genuinely different nutrition, not copies of each other", () => {
+    const espresso = byName("Espresso / Short Black");
+    const latte = byName("Latte");
+    const mocha = byName("Mocha");
+    // Black coffee is calorie-negligible; milk-based is meaningfully
+    // higher; mocha (chocolate added) is higher again, with real sugar.
+    expect(espresso.cals).toBeLessThan(latte.cals);
+    expect(latte.cals).toBeLessThan(mocha.cals);
+    expect(mocha.sugar).toBeGreaterThan(0);
+    expect(espresso.sugar || 0).toBe(0);
+  });
+
+  it("scales calories and macros correctly when the logged quantity changes (serving-size scaling)", () => {
+    const latte = byName("Latte");
+    const halfServe = scaleFoodByUnit(latte, "ml", 140); // half of its 280ml default
+    const fullServe = scaleFoodByUnit(latte, "ml", 280);
+    expect(halfServe.cals).toBe(Math.round(fullServe.cals / 2));
+    expect(halfServe.protein).toBeCloseTo(fullServe.protein / 2, 1);
+
+    const doubleShot = scaleFoodByUnit(byName("Espresso / Short Black"), "ml", 60); // a double shot
+    expect(doubleShot.cals).toBe(Math.round(9 * 0.6));
+  });
+
+  it("logs with correct, non-zero macros via the same scaleFoodByUnit path the rest of Nutrition logging uses", () => {
+    COFFEE_NAMES.forEach((name) => {
+      const food = byName(name);
+      const resolved = scaleFoodByUnit(food, "ml", food.defaultQty);
+      expect(resolved.cals, name).toBeGreaterThan(0);
+      expect(resolved.unitId, name).toBe("ml");
     });
   });
 });
