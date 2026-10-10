@@ -1473,27 +1473,90 @@ export const FOOD_DATABASE = [
 
 // Standard weight/volume unit conversions (approximated at water density for
 // volume units — the same simplification virtually every food-tracking app
-// uses). A food's `units` field lists which of these it can also be logged
-// in; `customUnit` adds one food-specific "piece" unit (1 egg, 1 slice, 1
-// banana...). Grams is always available as the universal fallback.
+// uses). A food's `units` field lists extra units to offer ON TOP OF the
+// ones automatically inferred below (see unitsFor); `customUnit` adds one
+// food-specific "piece" unit (1 egg, 1 slice, 1 banana...). The base unit
+// (grams or ml) is always available.
 export const UNIT_DEFS = {
   g: { id: "g", label: "g", grams: 1 },
   ml: { id: "ml", label: "ml", grams: 1 },
   tbsp: { id: "tbsp", label: "tbsp", grams: 15 },
   tsp: { id: "tsp", label: "tsp", grams: 5 },
   cup: { id: "cup", label: "cup", pluralLabel: "cups", grams: 240 },
-  oz: { id: "oz", label: "oz", grams: 28 },
+  oz: { id: "oz", label: "oz", grams: 28.35 },
+  lb: { id: "lb", label: "lb", grams: 453.59 },
+  kg: { id: "kg", label: "kg", grams: 1000 },
+  pat: { id: "pat", label: "pat", grams: 5 },
+  stick: { id: "stick", label: "stick", pluralLabel: "sticks", grams: 113 },
 };
 
-// The full list of loggable units for a food, in display order: grams
-// first (universal default), then its own "piece" unit if it has one,
-// then any other declared units (tbsp, cup, etc).
+// Automatic per-food-type unit detection — every food in the library (and
+// every future barcode scan) gets a sensible unit set without needing to be
+// hand-curated one at a time, the same way MyFitnessPal offers ml/cup for a
+// milk, tbsp/tsp/cup/pat/stick for a butter, and g/oz/lb/kg for a weighed
+// solid like mince or potatoes, purely from knowing what kind of product it
+// is. `food.units` (if present) ADDS to this rather than replacing it, so
+// the handful of foods already hand-curated with specific units keep them.
+//
+// Word-boundary regexes, checked in priority order so a strong multi-word
+// beverage phrase (e.g. "Hot Chocolate", "Chai Latte") is recognised as a
+// drink before the bare word "chocolate" can route it the other way — and
+// so an actual chocolate BAR/candy/dessert ("Milk Chocolate", "Milk Creme")
+// never gets classified as a drinkable liquid just because "milk" appears
+// in its name.
+const STRONG_LIQUID_RE =
+  /\b(hot chocolate|iced chocolate|iced tea|iced latte|iced mocha|chai latte|flat white|cappuccino|macchiato|babyccino|latte|mocha|smoothie|milkshake|protein shake|kombucha|cordial|soda|soft drink|energy drink|coconut water|stock|broth)\b/i;
+const SOLID_OVERRIDE_RE = /\b(chocolate|bar|biscuit|wafer|candy|liquorice|fudge|cookie|cream pie|creme|yoghurt|yogurt|cheese|pudding|custard|ice cream)\b/i;
+const PLAIN_LIQUID_RE = /\b(milk|juice|water)\b/i;
+const SPREAD_RE = /\b(butter|margarine|ghee)\b/i;
+const CONDIMENT_RE = /\b(honey|sauce|syrup|jam|dressing|mayonnaise|mayo|peanut butter|nut butter|nutella|vinegar|gravy)\b/i;
+
+export function isLiquidFood(food) {
+  if (food.liquid === true) return true;
+  if (food.liquid === false) return false;
+  const name = food.name || "";
+  if (STRONG_LIQUID_RE.test(name)) return true;
+  if (SOLID_OVERRIDE_RE.test(name)) return false;
+  return PLAIN_LIQUID_RE.test(name);
+}
+
+function autoUnitIds(food, liquid) {
+  const name = food.name || "";
+  if (liquid) return ["cup", "tbsp"];
+  if (SPREAD_RE.test(name)) return ["tbsp", "tsp", "cup", "pat", "stick"];
+  if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp"];
+  return ["oz", "lb", "kg"];
+}
+
+// A known real-world package size (e.g. a 3L milk jug, a 500g mince tray) —
+// set on the static database per-item, or parsed from a barcode scan's own
+// Open Food Facts `quantity` field (see barcodeLookup.js) — becomes a
+// "container" unit, same as MyFitnessPal's "1 container (3,000.00 ml)".
+function containerUnit(grams, liquid) {
+  const amount = Math.round(grams * 100) / 100;
+  const suffix = liquid ? "ml" : "g";
+  return {
+    id: "container",
+    label: `container (${amount}${suffix})`,
+    pluralLabel: `containers (${amount}${suffix})`,
+    grams,
+  };
+}
+
+// The full list of loggable units for a food, in display order: the base
+// unit first (grams, or ml for a liquid), then its own "piece" unit if it
+// has one, then every unit its product type automatically earns (see
+// autoUnitIds) plus any hand-curated extras from `food.units`, then a
+// known package-size "container" unit if one is set.
 export function unitsFor(food) {
-  const list = [UNIT_DEFS.g];
+  const liquid = isLiquidFood(food);
+  const base = liquid ? UNIT_DEFS.ml : UNIT_DEFS.g;
+  const list = [base];
   if (food.customUnit) list.push({ id: "piece", ...food.customUnit });
-  (food.units || []).forEach((id) => {
-    if (UNIT_DEFS[id] && id !== "g") list.push(UNIT_DEFS[id]);
+  [...autoUnitIds(food, liquid), ...(food.units || [])].forEach((id) => {
+    if (UNIT_DEFS[id] && id !== base.id && !list.some((u) => u.id === id)) list.push(UNIT_DEFS[id]);
   });
+  if (food.containerGrams) list.push(containerUnit(food.containerGrams, liquid));
   return list;
 }
 

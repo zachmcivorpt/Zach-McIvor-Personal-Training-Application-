@@ -19,6 +19,26 @@ function parseServingGrams(product) {
   return match ? parseFloat(match[1]) : null;
 }
 
+// Open Food Facts' `quantity` field is the real package size as printed on
+// the pack (e.g. "500 g", "3 L", "750mL", "1kg") — far more reliable than
+// guessing from the product name whether a scanned item is a liquid (ml)
+// or a weighed solid (g), and it's also exactly the figure that becomes
+// the "1 container (...)" unit, same as every other food-tracking app
+// offers for a scanned product's own pack size.
+function parseQuantity(product) {
+  const raw = String(product.quantity || product.product_quantity || "").trim();
+  if (!raw) return null;
+  const match = raw.match(/(\d+(?:[.,]\d+)?)\s*(kg|g|l|ml|mL)\b/i);
+  if (!match) return null;
+  const amount = parseFloat(match[1].replace(",", "."));
+  if (!(amount > 0)) return null;
+  const unit = match[2].toLowerCase();
+  if (unit === "kg") return { grams: amount * 1000, liquid: false };
+  if (unit === "g") return { grams: amount, liquid: false };
+  if (unit === "l") return { grams: amount * 1000, liquid: true };
+  return { grams: amount, liquid: true }; // ml
+}
+
 // Open Food Facts is crowd-sourced — anyone can submit a product's label,
 // and mismatched/mistyped entries do slip through (a flavoured variant's
 // numbers saved under the plain product's barcode, a misplaced decimal,
@@ -291,6 +311,8 @@ function mapProductToFood(product, code) {
 
   const servingGrams = parseServingGrams(product);
 
+  const packageInfo = parseQuantity(product);
+
   const food = {
     id: `off_${code}`,
     name,
@@ -306,6 +328,12 @@ function mapProductToFood(product, code) {
     per: 100,
     defaultQty: servingGrams || 100,
     fromBarcode: true,
+    // Lets unitsFor() (foodDatabase.js) show ml/cup/tbsp instead of
+    // g/oz/lb/kg, and offer a "1 container (...)" unit at the real
+    // package size — both read straight off Open Food Facts' own
+    // `quantity` field rather than guessing from the product name, since
+    // every scanned product has this real, structured data available.
+    ...(packageInfo ? { liquid: packageInfo.liquid, containerGrams: packageInfo.grams } : {}),
   };
 
   const validation = validateNutrition({ cals, protein, carbs, fat });

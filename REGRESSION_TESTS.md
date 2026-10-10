@@ -1177,6 +1177,51 @@ silence.
   immediately, not stay covering the screen.
 - **Date added**: 2026-10-10
 
+### 43. Food units weren't type-aware — every food offered the same generic unit list
+- **Root cause**: `unitsFor()` (`foodDatabase.js`) always put grams first
+  and only ever added whatever a food happened to have hand-curated into
+  its own `units`/`customUnit` fields — most of the ~1,400 static library
+  entries had neither, so a milk, a jar of honey, and a tray of mince all
+  offered the exact same bare "grams" picker, unlike MyFitnessPal (and
+  every other food tracker) which infers ml/cup for a liquid,
+  tbsp/tsp/cup/pat/stick for a spread, tbsp/tsp for a condiment, and
+  g/oz/lb/kg for a generic weighed solid, purely from knowing what kind of
+  product it is.
+- **Fix**: added `isLiquidFood()` and an `autoUnitIds()` classifier (name
+  regexes, checked in priority order so a strong beverage phrase like "Hot
+  Chocolate" or "Chai Latte" is recognised as a drink before the bare word
+  "chocolate" can route it the other way, and an actual chocolate bar/
+  candy — "Milk Chocolate", "Milk Creme" — is never misclassified as
+  liquid just because "milk" appears in its name). `unitsFor()` now
+  applies this automatically to every food — static library entry, quick
+  add, or barcode scan — with a food's own `units` field ADDING further
+  options on top rather than replacing the automatic set, so the handful
+  of foods already hand-curated keep working unchanged. Liquids now show
+  ml as the base unit instead of grams (no more "150g of milk"). Also
+  added a "container" unit at a food's real known package size when one's
+  set, and a known-package-size + liquid/solid signal is now read straight
+  off Open Food Facts' own `quantity` field (`barcodeLookup.js`'s
+  `parseQuantity()`) for every future barcode scan — real structured pack
+  data, not a name guess.
+- **Regression test**: `src/lib/foodDatabase.test.js` (new file) —
+  classification correctness for milks/waters, strong beverage phrases,
+  chocolate/candy false-positive avoidance, the "honeydew" substring trap,
+  an explicit `liquid` override, spread/condiment/generic-solid unit sets,
+  customUnit + auto-units coexisting, container-unit formatting, the
+  never-both-g-and-ml invariant, correct macro math for the newly-added
+  lb/kg/pat/stick units, and a sanity sweep asserting every single entry
+  in the real `FOOD_DATABASE` resolves a valid g/ml-first unit list
+  without throwing. `src/lib/barcodeLookup.test.js` gained 3 more cases
+  covering `quantity`-field parsing for both ml and g packages, and the
+  no-quantity-field fallback. Verified 17 of the new `foodDatabase.test.js`
+  cases fail against the prior code (reverted); restored and re-verified
+  all 17 passing, plus the barcode cases.
+- **Manual verification**: scan or search a milk — the quantity sheet
+  should default to ml with cup/tbsp options, no grams option; a honey or
+  sauce should offer tbsp/tsp; butter should offer tbsp/tsp/cup/pat/stick;
+  mince, chicken, potatoes etc. should offer g/oz/lb/kg.
+- **Date added**: 2026-10-10
+
 ---
 
 ## What still requires manual testing
