@@ -111,18 +111,44 @@ describe("unitsFor — automatic unit sets by food type", () => {
     expect(ids).toContain("tbsp");
   });
 
-  it("gives a spread (butter/margarine/ghee) tbsp/tsp/cup/pat/stick, based in grams", () => {
-    const units = unitsFor({ name: "Butter, Salted" });
+  it("gives a spread (butter/margarine/ghee), at a real small serving size, tbsp/tsp/cup/pat/stick, based in grams", () => {
+    const units = unitsFor({ name: "Butter, Salted", defaultQty: 10 });
     const ids = units.map((u) => u.id);
     expect(ids[0]).toBe("g");
     expect(ids).toEqual(expect.arrayContaining(["tbsp", "tsp", "cup", "pat", "stick"]));
   });
 
-  it("gives a condiment tbsp/tsp without the weight units a plain solid gets", () => {
-    const units = unitsFor({ name: "Capilano Pure Honey" });
+  it("gives a condiment, at a real small serving size, tbsp/tsp without the weight units a plain solid gets", () => {
+    const units = unitsFor({ name: "Capilano Pure Honey", defaultQty: 15 });
     const ids = units.map((u) => u.id);
     expect(ids).toEqual(expect.arrayContaining(["tbsp", "tsp"]));
     expect(ids).not.toContain("lb");
+  });
+
+  // Real misclassifications found auditing every entry in the static
+  // database: a whole DISH that merely contains a spread/condiment word
+  // as an ingredient ("Butter Chicken," "Butter Beans," "Caesar Salad
+  // (with dressing)," "Salt and Vinegar ... Chips," "... Honey Bar") was
+  // logged at a full-serving size (100-350g, real defaultQty values) but
+  // lost its normal weight units entirely to a spoon-only set — nobody
+  // logs a plate of butter chicken in tablespoons.
+  it("keeps normal weight units (not spoon-only) for a full-size dish that merely contains a spread/condiment word", () => {
+    const butterChicken = unitsFor({ name: "Butter Chicken", defaultQty: 250 });
+    expect(butterChicken.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(butterChicken.map((u) => u.id)).not.toContain("pat");
+
+    const butterBeans = unitsFor({ name: "Butter Beans (cooked)", defaultQty: 150 });
+    expect(butterBeans.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+    expect(butterBeans.map((u) => u.id)).not.toContain("pat");
+
+    const caesarSalad = unitsFor({ name: "Caesar Salad (with dressing)", defaultQty: 200 });
+    expect(caesarSalad.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+
+    const chips = unitsFor({ name: "Salt and Vinegar Crinkle Cut Potato Chips (Aldi)", defaultQty: 100 });
+    expect(chips.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
+
+    const honeyBar = unitsFor({ name: "Nature Valley Oats & Honey Bar", defaultQty: 42 });
+    expect(honeyBar.map((u) => u.id)).toEqual(expect.arrayContaining(["oz", "lb", "kg"]));
   });
 
   it("gives a generic weighed solid oz/lb/kg on top of grams, matching MyFitnessPal's mince/potato unit lists", () => {

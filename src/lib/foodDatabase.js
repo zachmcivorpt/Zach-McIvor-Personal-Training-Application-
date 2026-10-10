@@ -1568,8 +1568,23 @@ function autoUnitIds(food, liquid) {
     if (PLAIN_LIQUID_RE.test(name) && !STRONG_LIQUID_RE.test(name)) return ["cup", "tbsp"];
     return ["cup"];
   }
-  if (SPREAD_RE.test(name)) return ["tbsp", "tsp", "cup", "pat", "stick"];
-  if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp"];
+  // A real condiment/spread SERVING (what defaultQty actually holds for
+  // this entry) is always small — a dollop, a drizzle, a scoop. A whole
+  // DISH that merely contains one as an ingredient ("Butter Chicken,"
+  // "Caesar Salad (with dressing)," "Salt and Vinegar ... Chips," "...
+  // Honey Bar," "Butter Beans") matched the same word but is logged at a
+  // full-serving size (100-350g, found auditing the real database) —
+  // except a snack bar, which can be small (42g) and still isn't honey
+  // itself, hence the explicit word list below alongside the size check.
+  // For either signal, losing weight units entirely to a spoon-only set
+  // was a real bug (nobody logs a plate of butter chicken, or a granola
+  // bar, in tablespoons). Below both thresholds, keep the spoon-first set
+  // a genuine condiment needs; above either, keep the normal weight units
+  // and let tbsp/tsp ride along as a harmless bonus rather than replacing
+  // them.
+  const looksLikeDish = /\b(bar|chips|salad|chicken|beans?|wrap|sandwich|pot|bites?|pie)\b/i.test(name) || (food.defaultQty || 100) > 60;
+  if (SPREAD_RE.test(name)) return looksLikeDish ? ["tbsp", "tsp", "oz", "lb", "kg"] : ["tbsp", "tsp", "cup", "pat", "stick"];
+  if (CONDIMENT_RE.test(name)) return looksLikeDish ? ["tbsp", "tsp", "oz", "lb", "kg"] : ["tbsp", "tsp"];
   return ["oz", "lb", "kg"];
 }
 
