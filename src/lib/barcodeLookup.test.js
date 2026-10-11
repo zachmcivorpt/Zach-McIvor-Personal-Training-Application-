@@ -188,6 +188,47 @@ describe("lookupBarcode", () => {
     });
   }
 
+  it("merges the brand into the name when Open Food Facts reports them separately", async () => {
+    mockOff(1, {
+      product_name: "Tim Tam Original",
+      brands: "Arnott's",
+      nutriments: { "energy-kcal_100g": 500, proteins_100g: 5, carbohydrates_100g: 65, fat_100g: 25 },
+    });
+    const food = await lookupBarcode("9300000000142");
+    expect(food.name).toBe("Arnott's Tim Tam Original");
+    expect(food.brand).toBe("Arnott's");
+    expect(food.source.name).toBe("Tim Tam Original"); // provenance keeps the raw OFF name, unmodified
+  });
+
+  it("does not double up the brand when the name already starts with it", async () => {
+    mockOff(1, {
+      product_name: "Arnott's Tim Tam Dark",
+      brands: "Arnott's",
+      nutriments: { "energy-kcal_100g": 500, proteins_100g: 5, carbohydrates_100g: 65, fat_100g: 25 },
+    });
+    const food = await lookupBarcode("9300000000159");
+    expect(food.name).toBe("Arnott's Tim Tam Dark");
+  });
+
+  it("uses only the first brand when Open Food Facts lists several, comma-separated", async () => {
+    mockOff(1, {
+      product_name: "Shared Product",
+      brands: "Arnott's,Campbell's",
+      nutriments: { "energy-kcal_100g": 500, proteins_100g: 5, carbohydrates_100g: 65, fat_100g: 25 },
+    });
+    const food = await lookupBarcode("9300000000166");
+    expect(food.name).toBe("Arnott's Shared Product");
+  });
+
+  it("leaves the name as-is when Open Food Facts has no brand at all", async () => {
+    mockOff(1, {
+      product_name: "Unbranded Item",
+      nutriments: { "energy-kcal_100g": 500, proteins_100g: 5, carbohydrates_100g: 65, fat_100g: 25 },
+    });
+    const food = await lookupBarcode("9300000000173");
+    expect(food.name).toBe("Unbranded Item");
+  });
+
   it("maps a found product with complete nutrition into a FOOD_DATABASE-shaped entry", async () => {
     mockOff(1, {
       product_name: "Test Muesli Bar",
@@ -205,7 +246,7 @@ describe("lookupBarcode", () => {
       },
     });
     const food = await lookupBarcode("9300000000011");
-    expect(food.name).toBe("Test Muesli Bar");
+    expect(food.name).toBe("TestBrand Test Muesli Bar"); // brand merged into the name — see "merges the brand into the name" below
     expect(food.brand).toBe("TestBrand");
     expect(food.cals).toBe(440);
     expect(food.protein).toBe(9.3);
@@ -406,7 +447,7 @@ describe("debugLookupBarcode", () => {
     expect(trace.confidenceScore).toBeGreaterThanOrEqual(90);
     expect(trace.verificationLevel).toBe("VERIFIED");
     expect(trace.confidenceBreakdown.length).toBeGreaterThan(0);
-    expect(trace.finalFood.name).toBe("Trace Test");
+    expect(trace.finalFood.name).toBe("TestBrand Trace Test"); // brand merged into the name
     expect(trace.nutritionValidation.plausible).toBe(true);
   });
 
