@@ -1310,7 +1310,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
 ============================================================================ */
 
 export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = false }) {
-  const { createFood } = useApp();
+  const { db, createFood } = useApp();
   const [status, setStatus] = useState("pick"); // pick | build
   const [photoUrl, setPhotoUrl] = useState(null);
   const [name, setName] = useState("");
@@ -1360,7 +1360,14 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   );
   const totals = { cals: Math.round(rawTotals.cals), protein: round1(rawTotals.protein), carbs: round1(rawTotals.carbs), fat: round1(rawTotals.fat) };
 
-  const filtered = FOOD_DATABASE.filter((f) => matchesSearch(f.name, search));
+  // Same merge as NutritionScreen's own `allFoods` (ClientApp.jsx) — without
+  // this, a barcode-discovered or coach-added customFoods entry (including
+  // a client's own label correction) was invisible here even though it's
+  // already searchable everywhere else, so building a meal silently fell
+  // back to typing it in again from scratch.
+  const customFoodIds = new Set((db.customFoods || []).map((f) => f.id));
+  const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
+  const filtered = allFoods.filter((f) => matchesSearch(f.name, search));
 
   function addIngredient(food) {
     setIngredients((list) => [...list, { ...food, id: `ing_${Math.random().toString(36).slice(2, 8)}` }]);
@@ -1565,7 +1572,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
 const MEAL_TYPE_OPTIONS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 
 export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes = false, dark = false }) {
-  const { createFood } = useApp();
+  const { db, createFood } = useApp();
   const [name, setName] = useState("");
   const [ingredients, setIngredients] = useState([]);
   const [mealTypes, setMealTypes] = useState([]);
@@ -1604,7 +1611,14 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   );
   const totals = { cals: Math.round(rawTotals.cals), protein: round1(rawTotals.protein), carbs: round1(rawTotals.carbs), fat: round1(rawTotals.fat) };
 
-  const filtered = FOOD_DATABASE.filter((f) => matchesSearch(f.name, search));
+  // Same merge as NutritionScreen's own `allFoods` (ClientApp.jsx) — without
+  // this, a barcode-discovered or coach-added customFoods entry (including
+  // a client's own label correction) was invisible here even though it's
+  // already searchable everywhere else, so building a meal silently fell
+  // back to typing it in again from scratch.
+  const customFoodIds = new Set((db.customFoods || []).map((f) => f.id));
+  const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
+  const filtered = allFoods.filter((f) => matchesSearch(f.name, search));
 
   function addIngredient(food) {
     setIngredients((list) => [...list, { ...food, id: `ing_${Math.random().toString(36).slice(2, 8)}` }]);

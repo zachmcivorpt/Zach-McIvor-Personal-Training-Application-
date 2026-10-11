@@ -345,6 +345,29 @@ async function fetchFirstMatch(variants) {
   });
 }
 
+// Open Food Facts stores a product's brand separately from its name
+// (`product.brands`), and crowd-sourced `product_name` entries often don't
+// repeat it ("Tim Tam Original" with brands: "Arnott's") — so a scanned
+// product's own displayed/searched name silently had no brand in it at
+// all. That matters here specifically: `matchesSearch` (search.js) only
+// ever checks `food.name`, and every search results list only ever
+// renders `food.name` — never `food.brand` — so an unprefixed name meant
+// the product couldn't be found by searching its brand, and read as
+// generic in every list it appeared in. Every branded FOOD_DATABASE entry
+// already carries its brand in the name string for exactly this reason;
+// this makes a scanned product follow the same rule. Only the first
+// listed brand is used (OFF sometimes comma-separates several), and only
+// when the name doesn't already start with it — many OFF entries already
+// do include the brand, and prefixing it twice ("Arnott's Arnott's Tim
+// Tam Original") would be worse than the gap this fixes.
+function withBrandInName(name, brands) {
+  if (!brands) return name;
+  const primaryBrand = brands.split(",")[0].trim();
+  if (!primaryBrand) return name;
+  if (name.toLowerCase().startsWith(primaryBrand.toLowerCase())) return name;
+  return `${primaryBrand} ${name}`;
+}
+
 // Maps a raw Open Food Facts product onto a FOOD_DATABASE-shaped entry, or
 // returns a {notFound, reason, productName} descriptor when there's no
 // usable nutrition on it yet. Pulled out of lookupBarcode so the debug
@@ -353,7 +376,11 @@ async function fetchFirstMatch(variants) {
 // sync with it.
 function mapProductToFood(product, code) {
   const n = product.nutriments || {};
-  const name = product.product_name || product.generic_name || `Scanned item (${code})`;
+  // The raw OFF name, kept for `source` (provenance — see below) and for
+  // the not-found/no-nutrition error paths, where there's no brand-merge
+  // benefit (nothing gets saved/searched in those cases).
+  const rawName = product.product_name || product.generic_name || `Scanned item (${code})`;
+  const name = withBrandInName(rawName, product.brands);
   // Raw, un-defaulted values — kept distinct from the 0-defaulted ones
   // below so a field Open Food Facts genuinely doesn't have can be
   // detected and flagged (missingNutritionFields) rather than silently
@@ -426,7 +453,7 @@ function mapProductToFood(product, code) {
     // correction (see buildCorrectedFood) only ever changes the top-level
     // cals/protein/carbs/fat, never this, so what the source actually said
     // stays auditable rather than being overwritten and lost.
-    source: { name, brand: product.brands || "", cals, protein, carbs, fat },
+    source: { name: rawName, brand: product.brands || "", cals, protein, carbs, fat },
   };
 
   // Validated against the RAW (possibly-null) values, not the 0-defaulted
