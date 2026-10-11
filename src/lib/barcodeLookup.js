@@ -10,13 +10,34 @@
 // search results.
 function parseServingGrams(product) {
   // `serving_quantity` is Open Food Facts' own parsed numeric grams for
-  // `serving_size` (e.g. "30 g" -> 30) — prefer it when present.
+  // `serving_size` (e.g. "30 g" -> 30) — prefer it when present. It's
+  // already unit-agnostic (g for a solid, ml for a liquid), matching how
+  // this app's own `per`/`defaultQty` pair treats g and ml as the same
+  // base numeric unit (see UNIT_DEFS in foodDatabase.js).
   if (product.serving_quantity != null) {
     const n = Number(product.serving_quantity);
     if (n > 0) return n;
   }
-  const match = String(product.serving_size || "").match(/(\d+(?:\.\d+)?)\s*g\b/i);
-  return match ? parseFloat(match[1]) : null;
+  // Fallback: parse the free-text `serving_size` label. A liquid product's
+  // serving is normally printed in ml (e.g. "250 ml"), not g — the g-only
+  // regex this used to have missed every one of those, silently falling
+  // back to the 100-unit placeholder for a real, known serving size. US-
+  // origin products occasionally label the serving in oz instead; that
+  // value is converted to the internal g/ml figure here so it's never
+  // lost, but oz/lb/kg themselves are never surfaced as a logging UNIT for
+  // a scanned item's serving — only grams/ml ever are (see `per: 100`
+  // below and UNIT_DEFS/autoUnitIds in foodDatabase.js).
+  const gramsOrMl = String(product.serving_size || "").match(/(\d+(?:\.\d+)?)\s*(?:g|ml|mL)\b/i);
+  if (gramsOrMl) {
+    const n = parseFloat(gramsOrMl[1]);
+    if (n > 0) return n;
+  }
+  const oz = String(product.serving_size || "").match(/(\d+(?:\.\d+)?)\s*oz\b/i);
+  if (oz) {
+    const n = parseFloat(oz[1]) * 28.35;
+    if (n > 0) return Math.round(n * 10) / 10;
+  }
+  return null;
 }
 
 // Open Food Facts' `quantity` field is the real package size as printed on
@@ -77,10 +98,36 @@ export function detectBarcodeFormat(code) {
 
 export function validateNutrition({ cals, protein, carbs, fat }) {
   const reasons = [];
-  if (cals == null || cals < 0 || cals > 920) reasons.push("calories outside a plausible per-100g range");
-  if (protein == null || protein < 0 || protein > 100) reasons.push("protein outside a plausible per-100g range");
-  if (carbs == null || carbs < 0 || carbs > 100) reasons.push("carbs outside a plausible per-100g range");
-  if (fat == null || fat < 0 || fat > 100) reasons.push("fat outside a plausible per-100g range");
+  // Missing is a distinct failure from "present but implausible" — a null
+  // field means Open Food Facts' own label data simply doesn't have it,
+  // not that it was checked and found wrong. Both still fail validation
+  // (a scan with a real gap in its macro panel is exactly the case this
+  // function exists to catch), but the math checks below need real
+  // numbers on all four fields, so a missing one always short-circuits
+  // straight to this reason instead of silently treating it as zero.
+  const missing = [];
+  if (cals == null) missing.push("calories");
+  else if (cals < 0 || cals > 920) reasons.push("calories outside a plausible per-100g range");
+  if (protein == null) missing.push("protein");
+  else if (protein < 0 || protein > 100) reasons.push("protein outside a plausible per-100g range");
+  if (carbs == null) missing.push("carbs");
+  else if (carbs < 0 || carbs > 100) reasons.push("carbs outside a plausible per-100g range");
+  if (fat == null) missing.push("fat");
+  else if (fat < 0 || fat > 100) reasons.push("fat outside a plausible per-100g range");
+  if (missing.length > 0) reasons.unshift(`missing ${missing.join(", ")} data`);
+
+  if (reasons.length === 0) {
+    const totalMacroGrams = protein + carbs + fat;
+    // Protein + carbs + fat physically can't exceed the 100g/100ml this is
+    // all supposed to be measured per — fibre, water and ash make up the
+    // rest, hence some slack, but this catches an impossible panel (e.g a
+    // misplaced decimal) that the calorie-reconciliation check below can
+    // miss on its own when a bad calorie figure happens to "reconcile"
+    // with equally bad macro figures.
+    if (totalMacroGrams > 105) {
+      reasons.push(`protein + carbs + fat adds up to ${Math.round(totalMacroGrams)}g, more than the 100g/100ml this is meant to be per`);
+    }
+  }
   if (reasons.length === 0) {
     const expected = protein * 4 + carbs * 4 + fat * 9;
     // Generous tolerance — fibre, sugar alcohols, alcohol and rounding on
@@ -149,10 +196,21 @@ export function computeConfidence({ product, food, formatInfo, nutritionValidati
 
   if (!food) return { score, level: levelForScore(score), breakdown };
 
-  // Nutrition completeness (20 pts) — full macro panel vs. partial.
-  const macroFields = [food.cals, food.protein, food.carbs, food.fat];
-  const presentCount = macroFields.filter((v) => v != null).length;
-  add("Nutrition completeness", Math.round((presentCount / 4) * 20), 20, `${presentCount}/4 macro fields present`);
+  // Nutrition completeness (20 pts) — full macro panel vs. partial. Reads
+  // `missingNutritionFields` (set by mapProductToFood from the RAW, un-
+  // defaulted Open Food Facts fields) rather than checking food.cals/
+  // protein/carbs/fat for null — those are always numbers by the time
+  // they reach here (a missing field is defaulted to 0 for display/
+  // calculation), so a null check here would always see "4/4 present"
+  // even when a field was actually missing and silently zeroed.
+  const missingFields = food.missingNutritionFields || [];
+  const presentCount = 4 - missingFields.length;
+  add(
+    "Nutrition completeness",
+    Math.round((presentCount / 4) * 20),
+    20,
+    presentCount === 4 ? "4/4 macro fields present" : `${presentCount}/4 macro fields present — missing ${missingFields.join(", ")}`
+  );
 
   // Nutrition plausibility (15 pts) — the Atwater sanity check.
   add(
@@ -296,7 +354,17 @@ async function fetchFirstMatch(variants) {
 function mapProductToFood(product, code) {
   const n = product.nutriments || {};
   const name = product.product_name || product.generic_name || `Scanned item (${code})`;
-  const hasNutrition = n["energy-kcal_100g"] != null || n["proteins_100g"] != null || n["carbohydrates_100g"] != null || n["fat_100g"] != null;
+  // Raw, un-defaulted values — kept distinct from the 0-defaulted ones
+  // below so a field Open Food Facts genuinely doesn't have can be
+  // detected and flagged (missingNutritionFields) rather than silently
+  // invented as a real zero. hasNutrition only needs at least one of the
+  // four to exist; "found but incomplete" is a `missingNutritionFields`
+  // flag on an otherwise-usable result, not a "not found."
+  const rawCals = n["energy-kcal_100g"];
+  const rawProtein = n["proteins_100g"];
+  const rawCarbs = n["carbohydrates_100g"];
+  const rawFat = n["fat_100g"];
+  const hasNutrition = rawCals != null || rawProtein != null || rawCarbs != null || rawFat != null;
 
   if (!hasNutrition) {
     const formatInfo = detectBarcodeFormat(code);
@@ -304,10 +372,16 @@ function mapProductToFood(product, code) {
     return { notFound: true, reason: "no-nutrition", productName: name, confidenceScore: confidence.score, verificationLevel: confidence.level, confidenceBreakdown: confidence.breakdown };
   }
 
-  const cals = Math.round(n["energy-kcal_100g"] || 0);
-  const protein = Math.round((n["proteins_100g"] || 0) * 10) / 10;
-  const carbs = Math.round((n["carbohydrates_100g"] || 0) * 10) / 10;
-  const fat = Math.round((n["fat_100g"] || 0) * 10) / 10;
+  const missingNutritionFields = [];
+  if (rawCals == null) missingNutritionFields.push("calories");
+  if (rawProtein == null) missingNutritionFields.push("protein");
+  if (rawCarbs == null) missingNutritionFields.push("carbs");
+  if (rawFat == null) missingNutritionFields.push("fat");
+
+  const cals = Math.round(rawCals || 0);
+  const protein = Math.round((rawProtein || 0) * 10) / 10;
+  const carbs = Math.round((rawCarbs || 0) * 10) / 10;
+  const fat = Math.round((rawFat || 0) * 10) / 10;
 
   const servingGrams = parseServingGrams(product);
 
@@ -346,9 +420,24 @@ function mapProductToFood(product, code) {
     // "how much did you have," just the whole package regardless of how
     // much was actually consumed.)
     ...(packageInfo ? { liquid: packageInfo.liquid } : {}),
+    ...(missingNutritionFields.length ? { missingNutritionFields } : {}),
+    // The exact macros Open Food Facts returned for this barcode, kept
+    // untouched for as long as this entry exists — a later client
+    // correction (see buildCorrectedFood) only ever changes the top-level
+    // cals/protein/carbs/fat, never this, so what the source actually said
+    // stays auditable rather than being overwritten and lost.
+    source: { name, brand: product.brands || "", cals, protein, carbs, fat },
   };
 
-  const validation = validateNutrition({ cals, protein, carbs, fat });
+  // Validated against the RAW (possibly-null) values, not the 0-defaulted
+  // ones above — a missing field must be caught as missing, never treated
+  // as a confirmed zero.
+  const validation = validateNutrition({
+    cals: rawCals != null ? cals : null,
+    protein: rawProtein != null ? protein : null,
+    carbs: rawCarbs != null ? carbs : null,
+    fat: rawFat != null ? fat : null,
+  });
   if (!validation.plausible) {
     food.nutritionSuspect = true;
     food.nutritionSuspectReason = validation.reason;
@@ -479,7 +568,76 @@ export async function debugLookupBarcode(code) {
   }
 
   trace.outcome = "resolved";
-  trace.nutritionValidation = validateNutrition({ cals: mapped.cals, protein: mapped.protein, carbs: mapped.carbs, fat: mapped.fat });
+  // Reconstructs the same raw (possibly-null) inputs mapProductToFood
+  // itself validated against — missingNutritionFields names which of the
+  // defaulted values below were actually absent, so the debug trace never
+  // reports a missing field as a confirmed, reconciling zero.
+  const missing = new Set(mapped.missingNutritionFields || []);
+  trace.nutritionValidation = validateNutrition({
+    cals: missing.has("calories") ? null : mapped.cals,
+    protein: missing.has("protein") ? null : mapped.protein,
+    carbs: missing.has("carbs") ? null : mapped.carbs,
+    fat: missing.has("fat") ? null : mapped.fat,
+  });
   trace.finalFood = mapped;
   return trace;
+}
+
+// Multiple customFoods docs can legitimately share a barcode. A client's
+// own correction (buildCorrectedFood, below) is always a fresh CREATE,
+// never an UPDATE — the shared food library's Firestore rules only let a
+// coach update/delete an existing doc, any signed-in client can only
+// create one (see firestore.rules) — so the original Open Food Facts
+// result and a client's correction for the same barcode end up as two
+// separate docs rather than one being overwritten. Whenever more than one
+// doc is found for a barcode, this is what decides which one a scan
+// actually uses: a corrected entry always wins over an uncorrected one
+// (a human read it off the real pack); among same-status docs, the most
+// recently verified one wins — never an arbitrary array/query order.
+export function pickBestFoodForBarcode(foods) {
+  if (!foods || foods.length === 0) return null;
+  const sorted = [...foods].sort((a, b) => {
+    const aCorrected = a.correctedByUser ? 1 : 0;
+    const bCorrected = b.correctedByUser ? 1 : 0;
+    if (aCorrected !== bCorrected) return bCorrected - aCorrected;
+    return (b.verifiedAt || 0) - (a.verifiedAt || 0);
+  });
+  return sorted[0];
+}
+
+// Builds the food record a client's own correction saves, when a scanned
+// product's nutrition data failed validation (nutritionSuspect) or was
+// missing fields (missingNutritionFields) and they typed in the real
+// numbers off the pack. Typed straight off the label by a person beats
+// anything a crowd-sourced database returned, so this is marked VERIFIED
+// outright — same treatment the existing barcode "add manually" flow
+// already gives a from-scratch manual entry (see addManual() in
+// NutritionFeatures.jsx) — rather than inheriting the scan's own uncertain
+// score. `food.source` (set once, in mapProductToFood, from the exact
+// values Open Food Facts returned) is carried forward untouched — a
+// correction only ever changes the top-level macros a client sees and
+// logs against, never the record of what the source actually said.
+export function buildCorrectedFood(food, corrected) {
+  const next = { ...food };
+  delete next.id; // createFood mints its own real Firestore id
+  next.cals = Math.max(0, Math.round(Number(corrected.cals) || 0));
+  next.protein = Math.max(0, Number(corrected.protein) || 0);
+  next.carbs = Math.max(0, Number(corrected.carbs) || 0);
+  next.fat = Math.max(0, Number(corrected.fat) || 0);
+  next.per = 100;
+  if (corrected.defaultQty != null && Number(corrected.defaultQty) > 0) {
+    next.defaultQty = Number(corrected.defaultQty);
+    next.servingSizeUnverified = false;
+  }
+  delete next.nutritionSuspect;
+  delete next.nutritionSuspectReason;
+  delete next.missingNutritionFields;
+  next.verificationLevel = VERIFICATION_LEVELS.VERIFIED;
+  next.confidenceScore = 100;
+  next.correctedByUser = true;
+  next.verifiedAt = Date.now();
+  if (!next.source) {
+    next.source = { name: food.name, brand: food.brand || "", cals: food.cals, protein: food.protein, carbs: food.carbs, fat: food.fat };
+  }
+  return next;
 }
