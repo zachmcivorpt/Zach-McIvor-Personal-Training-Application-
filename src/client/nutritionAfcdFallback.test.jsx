@@ -54,10 +54,10 @@ describe("Nutrition search — AFCD fallback", () => {
   it("falls back to AFCD when the local food library has no match at all", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getAllByText("Log")[0]);
-    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "emu" } });
+    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "ostrich" } });
 
     expect(screen.getByText("FROM THE AUSTRALIAN FOOD COMPOSITION DATABASE")).toBeTruthy();
-    expect(screen.getByText(/Emu/)).toBeTruthy();
+    expect(screen.getAllByText(/Ostrich/).length).toBeGreaterThan(0);
   });
 
   it("does not show the AFCD section when the local food library already has a match", () => {
@@ -71,8 +71,8 @@ describe("Nutrition search — AFCD fallback", () => {
   it("tapping an AFCD result opens the quantity sheet labelled as coming from AFCD, not the barcode database", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getAllByText("Log")[0]);
-    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "emu" } });
-    fireEvent.click(screen.getByText(/Emu/));
+    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "ostrich" } });
+    fireEvent.click(screen.getAllByText(/Ostrich/)[0]);
 
     expect(screen.getByText(/From the Australian Food Composition Database/)).toBeTruthy();
   });
