@@ -1941,6 +1941,17 @@ A follow-up to bug #62's generic-food expansion: butter/margarine/oils, dairy (m
 
 ---
 
+### 65. Removed food/product photos from the coach-side food library and the barcode-scan pipeline
+The client side already had food/product catalog images removed in an earlier "Nutrition Overhaul" pass (`src/client/nutritionNoFoodImages.test.jsx`), but two places were missed: the coach's own custom-food library still had a full photo-upload feature, and a barcode scan still fetched and stored an Open Food Facts product image even though nothing rendered it.
+
+- **Fix**: `src/coach/CoachFoodLibrary.jsx` — removed `imageUrl` from `emptyFood()`, the `handlePhoto`/`photoBusy`/`fileRef` upload machinery, the photo button/preview in `FoodSheet`, `imageUrl` from the saved `submit()` payload, and both `<img>`/icon-ternary thumbnails in the custom-foods and built-in-library grids (now always show the plain icon). Removed the now-unused `fileToCompressedDataUrl`/`Camera` imports and `useRef`. `src/lib/barcodeLookup.js`'s `mapProductToFood` no longer pulls `product.image_front_small_url`/`image_small_url`/`image_url` into the returned food object. Everything else — name, brand, barcode, calories/macros, serving size/units, the `source` provenance snapshot — is untouched; `source` never carried an image field to begin with.
+- **Scope check**: confirmed `foodDatabase.js`/`afcdFoods.js` carry no image field (nothing to remove there), and that meal/meal-plan cover photos (`CoachMealLibrary.jsx`'s `masterMeals.photoUrl`) and a client's own logged-meal photo (`PhotoEstimateSheet`) are a distinct, intentionally-kept feature — explicitly out of scope, per the same distinction the earlier Nutrition Overhaul test already documents.
+- **Regression check**: ran the two directly-affected test files (`barcodeLookup.test.js`, `nutritionNoFoodImages.test.jsx` — 57 tests) plus lint and build; all clean, zero new warnings (147 before and after), no change in behaviour for any other field.
+- **Manual verification — unverified, no device access from this environment**: the coach-side library screen's visual layout with the photo button removed needs a real device or browser session to confirm it still reads cleanly.
+- **Date added**: 2026-10-11
+
+---
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
