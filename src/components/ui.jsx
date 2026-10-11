@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Check, AlertCircle, Camera, Dumbbell, Video, Play, Search, Sparkles, ChevronDown } from "lucide-react";
 import {
@@ -429,8 +429,21 @@ function isTextEntryElement(el) {
   return false;
 }
 
-function useKeyboardSafeScroll(enabled, panelRef, mounted) {
+// Real production report (Oct 2026): once active, the spacer below always
+// reserved a flat 45% of the viewport, whatever the sheet actually
+// contained — a sheet with a single short search result left a big empty
+// gap below it, well before the real (unreported) keyboard edge. The 45vh
+// figure was a correct worst-case keyboard-height estimate, just applied
+// unconditionally instead of only when the content would otherwise end up
+// hidden behind it. Measuring the content's own natural height against how
+// much of the panel is actually visible above that same keyboard estimate
+// means short content (already fully visible) gets no spacer at all, while
+// content tall enough to reach into the keyboard's estimated area still
+// gets exactly enough room to scroll clear of it — never more than the old
+// flat reserve, since the result is capped at the same keyboard estimate.
+function useKeyboardSafeScroll(enabled, panelRef, bodyRef, mounted) {
   const [active, setActive] = useState(false);
+  const [spacerHeight, setSpacerHeight] = useState(0);
   useEffect(() => {
     if (!enabled) return;
     const panel = panelRef.current;
@@ -455,7 +468,36 @@ function useKeyboardSafeScroll(enabled, panelRef, mounted) {
       panel.removeEventListener("blur", handleBlur, true);
     };
   }, [enabled, panelRef, mounted]);
-  return enabled && active;
+
+  // Recomputed after every commit while active — cheap (a couple of layout
+  // reads on a modal-sized DOM tree) and the only reliable way to react to
+  // content that changes on every keystroke (e.g. a search results list)
+  // without each call site having to report its own content changes.
+  useLayoutEffect(() => {
+    if (!enabled || !active) {
+      setSpacerHeight(0);
+      return;
+    }
+    const panel = panelRef.current;
+    const body = bodyRef.current;
+    if (!panel || !body) return;
+    if (panel.clientHeight === 0) {
+      // Not yet laid out (or a non-layout test environment, which reports
+      // every size as 0) — fall back to the same flat, safe reserve this
+      // used before dynamic sizing, rather than risk under-provisioning
+      // when a real measurement isn't available yet. This is distinct
+      // from "measured, and content genuinely doesn't need a spacer,"
+      // which legitimately computes to 0 below.
+      setSpacerHeight(window.innerHeight * 0.45);
+      return;
+    }
+    const keyboardEstimate = panel.clientHeight * 0.45;
+    const visibleAboveKeyboard = panel.clientHeight - keyboardEstimate;
+    const needed = Math.max(0, body.scrollHeight - visibleAboveKeyboard);
+    setSpacerHeight(Math.min(needed, keyboardEstimate));
+  });
+
+  return { active: enabled && active, spacerHeight };
 }
 
 export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", keyboardSafeScroll = false }) {
@@ -469,7 +511,8 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
   const [visible, setVisible] = useState(open);
   const viewport = useVisualViewportInsets();
   const panelRef = useRef(null);
-  const keyboardSpacerActive = useKeyboardSafeScroll(keyboardSafeScroll, panelRef, mounted);
+  const bodyContentRef = useRef(null);
+  const { active: keyboardSpacerActive, spacerHeight } = useKeyboardSafeScroll(keyboardSafeScroll, panelRef, bodyContentRef, mounted);
   useEffect(() => {
     if (open) {
       setMounted(true);
@@ -524,8 +567,10 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
             </button>
           </div>
           <div className={bodyClassName}>
-            {children}
-            {keyboardSpacerActive && <div style={{ height: "45vh" }} aria-hidden="true" />}
+            <div ref={bodyContentRef}>{children}</div>
+            {keyboardSpacerActive && spacerHeight > 0 && (
+              <div data-testid="keyboard-safe-spacer" style={{ height: spacerHeight }} aria-hidden="true" />
+            )}
           </div>
         </div>
       </div>
