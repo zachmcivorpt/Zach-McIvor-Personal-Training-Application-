@@ -60,7 +60,7 @@ describe("NutritionScreen keyboard-safe scroll spacer", () => {
   it("has no extra spacer before the search box is focused", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getAllByText("Log")[0]);
-    expect(document.querySelector('[aria-hidden="true"][style*="45vh"]')).toBeNull();
+    expect(document.querySelector('[data-testid="keyboard-safe-spacer"]')).toBeNull();
   });
 
   it("reserves extra scroll room once the search box gains focus", () => {
@@ -68,7 +68,7 @@ describe("NutritionScreen keyboard-safe scroll spacer", () => {
     fireEvent.click(screen.getAllByText("Log")[0]);
     const input = screen.getByPlaceholderText("Search foods or meals");
     fireEvent.focus(input);
-    expect(document.querySelector('[aria-hidden="true"][style*="45vh"]')).toBeTruthy();
+    expect(document.querySelector('[data-testid="keyboard-safe-spacer"]')).toBeTruthy();
   });
 
   it("removes the spacer once the search box loses focus", () => {
@@ -77,6 +77,6 @@ describe("NutritionScreen keyboard-safe scroll spacer", () => {
     const input = screen.getByPlaceholderText("Search foods or meals");
     fireEvent.focus(input);
     fireEvent.blur(input);
-    expect(document.querySelector('[aria-hidden="true"][style*="45vh"]')).toBeNull();
+    expect(document.querySelector('[data-testid="keyboard-safe-spacer"]')).toBeNull();
   });
 });
