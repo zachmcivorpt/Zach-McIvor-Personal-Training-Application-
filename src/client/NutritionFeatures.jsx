@@ -155,7 +155,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
     // for the ADD button's own outcome instead of being able to bail out
     // from under it.
     <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name} keyboardSafeScroll>
-      {food.fromBarcode && (
+      {(food.fromBarcode || food.fromAFCD) && (
         <div className={dark ? "flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
           {/* Information-first: a scanned product's own catalog photo is
               decorative, not needed to log it accurately, so this always
@@ -170,8 +170,12 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
                   anything less than that gets a visible but calm nudge to
                   double-check — never a loud warning for data that's
                   merely incomplete rather than wrong (that's what the
-                  red "doesn't add up" banner below is for). */}
-              {(food.verificationLevel === "VERIFIED" || food.verificationLevel === "LIKELY") && (
+                  red "doesn't add up" banner below is for). AFCD foods
+                  carry no scan confidence score (there's no scan, no
+                  barcode match to score) — `correctedByUser` is still the
+                  signal that this exact entry was label-verified by a
+                  client, same green tick either way. */}
+              {(food.verificationLevel === "VERIFIED" || food.verificationLevel === "LIKELY" || (food.fromAFCD && food.correctedByUser)) && (
                 <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold shrink-0" style={{ color: "#22C55E" }}>
                   <Check size={10} /> Verified
                 </span>
@@ -181,7 +185,9 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
               )}
             </div>
             <p className={dark ? "text-white/50 text-xs mt-0.5" : "text-black/50 text-xs mt-0.5"}>
-              Matched from the barcode database — not what you scanned? Close this and search or enter it manually instead.
+              {food.fromAFCD
+                ? "From the Australian Food Composition Database — not what you meant? Close this and search or enter it manually instead."
+                : "Matched from the barcode database — not what you scanned? Close this and search or enter it manually instead."}
             </p>
           </div>
         </div>
