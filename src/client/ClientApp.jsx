@@ -144,7 +144,8 @@ import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
 import { NutritionTargetsCard } from "../coach/CoachClientDetail";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
-import { buildCorrectedFood } from "../lib/barcodeLookup";
+import { buildCorrectedFood, validateNutrition } from "../lib/barcodeLookup";
+import { AFCD_FOODS } from "../lib/afcdFoods";
 import {
   BODY_FAT_CONFIG,
   LEAN_MASS_CONFIG,
@@ -5203,9 +5204,23 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             // sheet mid-search rather than just failing to match.
             const matchedMeals = (savedMeals || []).filter((m) => matchesSearch(m?.name, search));
             const matchedFoods = allFoods.filter((f) => matchesSearch(f?.name, search));
+            // Falls back to the Australian Food Composition Database (a
+            // free, government-published dataset — see afcdFoods.js) only
+            // when APEX's own already-verified sources (customFoods +
+            // FOOD_DATABASE, searched above) have nothing — "check APEX's
+            // existing verified food database first" means AFCD is a
+            // last resort, never a competing/duplicate result shown
+            // alongside a food the client has already confirmed is right.
+            // A client's own saved correction for an AFCD food becomes a
+            // customFoods doc (see FoodQuantitySheet's onSaveCorrection),
+            // so it's matchedFoods (above) that finds it on a later
+            // search, not this block, the next time the same name is
+            // searched.
+            const matchedAfcd =
+              matchedMeals.length === 0 && matchedFoods.length === 0 ? AFCD_FOODS.filter((f) => matchesSearch(f?.name, search)) : [];
             return (
               <div className="space-y-1">
-                {matchedMeals.length === 0 && matchedFoods.length === 0 && (
+                {matchedMeals.length === 0 && matchedFoods.length === 0 && matchedAfcd.length === 0 && (
                   <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No matches for "{search.trim()}"</p>
                 )}
                 {matchedMeals.map((m) => (
@@ -5253,6 +5268,35 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     </div>
                   </button>
                 ))}
+                {matchedAfcd.length > 0 && (
+                  <p className={dark ? "text-white/25 text-[10px] tracking-wide pt-2" : "text-black/25 text-[10px] tracking-wide pt-2"}>
+                    FROM THE AUSTRALIAN FOOD COMPOSITION DATABASE
+                  </p>
+                )}
+                {matchedAfcd.map((f) => {
+                  // Same Atwater/range check a live barcode scan gets
+                  // (validateNutrition, barcodeLookup.js) — belt and
+                  // braces on top of this file's own build-time filtering,
+                  // so a future edit to afcdFoods.js can't slip bad data
+                  // past validation just because it's bundled, not scanned.
+                  const validation = validateNutrition({ cals: f.cals, protein: f.protein, carbs: f.carbs, fat: f.fat });
+                  const shaped = { ...f, fromAFCD: true, ...(validation.plausible ? {} : { nutritionSuspect: true, nutritionSuspectReason: validation.reason }) };
+                  return (
+                    <button
+                      key={`afcd_${f.id}`}
+                      onClick={() => {
+                        dismissKeyboard();
+                        setPendingFood(shaped);
+                      }}
+                      className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
+                    >
+                      <div className="text-left flex-1 min-w-0">
+                        <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
+                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{f.cals} kcal</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             );
           })()
