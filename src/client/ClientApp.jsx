@@ -2559,7 +2559,32 @@ export function WorkoutSession({
     // Personal Bests card, which treats the first logged set the same way.
     const { bestScore, bestSet, maxWeight } = getBestEverStats(logsForClient, exMeta.exerciseId);
     const score = weight > 0 ? estimate1RM(weight, reps) : reps;
-    const isPR = !bestSet || weight > maxWeight || score > bestScore;
+
+    // getBestEverStats only sees SAVED logs — it has no idea about sets
+    // already completed earlier in this same, still-unsaved session. Real
+    // bug this fixes: logging progressively heavier sets of one exercise
+    // (85kg, 90kg, 95kg) each individually beat the stale saved record, so
+    // every one got flagged a PR instead of just the session's actual
+    // best set — inflating the in-session trophy count, the finished-
+    // workout PR tally, and (since `isPR` is saved verbatim on finish) the
+    // 30-day PR count on the Performance Timeline permanently. Folding in
+    // every other completed set of this exercise from the current session
+    // means only the genuine best-so-far set, saved history included,
+    // earns the badge.
+    let sessionBestScore = 0;
+    let sessionMaxWeight = 0;
+    arr.forEach((s, i) => {
+      if (i === idx || !s.completed) return;
+      const sReps = parseInt(s.reps, 10);
+      if (!sReps || isNaN(sReps)) return;
+      const sWeight = s.weight === "" || s.weight == null ? 0 : parseFloat(s.weight);
+      if (isNaN(sWeight)) return;
+      const sScore = sWeight > 0 ? estimate1RM(sWeight, sReps) : sReps;
+      if (sScore > sessionBestScore) sessionBestScore = sScore;
+      if (sWeight > sessionMaxWeight) sessionMaxWeight = sWeight;
+    });
+    const hasAnyPriorBest = !!bestSet || sessionBestScore > 0 || sessionMaxWeight > 0;
+    const isPR = !hasAnyPriorBest || weight > Math.max(maxWeight, sessionMaxWeight) || score > Math.max(bestScore, sessionBestScore);
 
     setActiveLog((prev) => {
       const nextSets = [...(prev[exMeta.exerciseId] || [])];
@@ -8895,7 +8920,13 @@ export default function ClientApp() {
   function addWater(liters, dateKey = todayDateKey) {
     setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
-      return { ...base, water: Math.round((base.water + liters) * 100) / 100 };
+      // An older nutritionLogs doc saved before `water` was tracked (or
+      // any doc missing the field for another reason) has `base.water ===
+      // undefined` — unguarded, `undefined + liters` is NaN, silently
+      // corrupting that day's total (and every later add, since NaN + x is
+      // always NaN) rather than just treating the missing field as 0, the
+      // same guard addFood/removeFood already apply to every other field.
+      return { ...base, water: Math.round(((base.water || 0) + liters) * 100) / 100 };
     })
       .then(() => showToast(`+${Math.round(liters * 1000)}ml logged`))
       .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));

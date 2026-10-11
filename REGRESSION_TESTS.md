@@ -1980,6 +1980,35 @@ A second, broader round covering categories the first branded-expansion round (b
 
 ---
 
+### 68. Weekly QA audit — `addWater` could silently corrupt a day's water total to `NaN` on an older nutrition doc
+`ClientApp.jsx`'s `addWater` did `base.water + liters` with no guard on `base.water` being `undefined` — unlike the sibling `addFood`/`removeFood` functions a few lines above, which explicitly guard every field (`base.calories || 0`, etc.) specifically because an older `nutritionLogs` doc can predate a field. A nutrition doc saved before `water` tracking existed (or missing the field for any other reason) would hit `undefined + liters === NaN`, and since `NaN + x` is always `NaN`, every subsequent water log for that date would silently stay `NaN` forever once written back to Firestore.
+- **Fix**: `src/client/ClientApp.jsx`'s `addWater` now reads `(base.water || 0) + liters`, matching the guard convention already used by every other field on this doc.
+- **Regression check**: hand-verified (`undefined + 0.5 = NaN` before the fix; `(0 || 0) + 0.5 = 0.5` after) — a full React test would need `ClientApp` rendered against a mocked Firestore doc deliberately missing the `water` field, which wasn't worth the scaffolding for a one-line, pattern-matched defensive fix; ran the full suite (284 tests) to confirm no regression elsewhere.
+- **Date added**: 2026-10-11
+
+### 69. Weekly QA audit — logging ascending/repeated sets in one session could flag every set a PR instead of just the session's actual best
+`handleBlurKg`'s PR check (`src/client/ClientApp.jsx`) only ever compared a newly-completed set against `getBestEverStats(logsForClient, ...)` — the client's **saved** historical logs — with no awareness of other sets already completed earlier in the same, still-unsaved active session. Hand-verified: logging three working sets at the same weight/reps (a completely ordinary "3×5 @ 85kg") got all three flagged `isPR: true`, not just the first; since `isPR` is saved verbatim when a workout finishes, this permanently inflated the finished-workout PR tally and the 30-day "PRs" count on the Performance Timeline, not just a live-UI artifact.
+- **Fix**: `handleBlurKg` now also computes the best score/weight among every other already-completed set of the same exercise in the current session (`activeLog`), and compares the new set against `Math.max(savedBest, sessionBest)` instead of the saved best alone — so only the genuine best-so-far set (saved history and this session combined) earns the PR flag.
+- **Regression test**: `src/client/workoutSessionPRDetection.test.jsx` (new, 3 tests) — three identical sets in one session only flag the first; the very first set ever logged for an exercise (no history, no session sets yet) still flags as a PR; a lighter set that comes after a heavier one in the same session doesn't re-flag. Verified via revert/fail/restore: reverting to the old saved-history-only comparison failed 2 of the 3 tests (the identical-sets case and the lighter-after-heavier case — exactly the scenarios the old code got wrong); restoring brought all 3 back to green.
+- **Regression check**: ran the full suite (284 tests) — all pass, no flake. Zero new ESLint warnings (147 before and after).
+- **Date added**: 2026-10-11
+
+### 70. Weekly QA audit — a coach signing out never deregistered the device's push token, unlike the client app
+`CoachShell.jsx`'s `doLogout` only called `logout()` and navigated — it never cleared the device's push registration, unlike `ClientApp.jsx`'s `doLogout`, which explicitly calls `disablePush` and clears `localStorage.pushToken_{uid}` with the stated reason: *"left registered, the NEXT client who signs in on this same device would keep this one's push notifications arriving here too."* The identical risk applies to a coach: signing out left their push token live, so the next person to sign in on that device (another coach, or a client, on a shared/office device) would keep receiving the signed-out coach's push notifications indefinitely.
+- **Fix**: `src/coach/CoachShell.jsx`'s `doLogout` now mirrors the client app's exact pattern — looks up `pushToken_{currentUser.id}`, calls `disablePush` (best-effort, logout proceeds even if it fails), clears the localStorage key, then signs out and navigates, same ordering as before.
+- **Regression check**: ran the full suite (284 tests) and lint (147 warnings, unchanged) — no existing test exercised `CoachShell`'s logout push-token path (same gap as the one this fix closes), so this was verified by direct code comparison against the already-correct client-side implementation rather than a new automated test; flagged under manual verification below for an end-to-end check with a live FCM token.
+- **Manual verification — unverified, no device access from this environment**: confirming a real device genuinely stops receiving push notifications after a coach signs out needs a live FCM token and a physical/simulated device.
+- **Date added**: 2026-10-11
+
+### 71. Weekly QA audit — account deletion left message attachments (images/videos/PDFs) orphaned in Storage
+`functions/index.js`'s `deleteMyAccount` deletes every Firestore doc referencing a client's data, including `messages`, but never touched the actual files those messages can attach — images/videos/PDFs are uploaded to `messageImages/{clientId}/...`, `messageVideos/{clientId}/...`, `messageDocs/{clientId}/...` in Firebase Storage (`src/lib/storage.js`), keyed by the client's own uid, and nothing ever deleted them. The account-deletion confirmation copy (`DeleteAccountSheet`'s warning, `ClientApp.jsx`) tells the client their data — explicitly including "messages" — is removed; any file they or their coach ever attached to a chat message was left behind indefinitely under a folder still named by the now-deleted account.
+- **Fix**: `functions/index.js`'s `deleteMyAccount` now also deletes everything under each of the three attachment prefixes for the deleted client's uid via the Admin Storage SDK (`storageBucket.deleteFiles({ prefix })`), best-effort (a Storage cleanup failure doesn't block the account deletion itself, consistent with the rest of this function's error handling).
+- **Regression check**: `node -c` confirms the modified Cloud Function file is syntactically valid; `firebase-admin` is already pinned to v12.6.0 in `functions/package.json`, which supports the `firebase-admin/storage` modular import used here. No existing test suite covers this Cloud Function (it requires Admin SDK/Storage emulation this environment doesn't have set up) — flagged under manual verification below rather than asserted as test-covered.
+- **Manual verification — unverified, no Firebase emulator/live project access from this environment**: deploying this function and deleting a test client account with a real message attachment, then confirming the Storage files are actually gone, needs a live Firebase project or the Storage emulator.
+- **Date added**: 2026-10-11
+
+---
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
