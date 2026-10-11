@@ -9,7 +9,11 @@ name: CI
 #
 # Scoped (via `paths`) to the files these checks actually exercise, so an
 # unrelated change (docs, ios/, android/, functions/ deploy config, etc.)
-# doesn't trigger a redundant run.
+# doesn't trigger a redundant run. This workflow's own definition is
+# included too — a change to ci.yml (or any other workflow file) is
+# exactly the kind of edit that most needs to be checked before it reaches
+# main, and without this a PR that only touches .github/workflows/** would
+# never trigger CI at all, self-validating edits included.
 on:
   pull_request:
     branches: [main]
@@ -25,6 +29,7 @@ on:
       - ".oxlintrc.json"
       - "package.json"
       - "package-lock.json"
+      - ".github/workflows/**"
   push:
     branches: [main]
     paths:
@@ -39,6 +44,7 @@ on:
       - ".oxlintrc.json"
       - "package.json"
       - "package-lock.json"
+      - ".github/workflows/**"
 
 jobs:
   checks:
