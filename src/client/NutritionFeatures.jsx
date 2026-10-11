@@ -27,7 +27,7 @@ import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG } from "../lib/foodDatabase";
-import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey, detectBarcodeFormat } from "../lib/barcodeLookup";
+import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey, detectBarcodeFormat, pickBestFoodForBarcode, buildCorrectedFood } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { matchesSearch } from "../lib/search";
@@ -62,7 +62,7 @@ function presetsFor(food, unit) {
   return [1, 2, 3, 4];
 }
 
-export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
+export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, dark = false }) {
   const [unitId, setUnitId] = useState("g");
   const [qty, setQty] = useState(100);
   // onConfirm can be a real Firestore write (barcode scan / quick add /
@@ -72,6 +72,12 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
   // second scan-and-confirm of the same item, and a second, fully genuine
   // add landing in the log once the first one finally went through too.
   const [saving, setSaving] = useState(false);
+  // Only ever shown for a scanned product whose data failed validation —
+  // lets the client type in the real numbers off the pack instead of
+  // closing this sheet and starting over in search/manual entry, which was
+  // previously the only way to react to a flagged scan.
+  const [correcting, setCorrecting] = useState(false);
+  const [draft, setDraft] = useState({ cals: "", protein: "", carbs: "", fat: "" });
 
   const units = food ? unitsFor(food) : [];
 
@@ -92,10 +98,23 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
       setUnitId(unitsFor(food)[0].id);
       setQty(food.defaultQty || 100);
       setSaving(false);
+      setCorrecting(false);
+      setDraft({ cals: String(food.cals ?? ""), protein: String(food.protein ?? ""), carbs: String(food.carbs ?? ""), fat: String(food.fat ?? "") });
     }
   }, [food]);
 
   if (!food) return null;
+
+  function saveCorrection() {
+    if (draft.cals === "" || Number.isNaN(Number(draft.cals))) return;
+    onSaveCorrection({
+      cals: draft.cals,
+      protein: draft.protein === "" ? 0 : draft.protein,
+      carbs: draft.carbs === "" ? 0 : draft.carbs,
+      fat: draft.fat === "" ? 0 : draft.fat,
+    });
+    setCorrecting(false);
+  }
 
   async function confirm() {
     if (saving) return;
@@ -167,12 +186,65 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
           </div>
         </div>
       )}
-      {food.nutritionSuspect && (
+      {food.nutritionSuspect && !correcting && (
         <div className={dark ? "bg-[#EF4444]/10 border border-[#EF4444]/25 rounded-2xl p-3 mb-4" : "bg-red-50 border border-red-100 rounded-2xl p-3 mb-4"}>
           <p className={dark ? "text-[#EF4444] text-xs font-semibold" : "text-red-700 text-xs font-semibold"}>Double-check this against the label</p>
           <p className={dark ? "text-white/50 text-[11px] mt-0.5" : "text-black/50 text-[11px] mt-0.5"}>
-            The scanned data doesn't add up cleanly ({food.nutritionSuspectReason}) — the source listing may be wrong or mismatched. Check it against the pack before adding; close this and enter it manually if the numbers don't match.
+            The scanned data doesn't add up cleanly ({food.nutritionSuspectReason}) — the source listing may be wrong or mismatched. Check it against the pack before adding.
           </p>
+          {onSaveCorrection && (
+            <button
+              onClick={() => setCorrecting(true)}
+              className={dark ? "text-[#EF4444] text-[11px] font-semibold mt-2 underline" : "text-red-700 text-[11px] font-semibold mt-2 underline"}
+            >
+              Enter the correct numbers from the label
+            </button>
+          )}
+        </div>
+      )}
+      {!food.nutritionSuspect && food.missingNutritionFields?.length > 0 && !correcting && (
+        <div className={dark ? "bg-[#EF4444]/10 border border-[#EF4444]/25 rounded-2xl p-3 mb-4" : "bg-red-50 border border-red-100 rounded-2xl p-3 mb-4"}>
+          <p className={dark ? "text-[#EF4444] text-xs font-semibold" : "text-red-700 text-xs font-semibold"}>
+            Missing {food.missingNutritionFields.join(", ")} data
+          </p>
+          <p className={dark ? "text-white/50 text-[11px] mt-0.5" : "text-black/50 text-[11px] mt-0.5"}>
+            The source listing doesn't have a value for this — it's shown as 0 below, not a real figure from the label. Check the pack before adding.
+          </p>
+          {onSaveCorrection && (
+            <button
+              onClick={() => setCorrecting(true)}
+              className={dark ? "text-[#EF4444] text-[11px] font-semibold mt-2 underline" : "text-red-700 text-[11px] font-semibold mt-2 underline"}
+            >
+              Enter the correct numbers from the label
+            </button>
+          )}
+        </div>
+      )}
+      {correcting && (
+        <div className={dark ? "bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
+          <p className={dark ? "text-white/60 text-xs font-semibold mb-2" : "text-black/60 text-xs font-semibold mb-2"}>
+            Enter the values from the label (per 100{food.liquid ? "ml" : "g"})
+          </p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {["cals", "protein", "carbs", "fat"].map((k) => (
+              <input
+                key={k}
+                type="number"
+                value={draft[k]}
+                onChange={(e) => setDraft((d) => ({ ...d, [k]: e.target.value }))}
+                placeholder={k}
+                className={dark ? "bg-white/5 rounded-lg text-center text-white text-xs py-2 outline-none placeholder:text-white/25 placeholder:capitalize" : "bg-black/5 rounded-lg text-center text-black text-xs py-2 outline-none placeholder:text-black/25 placeholder:capitalize"}
+              />
+            ))}
+          </div>
+          <div className="flex gap-2 mt-2.5">
+            <SecondaryButton dark={dark} className="flex-1 !py-2" onClick={() => setCorrecting(false)}>
+              Cancel
+            </SecondaryButton>
+            <PrimaryButton dark={dark} className="flex-1 !py-2" onClick={saveCorrection} disabled={draft.cals === ""}>
+              Save correction
+            </PrimaryButton>
+          </div>
         </div>
       )}
       {food.servingSizeUnverified && (
@@ -431,7 +503,12 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     if (debugEnabled) {
       setDebugInfo((d) => ({ ...d, lookup: "looking-up" }));
     }
-    const known = (db.customFoods || []).find((f) => f.barcode === cacheKey);
+    // More than one customFoods doc can share a barcode — a client's own
+    // correction (buildCorrectedFood) is always a fresh create, never an
+    // update, so the original scanned entry and a correction for it can
+    // coexist. Always resolve to the best one, never just the first one
+    // this device's local array happens to list.
+    const known = pickBestFoodForBarcode((db.customFoods || []).filter((f) => f.barcode === cacheKey));
     if (known) {
       logOutcome("cache-hit", { verificationLevel: known.verificationLevel, confidenceScore: known.confidenceScore });
       if (debugEnabled) {
@@ -1227,6 +1304,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
 ============================================================================ */
 
 export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = false }) {
+  const { createFood } = useApp();
   const [status, setStatus] = useState("pick"); // pick | build
   const [photoUrl, setPhotoUrl] = useState(null);
   const [name, setName] = useState("");
@@ -1460,6 +1538,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
           addIngredient(scaled);
           setPendingFood(null);
         }}
+        onSaveCorrection={(corrected) => setPendingFood((f) => (f ? createFood(buildCorrectedFood(f, corrected)) : f))}
       />
       <BarcodeScanSheet
         open={barcodeOpen}
@@ -1480,6 +1559,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
 const MEAL_TYPE_OPTIONS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 
 export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes = false, dark = false }) {
+  const { createFood } = useApp();
   const [name, setName] = useState("");
   const [ingredients, setIngredients] = useState([]);
   const [mealTypes, setMealTypes] = useState([]);
@@ -1716,6 +1796,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
           addIngredient(scaled);
           setPendingFood(null);
         }}
+        onSaveCorrection={(corrected) => setPendingFood((f) => (f ? createFood(buildCorrectedFood(f, corrected)) : f))}
       />
       <BarcodeScanSheet
         open={barcodeOpen}

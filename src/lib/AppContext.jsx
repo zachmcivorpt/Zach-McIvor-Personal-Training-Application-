@@ -35,6 +35,7 @@ import { localDateKey } from "./dateKey";
 import { detectNoteContext } from "./apexInsights";
 import { removedMemberIds } from "./groupMembership";
 import { workoutLogDocId } from "./workoutLogId";
+import { pickBestFoodForBarcode } from "./barcodeLookup";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -2236,7 +2237,15 @@ export function AppProvider({ children }) {
         if (!barcode) return null;
         try {
           const snap = await getDocs(query(collection(firestore, "customFoods"), where("barcode", "==", barcode)));
-          return snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() };
+          if (snap.empty) return null;
+          // More than one doc can share a barcode — a client's own
+          // correction (see buildCorrectedFood in barcodeLookup.js) is
+          // always a fresh create, never an update (clients can't update
+          // an existing customFoods doc; see firestore.rules), so the
+          // original scanned entry and a correction for it coexist as
+          // separate docs. Always resolve to the best one, never just
+          // whichever the query happened to return first.
+          return pickBestFoodForBarcode(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
         } catch {
           return null;
         }

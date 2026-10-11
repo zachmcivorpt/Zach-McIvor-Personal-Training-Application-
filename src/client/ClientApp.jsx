@@ -144,6 +144,7 @@ import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
 import { NutritionTargetsCard } from "../coach/CoachClientDetail";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
+import { buildCorrectedFood } from "../lib/barcodeLookup";
 import {
   BODY_FAT_CONFIG,
   LEAN_MASS_CONFIG,
@@ -4545,7 +4546,7 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
 
 export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
-  const { db, currentUser, swapMealPlanMeal } = useApp();
+  const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
   const [navOffset, setNavOffset] = useState(0); // 0 = today, 1 = yesterday, 2 = day before, ...
   const viewDateKey = useMemo(() => {
     if (navOffset === 0) return localDateKey();
@@ -5370,6 +5371,11 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           setPendingFood(null);
           setSheetOpen(false);
         }}
+        onSaveCorrection={
+          createFood
+            ? (corrected) => setPendingFood((f) => (f ? createFood(buildCorrectedFood(f, corrected)) : f))
+            : undefined
+        }
       />
 
       <BottomSheet dark={dark} open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">

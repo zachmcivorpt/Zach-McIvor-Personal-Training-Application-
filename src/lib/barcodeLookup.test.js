@@ -6,7 +6,7 @@
 // isn't unit-testable this way — it needs a browser with real camera
 // hardware, which is a manual/E2E concern, not something to fake here.
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { isVariableWeightBarcode, stableBarcodeKey, validateNutrition, lookupBarcode, debugLookupBarcode, detectBarcodeFormat, computeConfidence } from "./barcodeLookup";
+import { isVariableWeightBarcode, stableBarcodeKey, validateNutrition, lookupBarcode, debugLookupBarcode, detectBarcodeFormat, computeConfidence, buildCorrectedFood, pickBestFoodForBarcode } from "./barcodeLookup";
 
 describe("isVariableWeightBarcode", () => {
   it("flags a 13-digit code starting with 2 (GS1 AU/NZ restricted-circulation range)", () => {
@@ -76,6 +76,98 @@ describe("validateNutrition", () => {
     const result = validateNutrition({ cals: 200, protein: 10, carbs: 30, fat: 5 });
     // 10*4+30*4+5*9 = 40+120+45 = 205, within tolerance of 200
     expect(result.plausible).toBe(true);
+  });
+
+  it("flags a physically impossible macro panel even when its own calorie math reconciles with itself", () => {
+    // 50+50+20 = 120g of protein+carbs+fat in a 100g product — impossible —
+    // yet 50*4+50*4+20*9 = 580 cal matches the label exactly (and is
+    // itself within the per-100g plausible range), so the Atwater check
+    // alone would call this plausible.
+    const result = validateNutrition({ cals: 580, protein: 50, carbs: 50, fat: 20 });
+    expect(result.plausible).toBe(false);
+    expect(result.reason).toMatch(/adds up to 120g/);
+  });
+
+  it("names every missing field, not just the first one found", () => {
+    const result = validateNutrition({ cals: 100, protein: null, carbs: 10, fat: null });
+    expect(result.plausible).toBe(false);
+    expect(result.reason).toMatch(/missing protein, fat/);
+  });
+});
+
+describe("pickBestFoodForBarcode", () => {
+  it("prefers a client's own correction over the original scanned entry", () => {
+    const original = { id: "a", barcode: "123", cals: 253, correctedByUser: undefined, verifiedAt: 2000 };
+    const corrected = { id: "b", barcode: "123", cals: 63, correctedByUser: true, verifiedAt: 1000 };
+    // The correction is older (lower verifiedAt) but still wins — a human
+    // reading the real label outranks a more "recent" automated re-check.
+    expect(pickBestFoodForBarcode([original, corrected]).id).toBe("b");
+    expect(pickBestFoodForBarcode([corrected, original]).id).toBe("b"); // order-independent
+  });
+
+  it("falls back to the most recently verified doc when none are corrected", () => {
+    const older = { id: "a", verifiedAt: 1000 };
+    const newer = { id: "b", verifiedAt: 2000 };
+    expect(pickBestFoodForBarcode([older, newer]).id).toBe("b");
+  });
+
+  it("returns null for an empty list", () => {
+    expect(pickBestFoodForBarcode([])).toBeNull();
+  });
+});
+
+describe("buildCorrectedFood", () => {
+  const scanned = {
+    id: "off_123",
+    name: "Protein Smoothie Choc Honeycomb",
+    brand: "Rokeby",
+    cals: 253,
+    protein: 7.1,
+    carbs: 4.3,
+    fat: 1.5,
+    per: 100,
+    defaultQty: 100,
+    fromBarcode: true,
+    barcode: "9300000000011",
+    nutritionSuspect: true,
+    nutritionSuspectReason: "label says 253 cal, but macros work out to ~59 cal",
+    verificationLevel: "REVIEW",
+    confidenceScore: 62,
+    source: { name: "Protein Smoothie Choc Honeycomb", brand: "Rokeby", cals: 253, protein: 7.1, carbs: 4.3, fat: 1.5 },
+  };
+
+  it("applies the typed-in macros and marks the result VERIFIED/correctedByUser", () => {
+    const result = buildCorrectedFood(scanned, { cals: "63", protein: "7.1", carbs: "4.3", fat: "1.5" });
+    expect(result.cals).toBe(63);
+    expect(result.protein).toBe(7.1);
+    expect(result.verificationLevel).toBe("VERIFIED");
+    expect(result.confidenceScore).toBe(100);
+    expect(result.correctedByUser).toBe(true);
+    expect(result.verifiedAt).toBeGreaterThan(0);
+  });
+
+  it("clears the suspect/missing flags a correction resolves", () => {
+    const result = buildCorrectedFood(scanned, { cals: "63", protein: "7.1", carbs: "4.3", fat: "1.5" });
+    expect(result.nutritionSuspect).toBeUndefined();
+    expect(result.nutritionSuspectReason).toBeUndefined();
+    expect(result.missingNutritionFields).toBeUndefined();
+  });
+
+  it("keeps the original Open Food Facts data under `source`, untouched by the correction", () => {
+    const result = buildCorrectedFood(scanned, { cals: "63", protein: "7.1", carbs: "4.3", fat: "1.5" });
+    expect(result.source).toEqual(scanned.source);
+    expect(result.source.cals).toBe(253); // the original, unmodified value — never overwritten
+  });
+
+  it("never carries the original Firestore id forward — createFood must mint a fresh one", () => {
+    const result = buildCorrectedFood(scanned, { cals: "63", protein: "7.1", carbs: "4.3", fat: "1.5" });
+    expect(result.id).toBeUndefined();
+  });
+
+  it("clamps a negative or garbage macro value to zero rather than saving it", () => {
+    const result = buildCorrectedFood(scanned, { cals: "63", protein: "-5", carbs: "abc", fat: "1.5" });
+    expect(result.protein).toBe(0);
+    expect(result.carbs).toBe(0);
   });
 });
 
@@ -223,6 +315,49 @@ describe("lookupBarcode", () => {
         })
     );
     await expect(lookupBarcode("9300000000066")).rejects.toMatchObject({ notFound: true });
+  });
+
+  it("flags which macro fields are actually missing, instead of silently defaulting them to a confirmed zero", async () => {
+    mockOff(1, {
+      product_name: "Incomplete Label Bar",
+      nutriments: { "energy-kcal_100g": 180, proteins_100g: 5 }, // carbs/fat never reported by the source
+    });
+    const food = await lookupBarcode("9300000000111");
+    expect(food.carbs).toBe(0); // still usable for display/calculation...
+    expect(food.fat).toBe(0);
+    expect(food.missingNutritionFields).toEqual(["carbs", "fat"]); // ...but never presented as real, verified zeros
+    expect(food.nutritionSuspect).toBe(true); // missing data fails validation too, not just out-of-range data
+  });
+
+  it("does not flag missingNutritionFields when the source actually reports all four macros", async () => {
+    mockOff(1, {
+      product_name: "Complete Label Bar",
+      nutriments: { "energy-kcal_100g": 180, proteins_100g: 5, carbohydrates_100g: 20, fat_100g: 3 },
+    });
+    const food = await lookupBarcode("9300000000128");
+    expect(food.missingNutritionFields).toBeUndefined();
+  });
+
+  it("parses a liquid product's serving size in ml, not just g", async () => {
+    mockOff(1, {
+      product_name: "Test Juice",
+      serving_size: "250 ml",
+      quantity: "1 L",
+      nutriments: { "energy-kcal_100g": 45, proteins_100g: 0.5, carbohydrates_100g: 10, fat_100g: 0 },
+    });
+    const food = await lookupBarcode("9300000000135");
+    expect(food.defaultQty).toBe(250);
+    expect(food.servingSizeUnverified).toBeUndefined();
+  });
+
+  it("preserves the exact Open Food Facts macros under `source`, separate from the top-level fields a correction would later change", async () => {
+    mockOff(1, {
+      product_name: "Test Muesli Bar",
+      brands: "TestBrand",
+      nutriments: { "energy-kcal_100g": 440, proteins_100g: 9.3, carbohydrates_100g: 51.3, fat_100g: 20 },
+    });
+    const food = await lookupBarcode("9300000000142");
+    expect(food.source).toEqual({ name: "Test Muesli Bar", brand: "TestBrand", cals: 440, protein: 9.3, carbs: 51.3, fat: 20 });
   });
 
   it("never invents a product name when Open Food Facts has none", async () => {
