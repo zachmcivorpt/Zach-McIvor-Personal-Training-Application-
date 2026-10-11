@@ -1,0 +1,90 @@
+name: CI
+
+# Safety gate for the web app: runs the existing test suite, lint, and a
+# production build on every pull request and on every push to main, so a
+# regression is caught here instead of reaching Vercel's auto-deploy from
+# main. Deliberately does not touch, call, or replace deploy-functions.yml
+# (Cloud Functions deploy) or the Vercel/codemagic deploys — this workflow
+# only runs checks and never deploys anything.
+#
+# Scoped (via `paths`) to the files these checks actually exercise, so an
+# unrelated change (docs, ios/, android/, functions/ deploy config, etc.)
+# doesn't trigger a redundant run. This workflow's own definition is
+# included too — a change to ci.yml (or any other workflow file) is
+# exactly the kind of edit that most needs to be checked before it reaches
+# main, and without this a PR that only touches .github/workflows/** would
+# never trigger CI at all, self-validating edits included.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "api-lib/**"
+      - "public/**"
+      - "scripts/**"
+      - "index.html"
+      - "vite.config.js"
+      - "postcss.config.js"
+      - ".oxlintrc.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/**"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "api-lib/**"
+      - "public/**"
+      - "scripts/**"
+      - "index.html"
+      - "vite.config.js"
+      - "postcss.config.js"
+      - ".oxlintrc.json"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/**"
+
+jobs:
+  checks:
+    name: Lint, test, and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Pinned to 22, not 20: under Node 20.20.2 the existing test
+          # suite's jsdom/undici dependency crashes on startup
+          # ("webidl.util.markAsUncloneable is not a function") — a
+          # pre-existing incompatibility between the pinned jsdom version
+          # and that Node build, unrelated to any app code. Verified
+          # locally that the same suite (178 tests) passes cleanly under
+          # Node 22.
+          node-version: 22
+          cache: npm
+
+      # `npm ci` installs exactly what package-lock.json pins, failing
+      # instead of silently resolving different versions than local/dev —
+      # the reproducible-install guarantee `npm install` doesn't give.
+      - name: Install dependencies
+        run: npm ci
+
+      # oxlint (already configured in .oxlintrc.json) — real errors fail
+      # the job; existing warnings (e.g. react-hooks exhaustive-deps) don't,
+      # matching how `npm run lint` already behaves locally today.
+      - name: Lint
+        run: npm run lint
+
+      # vitest — the project's existing suite, unchanged.
+      - name: Test
+        run: npm test
+
+      # Production build (vite build). Does not deploy: the trailing
+      # Firestore-rules publish step inside `npm run build` only runs when
+      # VERCEL_ENV=production, which is never set in this workflow, so it
+      # always no-ops here ("Not a production build — skipping rules
+      # deploy.").
+      - name: Build
+        run: npm run build
