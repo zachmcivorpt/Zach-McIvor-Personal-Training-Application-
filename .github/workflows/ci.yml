@@ -55,7 +55,14 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Pinned to 22, not 20: under Node 20.20.2 the existing test
+          # suite's jsdom/undici dependency crashes on startup
+          # ("webidl.util.markAsUncloneable is not a function") — a
+          # pre-existing incompatibility between the pinned jsdom version
+          # and that Node build, unrelated to any app code. Verified
+          # locally that the same suite (178 tests) passes cleanly under
+          # Node 22.
+          node-version: 22
           cache: npm
 
       # `npm ci` installs exactly what package-lock.json pins, failing
