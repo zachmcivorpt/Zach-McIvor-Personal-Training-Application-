@@ -369,8 +369,8 @@ function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }
 
 function BrandBar({ dark = false }) {
   return (
-    <div className="flex items-center justify-center pt-3 pb-1">
-      <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-9 w-auto ${dark ? "opacity-90" : "opacity-95"}`} />
+    <div className="flex items-center justify-start px-2.5 pt-3 pb-1">
+      <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-7 w-auto ${dark ? "opacity-90" : "opacity-95"}`} />
     </div>
   );
 }
@@ -4755,8 +4755,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-3 pb-2 flex items-center gap-2">
-        <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-6 w-auto shrink-0 ${dark ? "opacity-90" : "opacity-95"}`} />
+      <div className="px-2.5 pt-1 pb-2">
         <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Nutrition</h1>
       </div>
 
@@ -9127,11 +9126,7 @@ export default function ClientApp() {
             </button>
           </div>
         )}
-        {/* Nutrition renders its own smaller, left-aligned logo inline with
-            its heading (see NutritionScreen) instead of this shared
-            centered bar, so it isn't shown twice on that tab — every other
-            tab keeps this exact bar unchanged. */}
-        {tab !== "nutrition" && <BrandBar dark={dark} />}
+        <BrandBar dark={dark} />
         {currentUser.accessPaused && !viewingAsClient ? (
           <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
         ) : (
