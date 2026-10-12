@@ -4841,11 +4841,17 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                 (not plain black) anchors the solid portion of the fade so
                 it reads as one continuous dark card, not an image with a
                 black box stuck on top of it. */}
-            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "75% center" }} />
+            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "75% 15%" }} />
             <div
               className="absolute inset-0"
-              style={{ background: `linear-gradient(to right, ${CLIENT_DARK_SURFACE} 0%, ${CLIENT_DARK_SURFACE} 46%, ${CLIENT_DARK_SURFACE}d9 54%, ${CLIENT_DARK_SURFACE}59 66%, transparent 82%)` }}
+              style={{ background: `linear-gradient(to right, ${CLIENT_DARK_SURFACE} 0%, ${CLIENT_DARK_SURFACE} 46%, ${CLIENT_DARK_SURFACE}d9 54%, ${CLIENT_DARK_SURFACE}66 66%, transparent 82%)` }}
             />
+            {/* The macro row (Protein/Carbs/Fat) sits in the lower third of
+                the card, right where the mountain's brightest snow was
+                washing out the Fat column's numbers — this darkens just
+                that band, on top of the horizontal fade above, without
+                dimming the clear sky/peak area higher up the card. */}
+            <div className="absolute inset-x-0 bottom-0 h-[58%]" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }} />
             <div className="relative">
             <p className="text-white/50 text-[11px] font-bold tracking-[0.12em] mb-2">CALORIES REMAINING</p>
             <div className="flex items-baseline gap-2">
