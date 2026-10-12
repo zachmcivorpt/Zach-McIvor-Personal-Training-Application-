@@ -353,6 +353,20 @@ export function useClientDark() {
    HOME
 ============================================================================ */
 
+function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl py-3.5 active:scale-95 transition-transform ${
+        invert ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/70" : "bg-black/8 text-black/70"
+      }`}
+    >
+      <Icon size={18} />
+      <span className="text-[11px] font-semibold text-center leading-tight">{label}</span>
+    </button>
+  );
+}
+
 function BrandBar({ dark = false }) {
   return (
     <div className="flex items-center justify-center pt-3 pb-1">
@@ -4618,6 +4632,11 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
   const [nutritionDetailOpen, setNutritionDetailOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [tab, setTab] = useState("today"); // "today" | "plan"
+  // Set by the dashboard-level Scan/Search tiles (no meal preselected) so a
+  // food can be picked first and the destination meal chosen right after,
+  // vs. the per-meal "Log" buttons which set activeMeal immediately.
+  const [mealChoice, setMealChoice] = useState(null); // scaled food awaiting a meal pick, or null
+  const aiHelpRef = useRef(null);
 
   const mealCategories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
   // Coach-added and barcode-discovered foods (db.customFoods) are searched
@@ -4648,10 +4667,16 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
   function addAndClose(food) {
     dismissKeyboard();
-    guardedAdd(food);
     setBarcodeOpen(false);
     setPhotoOpen(false);
     setSheetOpen(false);
+    // No meal preselected (reached via a dashboard-level tile) — ask which
+    // meal this goes to instead of logging it to an undefined destination.
+    if (!activeMeal) {
+      setMealChoice(food);
+      return;
+    }
+    guardedAdd(food);
   }
 
   function saveMealFromEstimate(estimate) {
@@ -4669,8 +4694,19 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
     setSheetOpen(false);
   }
 
+  function scrollToAiHelp() {
+    aiHelpRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function logSavedMeal(meal, category) {
-    guardedAdd({ id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat }, category);
+    const food = { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat };
+    // No meal preselected (reached via a dashboard-level tile) — ask which
+    // meal this goes to instead of logging it to an undefined destination.
+    if (!category) {
+      setMealChoice(food);
+      return;
+    }
+    guardedAdd(food, category);
   }
 
   const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
@@ -4719,7 +4755,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2">
+      <div className="px-2.5 pt-3 pb-2 flex items-center gap-2">
+        <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-6 w-auto shrink-0 ${dark ? "opacity-90" : "opacity-95"}`} />
         <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Nutrition</h1>
       </div>
 
@@ -4821,45 +4858,32 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           </div>
       </div>
 
-      <div className="px-2.5 mt-4">
-        <Card dark={dark} className="!py-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <WaterCup value={nutrition.water} max={targets.water} size={32} />
-            <div className="flex-1 min-w-0">
-              <p className={dark ? "text-white text-sm font-semibold flex items-center gap-1.5" : "text-black text-sm font-semibold flex items-center gap-1.5"}>
-                {nutrition.water >= targets.water ? (
-                  <Droplets size={13} className={dark ? "text-white" : "text-black"} />
-                ) : (
-                  <GlassWater size={13} className={dark ? "text-white/60" : "text-black/60"} />
-                )}{" "}
-                Water
-              </p>
-              <p className={dark ? "text-white/50 text-xs mt-0.5" : "text-black/50 text-xs mt-0.5"}>
-                <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{nutrition.water}L</span> / {targets.water}L
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-1.5 mt-2.5">
-            <button
-              onClick={() => onAddWater(0.25, viewDateKey)}
-              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
-            >
-              +250ml
-            </button>
-            <button
-              onClick={() => onAddWater(0.5, viewDateKey)}
-              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
-            >
-              +500ml
-            </button>
-            <button
-              onClick={() => setWaterSheetOpen(true)}
-              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform"}
-            >
-              Custom
-            </button>
-          </div>
-        </Card>
+      <div className="px-2.5 mt-4 grid grid-cols-4 gap-2">
+        <NutritionQuickTile
+          dark={dark}
+          invert
+          icon={ScanLine}
+          label="Scan Food"
+          onClick={() => {
+            setActiveMeal(null);
+            setBarcodeOpen(true);
+          }}
+        />
+        <NutritionQuickTile
+          dark={dark}
+          icon={Search}
+          label="Search Food"
+          onClick={() => {
+            setActiveMeal(null);
+            setSearch("");
+            setSheetOpen(true);
+          }}
+        />
+        {/* AI Food Help and Fuel IQ are the same feature under two labels
+            (see AiNutritionHelpCard below) — both tiles jump straight to
+            it rather than standing up a second, competing implementation. */}
+        <NutritionQuickTile dark={dark} icon={Sparkles} label="AI Food Help" onClick={scrollToAiHelp} />
+        <NutritionQuickTile dark={dark} icon={Flame} label="Fuel IQ" onClick={scrollToAiHelp} />
       </div>
       </>
       )}
@@ -5067,7 +5091,60 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
       )}
 
       {tab === "today" && (
-        <div className="mt-5">
+      <div className="px-2.5 mt-4">
+        <Card dark={dark} className="!py-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <WaterCup value={nutrition.water} max={targets.water} size={32} />
+            <div className="flex-1 min-w-0">
+              <p className={dark ? "text-white text-sm font-semibold flex items-center gap-1.5" : "text-black text-sm font-semibold flex items-center gap-1.5"}>
+                {nutrition.water >= targets.water ? (
+                  <Droplets size={13} className={dark ? "text-white" : "text-black"} />
+                ) : (
+                  <GlassWater size={13} className={dark ? "text-white/60" : "text-black/60"} />
+                )}{" "}
+                Water
+              </p>
+              <p className={dark ? "text-white/50 text-xs mt-0.5" : "text-black/50 text-xs mt-0.5"}>
+                <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{nutrition.water}L</span> / {targets.water}L
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-1.5 mt-2.5">
+            <button
+              onClick={() => onAddWater(0.25, viewDateKey)}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
+            >
+              +250ml
+            </button>
+            <button
+              onClick={() => onAddWater(0.5, viewDateKey)}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
+            >
+              +500ml
+            </button>
+            <button
+              onClick={() => setWaterSheetOpen(true)}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform"}
+            >
+              Custom
+            </button>
+          </div>
+        </Card>
+      </div>
+      )}
+
+      {tab === "today" && (
+        <div className={dark ? "mx-2.5 mt-4 flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3" : "mx-2.5 mt-4 flex items-center gap-3 rounded-2xl border border-black/10 px-4 py-3"}>
+          <Target size={16} style={{ color: MEASURE_BLUE }} className="shrink-0" />
+          <div className="min-w-0">
+            <p className={dark ? "text-white text-xs font-semibold" : "text-black text-xs font-semibold"}>Hit your targets. Build better habits.</p>
+            <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>Fuel your performance, day by day.</p>
+          </div>
+        </div>
+      )}
+
+      {tab === "today" && (
+        <div className="mt-5" ref={aiHelpRef}>
           <AiNutritionHelpCard
             targets={targets}
             todayNutrition={todayNutrition}
@@ -5154,7 +5231,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           setSheetOpen(false);
           setSearch("");
         }}
-        title={`Add to ${activeMeal}`}
+        title={activeMeal ? `Add to ${activeMeal}` : "Add Food"}
         keyboardSafeScroll
       >
         <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
@@ -5250,7 +5327,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     onClick={() => {
                       dismissKeyboard();
                       logSavedMeal(m, activeMeal);
-                      showToast(`Logged "${m.name}" to ${activeMeal}`);
+                      if (activeMeal) showToast(`Logged "${m.name}" to ${activeMeal}`);
                       setSheetOpen(false);
                       setSearch("");
                     }}
@@ -5401,7 +5478,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                           <button
                             onClick={() => {
                               logSavedMeal(m, activeMeal);
-                              showToast(`Logged "${m.name}" to ${activeMeal}`);
+                              if (activeMeal) showToast(`Logged "${m.name}" to ${activeMeal}`);
                               setSheetOpen(false);
                             }}
                             className={dark ? "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-white/8" : "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-black/[0.05]"}
@@ -5426,6 +5503,16 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         food={pendingFood}
         onClose={() => setPendingFood(null)}
         onConfirm={async (scaled) => {
+          // Opened from a dashboard-level tile (no meal preselected) —
+          // ask which meal this goes to before saving anything, instead
+          // of guessing. Opened from a meal's own Log button, activeMeal
+          // is already set and this saves straight through as before.
+          if (!activeMeal) {
+            setPendingFood(null);
+            setSheetOpen(false);
+            setMealChoice(scaled);
+            return;
+          }
           // Only closes on a confirmed successful save — closing first
           // (the old behaviour) made a slow save look identical to one
           // that silently did nothing, which is exactly what sent a
@@ -5442,6 +5529,34 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             : undefined
         }
       />
+
+      <BottomSheet dark={dark} open={!!mealChoice} onClose={() => setMealChoice(null)} title={mealChoice ? `Add "${mealChoice.name}" to…` : ""}>
+        <div className="grid grid-cols-2 gap-2">
+          {mealCategories.map((meal) => (
+            <button
+              key={meal}
+              onClick={async () => {
+                if (addBusyRef.current) return;
+                const food = mealChoice;
+                if (!food) return;
+                addBusyRef.current = true;
+                setMealChoice(null);
+                try {
+                  await onAddFood(meal, food, viewDateKey);
+                  showToast(`Logged "${food.name}" to ${meal}`);
+                } catch (err) {
+                  showToast(err?.message || "Couldn't log that food", true);
+                } finally {
+                  addBusyRef.current = false;
+                }
+              }}
+              className={dark ? "bg-white/8 text-white text-sm font-semibold py-3.5 rounded-xl active:scale-95 transition-transform" : "bg-black/8 text-black text-sm font-semibold py-3.5 rounded-xl active:scale-95 transition-transform"}
+            >
+              {meal}
+            </button>
+          ))}
+        </div>
+      </BottomSheet>
 
       <BottomSheet dark={dark} open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
         <div className="grid grid-cols-3 gap-2">
@@ -9012,7 +9127,11 @@ export default function ClientApp() {
             </button>
           </div>
         )}
-        <BrandBar dark={dark} />
+        {/* Nutrition renders its own smaller, left-aligned logo inline with
+            its heading (see NutritionScreen) instead of this shared
+            centered bar, so it isn't shown twice on that tab — every other
+            tab keeps this exact bar unchanged. */}
+        {tab !== "nutrition" && <BrandBar dark={dark} />}
         {currentUser.accessPaused && !viewingAsClient ? (
           <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
         ) : (
