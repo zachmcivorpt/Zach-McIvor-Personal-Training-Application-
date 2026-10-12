@@ -36,6 +36,11 @@ import { detectNoteContext } from "./apexInsights";
 import { removedMemberIds } from "./groupMembership";
 import { workoutLogDocId } from "./workoutLogId";
 import { pickBestFoodForBarcode } from "./barcodeLookup";
+// From foodUnits.js specifically, not foodDatabase.js — that file's full
+// FOOD_DATABASE array is deliberately dynamically imported elsewhere in
+// this file (see importBuiltInFoods) to keep it out of the main bundle; a
+// static import from foodDatabase.js itself would defeat that.
+import { sanitizeFoodUnits } from "./foodUnits";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -2217,7 +2222,13 @@ export function AppProvider({ children }) {
       // wherever the client searches for food to log.
       createFood(data) {
         const id = newDocId("customFoods");
-        const food = { id, name: "", cals: 0, protein: 0, carbs: 0, fat: 0, ...data };
+        // The one gate every food-creation path shares (coach-added,
+        // client Quick Add, barcode import/correction) — strips any
+        // imperial/kg unit, invalid custom-unit weight, or non-positive
+        // per/defaultQty before it can ever reach the shared food
+        // library, rather than relying on each caller to validate its
+        // own input correctly.
+        const food = { id, name: "", cals: 0, protein: 0, carbs: 0, fat: 0, ...sanitizeFoodUnits(data) };
         setDoc(doc(firestore, "customFoods", id), food).catch(console.error);
         return food;
       },
@@ -2251,7 +2262,7 @@ export function AppProvider({ children }) {
         }
       },
       updateFood(id, data) {
-        updateDoc(doc(firestore, "customFoods", id), data).catch(console.error);
+        updateDoc(doc(firestore, "customFoods", id), sanitizeFoodUnits(data)).catch(console.error);
       },
       deleteFood(id) {
         deleteDoc(doc(firestore, "customFoods", id)).catch(console.error);

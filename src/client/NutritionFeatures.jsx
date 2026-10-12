@@ -26,7 +26,7 @@ import "barcode-detector/polyfill";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
-import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG } from "../lib/foodDatabase";
+import { scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG, getAllFoods } from "../lib/foodDatabase";
 import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey, detectBarcodeFormat, pickBestFoodForBarcode, buildCorrectedFood } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
@@ -1365,8 +1365,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   // a client's own label correction) was invisible here even though it's
   // already searchable everywhere else, so building a meal silently fell
   // back to typing it in again from scratch.
-  const customFoodIds = new Set((db.customFoods || []).map((f) => f.id));
-  const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
+  const allFoods = getAllFoods(db.customFoods);
   const filtered = allFoods.filter((f) => matchesSearch(f.name, search));
 
   function addIngredient(food) {
@@ -1616,8 +1615,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   // a client's own label correction) was invisible here even though it's
   // already searchable everywhere else, so building a meal silently fell
   // back to typing it in again from scratch.
-  const customFoodIds = new Set((db.customFoods || []).map((f) => f.id));
-  const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
+  const allFoods = getAllFoods(db.customFoods);
   const filtered = allFoods.filter((f) => matchesSearch(f.name, search));
 
   function addIngredient(food) {
