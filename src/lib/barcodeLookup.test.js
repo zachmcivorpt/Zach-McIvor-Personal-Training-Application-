@@ -408,6 +408,55 @@ describe("lookupBarcode", () => {
     const food = await lookupBarcode("9300000000073");
     expect(food.name).toMatch(/Scanned item/);
   });
+
+  // Real production report: a client scanned a loaf of bread and only got
+  // grams, no "slice" option — unlike the hand-curated bread entries in
+  // FOOD_DATABASE, which all offer a real "slice" customUnit. Open Food
+  // Facts frequently states the per-slice weight directly in its own
+  // serving_size text (e.g. "1 slice (40 g)"); this is a genuine, verified
+  // figure read off the product's own label, not invented, so it's now
+  // carried through as a real customUnit the same way a hand-curated
+  // entry's is.
+  it("offers a real 'slice' unit for a scanned bread product whose serving_size names one", async () => {
+    mockOff(1, {
+      product_name: "Scanned Sandwich Bread",
+      brands: "TestBakery",
+      serving_size: "1 slice (40 g)",
+      nutriments: { "energy-kcal_100g": 250, proteins_100g: 9, carbohydrates_100g: 45, fat_100g: 3 },
+    });
+    const food = await lookupBarcode("9300000000166");
+    expect(food.customUnit).toEqual({ label: "slice", pluralLabel: "slices", grams: 40 });
+    expect(food.defaultQty).toBe(40); // still a real figure for the base gram unit too
+  });
+
+  it("divides a multi-unit serving_size (e.g. '2 biscuits (30g)') to get the correct single-unit weight", async () => {
+    mockOff(1, {
+      product_name: "Scanned Digestive Biscuits",
+      serving_size: "2 biscuits (30g)",
+      nutriments: { "energy-kcal_100g": 480, proteins_100g: 6, carbohydrates_100g: 65, fat_100g: 20 },
+    });
+    const food = await lookupBarcode("9300000000159");
+    expect(food.customUnit).toEqual({ label: "biscuit", pluralLabel: "biscuits", grams: 15 });
+  });
+
+  it("offers no customUnit at all when serving_size has no countable-unit word (just a plain weight)", async () => {
+    mockOff(1, {
+      product_name: "Scanned Rice",
+      serving_size: "180 g",
+      nutriments: { "energy-kcal_100g": 130, proteins_100g: 2.7, carbohydrates_100g: 28, fat_100g: 0.3 },
+    });
+    const food = await lookupBarcode("9300000000180");
+    expect(food.customUnit).toBeUndefined();
+  });
+
+  it("offers no customUnit when serving_size is missing entirely", async () => {
+    mockOff(1, {
+      product_name: "Scanned Mystery Item",
+      nutriments: { "energy-kcal_100g": 200, proteins_100g: 5, carbohydrates_100g: 30, fat_100g: 5 },
+    });
+    const food = await lookupBarcode("9300000000197");
+    expect(food.customUnit).toBeUndefined();
+  });
 });
 
 describe("debugLookupBarcode", () => {
