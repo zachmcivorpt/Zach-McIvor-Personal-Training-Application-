@@ -40,6 +40,47 @@ function parseServingGrams(product) {
   return null;
 }
 
+// Real production report: a scanned bread product offered only grams, no
+// "slice" option — even though Open Food Facts' own `serving_size` text
+// often spells one out directly (e.g. "1 slice (40 g)", "2 biscuits
+// (30g)", "1 piece (25g)"). This extracts a genuine, verified per-unit
+// weight straight from that text — never invented or guessed — so a
+// scanned bread/cracker/biscuit-style product gets the same real "slice"/
+// "piece" unit a hand-curated database entry already offers, whenever the
+// product's own label actually states one. A count prefix ("2 biscuits")
+// divides the parenthetical weight to get the correct single-unit weight;
+// a serving_size with no countable-unit word at all (just "30 g", "250
+// ml") correctly yields nothing here, leaving the food on its base g/ml
+// unit only, exactly as before.
+const COUNTABLE_UNIT_WORDS = {
+  slice: "slice", slices: "slice",
+  piece: "piece", pieces: "piece",
+  biscuit: "biscuit", biscuits: "biscuit",
+  cracker: "cracker", crackers: "cracker",
+  cookie: "cookie", cookies: "cookie",
+  bar: "bar", bars: "bar",
+  pita: "pita", pitas: "pita",
+  wrap: "wrap", wraps: "wrap",
+  tortilla: "tortilla", tortillas: "tortilla",
+  scoop: "scoop", scoops: "scoop",
+  sachet: "sachet", sachets: "sachet",
+  bun: "bun", buns: "bun",
+  roll: "roll", rolls: "roll",
+};
+function parseServingUnit(product) {
+  const text = String(product.serving_size || "");
+  const match = text.match(/(?:(\d+(?:\.\d+)?)\s*)?\b([a-z]+)\b[^(0-9]*\((\d+(?:\.\d+)?)\s*(?:g|ml)\)/i);
+  if (!match) return null;
+  const word = COUNTABLE_UNIT_WORDS[match[2].toLowerCase()];
+  if (!word) return null;
+  const count = Number(match[1]) || 1;
+  const totalGrams = Number(match[3]);
+  if (!(totalGrams > 0) || !(count > 0)) return null;
+  const perUnitGrams = Math.round((totalGrams / count) * 10) / 10;
+  if (!(perUnitGrams > 0)) return null;
+  return { label: word, pluralLabel: `${word}s`, grams: perUnitGrams };
+}
+
 // Open Food Facts' `quantity` field is the real package size as printed on
 // the pack (e.g. "500 g", "3 L", "750mL", "1kg") — far more reliable than
 // guessing from the product name whether a scanned item is a liquid (ml)
@@ -411,6 +452,7 @@ function mapProductToFood(product, code) {
   const fat = Math.round((rawFat || 0) * 10) / 10;
 
   const servingGrams = parseServingGrams(product);
+  const servingUnit = parseServingUnit(product);
 
   const packageInfo = parseQuantity(product);
 
@@ -434,6 +476,15 @@ function mapProductToFood(product, code) {
     // the serving size) so the confirm screen can say so plainly instead
     // of presenting a guess as fact.
     ...(servingGrams == null ? { servingSizeUnverified: true } : {}),
+    // Real production report: a scanned bread product offered only grams,
+    // no "slice" option. When Open Food Facts' own serving_size text
+    // names a genuine countable unit (see parseServingUnit above), carry
+    // it through as a real customUnit — exactly the same "1 egg"/"1
+    // slice"-style piece unit a hand-curated database entry already gets,
+    // just derived from the product's own verified label instead of
+    // typed in by hand. Never invented: absent when OFF's text doesn't
+    // clearly name one.
+    ...(servingUnit ? { customUnit: servingUnit } : {}),
     // Lets unitsFor() (foodDatabase.js) show ml/cup/tbsp instead of
     // g/oz/lb/kg — read straight off Open Food Facts' own `quantity`
     // field rather than guessing from the product name, since every
