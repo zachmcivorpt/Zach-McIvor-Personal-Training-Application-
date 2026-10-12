@@ -4584,19 +4584,6 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
   );
 }
 
-// Small per-row icon for each meal slot in the grouped Today's Meals card
-// — deliberately plain/generic (no food photos or brand-style icons), and
-// reuses icons already imported elsewhere in this file rather than adding
-// new ones.
-const MEAL_ICONS = {
-  Breakfast: Utensils,
-  Lunch: UtensilsCrossed,
-  Dinner: Moon,
-  Snacks: Banana,
-  "Pre-workout": Zap,
-  "Post-workout": Dumbbell,
-};
-
 export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
@@ -4768,8 +4755,10 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Nutrition</h1>
+      <div className="px-2.5 pt-3 pb-2 flex items-center gap-3">
+        <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-7 w-auto shrink-0 ${dark ? "opacity-90" : "opacity-95"}`} />
+        <div className={dark ? "w-px h-6 bg-white/15" : "w-px h-6 bg-black/15"} />
+        <h1 className={dark ? "text-white text-sm font-bold tracking-[0.14em]" : "text-black text-sm font-bold tracking-[0.14em]"}>NUTRITION</h1>
       </div>
 
       <div className="flex gap-2 px-2.5 mb-4">
@@ -5089,7 +5078,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
       {tab === "today" && (
       <div className="px-2.5 mt-7">
-        <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>{navOffset === 0 ? "TODAY'S MEALS" : `${navLabel.toUpperCase()}'S MEALS`}</p>
+        <h2 className={dark ? "text-white text-2xl font-bold mb-3" : "text-black text-2xl font-bold mb-3"}>{navOffset === 0 ? "Today's Meals" : `${navLabel}'s Meals`}</h2>
         <div
           className={dark ? "rounded-2xl border shadow-sm divide-y divide-white/8" : "rounded-2xl border shadow-sm divide-y divide-black/8"}
           style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
@@ -5097,12 +5086,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           {mealCategories.map((meal) => {
             const items = nutrition.meals[meal] || [];
             const totalCals = items.reduce((a, f) => a + f.cals, 0);
-            const MealIcon = MEAL_ICONS[meal] || UtensilsCrossed;
             return (
               <div key={meal} className="flex items-center gap-3 px-4 py-3.5">
-                <div className={dark ? "w-8 h-8 rounded-full bg-white/8 flex items-center justify-center shrink-0" : "w-8 h-8 rounded-full bg-black/8 flex items-center justify-center shrink-0"}>
-                  <MealIcon size={14} className={dark ? "text-white/60" : "text-black/60"} />
-                </div>
                 <button onClick={() => setDetailMeal(meal)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
                   <div className="min-w-0">
                     <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{meal}</p>
@@ -9169,7 +9154,10 @@ export default function ClientApp() {
             </button>
           </div>
         )}
-        <BrandBar dark={dark} />
+        {/* Nutrition renders its own logo + divider + "NUTRITION" header
+            (see NutritionScreen) instead of this shared bar, so it isn't
+            shown twice on that tab — every other tab keeps this bar. */}
+        {tab !== "nutrition" && <BrandBar dark={dark} />}
         {currentUser.accessPaused && !viewingAsClient ? (
           <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
         ) : (
