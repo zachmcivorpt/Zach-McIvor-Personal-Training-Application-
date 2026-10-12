@@ -4833,9 +4833,14 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
       <div className="px-2.5 mt-3">
         <div
           onClick={() => setNutritionDetailOpen(true)}
-          className="rounded-2xl p-5 cursor-pointer active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: CLIENT_DARK_SURFACE }}
+          className="relative overflow-hidden rounded-2xl p-5 cursor-pointer active:scale-[0.98] transition-transform"
         >
+            {/* Same mountain-photo-hero pattern TodayWorkoutCard already uses
+                (login-bg.jpg + a dark gradient for text contrast) — reused
+                here rather than a flat color, to match the approved mockup. */}
+            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/15" />
+            <div className="relative">
             <div className="flex items-center gap-2.5 mb-3">
               <Flame size={20} strokeWidth={2} className="text-orange-500 shrink-0" />
               <p className="text-white/50 text-xs font-bold tracking-wide flex-1">CALORIES REMAINING</p>
@@ -4868,6 +4873,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                   <ProgressBar trackClassName="bg-white/8" value={m.v} max={m.t} height={6} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
                 </div>
               ))}
+            </div>
             </div>
         </div>
       </div>
