@@ -367,6 +367,23 @@ function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }
   );
 }
 
+// Logo + divider + page name — the per-tab heading used on every main tab
+// (Home/Training/Nutrition/Calendar/Progress/Profile), each passing its own
+// label. `right` renders an optional control (e.g. Progress's graph icon)
+// at the end of the same row.
+function TabHeader({ label, dark = false, right = null }) {
+  return (
+    <div className="px-2.5 pt-3 pb-2 flex items-center gap-3">
+      <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-7 w-auto shrink-0 ${dark ? "opacity-90" : "opacity-95"}`} />
+      <div className={dark ? "w-px h-6 bg-white/15" : "w-px h-6 bg-black/15"} />
+      <h1 className={dark ? "text-white text-sm font-bold tracking-[0.14em] flex-1" : "text-black text-sm font-bold tracking-[0.14em] flex-1"}>
+        {label.toUpperCase()}
+      </h1>
+      {right}
+    </div>
+  );
+}
+
 function BrandBar({ dark = false }) {
   return (
     <div className="flex items-center justify-start px-2.5 pt-3 pb-1">
@@ -1175,6 +1192,7 @@ function HomeScreen({
   const dark = useClientDark();
   return (
     <div className="pb-28 space-y-5">
+      <TabHeader label="Home" dark={dark} />
       <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
@@ -3377,11 +3395,13 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>
-          {tab === "program" ? `${currentUser.name}'s Program` : "Training"}
-        </h1>
-      </div>
+      {tab === "program" ? (
+        <div className="px-2.5 pt-1 pb-2">
+          <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>{`${currentUser.name}'s Program`}</h1>
+        </div>
+      ) : (
+        <TabHeader label="Training" dark={dark} />
+      )}
       <div className="flex gap-2 px-2.5 mb-4">
         {["today", "program"].map((t) => (
           <button
@@ -4755,11 +4775,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-3 pb-2 flex items-center gap-3">
-        <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-7 w-auto shrink-0 ${dark ? "opacity-90" : "opacity-95"}`} />
-        <div className={dark ? "w-px h-6 bg-white/15" : "w-px h-6 bg-black/15"} />
-        <h1 className={dark ? "text-white text-sm font-bold tracking-[0.14em]" : "text-black text-sm font-bold tracking-[0.14em]"}>NUTRITION</h1>
-      </div>
+      <TabHeader label="Nutrition" dark={dark} />
 
       <div className="flex gap-2 px-2.5 mb-4">
         {[
@@ -6311,10 +6327,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2 flex items-center justify-between">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Progress</h1>
-        <BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />
-      </div>
+      <TabHeader label="Progress" dark={dark} right={<BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />} />
 
       <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
 
@@ -6913,9 +6926,7 @@ function ProfileScreen({
   ];
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Profile</h1>
-      </div>
+      <TabHeader label="Profile" dark={dark} />
       <div className="px-2.5">
         <Card dark={dark}>
           <div className="flex items-center gap-4">
@@ -8020,14 +8031,14 @@ function ClientCalendarScreen({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-2.5 pt-1 pb-2 shrink-0 flex items-center justify-between">
-        <div>
-          <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Calendar</h1>
-          <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scroll to see anything past or upcoming.</p>
+      <div className="shrink-0">
+        <TabHeader label="Calendar" dark={dark} />
+        <div className="px-2.5 pb-2 flex items-center justify-between">
+          <p className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>Scroll to see anything past or upcoming.</p>
+          <button onClick={jumpToToday} className={dark ? "text-white/50 hover:text-white text-sm font-semibold shrink-0" : "text-black/50 hover:text-black text-sm font-semibold shrink-0"}>
+            Today
+          </button>
         </div>
-        <button onClick={jumpToToday} className={dark ? "text-white/50 hover:text-white text-sm font-semibold shrink-0" : "text-black/50 hover:text-black text-sm font-semibold shrink-0"}>
-          Today
-        </button>
       </div>
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-2.5 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
         {days.map(({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
@@ -9154,10 +9165,11 @@ export default function ClientApp() {
             </button>
           </div>
         )}
-        {/* Nutrition renders its own logo + divider + "NUTRITION" header
-            (see NutritionScreen) instead of this shared bar, so it isn't
-            shown twice on that tab — every other tab keeps this bar. */}
-        {tab !== "nutrition" && <BrandBar dark={dark} />}
+        {/* Home/Training/Nutrition/Calendar/Progress/Profile each render
+            their own logo + divider + page-name TabHeader now, so this
+            shared bar is only needed for the other screens reached off
+            the bottom nav (e.g. Check-ins) that don't have one. */}
+        {!["home", "workouts", "nutrition", "calendar", "progress", "profile"].includes(tab) && <BrandBar dark={dark} />}
         {currentUser.accessPaused && !viewingAsClient ? (
           <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
         ) : (
