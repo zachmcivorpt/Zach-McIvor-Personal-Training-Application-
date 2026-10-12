@@ -4833,46 +4833,55 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
       <div className="px-2.5 mt-3">
         <div
           onClick={() => setNutritionDetailOpen(true)}
-          className="relative overflow-hidden rounded-2xl p-5 cursor-pointer active:scale-[0.98] transition-transform"
+          className="relative overflow-hidden rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform"
         >
             {/* Same mountain-photo-hero pattern TodayWorkoutCard already uses
-                (login-bg.jpg + a dark gradient for text contrast) — reused
-                here rather than a flat color, to match the approved mockup. */}
-            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/15" />
+                (login-bg.jpg) — reused here rather than a flat color, to
+                match the approved mockup. The card's own surface color
+                (not plain black) anchors the solid portion of the fade so
+                it reads as one continuous dark card, not an image with a
+                black box stuck on top of it. */}
+            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "75% center" }} />
+            <div
+              className="absolute inset-0"
+              style={{ background: `linear-gradient(to right, ${CLIENT_DARK_SURFACE} 0%, ${CLIENT_DARK_SURFACE} 46%, ${CLIENT_DARK_SURFACE}d9 54%, ${CLIENT_DARK_SURFACE}59 66%, transparent 82%)` }}
+            />
             <div className="relative">
-            <div className="flex items-center gap-2.5 mb-3">
-              <Flame size={20} strokeWidth={2} className="text-orange-500 shrink-0" />
-              <p className="text-white/50 text-xs font-bold tracking-wide flex-1">CALORIES REMAINING</p>
-              <ChevronRight size={15} className="text-white/25" />
-            </div>
+            <p className="text-white/50 text-[11px] font-bold tracking-[0.12em] mb-2">CALORIES REMAINING</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-white text-3xl font-bold">{Math.max(0, targets.calories - nutrition.calories).toLocaleString()}</span>
+              <span className="text-white text-[28px] leading-none font-bold">{Math.max(0, targets.calories - nutrition.calories).toLocaleString()}</span>
               <span className="text-white/40 text-sm">of {targets.calories.toLocaleString()} kcal</span>
             </div>
-            <div className="mt-3">
-              <ProgressBar trackClassName="bg-white/8"
+            <div className="mt-2.5">
+              <ProgressBar trackClassName="bg-white/15"
                 value={nutrition.calories}
                 max={targets.calories}
                 color={targetBarColor(nutrition.calories, targets.calories)}
               />
             </div>
-            <div className="space-y-3 mt-4 pt-4 border-t border-white/5">
+            <div className="grid grid-cols-3 divide-x divide-white/10 mt-4">
               {[
                 { l: "Protein", v: round1(nutrition.protein), t: targets.protein, capped: false },
                 { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs, capped: true },
                 { l: "Fat", v: round1(nutrition.fat), t: targets.fat, capped: true },
-              ].map((m) => (
-                <div key={m.l}>
-                  <div className="flex items-baseline justify-between mb-1">
-                    <span className="text-white/70 text-sm font-medium">{m.l}</span>
-                    <span className="text-white/40 text-xs">
-                      {m.v}g <span className="text-white/25">/ {m.t}g</span>
-                    </span>
+              ].map((m) => {
+                const pct = m.t > 0 ? Math.min(100, Math.round((m.v / m.t) * 100)) : 0;
+                return (
+                  <div key={m.l} className="px-2.5 first:pl-0 last:pr-0">
+                    <p className="text-white/50 text-[10px] font-bold tracking-[0.1em]">{m.l.toUpperCase()}</p>
+                    <p className="mt-1">
+                      <span className="text-white text-[15px] font-bold">{m.v}</span>
+                      <span className="text-white/40 text-xs"> / {m.t}g</span>
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <div className="flex-1">
+                        <ProgressBar trackClassName="bg-white/15" value={m.v} max={m.t} height={5} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
+                      </div>
+                      <span className="text-white/40 text-[10px] shrink-0">{pct}%</span>
+                    </div>
                   </div>
-                  <ProgressBar trackClassName="bg-white/8" value={m.v} max={m.t} height={6} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
-                </div>
-              ))}
+                );
+              })}
             </div>
             </div>
         </div>
