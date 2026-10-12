@@ -45,13 +45,14 @@ function parseServingGrams(product) {
 // often spells one out directly (e.g. "1 slice (40 g)", "2 biscuits
 // (30g)", "1 piece (25g)"). This extracts a genuine, verified per-unit
 // weight straight from that text — never invented or guessed — so a
-// scanned bread/cracker/biscuit-style product gets the same real "slice"/
-// "piece" unit a hand-curated database entry already offers, whenever the
-// product's own label actually states one. A count prefix ("2 biscuits")
-// divides the parenthetical weight to get the correct single-unit weight;
-// a serving_size with no countable-unit word at all (just "30 g", "250
-// ml") correctly yields nothing here, leaving the food on its base g/ml
-// unit only, exactly as before.
+// scanned product gets the same real countable "piece" unit a
+// hand-curated database entry already offers (bread/wraps/eggs/patties/
+// cans/bottles/etc. from the app's own serving-size requirements),
+// whenever the product's own label actually states one. A count prefix
+// ("2 biscuits") divides the parenthetical weight to get the correct
+// single-unit weight; a serving_size with no countable-unit word at all
+// (just "30 g", "250 ml") correctly yields nothing here, leaving the food
+// on its base g/ml unit only, exactly as before.
 const COUNTABLE_UNIT_WORDS = {
   slice: "slice", slices: "slice",
   piece: "piece", pieces: "piece",
@@ -66,15 +67,28 @@ const COUNTABLE_UNIT_WORDS = {
   sachet: "sachet", sachets: "sachet",
   bun: "bun", buns: "bun",
   roll: "roll", rolls: "roll",
+  egg: "egg", eggs: "egg",
+  patty: "patty", patties: "patty",
+  can: "can", cans: "can",
+  bottle: "bottle", bottles: "bottle",
+  fillet: "fillet", fillets: "fillet",
+  cake: "cake", cakes: "cake",
 };
+// Open Food Facts formats serving_size both ways round in practice: unit
+// word first ("1 slice (40 g)", "2 biscuits (30g)") and weight first
+// ("355 ml (1 can)", "330ml (1 bottle)") — both are tried, word-first
+// first since it's the more common OFF convention.
 function parseServingUnit(product) {
   const text = String(product.serving_size || "");
-  const match = text.match(/(?:(\d+(?:\.\d+)?)\s*)?\b([a-z]+)\b[^(0-9]*\((\d+(?:\.\d+)?)\s*(?:g|ml)\)/i);
+  const wordFirst = text.match(/(?:(\d+(?:\.\d+)?)\s*)?\b([a-z]+)\b[^(0-9]*\((\d+(?:\.\d+)?)\s*(?:g|ml)\)/i);
+  const weightFirst = text.match(/(\d+(?:\.\d+)?)\s*(?:g|ml)\s*\((?:(\d+(?:\.\d+)?)\s*)?([a-z]+)\)/i);
+  const [wordIdx, countIdx, gramsIdx] = wordFirst ? [2, 1, 3] : [3, 2, 1];
+  const match = wordFirst || weightFirst;
   if (!match) return null;
-  const word = COUNTABLE_UNIT_WORDS[match[2].toLowerCase()];
+  const word = COUNTABLE_UNIT_WORDS[match[wordIdx].toLowerCase()];
   if (!word) return null;
-  const count = Number(match[1]) || 1;
-  const totalGrams = Number(match[3]);
+  const count = Number(match[countIdx]) || 1;
+  const totalGrams = Number(match[gramsIdx]);
   if (!(totalGrams > 0) || !(count > 0)) return null;
   const perUnitGrams = Math.round((totalGrams / count) * 10) / 10;
   if (!(perUnitGrams > 0)) return null;
