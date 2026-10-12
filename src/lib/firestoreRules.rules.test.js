@@ -197,12 +197,46 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
     it(`${col}: a client can create and read their own thread but not edit or delete an entry`, async () => {
       const dbA = dbAs(CLIENT_A);
       const id = `${col}-doc-1`;
-      await assertSucceeds(setDoc(doc(dbA, col, id), { clientId: CLIENT_A, text: "hi coach" }));
+      // Real app code always sets `from` on both collections (see
+      // sendMessage/addWorkoutComment) — included here so this still
+      // reflects an actual write, not a payload shape the app never sends.
+      await assertSucceeds(setDoc(doc(dbA, col, id), { clientId: CLIENT_A, from: "client", text: "hi coach" }));
       await assertSucceeds(getDoc(doc(dbA, col, id)));
       await assertFails(updateDoc(doc(dbA, col, id), { text: "edited" }));
       await assertFails(deleteDoc(doc(dbA, col, id)));
     });
   }
+
+  // --- messages/{id}: a signed-in writer can't claim a `from` that
+  //     doesn't match their own authenticated role — the gap a weekly
+  //     audit found (2026-10-12): the rule checked WHOSE thread a message
+  //     landed in (via clientId) but never checked whether the `from`
+  //     value actually matched who was doing the writing, so a client
+  //     could (by calling Firestore directly, bypassing the app's own UI,
+  //     which never does this itself) write a message into their own
+  //     thread claiming `from: "coach"`, and it would render identically
+  //     to a real coach-sent message.
+  describe("messages: from must match the authenticated writer's actual role", () => {
+    it("a client cannot create a message in their own thread claiming it's from the coach", async () => {
+      const dbA = dbAs(CLIENT_A);
+      await assertFails(setDoc(doc(dbA, "messages", "spoof-1"), { clientId: CLIENT_A, from: "coach", text: "fake coach message" }));
+    });
+
+    it("a client creating a message in their own thread as themselves still works", async () => {
+      const dbA = dbAs(CLIENT_A);
+      await assertSucceeds(setDoc(doc(dbA, "messages", "real-1"), { clientId: CLIENT_A, from: "client", text: "real client message" }));
+    });
+
+    it("the coach cannot create a message claiming it's from the client", async () => {
+      const dbCoach = dbAs(COACH_UID);
+      await assertFails(setDoc(doc(dbCoach, "messages", "spoof-2"), { clientId: CLIENT_A, from: "client", text: "fake client message" }));
+    });
+
+    it("the coach creating a message in a client's thread as themselves still works", async () => {
+      const dbCoach = dbAs(COACH_UID);
+      await assertSucceeds(setDoc(doc(dbCoach, "messages", "real-2"), { clientId: CLIENT_A, from: "coach", text: "real coach message" }));
+    });
+  });
 
   // --- challenges/{id} & groups/{id}: participant/member array membership
   for (const [col, arrayField] of [
