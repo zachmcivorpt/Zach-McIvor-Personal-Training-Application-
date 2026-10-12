@@ -308,19 +308,58 @@ export function computeConfidence({ product, food, formatInfo, nutritionValidati
   return { score, level, breakdown };
 }
 
+// Real production report: a product (Woolworths eggs, among others) came
+// back as "Product Not Found" — investigating found that this function
+// collapsed every failure mode into the exact same `null`: a confirmed
+// "Open Food Facts has no record of this barcode" reads identically to a
+// timeout, a dropped connection, a 429 (rate-limited) or a 5xx (OFF's own
+// server having a bad moment). The caller (lookupBarcode) then always
+// reported "Product not found" for all of them — even though the app's
+// own scan UI (NutritionFeatures.jsx) already has a SEPARATE "Couldn't
+// complete that scan / Try again" screen specifically for a transient
+// failure, distinct from the "not found, add it manually" screen. That
+// retry screen was effectively unreachable for any real lookup failure,
+// because this function never reported one as anything other than "not
+// found." Returns `{ found, product?, confirmed, transientReason? }`:
+// `found` means a usable product record came back; when it didn't,
+// `confirmed: true` means Open Food Facts positively said "no such
+// product" (HTTP 404, or its own `status: 0`) — a genuine absence, safe
+// to send straight to manual entry — while `confirmed: false` means the
+// lookup itself failed before OFF could answer either way (timeout,
+// network error, rate limit, server error) and should be retried, not
+// treated as a confirmed missing product.
 async function fetchProduct(code, timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`, {
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        // Open Food Facts' own API etiquette asks every production client to
+        // identify itself — an anonymous/default User-Agent risks being
+        // silently rate-limited or deprioritized under real-world load,
+        // which would look exactly like an intermittent "not found."
+        "User-Agent": "APEX-Coaching-Platform/1.0 (+https://apps.apple.com/app/id6810194114)",
+      },
       signal: controller.signal,
     });
-    if (!res.ok) return null;
+    // A 404 is Open Food Facts positively confirming this exact code has
+    // no record at all — a genuine, confirmed absence. Any other non-2xx
+    // (429 rate-limited, 500/502/503 server trouble, etc.) is the lookup
+    // itself failing, not OFF answering "no" — must NOT be treated the
+    // same as a confirmed missing product.
+    if (res.status === 404) return { found: false, confirmed: true };
+    if (!res.ok) return { found: false, confirmed: false, transientReason: `HTTP ${res.status}` };
     const data = await res.json();
-    return data.status === 1 && data.product ? data.product : null;
-  } catch {
-    return null; // timeout, offline, or a malformed response — treat as "not found" so the caller's fallbacks/manual-entry path still runs
+    if (data.status === 1 && data.product) return { found: true, product: data.product };
+    // OFF's own `status: 0` ("status_verbose: product not found") is the
+    // same positive, confirmed "no" as a 404 above.
+    return { found: false, confirmed: true };
+  } catch (err) {
+    // A timeout (AbortError) or a thrown network error (offline, DNS
+    // failure, connection reset) — the lookup never got an answer from
+    // Open Food Facts at all, so this can never be treated as confirmed.
+    return { found: false, confirmed: false, transientReason: err?.name === "AbortError" ? "timeout" : "network error" };
   } finally {
     clearTimeout(timer);
   }
@@ -378,22 +417,30 @@ export function codeVariants(code) {
 // the SLOWEST variant takes, not the sum of all of them, since the first
 // one to come back with an actual product wins immediately rather than
 // waiting for a previous attempt to fail first.
+// Returns `{ product }` on a hit, or `{ product: null, confirmed }` when
+// none of the variants had one — `confirmed: true` only when EVERY
+// variant positively came back "no such product" from Open Food Facts
+// itself; `confirmed: false` if any variant instead failed to get an
+// answer at all (timeout/network/rate-limit/server error), so the caller
+// can tell a genuine miss from a lookup that simply didn't go through.
 async function fetchFirstMatch(variants) {
   return new Promise((resolve) => {
     let pending = variants.length;
     let settled = false;
+    let allConfirmed = true;
     variants.forEach((variant) => {
-      fetchProduct(variant).then((product) => {
+      fetchProduct(variant).then((result) => {
         if (settled) return;
-        if (product) {
+        if (result.found) {
           settled = true;
-          resolve(product);
+          resolve({ product: result.product });
           return;
         }
+        if (!result.confirmed) allConfirmed = false;
         pending -= 1;
         if (pending === 0 && !settled) {
           settled = true;
-          resolve(null);
+          resolve({ product: null, confirmed: allConfirmed });
         }
       });
     });
@@ -566,10 +613,22 @@ function mapProductToFood(product, code) {
 }
 
 export async function lookupBarcode(code) {
-  const product = await fetchFirstMatch(codeVariants(code));
+  const { product, confirmed } = await fetchFirstMatch(codeVariants(code));
   const digits = String(code).replace(/\D/g, "");
 
   if (!product) {
+    // `confirmed === false` means the lookup itself didn't go through for
+    // ANY tried variant (timeout/network/rate-limit/server error) — Open
+    // Food Facts never actually got the chance to say "no such product."
+    // Reported WITHOUT `err.notFound`, so the scan UI's existing "Couldn't
+    // complete that scan / Try again" screen is used instead of routing
+    // straight to manual entry, which used to happen for every one of
+    // these (see this function's history/comments in fetchProduct above).
+    if (!confirmed) {
+      const err = new Error(`Barcode scanned: ${digits}\nCouldn't reach the product database — check your connection and try again.`);
+      err.scannedCode = digits;
+      throw err;
+    }
     const err = new Error(`Barcode scanned: ${digits}\nProduct not found — you can still add it manually below.`);
     err.notFound = true;
     err.scannedCode = digits;
@@ -611,25 +670,31 @@ export async function debugLookupBarcode(code) {
   const perVariant = await Promise.all(
     variants.map(async (variant) => {
       const t0 = Date.now();
-      const product = await fetchProduct(variant);
-      return { variant, found: !!product, product, ms: Date.now() - t0 };
+      const result = await fetchProduct(variant);
+      return { variant, found: result.found, product: result.found ? result.product : null, confirmed: result.confirmed, transientReason: result.transientReason, ms: Date.now() - t0 };
     })
   );
 
   const trace = {
     scannedCode: digits,
     sourcesSearched: [{ name: "Open Food Facts", url: "https://world.openfoodfacts.org", type: "barcode-exact-match" }],
-    variantsTried: perVariant.map(({ variant, found, ms }) => ({ variant, found, ms })),
+    // `confirmed`/`transientReason` surfaced per variant so a real "not
+    // found" (every variant positively confirmed absent) can be told apart
+    // from a lookup that simply never got an answer (timeout/network/rate
+    // limit/server error) — the exact distinction the scan UI itself now
+    // relies on (see lookupBarcode).
+    variantsTried: perVariant.map(({ variant, found, confirmed, transientReason, ms }) => ({ variant, found, confirmed, transientReason, ms })),
     totalMs: Date.now() - startedAt,
   };
 
   const hit = perVariant.find((v) => v.found);
   if (!hit) {
     const formatInfo = detectBarcodeFormat(code);
+    const allConfirmed = perVariant.every((v) => v.confirmed);
     const confidence = computeConfidence({ product: null, food: null, formatInfo, nutritionValidation: { plausible: false, reason: "no product found" } });
     trace.selectedVariant = null;
     trace.rawProduct = null;
-    trace.outcome = "not-found";
+    trace.outcome = allConfirmed ? "not-found" : "lookup-failed";
     trace.confidenceScore = confidence.score;
     trace.verificationLevel = confidence.level;
     trace.confidenceBreakdown = confidence.breakdown;

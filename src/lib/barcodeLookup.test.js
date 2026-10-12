@@ -341,12 +341,27 @@ describe("lookupBarcode", () => {
     expect(food.name).toBe("UPC Product");
   });
 
-  it("treats a network failure as not-found rather than crashing", async () => {
+  // Real production report ("Product Not Found" for Woolworths eggs and
+  // others): a network failure or timeout used to be reported identically
+  // to a confirmed "Open Food Facts has no record of this barcode" — both
+  // threw with `notFound: true`, which routes the scan UI straight to its
+  // "add it manually" screen. That's wrong for a failure that never
+  // actually got an answer from the source at all; the UI's own separate
+  // "Couldn't complete that scan — Try again" screen (NutritionFeatures.jsx)
+  // existed for exactly this case but was unreachable, because this
+  // function never threw anything other than `notFound: true`. A network
+  // failure/timeout must NOT crash (still resolves, doesn't hang/throw
+  // unhandled) and must NOT be reported as `notFound` — the two are
+  // different failure modes with different correct recovery paths.
+  it("reports a network failure as a lookup failure, not a confirmed not-found", async () => {
     global.fetch.mockRejectedValue(new Error("network down"));
-    await expect(lookupBarcode("9300000000059")).rejects.toMatchObject({ notFound: true });
+    const err = await lookupBarcode("9300000000059").catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.notFound).toBeFalsy();
+    expect(err.message).toMatch(/Couldn't reach the product database/i);
   });
 
-  it("treats a timeout as not-found rather than hanging", async () => {
+  it("reports a timeout as a lookup failure, not a confirmed not-found", async () => {
     global.fetch.mockImplementation(
       () =>
         new Promise((_, reject) => {
@@ -355,7 +370,52 @@ describe("lookupBarcode", () => {
           reject(err);
         })
     );
-    await expect(lookupBarcode("9300000000066")).rejects.toMatchObject({ notFound: true });
+    const err = await lookupBarcode("9300000000066").catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.notFound).toBeFalsy();
+    expect(err.message).toMatch(/Couldn't reach the product database/i);
+  });
+
+  // A GENUINE confirmed absence (Open Food Facts explicitly says "no such
+  // product," via a 404 or its own status: 0) is the one case that SHOULD
+  // still report notFound: true and route to manual entry — unlike the
+  // two cases above, OFF actually answered, and the answer was "no."
+  it("still reports a genuine, confirmed absence (OFF's own status: 0) as not-found", async () => {
+    mockOff(0, null);
+    await expect(lookupBarcode("9300000000080")).rejects.toMatchObject({ notFound: true });
+  });
+
+  it("still reports a genuine 404 as not-found, distinct from a 5xx/429 lookup failure", async () => {
+    global.fetch.mockResolvedValue({ ok: false, status: 404, json: async () => ({}) });
+    await expect(lookupBarcode("9300000000097")).rejects.toMatchObject({ notFound: true });
+  });
+
+  it("reports a 429 (rate-limited) or 5xx (server error) as a lookup failure, not a confirmed not-found", async () => {
+    global.fetch.mockResolvedValue({ ok: false, status: 429, json: async () => ({}) });
+    const err = await lookupBarcode("9300000000103").catch((e) => e);
+    expect(err.notFound).toBeFalsy();
+    expect(err.message).toMatch(/Couldn't reach the product database/i);
+  });
+
+  // A 12-digit UPC-A code tries 2 variants in parallel (raw + zero-padded
+  // EAN-13 — see codeVariants). If one variant comes back confirmed-absent
+  // (a real 404) but the OTHER never got an answer (timeout), the overall
+  // result must NOT be treated as a confirmed not-found — the zero-padded
+  // form might genuinely have a product, we just don't know yet.
+  it("does not report a confirmed not-found when only SOME variants were confirmed and others merely failed to answer", async () => {
+    global.fetch.mockImplementation((url) => {
+      // codeVariants("123456789012") tries both the raw 12-digit code and
+      // its zero-padded 13-digit EAN-13 form ("0123456789012") — matched
+      // by the exact product-id segment of the URL, not a substring (the
+      // 12-digit form is itself a substring of the zero-padded one).
+      if (String(url).endsWith("/product/123456789012.json")) {
+        return Promise.resolve({ ok: false, status: 404, json: async () => ({}) });
+      }
+      return Promise.reject(new Error("network down"));
+    });
+    const err = await lookupBarcode("123456789012").catch((e) => e);
+    expect(err.notFound).toBeFalsy();
+    expect(err.message).toMatch(/Couldn't reach the product database/i);
   });
 
   it("flags which macro fields are actually missing, instead of silently defaulting them to a confirmed zero", async () => {
