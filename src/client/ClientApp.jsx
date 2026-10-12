@@ -384,14 +384,6 @@ function TabHeader({ label, dark = false, right = null }) {
   );
 }
 
-function BrandBar({ dark = false }) {
-  return (
-    <div className="flex items-center justify-start px-2.5 pt-3 pb-1">
-      <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-7 w-auto ${dark ? "opacity-90" : "opacity-95"}`} />
-    </div>
-  );
-}
-
 function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const dark = useClientDark();
   const hour = new Date().getHours();
@@ -3395,13 +3387,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
   return (
     <div className="pb-28">
-      {tab === "program" ? (
-        <div className="px-2.5 pt-1 pb-2">
-          <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>{`${currentUser.name}'s Program`}</h1>
-        </div>
-      ) : (
-        <TabHeader label="Training" dark={dark} />
-      )}
+      <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark={dark} />
       <div className="flex gap-2 px-2.5 mb-4">
         {["today", "program"].map((t) => (
           <button
@@ -7517,10 +7503,8 @@ function CheckInsScreen({ userId, showToast }) {
 
   return (
     <div className="pb-28 space-y-4">
-      <div className="px-2.5 pt-1 pb-2">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Check-ins</h1>
-        <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scheduled by your coach</p>
-      </div>
+      <TabHeader label="Check-ins" dark={dark} />
+      <p className={dark ? "text-white/40 text-sm px-2.5 -mt-1 mb-1" : "text-black/40 text-sm px-2.5 -mt-1 mb-1"}>Scheduled by your coach</p>
 
       {schedules.length === 0 ? (
         <Card dark={dark} className="mx-2.5 text-center py-10">
@@ -9165,11 +9149,9 @@ export default function ClientApp() {
             </button>
           </div>
         )}
-        {/* Home/Training/Nutrition/Calendar/Progress/Profile each render
-            their own logo + divider + page-name TabHeader now, so this
-            shared bar is only needed for the other screens reached off
-            the bottom nav (e.g. Check-ins) that don't have one. */}
-        {!["home", "workouts", "nutrition", "calendar", "progress", "profile"].includes(tab) && <BrandBar dark={dark} />}
+        {/* Every tab (including Check-ins) now renders its own logo +
+            divider + page-name TabHeader, so no shared bar is mounted
+            above the tab switch any more. */}
         {currentUser.accessPaused && !viewingAsClient ? (
           <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
         ) : (
