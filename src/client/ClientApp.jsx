@@ -137,7 +137,7 @@ import { isPersistedSessionStale } from "../lib/sessionStaleness";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
-import { FOOD_DATABASE, MICRO_FIELDS } from "../lib/foodDatabase";
+import { MICRO_FIELDS, getAllFoods } from "../lib/foodDatabase";
 import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
@@ -4623,11 +4623,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
   // Coach-added and barcode-discovered foods (db.customFoods) are searched
   // alongside the static built-in database — they're what "save to food
   // library" from a barcode scan/manual entry is actually for.
-  const customFoodIds = new Set((db.customFoods || []).map((f) => f.id));
-  // A built-in food the coach has imported into customFoods (editable,
-  // maybe with a photo now) replaces the static entry rather than
-  // duplicating it — same id, so the imported version simply wins.
-  const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
+  const allFoods = getAllFoods(db.customFoods);
   const filteredFoods = allFoods.filter((f) => matchesSearch(f.name, search));
 
   // A plain ref, not state: these direct-add paths (recent foods, saved

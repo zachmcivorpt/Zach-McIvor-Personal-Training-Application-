@@ -8,12 +8,15 @@ import { DarkPanel } from "./darkUI";
 import { Plus, Search, Apple, Trash2, Download } from "lucide-react";
 
 function emptyFood() {
-  return { name: "", cals: "", protein: "", carbs: "", fat: "" };
+  // `per` left blank rather than defaulted to "100" so the placeholder
+  // (showing "100") stays visibly distinct from a coach having actually
+  // typed 100 — same UX as QuickAddFoodSheet's own serving-size field.
+  return { name: "", cals: "", protein: "", carbs: "", fat: "", per: "" };
 }
 
-function FoodSheet({ food, open, onClose, showToast }) {
+export function FoodSheet({ food, open, onClose, showToast }) {
   const { createFood, updateFood, deleteFood } = useApp();
-  const [form, setForm] = useState(() => (food ? { ...emptyFood(), ...food } : emptyFood()));
+  const [form, setForm] = useState(() => (food ? { ...emptyFood(), ...food, per: food.per ?? "" } : emptyFood()));
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   function set(key, value) {
@@ -22,12 +25,21 @@ function FoodSheet({ food, open, onClose, showToast }) {
 
   function submit(e) {
     e.preventDefault();
+    // Same convention as QuickAddFoodSheet (the client-side equivalent of
+    // this form): the macros typed in are for whatever serving size the
+    // coach enters here, not always 100g — a real production gap this
+    // closes was this form having no serving-size field at all, silently
+    // defaulting every coach-added food to "per 100g" regardless of what
+    // the coach actually typed the macros for.
+    const per = Math.max(1, Math.round(Number(form.per)) || 100);
     const data = {
       name: form.name.trim(),
-      cals: Number(form.cals) || 0,
-      protein: Number(form.protein) || 0,
-      carbs: Number(form.carbs) || 0,
-      fat: Number(form.fat) || 0,
+      cals: Math.max(0, Number(form.cals) || 0),
+      protein: Math.max(0, Number(form.protein) || 0),
+      carbs: Math.max(0, Number(form.carbs) || 0),
+      fat: Math.max(0, Number(form.fat) || 0),
+      per,
+      defaultQty: per,
     };
     if (food) {
       updateFood(food.id, data);
@@ -42,8 +54,11 @@ function FoodSheet({ food, open, onClose, showToast }) {
   return (
     <BottomSheet open={open} onClose={onClose} title={food ? "Edit Food" : "Add Food"}>
       <form onSubmit={submit} className="space-y-4">
-        <Field label="FOOD NAME" hint="Include the serving size, e.g. Chicken Breast (150g)">
-          <TextInput value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Chicken Breast (150g)" required />
+        <Field label="FOOD NAME">
+          <TextInput value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Chicken Breast" required />
+        </Field>
+        <Field label="SERVING SIZE THE MACROS BELOW ARE FOR (GRAMS)" hint="e.g. if the label is 165 kcal per 150g, set this to 150 and calories to 165 — clients logging more or less of this food will scale automatically.">
+          <TextInput type="number" min={1} value={form.per} onChange={(e) => set("per", e.target.value)} placeholder="100" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="CALORIES">

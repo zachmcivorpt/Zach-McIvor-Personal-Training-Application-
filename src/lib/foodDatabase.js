@@ -1,3 +1,12 @@
+// UNIT_DEFS (and sanitizeFoodUnits) live in foodUnits.js, split out so
+// AppContext.jsx can import sanitizeFoodUnits statically without also
+// pulling in this file's full 2075-entry FOOD_DATABASE array into the main
+// bundle — see that file's header comment. Re-exported here so every
+// existing import site (unitsFor/scaleFood below, other components, tests)
+// is unaffected.
+import { UNIT_DEFS, sanitizeFoodUnits } from "./foodUnits";
+export { UNIT_DEFS, sanitizeFoodUnits };
+
 // All values are per 100g (or per 100ml for liquids) unless noted, so any
 // quantity can be scaled with scaleFood()/scaleFoodByUnit() below.
 // `defaultQty` is a sensible starting serving size in grams, pre-filled in
@@ -2259,25 +2268,6 @@ export const FOOD_DATABASE = [
   { id: "bn2280", name: "Bakers Delight White Fondant & Choc Chips Finger Bun", cals: 317.9, protein: 6.3, carbs: 59.7, fat: 5, per: 100, defaultQty: 92, source: "BrandResearch2026b" },
 ];
 
-// Standard weight/volume unit conversions (approximated at water density for
-// volume units — the same simplification virtually every food-tracking app
-// uses). A food's `units` field lists extra units to offer ON TOP OF the
-// ones automatically inferred below (see unitsFor); `customUnit` adds one
-// food-specific "piece" unit (1 egg, 1 slice, 1 banana...). The base unit
-// (grams or ml) is always available.
-export const UNIT_DEFS = {
-  g: { id: "g", label: "g", grams: 1 },
-  ml: { id: "ml", label: "ml", grams: 1 },
-  tbsp: { id: "tbsp", label: "tbsp", grams: 15 },
-  tsp: { id: "tsp", label: "tsp", grams: 5 },
-  cup: { id: "cup", label: "cup", pluralLabel: "cups", grams: 240 },
-  oz: { id: "oz", label: "oz", grams: 28.35 },
-  lb: { id: "lb", label: "lb", grams: 453.59 },
-  kg: { id: "kg", label: "kg", grams: 1000 },
-  pat: { id: "pat", label: "pat", grams: 5 },
-  stick: { id: "stick", label: "stick", pluralLabel: "sticks", grams: 113 },
-};
-
 // Automatic per-food-type unit detection — every food in the library (and
 // every future barcode scan) gets a sensible unit set without needing to be
 // hand-curated one at a time, the same way MyFitnessPal offers ml/cup for a
@@ -2401,25 +2391,35 @@ function autoUnitIds(food, liquid) {
   // and let tbsp/tsp ride along as a harmless bonus rather than replacing
   // them.
   const dish = looksLikeDish(food);
-  // kg is never offered as a selectable logging unit for an individual
-  // solid food serving — a client logs a chicken breast, a potato, a
-  // slice of cheese, a plate of butter chicken, in grams/oz/lb, never
-  // kilograms ("0.15kg of chicken breast"). oz/lb stay (genuinely used
-  // for a single portion — "an 8oz steak," "a pound of mince" — unlike
-  // kg, a bulk/wholesale unit). This applies across every individual
-  // food category (meat/fish included — no separate case needed, since
-  // this is the one fallback every weighed solid without a more specific
-  // unit set already goes through) and is unrelated to, and doesn't
-  // touch, kg used elsewhere for genuinely different things: body-weight
-  // tracking (CoachClientDetail.jsx) and the shopping list's own bulk/
+  // Metric-only requirement (APEX serves Australian clients): neither kg
+  // nor any imperial unit (oz, lb) is ever offered as a selectable
+  // logging unit for an individual solid food serving — a client logs a
+  // chicken breast, a potato, a slice of cheese, a plate of butter
+  // chicken, in grams, full stop ("0.15kg" and "an 8oz steak" are both
+  // out). Grams is the universal metric fallback for every weighed solid
+  // without a more specific unit set (cup/piece/etc. where one genuinely
+  // applies). This applies across every individual food category (meat/
+  // fish included — no separate case needed, since this is the one
+  // fallback every weighed solid without a more specific unit set already
+  // goes through) and is unrelated to, and doesn't touch, kg used
+  // elsewhere for genuinely different things: body-weight tracking
+  // (CoachClientDetail.jsx) and the shopping list's own bulk/
   // aggregated-across-a-week display (shoppingList.js) — neither goes
-  // through unitsFor()/autoUnitIds() at all.
-  if (SPREAD_RE.test(name) || NUT_SPREAD_RE.test(name)) return dish ? ["tbsp", "tsp", "oz", "lb"] : ["tbsp", "tsp", "cup", "pat", "stick"];
+  // through unitsFor()/autoUnitIds() at all. UNIT_DEFS.oz/lb entries
+  // themselves are left in place (just no longer returned by this
+  // function) purely so the constant stays a complete conversion-factor
+  // reference; they are not reachable through unitsFor()/scaleFoodByUnit()
+  // any more, so no new entry can ever be logged or resolved in oz/lb — a
+  // food logged in oz/lb before this change keeps its already-stored
+  // absolute macros untouched (logged entries are flattened at log time,
+  // not re-scaled later), it just can't be re-opened in oz/lb going
+  // forward.
+  if (SPREAD_RE.test(name) || NUT_SPREAD_RE.test(name)) return dish ? ["tbsp", "tsp"] : ["tbsp", "tsp", "cup", "pat", "stick"];
   // Only reached for a dish-sized condiment (a non-dish condiment is
   // already liquid-classified above, in isLiquidFood) — a dish-sized one
   // keeps its normal weight units with tbsp/tsp riding along as a bonus.
-  if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp", "oz", "lb"];
-  return ["oz", "lb"];
+  if (CONDIMENT_RE.test(name)) return ["tbsp", "tsp"];
+  return [];
 }
 
 // The full list of loggable units for a food, in display order: the base
@@ -2443,6 +2443,20 @@ export function unitsFor(food) {
     if (UNIT_DEFS[id] && id !== base.id && !list.some((u) => u.id === id)) list.push(UNIT_DEFS[id]);
   });
   return list;
+}
+
+// The one food library every search/browse surface should use: the static
+// built-in database plus whatever's in `customFoods` (coach-added,
+// barcode-discovered, or a client's own quick-add) — with a custom entry
+// that reuses a built-in id (a coach "importing" a built-in food to edit
+// it, maybe adding a photo) replacing the static entry rather than
+// duplicating it, same id wins. Was previously re-implemented identically
+// at three separate call sites (the main food log, CreateMealSheet, and
+// PhotoEstimateSheet) — centralized here so they can't drift apart.
+export function getAllFoods(customFoods) {
+  const customList = customFoods || [];
+  const customIds = new Set(customList.map((f) => f.id));
+  return [...customList, ...FOOD_DATABASE.filter((f) => !customIds.has(f.id))];
 }
 
 // Micronutrients a food can optionally carry (per-100g/ml, same convention
