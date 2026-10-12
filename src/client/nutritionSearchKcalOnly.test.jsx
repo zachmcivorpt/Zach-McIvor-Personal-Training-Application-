@@ -55,7 +55,7 @@ afterEach(() => cleanup());
 describe("Nutrition search results — kcal only, no macro breakdown", () => {
   it("shows a searched food's name with only its kcal value underneath, no P/C/F text", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
 
     const row = screen.getByText("Chicken Breast").closest("button");
@@ -66,7 +66,7 @@ describe("Nutrition search results — kcal only, no macro breakdown", () => {
 
   it("shows a matched saved meal's name with 'My Meals · <kcal>', no P/C/F text", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Protein Shake" } });
 
     expect(screen.getByText("My Protein Shake")).toBeTruthy();
@@ -79,7 +79,7 @@ describe("Nutrition search results — kcal only, no macro breakdown", () => {
   // untouched — only the active-search results list changed.
   it("still shows the full macro breakdown in the recent-foods list (not a search result)", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     expect(screen.getByText("Pea Protein Shake")).toBeTruthy();
     expect(screen.getByText(/P30.*C10.*F5/)).toBeTruthy();
   });
@@ -89,7 +89,7 @@ describe("Nutrition search results — kcal only, no macro breakdown", () => {
   // still opens the quantity sheet for that exact food (same as before).
   it("still filters as you type and still opens the quantity sheet when a result is tapped", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     const input = screen.getByPlaceholderText("Search foods or meals");
     fireEvent.change(input, { target: { value: "Chicken Breast" } });
     expect(screen.queryByText("Brown Rice (cooked)")).toBeNull();

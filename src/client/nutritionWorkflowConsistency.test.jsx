@@ -70,7 +70,7 @@ describe("Nutrition end-to-end: search -> quantity sheet -> log", () => {
     render(<NutritionScreen {...baseProps({ onAddFood })} />);
 
     // Open "Add to Breakfast" (the first meal tab's Log button).
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
 
     fireEvent.click(screen.getByText("Chicken Breast"));
@@ -100,7 +100,7 @@ describe("Nutrition end-to-end: search -> quantity sheet -> log", () => {
     const prevDayButton = document.querySelector(".lucide-chevron-left").closest("button");
     fireEvent.click(prevDayButton);
 
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
     fireEvent.click(screen.getByText("Chicken Breast"));
     fireEvent.click(screen.getByText(/ADD/).closest("button"));

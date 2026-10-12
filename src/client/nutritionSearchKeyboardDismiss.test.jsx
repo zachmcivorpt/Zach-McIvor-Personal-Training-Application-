@@ -58,7 +58,7 @@ afterEach(() => cleanup());
 describe("NutritionScreen search keyboard dismissal", () => {
   it("blurs the search input when the Add sheet is closed", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     const input = screen.getByPlaceholderText("Search foods or meals");
     input.focus();
     expect(document.activeElement).toBe(input);
@@ -71,7 +71,7 @@ describe("NutritionScreen search keyboard dismissal", () => {
 
   it("blurs the search input when a matching saved meal is tapped from search results", () => {
     render(<NutritionScreen {...baseProps({ savedMeals: [{ id: "m1", name: "Pea Protein Shake", cals: 200, protein: 30, carbs: 10, fat: 5 }] })} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     const input = screen.getByPlaceholderText("Search foods or meals");
     input.focus();
     fireEvent.change(input, { target: { value: "Pea Protein" } });

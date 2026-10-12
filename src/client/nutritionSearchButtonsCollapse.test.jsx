@@ -56,7 +56,7 @@ afterEach(() => cleanup());
 describe("NutritionScreen 'Add to [meal]' search buttons collapse", () => {
   it("shows Scan barcode / Photo / Quick add before any search text is entered", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     expect(screen.getByText("Scan barcode")).toBeTruthy();
     expect(screen.getByText("Photo")).toBeTruthy();
     expect(screen.getByText("Quick add")).toBeTruthy();
@@ -64,7 +64,7 @@ describe("NutritionScreen 'Add to [meal]' search buttons collapse", () => {
 
   it("hides them once a search query is typed, freeing space for results", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     const input = screen.getByPlaceholderText("Search foods or meals");
     fireEvent.change(input, { target: { value: "chicken" } });
 
@@ -75,7 +75,7 @@ describe("NutritionScreen 'Add to [meal]' search buttons collapse", () => {
 
   it("shows them again once the search is cleared", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     const input = screen.getByPlaceholderText("Search foods or meals");
     fireEvent.change(input, { target: { value: "chicken" } });
     fireEvent.change(input, { target: { value: "" } });
