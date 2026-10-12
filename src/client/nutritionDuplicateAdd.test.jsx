@@ -79,7 +79,7 @@ describe("NutritionScreen duplicate-add guard", () => {
       />
     );
 
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     const row = screen.getByText("Pea Protein Shake").closest("button");
     fireEvent.click(row);
     fireEvent.click(row); // a second, near-simultaneous tap before the first add has settled
@@ -101,10 +101,13 @@ describe("NutritionScreen duplicate-add guard", () => {
       />
     );
 
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.click(screen.getByText("My Meals"));
     const plusButtons = screen.getAllByRole("button").filter((b) => b.querySelector(".lucide-plus"));
-    const mealPlusButton = plusButtons.find((b) => b.className.includes("rounded-full"));
+    // w-9 distinguishes this saved-meal row's own Plus button from the
+    // w-8 per-meal "add food" buttons on the Today's Meals card underneath
+    // (both are round with a Plus icon, but at different sizes).
+    const mealPlusButton = plusButtons.find((b) => b.className.includes("w-9") && b.className.includes("rounded-full"));
     fireEvent.click(mealPlusButton);
     fireEvent.click(mealPlusButton);
 

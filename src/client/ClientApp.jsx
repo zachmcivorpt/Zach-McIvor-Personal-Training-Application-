@@ -4584,6 +4584,19 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
   );
 }
 
+// Small per-row icon for each meal slot in the grouped Today's Meals card
+// — deliberately plain/generic (no food photos or brand-style icons), and
+// reuses icons already imported elsewhere in this file rather than adding
+// new ones.
+const MEAL_ICONS = {
+  Breakfast: Utensils,
+  Lunch: UtensilsCrossed,
+  Dinner: Moon,
+  Snacks: Banana,
+  "Pre-workout": Zap,
+  "Post-workout": Dumbbell,
+};
+
 export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
@@ -4817,47 +4830,49 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
       {tab === "today" && (
       <>
-      <div
-        onClick={() => setNutritionDetailOpen(true)}
-        className="p-5 mt-3 cursor-pointer active:scale-[0.98] transition-transform"
-        style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
-      >
-          <div className="flex items-center gap-2.5 mb-3">
-            <Flame size={20} strokeWidth={2} className="text-orange-500 shrink-0" />
-            <p className={dark ? "text-white/50 text-xs font-bold tracking-wide flex-1" : "text-black/50 text-xs font-bold tracking-wide flex-1"}>YOUR CALORIE TARGET</p>
-            <ChevronRight size={15} className={dark ? "text-white/25" : "text-black/25"} />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className={dark ? "text-white text-3xl font-bold" : "text-black text-3xl font-bold"}>{Math.max(0, targets.calories - nutrition.calories)}</span>
-            <span className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>remaining of {targets.calories}</span>
-          </div>
-          <div className="mt-3">
-            <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"}
-              value={nutrition.calories}
-              max={targets.calories}
-              color={targetBarColor(nutrition.calories, targets.calories)}
-            />
-          </div>
-          <div className={dark ? "space-y-3 mt-4 pt-4 border-t border-white/5" : "space-y-3 mt-4 pt-4 border-t border-black/5"}>
-            {[
-              { l: "Protein", v: round1(nutrition.protein), t: targets.protein, capped: false },
-              { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs, capped: true },
-              { l: "Fat", v: round1(nutrition.fat), t: targets.fat, capped: true },
-            ].map((m) => (
-              <div key={m.l}>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className={dark ? "text-white/70 text-sm font-medium" : "text-black/70 text-sm font-medium"}>{m.l}</span>
-                  <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                    {m.v}g <span className={dark ? "text-white/25" : "text-black/25"}>/ {m.t}g</span>
-                  </span>
+      <div className="px-2.5 mt-3">
+        <div
+          onClick={() => setNutritionDetailOpen(true)}
+          className="rounded-2xl p-5 cursor-pointer active:scale-[0.98] transition-transform"
+          style={{ backgroundColor: CLIENT_DARK_SURFACE }}
+        >
+            <div className="flex items-center gap-2.5 mb-3">
+              <Flame size={20} strokeWidth={2} className="text-orange-500 shrink-0" />
+              <p className="text-white/50 text-xs font-bold tracking-wide flex-1">CALORIES REMAINING</p>
+              <ChevronRight size={15} className="text-white/25" />
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-white text-3xl font-bold">{Math.max(0, targets.calories - nutrition.calories).toLocaleString()}</span>
+              <span className="text-white/40 text-sm">of {targets.calories.toLocaleString()} kcal</span>
+            </div>
+            <div className="mt-3">
+              <ProgressBar trackClassName="bg-white/8"
+                value={nutrition.calories}
+                max={targets.calories}
+                color={targetBarColor(nutrition.calories, targets.calories)}
+              />
+            </div>
+            <div className="space-y-3 mt-4 pt-4 border-t border-white/5">
+              {[
+                { l: "Protein", v: round1(nutrition.protein), t: targets.protein, capped: false },
+                { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs, capped: true },
+                { l: "Fat", v: round1(nutrition.fat), t: targets.fat, capped: true },
+              ].map((m) => (
+                <div key={m.l}>
+                  <div className="flex items-baseline justify-between mb-1">
+                    <span className="text-white/70 text-sm font-medium">{m.l}</span>
+                    <span className="text-white/40 text-xs">
+                      {m.v}g <span className="text-white/25">/ {m.t}g</span>
+                    </span>
+                  </div>
+                  <ProgressBar trackClassName="bg-white/8" value={m.v} max={m.t} height={6} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
                 </div>
-                <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"} value={m.v} max={m.t} height={6} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+        </div>
       </div>
 
-      <div className="px-2.5 mt-4 grid grid-cols-4 gap-2">
+      <div className="px-2.5 mt-4 grid grid-cols-3 gap-2">
         <NutritionQuickTile
           dark={dark}
           invert
@@ -4878,10 +4893,10 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             setSheetOpen(true);
           }}
         />
-        {/* AI Food Help and Fuel IQ are the same feature under two labels
-            (see AiNutritionHelpCard below) — both tiles jump straight to
-            it rather than standing up a second, competing implementation. */}
-        <NutritionQuickTile dark={dark} icon={Sparkles} label="AI Food Help" onClick={scrollToAiHelp} />
+        {/* Fuel IQ and the AiNutritionHelpCard below are the same feature —
+            this tile just jumps to it. The dashboard no longer shows a
+            separate "AI Food Help" tile for the same feature, but
+            scrollToAiHelp/AiNutritionHelpCard itself is untouched. */}
         <NutritionQuickTile dark={dark} icon={Flame} label="Fuel IQ" onClick={scrollToAiHelp} />
       </div>
       </>
@@ -5054,16 +5069,19 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
       {tab === "today" && (
       <div className="px-2.5 mt-7">
         <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>{navOffset === 0 ? "TODAY'S MEALS" : `${navLabel.toUpperCase()}'S MEALS`}</p>
-        <div className="space-y-2.5">
+        <div
+          className={dark ? "rounded-2xl border shadow-sm divide-y divide-white/8" : "rounded-2xl border shadow-sm divide-y divide-black/8"}
+          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+        >
           {mealCategories.map((meal) => {
             const items = nutrition.meals[meal] || [];
             const totalCals = items.reduce((a, f) => a + f.cals, 0);
+            const MealIcon = MEAL_ICONS[meal] || UtensilsCrossed;
             return (
-              <div
-                key={meal}
-                className="rounded-2xl border shadow-sm flex items-center gap-3 px-4 py-3.5"
-                style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
-              >
+              <div key={meal} className="flex items-center gap-3 px-4 py-3.5">
+                <div className={dark ? "w-8 h-8 rounded-full bg-white/8 flex items-center justify-center shrink-0" : "w-8 h-8 rounded-full bg-black/8 flex items-center justify-center shrink-0"}>
+                  <MealIcon size={14} className={dark ? "text-white/60" : "text-black/60"} />
+                </div>
                 <button onClick={() => setDetailMeal(meal)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
                   <div className="min-w-0">
                     <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{meal}</p>
@@ -5077,10 +5095,14 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     setActiveMeal(meal);
                     setSheetOpen(true);
                   }}
-                  className="shrink-0 text-xs font-bold px-6 py-1 rounded-full border-[1.5px] active:scale-95 transition-transform"
-                  style={{ borderColor: MEASURE_BLUE, color: MEASURE_BLUE, backgroundColor: "transparent" }}
+                  aria-label={`Add food to ${meal}`}
+                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                  style={{ backgroundColor: MEASURE_BLUE, color: "#fff" }}
                 >
-                  Log
+                  <Plus size={16} />
+                </button>
+                <button onClick={() => setDetailMeal(meal)} aria-label={`View ${meal}`} className="shrink-0">
+                  <ChevronRight size={15} className={dark ? "text-white/25" : "text-black/25"} />
                 </button>
               </div>
             );

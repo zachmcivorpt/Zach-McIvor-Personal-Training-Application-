@@ -53,7 +53,7 @@ afterEach(() => cleanup());
 describe("Nutrition search — AFCD fallback", () => {
   it("falls back to AFCD when the local food library has no match at all", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "ostrich" } });
 
     expect(screen.getByText("FROM THE AUSTRALIAN FOOD COMPOSITION DATABASE")).toBeTruthy();
@@ -62,7 +62,7 @@ describe("Nutrition search — AFCD fallback", () => {
 
   it("does not show the AFCD section when the local food library already has a match", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
 
     expect(screen.queryByText("FROM THE AUSTRALIAN FOOD COMPOSITION DATABASE")).toBeNull();
@@ -70,7 +70,7 @@ describe("Nutrition search — AFCD fallback", () => {
 
   it("tapping an AFCD result opens the quantity sheet labelled as coming from AFCD, not the barcode database", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "ostrich" } });
     fireEvent.click(screen.getAllByText(/Ostrich/)[0]);
 
@@ -79,7 +79,7 @@ describe("Nutrition search — AFCD fallback", () => {
 
   it("shows no results message when neither local nor AFCD has anything", () => {
     render(<NutritionScreen {...baseProps()} />);
-    fireEvent.click(screen.getAllByText("Log")[0]);
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "zzzznonexistentfood" } });
 
     expect(screen.getByText(/No matches for/)).toBeTruthy();

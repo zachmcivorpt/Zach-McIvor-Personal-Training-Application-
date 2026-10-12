@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
 //
-// Nutrition dashboard redesign — the four quick-action tiles (Scan Food,
-// Search Food, AI Food Help, Fuel IQ) added above Today's Meals. Scan/Search
-// open with no meal preselected, unlike the per-meal "Log" buttons, so a
-// food picked this way needs an explicit "which meal?" step before it's
-// actually saved — these tests lock that behaviour in, and confirm the
-// existing per-meal Log flow (meal already known) still saves straight
-// through with no extra step.
+// Nutrition dashboard redesign — the three quick-action tiles (Scan Food,
+// Search Food, Fuel IQ) above Today's Meals. Scan/Search open with no meal
+// preselected, unlike the per-meal add buttons, so a food picked this way
+// needs an explicit "which meal?" step before it's actually saved — these
+// tests lock that behaviour in, and confirm the existing per-meal add flow
+// (meal already known) still saves straight through with no extra step.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NutritionScreen } from "./ClientApp";
@@ -50,19 +49,19 @@ function baseProps(overrides = {}) {
 }
 
 // jsdom doesn't implement scrollIntoView at all — stub it globally so the
-// AI Food Help / Fuel IQ tiles' handler doesn't throw when it fires.
+// Fuel IQ tile's handler doesn't throw when it fires.
 beforeEach(() => {
   window.HTMLElement.prototype.scrollIntoView = vi.fn();
 });
 afterEach(() => cleanup());
 
 describe("Nutrition dashboard quick-action tiles", () => {
-  it("renders all four reference tiles above Today's Meals", () => {
+  it("renders the three reference tiles above Today's Meals, with no separate AI Food Help tile", () => {
     render(<NutritionScreen {...baseProps()} />);
     expect(screen.getByText("Scan Food")).toBeTruthy();
     expect(screen.getByText("Search Food")).toBeTruthy();
-    expect(screen.getByText("AI Food Help")).toBeTruthy();
     expect(screen.getByText("Fuel IQ")).toBeTruthy();
+    expect(screen.queryByText("AI Food Help")).toBeNull();
   });
 
   it("Search Food (no meal preselected) asks which meal before saving, then logs to the chosen meal", async () => {
@@ -96,23 +95,22 @@ describe("Nutrition dashboard quick-action tiles", () => {
     expect(document.getElementById("barcode-scanner-region")).toBeTruthy();
   });
 
-  it("AI Food Help and Fuel IQ both scroll to the same AiNutritionHelpCard (Fuel IQ heading), not a second AI implementation", () => {
+  it("Fuel IQ tile scrolls to the existing AiNutritionHelpCard (Fuel IQ heading) rather than a new screen", () => {
     render(<NutritionScreen {...baseProps()} />);
-    // Confirms there is exactly one AI nutrition feature in the DOM (its
-    // "FUEL IQ" heading), and both tiles trigger the shared scroll handler
-    // rather than opening a competing screen.
+    // Confirms the one AI nutrition feature is still in the DOM (its "FUEL
+    // IQ" heading) and untouched — only the dashboard's dedicated "AI Food
+    // Help" tile pointing at the same feature was removed.
     expect(screen.getByText("FUEL IQ")).toBeTruthy();
 
-    fireEvent.click(screen.getByText("AI Food Help"));
     fireEvent.click(screen.getByText("Fuel IQ"));
-    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(2);
+    expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
   });
 
-  it("the per-meal Log button still saves straight through with no meal-choice step (regression)", async () => {
+  it("the per-meal add button still saves straight through with no meal-choice step (regression)", async () => {
     const onAddFood = vi.fn(() => Promise.resolve());
     render(<NutritionScreen {...baseProps({ onAddFood })} />);
 
-    fireEvent.click(screen.getAllByText("Log")[0]); // first meal row = Breakfast
+    fireEvent.click(screen.getByLabelText("Add food to Breakfast")); // first meal row = Breakfast
     fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
     fireEvent.click(screen.getByText("Chicken Breast"));
     fireEvent.click(screen.getByText(/ADD/).closest("button"));
