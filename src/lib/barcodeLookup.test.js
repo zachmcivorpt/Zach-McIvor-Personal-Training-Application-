@@ -457,6 +457,53 @@ describe("lookupBarcode", () => {
     const food = await lookupBarcode("9300000000197");
     expect(food.customUnit).toBeUndefined();
   });
+
+  // Follow-up to the bread fix above, tracing the rest of the app's own
+  // "appropriate serving options" examples (eggs, soft drink cans/
+  // bottles, canned/packaged foods) through the real barcode-scan path —
+  // not just the static database — the same way the bread gap was
+  // originally found. Open Food Facts formats serving_size both ways
+  // round in practice; both are covered (see parseServingUnit's own
+  // comment).
+  it("offers a real 'egg' unit for a scanned egg carton whose serving_size names one", async () => {
+    mockOff(1, {
+      product_name: "Scanned Free Range Eggs",
+      serving_size: "1 egg (50g)",
+      nutriments: { "energy-kcal_100g": 143, proteins_100g: 13, carbohydrates_100g: 1, fat_100g: 10 },
+    });
+    const food = await lookupBarcode("9300000000203");
+    expect(food.customUnit).toEqual({ label: "egg", pluralLabel: "eggs", grams: 50 });
+  });
+
+  it("offers a real 'can' unit for a scanned soft drink whose serving_size states the weight-first OFF convention", async () => {
+    mockOff(1, {
+      product_name: "Scanned Cola",
+      serving_size: "355 ml (1 can)",
+      nutriments: { "energy-kcal_100g": 42, proteins_100g: 0, carbohydrates_100g: 10.6, fat_100g: 0 },
+    });
+    const food = await lookupBarcode("9300000000210");
+    expect(food.customUnit).toEqual({ label: "can", pluralLabel: "cans", grams: 355 });
+  });
+
+  it("offers a real 'bottle' unit for a scanned drink, weight-first OFF convention", async () => {
+    mockOff(1, {
+      product_name: "Scanned Spring Water",
+      serving_size: "600ml (1 bottle)",
+      nutriments: { "energy-kcal_100g": 0, proteins_100g: 0, carbohydrates_100g: 0, fat_100g: 0 },
+    });
+    const food = await lookupBarcode("9300000000227");
+    expect(food.customUnit).toEqual({ label: "bottle", pluralLabel: "bottles", grams: 600 });
+  });
+
+  it("offers a real 'can' unit for a scanned canned food (drained or not, as labeled)", async () => {
+    mockOff(1, {
+      product_name: "Scanned Canned Tuna",
+      serving_size: "1 can (185 g)",
+      nutriments: { "energy-kcal_100g": 116, proteins_100g: 26, carbohydrates_100g: 0, fat_100g: 1 },
+    });
+    const food = await lookupBarcode("9300000000234");
+    expect(food.customUnit).toEqual({ label: "can", pluralLabel: "cans", grams: 185 });
+  });
 });
 
 describe("debugLookupBarcode", () => {
