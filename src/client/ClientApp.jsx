@@ -387,7 +387,7 @@ function TabHeader({ label, dark = false, right = null }) {
 function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const dark = useClientDark();
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
     <div className="flex items-center justify-between px-2.5 pt-4 pb-0">
@@ -1184,8 +1184,10 @@ function HomeScreen({
   const dark = useClientDark();
   return (
     <div className="pb-28 space-y-5">
-      <TabHeader label="Home" dark={dark} />
-      <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
+      <div>
+        <TabHeader label="Home" dark={dark} />
+        <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
+      </div>
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
