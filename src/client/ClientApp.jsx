@@ -392,7 +392,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   return (
     <div className="flex items-center justify-between px-2.5 pt-4 pb-0">
       <div>
-        <p className={`text-lg font-bold tracking-tight ${dark ? "text-white" : "text-black"}`}>
+        <p className={`text-lg font-bold ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
         </p>
         <p className={`text-sm mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>{dateStr}</p>
