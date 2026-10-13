@@ -392,7 +392,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   return (
     <div className="flex items-center justify-between px-2.5 pt-4 pb-0">
       <div>
-        <p className={`text-xl font-semibold tracking-tight ${dark ? "text-white" : "text-black"}`}>
+        <p className={`text-lg font-bold tracking-tight ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
         </p>
         <p className={`text-sm mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>{dateStr}</p>
@@ -5080,7 +5080,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
       {tab === "today" && (
       <div className="px-2.5 mt-7">
-        <h2 className={dark ? "text-white text-2xl font-bold mb-3" : "text-black text-2xl font-bold mb-3"}>{navOffset === 0 ? "Today's Meals" : `${navLabel}'s Meals`}</h2>
+        <h2 className={dark ? "text-white text-lg font-bold mb-3" : "text-black text-lg font-bold mb-3"}>{navOffset === 0 ? "Today's Meals" : `${navLabel}'s Meals`}</h2>
         <div
           className={dark ? "rounded-2xl border shadow-sm divide-y divide-white/8" : "rounded-2xl border shadow-sm divide-y divide-black/8"}
           style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
