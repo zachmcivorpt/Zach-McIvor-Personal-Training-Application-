@@ -6887,7 +6887,7 @@ function NotificationsCenterSheet({ open, onClose, items }) {
    PROFILE TAB
 ============================================================================ */
 
-function ProfileScreen({
+export function ProfileScreen({
   user,
   onLogout,
   coachOpen,
@@ -6910,6 +6910,13 @@ function ProfileScreen({
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [pushOpen, setPushOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // CoachChatBubble's own dismiss ("X") button sets this flag but has no
+  // corresponding way to clear it anywhere — once set on a device, the
+  // floating chat bubble is gone for good, with no in-app recovery path.
+  // Surfacing a one-time "restore" row here (this localStorage key is the
+  // ONLY place in the codebase that reads or writes it) fixes that without
+  // touching the bubble's own dismiss behavior.
+  const [bubbleHidden, setBubbleHidden] = useState(() => localStorage.getItem("chatBubbleHidden") === "1");
   const rows = [
     { label: "Goals", icon: Target, onClick: () => setPrefSection("goals") },
     { label: "Equipment", icon: Dumbbell, onClick: () => setPrefSection("equipment") },
@@ -6992,6 +6999,28 @@ function ProfileScreen({
             <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
           </div>
         </Card>
+
+        {bubbleHidden && (
+          <Card
+            dark={dark}
+            onClick={() => {
+              localStorage.removeItem("chatBubbleHidden");
+              setBubbleHidden(false);
+              showToast("Chat bubble restored");
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center"}>
+                <MessageCircle size={18} className={dark ? "text-white" : "text-black"} />
+              </div>
+              <div className="flex-1">
+                <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Show chat bubble</p>
+                <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>You previously hid the floating chat button</p>
+              </div>
+              <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
+            </div>
+          </Card>
+        )}
       </div>
 
       <div className="px-2.5 mt-4">
