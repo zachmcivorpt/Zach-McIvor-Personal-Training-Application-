@@ -2399,6 +2399,9 @@ export function WorkoutSession({
   sessionNote,
   onChangeSessionNote,
   onSaveSessionNote,
+  coachUser,
+  unreadCount,
+  onOpenMessages,
 }) {
   const dark = useClientDark();
   const [noteOpenFor, setNoteOpenFor] = useState(null);
@@ -2763,6 +2766,17 @@ export function WorkoutSession({
             currentLogId={daySession.workoutLogId}
           />
         )}
+
+        {/* Same CoachChatBubble used everywhere else in the app, just
+            mounted here too — WorkoutSession's own root is an opaque
+            full-screen overlay (z-[90]) that otherwise completely covers
+            the app-level bubble (z-[55]) for the whole session, even
+            though that instance is still mounted underneath. Rendering it
+            as a child here puts it in this screen's own stacking context
+            instead, on top of the session content. ClientApp suppresses
+            its own top-level copy while a session is active so there's
+            only ever one bubble in the DOM. */}
+        {coachUser && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={onOpenMessages} />}
       </div>
     </FullScreenOverlay>
   );
@@ -9325,7 +9339,13 @@ export default function ClientApp() {
         )}
         </TabFade>
 
-        {coachUser && !messagesOpen && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
+        {/* Suppressed while an active workout session is open — WorkoutSession
+            mounts its own copy of this same bubble inside its own overlay so
+            it's actually visible above the session's opaque background;
+            without this check both copies would be mounted at once. */}
+        {coachUser && !messagesOpen && !(sessionOpen && activeLog && (runningSession || todaySession)) && (
+          <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />
+        )}
 
         {/* Promoted to its own GPU layer (translateZ(0)) — otherwise this
             fixed bar visibly lags behind during a fast scroll in the iOS App
@@ -9383,6 +9403,9 @@ export default function ClientApp() {
             sessionNote={sessionNote}
             onChangeSessionNote={setSessionNote}
             onSaveSessionNote={(value) => saveSessionNote(currentUser.id, value)}
+            coachUser={coachUser}
+            unreadCount={unreadCount}
+            onOpenMessages={openMessages}
           />
         )}
         {summaryOpen && summaryData && (
