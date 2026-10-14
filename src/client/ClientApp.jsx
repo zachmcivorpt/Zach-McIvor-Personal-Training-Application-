@@ -4249,6 +4249,15 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
   // nothing stopping a fast double-tap from calling addSuggestion twice,
   // double-logging the same suggestion to today's food diary.
   const [addedSuggestionKeys, setAddedSuggestionKeys] = useState(() => new Set());
+  // addedSuggestionKeys alone doesn't actually close that race: it's
+  // useState, which only takes effect on the next render, so two taps
+  // landing before React commits that update both read the same stale
+  // "not yet added" Set and both pass. A ref flips synchronously, so the
+  // second tap in the same beat is dropped even before any re-render —
+  // same fix NutritionScreen's guardedAdd/addBusyRef already applies to
+  // every other direct-add path; this card called onAddFood straight
+  // through instead of going via guardedAdd, so it never got that guard.
+  const addSuggestionBusyRef = useRef(false);
   const sending = exchanges.some((e) => e.loading);
   const inputRef = useRef(null);
 
@@ -4335,9 +4344,22 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
   }
 
   function addSuggestion(s, key) {
+    if (addSuggestionBusyRef.current) return;
     if (key && addedSuggestionKeys.has(key)) return;
+    addSuggestionBusyRef.current = true;
     if (key) setAddedSuggestionKeys((prev) => new Set(prev).add(key));
-    onAddFood(guessMealForNow(), { id: `ai-${Date.now()}`, name: s.name, cals: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat });
+    // Derived from the suggestion's own stable key rather than Date.now()
+    // — the ref above already stops a genuine double-tap from issuing a
+    // second call at all, but a stable per-action id (reused instead of
+    // freshly generated) is what lets addFood's own id check recognize a
+    // retried/duplicate submission of the *same* logical action and no-op
+    // on it, rather than relying solely on this one guard.
+    const logId = key ? `ai-${key}` : `ai-${Date.now()}`;
+    Promise.resolve(onAddFood(guessMealForNow(), { id: logId, name: s.name, cals: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat }, logId)).finally(
+      () => {
+        addSuggestionBusyRef.current = false;
+      }
+    );
     showToast("Added to today's food log.");
   }
 
@@ -5194,7 +5216,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             targets={targets}
             todayNutrition={todayNutrition}
             nutritionProfile={currentUser.nutritionProfile || {}}
-            onAddFood={(meal, food) => onAddFood(meal, food, localDateKey())?.catch(() => {})}
+            onAddFood={(meal, food, logId) => onAddFood(meal, food, localDateKey(), logId)?.catch(() => {})}
             showToast={showToast}
             dark={dark}
           />
@@ -5547,7 +5569,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         dark={dark}
         food={pendingFood}
         onClose={() => setPendingFood(null)}
-        onConfirm={async (scaled) => {
+        onConfirm={async (scaled, logId) => {
           // Opened from a dashboard-level tile (no meal preselected) —
           // ask which meal this goes to before saving anything, instead
           // of guessing. Opened from a meal's own Log button, activeMeal
@@ -5564,7 +5586,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           // client back to scan the same item again and log it twice. On
           // failure this stays open (the error toast from addFood already
           // says why) so retrying doesn't need a second scan.
-          await onAddFood(activeMeal, scaled, viewDateKey);
+          await onAddFood(activeMeal, scaled, viewDateKey, logId);
           setPendingFood(null);
           setSheetOpen(false);
         }}
@@ -9019,9 +9041,26 @@ export default function ClientApp() {
     setPreviewIsTodayLog(isTodayLog);
   }
 
-  function addFood(meal, food, dateKey = todayDateKey) {
+  function addFood(meal, food, dateKey = todayDateKey, logId) {
+    // Generated once per call, outside the transaction updater below —
+    // the updater can run more than once (Firestore retries it internally
+    // on write contention; see setNutritionForDate's own comment), and a
+    // stable id computed here means every retry of *this* call proposes
+    // the exact same entry rather than a fresh one. A caller can also pass
+    // its own logId (AiNutritionHelpCard's addSuggestion does, derived
+    // from the suggestion's own stable key) to make a genuine retry of the
+    // same logical action — not just a Firestore-internal one — equally
+    // idempotent.
+    const id = logId || `${food.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     return setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
+      const existing = base.meals?.[meal] || [];
+      // Reconcile by id instead of blindly appending: if this exact entry
+      // is already saved (this same logical add reaching here a second
+      // time), the day's totals and meal list already reflect it — return
+      // the day unchanged rather than double-counting its macros and
+      // logging it twice.
+      if (existing.some((f) => f.id === id)) return base;
       const micros = {};
       // Most foods don't carry micronutrient data (only a barcode scan or a
       // manually-entered figure does) — a missing field just contributes 0
@@ -9043,7 +9082,7 @@ export default function ClientApp() {
         // base.meals[meal] can be missing on an older doc saved before this
         // category existed (e.g. Pre-workout/Post-workout added later) —
         // spreading undefined there threw, silently dropping the whole add.
-        meals: { ...base.meals, [meal]: [...(base.meals?.[meal] || []), { ...food, id: food.id + "-" + Date.now() }] },
+        meals: { ...base.meals, [meal]: [...existing, { ...food, id }] },
       };
     })
       .then(() => showToast(`${food.name} added to ${meal}`))

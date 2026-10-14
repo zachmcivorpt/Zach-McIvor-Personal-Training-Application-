@@ -72,6 +72,21 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
   // second scan-and-confirm of the same item, and a second, fully genuine
   // add landing in the log once the first one finally went through too.
   const [saving, setSaving] = useState(false);
+  // `saving` alone doesn't actually close the race it was meant to close:
+  // it's useState, which only takes effect on React's next render, so two
+  // click dispatches landing in the same task (a touchend/click double-
+  // fire for one physical tap — the documented cause of this exact bug
+  // elsewhere in the app, see ClientApp.jsx's addBusyRef) both read
+  // saving === false from the same stale render and both call onConfirm.
+  // A ref flips synchronously, independent of any commit, so the second
+  // dispatch in the same beat is dropped even before React re-renders.
+  const confirmingRef = useRef(false);
+  // Generated once per sheet-open (not inside confirm()) so a retried
+  // confirm() for the *same* opening always proposes the same log-entry
+  // id — addFood's own id check (ClientApp.jsx) can then recognize a
+  // genuine retry of this exact add and no-op on it, the same stable-id
+  // pattern used for Fuel IQ's add path.
+  const logIdRef = useRef(null);
   // Only ever shown for a scanned product whose data failed validation —
   // lets the client type in the real numbers off the pack instead of
   // closing this sheet and starting over in search/manual entry, which was
@@ -98,6 +113,8 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
       setUnitId(unitsFor(food)[0].id);
       setQty(food.defaultQty || 100);
       setSaving(false);
+      confirmingRef.current = false;
+      logIdRef.current = `${food.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       setCorrecting(false);
       setDraft({ cals: String(food.cals ?? ""), protein: String(food.protein ?? ""), carbs: String(food.carbs ?? ""), fat: String(food.fat ?? "") });
     }
@@ -117,10 +134,11 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
   }
 
   async function confirm() {
-    if (saving) return;
+    if (confirmingRef.current) return;
+    confirmingRef.current = true;
     setSaving(true);
     try {
-      await onConfirm(scaled);
+      await onConfirm(scaled, logIdRef.current);
     } catch {
       // A rejected save leaves the sheet open (onConfirm's own caller
       // already shows an error toast explaining why) so retrying doesn't
@@ -128,6 +146,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
       // below rather than leaving it stuck, or letting this become an
       // unhandled rejection.
     } finally {
+      confirmingRef.current = false;
       setSaving(false);
     }
   }
