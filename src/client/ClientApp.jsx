@@ -2409,25 +2409,45 @@ export function WorkoutSession({
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
   const [sessionNoteOpen, setSessionNoteOpen] = useState(false);
+  // `finishing` (a prop, backed by useState in the parent) only disables
+  // the Complete Workout button once React commits that update — two
+  // click dispatches landing in the same task (a touchend/click
+  // double-fire for one physical tap) both read the stale "not finishing"
+  // render and both call onFinish, firing finishWorkout() twice
+  // concurrently. A ref flips synchronously, so the second dispatch in
+  // the same beat is dropped before either commit happens — same pattern
+  // as the nutrition double-log fixes (addBusyRef/confirmingRef) for the
+  // identical race.
+  const finishingRef = useRef(false);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
   const [restLabel, setRestLabel] = useState("");
   const timerRef = useRef(null);
-  // The real wall-clock moment rest ends, not a tick count — a phone
+  // The real elapsed-time moment rest ends, not a tick count — a phone
   // backgrounds this tab the moment a client switches apps or locks the
   // screen, and mobile browsers throttle/suspend setInterval while
   // backgrounded, so counting down "one tick per second" silently stalls
   // and loses however long they were away. Deriving remaining time from
-  // Date.now() vs this deadline on every tick (and immediately on return)
-  // means the timer is always correct regardless of how many ticks the
-  // browser actually let through.
+  // performance.now() vs this deadline on every tick (and immediately on
+  // return) means the timer is always correct regardless of how many
+  // ticks the browser actually let through.
+  //
+  // performance.now() specifically, not Date.now(): Date.now() reads the
+  // system wall clock, which phones routinely resync (NTP, timezone/DST)
+  // — often right as a backgrounded app wakes back up. A resync landing
+  // while this was computed from Date.now() made the "paused" (backgrounded,
+  // nothing visibly changing) timer jump to an unrelated, seemingly random
+  // value the instant the screen came back, with no actual bug in the
+  // countdown logic itself — just the wrong clock source. performance.now()
+  // is monotonic: immune to the system clock being adjusted, only ever
+  // reflecting real elapsed time.
   const restEndAtRef = useRef(null);
 
   useEffect(() => {
     if (!resting) return;
     const tick = () => {
-      const remaining = Math.max(0, Math.round((restEndAtRef.current - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.round((restEndAtRef.current - performance.now()) / 1000));
       setRestTime(remaining);
       if (remaining <= 0) {
         setResting(false);
@@ -2466,7 +2486,7 @@ export function WorkoutSession({
       // the client was away, since that's exactly the moment iOS is most
       // likely to have suspended the shared context.
       armRestTimerAudio();
-      const remaining = Math.max(0, Math.round((restEndAtRef.current - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.round((restEndAtRef.current - performance.now()) / 1000));
       setRestTime(remaining);
       if (remaining <= 0) {
         setResting(false);
@@ -2494,6 +2514,20 @@ export function WorkoutSession({
     document.addEventListener("pointerdown", armRestTimerAudio);
     return () => document.removeEventListener("pointerdown", armRestTimerAudio);
   }, []);
+
+  // Mirrors the parent's `finishing` state back into the ref once a save
+  // actually finishes (succeeds and this screen is about to unmount
+  // anyway, or fails and control genuinely comes back) — so a failed save
+  // can always be retried with a fresh tap, never permanently locked out.
+  useEffect(() => {
+    if (!finishing) finishingRef.current = false;
+  }, [finishing]);
+
+  function handleFinish() {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    onFinish?.();
+  }
 
   // The exercises actually being performed this session — the original
   // plan (with any swapped exercises substituted in), plus anything the
@@ -2630,7 +2664,7 @@ export function WorkoutSession({
   function handleStartRest(exMeta) {
     unlockTimerAudio();
     const rest = exMeta.restSeconds ?? 90;
-    restEndAtRef.current = Date.now() + rest * 1000;
+    restEndAtRef.current = performance.now() + rest * 1000;
     setRestTime(rest);
     setRestTotal(rest);
     setRestLabel(exercisesById[exMeta.exerciseId]?.name || "");
@@ -2718,7 +2752,7 @@ export function WorkoutSession({
             <Plus size={16} />
             Add Exercise
           </button>
-          <PrimaryButton dark={dark} className="w-full" onClick={onFinish} disabled={finishing}>
+          <PrimaryButton dark={dark} className="w-full" onClick={handleFinish} disabled={finishing}>
             {finishing ? "Saving…" : "Complete Workout"}
           </PrimaryButton>
         </div>
@@ -8429,18 +8463,28 @@ export default function ClientApp() {
   // closes the app, and finishes it hours later would rack up hours of
   // "duration" and a wildly inflated calories-burned estimate.
   const sessionActiveMsRef = useRef(persistedSession?.activeMs || 0); // accumulated active ms, not counting the current still-running segment
-  const segmentStartRef = useRef(null); // wall-clock moment the current active segment began, or null while paused
+  // performance.now(), not Date.now() — the moment the current active
+  // segment began, or null while paused. Date.now() reads the system wall
+  // clock, which can jump (NTP resync, timezone/DST change) without any
+  // real time having passed, especially right as a backgrounded app wakes
+  // back up — exactly when this is read again, in resumeActiveSegment and
+  // the elapsed-ms calculation below. That jump either inflated or
+  // corrupted the accumulated duration with no actual bug in the
+  // pause/resume logic itself. performance.now() is monotonic: immune to
+  // the system clock being adjusted, only ever reflecting real elapsed
+  // time — same reasoning as the rest timer's restEndAtRef above.
+  const segmentStartRef = useRef(null);
   const [activeMsTick, setActiveMsTick] = useState(0); // bumped on every pause so the persist effect below picks up the fresh total
 
   function pauseActiveSegment() {
     if (segmentStartRef.current != null) {
-      sessionActiveMsRef.current += Date.now() - segmentStartRef.current;
+      sessionActiveMsRef.current += performance.now() - segmentStartRef.current;
       segmentStartRef.current = null;
       setActiveMsTick((n) => n + 1);
     }
   }
   function resumeActiveSegment() {
-    if (segmentStartRef.current == null) segmentStartRef.current = Date.now();
+    if (segmentStartRef.current == null) segmentStartRef.current = performance.now();
   }
 
   // The session is only "active" while its screen is open AND the tab is
