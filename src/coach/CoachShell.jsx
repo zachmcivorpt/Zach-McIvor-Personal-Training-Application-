@@ -170,8 +170,16 @@ export default function CoachShell() {
     );
   }
 
+  // Root is pinned to the viewport (fixed inset-0) instead of letting the
+  // document/body scroll. In the iOS App Store build's bare WKWebView, a
+  // scrollable document causes "fixed" bars (bottom tab bar, mobile top
+  // bar) to visibly drift with the scroll gesture instead of staying
+  // glued to the screen — translateZ(0) alone (below) wasn't enough,
+  // since the root cause is the body itself being the thing that
+  // scrolls. Only the "main content" div below now scrolls internally,
+  // so the bars never need to track anything.
   return (
-    <div className="coach-shell w-full min-h-screen font-sans flex" style={{ backgroundColor: CLIENT_DARK_BG }}>
+    <div className="coach-shell w-full h-screen font-sans flex fixed inset-0 overflow-hidden" style={{ backgroundColor: CLIENT_DARK_BG }}>
       {/* desktop sidebar */}
       <div className="dark-chrome hidden md:flex w-64 shrink-0 h-screen sticky top-0 flex-col bg-[#0A0A0C]">
         <div className="px-5 pt-7 pb-6">
@@ -238,8 +246,11 @@ export default function CoachShell() {
         </div>
       </div>
 
-      {/* main content */}
-      <div className="flex-1 min-w-0 pt-14 pb-16 md:pt-0 md:pb-0">
+      {/* main content — the only thing that scrolls now (see root comment
+          above); overflow-y-auto also gives this flex item an automatic
+          min-height of 0 per the flexbox spec, so it's clipped/scrollable
+          instead of growing the (now non-scrolling) root to fit it. */}
+      <div className="flex-1 min-w-0 pt-14 pb-16 md:pt-0 md:pb-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
         {tab === "dashboard" && (
           <CoachDashboard onNavigate={setTab} onOpenClient={openClient} onOpenLibrary={openLibrary} showToast={showToast} />
         )}
