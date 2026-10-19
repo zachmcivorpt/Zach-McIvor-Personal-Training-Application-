@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
 import { MEASURE_BLUE, CLIENT_DARK_BG } from "../theme";
-import { LayoutDashboard, Users, Users2, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell } from "lucide-react";
+import { LayoutDashboard, Users, Users2, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell, Mountain } from "lucide-react";
 import CoachDashboard from "./CoachDashboard";
 import CoachClients from "./CoachClients";
 import CoachLibrary from "./CoachLibrary";
@@ -11,6 +11,7 @@ import CoachMessages from "./CoachMessages";
 import CoachChallenges from "./CoachChallenges";
 import CoachGroups from "./CoachGroups";
 import CoachMore from "./CoachMore";
+import CoachTrainSolo from "./CoachTrainSolo";
 
 const MAIN_MENU = [
   { id: "dashboard", label: "Overview", icon: LayoutDashboard },
@@ -19,6 +20,11 @@ const MAIN_MENU = [
   { id: "groups", label: "Groups", icon: Users2 },
   { id: "library", label: "Library", icon: Library },
   { id: "challenges", label: "Challenges", icon: Trophy },
+  // Train Solo is its own independent, coach-free product (see
+  // src/lib/SoloAppContext.jsx) — kept as a distinct top-level tab rather
+  // than nested under Library so it never reads as part of Coaching's own
+  // program-assignment workflow, which this does not touch.
+  { id: "trainsolo", label: "Train Solo", icon: Mountain },
 ];
 
 const OTHER_MENU = [{ id: "more", label: "Settings", icon: Settings }];
@@ -245,6 +251,7 @@ export default function CoachShell() {
         )}
         {tab === "challenges" && <CoachChallenges showToast={showToast} />}
         {tab === "groups" && <CoachGroups showToast={showToast} />}
+        {tab === "trainsolo" && <CoachTrainSolo showToast={showToast} />}
         {tab === "messages" && <CoachMessages />}
         {tab === "more" && <CoachMore onNavigate={setTab} onLogout={doLogout} showToast={showToast} />}
       </div>

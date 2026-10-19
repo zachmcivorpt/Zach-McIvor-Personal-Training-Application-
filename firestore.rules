@@ -338,5 +338,25 @@ service cloud.firestore {
     match /soloUsers/{uid} {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
+
+    // --- soloProgramCategories/{id}, soloPrograms/{id}: Train Solo's own
+    //     program catalogue — entirely separate from Coaching's programs/
+    //     collection above, never read from it and never written to it.
+    //     Public read, same pattern as settings/appDesign: a Train Solo
+    //     customer browsing the catalogue (Phase 2) needs this before/
+    //     without a Coaching session, and a published program's existence
+    //     isn't sensitive — draft vs. published filtering happens in the
+    //     client query, same as every other public-read settings doc. Only
+    //     the coach can create/edit/reorder/archive a category or a
+    //     program; this isCoach() check is the same one every other
+    //     coach-only collection in this file already uses. ---
+    match /soloProgramCategories/{id} {
+      allow read: if true;
+      allow write: if isCoach();
+    }
+    match /soloPrograms/{id} {
+      allow read: if true;
+      allow write: if isCoach();
+    }
   }
 }

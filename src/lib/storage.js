@@ -190,3 +190,18 @@ export function uploadLoginBackground(file, onProgress) {
   }
   return uploadToPath(`design/login-bg_${Date.now()}_${file.name}`, file, isVideo ? "video" : "image", isVideo ? "Video" : "Image", onProgress);
 }
+
+// Train Solo program cover artwork — coach-only, same size cap as a design
+// image. Keyed by programId so re-uploading a program's artwork is easy to
+// trace back to its program, same spirit as messageVideos/{clientId}/...
+export function uploadSoloProgramArtwork(programId, file, onProgress) {
+  if (!file.type.startsWith("image/")) {
+    return Promise.reject(new Error("Please choose an image file."));
+  }
+  if (file.size > MAX_DESIGN_IMAGE_BYTES) {
+    return Promise.reject(
+      new Error(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB — please keep it under ${MAX_DESIGN_IMAGE_BYTES / 1024 / 1024}MB.`)
+    );
+  }
+  return uploadToPath(`soloProgramArt/${programId}_${Date.now()}_${file.name}`, file, "image", "Image", onProgress);
+}

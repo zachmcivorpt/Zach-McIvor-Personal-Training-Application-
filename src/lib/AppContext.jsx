@@ -428,6 +428,12 @@ export function AppProvider({ children }) {
     // Shared library data — every signed-in user (coach or client) can read it.
     watch("exercises", "exercises");
     watch("programs", "programs");
+    // Train Solo's own program catalogue — public read (see
+    // firestore.rules), kept in `raw` for the coach console's Train Solo
+    // section. Never merged with/into `programs` above; that collection
+    // stays exclusively Coaching's.
+    watch("soloProgramCategories", "soloProgramCategories");
+    watch("soloPrograms", "soloPrograms");
     watch("masterWorkouts", "masterWorkouts");
     watch("masterMeals", "masterMeals");
     watch("customFoods", "customFoods");
@@ -608,6 +614,8 @@ export function AppProvider({ children }) {
       users,
       exercises: raw.exercises?.length ? raw.exercises : SEED_EXERCISES,
       programs: raw.programs?.length ? raw.programs : SEED_PROGRAMS,
+      soloProgramCategories: raw.soloProgramCategories || [],
+      soloPrograms: raw.soloPrograms || [],
       workoutLogs: bucket(raw.workoutLogs, (a, b) => b.date - a.date),
       nutritionLogs: bucket(raw.nutritionLogs, (a, b) => a.date.localeCompare(b.date)),
       messages: bucket(raw.messages, (a, b) => a.date - b.date),
@@ -1135,6 +1143,69 @@ export function AppProvider({ children }) {
         db.users
           .filter((u) => u.assignedProgramId === id && u._source !== "invite")
           .forEach((u) => updateDoc(doc(firestore, "users", u.id), { assignedProgramId: null }).catch(console.error));
+      },
+
+      // --- Train Solo program categories ---------------------------------
+      // `order` is the only thing that decides display order in the
+      // customer catalogue (Phase 2) — new ones go to the end.
+      async createSoloCategory(name) {
+        const id = newDocId("soloProgramCategories");
+        const order = db.soloProgramCategories.length;
+        const category = { id, name: name.trim(), order, archived: false };
+        try {
+          await setDoc(doc(firestore, "soloProgramCategories", id), stripUndefined(category));
+        } catch (err) {
+          throw new Error("Couldn't create that category — " + (err.message || "please try again."));
+        }
+        return category;
+      },
+      updateSoloCategory(id, data) {
+        const promise = updateDoc(doc(firestore, "soloProgramCategories", id), stripUndefined(data));
+        promise.catch(console.error);
+        return promise;
+      },
+      // Archiving never deletes the category doc or touches any program's
+      // categoryIds — a program keeps its assignment, it just stops
+      // resolving to anything visible (customer catalogue) or selectable
+      // (Program Builder) while archived=true. Un-archiving brings it
+      // straight back with every program still attached.
+      setSoloCategoryArchived(id, archived) {
+        const promise = updateDoc(doc(firestore, "soloProgramCategories", id), { archived: !!archived });
+        promise.catch(console.error);
+        return promise;
+      },
+      // Persists a full new ordering (array of category ids, already
+      // reordered by the caller) as a single batch — every category must
+      // get a distinct `order` written together so two coaches/tabs
+      // reordering at once can't interleave into a half-applied sequence.
+      reorderSoloCategories(orderedIds) {
+        const batch = writeBatch(firestore);
+        orderedIds.forEach((id, index) => batch.update(doc(firestore, "soloProgramCategories", id), { order: index }));
+        return batch.commit().catch(console.error);
+      },
+
+      // --- Train Solo programs --------------------------------------------
+      // Deliberately its own collection (never Coaching's `programs`) — see
+      // firestore.rules' soloPrograms block. `status` starts "draft": a
+      // program is never visible to a Train Solo customer until the coach
+      // explicitly publishes it.
+      async createSoloProgram(data) {
+        const id = newDocId("soloPrograms");
+        const program = { id, phases: [], categoryIds: [], artworkUrl: null, status: "draft", ...data };
+        try {
+          await setDoc(doc(firestore, "soloPrograms", id), stripUndefined(program));
+        } catch (err) {
+          throw new Error("Couldn't create that program — " + (err.message || "please try again."));
+        }
+        return program;
+      },
+      updateSoloProgram(id, data) {
+        const promise = updateDoc(doc(firestore, "soloPrograms", id), stripUndefined(data));
+        promise.catch(console.error);
+        return promise;
+      },
+      deleteSoloProgram(id) {
+        return deleteDoc(doc(firestore, "soloPrograms", id)).catch(console.error);
       },
 
       // Per-client training timeline — each phase is that client's own copy of
