@@ -380,5 +380,20 @@ service cloud.firestore {
         request.resource.data.programId == resource.data.programId;
       allow delete: if false;
     }
+
+    // --- soloWorkoutLogs/{id}: a Train Solo customer's own completed-
+    //     workout history — the Phase 3 training experience. Same
+    //     ownership shape as soloPurchases above: a customer can only
+    //     ever read/write their OWN logs, never another customer's, and
+    //     can never reassign a log to a different soloUserId after the
+    //     fact. Entirely separate from Coaching's workoutLogs collection
+    //     — never read from it, never written to it. ---
+    match /soloWorkoutLogs/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
   }
 }

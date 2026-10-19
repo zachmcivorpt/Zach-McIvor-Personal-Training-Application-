@@ -4,8 +4,11 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  deleteUser,
 } from "firebase/auth";
-import { doc, setDoc, updateDoc, onSnapshot, collection, query, where } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, onSnapshot, collection, query, where } from "firebase/firestore";
 import { soloAuth, soloDb } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
 
@@ -50,6 +53,10 @@ export function SoloAppProvider({ children }) {
   // stays isCoach()-only, unchanged, so a Solo customer can only ever read
   // exercise names/videos, never create or edit one.
   const [soloExercises, setSoloExercises] = useState([]);
+  // A customer's own completed-workout history — Phase 3's training
+  // experience. Same isolation as soloPurchases: never Coaching's
+  // workoutLogs collection, never another customer's logs.
+  const [soloWorkoutLogs, setSoloWorkoutLogs] = useState([]);
   // The coach's existing login background setting (settings/appDesign) —
   // public read, same doc Coaching's own LoginScreen reads, just via
   // soloDb instead of the Coaching `db` (see firebase.js's comment on why
@@ -112,6 +119,20 @@ export function SoloAppProvider({ children }) {
     const q = query(collection(soloDb, "soloPurchases"), where("soloUserId", "==", soloAuthUser.uid));
     return onSnapshot(q, (snap) => {
       setSoloPurchases(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+  }, [soloAuthUser]);
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloWorkoutLogs([]);
+      return;
+    }
+    const q = query(collection(soloDb, "soloWorkoutLogs"), where("soloUserId", "==", soloAuthUser.uid));
+    return onSnapshot(q, (snap) => {
+      // Newest first — same ordering AppContext.jsx's bucket() gives
+      // Coaching's workoutLogs, which is what getBestEverStats/
+      // getPreviousSets (both reused as-is from lib/AppContext.jsx) expect:
+      // "most recent logged performance" means the first match in the list.
+      setSoloWorkoutLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.date - a.date));
     });
   }, [soloAuthUser]);
 
@@ -232,6 +253,53 @@ export function SoloAppProvider({ children }) {
       async setPurchaseStartDate(purchaseId, startDateKey) {
         await updateDoc(doc(soloDb, "soloPurchases", purchaseId), { startDate: startDateKey });
       },
+
+      // Finishing a workout. `dayId` + `weekNumber` make a deterministic
+      // doc id (same reasoning as Coaching's workoutLogDocId.js) — finishing
+      // the same program week/day twice (two devices, a double-tap, a
+      // reopened-to-fix-a-stat edit) overwrites the one real log instead of
+      // creating a duplicate.
+      async logSoloWorkout(uid, { purchaseId, dayId, weekNumber, dayLabel, entries, durationMin }) {
+        const id = `${purchaseId}_${dayId}_w${weekNumber}`;
+        const log = { id, soloUserId: uid, purchaseId, dayId, weekNumber, dayLabel, entries, durationMin, date: Date.now() };
+        await setDoc(doc(soloDb, "soloWorkoutLogs", id), log);
+        return log;
+      },
+
+      // Self-service account deletion — same App Store/Play Data Safety
+      // requirement Coaching's own deleteMyAccount exists for, but doable
+      // entirely client-side here rather than through a Cloud Function:
+      // firestore.rules already lets a Train Solo customer delete their
+      // own soloUsers/soloPurchases/soloWorkoutLogs docs outright (unlike
+      // Coaching's users/{uid}, which Firestore rules never let a client
+      // delete directly), and deleteUser() removes a signed-in user's own
+      // Firebase Auth entry without needing Admin SDK privileges. Re-
+      // authenticating first is the same safety check against a mis-tap
+      // Coaching's version uses.
+      async deleteMySoloAccount(password) {
+        const user = soloAuth.currentUser;
+        if (!user) throw new Error("Not signed in.");
+        try {
+          const credential = EmailAuthProvider.credential(user.email, password);
+          await reauthenticateWithCredential(user, credential);
+        } catch (err) {
+          throw new Error(friendlySoloAuthError(err));
+        }
+        try {
+          const batch = writeBatch(soloDb);
+          const [purchasesSnap, logsSnap] = await Promise.all([
+            getDocs(query(collection(soloDb, "soloPurchases"), where("soloUserId", "==", user.uid))),
+            getDocs(query(collection(soloDb, "soloWorkoutLogs"), where("soloUserId", "==", user.uid))),
+          ]);
+          purchasesSnap.forEach((d) => batch.delete(d.ref));
+          logsSnap.forEach((d) => batch.delete(d.ref));
+          batch.delete(doc(soloDb, "soloUsers", user.uid));
+          await batch.commit();
+          await deleteUser(user);
+        } catch (err) {
+          throw new Error(err.message || "Couldn't delete your account — please try again.");
+        }
+      },
     }),
     []
   );
@@ -247,9 +315,21 @@ export function SoloAppProvider({ children }) {
       soloPurchases,
       soloAppDesign,
       soloExercises,
+      soloWorkoutLogs,
       ...actions,
     }),
-    [soloAuthUser, soloProfile, soloSessionLoading, soloProgramCategories, soloPrograms, soloPurchases, soloAppDesign, soloExercises, actions]
+    [
+      soloAuthUser,
+      soloProfile,
+      soloSessionLoading,
+      soloProgramCategories,
+      soloPrograms,
+      soloPurchases,
+      soloAppDesign,
+      soloExercises,
+      soloWorkoutLogs,
+      actions,
+    ]
   );
 
   return <SoloAppCtx.Provider value={value}>{children}</SoloAppCtx.Provider>;

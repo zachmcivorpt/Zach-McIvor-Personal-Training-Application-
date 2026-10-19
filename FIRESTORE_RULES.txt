@@ -24,8 +24,16 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-Three more Train Solo collections, all still fully isolated from
-Coaching's own data:
+`soloWorkoutLogs` — a Train Solo customer's own completed-workout
+history (Phase 3's training experience). Same ownership shape as
+`soloPurchases`: a customer can only ever read/write their OWN logs,
+never another customer's, and can never reassign a log to a different
+customer. The customer can also delete their own logs (used by
+self-service account deletion, which now runs entirely client-side for
+Train Solo — see `soloUsers` below, whose own rule already allowed this).
+
+Older change: three more Train Solo collections, all still fully
+isolated from Coaching's own data:
 
 - `soloProgramCategories` and `soloPrograms` — the coach's Train Solo
   catalogue (Program Categories + the Program Builder). Public read, same
@@ -498,6 +506,21 @@ service cloud.firestore {
         request.resource.data.soloUserId == resource.data.soloUserId &&
         request.resource.data.programId == resource.data.programId;
       allow delete: if false;
+    }
+
+    // --- soloWorkoutLogs/{id}: a Train Solo customer's own completed-
+    //     workout history — the Phase 3 training experience. Same
+    //     ownership shape as soloPurchases above: a customer can only
+    //     ever read/write their OWN logs, never another customer's, and
+    //     can never reassign a log to a different soloUserId after the
+    //     fact. Entirely separate from Coaching's workoutLogs collection
+    //     — never read from it, never written to it. ---
+    match /soloWorkoutLogs/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
     }
   }
 }

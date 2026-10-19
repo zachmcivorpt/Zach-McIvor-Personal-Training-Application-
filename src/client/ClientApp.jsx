@@ -292,7 +292,9 @@ function coachReply(prompt, ctx) {
   return "I can only answer a few common training questions right now (today's workout, your progress, general training advice) — for nutrition, try Fuel IQ in the Nutrition tab; for anything else specific to you, message your coach directly.";
 }
 
-function estimateCalories(volume, durationMin) {
+// Exported (no behavior change — pure function) for Train Solo's own
+// workout summary screen; see src/solo/SoloWorkoutSummaryScreen.jsx.
+export function estimateCalories(volume, durationMin) {
   return Math.round(volume * 0.05 + durationMin * 4);
 }
 
@@ -306,7 +308,9 @@ function formatRest(seconds) {
 
 // A prescribed exercise is either a rep count, AMRAP, or a held/worked
 // duration in seconds (e.g. a plank) — this renders whichever it is.
-function formatTargetReps(exMeta) {
+// Exported (no behavior change — pure function) for Train Solo's own
+// workout session screen; see src/solo/SoloWorkoutSessionScreen.jsx.
+export function formatTargetReps(exMeta) {
   if (exMeta.targetType === "time") return `${exMeta.targetReps || 30}s`;
   if (exMeta.targetReps === "AMRAP") return "AMRAP";
   if (exMeta.targetReps == null || exMeta.targetReps === "") return "Repetitions";
@@ -323,7 +327,10 @@ const SECTION_ORDER = [
 // Older sessions have no `section` tag on any exercise (everything defaults
 // to "main") — in that case we skip the headers entirely so a plain
 // program still renders as a plain list, not a lone "MAIN SESSION" title.
-function sectionedExercises(list) {
+// Exported (no behavior change — this is a pure function) so Train Solo's
+// own workout session screen can reuse the exact same grouping logic
+// instead of duplicating it. See src/solo/SoloWorkoutSessionScreen.jsx.
+export function sectionedExercises(list) {
   const withIndex = list.map((exMeta, i) => ({ exMeta, i }));
   const groups = SECTION_ORDER.map((s) => ({
     ...s,
@@ -1696,7 +1703,10 @@ function PreWorkoutReadySheet({ open, onClose, onReady }) {
   );
 }
 
-function RestBar({ restTime, restTotal, onSkip, onAdd15 }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own workout session screen can reuse it directly rather than
+// duplicating it. See src/solo/SoloWorkoutSessionScreen.jsx.
+export function RestBar({ restTime, restTotal, onSkip, onAdd15 }) {
   const dark = useClientDark();
   const pct = restTotal > 0 ? ((restTotal - restTime) / restTotal) * 100 : 0;
   return (
@@ -1726,7 +1736,10 @@ function RestBar({ restTime, restTotal, onSkip, onAdd15 }) {
 // Tapping an exercise's name during a session opens this — its own demo
 // video, instructions/cues, the client's personal best on it, and every
 // past logged session that included it.
-function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own workout session screen can reuse it directly rather than
+// duplicating it. See src/solo/SoloWorkoutSessionScreen.jsx.
+export function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
   const dark = useClientDark();
   const [videoOpen, setVideoOpen] = useState(false);
   const [notesExpanded, setNotesExpanded] = useState(false);
@@ -2303,7 +2316,10 @@ function SwapExerciseSheet({ exMeta, exercise, allExercises, onClose, onConfirm 
 // (which replaces a planned exercise and requires a reason for the coach):
 // this is purely additive, for when a client wants to do something the
 // program didn't prescribe, so no reason is needed, just a pick.
-function AddExerciseSheet({ open, allExercises, excludeIds, onClose, onConfirm }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own workout session screen can reuse it directly rather than
+// duplicating it. See src/solo/SoloWorkoutSessionScreen.jsx.
+export function AddExerciseSheet({ open, allExercises, excludeIds, onClose, onConfirm }) {
   const dark = useClientDark();
   const [search, setSearch] = useState("");
 

@@ -6,6 +6,8 @@ import SoloRegisterScreen from "./SoloRegisterScreen";
 import SoloLoginScreen from "./SoloLoginScreen";
 import SoloShell from "./SoloShell";
 import SoloProgramDetailsScreen from "./SoloProgramDetailsScreen";
+import SoloWorkoutSessionScreen from "./SoloWorkoutSessionScreen";
+import SoloWorkoutSummaryScreen from "./SoloWorkoutSummaryScreen";
 import SoloOnboarding from "./onboarding/SoloOnboarding";
 
 function SoloSessionLoadingScreen() {
@@ -68,6 +70,26 @@ export default function SoloRoutes() {
               <RequireSoloAuth>
                 <RequireOnboardingComplete>
                   <SoloProgramDetailsScreen />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="workout"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloWorkoutSessionScreen />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="workout-summary"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloWorkoutSummaryScreen />
                 </RequireOnboardingComplete>
               </RequireSoloAuth>
             }
