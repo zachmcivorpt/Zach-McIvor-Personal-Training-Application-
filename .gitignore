@@ -32,3 +32,4 @@ android/*.keystore
 *.njsproj
 *.sln
 *.sw?
+.vercel

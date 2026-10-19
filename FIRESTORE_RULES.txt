@@ -24,15 +24,33 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-New `soloUsers` collection — accounts for Train Solo, the new independent
-side of the app that exists alongside Coaching (not instead of it). A
-Train Solo user registers themselves, with no coach and no invite — their
-account lives entirely in `soloUsers/{uid}`, never `users/{uid}`, so none
-of the existing Coaching rules, queries, or coach-facing lists ever see
-it. The owning user can read/write only their own doc; nobody else (not
-even the coach) can read or write any `soloUsers` doc at all — there is
-no `isCoach()` grant on this collection, unlike every Coaching collection
-above it.
+Three more Train Solo collections, all still fully isolated from
+Coaching's own data:
+
+- `soloProgramCategories` and `soloPrograms` — the coach's Train Solo
+  catalogue (Program Categories + the Program Builder). Public read, same
+  as `settings/appDesign` below — a Train Solo customer's catalogue needs
+  to load before/without a Coaching session, and a published program's
+  existence isn't sensitive (draft vs. published filtering happens in the
+  app, same as every other public-read settings doc). Only the coach can
+  create/edit/reorder/archive a category or a program.
+- `soloPurchases` — one doc per program a Train Solo customer owns.
+  Scoped entirely to that customer's own uid, same shape as `soloUsers`
+  below: they can read/create their own purchases and update only the
+  start date on one, never reassign it to a different program or
+  customer. This is Phase 2's placeholder "purchase" — no payment
+  processor is wired up yet, but the ownership record it creates is real
+  and is what actually gates every locked screen.
+
+Older change: new `soloUsers` collection — accounts for Train Solo, the
+new independent side of the app that exists alongside Coaching (not
+instead of it). A Train Solo user registers themselves, with no coach and
+no invite — their account lives entirely in `soloUsers/{uid}`, never
+`users/{uid}`, so none of the existing Coaching rules, queries, or
+coach-facing lists ever see it. The owning user can read/write only their
+own doc; nobody else (not even the coach) can read or write any
+`soloUsers` doc at all — there is no `isCoach()` grant on this collection,
+unlike every Coaching collection above it.
 
 Older change: Groups now has a client-facing side too: a client who's a
 group can read that group and its messages, and can post their own
@@ -424,14 +442,62 @@ service cloud.firestore {
     }
 
     // --- soloUsers/{uid}: Train Solo's independent accounts — the new,
-    //     separate side of the app alongside Coaching. Deliberately its
-    //     own collection, not a third role inside users/{uid}: a Train
-    //     Solo account has no coach and must never be reachable by
-    //     isCoach()'s blanket grant, or appear in any coach-facing client
-    //     list/query. Every existing match block above (users,
-    //     workoutLogs, programs, etc.) is unchanged by this addition. ---
+    //     separate side of the app alongside Coaching (see
+    //     src/lib/SoloAppContext.jsx). Deliberately its own collection, not
+    //     a third role inside users/{uid}: a Train Solo account has no
+    //     coach and must never be reachable by isCoach()'s blanket grant,
+    //     or appear in any coach-facing client list/query. Every existing
+    //     match block above (users, workoutLogs, programs, etc.) is
+    //     unchanged by this addition. Firestore Security Rules evaluate
+    //     request.auth by the verified uid on whichever ID token a given
+    //     request actually carries — a request made through soloAuth/
+    //     soloDb (a separate named Firebase app, same project) carries a
+    //     Train Solo user's own token, completely independent of whatever
+    //     Coaching session (if any) exists in the same browser. ---
     match /soloUsers/{uid} {
       allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // --- soloProgramCategories/{id}, soloPrograms/{id}: Train Solo's own
+    //     program catalogue — entirely separate from Coaching's programs/
+    //     collection above, never read from it and never written to it.
+    //     Public read, same pattern as settings/appDesign: a Train Solo
+    //     customer browsing the catalogue (Phase 2) needs this before/
+    //     without a Coaching session, and a published program's existence
+    //     isn't sensitive — draft vs. published filtering happens in the
+    //     client query, same as every other public-read settings doc. Only
+    //     the coach can create/edit/reorder/archive a category or a
+    //     program; this isCoach() check is the same one every other
+    //     coach-only collection in this file already uses. ---
+    match /soloProgramCategories/{id} {
+      allow read: if true;
+      allow write: if isCoach();
+    }
+    match /soloPrograms/{id} {
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    // --- soloPurchases/{id}: a Train Solo customer's ownership of one
+    //     program — Phase 2's purchase step is a placeholder (no real
+    //     payment), but the ownership record it creates is real and is
+    //     what actually gates locked content. Scoped entirely to the
+    //     owning soloUserId, same shape as every other "a user reads/
+    //     writes only their own doc" collection in this file (soloUsers
+    //     above). isSignedIn() has no role check, so this works unchanged
+    //     for a Train Solo account signed in via soloAuth; nothing here is
+    //     reachable by isCoach()'s blanket grant or by any Coaching
+    //     collection. ---
+    match /soloPurchases/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      // Only the start date is ever edited post-purchase (picking/changing
+      // a start date); the owner can never reassign a purchase to a
+      // different soloUserId or programId after the fact.
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId &&
+        request.resource.data.programId == resource.data.programId;
+      allow delete: if false;
     }
   }
 }
