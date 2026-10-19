@@ -611,7 +611,13 @@ function CoachSoloPrograms({ showToast }) {
   const categoriesById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories]);
   const programs = db.soloPrograms || [];
   const selected = programs.find((p) => p.id === selectedId) || null;
-  const phases = programPhases(selected);
+  // The full phases/days/exercises live on the separately-gated
+  // soloProgramContent/{id} doc, not on `selected` itself — see
+  // AppContext.jsx's createSoloProgram/updateSoloProgram comment. The
+  // coach reads it here the same way any other coach-only collection is
+  // read (db.soloProgramContent, watched coach-wide in AppContext.jsx).
+  const selectedContent = (db.soloProgramContent || []).find((c) => c.id === selected?.id);
+  const phases = programPhases(selectedContent);
   const selectedPhase = phases.find((p) => p.id === selectedPhaseId) || phases[0] || null;
   const phaseIndex = selectedPhase ? phases.findIndex((p) => p.id === selectedPhase.id) : -1;
 

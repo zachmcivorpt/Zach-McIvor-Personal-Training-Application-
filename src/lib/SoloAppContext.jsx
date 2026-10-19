@@ -12,10 +12,6 @@ import { doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, onSnapshot, col
 import { soloAuth, soloDb } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
 
-function newSoloDocId(collectionName) {
-  return doc(collection(soloDb, collectionName)).id;
-}
-
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
 // Solo's session must never share a React context, a listener, or an
 // in-memory Auth object with Coaching's. See firebase.js's comment on
@@ -57,6 +53,13 @@ export function SoloAppProvider({ children }) {
   // experience. Same isolation as soloPurchases: never Coaching's
   // workoutLogs collection, never another customer's logs.
   const [soloWorkoutLogs, setSoloWorkoutLogs] = useState([]);
+  // The full phases/days/exercises for programs this customer actually
+  // OWNS — keyed by programId. Deliberately fetched per owned program
+  // (never a collection-wide listener): soloProgramContent/{id} is gated
+  // to a coach or a customer with a matching soloPurchases doc (see
+  // firestore.rules), so a program this customer hasn't bought is simply
+  // never requested, not merely hidden in the UI.
+  const [soloProgramContentByProgramId, setSoloProgramContentByProgramId] = useState({});
   // The coach's existing login background setting (settings/appDesign) —
   // public read, same doc Coaching's own LoginScreen reads, just via
   // soloDb instead of the Coaching `db` (see firebase.js's comment on why
@@ -121,6 +124,30 @@ export function SoloAppProvider({ children }) {
       setSoloPurchases(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
   }, [soloAuthUser]);
+
+  // One content listener per distinct owned programId — re-subscribes
+  // only when the actual set of owned programs changes (not on every
+  // soloPurchases field edit, e.g. a start-date change), via the joined-
+  // ids dependency string below. A program this customer doesn't (or no
+  // longer) own is dropped from state entirely rather than left stale.
+  const ownedProgramIdsKey = soloPurchases.map((p) => p.programId).sort().join(",");
+  useEffect(() => {
+    const programIds = ownedProgramIdsKey ? ownedProgramIdsKey.split(",") : [];
+    const unsubs = programIds.map((programId) =>
+      onSnapshot(doc(soloDb, "soloProgramContent", programId), (snap) => {
+        setSoloProgramContentByProgramId((prev) => ({ ...prev, [programId]: snap.exists() ? snap.data() : null }));
+      })
+    );
+    setSoloProgramContentByProgramId((prev) => {
+      const keep = new Set(programIds);
+      const next = {};
+      for (const [id, val] of Object.entries(prev)) if (keep.has(id)) next[id] = val;
+      return next;
+    });
+    return () => unsubs.forEach((u) => u());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownedProgramIdsKey]);
+
   useEffect(() => {
     if (!soloAuthUser) {
       setSoloWorkoutLogs([]);
@@ -230,10 +257,19 @@ export function SoloAppProvider({ children }) {
       // end-to-end now, with only the payment step itself left for later.
       // No-ops if the customer already owns this program rather than
       // creating a second purchase of the same one.
+      // The doc id is deterministic — `${uid}_${programId}` — rather than
+      // random. This is what firestore.rules' soloProgramContent block
+      // checks for with a direct exists() (rules can't run an arbitrary
+      // query), so it's the mechanism that actually gates full program
+      // content to owners. It also means "purchasing" the same program
+      // twice can only ever overwrite the one real doc, never create a
+      // second — the existingPurchases check below is just a client-side
+      // short-circuit to skip the redundant write; the id scheme itself is
+      // what makes a duplicate structurally impossible, not this check.
       async purchaseProgramPlaceholder(uid, programId, existingPurchases) {
         const already = (existingPurchases || []).find((p) => p.programId === programId);
         if (already) return already;
-        const id = newSoloDocId("soloPurchases");
+        const id = `${uid}_${programId}`;
         const purchase = {
           id,
           soloUserId: uid,
@@ -316,6 +352,7 @@ export function SoloAppProvider({ children }) {
       soloAppDesign,
       soloExercises,
       soloWorkoutLogs,
+      soloProgramContentByProgramId,
       ...actions,
     }),
     [
@@ -328,6 +365,7 @@ export function SoloAppProvider({ children }) {
       soloAppDesign,
       soloExercises,
       soloWorkoutLogs,
+      soloProgramContentByProgramId,
       actions,
     ]
   );

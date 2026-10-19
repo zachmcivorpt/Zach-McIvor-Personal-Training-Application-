@@ -15,10 +15,15 @@ import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 // matching purchaseId+dayId+weekNumber doc) shows as completed instead of
 // Start, same "a log's mere existence means the day is done" idea
 // Coaching's own workoutLogs already uses.
-function ProgramProgressSheet({ open, onClose, program, purchase, onSetStartDate, soloWorkoutLogs, onStartDay }) {
+//
+// `content` is this program's full phases/days/exercises, fetched only
+// because this customer owns a purchase for it — see SoloAppContext.jsx's
+// soloProgramContentByProgramId and firestore.rules' soloProgramContent
+// block. `program` itself (the public catalogue doc) never has this data.
+function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay }) {
   const [draftDate, setDraftDate] = useState("");
   const [editingDate, setEditingDate] = useState(false);
-  const phases = programPhases(program);
+  const phases = programPhases(content);
   const totalWeeks = totalWeeksForProgram(phases);
   const weekNumber = currentWeekNumber(purchase?.startDate, totalWeeks);
   const current = weekNumber ? phaseForWeekNumber(phases, weekNumber) : null;
@@ -119,7 +124,7 @@ function ProgramProgressSheet({ open, onClose, program, purchase, onSetStartDate
 
 export default function SoloMyTrainingScreen() {
   const navigate = useNavigate();
-  const { soloPrograms, soloPurchases, soloWorkoutLogs, setPurchaseStartDate } = useSoloApp();
+  const { soloPrograms, soloPurchases, soloWorkoutLogs, soloProgramContentByProgramId, setPurchaseStartDate } = useSoloApp();
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [openPurchaseId, setOpenPurchaseId] = useState(null);
@@ -127,6 +132,7 @@ export default function SoloMyTrainingScreen() {
   const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
   const openPurchase = soloPurchases.find((p) => p.id === openPurchaseId) || null;
   const openProgram = openPurchase ? programsById[openPurchase.programId] : null;
+  const openContent = openPurchase ? soloProgramContentByProgramId[openPurchase.programId] : null;
 
   function startDay(purchase, program, day, weekNumber) {
     navigate("/solo/workout", {
@@ -153,7 +159,11 @@ export default function SoloMyTrainingScreen() {
           {soloPurchases.map((purchase) => {
             const program = programsById[purchase.programId];
             if (!program) return null;
-            const totalWeeks = totalWeeksForProgram(programPhases(program));
+            // The owned program's week count is read from the public
+            // doc's own small, non-sensitive weekOnePreview.totalWeeks —
+            // not from soloProgramContent — so this row renders instantly
+            // without waiting on that per-program listener to resolve.
+            const totalWeeks = program.weekOnePreview?.totalWeeks || 0;
             const weekNumber = currentWeekNumber(purchase.startDate, totalWeeks);
             return (
               <button
@@ -202,6 +212,7 @@ export default function SoloMyTrainingScreen() {
         open={!!openPurchase}
         onClose={() => setOpenPurchaseId(null)}
         program={openProgram}
+        content={openContent}
         purchase={openPurchase}
         soloWorkoutLogs={soloWorkoutLogs}
         onStartDay={(day, weekNumber) => startDay(openPurchase, openProgram, day, weekNumber)}

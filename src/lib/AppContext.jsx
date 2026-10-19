@@ -434,6 +434,11 @@ export function AppProvider({ children }) {
     // stays exclusively Coaching's.
     watch("soloProgramCategories", "soloProgramCategories");
     watch("soloPrograms", "soloPrograms");
+    // The full phases/days/exercises for every Solo program — coach-only
+    // read (see firestore.rules' soloProgramContent block), kept separate
+    // from the public soloPrograms doc above so a customer can never read
+    // a program's full content without a matching purchase.
+    watch("soloProgramContent", "soloProgramContent");
     watch("masterWorkouts", "masterWorkouts");
     watch("masterMeals", "masterMeals");
     watch("customFoods", "customFoods");
@@ -616,6 +621,7 @@ export function AppProvider({ children }) {
       programs: raw.programs?.length ? raw.programs : SEED_PROGRAMS,
       soloProgramCategories: raw.soloProgramCategories || [],
       soloPrograms: raw.soloPrograms || [],
+      soloProgramContent: raw.soloProgramContent || [],
       workoutLogs: bucket(raw.workoutLogs, (a, b) => b.date - a.date),
       nutritionLogs: bucket(raw.nutritionLogs, (a, b) => a.date.localeCompare(b.date)),
       messages: bucket(raw.messages, (a, b) => a.date - b.date),
@@ -1189,23 +1195,54 @@ export function AppProvider({ children }) {
       // firestore.rules' soloPrograms block. `status` starts "draft": a
       // program is never visible to a Train Solo customer until the coach
       // explicitly publishes it.
+      //
+      // The full phases/days/exercises array is deliberately never written
+      // to soloPrograms itself — that doc is public-read for the catalogue,
+      // so storing full content there would let anyone read a program for
+      // free regardless of purchase. It's written to the separately-gated
+      // soloProgramContent/{id} doc instead (coach-read, or a customer with
+      // a matching soloPurchases doc — see firestore.rules), and
+      // computeWeekOnePreview() derives the small public-safe slice
+      // (total week count + the existing two-exercise Day 1 preview) that
+      // actually belongs on the public doc.
       async createSoloProgram(data) {
         const id = newDocId("soloPrograms");
-        const program = { id, phases: [], categoryIds: [], artworkUrl: null, status: "draft", ...data };
+        const { phases = [], ...publicData } = data;
+        const program = {
+          id,
+          categoryIds: [],
+          artworkUrl: null,
+          status: "draft",
+          ...publicData,
+          weekOnePreview: computeWeekOnePreview(phases),
+        };
         try {
           await setDoc(doc(firestore, "soloPrograms", id), stripUndefined(program));
+          await setDoc(doc(firestore, "soloProgramContent", id), stripUndefined({ id, phases }));
         } catch (err) {
           throw new Error("Couldn't create that program — " + (err.message || "please try again."));
         }
-        return program;
+        return { ...program, phases };
       },
-      updateSoloProgram(id, data) {
-        const promise = updateDoc(doc(firestore, "soloPrograms", id), stripUndefined(data));
+      async updateSoloProgram(id, data) {
+        const { phases, ...publicData } = data;
+        const writes = [];
+        if (phases !== undefined) {
+          writes.push(setDoc(doc(firestore, "soloProgramContent", id), stripUndefined({ id, phases })));
+          writes.push(updateDoc(doc(firestore, "soloPrograms", id), { weekOnePreview: computeWeekOnePreview(phases) }));
+        }
+        if (Object.keys(publicData).length > 0) {
+          writes.push(updateDoc(doc(firestore, "soloPrograms", id), stripUndefined(publicData)));
+        }
+        const promise = Promise.all(writes);
         promise.catch(console.error);
         return promise;
       },
       deleteSoloProgram(id) {
-        return deleteDoc(doc(firestore, "soloPrograms", id)).catch(console.error);
+        return Promise.all([
+          deleteDoc(doc(firestore, "soloPrograms", id)),
+          deleteDoc(doc(firestore, "soloProgramContent", id)).catch(() => {}),
+        ]).catch(console.error);
       },
 
       // Per-client training timeline — each phase is that client's own copy of
@@ -2634,6 +2671,25 @@ export function programPhases(program) {
   if (!program) return [];
   if (program.phases) return program.phases;
   return (program.weeks || []).map((w) => ({ id: w.id, name: w.label, durationWeeks: 1, days: w.days || [] }));
+}
+
+// Train Solo's own soloPrograms/{id} doc is public-read (the customer
+// catalogue needs to load before purchase — see firestore.rules), so the
+// full phases/days/exercises array must never live on it: that would let
+// anyone read a program's entire content for free, bypassing the
+// Week-1-preview-only design. createSoloProgram/updateSoloProgram below
+// instead write the full phases to the separately-gated
+// soloProgramContent/{id} doc, and derive this small, genuinely public
+// slice — the exact same "first two real exercises of Day 1" the Program
+// Details screen already shows as its preview, plus the aggregate total
+// week count (a program's length isn't sensitive) — onto the public doc
+// itself.
+export function computeWeekOnePreview(phases) {
+  const day1 = (phases || [])[0]?.days?.[0];
+  const totalWeeks = (phases || []).reduce((sum, p) => sum + (p.durationWeeks || 0), 0);
+  if (!day1) return { totalWeeks, dayLabel: null, exercises: [] };
+  const exercises = (day1.exercises || []).filter((e) => !e.isRest).slice(0, 2);
+  return { totalWeeks, dayLabel: day1.label, exercises };
 }
 
 // Flattens every program into an ordered list of "sessions" (days), each

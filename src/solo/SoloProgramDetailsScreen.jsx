@@ -3,23 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Lock, Eye } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
-import { programPhases } from "../lib/AppContext";
 import { visiblePrograms, formatAudPrice } from "./recommendations";
 import { BottomSheet, PrimaryButton } from "../components/ui";
-
-// The Week 1, Day 1 session's first two real (non-rest) rows — "a
-// specific Week 1 session," never invented, never a different week. If
-// the program has no phases/days yet (shouldn't happen for a published
-// program — the Program Builder blocks publishing without one — but a
-// draft viewed directly by its own coach could) this degrades to an empty
-// preview rather than throwing.
-function getWeek1PreviewRows(program) {
-  const phases = programPhases(program);
-  const day1 = phases[0]?.days?.[0];
-  if (!day1) return { day: null, rows: [] };
-  const realRows = (day1.exercises || []).filter((r) => !r.isRest);
-  return { day: day1, rows: realRows.slice(0, 2) };
-}
 
 function formatSetsReps(row) {
   if (!row.targetSets) return null;
@@ -41,9 +26,15 @@ export default function SoloProgramDetailsScreen() {
   const published = useMemo(() => visiblePrograms(soloPrograms, soloProgramCategories), [soloPrograms, soloProgramCategories]);
   const program = published.find((p) => p.id === id);
   const owned = soloPurchases.some((p) => p.programId === id);
-  const phases = programPhases(program);
-  const totalWeeks = phases.reduce((a, p) => a + (p.durationWeeks || 0), 0);
-  const { day: day1, rows: previewRows } = getWeek1PreviewRows(program);
+  // The full phases/days live on the separately-gated soloProgramContent
+  // doc, never on this public program object — see
+  // AppContext.jsx's computeWeekOnePreview comment. Pre-purchase, this
+  // screen only ever reads the small public preview slice the coach's
+  // save already computed; it never fetches or has access to the rest.
+  const preview = program?.weekOnePreview || { totalWeeks: 0, dayLabel: null, exercises: [] };
+  const totalWeeks = preview.totalWeeks;
+  const day1Label = preview.dayLabel;
+  const previewRows = preview.exercises || [];
 
   async function confirmPlaceholderPurchase() {
     setPurchasing(true);
@@ -105,7 +96,7 @@ export default function SoloProgramDetailsScreen() {
           <div className="flex items-center gap-2 mb-3">
             <Eye size={14} color={t.textMuted} />
             <p className="text-[11px] font-bold tracking-wide uppercase" style={{ color: t.textMuted }}>
-              Preview — {day1 ? day1.label : "Week 1"}
+              Preview — {day1Label || "Week 1"}
             </p>
           </div>
 
@@ -144,7 +135,7 @@ export default function SoloProgramDetailsScreen() {
               >
                 <Lock size={14} color={t.textFaint} />
                 <p className="text-xs" style={{ color: t.textFaint }}>
-                  Rest of {day1 ? day1.label : "Week 1"}, and every other week, unlocks once you own this program.
+                  Rest of {day1Label || "Week 1"}, and every other week, unlocks once you own this program.
                 </p>
               </div>
               <div className="mt-2 flex flex-col gap-1.5">

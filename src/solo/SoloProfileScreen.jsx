@@ -4,8 +4,6 @@ import { Sun, Moon, AlertTriangle } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { MEASURE_BLUE } from "../theme";
-import { programPhases } from "../lib/AppContext";
-import { totalWeeksForProgram } from "./weekProgress";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { DeleteAccountSheet } from "../components/ui";
 
@@ -75,7 +73,10 @@ export default function SoloProfileScreen() {
           {soloPurchases.map((purchase, i) => {
             const program = programsById[purchase.programId];
             if (!program) return null;
-            const totalWeeks = totalWeeksForProgram(programPhases(program));
+            // From the public program doc's own small weekOnePreview slice
+            // — see AppContext.jsx's computeWeekOnePreview comment — not
+            // from soloProgramContent, which this list doesn't need.
+            const totalWeeks = program.weekOnePreview?.totalWeeks || 0;
             return (
               <div
                 key={purchase.id}

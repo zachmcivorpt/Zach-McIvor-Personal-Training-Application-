@@ -24,8 +24,31 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-`soloWorkoutLogs` — a Train Solo customer's own completed-workout
-history (Phase 3's training experience). Same ownership shape as
+Security fix: `soloPrograms` used to hold a program's full phases/days/
+exercises directly, on a doc that's public-read for the catalogue — so
+anyone could read a program's entire content for free, bypassing the
+"Week 1 preview only, rest locked until purchase" design. Full content
+now lives on a new, separately-gated `soloProgramContent/{id}` doc
+instead (same id as its `soloPrograms` entry): readable by the coach, or
+by a customer with a matching `soloPurchases` doc. `soloPrograms` itself
+now only ever holds public catalogue fields plus a small `weekOnePreview`
+(the program's total week count and the same two-exercise Day 1 preview
+that was already meant to be public).
+
+That gate only works because `soloPurchases` doc ids are now
+deterministic — `{uid}_{programId}` — rather than random, which the
+`create` rule now enforces explicitly (the id must actually match that
+pattern, not just the `soloUserId` field). A customer can therefore hold
+at most one purchase per program ever; "buying" the same program twice
+overwrites that one doc rather than creating a second, so a duplicate
+placeholder purchase can never grant access under some other id. The
+`create` rule also requires the target program to already be published,
+so a customer can't self-issue a purchase (and the content access it
+grants) against a still-draft program by guessing its id and calling the
+purchase action directly, bypassing the UI.
+
+Older change: `soloWorkoutLogs` — a Train Solo customer's own completed-
+workout history (Phase 3's training experience). Same ownership shape as
 `soloPurchases`: a customer can only ever read/write their OWN logs,
 never another customer's, and can never reassign a log to a different
 customer. The customer can also delete their own logs (used by
@@ -481,24 +504,74 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isCoach();
     }
+    // Public catalogue data only — name, price, level, description,
+    // artwork, categories, and the small weekOnePreview slice (total week
+    // count + the existing two-exercise Day 1 preview). The full
+    // phases/days/exercises array is NEVER written here — see
+    // soloProgramContent below, and AppContext.jsx's createSoloProgram/
+    // updateSoloProgram, which enforce the split on every write. This is
+    // the actual fix for the confirmed finding that a public, whole-
+    // document-read rule on a doc that also held full content let anyone
+    // read a program's content for free, regardless of purchase.
     match /soloPrograms/{id} {
       allow read: if true;
+      allow write: if isCoach();
+    }
+
+    // --- soloProgramContent/{id}: the full phases/days/exercises for one
+    //     Solo program, same doc id as its soloPrograms entry. Coach-read
+    //     (building/editing), or a customer with a matching soloPurchases
+    //     doc — see the deterministic id scheme below, which is exactly
+    //     what this exists() check relies on: rules can't run an
+    //     arbitrary query, only check a known path, so the purchase doc's
+    //     id must already encode which customer owns which program.
+    //     Deliberately checked by purchase existence alone, not by the
+    //     program's current publish status — a customer keeps access to
+    //     content they already own even if the coach later moves that
+    //     program back to draft; it's "can never access an unpurchased
+    //     program's content," not "can never access a since-unpublished
+    //     one." ---
+    match /soloProgramContent/{id} {
+      allow read: if isCoach() ||
+        (isSignedIn() && exists(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)));
       allow write: if isCoach();
     }
 
     // --- soloPurchases/{id}: a Train Solo customer's ownership of one
     //     program — Phase 2's purchase step is a placeholder (no real
     //     payment), but the ownership record it creates is real and is
-    //     what actually gates locked content. Scoped entirely to the
-    //     owning soloUserId, same shape as every other "a user reads/
-    //     writes only their own doc" collection in this file (soloUsers
-    //     above). isSignedIn() has no role check, so this works unchanged
-    //     for a Train Solo account signed in via soloAuth; nothing here is
-    //     reachable by isCoach()'s blanket grant or by any Coaching
-    //     collection. ---
+    //     what actually gates locked content (soloProgramContent above).
+    //     Scoped entirely to the owning soloUserId, same shape as every
+    //     other "a user reads/writes only their own doc" collection in
+    //     this file (soloUsers above). isSignedIn() has no role check, so
+    //     this works unchanged for a Train Solo account signed in via
+    //     soloAuth; nothing here is reachable by isCoach()'s blanket
+    //     grant or by any Coaching collection.
+    //
+    //     The doc id itself must be `{uid}_{programId}` — enforced below,
+    //     not just followed by convention — so a customer can hold at
+    //     most ONE purchase per program ever: a second "purchase" of the
+    //     same program can only overwrite that same doc, never create a
+    //     second one, and the id can never be for a different uid or
+    //     program than the one actually in the doc's own fields. That's
+    //     what makes a duplicate placeholder purchase structurally unable
+    //     to grant unintended access — there's no second id a mismatched
+    //     doc could exist under for soloProgramContent's exists() check
+    //     above to find. The create rule also requires the target program
+    //     to be published, so a purchase (and the content access it
+    //     grants) can never be self-issued against a still-draft one. ---
     match /soloPurchases/{id} {
       allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      // The program being "bought" must actually be published — without
+      // this, a customer who knows/guesses an unpublished draft's id could
+      // place a placeholder purchase against it directly (bypassing the
+      // UI, which only ever offers Buy on an already-published program)
+      // and then legitimately pass soloProgramContent's exists() check for
+      // a program nobody is supposed to be able to access yet.
+      allow create: if isSignedIn() &&
+        request.resource.data.soloUserId == request.auth.uid &&
+        id == request.auth.uid + '_' + request.resource.data.programId &&
+        get(/databases/$(database)/documents/soloPrograms/$(request.resource.data.programId)).data.status == "published";
       // Only the start date is ever edited post-purchase (picking/changing
       // a start date); the owner can never reassign a purchase to a
       // different soloUserId or programId after the fact.
