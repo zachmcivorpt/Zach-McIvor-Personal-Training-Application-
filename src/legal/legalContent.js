@@ -31,6 +31,7 @@ export const LEGAL_DOCS = {
           "APEX provides technology infrastructure for coaching businesses and their clients.",
           "APEX does not itself provide fitness, medical, healthcare, therapeutic or nutrition coaching.",
           "Where a coach provides those services using APEX, the coach is responsible for the professional advice and services they provide.",
+          "Train Solo is a separate part of the Platform in which you interact directly with APEX, without a coach. Where you use Train Solo, APEX itself determines what personal information is collected and is directly responsible for ensuring that collection is lawful and, where required, consented to — rather than a coach, as described in section 7 below.",
         ],
       },
       {
@@ -45,7 +46,12 @@ export const LEGAL_DOCS = {
           },
           {
             list: [
-              "Sensitive information — some information uploaded to APEX may constitute sensitive information under Australian law, including health information. APEX does not require users to upload sensitive information unless reasonably necessary for the relevant service. Where a coach uploads or controls Client Data containing sensitive information, the coach remains responsible for ensuring that the relevant collection and use is lawful and appropriately authorised.",
+              "Train Solo account and consultation information — where you register for Train Solo, this includes your name, age, training goals, training history and preferences, and your answers to the Train Solo consultation questionnaire's exercise-safety screening section, which may include sensitive health information (see section 6).",
+            ],
+          },
+          {
+            list: [
+              "Sensitive information — some information uploaded to APEX may constitute sensitive information under Australian law, including health information. APEX does not require users to upload sensitive information unless reasonably necessary for the relevant service. Where a coach uploads or controls Client Data containing sensitive information, the coach remains responsible for ensuring that the relevant collection and use is lawful and appropriately authorised. Where you provide sensitive information directly to APEX through Train Solo, APEX is itself responsible for that collection (see section 6).",
             ],
           },
           {
@@ -80,11 +86,13 @@ export const LEGAL_DOCS = {
           "Because APEX is a coaching technology platform, users may choose to store health-related information on the Platform.",
           "APEX will handle sensitive information in accordance with applicable legal requirements. Where APEX itself determines that sensitive information is reasonably necessary to provide a service and consent is required, APEX will seek appropriate consent.",
           "Coaches must not collect excessive health information merely because the Platform makes it technically possible to do so, and should only request information reasonably necessary for their services.",
+          "Where you use Train Solo, the consultation questionnaire's exercise-safety section asks standard pre-exercise screening questions (based on the Australian Adult Pre-Exercise Screening System, Stage 1) that may constitute sensitive health information. We ask for your separate, explicit consent immediately before these questions, distinct from your acceptance of this Privacy Policy. This information is used only to indicate when you may wish to seek guidance from a medical or allied health professional before exercising — it is not used to diagnose any condition, and (unless and until APEX tells you otherwise) is not currently used to generate any exercise program or recommendation.",
         ],
       },
       {
         heading: "7. Client Data controlled by coaches",
         body: [
+          "This section applies only to Client Data coaches control on the Coaching side of the Platform. It does not apply to Train Solo — see sections 2 and 6 above for how APEX itself handles Train Solo information.",
           "A coach or coaching organisation may upload and manage Client Data through APEX. Where this occurs, APEX may process that information on behalf of the coach or organisation to provide the Platform.",
           "The coach or organisation remains responsible for determining what Client Data is collected, ensuring the collection is lawful, obtaining any required consent, providing required privacy notices, ensuring appropriate authority exists to upload the information, determining appropriate retention periods, and responding to client requests where the coach is the relevant responsible entity.",
         ],

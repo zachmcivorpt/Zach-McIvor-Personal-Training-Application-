@@ -14,7 +14,9 @@ export default function SoloLoginScreen() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (soloCurrentUser) navigate("/solo/home", { replace: true });
+    if (soloCurrentUser) {
+      navigate(soloCurrentUser.onboarding?.completed ? "/solo/home" : "/solo/onboarding", { replace: true });
+    }
   }, [soloCurrentUser, navigate]);
 
   async function submit(e) {
@@ -81,6 +83,15 @@ export default function SoloLoginScreen() {
           Don't have an account?{" "}
           <Link to="/solo/register" className="text-white font-semibold underline underline-offset-2">
             Create one
+          </Link>
+        </p>
+        <p className="text-center text-white/30 text-xs mt-4">
+          <Link to="/legal/terms-of-service" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+            Terms of Service
+          </Link>
+          {"  ·  "}
+          <Link to="/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+            Privacy Policy
           </Link>
         </p>
       </div>

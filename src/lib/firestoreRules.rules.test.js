@@ -461,5 +461,41 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
       const clientDb = dbAs(CLIENT_A);
       await assertFails(getDoc(doc(clientDb, "soloUsers", SOLO_A)));
     });
+
+    // --- Phase 2: the consultation questionnaire's answers (including the
+    // sensitive injury/health ones) are stored on this same soloUsers/{uid}
+    // doc under `onboarding.answers` — no new collection, no new rule.
+    // These tests exist because that data is more sensitive than the
+    // account fields above, so it's worth confirming explicitly rather
+    // than just assuming the existing owner-only rule covers it too.
+    it("lets a Train Solo user write and read their own onboarding answers, including sensitive health ones", async () => {
+      const db = dbAs(SOLO_A);
+      await assertSucceeds(
+        setDoc(
+          doc(db, "soloUsers", SOLO_A),
+          { onboarding: { answers: { apss_heartCondition: "no", priorInjuriesSurgeriesDetail: "Torn ACL, 2019, fully healed" } } },
+          { merge: true }
+        )
+      );
+      const snap = await assertSucceeds(getDoc(doc(db, "soloUsers", SOLO_A)));
+      expect(snap.data().onboarding.answers.priorInjuriesSurgeriesDetail).toBe("Torn ACL, 2019, fully healed");
+    });
+
+    it("blocks another Train Solo user from reading or overwriting someone else's onboarding answers", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloUsers", SOLO_A), { onboarding: { answers: { apss_heartCondition: "yes" } } });
+      });
+      const dbB = dbAs(SOLO_B);
+      await assertFails(getDoc(doc(dbB, "soloUsers", SOLO_A)));
+      await assertFails(setDoc(doc(dbB, "soloUsers", SOLO_A), { onboarding: { answers: { apss_heartCondition: "no" } } }, { merge: true }));
+    });
+
+    it("blocks the coach from reading a Train Solo user's onboarding/health answers", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloUsers", SOLO_A), { onboarding: { answers: { apss_heartCondition: "yes" } } });
+      });
+      const coachDb = dbAs(COACH_UID);
+      await assertFails(getDoc(doc(coachDb, "soloUsers", SOLO_A)));
+    });
   });
 });

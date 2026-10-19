@@ -7,6 +7,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc, onSnapshot } from "firebase/firestore";
 import { soloAuth, soloDb } from "./firebase";
+import { isComplete } from "../solo/onboarding/questionnaireConfig";
 
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
 // Solo's session must never share a React context, a listener, or an
@@ -49,7 +50,17 @@ export function SoloAppProvider({ children }) {
 
   const actions = useMemo(
     () => ({
-      async registerSoloAccount({ name, email, password }) {
+      // `legalAcceptance` is required, not optional — SoloRegisterScreen's
+      // own checkboxes gate the submit button, but this is the actual
+      // enforcement point: there is no code path that creates a Train
+      // Solo account without recording which document versions (the
+      // `effectiveDate` string already on each src/legal/legalContent.js
+      // entry — not a separately-invented version scheme) were accepted,
+      // and when.
+      async registerSoloAccount({ name, email, password, legalAcceptance }) {
+        if (!legalAcceptance?.termsAcceptedAt || !legalAcceptance?.privacyAcceptedAt) {
+          throw new Error("You must accept the Terms of Service and Privacy Policy to continue.");
+        }
         let cred;
         try {
           cred = await createUserWithEmailAndPassword(soloAuth, email.trim(), password);
@@ -62,6 +73,8 @@ export function SoloAppProvider({ children }) {
           email: email.trim(),
           createdAt: Date.now(),
           lastLoginAt: Date.now(),
+          legalAcceptance,
+          onboarding: { completed: false, answers: {} },
         };
         try {
           await setDoc(doc(soloDb, "soloUsers", uid), account);
@@ -91,6 +104,32 @@ export function SoloAppProvider({ children }) {
 
       async soloLogout() {
         await signOut(soloAuth);
+      },
+
+      // Writes one answer and re-derives `onboarding.completed` from the
+      // full answer set every time (via the same isComplete() the UI uses
+      // to decide what's left) — so completion can never drift out of sync
+      // with the actual questions, including when editing an earlier
+      // answer in review mode flips something that was previously
+      // complete back to incomplete (e.g. changing "not training" to
+      // "training inconsistently" reveals a new required follow-up).
+      async saveOnboardingAnswer(uid, currentAnswers, questionId, value) {
+        const nextAnswers = { ...currentAnswers, [questionId]: value };
+        await setDoc(
+          doc(soloDb, "soloUsers", uid),
+          { onboarding: { answers: { [questionId]: value }, completed: isComplete(nextAnswers) } },
+          { merge: true }
+        );
+      },
+
+      // A separate, explicit consent record for the sensitive health
+      // information collected in the questionnaire's safety section —
+      // distinct from the Terms/Privacy acceptance recorded at
+      // registration (OAIC APP 3.3 guidance: sensitive information needs
+      // its own express consent, not implied by a general privacy notice
+      // acceptance taken before the user even knew this section existed).
+      async recordHealthConsent(uid) {
+        await setDoc(doc(soloDb, "soloUsers", uid), { onboarding: { healthConsentAcceptedAt: Date.now() } }, { merge: true });
       },
     }),
     []

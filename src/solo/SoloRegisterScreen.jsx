@@ -4,6 +4,7 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { Logo } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "../auth/authUi";
 import { ChevronLeft, UserPlus } from "lucide-react";
+import { LEGAL_DOCS } from "../legal/legalContent";
 
 // Train Solo's own self-registration — unlike Coaching, where a client
 // account can only ever be created by the coach issuing an invite (see
@@ -11,6 +12,13 @@ import { ChevronLeft, UserPlus } from "lucide-react";
 // un-gated sign-up. registerSoloAccount (SoloAppContext.jsx) writes
 // against soloAuth/soloDb exclusively, never touching the Coaching
 // `auth`/`db` this file doesn't even import.
+// The versions recorded against a Train Solo account at signup are each
+// legal document's own existing `effectiveDate` string (src/legal/
+// legalContent.js) — not a separately-invented version number — so the
+// record always matches whatever LegalPage actually rendered at the time.
+const TERMS_VERSION = LEGAL_DOCS["terms-of-service"].effectiveDate;
+const PRIVACY_VERSION = LEGAL_DOCS["privacy-policy"].effectiveDate;
+
 export default function SoloRegisterScreen() {
   const { registerSoloAccount, soloCurrentUser } = useSoloApp();
   const navigate = useNavigate();
@@ -18,11 +26,15 @@ export default function SoloRegisterScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [agreedPrivacy, setAgreedPrivacy] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (soloCurrentUser) navigate("/solo/home", { replace: true });
+    if (soloCurrentUser) {
+      navigate(soloCurrentUser.onboarding?.completed ? "/solo/home" : "/solo/onboarding", { replace: true });
+    }
   }, [soloCurrentUser, navigate]);
 
   async function submit(e) {
@@ -40,9 +52,24 @@ export default function SoloRegisterScreen() {
       setError("Passwords don't match.");
       return;
     }
+    if (!agreedTerms || !agreedPrivacy) {
+      setError("You need to accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
     setBusy(true);
     try {
-      await registerSoloAccount({ name, email, password });
+      const now = Date.now();
+      await registerSoloAccount({
+        name,
+        email,
+        password,
+        legalAcceptance: {
+          termsVersion: TERMS_VERSION,
+          termsAcceptedAt: now,
+          privacyVersion: PRIVACY_VERSION,
+          privacyAcceptedAt: now,
+        },
+      });
       // Navigation happens via the soloCurrentUser effect above, once the
       // new soloUsers/{uid} doc's listener picks it up — same pattern as
       // LoginScreen's own currentUser-driven navigation.
@@ -102,9 +129,53 @@ export default function SoloRegisterScreen() {
             />
           </Field>
 
+          {/* Two separate, independently-unticked checkboxes — not one
+              combined "I agree" — so a Train Solo account can never be
+              created without an explicit, distinguishable acceptance of
+              each document. target="_blank" (unlike the Coaching
+              coach-signup checkbox this pattern is adapted from) so
+              opening either doesn't lose the in-progress registration
+              form. */}
+          <div className="space-y-2.5">
+            <label className="flex items-start gap-2.5 text-white/50 text-xs leading-relaxed">
+              <input
+                type="checkbox"
+                checked={agreedTerms}
+                onChange={(e) => setAgreedTerms(e.target.checked)}
+                className="mt-0.5 shrink-0 accent-white"
+              />
+              <span>
+                I agree to the{" "}
+                <Link to="/legal/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2">
+                  Terms of Service
+                </Link>
+                .
+              </span>
+            </label>
+            <label className="flex items-start gap-2.5 text-white/50 text-xs leading-relaxed">
+              <input
+                type="checkbox"
+                checked={agreedPrivacy}
+                onChange={(e) => setAgreedPrivacy(e.target.checked)}
+                className="mt-0.5 shrink-0 accent-white"
+              />
+              <span>
+                I've read and consent to the{" "}
+                <Link to="/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2">
+                  Privacy Policy
+                </Link>
+                , including how my information is collected and used.
+              </span>
+            </label>
+          </div>
+
           {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
 
-          <PrimaryButton type="submit" disabled={busy} className="w-full !rounded-full">
+          <PrimaryButton
+            type="submit"
+            disabled={busy || !name || !email || !password || !confirm || !agreedTerms || !agreedPrivacy}
+            className="w-full !rounded-full"
+          >
             {busy ? "CREATING ACCOUNT…" : <><UserPlus size={16} /> CREATE ACCOUNT</>}
           </PrimaryButton>
         </form>
