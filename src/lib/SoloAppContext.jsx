@@ -293,20 +293,20 @@ export function SoloAppProvider({ children }) {
       // "training inconsistently" reveals a new required follow-up).
       //
       // The write sends the FULL `nextAnswers` map, not just the one
-      // changed key: setDoc's `{merge: true}` only merges at the top
-      // level of the document — a nested object value like `onboarding`
-      // replaces the field's entire previous value, it doesn't recurse
-      // into merging `onboarding.answers` itself. Sending only the latest
-      // key wiped every previously-saved answer out of Firestore on each
-      // save, so by Finish the saved record held just the last answer —
-      // on any remount (e.g. a redirect raced against this write landing)
-      // firstUnansweredIndex() then saw almost nothing answered and sent
-      // the user back near Question 1 instead of through to completion.
+      // changed key, and uses dot-notation field paths rather than a
+      // nested `onboarding: {...}` object: setDoc's `{merge: true}` only
+      // merges at the top level of the document — a plain nested object
+      // value replaces the field's entire previous value instead of
+      // merging into it. That previously wiped every earlier answer (and,
+      // independently, recordHealthConsent's own write wiped `answers`/
+      // `completed` the same way) on every save. Dot notation updates
+      // exactly these two nested fields and leaves any sibling —
+      // including healthConsentAcceptedAt — untouched.
       async saveOnboardingAnswer(uid, currentAnswers, questionId, value) {
         const nextAnswers = { ...currentAnswers, [questionId]: value };
         await setDoc(
           doc(soloDb, "soloUsers", uid),
-          { onboarding: { answers: nextAnswers, completed: isComplete(nextAnswers) } },
+          { "onboarding.answers": nextAnswers, "onboarding.completed": isComplete(nextAnswers) },
           { merge: true }
         );
       },
@@ -317,8 +317,18 @@ export function SoloAppProvider({ children }) {
       // registration (OAIC APP 3.3 guidance: sensitive information needs
       // its own express consent, not implied by a general privacy notice
       // acceptance taken before the user even knew this section existed).
+      // Dot-notation field path, not a nested `onboarding: {...}` object:
+      // setDoc's `{merge: true}` only merges at the top level of the
+      // document, so passing a plain nested object here replaced the
+      // ENTIRE onboarding field — wiping out `answers` and `completed`
+      // (see saveOnboardingAnswer's comment above for the same bug class)
+      // — every time this fired, including well after a user had already
+      // finished onboarding (e.g. a slow/offline-queued write flushing on
+      // a later login), silently un-completing their account and sending
+      // them back through the whole questionnaire. Dot notation updates
+      // only this one nested field and leaves every sibling untouched.
       async recordHealthConsent(uid) {
-        await setDoc(doc(soloDb, "soloUsers", uid), { onboarding: { healthConsentAcceptedAt: Date.now() } }, { merge: true });
+        await setDoc(doc(soloDb, "soloUsers", uid), { "onboarding.healthConsentAcceptedAt": Date.now() }, { merge: true });
       },
 
       // The Phase 2 "purchase" placeholder — no payment processor is
