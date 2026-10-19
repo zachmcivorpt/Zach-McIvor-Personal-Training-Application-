@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Search, AlertTriangle } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
-import { MEASURE_BLUE } from "../theme";
 import { visibleCategories, visiblePrograms, recommendPrograms, formatAudPrice } from "./recommendations";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 
@@ -44,7 +43,7 @@ function ProgramCard({ program, t, onClick }) {
 export default function SoloCatalogueScreen() {
   const navigate = useNavigate();
   const { soloProgramCategories, soloPrograms, soloCurrentUser } = useSoloApp();
-  const { dark } = useSoloTheme();
+  const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [search, setSearch] = useState("");
@@ -96,7 +95,7 @@ export default function SoloCatalogueScreen() {
             className="rounded-2xl px-4 py-3 mb-4 flex gap-2.5"
             style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}
           >
-            <AlertTriangle size={16} color={MEASURE_BLUE} className="shrink-0 mt-0.5" />
+            <AlertTriangle size={16} color={accent} className="shrink-0 mt-0.5" />
             <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
               Based on your consultation answers, it's worth checking in with a doctor or allied health professional before starting a
               new program. This isn't a diagnosis or medical clearance — just a standard first-pass safety flag.
@@ -106,7 +105,7 @@ export default function SoloCatalogueScreen() {
 
         {recommended.length > 0 ? (
           <div className="rounded-[22px] p-4.5 mb-5 backdrop-blur-xl" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}>
-            <p className="text-[10.5px] font-bold tracking-wide uppercase mb-2" style={{ color: MEASURE_BLUE }}>
+            <p className="text-[10.5px] font-bold tracking-wide uppercase mb-2" style={{ color: accent }}>
               From your consultation
             </p>
             <div className="flex flex-col gap-2">

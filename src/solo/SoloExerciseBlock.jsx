@@ -3,6 +3,7 @@ import { ChevronDown, Timer } from "lucide-react";
 import { useClientDark, formatTargetReps } from "../client/ClientApp";
 import { ExerciseThumb } from "../components/ui";
 import { playTimerDing, unlockTimerAudio } from "./timerAudio";
+import { useSoloTheme } from "./SoloThemeContext";
 
 // A trimmed fork of ClientApp.jsx's ExerciseBlock for Train Solo: same set-
 // logging row layout, rest-timer start, and time-based-set row timer, but
@@ -14,6 +15,7 @@ import { playTimerDing, unlockTimerAudio } from "./timerAudio";
 // the program they bought, not live coaching.
 export default function SoloExerciseBlock({ exMeta, exercise, rows, onChangeField, onBlurKg, onAddSet, onStartRest, onOpenDetail }) {
   const dark = useClientDark();
+  const { accent } = useSoloTheme();
   const isWarmup = (exMeta.section || "main") === "warmup";
   const [expanded, setExpanded] = useState(!isWarmup);
   const [notesExpanded, setNotesExpanded] = useState(false);
@@ -87,7 +89,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, onChangeFiel
           <div className="flex items-start gap-2">
             <p className={`${dark ? "text-white/80" : "text-black/80"} text-[14px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{programNote}</p>
             {isLongNote && (
-              <button onClick={() => setNotesExpanded((v) => !v)} className="text-[12px] font-semibold shrink-0" style={{ color: "#2F8FFF" }}>
+              <button onClick={() => setNotesExpanded((v) => !v)} className="text-[12px] font-semibold shrink-0" style={{ color: accent }}>
                 {notesExpanded ? "See less" : "See more"}
               </button>
             )}
@@ -136,7 +138,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, onChangeFiel
                     type="button"
                     onClick={() => stopRowTimer(i)}
                     className="w-full rounded-lg px-2.5 py-2 text-sm font-bold text-center"
-                    style={{ backgroundColor: "#2F8FFF", color: "#fff" }}
+                    style={{ backgroundColor: accent, color: "#fff" }}
                   >
                     {timerRemaining}s — stop
                   </button>

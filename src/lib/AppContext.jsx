@@ -422,6 +422,10 @@ export function AppProvider({ children }) {
     // public/pre-auth for the same reason as the two docs above: the login
     // screen itself needs the background image before anyone signs in.
     watchDoc("settings", "appDesign", "appDesign", { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null });
+    // Train Solo's own, separate accent-colour setting — see
+    // firestore.rules' settings/soloBranding comment for why this is its
+    // own doc rather than a field on appDesign above.
+    watchDoc("settings", "soloBranding", "soloBranding", { accent: "blue" });
 
     if (!authUser || !role) return () => unsubs.forEach((u) => u());
 
@@ -656,6 +660,7 @@ export function AppProvider({ children }) {
       groupMessages: bucketBy(raw.groupMessages, "groupId", (a, b) => a.date - b.date),
       coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
       appDesign: raw.appDesign || { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null },
+      soloBranding: raw.soloBranding || { accent: "blue" },
       bodyMetrics: bucket(raw.bodyMetrics, (a, b) => a.date.localeCompare(b.date)),
       // One doc per client (doc id === clientId), so bucket() always
       // produces at most a single-item array — same helper, just read as
@@ -1243,6 +1248,14 @@ export function AppProvider({ children }) {
           deleteDoc(doc(firestore, "soloPrograms", id)),
           deleteDoc(doc(firestore, "soloProgramContent", id)).catch(() => {}),
         ]).catch(console.error);
+      },
+
+      // Train Solo's one coach-configurable branding setting — see
+      // firestore.rules' settings/soloBranding comment.
+      updateSoloBranding(data) {
+        const promise = setDoc(doc(firestore, "settings", "soloBranding"), stripUndefined(data), { merge: true });
+        promise.catch(console.error);
+        return promise;
       },
 
       // Per-client training timeline — each phase is that client's own copy of

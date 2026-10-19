@@ -3,10 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { Logo } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "../auth/authUi";
+import { SoloBackgroundFrame } from "./SoloBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function SoloLoginScreen() {
-  const { soloLogin, soloCurrentUser } = useSoloApp();
+  const { soloLogin, soloCurrentUser, soloAppDesign } = useSoloApp();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,7 +37,7 @@ export default function SoloLoginScreen() {
   }
 
   return (
-    <div className="min-h-dvh w-full bg-[#0A0A0B] flex flex-col px-6 py-8">
+    <SoloBackgroundFrame appDesign={soloAppDesign}>
       <Link to="/start" className="flex items-center gap-1 text-white/50 text-sm font-medium">
         <ChevronLeft size={16} /> Back
       </Link>
@@ -95,6 +96,6 @@ export default function SoloLoginScreen() {
           </Link>
         </p>
       </div>
-    </div>
+    </SoloBackgroundFrame>
   );
 }

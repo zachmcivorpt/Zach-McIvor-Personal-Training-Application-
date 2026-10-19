@@ -24,7 +24,13 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-Security fix: `soloPrograms` used to hold a program's full phases/days/
+New `settings/soloBranding` doc — Train Solo's one coach-configurable
+branding setting (an accent colour; the logo stays the fixed APEX mark,
+never configurable). Same public-read/coach-write shape as the existing
+`settings/appDesign`, but its own separate doc rather than a field added
+to that one — Train Solo's branding is isolated from Coaching's.
+
+Older change — security fix: `soloPrograms` used to hold a program's full phases/days/
 exercises directly, on a doc that's public-read for the catalogue — so
 anyone could read a program's entire content for free, bypassing the
 "Week 1 preview only, rest locked until purchase" design. Full content
@@ -246,6 +252,18 @@ service cloud.firestore {
       // Coach-customizable branding (login background photo, app logo).
       // Public so the login screen can load the background before anyone
       // signs in.
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    // --- settings/soloBranding: Train Solo's own, separate branding
+    //     setting — currently just an accent colour. Deliberately its own
+    //     doc, not a field added to settings/appDesign above: that doc is
+    //     Coaching's, and Train Solo's logo is NOT configurable (it's
+    //     always the real APEX mark, never a per-coach choice), so the
+    //     only thing that actually needs storing here is the accent.
+    //     Same public-read/coach-write shape as settings/appDesign. ---
+    match /settings/soloBranding {
       allow read: if true;
       allow write: if isCoach();
     }

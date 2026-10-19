@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Sun, Moon, AlertTriangle } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
-import { MEASURE_BLUE } from "../theme";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { DeleteAccountSheet } from "../components/ui";
 
@@ -23,7 +22,7 @@ import { DeleteAccountSheet } from "../components/ui";
 // this phase; there is nothing here to wire up and nothing to remove.
 export default function SoloProfileScreen() {
   const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount } = useSoloApp();
-  const { dark, toggleSoloTheme } = useSoloTheme();
+  const { dark, accent, toggleSoloTheme } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const flagged = isFlaggedForMedicalReview(soloCurrentUser?.onboarding?.answers || {});
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -53,7 +52,7 @@ export default function SoloProfileScreen() {
 
       {flagged && (
         <div className="rounded-2xl px-4 py-3.5 mb-5 flex gap-2.5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}>
-          <AlertTriangle size={16} color={MEASURE_BLUE} className="shrink-0 mt-0.5" />
+          <AlertTriangle size={16} color={accent} className="shrink-0 mt-0.5" />
           <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
             Based on your answers, it's worth checking in with a doctor or allied health professional before training. This isn't a
             diagnosis or medical clearance — just a standard first-pass safety flag.

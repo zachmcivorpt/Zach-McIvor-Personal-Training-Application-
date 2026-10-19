@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { MARK_BLACK, MARK_WHITE } from "../lib/brand";
+import { useSoloApp } from "../lib/SoloAppContext";
+
+// The one coach-configurable Train Solo branding setting (see
+// firestore.rules' settings/soloBranding and CoachTrainSolo.jsx's
+// Branding tab) — never the logo, which stays the real APEX mark always.
+export const SOLO_ACCENT_PALETTE = { blue: "#2F8FFF", slate: "#64748B", amber: "#C9862A", teal: "#2FA89A" };
 
 // Train Solo's own light/dark toggle — independent of Coaching's
 // ClientThemeContext (src/client/ClientApp.jsx), since a Train Solo
@@ -9,7 +15,7 @@ import { MARK_BLACK, MARK_WHITE } from "../lib/brand";
 // synced soloUsers/{uid} field, same as everything else that phase moves
 // from device-local to account-level.
 const STORAGE_KEY = "soloThemeDark";
-const SoloThemeCtx = createContext({ dark: true, toggleSoloTheme: () => {} });
+const SoloThemeCtx = createContext({ dark: true, accent: "#2F8FFF", toggleSoloTheme: () => {} });
 
 function readStored() {
   try {
@@ -22,6 +28,7 @@ function readStored() {
 
 export function SoloThemeProvider({ children }) {
   const [dark, setDark] = useState(readStored);
+  const { soloBranding } = useSoloApp();
 
   useEffect(() => {
     try {
@@ -32,7 +39,11 @@ export function SoloThemeProvider({ children }) {
     }
   }, [dark]);
 
-  const value = useMemo(() => ({ dark, toggleSoloTheme: () => setDark((d) => !d), setSoloThemeDark: setDark }), [dark]);
+  const accent = SOLO_ACCENT_PALETTE[soloBranding?.accent] || SOLO_ACCENT_PALETTE.blue;
+  const value = useMemo(
+    () => ({ dark, accent, toggleSoloTheme: () => setDark((d) => !d), setSoloThemeDark: setDark }),
+    [dark, accent]
+  );
   return <SoloThemeCtx.Provider value={value}>{children}</SoloThemeCtx.Provider>;
 }
 

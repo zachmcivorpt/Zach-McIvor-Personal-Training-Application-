@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { Logo } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "../auth/authUi";
+import { SoloBackgroundFrame } from "./SoloBackground";
 import { ChevronLeft, UserPlus } from "lucide-react";
 import { LEGAL_DOCS } from "../legal/legalContent";
 
@@ -20,7 +21,7 @@ const TERMS_VERSION = LEGAL_DOCS["terms-of-service"].effectiveDate;
 const PRIVACY_VERSION = LEGAL_DOCS["privacy-policy"].effectiveDate;
 
 export default function SoloRegisterScreen() {
-  const { registerSoloAccount, soloCurrentUser } = useSoloApp();
+  const { registerSoloAccount, soloCurrentUser, soloAppDesign } = useSoloApp();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -80,7 +81,7 @@ export default function SoloRegisterScreen() {
   }
 
   return (
-    <div className="min-h-dvh w-full bg-[#0A0A0B] flex flex-col px-6 py-8">
+    <SoloBackgroundFrame appDesign={soloAppDesign}>
       <Link to="/start" className="flex items-center gap-1 text-white/50 text-sm font-medium">
         <ChevronLeft size={16} /> Back
       </Link>
@@ -187,6 +188,6 @@ export default function SoloRegisterScreen() {
           </Link>
         </p>
       </div>
-    </div>
+    </SoloBackgroundFrame>
   );
 }

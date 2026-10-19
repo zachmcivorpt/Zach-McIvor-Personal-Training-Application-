@@ -14,6 +14,7 @@ import {
   ArchiveRestore,
   MoreVertical,
   X,
+  Check,
   Image as ImageIcon,
 } from "lucide-react";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
@@ -21,6 +22,7 @@ import WorkoutEditor from "./WorkoutEditor";
 import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
 import { GOAL_OPTIONS, STYLE_OPTIONS, ENVIRONMENT_OPTIONS, LEVEL_OPTIONS } from "../solo/programAttributes";
 import { formatAudPrice } from "../solo/recommendations";
+import { SOLO_ACCENT_PALETTE } from "../solo/SoloThemeContext";
 
 // Same "⋯" overflow pattern as CoachPrograms.jsx — kept local rather than
 // shared since the two files' action sets differ and it's a small component.
@@ -720,10 +722,17 @@ function CoachSoloPrograms({ showToast }) {
   // Publishing is blocked until the program actually has at least one
   // phase with at least one workout in it — matches the catalogue/Week 1
   // preview design, which needs a real Day 1 to show, not an empty shell —
-  // and has a real AUD price, since the catalogue and Program Details
-  // screen both display one.
+  // has a real AUD price, since the catalogue and Program Details screen
+  // both display one, and belongs to at least one non-archived category.
+  // The customer catalogue only ever renders a program nested under one of
+  // its categories (see recommendations.js's visiblePrograms/
+  // visibleCategories) — a published program with no category assigned
+  // was silently invisible everywhere in the catalogue with no error or
+  // explanation, which is exactly the bug this check exists to prevent
+  // from recurring.
   const hasAnyWorkout = phases.some((p) => (p.days || []).length > 0);
   const hasPrice = selected?.priceCents != null;
+  const hasCategory = (selected?.categoryIds || []).some((id) => categoriesById[id] && !categoriesById[id].archived);
   async function togglePublish() {
     if (!selected) return;
     if (selected.status !== "published" && !hasAnyWorkout) {
@@ -732,6 +741,10 @@ function CoachSoloPrograms({ showToast }) {
     }
     if (selected.status !== "published" && !hasPrice) {
       showToast("Set a price before publishing");
+      return;
+    }
+    if (selected.status !== "published" && !hasCategory) {
+      showToast("Assign at least one category before publishing — otherwise it won't appear anywhere in the catalogue");
       return;
     }
     await updateSoloProgram(selected.id, { status: selected.status === "published" ? "draft" : "published" });
@@ -870,6 +883,18 @@ function CoachSoloPrograms({ showToast }) {
                 {selected.status !== "published" && hasAnyWorkout && !hasPrice && (
                   <p className="text-white text-xs mt-2">Set a price (edit program) before this can be published.</p>
                 )}
+                {selected.status !== "published" && hasAnyWorkout && hasPrice && !hasCategory && (
+                  <p className="text-white text-xs mt-2">
+                    Assign at least one category (edit program) before this can be published — it won't be visible in the catalogue
+                    otherwise.
+                  </p>
+                )}
+                {selected.status === "published" && !hasCategory && (
+                  <p className="text-white text-xs mt-2">
+                    This program is published but has no category assigned, so customers can't see it in the catalogue — edit the
+                    program and assign one.
+                  </p>
+                )}
               </div>
 
               {!selectedPhase ? (
@@ -971,6 +996,58 @@ function CoachSoloPrograms({ showToast }) {
 // Shell — Programs | Categories sub-nav, matching the design canvas
 // =====================================================================
 
+// Train Solo's one coach-configurable branding setting: an accent colour
+// for the customer app (used instead of the fixed MEASURE_BLUE in a
+// handful of Solo customer screens — see SoloThemeContext.jsx). The logo
+// is deliberately NOT configurable here: Train Solo's customer screens
+// always show the real APEX mountain mark, never a per-coach choice —
+// that's the agreed design, not an oversight.
+function CoachSoloBranding({ showToast }) {
+  const { db, updateSoloBranding } = useApp();
+  const current = db.soloBranding?.accent || "blue";
+
+  function pick(value) {
+    updateSoloBranding({ accent: value });
+    showToast("Branding updated");
+  }
+
+  return (
+    <div className="max-w-xl">
+      <div className="rounded-xl p-4 mb-5" style={{ backgroundColor: "rgba(47,143,255,0.08)", border: "1px solid rgba(47,143,255,0.2)" }}>
+        <p className="text-white text-sm leading-relaxed">
+          These settings apply to Train Solo only — the independent, coach-free side of APEX. They do not change your Coaching app's
+          logo, colours, or login screen in any way.
+        </p>
+      </div>
+
+      <p className="text-white text-[11px] font-bold tracking-wide uppercase mb-1">Solo logo</p>
+      <p className="text-white text-xs mb-4">
+        Always the existing APEX mark — the same one shown on Login and the Coach Console. This isn't configurable for Train Solo.
+      </p>
+
+      <p className="text-white text-[11px] font-bold tracking-wide uppercase mb-2">Solo accent colour</p>
+      <p className="text-white text-xs mb-3">
+        Used for highlights and callouts across the Train Solo customer app (buttons, progress, safety notices). Never affects the logo
+        itself.
+      </p>
+      <div className="flex gap-3">
+        {Object.entries(SOLO_ACCENT_PALETTE).map(([key, hex]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => pick(key)}
+            aria-label={key}
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: hex, border: current === key ? "2px solid #fff" : "2px solid transparent", boxShadow: current === key ? "0 0 0 2px rgba(255,255,255,0.3)" : "none" }}
+          >
+            {current === key && <Check size={16} color="#fff" strokeWidth={3} />}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function CoachTrainSolo({ showToast }) {
   const [tab, setTab] = useState("programs");
 
@@ -986,6 +1063,7 @@ export default function CoachTrainSolo({ showToast }) {
         {[
           { id: "programs", label: "Programs" },
           { id: "categories", label: "Categories" },
+          { id: "branding", label: "Branding" },
         ].map((t) => (
           <button
             key={t.id}
@@ -1001,7 +1079,9 @@ export default function CoachTrainSolo({ showToast }) {
         ))}
       </div>
 
-      {tab === "programs" ? <CoachSoloPrograms showToast={showToast} /> : <CoachSoloCategories showToast={showToast} />}
+      {tab === "programs" && <CoachSoloPrograms showToast={showToast} />}
+      {tab === "categories" && <CoachSoloCategories showToast={showToast} />}
+      {tab === "branding" && <CoachSoloBranding showToast={showToast} />}
     </div>
   );
 }

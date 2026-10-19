@@ -1,6 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "../components/ui";
+import { SoloBackgroundFrame } from "./SoloBackground";
+import { useSoloLoginBackground } from "./useSoloLoginBackground";
 import { ChevronRight } from "lucide-react";
 
 // The new unauthenticated landing screen — see App.jsx's RootRedirect,
@@ -9,8 +11,9 @@ import { ChevronRight } from "lucide-react";
 // link to the existing, completely unmodified /login screen; this file
 // owns no Coaching behavior at all.
 export default function StartScreen() {
+  const appDesign = useSoloLoginBackground();
   return (
-    <div className="min-h-dvh w-full bg-[#0A0A0B] flex flex-col px-6 py-8">
+    <SoloBackgroundFrame appDesign={appDesign}>
       <div className="flex justify-center pt-6">
         <Logo variant="mark" tone="white" className="h-14 w-auto" />
       </div>
@@ -36,6 +39,6 @@ export default function StartScreen() {
           <span className="block text-white/50 text-xs font-medium mt-1">Train independently, on your own program</span>
         </Link>
       </div>
-    </div>
+    </SoloBackgroundFrame>
   );
 }

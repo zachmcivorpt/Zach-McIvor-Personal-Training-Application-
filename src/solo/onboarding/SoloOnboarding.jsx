@@ -4,6 +4,7 @@ import { useSoloApp } from "../../lib/SoloAppContext";
 import { Logo } from "../../components/ui";
 import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import { MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../../theme";
+import { SoloBackgroundFrame as Frame } from "../SoloBackground";
 import {
   SECTIONS,
   getVisibleQuestions,
@@ -12,56 +13,6 @@ import {
   isComplete,
   isFlaggedForMedicalReview,
 } from "./questionnaireConfig";
-
-// The questionnaire reuses the exact same coach-configured background
-// (settings/appDesign.loginBackgroundUrl, public read) and overlay
-// gradient as LoginScreen.jsx itself — not a separate Train Solo setting,
-// per the explicit "no duplicate setting" requirement. Falls back to the
-// same plain #0A0A0B LoginScreen falls back to when no background has
-// been set at all.
-function SoloBackgroundLayer({ appDesign }) {
-  const url = appDesign?.loginBackgroundUrl;
-  if (!url) return null;
-  const isVideo = appDesign?.loginBackgroundType === "video";
-  return (
-    <>
-      {isVideo ? (
-        <video
-          key={url}
-          src={url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
-        />
-      ) : (
-        <img
-          key={url}
-          src={url}
-          alt=""
-          draggable={false}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
-        />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
-    </>
-  );
-}
-
-// Every full-screen state below renders its content through this frame —
-// the background/overlay sits at z-0, every question's actual content at
-// z-10 above it.
-function Frame({ appDesign, className = "flex flex-col px-6 py-8", children }) {
-  return (
-    <div className={`min-h-dvh w-full relative overflow-hidden bg-[#0A0A0B] ${className}`}>
-      <SoloBackgroundLayer appDesign={appDesign} />
-      <div className="relative z-10 flex flex-col flex-1 w-full">{children}</div>
-    </div>
-  );
-}
 
 // One question centred on screen at a time, over the background above —
 // a single translucent "glass" panel per question, built from the exact

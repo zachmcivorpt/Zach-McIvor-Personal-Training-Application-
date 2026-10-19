@@ -100,6 +100,18 @@ service cloud.firestore {
       allow write: if isCoach();
     }
 
+    // --- settings/soloBranding: Train Solo's own, separate branding
+    //     setting — currently just an accent colour. Deliberately its own
+    //     doc, not a field added to settings/appDesign above: that doc is
+    //     Coaching's, and Train Solo's logo is NOT configurable (it's
+    //     always the real APEX mark, never a per-coach choice), so the
+    //     only thing that actually needs storing here is the accent.
+    //     Same public-read/coach-write shape as settings/appDesign. ---
+    match /settings/soloBranding {
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
     // --- shared library data: any signed-in user reads, coach writes ---
     match /exercises/{id} {
       allow read: if isSignedIn();

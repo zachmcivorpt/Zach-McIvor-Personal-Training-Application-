@@ -68,6 +68,7 @@ export function SoloAppProvider({ children }) {
   // duplicate setting" requirement — there is exactly one coach-configured
   // background in this app, Coaching's, and the questionnaire reuses it.
   const [soloAppDesign, setSoloAppDesign] = useState({});
+  const [soloBranding, setSoloBranding] = useState({ accent: "blue" });
 
   useEffect(() => onAuthStateChanged(soloAuth, (u) => setSoloAuthUser(u)), []);
 
@@ -97,6 +98,14 @@ export function SoloAppProvider({ children }) {
   useEffect(() => {
     return onSnapshot(doc(soloDb, "settings", "appDesign"), (snap) => {
       setSoloAppDesign(snap.exists() ? snap.data() : {});
+    });
+  }, []);
+  // Train Solo's own accent-colour setting — public read, see
+  // firestore.rules' settings/soloBranding comment for why this is a
+  // separate doc from settings/appDesign above.
+  useEffect(() => {
+    return onSnapshot(doc(soloDb, "settings", "soloBranding"), (snap) => {
+      setSoloBranding(snap.exists() ? snap.data() : { accent: "blue" });
     });
   }, []);
   // Only subscribed once signed in (exercises/{id} requires isSignedIn());
@@ -350,6 +359,7 @@ export function SoloAppProvider({ children }) {
       soloPrograms,
       soloPurchases,
       soloAppDesign,
+      soloBranding,
       soloExercises,
       soloWorkoutLogs,
       soloProgramContentByProgramId,
@@ -363,6 +373,7 @@ export function SoloAppProvider({ children }) {
       soloPrograms,
       soloPurchases,
       soloAppDesign,
+      soloBranding,
       soloExercises,
       soloWorkoutLogs,
       soloProgramContentByProgramId,
