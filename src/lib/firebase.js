@@ -43,3 +43,34 @@ export const db = (() => {
 
 export const storage = getStorage(firebaseApp);
 export const functions = getFunctions(firebaseApp);
+
+// A second, independently-NAMED Firebase app — same project/config, not a
+// new project — used exclusively by Train Solo (src/lib/SoloAppContext.jsx
+// and src/solo/*). Firebase Auth keeps one "currently signed in user" per
+// app INSTANCE, not per project: the Coaching side's onAuthStateChanged
+// listener (AppContext.jsx) is registered on `auth` above, a specific JS
+// object. Signing a Train Solo user in/up against THIS separate `soloAuth`
+// object instead never touches that listener or `auth.currentUser` at
+// all — there is no shared mutable state between the two for Firebase to
+// ever cross-wire, regardless of how many tabs are open. (Verified: each
+// named app's persisted session is independently keyed — e.g.
+// `firebase:authUser:{apiKey}:[DEFAULT]` vs `...:solo` — so this holds
+// across page reloads too, not just within one page's lifetime.)
+//
+// Firestore access for Train Solo must go through `soloDb` (bound to this
+// same `soloApp`), never the Coaching `db` above — a Firestore client only
+// auto-attaches the ID token of the Auth instance it's bound to, so a
+// Train Solo write through the Coaching `db` would carry the Coaching
+// user's token (or none), not the Train Solo user's.
+export const soloApp = initializeApp(firebaseConfig, "solo");
+export const soloAuth = getAuth(soloApp);
+export const soloDb = (() => {
+  try {
+    return initializeFirestore(soloApp, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+    });
+  } catch (err) {
+    console.error("Solo Firestore persistent cache unavailable, falling back to in-memory:", err);
+    return getFirestore(soloApp);
+  }
+})();

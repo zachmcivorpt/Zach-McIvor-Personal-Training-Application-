@@ -24,7 +24,17 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-Groups now has a client-facing side too: a client who's a member of a
+New `soloUsers` collection — accounts for Train Solo, the new independent
+side of the app that exists alongside Coaching (not instead of it). A
+Train Solo user registers themselves, with no coach and no invite — their
+account lives entirely in `soloUsers/{uid}`, never `users/{uid}`, so none
+of the existing Coaching rules, queries, or coach-facing lists ever see
+it. The owning user can read/write only their own doc; nobody else (not
+even the coach) can read or write any `soloUsers` doc at all — there is
+no `isCoach()` grant on this collection, unlike every Coaching collection
+above it.
+
+Older change: Groups now has a client-facing side too: a client who's a
 group can read that group and its messages, and can post their own
 messages into it (never anyone else's). Creating a group, naming it, and
 managing membership stays a coach-only action either way.
@@ -411,6 +421,17 @@ service cloud.firestore {
     match /liveSessions/{clientId} {
       allow read: if isCoach() || ownsClientId(clientId);
       allow write: if ownsClientId(clientId);
+    }
+
+    // --- soloUsers/{uid}: Train Solo's independent accounts — the new,
+    //     separate side of the app alongside Coaching. Deliberately its
+    //     own collection, not a third role inside users/{uid}: a Train
+    //     Solo account has no coach and must never be reachable by
+    //     isCoach()'s blanket grant, or appear in any coach-facing client
+    //     list/query. Every existing match block above (users,
+    //     workoutLogs, programs, etc.) is unchanged by this addition. ---
+    match /soloUsers/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
   }
 }

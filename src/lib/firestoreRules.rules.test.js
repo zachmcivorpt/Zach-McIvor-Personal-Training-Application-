@@ -402,4 +402,64 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
       expect(found.empty).toBe(true);
     });
   });
+
+  // --- soloUsers/{uid}: Train Solo's independent accounts, entirely
+  // separate from Coaching's users/{uid} collection. Unlike every
+  // Coaching per-client collection above, there is deliberately NO
+  // isCoach() grant here at all — the coach seeded by seedUsers() above
+  // must get the same "no access" treatment as any other non-owning uid.
+  // SOLO_A/SOLO_B below are plain uids with no corresponding users/{uid}
+  // doc at all, same as a real Train Solo account (soloAuth is a separate
+  // named Firebase app, but Firestore Rules only ever see the verified
+  // uid on whichever token a request carries — these tests authenticate
+  // as that uid directly, which is the correct way to exercise the rule
+  // regardless of which named app actually minted the token in production).
+  describe("soloUsers", () => {
+    const SOLO_A = "solo-a";
+    const SOLO_B = "solo-b";
+
+    it("lets a Train Solo user create and read their own account doc", async () => {
+      const db = dbAs(SOLO_A);
+      await assertSucceeds(setDoc(doc(db, "soloUsers", SOLO_A), { name: "Alex", email: "alex@example.com" }));
+      await assertSucceeds(getDoc(doc(db, "soloUsers", SOLO_A)));
+    });
+
+    it("lets a Train Solo user update their own account doc", async () => {
+      const db = dbAs(SOLO_A);
+      await setDoc(doc(db, "soloUsers", SOLO_A), { name: "Alex", email: "alex@example.com" });
+      await assertSucceeds(updateDoc(doc(db, "soloUsers", SOLO_A), { lastLoginAt: Date.now() }));
+    });
+
+    it("blocks a Train Solo user from reading or writing another Train Solo user's account", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloUsers", SOLO_A), { name: "Alex", email: "alex@example.com" });
+      });
+      const dbB = dbAs(SOLO_B);
+      await assertFails(getDoc(doc(dbB, "soloUsers", SOLO_A)));
+      await assertFails(setDoc(doc(dbB, "soloUsers", SOLO_A), { name: "Hijacked" }));
+    });
+
+    it("blocks the Coaching coach account from reading or writing any soloUsers doc", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloUsers", SOLO_A), { name: "Alex", email: "alex@example.com" });
+      });
+      const coachDb = dbAs(COACH_UID);
+      await assertFails(getDoc(doc(coachDb, "soloUsers", SOLO_A)));
+      await assertFails(setDoc(doc(coachDb, "soloUsers", SOLO_A), { name: "Hijacked" }));
+    });
+
+    it("blocks an unauthenticated request entirely", async () => {
+      const anonDb = dbAs(null);
+      await assertFails(getDoc(doc(anonDb, "soloUsers", SOLO_A)));
+      await assertFails(setDoc(doc(anonDb, "soloUsers", SOLO_A), { name: "Anon" }));
+    });
+
+    it("blocks a Coaching client account uid from reading another uid's soloUsers doc (collections stay fully separate)", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloUsers", SOLO_A), { name: "Alex", email: "alex@example.com" });
+      });
+      const clientDb = dbAs(CLIENT_A);
+      await assertFails(getDoc(doc(clientDb, "soloUsers", SOLO_A)));
+    });
+  });
 });

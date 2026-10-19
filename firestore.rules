@@ -321,5 +321,22 @@ service cloud.firestore {
       allow read: if isCoach() || ownsClientId(clientId);
       allow write: if ownsClientId(clientId);
     }
+
+    // --- soloUsers/{uid}: Train Solo's independent accounts — the new,
+    //     separate side of the app alongside Coaching (see
+    //     src/lib/SoloAppContext.jsx). Deliberately its own collection, not
+    //     a third role inside users/{uid}: a Train Solo account has no
+    //     coach and must never be reachable by isCoach()'s blanket grant,
+    //     or appear in any coach-facing client list/query. Every existing
+    //     match block above (users, workoutLogs, programs, etc.) is
+    //     unchanged by this addition. Firestore Security Rules evaluate
+    //     request.auth by the verified uid on whichever ID token a given
+    //     request actually carries — a request made through soloAuth/
+    //     soloDb (a separate named Firebase app, same project) carries a
+    //     Train Solo user's own token, completely independent of whatever
+    //     Coaching session (if any) exists in the same browser. ---
+    match /soloUsers/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
   }
 }

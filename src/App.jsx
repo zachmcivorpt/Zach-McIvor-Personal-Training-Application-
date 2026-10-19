@@ -5,15 +5,20 @@ import { Logo } from "./components/ui";
 import LoginScreen from "./auth/LoginScreen";
 import ActivateScreen from "./auth/ActivateScreen";
 import LegalPage from "./legal/LegalPage";
+import StartScreen from "./solo/StartScreen";
 
 // CoachShell and ClientApp are each huge route trees (the entire coach
 // console / entire client app) — bundling both into the single main chunk
 // meant every cold launch had to parse+execute both in full before anything
 // could render, even for a client who only ever needs ClientApp. Lazy
 // loading means the critical path (auth check → sign in → one of these two)
-// only ever fetches/runs the one actually needed.
+// only ever fetches/runs the one actually needed. SoloRoutes (Train Solo —
+// its own SoloAppProvider/Firebase session, see src/lib/SoloAppContext.jsx)
+// is lazy for the same reason, and additionally so a Coaching user's bundle
+// never even fetches Train Solo's code.
 const CoachShell = lazy(() => import("./coach/CoachShell"));
 const ClientApp = lazy(() => import("./client/ClientApp"));
+const SoloRoutes = lazy(() => import("./solo/SoloRoutes"));
 
 // Firebase Auth restores a persisted session asynchronously — on a cold
 // launch (most visible tapping an installed PWA icon) there's a brief
@@ -41,7 +46,13 @@ function RequireRole({ role, children }) {
 function RootRedirect() {
   const { currentUser, sessionLoading } = useApp();
   if (sessionLoading) return <SessionLoadingScreen />;
-  if (!currentUser) return <Navigate to="/login" replace />;
+  // Was <Navigate to="/login" replace /> — the only behavioral change in
+  // this function. A signed-in coach/client still redirects straight to
+  // /coach or /app exactly as before (the branch below is untouched); only
+  // a genuinely signed-OUT visitor now sees the Coaching/Train Solo choice
+  // first. Coaching's own path from /start is an unmodified link to this
+  // same /login screen.
+  if (!currentUser) return <Navigate to="/start" replace />;
   return <Navigate to={currentUser.role === "coach" ? "/coach" : "/app"} replace />;
 }
 
@@ -64,15 +75,29 @@ export function NativeStatusBarSync() {
   return null;
 }
 
-function Routed() {
+// Exported (only change here — behavior is identical) so a test can render
+// it inside its own MemoryRouter at a chosen path, the same way
+// nativeStatusBarSync.test.jsx already does for NativeStatusBarSync in
+// this file — the real App() default export always mounts its own
+// BrowserRouter, which a test can't point at an arbitrary initial path.
+export function Routed() {
   return (
     <>
       <NativeStatusBarSync />
       <Routes>
+        <Route path="/start" element={<StartScreen />} />
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/activate" element={<ActivateScreen />} />
         <Route path="/privacy" element={<Navigate to="/legal/privacy-policy" replace />} />
         <Route path="/legal/:slug" element={<LegalPage />} />
+        <Route
+          path="/solo/*"
+          element={
+            <Suspense fallback={<SessionLoadingScreen />}>
+              <SoloRoutes />
+            </Suspense>
+          }
+        />
         <Route
           path="/coach/*"
           element={

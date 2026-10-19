@@ -1,0 +1,89 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useSoloApp } from "../lib/SoloAppContext";
+import { Logo } from "../components/ui";
+import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "../auth/authUi";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+export default function SoloLoginScreen() {
+  const { soloLogin, soloCurrentUser } = useSoloApp();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (soloCurrentUser) navigate("/solo/home", { replace: true });
+  }, [soloCurrentUser, navigate]);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    if (!email.trim() || !password) {
+      setError("Enter your email and password.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await soloLogin(email.trim(), password);
+    } catch (err) {
+      setError(err.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="min-h-dvh w-full bg-[#0A0A0B] flex flex-col px-6 py-8">
+      <Link to="/start" className="flex items-center gap-1 text-white/50 text-sm font-medium">
+        <ChevronLeft size={16} /> Back
+      </Link>
+
+      <div className="flex justify-center pt-6 pb-8">
+        <Logo variant="mark" tone="white" className="h-12 w-auto" />
+      </div>
+
+      <div className="w-full max-w-sm mx-auto">
+        <h1 className="text-white text-xl font-bold text-center mb-1">Train Solo</h1>
+        <p className="text-white/50 text-sm text-center mb-6">Log in to your independent account.</p>
+
+        <form onSubmit={submit} className="space-y-4">
+          <Field label="EMAIL">
+            <TextInput
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoCapitalize="none"
+              autoComplete="username"
+              required
+            />
+          </Field>
+          <Field label="PASSWORD">
+            <TextInput
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+            />
+          </Field>
+
+          {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
+
+          <PrimaryButton type="submit" disabled={busy} className="w-full !rounded-full">
+            {busy ? "SIGNING IN…" : <>SIGN IN <ChevronRight size={18} /></>}
+          </PrimaryButton>
+        </form>
+
+        <p className="text-center text-white/50 text-sm mt-6">
+          Don't have an account?{" "}
+          <Link to="/solo/register" className="text-white font-semibold underline underline-offset-2">
+            Create one
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}
