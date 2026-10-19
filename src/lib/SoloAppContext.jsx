@@ -291,11 +291,22 @@ export function SoloAppProvider({ children }) {
       // answer in review mode flips something that was previously
       // complete back to incomplete (e.g. changing "not training" to
       // "training inconsistently" reveals a new required follow-up).
+      //
+      // The write sends the FULL `nextAnswers` map, not just the one
+      // changed key: setDoc's `{merge: true}` only merges at the top
+      // level of the document — a nested object value like `onboarding`
+      // replaces the field's entire previous value, it doesn't recurse
+      // into merging `onboarding.answers` itself. Sending only the latest
+      // key wiped every previously-saved answer out of Firestore on each
+      // save, so by Finish the saved record held just the last answer —
+      // on any remount (e.g. a redirect raced against this write landing)
+      // firstUnansweredIndex() then saw almost nothing answered and sent
+      // the user back near Question 1 instead of through to completion.
       async saveOnboardingAnswer(uid, currentAnswers, questionId, value) {
         const nextAnswers = { ...currentAnswers, [questionId]: value };
         await setDoc(
           doc(soloDb, "soloUsers", uid),
-          { onboarding: { answers: { [questionId]: value }, completed: isComplete(nextAnswers) } },
+          { onboarding: { answers: nextAnswers, completed: isComplete(nextAnswers) } },
           { merge: true }
         );
       },
