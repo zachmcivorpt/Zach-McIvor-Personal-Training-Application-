@@ -5619,7 +5619,10 @@ function MetricDetailSheet({ metric, onClose }) {
 
 // onSave(weight, dateKey) — date defaults to today, can be set to any past
 // day to backfill history (e.g. weigh-ins from a previous platform).
-function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own Progress tab can reuse it directly rather than duplicating
+// it. See src/solo/SoloProgressScreen.jsx.
+export function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
   const dark = useClientDark();
   const [weight, setWeight] = useState("");
   const [dateKey, setDateKey] = useState(() => localDateKey());
@@ -5666,7 +5669,10 @@ function LogWeightSheet({ open, onClose, onSave, lastWeight }) {
   );
 }
 
-function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own Progress tab can reuse it directly rather than duplicating
+// it. See src/solo/SoloProgressScreen.jsx.
+export function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
   const dark = useClientDark();
   const [logOpen, setLogOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);

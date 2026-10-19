@@ -11,6 +11,7 @@ import {
 import { doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, onSnapshot, collection, query, where } from "firebase/firestore";
 import { soloAuth, soloDb } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
+import { localDateKey } from "./dateKey";
 
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
 // Solo's session must never share a React context, a listener, or an
@@ -53,6 +54,10 @@ export function SoloAppProvider({ children }) {
   // experience. Same isolation as soloPurchases: never Coaching's
   // workoutLogs collection, never another customer's logs.
   const [soloWorkoutLogs, setSoloWorkoutLogs] = useState([]);
+  // A customer's own body-weight log — the Progress tab. Same isolation
+  // as soloWorkoutLogs: never Coaching's weighIns collection, never
+  // visible to a coach.
+  const [soloWeighIns, setSoloWeighIns] = useState([]);
   // The full phases/days/exercises for programs this customer actually
   // OWNS — keyed by programId. Deliberately fetched per owned program
   // (never a collection-wide listener): soloProgramContent/{id} is gated
@@ -169,6 +174,19 @@ export function SoloAppProvider({ children }) {
       // getPreviousSets (both reused as-is from lib/AppContext.jsx) expect:
       // "most recent logged performance" means the first match in the list.
       setSoloWorkoutLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.date - a.date));
+    });
+  }, [soloAuthUser]);
+
+  // Oldest first — same ordering WeightHistoryScreen (reused as-is from
+  // ClientApp.jsx) expects: it treats the LAST array entry as "latest".
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloWeighIns([]);
+      return;
+    }
+    const q = query(collection(soloDb, "soloWeighIns"), where("soloUserId", "==", soloAuthUser.uid));
+    return onSnapshot(q, (snap) => {
+      setSoloWeighIns(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.date - b.date));
     });
   }, [soloAuthUser]);
 
@@ -311,6 +329,22 @@ export function SoloAppProvider({ children }) {
         return log;
       },
 
+      // Mirrors Coaching's own logWeight (AppContext.jsx) exactly — same
+      // dateKey-to-noon-local-time handling so a backdated entry sorts
+      // correctly against same-day workout logs.
+      async logSoloWeight(uid, weight, dateKey) {
+        const id = doc(collection(soloDb, "soloWeighIns")).id;
+        let date = Date.now();
+        if (dateKey && dateKey !== localDateKey()) {
+          const [y, m, d] = dateKey.split("-").map(Number);
+          date = new Date(y, m - 1, d, 12, 0, 0).getTime();
+        }
+        await setDoc(doc(soloDb, "soloWeighIns", id), { id, soloUserId: uid, weight, date });
+      },
+      async deleteSoloWeighIn(id) {
+        await deleteDoc(doc(soloDb, "soloWeighIns", id));
+      },
+
       // Self-service account deletion — same App Store/Play Data Safety
       // requirement Coaching's own deleteMyAccount exists for, but doable
       // entirely client-side here rather than through a Cloud Function:
@@ -332,12 +366,14 @@ export function SoloAppProvider({ children }) {
         }
         try {
           const batch = writeBatch(soloDb);
-          const [purchasesSnap, logsSnap] = await Promise.all([
+          const [purchasesSnap, logsSnap, weighInsSnap] = await Promise.all([
             getDocs(query(collection(soloDb, "soloPurchases"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWorkoutLogs"), where("soloUserId", "==", user.uid))),
+            getDocs(query(collection(soloDb, "soloWeighIns"), where("soloUserId", "==", user.uid))),
           ]);
           purchasesSnap.forEach((d) => batch.delete(d.ref));
           logsSnap.forEach((d) => batch.delete(d.ref));
+          weighInsSnap.forEach((d) => batch.delete(d.ref));
           batch.delete(doc(soloDb, "soloUsers", user.uid));
           await batch.commit();
           await deleteUser(user);
@@ -362,6 +398,7 @@ export function SoloAppProvider({ children }) {
       soloBranding,
       soloExercises,
       soloWorkoutLogs,
+      soloWeighIns,
       soloProgramContentByProgramId,
       ...actions,
     }),
@@ -376,6 +413,7 @@ export function SoloAppProvider({ children }) {
       soloBranding,
       soloExercises,
       soloWorkoutLogs,
+      soloWeighIns,
       soloProgramContentByProgramId,
       actions,
     ]

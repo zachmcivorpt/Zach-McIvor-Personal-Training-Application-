@@ -457,5 +457,21 @@ service cloud.firestore {
         request.resource.data.soloUserId == resource.data.soloUserId;
       allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
     }
+
+    // --- soloWeighIns/{id}: a Train Solo customer's own body-weight log —
+    //     the Progress tab. Same ownership shape as soloWorkoutLogs above:
+    //     a customer can only ever read/write their OWN entries, never
+    //     another customer's, and can never reassign one to a different
+    //     soloUserId. Entirely separate from Coaching's weighIns
+    //     collection — never read from it, never written to it, and never
+    //     visible to a coach (self-guided progress has no coach check-in
+    //     workflow by design). ---
+    match /soloWeighIns/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
   }
 }

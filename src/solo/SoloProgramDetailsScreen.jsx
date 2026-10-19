@@ -1,10 +1,15 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Lock, Eye } from "lucide-react";
+import { ChevronLeft, Lock, Eye, Target, Dumbbell } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { visiblePrograms, formatAudPrice } from "./recommendations";
+import { GOAL_OPTIONS, ENVIRONMENT_OPTIONS } from "./programAttributes";
 import { BottomSheet, PrimaryButton } from "../components/ui";
+import { ClientThemeContext, ExerciseDetailSheet } from "../client/ClientApp";
+
+const GOAL_LABELS = Object.fromEntries(GOAL_OPTIONS.map((g) => [g.value, g.label]));
+const ENVIRONMENT_LABELS = Object.fromEntries(ENVIRONMENT_OPTIONS.map((e) => [e.value, e.label]));
 
 function formatSetsReps(row) {
   if (!row.targetSets) return null;
@@ -21,6 +26,7 @@ export default function SoloProgramDetailsScreen() {
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
+  const [detailExercise, setDetailExercise] = useState(null);
 
   const exercisesById = useMemo(() => Object.fromEntries(soloExercises.map((e) => [e.id, e])), [soloExercises]);
   const published = useMemo(() => visiblePrograms(soloPrograms, soloProgramCategories), [soloPrograms, soloProgramCategories]);
@@ -31,17 +37,20 @@ export default function SoloProgramDetailsScreen() {
   // AppContext.jsx's computeWeekOnePreview comment. Pre-purchase, this
   // screen only ever reads the small public preview slice the coach's
   // save already computed; it never fetches or has access to the rest.
-  const preview = program?.weekOnePreview || { totalWeeks: 0, dayLabel: null, exercises: [] };
+  const preview = program?.weekOnePreview || { totalWeeks: 0, dayLabel: null, exercises: [], phaseSummaries: [] };
   const totalWeeks = preview.totalWeeks;
   const day1Label = preview.dayLabel;
   const previewRows = preview.exercises || [];
+  const phaseSummaries = preview.phaseSummaries || [];
 
   async function confirmPlaceholderPurchase() {
     setPurchasing(true);
     try {
       await purchaseProgramPlaceholder(soloCurrentUser.id, program.id, soloPurchases);
       setConfirmOpen(false);
-      navigate("/solo/home", { state: { justPurchasedProgramId: program.id } });
+      navigate("/solo/home", {
+        state: { soloTab: "training", openPurchaseId: `${soloCurrentUser.id}_${program.id}` },
+      });
     } finally {
       setPurchasing(false);
     }
@@ -92,6 +101,57 @@ export default function SoloProgramDetailsScreen() {
           </p>
         )}
 
+        {(program.goals?.length > 0 || program.environments?.length > 0) && (
+          <div className="mt-4 space-y-3">
+            {program.goals?.length > 0 && (
+              <div className="flex items-start gap-2">
+                <Target size={14} color={t.textFaint} className="mt-0.5 shrink-0" />
+                <div className="flex flex-wrap gap-1.5">
+                  {program.goals.map((g) => (
+                    <span key={g} className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: t.chipBg, color: t.textMuted }}>
+                      {GOAL_LABELS[g] || g}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {program.environments?.length > 0 && (
+              <div className="flex items-start gap-2">
+                <Dumbbell size={14} color={t.textFaint} className="mt-0.5 shrink-0" />
+                <div className="flex flex-wrap gap-1.5">
+                  {program.environments.map((e) => (
+                    <span key={e} className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: t.chipBg, color: t.textMuted }}>
+                      {ENVIRONMENT_LABELS[e] || e}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {phaseSummaries.length > 0 && (
+          <div className="mt-6">
+            <p className="text-[11px] font-bold tracking-wide uppercase mb-2.5" style={{ color: t.textMuted }}>
+              Weekly structure
+            </p>
+            <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${t.panelBorder}` }}>
+              {phaseSummaries.map((p, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-4 py-3"
+                  style={{ backgroundColor: t.cardBg, borderBottom: i === phaseSummaries.length - 1 ? "none" : `1px solid ${t.panelBorder}` }}
+                >
+                  <p className="text-sm font-semibold">{p.name || `Phase ${i + 1}`}</p>
+                  <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+                    {p.durationWeeks} week{p.durationWeeks === 1 ? "" : "s"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-6">
           <div className="flex items-center gap-2 mb-3">
             <Eye size={14} color={t.textMuted} />
@@ -110,9 +170,12 @@ export default function SoloProgramDetailsScreen() {
                 const ex = exercisesById[row.exerciseId];
                 const setsReps = formatSetsReps(row);
                 return (
-                  <div
+                  <button
                     key={row.rowId || i}
-                    className="flex items-center justify-between px-4 py-3"
+                    type="button"
+                    onClick={() => ex && setDetailExercise(ex)}
+                    disabled={!ex}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left"
                     style={{ backgroundColor: t.cardBg, borderBottom: i === 0 ? `1px solid ${t.panelBorder}` : "none" }}
                   >
                     <p className="text-sm font-semibold">{ex?.name || "Exercise"}</p>
@@ -121,7 +184,7 @@ export default function SoloProgramDetailsScreen() {
                         {setsReps}
                       </p>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -164,7 +227,7 @@ export default function SoloProgramDetailsScreen() {
         <div className="max-w-md mx-auto">
           {owned ? (
             <button
-              onClick={() => navigate("/solo/home")}
+              onClick={() => navigate("/solo/home", { state: { soloTab: "training" } })}
               className="w-full font-extrabold text-sm py-3.5 rounded-full"
               style={{ backgroundColor: t.text, color: t.bg }}
             >
@@ -191,6 +254,12 @@ export default function SoloProgramDetailsScreen() {
           {purchasing ? "UNLOCKING…" : "UNLOCK FOR TESTING"}
         </PrimaryButton>
       </BottomSheet>
+
+      {detailExercise && (
+        <ClientThemeContext.Provider value={dark}>
+          <ExerciseDetailSheet exercise={detailExercise} logsForClient={[]} onClose={() => setDetailExercise(null)} />
+        </ClientThemeContext.Provider>
+      )}
     </div>
   );
 }

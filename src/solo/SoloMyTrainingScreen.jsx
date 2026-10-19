@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { CalendarDays, ChevronRight, Play, CheckCircle2 } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { programPhases } from "../lib/AppContext";
@@ -23,10 +23,13 @@ import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay }) {
   const [draftDate, setDraftDate] = useState("");
   const [editingDate, setEditingDate] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(null);
   const phases = programPhases(content);
   const totalWeeks = totalWeeksForProgram(phases);
-  const weekNumber = currentWeekNumber(purchase?.startDate, totalWeeks);
+  const currentWeek = currentWeekNumber(purchase?.startDate, totalWeeks);
+  const weekNumber = selectedWeek || currentWeek;
   const current = weekNumber ? phaseForWeekNumber(phases, weekNumber) : null;
+  const isFutureWeek = currentWeek != null && weekNumber > currentWeek;
 
   function isDayDone(dayId) {
     return soloWorkoutLogs.some((l) => l.purchaseId === purchase?.id && l.dayId === dayId && l.weekNumber === weekNumber);
@@ -36,6 +39,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
     if (open) {
       setDraftDate(purchase?.startDate || localDateKey());
       setEditingDate(false);
+      setSelectedWeek(null);
     }
   }, [open, purchase?.startDate]);
 
@@ -58,11 +62,42 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
         <div>
           <p className="text-black/40 text-xs mb-1">STARTED</p>
           <p className="text-black text-sm font-semibold mb-4">{purchase.startDate}</p>
-          <p className="text-black/40 text-xs mb-1">CURRENT WEEK</p>
+
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-black/40 text-xs">{isFutureWeek ? "UPCOMING WEEK" : "CURRENT WEEK"}</p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                aria-label="Previous week"
+                onClick={() => setSelectedWeek(Math.max(1, weekNumber - 1))}
+                disabled={weekNumber <= 1}
+                className="w-7 h-7 rounded-full flex items-center justify-center bg-black/5 disabled:opacity-30"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                type="button"
+                aria-label="Next week"
+                onClick={() => setSelectedWeek(Math.min(totalWeeks, weekNumber + 1))}
+                disabled={weekNumber >= totalWeeks}
+                className="w-7 h-7 rounded-full flex items-center justify-center bg-black/5 disabled:opacity-30"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
           <p className="text-black text-lg font-extrabold mb-4">
             Week {weekNumber} of {totalWeeks}
             {current?.phase && <span className="text-black/40 text-sm font-semibold"> · {current.phase.name}</span>}
           </p>
+          {isFutureWeek && (
+            <div className="flex items-center gap-2 bg-black/[0.03] rounded-xl px-3.5 py-2.5 mb-4">
+              <Lock size={13} className="text-black/40 shrink-0" />
+              <p className="text-black/50 text-xs">
+                This week unlocks once Week {currentWeek} is underway — you're browsing ahead, not starting it yet.
+              </p>
+            </div>
+          )}
           {current?.phase && (
             <div className="space-y-2 mb-5">
               {(current.phase.days || []).map((d) => {
@@ -73,7 +108,9 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                       <p className="text-black text-sm font-semibold">{d.label}</p>
                       <p className="text-black/40 text-xs">{(d.exercises || []).filter((e) => !e.isRest).length} exercises</p>
                     </div>
-                    {done ? (
+                    {isFutureWeek ? (
+                      <Lock size={14} className="text-black/30 shrink-0" />
+                    ) : done ? (
                       <span className="flex items-center gap-1 text-xs font-semibold text-green-600 shrink-0">
                         <CheckCircle2 size={14} /> Done
                       </span>
@@ -124,10 +161,23 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
 
 export default function SoloMyTrainingScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { soloPrograms, soloPurchases, soloWorkoutLogs, soloProgramContentByProgramId, setPurchaseStartDate } = useSoloApp();
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [openPurchaseId, setOpenPurchaseId] = useState(null);
+
+  // Arriving here right after a purchase (see SoloProgramDetailsScreen's
+  // post-purchase navigate) opens that program's progress sheet
+  // immediately, so the customer lands straight on "pick a start date"
+  // instead of just the tab with nothing else happening.
+  useEffect(() => {
+    const requestedId = location.state?.openPurchaseId;
+    if (requestedId && soloPurchases.some((p) => p.id === requestedId)) {
+      setOpenPurchaseId(requestedId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, soloPurchases]);
 
   const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
   const openPurchase = soloPurchases.find((p) => p.id === openPurchaseId) || null;
