@@ -13,21 +13,82 @@ import {
   isFlaggedForMedicalReview,
 } from "./questionnaireConfig";
 
-// One question centred on screen at a time, over Train Solo's existing
-// plain dark background (src/solo/StartScreen.jsx etc. already use this
-// same #0A0A0B — the same surface LoginScreen falls back to when a coach
-// hasn't set a custom photo/video) — not a new design system, just that
-// same surface with a single translucent "glass" panel per question,
-// built from the exact bg-white/10 + backdrop-blur-sm + border-white/10
-// combination LoginScreen's own role-toggle pill already uses. The one
-// accent colour is MEASURE_BLUE (src/theme.js), per the no-new-colours
-// rule — used only for the progress bar and the selected-answer state.
+// The questionnaire reuses the exact same coach-configured background
+// (settings/appDesign.loginBackgroundUrl, public read) and overlay
+// gradient as LoginScreen.jsx itself — not a separate Train Solo setting,
+// per the explicit "no duplicate setting" requirement. Falls back to the
+// same plain #0A0A0B LoginScreen falls back to when no background has
+// been set at all.
+function SoloBackgroundLayer({ appDesign }) {
+  const url = appDesign?.loginBackgroundUrl;
+  if (!url) return null;
+  const isVideo = appDesign?.loginBackgroundType === "video";
+  return (
+    <>
+      {isVideo ? (
+        <video
+          key={url}
+          src={url}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
+        />
+      ) : (
+        <img
+          key={url}
+          src={url}
+          alt=""
+          draggable={false}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
+    </>
+  );
+}
+
+// Every full-screen state below renders its content through this frame —
+// the background/overlay sits at z-0, every question's actual content at
+// z-10 above it.
+function Frame({ appDesign, className = "flex flex-col px-6 py-8", children }) {
+  return (
+    <div className={`min-h-dvh w-full relative overflow-hidden bg-[#0A0A0B] ${className}`}>
+      <SoloBackgroundLayer appDesign={appDesign} />
+      <div className="relative z-10 flex flex-col flex-1 w-full">{children}</div>
+    </div>
+  );
+}
+
+// One question centred on screen at a time, over the background above —
+// a single translucent "glass" panel per question, built from the exact
+// bg-white/10 + backdrop-blur-sm + border-white/10 combination
+// LoginScreen's own role-toggle pill already uses. The one accent colour
+// is MEASURE_BLUE (src/theme.js), per the no-new-colours rule — used only
+// for the progress bar and the selected-answer state.
 function GlassPanel({ children }) {
   return (
     <div
       className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/[0.06] backdrop-blur-xl px-6 py-8 shadow-[0_0_60px_-15px_rgba(0,0,0,0.6)]"
       style={{ animation: "solo-q-in 320ms ease-out" }}
     >
+      {children}
+    </div>
+  );
+}
+
+// Health-screening questions (the consent step and every APSS/injury/pain
+// question in the "safety" section) get a SOLID panel instead — glass
+// over a photo background reads fine for a goals/preferences question,
+// but this is exactly the content that most needs to stay unambiguous and
+// easy to read regardless of what's behind it, per the agreed "solid
+// surfaces for workout-related data and health screening" rule.
+function SolidPanel({ children }) {
+  return (
+    <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-[#141414] px-6 py-8 shadow-[0_0_60px_-15px_rgba(0,0,0,0.6)]" style={{ animation: "solo-q-in 320ms ease-out" }}>
       {children}
     </div>
   );
@@ -104,7 +165,7 @@ function QuestionBody({ question, value, onChange }) {
 }
 
 export default function SoloOnboarding() {
-  const { soloAuthUser, soloCurrentUser, saveOnboardingAnswer, recordHealthConsent } = useSoloApp();
+  const { soloAuthUser, soloCurrentUser, saveOnboardingAnswer, recordHealthConsent, soloAppDesign } = useSoloApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isReview = searchParams.get("review") === "1";
@@ -163,8 +224,8 @@ export default function SoloOnboarding() {
 
   if (showMedicalNotice) {
     return (
-      <div className="min-h-dvh w-full bg-[#0A0A0B] flex flex-col items-center justify-center px-6 py-8">
-        <GlassPanel>
+      <Frame appDesign={soloAppDesign} className="flex flex-col items-center justify-center px-6 py-8">
+        <SolidPanel>
           <AlertTriangle size={28} color={MEASURE_BLUE} className="mb-4" />
           <h1 className="text-white text-lg font-bold mb-3">Before you start training</h1>
           <p className="text-white/70 text-sm leading-relaxed mb-3">
@@ -183,18 +244,18 @@ export default function SoloOnboarding() {
           >
             Got it, continue
           </button>
-        </GlassPanel>
-      </div>
+        </SolidPanel>
+      </Frame>
     );
   }
 
   if (question.type === "consent") {
     const consented = answers.healthConsent === true;
     return (
-      <div className="min-h-dvh w-full bg-[#0A0A0B] flex flex-col px-6 py-8">
+      <Frame appDesign={soloAppDesign}>
         <OnboardingHeader canGoBack={canGoBack} onBack={goBack} index={clampedIndex} total={visible.length} sectionLabel={sectionLabel} />
         <div className="flex-1 flex items-center justify-center">
-          <GlassPanel>
+          <SolidPanel>
             <h1 className="text-white text-lg font-bold mb-3">{question.label}</h1>
             <p className="text-white/70 text-sm leading-relaxed mb-4">
               The next few questions ask about injuries, pain and medical conditions — information Australian privacy law treats as
@@ -228,17 +289,22 @@ export default function SoloOnboarding() {
             >
               Continue
             </button>
-          </GlassPanel>
+          </SolidPanel>
         </div>
-      </div>
+      </Frame>
     );
   }
 
+  // Health-screening questions (APSS + injury/pain/healthcare-restriction)
+  // get the same solid panel as the consent step above; everything else
+  // keeps the glass panel.
+  const Panel = question.section === "safety" ? SolidPanel : GlassPanel;
+
   return (
-    <div className="min-h-dvh w-full bg-[#0A0A0B] flex flex-col px-6 py-8">
+    <Frame appDesign={soloAppDesign}>
       <OnboardingHeader canGoBack={canGoBack} onBack={goBack} index={clampedIndex} total={visible.length} sectionLabel={sectionLabel} />
       <div className="flex-1 flex items-center justify-center">
-        <GlassPanel>
+        <Panel>
           <h1 className="text-white text-lg font-bold mb-1.5 leading-snug">{question.label}</h1>
           {question.helper && <p className="text-white/50 text-xs leading-relaxed mb-5">{question.helper}</p>}
           {!question.helper && <div className="mb-5" />}
@@ -258,10 +324,10 @@ export default function SoloOnboarding() {
               {clampedIndex === visible.length - 1 ? "Finish" : "Next"} <ChevronRight size={16} />
             </button>
           </div>
-        </GlassPanel>
+        </Panel>
       </div>
       <style>{`@keyframes solo-q-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-    </div>
+    </Frame>
   );
 }
 

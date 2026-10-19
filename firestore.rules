@@ -358,5 +358,27 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isCoach();
     }
+
+    // --- soloPurchases/{id}: a Train Solo customer's ownership of one
+    //     program — Phase 2's purchase step is a placeholder (no real
+    //     payment), but the ownership record it creates is real and is
+    //     what actually gates locked content. Scoped entirely to the
+    //     owning soloUserId, same shape as every other "a user reads/
+    //     writes only their own doc" collection in this file (soloUsers
+    //     above). isSignedIn() has no role check, so this works unchanged
+    //     for a Train Solo account signed in via soloAuth; nothing here is
+    //     reachable by isCoach()'s blanket grant or by any Coaching
+    //     collection. ---
+    match /soloPurchases/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      // Only the start date is ever edited post-purchase (picking/changing
+      // a start date); the owner can never reassign a purchase to a
+      // different soloUserId or programId after the fact.
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId &&
+        request.resource.data.programId == resource.data.programId;
+      allow delete: if false;
+    }
   }
 }

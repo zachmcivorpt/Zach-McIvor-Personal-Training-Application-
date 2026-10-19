@@ -1,9 +1,11 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { SoloAppProvider, useSoloApp } from "../lib/SoloAppContext";
+import { SoloThemeProvider } from "./SoloThemeContext";
 import SoloRegisterScreen from "./SoloRegisterScreen";
 import SoloLoginScreen from "./SoloLoginScreen";
-import SoloHomeScreen from "./SoloHomeScreen";
+import SoloShell from "./SoloShell";
+import SoloProgramDetailsScreen from "./SoloProgramDetailsScreen";
 import SoloOnboarding from "./onboarding/SoloOnboarding";
 
 function SoloSessionLoadingScreen() {
@@ -20,7 +22,7 @@ function RequireSoloAuth({ children }) {
 // New users must finish the consultation questionnaire before reaching
 // home; returning users who already finished it go straight there — the
 // one piece of branching logic for this gate, so it lives here rather than
-// duplicated in both SoloHomeScreen and SoloOnboarding. `?review=1` lets a
+// duplicated in both SoloShell and SoloOnboarding. `?review=1` lets a
 // completed user reopen the questionnaire from Home without ever hitting
 // this redirect (SoloOnboarding checks the query param itself, not this
 // component).
@@ -32,36 +34,47 @@ function RequireOnboardingComplete({ children }) {
 
 // Mounted only for the /solo/* subtree (see App.jsx) — SoloAppProvider,
 // and therefore its onAuthStateChanged(soloAuth, ...) listener, never runs
-// at all for anyone on a Coaching route. Programs/scheduling/purchases are
-// still explicitly out of scope for this phase — SoloHomeScreen stays the
-// same placeholder it was in Phase 1, just now gated on having finished
-// the Phase 2 onboarding questionnaire first.
+// at all for anyone on a Coaching route. "home" is the three-tab shell
+// (Catalogue/My Training/Profile — see SoloShell.jsx); program/:id is a
+// full-screen drill-down pushed from a catalogue card.
 export default function SoloRoutes() {
   return (
     <SoloAppProvider>
-      <Routes>
-        <Route path="register" element={<SoloRegisterScreen />} />
-        <Route path="login" element={<SoloLoginScreen />} />
-        <Route
-          path="onboarding"
-          element={
-            <RequireSoloAuth>
-              <SoloOnboarding />
-            </RequireSoloAuth>
-          }
-        />
-        <Route
-          path="home"
-          element={
-            <RequireSoloAuth>
-              <RequireOnboardingComplete>
-                <SoloHomeScreen />
-              </RequireOnboardingComplete>
-            </RequireSoloAuth>
-          }
-        />
-        <Route path="*" element={<Navigate to="register" replace />} />
-      </Routes>
+      <SoloThemeProvider>
+        <Routes>
+          <Route path="register" element={<SoloRegisterScreen />} />
+          <Route path="login" element={<SoloLoginScreen />} />
+          <Route
+            path="onboarding"
+            element={
+              <RequireSoloAuth>
+                <SoloOnboarding />
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="home"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloShell />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="program/:id"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloProgramDetailsScreen />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route path="*" element={<Navigate to="register" replace />} />
+        </Routes>
+      </SoloThemeProvider>
     </SoloAppProvider>
   );
 }

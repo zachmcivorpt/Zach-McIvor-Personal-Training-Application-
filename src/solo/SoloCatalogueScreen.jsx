@@ -1,0 +1,186 @@
+import React, { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search, AlertTriangle } from "lucide-react";
+import { useSoloApp } from "../lib/SoloAppContext";
+import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { MEASURE_BLUE } from "../theme";
+import { visibleCategories, visiblePrograms, recommendPrograms, formatAudPrice } from "./recommendations";
+import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
+
+function ProgramCard({ program, t, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="block w-full text-left rounded-[22px] overflow-hidden mb-3.5 backdrop-blur-xl"
+      style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}`, boxShadow: t.cardShadow }}
+    >
+      <div className="h-[120px] flex items-center justify-center relative overflow-hidden" style={{ background: t.coverGradient }}>
+        {program.artworkUrl ? (
+          <img src={program.artworkUrl} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <img src={t.logo} alt="" className="h-14 w-auto opacity-90" />
+        )}
+      </div>
+      <div className="px-4 py-3.5">
+        <div className="flex items-start justify-between gap-2.5">
+          <p className="text-[15px] font-bold leading-tight">{program.name}</p>
+          <p className="text-sm font-extrabold whitespace-nowrap">{formatAudPrice(program.priceCents)}</p>
+        </div>
+        {program.description && (
+          <p className="text-xs mt-1 line-clamp-2" style={{ color: t.textMuted }}>
+            {program.description}
+          </p>
+        )}
+        <div className="flex gap-1.5 mt-2.5">
+          <span className="text-[10.5px] font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: t.chipBg, color: t.textMuted }}>
+            {program.level}
+          </span>
+        </div>
+      </div>
+    </button>
+  );
+}
+
+export default function SoloCatalogueScreen() {
+  const navigate = useNavigate();
+  const { soloProgramCategories, soloPrograms, soloCurrentUser } = useSoloApp();
+  const { dark } = useSoloTheme();
+  const t = SOLO_THEMES[dark ? "dark" : "light"];
+  const [activeCategoryId, setActiveCategoryId] = useState(null);
+  const [search, setSearch] = useState("");
+
+  const categories = useMemo(() => visibleCategories(soloProgramCategories, soloPrograms), [soloProgramCategories, soloPrograms]);
+  const published = useMemo(() => visiblePrograms(soloPrograms, soloProgramCategories), [soloPrograms, soloProgramCategories]);
+
+  const answers = soloCurrentUser?.onboarding?.answers || {};
+  const recommended = useMemo(() => recommendPrograms(soloPrograms, soloProgramCategories, answers), [soloPrograms, soloProgramCategories, answers]);
+  const flagged = isFlaggedForMedicalReview(answers);
+
+  const searchLower = search.trim().toLowerCase();
+  const matchesSearch = (p) => !searchLower || p.name.toLowerCase().includes(searchLower);
+
+  const groups = categories
+    .filter((c) => !activeCategoryId || c.id === activeCategoryId)
+    .map((c) => ({
+      category: c,
+      programs: published.filter((p) => (p.categoryIds || []).includes(c.id) && matchesSearch(p)),
+    }))
+    .filter((g) => g.programs.length > 0);
+
+  function openProgram(id) {
+    navigate(`/solo/program/${id}`);
+  }
+
+  return (
+    <div className="w-full max-w-md mx-auto">
+      <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-2">
+        <img src={t.logo} alt="" style={{ height: 19 }} />
+      </div>
+
+      <div className="px-5 pb-2">
+        <div className="flex items-center gap-2 rounded-full px-3.5 py-2" style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }}>
+          <Search size={14} color={t.textMuted} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search programs"
+            className="bg-transparent outline-none text-sm flex-1"
+            style={{ color: t.text }}
+          />
+        </div>
+      </div>
+
+      <div className="px-5 pt-3 pb-1">
+        {flagged && (
+          <div
+            className="rounded-2xl px-4 py-3 mb-4 flex gap-2.5"
+            style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}
+          >
+            <AlertTriangle size={16} color={MEASURE_BLUE} className="shrink-0 mt-0.5" />
+            <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
+              Based on your consultation answers, it's worth checking in with a doctor or allied health professional before starting a
+              new program. This isn't a diagnosis or medical clearance — just a standard first-pass safety flag.
+            </p>
+          </div>
+        )}
+
+        {recommended.length > 0 ? (
+          <div className="rounded-[22px] p-4.5 mb-5 backdrop-blur-xl" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}>
+            <p className="text-[10.5px] font-bold tracking-wide uppercase mb-2" style={{ color: MEASURE_BLUE }}>
+              From your consultation
+            </p>
+            <div className="flex flex-col gap-2">
+              {recommended.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => openProgram(p.id)}
+                  className="flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left"
+                  style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-bold truncate">{p.name}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+                      {p.level}
+                    </p>
+                  </div>
+                  <p className="text-xs font-extrabold whitespace-nowrap">{formatAudPrice(p.priceCents)}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          published.length > 0 && (
+            <p className="text-xs mb-5" style={{ color: t.textFaint }}>
+              Complete your consultation for personalised picks — browse every program below in the meantime.
+            </p>
+          )
+        )}
+
+        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-5 -mx-5 px-5">
+          <button
+            onClick={() => setActiveCategoryId(null)}
+            className="shrink-0 text-[12.5px] font-bold px-3.5 py-2 rounded-full"
+            style={activeCategoryId === null ? { backgroundColor: t.text, color: t.bg } : { backgroundColor: t.chipBg, color: t.textMuted, border: `1px solid ${t.panelBorder}` }}
+          >
+            All
+          </button>
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setActiveCategoryId(c.id)}
+              className="shrink-0 text-[12.5px] font-semibold px-3.5 py-2 rounded-full"
+              style={
+                activeCategoryId === c.id
+                  ? { backgroundColor: t.text, color: t.bg }
+                  : { backgroundColor: t.chipBg, color: t.textMuted, border: `1px solid ${t.panelBorder}` }
+              }
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+
+        {published.length === 0 ? (
+          <p className="text-sm text-center py-16" style={{ color: t.textFaint }}>
+            No programs are published yet — check back soon.
+          </p>
+        ) : groups.length === 0 ? (
+          <p className="text-sm text-center py-16" style={{ color: t.textFaint }}>
+            No programs match "{search}".
+          </p>
+        ) : (
+          groups.map((g) => (
+            <div key={g.category.id} className="mb-7">
+              <p className="text-[11px] font-bold tracking-wide uppercase mb-3" style={{ color: t.textFaint }}>
+                {g.category.name}
+              </p>
+              {g.programs.map((p) => (
+                <ProgramCard key={p.id} program={p} t={t} onClick={() => openProgram(p.id)} />
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

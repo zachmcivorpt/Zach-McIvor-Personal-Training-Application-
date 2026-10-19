@@ -5,9 +5,13 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from "firebase/auth";
-import { doc, setDoc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, updateDoc, onSnapshot, collection, query, where } from "firebase/firestore";
 import { soloAuth, soloDb } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
+
+function newSoloDocId(collectionName) {
+  return doc(collection(soloDb, collectionName)).id;
+}
 
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
 // Solo's session must never share a React context, a listener, or an
@@ -33,6 +37,27 @@ const SoloAppCtx = createContext(null);
 export function SoloAppProvider({ children }) {
   const [soloAuthUser, setSoloAuthUser] = useState(undefined); // undefined = still checking, null = signed out
   const [soloProfile, setSoloProfile] = useState(null); // soloUsers/{uid} doc
+  const [soloProgramCategories, setSoloProgramCategories] = useState([]);
+  const [soloPrograms, setSoloPrograms] = useState([]);
+  const [soloPurchases, setSoloPurchases] = useState([]);
+  // The shared exercise library — same collection Coaching's Program
+  // Builder/WorkoutEditor reads from and the same one Solo programs'
+  // phases/days already reference by exerciseId (see
+  // src/coach/CoachTrainSolo.jsx's WorkoutEditor usage). Read-only reuse:
+  // firestore.rules' exercises/{id} block is `allow read: if isSignedIn()`
+  // with no role check at all, so a Train Solo account authenticated via
+  // soloAuth already satisfies it with zero rule changes — write access
+  // stays isCoach()-only, unchanged, so a Solo customer can only ever read
+  // exercise names/videos, never create or edit one.
+  const [soloExercises, setSoloExercises] = useState([]);
+  // The coach's existing login background setting (settings/appDesign) —
+  // public read, same doc Coaching's own LoginScreen reads, just via
+  // soloDb instead of the Coaching `db` (see firebase.js's comment on why
+  // those two clients must never be mixed). Re-read here rather than
+  // duplicated into a Solo-specific setting, per the explicit "no
+  // duplicate setting" requirement — there is exactly one coach-configured
+  // background in this app, Coaching's, and the questionnaire reuses it.
+  const [soloAppDesign, setSoloAppDesign] = useState({});
 
   useEffect(() => onAuthStateChanged(soloAuth, (u) => setSoloAuthUser(u)), []);
 
@@ -43,6 +68,50 @@ export function SoloAppProvider({ children }) {
     }
     return onSnapshot(doc(soloDb, "soloUsers", soloAuthUser.uid), (snap) => {
       setSoloProfile(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+    });
+  }, [soloAuthUser]);
+
+  // Public-read catalogue data — loads before/without a signed-in Train
+  // Solo session (see firestore.rules' soloProgramCategories/soloPrograms
+  // blocks), same as the login background above.
+  useEffect(() => {
+    return onSnapshot(collection(soloDb, "soloProgramCategories"), (snap) => {
+      setSoloProgramCategories(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+  }, []);
+  useEffect(() => {
+    return onSnapshot(collection(soloDb, "soloPrograms"), (snap) => {
+      setSoloPrograms(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+  }, []);
+  useEffect(() => {
+    return onSnapshot(doc(soloDb, "settings", "appDesign"), (snap) => {
+      setSoloAppDesign(snap.exists() ? snap.data() : {});
+    });
+  }, []);
+  // Only subscribed once signed in (exercises/{id} requires isSignedIn());
+  // nothing in the catalogue/program-details flow is reachable before
+  // that anyway (see SoloRoutes.jsx's RequireSoloAuth gate).
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloExercises([]);
+      return;
+    }
+    return onSnapshot(collection(soloDb, "exercises"), (snap) => {
+      setSoloExercises(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+  }, [soloAuthUser]);
+
+  // A customer's own purchases only — scoped by the firestore.rules
+  // soloPurchases block to exactly this uid, never another customer's.
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloPurchases([]);
+      return;
+    }
+    const q = query(collection(soloDb, "soloPurchases"), where("soloUserId", "==", soloAuthUser.uid));
+    return onSnapshot(q, (snap) => {
+      setSoloPurchases(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
   }, [soloAuthUser]);
 
@@ -131,6 +200,38 @@ export function SoloAppProvider({ children }) {
       async recordHealthConsent(uid) {
         await setDoc(doc(soloDb, "soloUsers", uid), { onboarding: { healthConsentAcceptedAt: Date.now() } }, { merge: true });
       },
+
+      // The Phase 2 "purchase" placeholder — no payment processor is
+      // involved (see firestore.rules' soloPurchases comment). What this
+      // actually does is real: it creates the ownership record that gates
+      // every locked screen (Program Details' full Week 1+, My Training),
+      // so the rest of the access-control path can be built and tested
+      // end-to-end now, with only the payment step itself left for later.
+      // No-ops if the customer already owns this program rather than
+      // creating a second purchase of the same one.
+      async purchaseProgramPlaceholder(uid, programId, existingPurchases) {
+        const already = (existingPurchases || []).find((p) => p.programId === programId);
+        if (already) return already;
+        const id = newSoloDocId("soloPurchases");
+        const purchase = {
+          id,
+          soloUserId: uid,
+          programId,
+          purchasedAt: Date.now(),
+          placeholder: true, // no real payment was taken — see Phase 2 scope
+          startDate: null,
+        };
+        await setDoc(doc(soloDb, "soloPurchases", id), purchase);
+        return purchase;
+      },
+
+      // A customer picks or changes which calendar date Week 1, Day 1
+      // starts on — everything else (which week they're "in" right now)
+      // is derived from this plus today's date, never stored separately,
+      // so it can never drift out of sync with the calendar.
+      async setPurchaseStartDate(purchaseId, startDateKey) {
+        await updateDoc(doc(soloDb, "soloPurchases", purchaseId), { startDate: startDateKey });
+      },
     }),
     []
   );
@@ -141,9 +242,14 @@ export function SoloAppProvider({ children }) {
       soloProfile,
       soloCurrentUser: soloProfile,
       soloSessionLoading,
+      soloProgramCategories,
+      soloPrograms,
+      soloPurchases,
+      soloAppDesign,
+      soloExercises,
       ...actions,
     }),
-    [soloAuthUser, soloProfile, soloSessionLoading, actions]
+    [soloAuthUser, soloProfile, soloSessionLoading, soloProgramCategories, soloPrograms, soloPurchases, soloAppDesign, soloExercises, actions]
   );
 
   return <SoloAppCtx.Provider value={value}>{children}</SoloAppCtx.Provider>;

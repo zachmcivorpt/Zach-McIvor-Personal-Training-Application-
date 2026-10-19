@@ -19,6 +19,8 @@ import {
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
 import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
+import { GOAL_OPTIONS, STYLE_OPTIONS, ENVIRONMENT_OPTIONS, LEVEL_OPTIONS } from "../solo/programAttributes";
+import { formatAudPrice } from "../solo/recommendations";
 
 // Same "⋯" overflow pattern as CoachPrograms.jsx — kept local rather than
 // shared since the two files' action sets differ and it's a small component.
@@ -362,11 +364,42 @@ function CategoryChips({ allCategories, selectedIds, onToggle }) {
   );
 }
 
+// Generic multi-select chip row for the recommendation-matching attributes
+// below (goals/environments) — same visual as CategoryChips, just driven
+// by a plain {value,label}[] instead of category docs.
+function TagChips({ options, selectedValues, onToggle }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((opt) => {
+        const on = selectedValues.includes(opt.value);
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onToggle(opt.value)}
+            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
+              on ? "bg-white text-black border-white" : "text-white hover:bg-white/10"
+            }`}
+            style={!on ? { borderColor: CLIENT_DARK_BORDER } : undefined}
+          >
+            {opt.label}
+            {on && <X size={11} />}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
   const [name, setName] = useState("");
   const [level, setLevel] = useState("Beginner");
   const [description, setDescription] = useState("");
   const [categoryIds, setCategoryIds] = useState([]);
+  const [priceAud, setPriceAud] = useState("");
+  const [goals, setGoals] = useState([]);
+  const [style, setStyle] = useState("");
+  const [environments, setEnvironments] = useState([]);
   const [saving, setSaving] = useState(false);
 
   React.useEffect(() => {
@@ -375,11 +408,21 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
       setLevel(program?.level || "Beginner");
       setDescription(program?.description || "");
       setCategoryIds(program?.categoryIds || []);
+      setPriceAud(program?.priceCents != null ? (program.priceCents / 100).toFixed(2) : "");
+      setGoals(program?.goals || []);
+      setStyle(program?.style || "");
+      setEnvironments(program?.environments || []);
     }
   }, [open, program?.id]);
 
   function toggleCategory(id) {
     setCategoryIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
+  }
+  function toggleGoal(value) {
+    setGoals((ids) => (ids.includes(value) ? ids.filter((x) => x !== value) : [...ids, value]));
+  }
+  function toggleEnvironment(value) {
+    setEnvironments((ids) => (ids.includes(value) ? ids.filter((x) => x !== value) : [...ids, value]));
   }
 
   async function submit(e) {
@@ -387,7 +430,17 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      await onSave({ name: name.trim(), level, description, categoryIds });
+      const parsedPrice = parseFloat(priceAud);
+      await onSave({
+        name: name.trim(),
+        level,
+        description,
+        categoryIds,
+        priceCents: Number.isFinite(parsedPrice) && parsedPrice >= 0 ? Math.round(parsedPrice * 100) : null,
+        goals,
+        style: style || null,
+        environments,
+      });
       onClose();
     } finally {
       setSaving(false);
@@ -400,18 +453,49 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
         <Field label="PROGRAM NAME">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Strength Foundations" autoFocus />
         </Field>
-        <Field label="LEVEL">
-          <Select value={level} onChange={(e) => setLevel(e.target.value)}>
-            <option>Beginner</option>
-            <option>Intermediate</option>
-            <option>Advanced</option>
-          </Select>
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="LEVEL">
+            <Select value={level} onChange={(e) => setLevel(e.target.value)}>
+              {LEVEL_OPTIONS.map((lv) => (
+                <option key={lv}>{lv}</option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="PRICE (AUD)" hint="Leave blank while still drafting">
+            <TextInput
+              type="number"
+              min="0"
+              step="0.01"
+              value={priceAud}
+              onChange={(e) => setPriceAud(e.target.value)}
+              placeholder="79.00"
+            />
+          </Field>
+        </div>
         <Field label="DESCRIPTION">
           <TextArea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this program is for, who it suits..." />
         </Field>
         <Field label="CATEGORIES">
           <CategoryChips allCategories={allCategories} selectedIds={categoryIds} onToggle={toggleCategory} />
+        </Field>
+        <Field
+          label="GOALS THIS PROGRAM SUITS"
+          hint="Used to recommend this program to customers whose consultation answers match"
+        >
+          <TagChips options={GOAL_OPTIONS} selectedValues={goals} onToggle={toggleGoal} />
+        </Field>
+        <Field label="TRAINING STYLE">
+          <Select value={style} onChange={(e) => setStyle(e.target.value)}>
+            <option value="">Not set</option>
+            {STYLE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="SUITABLE TRAINING ENVIRONMENTS">
+          <TagChips options={ENVIRONMENT_OPTIONS} selectedValues={environments} onToggle={toggleEnvironment} />
         </Field>
         <PrimaryButton type="submit" className="w-full" disabled={!name.trim() || saving}>
           {saving ? "SAVING…" : "SAVE"}
@@ -629,12 +713,19 @@ function CoachSoloPrograms({ showToast }) {
 
   // Publishing is blocked until the program actually has at least one
   // phase with at least one workout in it — matches the catalogue/Week 1
-  // preview design, which needs a real Day 1 to show, not an empty shell.
+  // preview design, which needs a real Day 1 to show, not an empty shell —
+  // and has a real AUD price, since the catalogue and Program Details
+  // screen both display one.
   const hasAnyWorkout = phases.some((p) => (p.days || []).length > 0);
+  const hasPrice = selected?.priceCents != null;
   async function togglePublish() {
     if (!selected) return;
     if (selected.status !== "published" && !hasAnyWorkout) {
       showToast("Add at least one workout before publishing");
+      return;
+    }
+    if (selected.status !== "published" && !hasPrice) {
+      showToast("Set a price before publishing");
       return;
     }
     await updateSoloProgram(selected.id, { status: selected.status === "published" ? "draft" : "published" });
@@ -738,7 +829,8 @@ function CoachSoloPrograms({ showToast }) {
                   </div>
                   <h2 className="text-white text-xl font-bold truncate">{selected.name}</h2>
                   <p className="text-white text-xs mt-1">
-                    {selected.level} · {phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total
+                    {selected.level} · {phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total ·{" "}
+                    {selected.priceCents != null ? formatAudPrice(selected.priceCents) : "No price set"}
                   </p>
                   {selected.description && <p className="text-white text-sm mt-2.5 leading-relaxed">{selected.description}</p>}
                   <p className="text-white text-xs mt-2">
@@ -768,6 +860,9 @@ function CoachSoloPrograms({ showToast }) {
                 </SecondaryButton>
                 {selected.status !== "published" && !hasAnyWorkout && (
                   <p className="text-white text-xs mt-2">Add at least one workout below before this can be published.</p>
+                )}
+                {selected.status !== "published" && hasAnyWorkout && !hasPrice && (
+                  <p className="text-white text-xs mt-2">Set a price (edit program) before this can be published.</p>
                 )}
               </div>
 
