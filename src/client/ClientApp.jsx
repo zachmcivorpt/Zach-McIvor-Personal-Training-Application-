@@ -5526,7 +5526,10 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
    PROGRESS TAB
 ============================================================================ */
 
-function ChartCard({ title, subtitle, children }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own Progress tab can reuse it directly rather than duplicating
+// it. See src/solo/SoloProgressScreen.jsx.
+export function ChartCard({ title, subtitle, children }) {
   const dark = useClientDark();
   return (
     <Card dark={dark}>
@@ -5539,7 +5542,10 @@ function ChartCard({ title, subtitle, children }) {
 
 const axisStyleFor = (dark) => ({ fontSize: 11, fill: dark ? "rgba(255,255,255,0.35)" : "rgba(10,10,11,0.35)" });
 
-function MetricDetailSheet({ metric, onClose }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own Progress tab can reuse it directly rather than duplicating
+// it. See src/solo/SoloProgressScreen.jsx.
+export function MetricDetailSheet({ metric, onClose }) {
   const dark = useClientDark();
   const [range, setRange] = useState("7D");
   if (!metric) return null;
@@ -5834,7 +5840,10 @@ function AddPhotoSheet({ open, onClose, onAdd, busy }) {
   );
 }
 
-function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own Progress tab can reuse it directly rather than duplicating
+// it. See src/solo/SoloProgressScreen.jsx.
+export function PhotosSection({ photos, onAdd, onDelete, busy, weighIns }) {
   const dark = useClientDark();
   const [addOpen, setAddOpen] = useState(false);
   const [viewing, setViewing] = useState(null);
@@ -5916,7 +5925,10 @@ function TrendArrow({ direction, dark }) {
 // Clean 30-day snapshot — strength trend, bodyweight change, consistency,
 // PRs — the "how's the last month actually gone" view, distinct from the
 // tiles above it which are lifetime/this-week counters.
-function PerformanceTimelineCard({ timeline, monthlyVolume, prevMonthlyVolume }) {
+// Exported (no behavior change — purely prop-driven, no useApp()) so Train
+// Solo's own Progress tab can reuse it directly rather than duplicating
+// it. See src/solo/SoloProgressScreen.jsx.
+export function PerformanceTimelineCard({ timeline, monthlyVolume, prevMonthlyVolume }) {
   const dark = useClientDark();
   const items = [
     {
@@ -5970,7 +5982,9 @@ function PerformanceTimelineCard({ timeline, monthlyVolume, prevMonthlyVolume })
 // BodyMetricCard, and ConsistencyHeatmap now live in
 // ../components/ProgressWidgets so the coach's web Progress tab can render
 // the exact same graphs the client sees here (see CoachClientDetail.jsx).
-const BODY_METRICS_CONFIG = [
+// Exported (no behavior change — plain data, no useApp()) so Train Solo's
+// own Progress tab can reuse it directly. See SoloProgressScreen.jsx.
+export const BODY_METRICS_CONFIG = [
   { key: "steps", label: "Steps", unit: "", icon: Footprints, placeholder: "e.g. 8500" },
   { key: "sleepHours", label: "Sleep", unit: "hrs", icon: Moon, placeholder: "e.g. 7.5" },
   { key: "restingHeartRate", label: "Resting Heart Rate", unit: "bpm", icon: Heart, placeholder: "e.g. 58" },

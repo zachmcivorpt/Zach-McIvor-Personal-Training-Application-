@@ -8,7 +8,7 @@ import {
   reauthenticateWithCredential,
   deleteUser,
 } from "firebase/auth";
-import { doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, onSnapshot, collection, query, where } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, deleteField, getDocs, writeBatch, onSnapshot, collection, query, where } from "firebase/firestore";
 import { soloAuth, soloDb } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
 import { localDateKey } from "./dateKey";
@@ -58,6 +58,13 @@ export function SoloAppProvider({ children }) {
   // as soloWorkoutLogs: never Coaching's weighIns collection, never
   // visible to a coach.
   const [soloWeighIns, setSoloWeighIns] = useState([]);
+  // A customer's own progress photos / manually-logged body metrics
+  // (steps, sleep, resting heart rate, body fat %, lean mass,
+  // measurements) — completing the Progress tab. Same isolation as
+  // soloWeighIns above: never Coaching's progressPhotos/bodyMetrics
+  // collections, never visible to a coach.
+  const [soloProgressPhotos, setSoloProgressPhotos] = useState([]);
+  const [soloBodyMetrics, setSoloBodyMetrics] = useState([]);
   // The full phases/days/exercises for programs this customer actually
   // OWNS — keyed by programId. Deliberately fetched per owned program
   // (never a collection-wide listener): soloProgramContent/{id} is gated
@@ -187,6 +194,33 @@ export function SoloAppProvider({ children }) {
     const q = query(collection(soloDb, "soloWeighIns"), where("soloUserId", "==", soloAuthUser.uid));
     return onSnapshot(q, (snap) => {
       setSoloWeighIns(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.date - b.date));
+    });
+  }, [soloAuthUser]);
+
+  // Newest first — same ordering PhotosSection (reused as-is from
+  // ClientApp.jsx) expects, matching Coaching's own progressPhotos bucket.
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloProgressPhotos([]);
+      return;
+    }
+    const q = query(collection(soloDb, "soloProgressPhotos"), where("soloUserId", "==", soloAuthUser.uid));
+    return onSnapshot(q, (snap) => {
+      setSoloProgressPhotos(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => b.date - a.date));
+    });
+  }, [soloAuthUser]);
+
+  // One doc per calendar day (id `{uid}_{dateKey}`), same shape as
+  // Coaching's bodyMetrics — buildBodyMetricEntries (reused as-is) sorts
+  // these itself, so no ordering requirement here.
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloBodyMetrics([]);
+      return;
+    }
+    const q = query(collection(soloDb, "soloBodyMetrics"), where("soloUserId", "==", soloAuthUser.uid));
+    return onSnapshot(q, (snap) => {
+      setSoloBodyMetrics(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
   }, [soloAuthUser]);
 
@@ -345,6 +379,35 @@ export function SoloAppProvider({ children }) {
         await deleteDoc(doc(soloDb, "soloWeighIns", id));
       },
 
+      // Mirrors Coaching's own addProgressPhoto/deleteProgressPhoto exactly
+      // — same dataUrl-in-Firestore storage (fileToCompressedDataUrl on the
+      // caller side keeps each doc well under Firestore's 1MB limit, same
+      // as Coaching) and the same dateKey-to-noon-local-time backdating.
+      async addSoloProgressPhoto(uid, dataUrl, caption = "", dateKey) {
+        const id = doc(collection(soloDb, "soloProgressPhotos")).id;
+        let date = Date.now();
+        if (dateKey && dateKey !== localDateKey()) {
+          const [y, m, d] = dateKey.split("-").map(Number);
+          date = new Date(y, m - 1, d, 12, 0, 0).getTime();
+        }
+        await setDoc(doc(soloDb, "soloProgressPhotos", id), { id, soloUserId: uid, url: dataUrl, date, caption });
+      },
+      async deleteSoloProgressPhoto(id) {
+        await deleteDoc(doc(soloDb, "soloProgressPhotos", id));
+      },
+
+      // Mirrors Coaching's own logBodyMetric/deleteBodyMetric exactly —
+      // one merge-upserted doc per calendar day so logging a second field
+      // for the same day fills it in alongside whatever's already there.
+      async logSoloBodyMetric(uid, dateKey, field, value) {
+        const id = `${uid}_${dateKey}`;
+        await setDoc(doc(soloDb, "soloBodyMetrics", id), { id, soloUserId: uid, date: dateKey, [field]: value }, { merge: true });
+      },
+      async deleteSoloBodyMetric(uid, dateKey, field) {
+        const id = `${uid}_${dateKey}`;
+        await updateDoc(doc(soloDb, "soloBodyMetrics", id), { [field]: deleteField() });
+      },
+
       // Self-service account deletion — same App Store/Play Data Safety
       // requirement Coaching's own deleteMyAccount exists for, but doable
       // entirely client-side here rather than through a Cloud Function:
@@ -366,14 +429,18 @@ export function SoloAppProvider({ children }) {
         }
         try {
           const batch = writeBatch(soloDb);
-          const [purchasesSnap, logsSnap, weighInsSnap] = await Promise.all([
+          const [purchasesSnap, logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap] = await Promise.all([
             getDocs(query(collection(soloDb, "soloPurchases"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWorkoutLogs"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWeighIns"), where("soloUserId", "==", user.uid))),
+            getDocs(query(collection(soloDb, "soloProgressPhotos"), where("soloUserId", "==", user.uid))),
+            getDocs(query(collection(soloDb, "soloBodyMetrics"), where("soloUserId", "==", user.uid))),
           ]);
           purchasesSnap.forEach((d) => batch.delete(d.ref));
           logsSnap.forEach((d) => batch.delete(d.ref));
           weighInsSnap.forEach((d) => batch.delete(d.ref));
+          photosSnap.forEach((d) => batch.delete(d.ref));
+          bodyMetricsSnap.forEach((d) => batch.delete(d.ref));
           batch.delete(doc(soloDb, "soloUsers", user.uid));
           await batch.commit();
           await deleteUser(user);
@@ -399,6 +466,8 @@ export function SoloAppProvider({ children }) {
       soloExercises,
       soloWorkoutLogs,
       soloWeighIns,
+      soloProgressPhotos,
+      soloBodyMetrics,
       soloProgramContentByProgramId,
       ...actions,
     }),
@@ -414,6 +483,8 @@ export function SoloAppProvider({ children }) {
       soloExercises,
       soloWorkoutLogs,
       soloWeighIns,
+      soloProgressPhotos,
+      soloBodyMetrics,
       soloProgramContentByProgramId,
       actions,
     ]

@@ -473,5 +473,31 @@ service cloud.firestore {
         request.resource.data.soloUserId == resource.data.soloUserId;
       allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
     }
+
+    // --- soloProgressPhotos/{id}: a Train Solo customer's own progress-
+    //     photo timeline — same ownership shape as soloWeighIns above, and
+    //     equally separate from Coaching's progressPhotos collection. No
+    //     update rule: a photo is immutable once created (matches
+    //     Coaching's own addProgressPhoto/deleteProgressPhoto — create or
+    //     delete, never edit). ---
+    match /soloProgressPhotos/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
+
+    // --- soloBodyMetrics/{id}: a Train Solo customer's own steps/sleep/
+    //     resting-heart-rate/body-fat/lean-mass/measurements log, one doc
+    //     per customer per calendar day (id is `{uid}_{dateKey}`, mirroring
+    //     Coaching's own bodyMetrics). Same ownership shape as
+    //     soloWeighIns — entirely separate from Coaching's bodyMetrics
+    //     collection. ---
+    match /soloBodyMetrics/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
   }
 }
