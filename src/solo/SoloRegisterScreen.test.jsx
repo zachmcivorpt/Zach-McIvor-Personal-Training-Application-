@@ -92,7 +92,11 @@ describe("SoloRegisterScreen — legal acceptance is required", () => {
     // SoloAppContext.jsx only changes reference when onSnapshot actually
     // delivers new data.
     const stableUser = { name: "Alex", onboarding: { completed: false } };
-    mockUseSoloApp = () => ({ registerSoloAccount: vi.fn(), soloCurrentUser: stableUser });
+    mockUseSoloApp = () => ({
+      registerSoloAccount: vi.fn(),
+      soloCurrentUser: stableUser,
+      fetchOnboardingCompletedFromServer: vi.fn().mockResolvedValue(false),
+    });
     render(
       <MemoryRouter initialEntries={["/solo/register"]}>
         <SoloRegisterScreen />

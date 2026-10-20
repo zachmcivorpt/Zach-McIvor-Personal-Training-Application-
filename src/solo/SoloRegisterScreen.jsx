@@ -21,7 +21,7 @@ const TERMS_VERSION = LEGAL_DOCS["terms-of-service"].effectiveDate;
 const PRIVACY_VERSION = LEGAL_DOCS["privacy-policy"].effectiveDate;
 
 export default function SoloRegisterScreen() {
-  const { registerSoloAccount, soloCurrentUser, soloAppDesign } = useSoloApp();
+  const { registerSoloAccount, soloCurrentUser, soloAppDesign, fetchOnboardingCompletedFromServer } = useSoloApp();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,11 +32,26 @@ export default function SoloRegisterScreen() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // A brand-new registration always has onboarding.completed: false, so
+  // there's no pre-existing cache to be stale here — but this screen is
+  // also where an already-registered, already-authenticated visitor
+  // lands (e.g. a bookmark), so it shares SoloLoginScreen's same
+  // server-confirmed check rather than trusting a potentially-cached
+  // value for that case too (see that file's comment for why).
   useEffect(() => {
-    if (soloCurrentUser) {
-      navigate(soloCurrentUser.onboarding?.completed ? "/solo/home" : "/solo/onboarding", { replace: true });
-    }
-  }, [soloCurrentUser, navigate]);
+    if (!soloCurrentUser) return;
+    let cancelled = false;
+    fetchOnboardingCompletedFromServer(soloCurrentUser.id)
+      .then((completed) => {
+        if (!cancelled) navigate(completed ? "/solo/home" : "/solo/onboarding", { replace: true });
+      })
+      .catch(() => {
+        if (!cancelled) navigate(soloCurrentUser.onboarding?.completed ? "/solo/home" : "/solo/onboarding", { replace: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [soloCurrentUser, navigate, fetchOnboardingCompletedFromServer]);
 
   async function submit(e) {
     e.preventDefault();
