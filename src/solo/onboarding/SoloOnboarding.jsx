@@ -167,15 +167,9 @@ export default function SoloOnboarding() {
       // persist() below) without being awaited, so tapping Finish right
       // after picking the last answer — the normal, fast way to actually
       // finish this — could reach here before that save had even been
-      // sent, let alone landed. RequireOnboardingComplete (SoloRoutes.jsx)
-      // reads `completed` from the live Firestore-backed soloCurrentUser,
-      // not from this component's own local state, so navigating away
-      // before the completing write is confirmed meant it almost always
-      // still saw `completed: false` on arrival and bounced straight back
-      // to the questionnaire — reproducing from firstUnansweredIndex()
-      // against whatever had (or hadn't) been saved yet. Awaiting the
-      // save here, with the same already-computed full answer set, before
-      // navigating closes that race.
+      // sent, let alone landed. Awaiting one explicit save of the
+      // already-computed full answer set here gives the completing write
+      // its best chance to actually reach Firestore before anything else.
       if (soloAuthUser) {
         try {
           await saveOnboardingAnswer(soloAuthUser.uid, nextAnswers, question.id, nextAnswers[question.id]);
@@ -184,7 +178,18 @@ export default function SoloOnboarding() {
           // this is no worse than the previous unawaited save.
         }
       }
-      navigate("/solo/home", { replace: true });
+      // That await alone still isn't sufficient, though: RequireOnboarding-
+      // Complete (SoloRoutes.jsx) reads `completed` from soloCurrentUser,
+      // which only updates once SoloAppContext's onSnapshot listener has
+      // both fired AND React has committed the resulting re-render — a
+      // separate async event with no ordering guarantee against the write
+      // promise above resolving. `justCompletedOnboarding` tells that
+      // guard to trust this one navigation regardless of whether that
+      // listener has caught up yet, closing the race outright instead of
+      // depending on its timing. Every other way of reaching /solo/home
+      // (a reload, a deep link, logging back in) still goes through the
+      // real completed check.
+      navigate("/solo/home", { replace: true, state: { justCompletedOnboarding: true } });
       return;
     }
     setIndex(nextIndex);

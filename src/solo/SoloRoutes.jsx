@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { SoloAppProvider, useSoloApp } from "../lib/SoloAppContext";
 import { SoloThemeProvider } from "./SoloThemeContext";
 import SoloRegisterScreen from "./SoloRegisterScreen";
@@ -28,9 +28,29 @@ function RequireSoloAuth({ children }) {
 // completed user reopen the questionnaire from Home without ever hitting
 // this redirect (SoloOnboarding checks the query param itself, not this
 // component).
-function RequireOnboardingComplete({ children }) {
+//
+// `location.state?.justCompletedOnboarding` is a deliberate, synchronous
+// bypass of the Firestore-backed `completed` check below, set only by
+// SoloOnboarding's own completing navigate() call. Without it, this
+// still depends on soloCurrentUser (populated by SoloAppContext's
+// onSnapshot listener on soloUsers/{uid}) having already reflected the
+// just-finished answer's write by the exact instant this re-evaluates —
+// not guaranteed, since the write's own promise resolving and React
+// having committed the resulting context update are two separate async
+// events with no ordering guarantee relative to this render. Trusting
+// the local nav state for this one transition removes that race
+// entirely instead of depending on its timing; every other way of
+// reaching these routes (a reload, a deep link, logging back in) still
+// goes through the real soloCurrentUser.onboarding.completed check.
+//
+// Exported (no behavior change) so a test can exercise this guard
+// directly — see SoloRoutes.test.jsx.
+export function RequireOnboardingComplete({ children }) {
   const { soloCurrentUser } = useSoloApp();
-  if (!soloCurrentUser?.onboarding?.completed) return <Navigate to="/solo/onboarding" replace />;
+  const location = useLocation();
+  if (!soloCurrentUser?.onboarding?.completed && !location.state?.justCompletedOnboarding) {
+    return <Navigate to="/solo/onboarding" replace />;
+  }
   return children;
 }
 
