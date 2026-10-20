@@ -7,18 +7,37 @@ import { SoloBackgroundFrame } from "./SoloBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function SoloLoginScreen() {
-  const { soloLogin, soloCurrentUser, soloAppDesign } = useSoloApp();
+  const { soloLogin, soloCurrentUser, soloAppDesign, fetchOnboardingCompletedFromServer } = useSoloApp();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // soloCurrentUser's first value after a login can be a stale, locally-
+  // cached document from a previous session on this browser/origin (see
+  // fetchOnboardingCompletedFromServer's own comment in SoloAppContext.jsx
+  // for why) — reading `completed` straight from it here previously meant
+  // an account that completed onboarding after this browser last cached
+  // it could get redirected to the questionnaire instead of Home. A
+  // direct server read for this one redirect decision avoids that,
+  // falling back to the (possibly cached) context value only if that
+  // read itself fails, so a genuine offline login still goes somewhere
+  // rather than hanging.
   useEffect(() => {
-    if (soloCurrentUser) {
-      navigate(soloCurrentUser.onboarding?.completed ? "/solo/home" : "/solo/onboarding", { replace: true });
-    }
-  }, [soloCurrentUser, navigate]);
+    if (!soloCurrentUser) return;
+    let cancelled = false;
+    fetchOnboardingCompletedFromServer(soloCurrentUser.id)
+      .then((completed) => {
+        if (!cancelled) navigate(completed ? "/solo/home" : "/solo/onboarding", { replace: true });
+      })
+      .catch(() => {
+        if (!cancelled) navigate(soloCurrentUser.onboarding?.completed ? "/solo/home" : "/solo/onboarding", { replace: true });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [soloCurrentUser, navigate, fetchOnboardingCompletedFromServer]);
 
   async function submit(e) {
     e.preventDefault();

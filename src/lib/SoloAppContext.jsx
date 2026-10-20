@@ -8,7 +8,20 @@ import {
   reauthenticateWithCredential,
   deleteUser,
 } from "firebase/auth";
-import { doc, setDoc, updateDoc, deleteDoc, deleteField, getDocs, writeBatch, onSnapshot, collection, query, where } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  deleteField,
+  getDocs,
+  getDocFromServer,
+  writeBatch,
+  onSnapshot,
+  collection,
+  query,
+  where,
+} from "firebase/firestore";
 import { soloAuth, soloDb } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
 import { localDateKey } from "./dateKey";
@@ -278,6 +291,22 @@ export function SoloAppProvider({ children }) {
         } catch (err) {
           throw new Error(friendlySoloAuthError(err));
         }
+      },
+
+      // soloDb uses persistentLocalCache (see firebase.js) specifically so
+      // onSnapshot listeners "fire instantly from what's already on disk,
+      // then quietly reconcile with the server" — exactly what makes the
+      // FIRST soloCurrentUser a login delivers potentially a stale,
+      // locally-cached document from a previous session on this same
+      // browser/origin, corrected only moments later. That's harmless for
+      // most of the app, but wrong for the one-time "where do I send this
+      // login" decision: an account that completed onboarding after this
+      // browser last cached it would read as incomplete just long enough
+      // to get redirected to the questionnaire before the real value
+      // arrives. getDocFromServer bypasses the cache for this one check.
+      async fetchOnboardingCompletedFromServer(uid) {
+        const snap = await getDocFromServer(doc(soloDb, "soloUsers", uid));
+        return !!snap.data()?.onboarding?.completed;
       },
 
       async soloLogout() {
