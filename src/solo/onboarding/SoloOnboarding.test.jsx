@@ -15,15 +15,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function renderOnboarding({ answers = {}, completed = false, path = "/solo/onboarding", saveOnboardingAnswer = vi.fn() } = {}) {
-  const soloCurrentUser = { name: "Alex", onboarding: { completed, answers } };
-  mockUseSoloApp = () => ({
-    soloAuthUser: { uid: "solo-uid-1" },
-    soloCurrentUser,
-    saveOnboardingAnswer,
-    recordHealthConsent: vi.fn(),
-  });
-  render(
+function tree(path) {
+  return (
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/solo/onboarding" element={<SoloOnboarding />} />
@@ -31,7 +24,28 @@ function renderOnboarding({ answers = {}, completed = false, path = "/solo/onboa
       </Routes>
     </MemoryRouter>
   );
-  return { saveOnboardingAnswer };
+}
+
+// `completed` is read fresh by mockUseSoloApp on every render, so a test
+// can flip it via the returned `setCompleted` + `rerender` to simulate
+// SoloAppContext's onSnapshot listener delivering an updated document —
+// without actually wiring up Firestore.
+function renderOnboarding({ answers = {}, completed = false, path = "/solo/onboarding", saveOnboardingAnswer = vi.fn() } = {}) {
+  let currentCompleted = completed;
+  mockUseSoloApp = () => ({
+    soloAuthUser: { uid: "solo-uid-1" },
+    soloCurrentUser: { name: "Alex", onboarding: { completed: currentCompleted, answers } },
+    saveOnboardingAnswer,
+    recordHealthConsent: vi.fn(),
+  });
+  const result = render(tree(path));
+  return {
+    saveOnboardingAnswer,
+    setCompleted: (v) => {
+      currentCompleted = v;
+    },
+    rerender: () => result.rerender(tree(path)),
+  };
 }
 
 describe("SoloOnboarding — progression and back navigation", () => {
@@ -143,50 +157,60 @@ describe("SoloOnboarding — exercise-safety screening behaviour", () => {
 });
 
 describe("SoloOnboarding — completing the questionnaire", () => {
-  it("waits for the final answer's save to land before navigating away, instead of racing it", async () => {
-    // Regression test for the "Finish sends you back to the start"
-    // bug: goNext() must await the completing save before navigating,
-    // since RequireOnboardingComplete reads `completed` from Firestore-
-    // backed state, not from this component. A saveOnboardingAnswer that
-    // resolves on its own schedule (not synchronously, like the default
-    // vi.fn() elsewhere in this file) is what actually exercises that
-    // ordering — a save that already resolved before the click proves
-    // nothing about whether goNext() waits for it.
+  const fullAnswersMinusLast = {
+    age: "30",
+    sexForScreening: "male",
+    lifestyleContext: "desk",
+    primaryGoal: "get_stronger",
+    mainObstacles: ["time"],
+    priorExperience: "beginner",
+    currentRoutine: "not_training",
+    trainingEnvironment: "home_gym",
+    availableEquipment: ["dumbbells"],
+    daysPerWeek: "3-4",
+    sessionDuration: "30-45",
+    preferredStyle: "strength",
+    healthConsent: true,
+    priorInjuriesSurgeries: "no",
+    currentPainLimitations: "no",
+    apss_heartCondition: "no",
+    apss_chestPain: "no",
+    apss_dizziness: "no",
+    apss_asthma: "no",
+    apss_diabetesControl: "na",
+    apss_otherConditions: "no",
+  };
+
+  it("does not navigate away just because the save resolved — only once soloCurrentUser genuinely reflects completed: true", async () => {
+    // Regression test for the "Finish sends you back to the start" loop:
+    // the save resolving is NOT sufficient proof of completion, since
+    // RequireOnboardingComplete (SoloRoutes.jsx) reads `completed` from
+    // soloCurrentUser, which only updates once SoloAppContext's
+    // onSnapshot listener has actually delivered the updated document —
+    // a separate async event with no ordering guarantee against the
+    // save's own promise resolving. A fix that merely awaits the save
+    // and then navigates unconditionally would pass this first
+    // assertion by accident; genuinely waiting for soloCurrentUser is
+    // what the second half proves.
     let resolveSave;
     const saveOnboardingAnswer = vi.fn(() => new Promise((resolve) => (resolveSave = resolve)));
-    const answers = {
-      age: "30",
-      sexForScreening: "male",
-      lifestyleContext: "desk",
-      primaryGoal: "get_stronger",
-      mainObstacles: ["time"],
-      priorExperience: "beginner",
-      currentRoutine: "not_training",
-      trainingEnvironment: "home_gym",
-      availableEquipment: ["dumbbells"],
-      daysPerWeek: "3-4",
-      sessionDuration: "30-45",
-      preferredStyle: "strength",
-      healthConsent: true,
-      priorInjuriesSurgeries: "no",
-      currentPainLimitations: "no",
-      apss_heartCondition: "no",
-      apss_chestPain: "no",
-      apss_dizziness: "no",
-      apss_asthma: "no",
-      apss_diabetesControl: "na",
-      apss_otherConditions: "no",
-    };
     // Resumes at the last unanswered required question (healthcareRestriction).
-    renderOnboarding({ answers, saveOnboardingAnswer });
+    const { setCompleted, rerender } = renderOnboarding({ answers: fullAnswersMinusLast, saveOnboardingAnswer });
     fireEvent.click(screen.getByText(/^No$/));
     fireEvent.click(screen.getByText("Finish"));
 
-    // The save is still pending — must not have navigated yet.
     expect(screen.queryByText("SOLO_HOME")).toBeNull();
-    expect(screen.getByText("Finish")).toBeTruthy();
 
+    // The save resolves, but soloCurrentUser (the real, Firestore-backed
+    // source of truth) hasn't caught up yet — still must not navigate.
     resolveSave();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByText("SOLO_HOME")).toBeNull();
+
+    // Now the real completion flag arrives (simulating the onSnapshot
+    // listener delivering the updated document).
+    setCompleted(true);
+    rerender();
     expect(await screen.findByText("SOLO_HOME")).toBeTruthy();
   });
 });

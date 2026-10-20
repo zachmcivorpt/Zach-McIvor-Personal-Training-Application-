@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { SoloAppProvider, useSoloApp } from "../lib/SoloAppContext";
 import { SoloThemeProvider } from "./SoloThemeContext";
 import SoloRegisterScreen from "./SoloRegisterScreen";
@@ -27,30 +27,15 @@ function RequireSoloAuth({ children }) {
 // duplicated in both SoloShell and SoloOnboarding. `?review=1` lets a
 // completed user reopen the questionnaire from Home without ever hitting
 // this redirect (SoloOnboarding checks the query param itself, not this
-// component).
-//
-// `location.state?.justCompletedOnboarding` is a deliberate, synchronous
-// bypass of the Firestore-backed `completed` check below, set only by
-// SoloOnboarding's own completing navigate() call. Without it, this
-// still depends on soloCurrentUser (populated by SoloAppContext's
-// onSnapshot listener on soloUsers/{uid}) having already reflected the
-// just-finished answer's write by the exact instant this re-evaluates —
-// not guaranteed, since the write's own promise resolving and React
-// having committed the resulting context update are two separate async
-// events with no ordering guarantee relative to this render. Trusting
-// the local nav state for this one transition removes that race
-// entirely instead of depending on its timing; every other way of
-// reaching these routes (a reload, a deep link, logging back in) still
-// goes through the real soloCurrentUser.onboarding.completed check.
+// component). Checks only the real, Firestore-backed completion flag —
+// SoloOnboarding itself is responsible for not navigating here until that
+// flag has genuinely arrived (see its own comment on why).
 //
 // Exported (no behavior change) so a test can exercise this guard
 // directly — see SoloRoutes.test.jsx.
 export function RequireOnboardingComplete({ children }) {
   const { soloCurrentUser } = useSoloApp();
-  const location = useLocation();
-  if (!soloCurrentUser?.onboarding?.completed && !location.state?.justCompletedOnboarding) {
-    return <Navigate to="/solo/onboarding" replace />;
-  }
+  if (!soloCurrentUser?.onboarding?.completed) return <Navigate to="/solo/onboarding" replace />;
   return children;
 }
 

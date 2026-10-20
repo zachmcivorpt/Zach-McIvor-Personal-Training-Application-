@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useSoloApp } from "../../lib/SoloAppContext";
 import { Logo } from "../../components/ui";
@@ -133,6 +133,31 @@ export default function SoloOnboarding() {
   const wasCompleteOnMount = useRef(!!soloCurrentUser?.onboarding?.completed);
   const [index, setIndex] = useState(() => (isReview ? 0 : firstUnansweredIndex(savedAnswers)));
   const [showMedicalNotice, setShowMedicalNotice] = useState(false);
+  // Set once the user has finished (or acknowledged the medical notice
+  // after finishing) — the effect below is what actually navigates, and
+  // only once soloCurrentUser genuinely reflects completed: true, not on
+  // a timer or a trust signal. It's the same context value
+  // RequireOnboardingComplete (SoloRoutes.jsx) itself reads, so by the
+  // time we navigate there's nothing left for that guard to disagree
+  // with — no bypass, no fabricated state, just waiting for the real
+  // thing to actually arrive.
+  const [finishing, setFinishing] = useState(false);
+
+  useEffect(() => {
+    if (!finishing) return;
+    if (soloCurrentUser?.onboarding?.completed) {
+      navigate("/solo/home", { replace: true });
+      return;
+    }
+    // If the real flag still hasn't shown up after a few seconds (e.g.
+    // genuinely offline), stop waiting rather than stranding the user
+    // here indefinitely — navigating anyway is still safe, since
+    // RequireOnboardingComplete only ever checks the same real flag and
+    // will correctly send them right back here to retry if it's still
+    // false.
+    const timeout = setTimeout(() => navigate("/solo/home", { replace: true }), 5000);
+    return () => clearTimeout(timeout);
+  }, [finishing, soloCurrentUser, navigate]);
 
   const visible = getVisibleQuestions(answers);
   const clampedIndex = Math.min(index, visible.length - 1);
@@ -168,28 +193,18 @@ export default function SoloOnboarding() {
       // after picking the last answer — the normal, fast way to actually
       // finish this — could reach here before that save had even been
       // sent, let alone landed. Awaiting one explicit save of the
-      // already-computed full answer set here gives the completing write
-      // its best chance to actually reach Firestore before anything else.
+      // already-computed full answer set gives Firestore the best chance
+      // to already hold `completed: true` before the effect above starts
+      // waiting for soloCurrentUser to reflect it.
       if (soloAuthUser) {
         try {
           await saveOnboardingAnswer(soloAuthUser.uid, nextAnswers, question.id, nextAnswers[question.id]);
         } catch {
           // Best-effort, same as persist() below — proceed regardless;
-          // this is no worse than the previous unawaited save.
+          // the effect above still waits for the real flag either way.
         }
       }
-      // That await alone still isn't sufficient, though: RequireOnboarding-
-      // Complete (SoloRoutes.jsx) reads `completed` from soloCurrentUser,
-      // which only updates once SoloAppContext's onSnapshot listener has
-      // both fired AND React has committed the resulting re-render — a
-      // separate async event with no ordering guarantee against the write
-      // promise above resolving. `justCompletedOnboarding` tells that
-      // guard to trust this one navigation regardless of whether that
-      // listener has caught up yet, closing the race outright instead of
-      // depending on its timing. Every other way of reaching /solo/home
-      // (a reload, a deep link, logging back in) still goes through the
-      // real completed check.
-      navigate("/solo/home", { replace: true, state: { justCompletedOnboarding: true } });
+      setFinishing(true);
       return;
     }
     setIndex(nextIndex);
@@ -216,7 +231,7 @@ export default function SoloOnboarding() {
           </p>
           <button
             type="button"
-            onClick={() => navigate("/solo/home", { replace: true })}
+            onClick={() => setFinishing(true)}
             className="w-full bg-white text-black font-bold py-3.5 rounded-full text-center"
           >
             Got it, continue
@@ -295,10 +310,11 @@ export default function SoloOnboarding() {
             <button
               type="button"
               onClick={goNext}
-              disabled={question.required && !answered}
+              disabled={finishing || (question.required && !answered)}
               className="flex-1 bg-white text-black font-bold py-3.5 rounded-full text-center disabled:opacity-30 flex items-center justify-center gap-1.5"
             >
-              {clampedIndex === visible.length - 1 ? "Finish" : "Next"} <ChevronRight size={16} />
+              {finishing ? "Finishing…" : clampedIndex === visible.length - 1 ? "Finish" : "Next"}
+              {!finishing && <ChevronRight size={16} />}
             </button>
           </div>
         </Panel>

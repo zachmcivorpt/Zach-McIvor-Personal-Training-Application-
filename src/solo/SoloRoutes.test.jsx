@@ -44,20 +44,4 @@ describe("RequireOnboardingComplete", () => {
     renderGuard({ completed: true, initialEntries: ["/solo/home"] });
     expect(screen.getByText("SOLO_HOME")).toBeTruthy();
   });
-
-  // Regression test: SoloOnboarding's own completing save can resolve
-  // before SoloAppContext's onSnapshot listener has actually delivered
-  // the updated `completed: true` doc into soloCurrentUser — those are
-  // two independent async events with no ordering guarantee against each
-  // other. Without honoring justCompletedOnboarding, this exact case
-  // (just-finished account, stale soloCurrentUser still reading
-  // completed: false) bounces straight back to the questionnaire.
-  it("renders through on a stale soloCurrentUser when navigation state says onboarding was just completed", () => {
-    renderGuard({
-      completed: false,
-      initialEntries: [{ pathname: "/solo/home", state: { justCompletedOnboarding: true } }],
-    });
-    expect(screen.getByText("SOLO_HOME")).toBeTruthy();
-    expect(screen.queryByText("ONBOARDING")).toBeNull();
-  });
 });
