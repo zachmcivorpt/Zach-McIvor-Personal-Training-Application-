@@ -9,6 +9,12 @@
 // for the coach console, light for everything else (client app,
 // login/activate) so fixing the coach's white strip doesn't paint a black
 // bar over the client app's light screens.
+//
+// `edgeToEdge` (added for the login screen's full-bleed gym photo) is a
+// separate flag native uses to extend its webview frame up behind the
+// status bar/notch instead of pinning below it, scoped to exactly "/login"
+// — every other route must keep getting edgeToEdge:false so native's
+// normal pinned-below-safe-area frame stays untouched everywhere else.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -31,16 +37,20 @@ function renderAt(path) {
 }
 
 describe("NativeStatusBarSync", () => {
-  it("posts dark:true on a coach route", () => {
-    expect(renderAt("/coach/clients")).toHaveBeenCalledWith({ dark: true });
+  it("posts dark:true, edgeToEdge:false on a coach route", () => {
+    expect(renderAt("/coach/clients")).toHaveBeenCalledWith({ dark: true, edgeToEdge: false });
   });
 
-  it("posts dark:false on the client app route", () => {
-    expect(renderAt("/app")).toHaveBeenCalledWith({ dark: false });
+  it("posts dark:false, edgeToEdge:false on the client app route", () => {
+    expect(renderAt("/app")).toHaveBeenCalledWith({ dark: false, edgeToEdge: false });
   });
 
-  it("posts dark:false on the login route", () => {
-    expect(renderAt("/login")).toHaveBeenCalledWith({ dark: false });
+  it("posts dark:false, edgeToEdge:true on the login route", () => {
+    expect(renderAt("/login")).toHaveBeenCalledWith({ dark: false, edgeToEdge: true });
+  });
+
+  it("posts edgeToEdge:false on the activate route — the edge-to-edge frame is login-only", () => {
+    expect(renderAt("/activate")).toHaveBeenCalledWith({ dark: false, edgeToEdge: false });
   });
 
   it("does not throw in a regular browser with no window.webkit", () => {

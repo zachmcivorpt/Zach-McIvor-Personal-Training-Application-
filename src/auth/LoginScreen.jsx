@@ -281,7 +281,13 @@ export default function LoginScreen() {
       ) : null}
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
 
-      <div className="relative min-h-dvh w-full flex flex-col px-6 py-8">
+      {/* pt-safe (env(safe-area-inset-top)) stacks on top of the existing
+          py-8 — on every surface except the native iOS edge-to-edge login
+          frame that's 0, so this is a no-op there; on that one frame it's
+          the actual status bar/notch height, keeping the logo and form
+          clear of it now that the webview itself extends up behind it
+          (see NativeStatusBarSync in App.jsx). */}
+      <div className="relative min-h-dvh w-full flex flex-col px-6 py-8 pt-safe">
         <div className="flex justify-center pt-2">
           <Logo variant="mark" tone="white" className="h-14 w-auto" />
         </div>

@@ -26,6 +26,14 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // reflect the smaller space for any web-side layout that depends on it.
     private var webViewBottomConstraint: NSLayoutConstraint!
 
+    // Two pre-built top constraints, exactly one ever active — the normal
+    // one (pinned below the status bar/notch, today's behavior for every
+    // screen) and the edge-to-edge one (pinned to the raw view top), used
+    // only for the login screen's full-bleed gym photo. See isEdgeToEdge
+    // below for what toggles between them.
+    private var webViewTopConstraint: NSLayoutConstraint!
+    private var webViewTopConstraintEdgeToEdge: NSLayoutConstraint!
+
     // The FCM token AppDelegate obtains from APNs often arrives before the
     // page has finished its first load (or before GoogleService-Info.plist
     // exists at all, in which case this just never fires) — held here and
@@ -50,8 +58,32 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         }
     }
 
+    // Set only for the login screen (src/App.jsx's NativeStatusBarSync,
+    // scoped to exactly "/login") — extends the webview's own frame up
+    // behind the status bar/notch so its full-bleed gym photo background
+    // reaches the top edge instead of sitting below a plain white/black
+    // native strip. Every other screen keeps the normal pinned-below-
+    // safe-area frame untouched; LoginScreen.jsx's own `pt-safe` padding
+    // (env(safe-area-inset-top), a no-op everywhere else) is what keeps
+    // its logo/form clear of the status bar once this is true. Starts
+    // false so a cold launch — before the page has loaded and posted
+    // anything — matches today's existing pinned-below-safe-area frame
+    // exactly, same reasoning as isDarkBackground above.
+    private var isEdgeToEdge = false {
+        didSet {
+            guard isEdgeToEdge != oldValue else { return }
+            webViewTopConstraint.isActive = !isEdgeToEdge
+            webViewTopConstraintEdgeToEdge.isActive = isEdgeToEdge
+            setNeedsStatusBarAppearanceUpdate()
+        }
+    }
+
     override var preferredStatusBarStyle: UIStatusBarStyle {
-        isDarkBackground ? .lightContent : .darkContent
+        // The edge-to-edge login frame is only ever used against that
+        // screen's dark gym photo, so its status bar icons need to be
+        // light regardless of isDarkBackground (which /login never sets —
+        // see NativeStatusBarSync's own `dark` condition).
+        (isDarkBackground || isEdgeToEdge) ? .lightContent : .darkContent
     }
 
     override func viewDidLoad() {
@@ -78,9 +110,14 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // Pin below the status bar/notch — a bare WKWebView doesn't auto-inset
         // for the safe area the way Safari does, so without this the app's own
         // header renders underneath the system status bar and its buttons.
+        // The edge-to-edge alternative (pinned to the raw view top instead)
+        // is pre-built here too but starts inactive — see isEdgeToEdge above
+        // for when it's swapped in.
         webViewBottomConstraint = webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        webViewTopConstraint = webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
+        webViewTopConstraintEdgeToEdge = webView.topAnchor.constraint(equalTo: view.topAnchor)
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            webViewTopConstraint,
             webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             webViewBottomConstraint,
@@ -170,6 +207,11 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
               let dark = body["dark"] as? Bool
         else { return }
         isDarkBackground = dark
+        // Optional, not guarded like `dark` above — a stale cached web
+        // bundle that predates this field just omits it, which should mean
+        // "not edge-to-edge" (today's existing behavior) rather than
+        // dropping the whole message and also losing the dark/light update.
+        isEdgeToEdge = (body["edgeToEdge"] as? Bool) ?? false
     }
 
     deinit {
