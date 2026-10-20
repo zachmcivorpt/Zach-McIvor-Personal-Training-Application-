@@ -308,20 +308,33 @@ export function SoloAppProvider({ children }) {
         const snap = await getDocFromServer(doc(soloDb, "soloUsers", uid));
         const data = snap.data();
         if (data?.onboarding?.completed) return true;
-        // Self-heal a known historical write bug: before saveOnboardingAnswer/
-        // recordHealthConsent were switched to dot-notation field paths (see
-        // those actions' own comments), either write could replace the
-        // ENTIRE `onboarding` object instead of merging into it — capable of
-        // leaving `completed: false` (or missing) stuck on an account whose
-        // `answers` were, in fact, already complete. Never touches `answers`
-        // itself and never fabricates completion for an account that
-        // genuinely hasn't finished: `completed` is only ever set here when
-        // isComplete() — the same function that gates the questionnaire's
-        // own Finish button — says the stored answers already satisfy it.
+        // Self-heal for accounts caught by either historical write bug in
+        // this file (a nested-object write replacing the whole `onboarding`
+        // field, then later a setDoc+merge dot-key write that silently
+        // never touched the real nested path at all — see
+        // saveOnboardingAnswer's and recordHealthConsent's own comments):
+        // both could leave `completed: false` (or missing) stuck on an
+        // account whose `answers` were, in fact, already complete. Never
+        // touches `answers` itself and never fabricates completion for an
+        // account that genuinely hasn't finished: `completed` is only ever
+        // set here when isComplete() — the same function that gates the
+        // questionnaire's own Finish button — says the stored answers
+        // already satisfy it.
         const answers = data?.onboarding?.answers || {};
         if (!isComplete(answers)) return false;
         try {
-          await setDoc(doc(soloDb, "soloUsers", uid), { "onboarding.completed": true }, { merge: true });
+          // A dotted string key only parses as a nested field path on
+          // updateDoc() — setDoc's own {merge: true} treats it as one
+          // literal field named "onboarding.completed" (dot included in
+          // the name), never touching the real nested onboarding.completed
+          // path at all. That's exactly the bug this self-heal exists to
+          // repair, so using the same broken call here would silently
+          // write a second, equally-unread field instead of actually
+          // fixing anything — confirmed live: a setDoc({merge:true}) write
+          // here left the document with a literal top-level
+          // "onboarding.completed" key sitting beside an untouched,
+          // still-wrong nested onboarding.completed.
+          await updateDoc(doc(soloDb, "soloUsers", uid), { "onboarding.completed": true });
         } catch {
           // Best-effort repair — the next read tries again; this read
           // already knows the true answer regardless.
@@ -343,21 +356,34 @@ export function SoloAppProvider({ children }) {
       //
       // The write sends the FULL `nextAnswers` map, not just the one
       // changed key, and uses dot-notation field paths rather than a
-      // nested `onboarding: {...}` object: setDoc's `{merge: true}` only
-      // merges at the top level of the document — a plain nested object
-      // value replaces the field's entire previous value instead of
-      // merging into it. That previously wiped every earlier answer (and,
-      // independently, recordHealthConsent's own write wiped `answers`/
-      // `completed` the same way) on every save. Dot notation updates
-      // exactly these two nested fields and leaves any sibling —
-      // including healthConsentAcceptedAt — untouched.
+      // nested `onboarding: {...}` object: a plain nested object value
+      // passed to setDoc's `{merge: true}` replaces the field's entire
+      // previous value instead of merging into it, which previously wiped
+      // every earlier answer (and, independently, recordHealthConsent's
+      // own write wiped `answers`/`completed` the same way) on every save.
+      //
+      // Dot-notation keys only parse as nested field paths on updateDoc()
+      // though — setDoc's {merge: true} does NOT special-case a dotted
+      // string key the same way; it stores "onboarding.answers" as one
+      // literal top-level field (dot included in the name), never
+      // actually touching the real onboarding.answers/onboarding.completed
+      // paths every read in this app (fetchOnboardingCompletedFromServer,
+      // SoloRoutes' RequireOnboardingComplete, SoloOnboarding itself) is
+      // looking at. That meant `onboarding.completed` could never
+      // genuinely become true from this call, for any account, ever —
+      // confirmed live: the document ends up with a bogus
+      // "onboarding.answers"/"onboarding.completed" pair sitting at the
+      // top level while the real nested onboarding.answers/completed stay
+      // exactly as they were. updateDoc() is what these dot-paths actually
+      // needed; the soloUsers/{uid} doc always already exists by the time
+      // this runs (created with a real nested `onboarding` object at
+      // registration), so updateDoc never hits a missing-document error.
       async saveOnboardingAnswer(uid, currentAnswers, questionId, value) {
         const nextAnswers = { ...currentAnswers, [questionId]: value };
-        await setDoc(
-          doc(soloDb, "soloUsers", uid),
-          { "onboarding.answers": nextAnswers, "onboarding.completed": isComplete(nextAnswers) },
-          { merge: true }
-        );
+        await updateDoc(doc(soloDb, "soloUsers", uid), {
+          "onboarding.answers": nextAnswers,
+          "onboarding.completed": isComplete(nextAnswers),
+        });
       },
 
       // A separate, explicit consent record for the sensitive health
@@ -367,17 +393,18 @@ export function SoloAppProvider({ children }) {
       // its own express consent, not implied by a general privacy notice
       // acceptance taken before the user even knew this section existed).
       // Dot-notation field path, not a nested `onboarding: {...}` object:
-      // setDoc's `{merge: true}` only merges at the top level of the
-      // document, so passing a plain nested object here replaced the
-      // ENTIRE onboarding field — wiping out `answers` and `completed`
-      // (see saveOnboardingAnswer's comment above for the same bug class)
-      // — every time this fired, including well after a user had already
-      // finished onboarding (e.g. a slow/offline-queued write flushing on
-      // a later login), silently un-completing their account and sending
-      // them back through the whole questionnaire. Dot notation updates
-      // only this one nested field and leaves every sibling untouched.
+      // a plain nested object here would replace the ENTIRE onboarding
+      // field — wiping out `answers` and `completed` (see
+      // saveOnboardingAnswer's comment above for the same bug class).
+      // updateDoc() is what actually implements dot-notation as a nested
+      // field path — setDoc's own {merge: true} does not (it stores the
+      // dotted string as one literal field name instead), so this used to
+      // silently write a useless top-level "onboarding.healthConsentAcceptedAt"
+      // field while never touching the real nested one. updateDoc() here
+      // updates only this one nested field and leaves every sibling
+      // (answers, completed) untouched, same as intended all along.
       async recordHealthConsent(uid) {
-        await setDoc(doc(soloDb, "soloUsers", uid), { "onboarding.healthConsentAcceptedAt": Date.now() }, { merge: true });
+        await updateDoc(doc(soloDb, "soloUsers", uid), { "onboarding.healthConsentAcceptedAt": Date.now() });
       },
 
       // The Phase 2 "purchase" placeholder — no payment processor is
