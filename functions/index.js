@@ -963,26 +963,37 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
   }
 
   const stripe = getStripeClient();
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "aud",
-          product_data: { name: program.name },
-          unit_amount: program.priceCents,
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "aud",
+            product_data: { name: program.name },
+            unit_amount: program.priceCents,
+          },
+          quantity: 1,
         },
-        quantity: 1,
-      },
-    ],
-    // Read back by the webhook below — the ONLY thing that ties a
-    // completed Stripe payment to which customer bought which program,
-    // since the webhook has no other session of its own to trust.
-    metadata: { soloUserId: uid, programId },
-    success_url: `${returnOrigin}/solo/home?checkout=success&programId=${encodeURIComponent(programId)}`,
-    cancel_url: `${returnOrigin}/solo/program/${encodeURIComponent(programId)}?checkout=cancelled`,
-  });
+      ],
+      // Read back by the webhook below — the ONLY thing that ties a
+      // completed Stripe payment to which customer bought which program,
+      // since the webhook has no other session of its own to trust.
+      metadata: { soloUserId: uid, programId },
+      success_url: `${returnOrigin}/solo/home?checkout=success&programId=${encodeURIComponent(programId)}`,
+      cancel_url: `${returnOrigin}/solo/program/${encodeURIComponent(programId)}?checkout=cancelled`,
+    });
+  } catch (err) {
+    // Without this, any Stripe-side rejection (a bad key, an account
+    // restriction, an unsupported currency) surfaced as an opaque 500 to
+    // the client with no way to tell what actually went wrong short of
+    // reading Cloud Functions' own server logs. Stripe's own message is
+    // safe to relay — it never includes the secret key itself.
+    console.error("Stripe checkout session creation failed:", err.message);
+    throw new HttpsError("internal", `Stripe error: ${err.message}`);
+  }
 
   return { url: session.url };
 });
