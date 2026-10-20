@@ -24,7 +24,7 @@
 // Admin SDK call the browser can never be trusted to make itself.
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
@@ -902,4 +902,184 @@ exports.whoopSync = onSchedule({ schedule: "0 */4 * * *", timeZone: "UTC" }, asy
       console.error(`WHOOP sync failed for ${tokenDoc.id}:`, err.message);
     }
   }
+});
+
+// ---------------------------------------------------------------------
+// Train Solo — Stripe checkout for real program purchases. Replaces the
+// Phase 2 client-side placeholder (purchaseProgramPlaceholder, no real
+// payment) now that Solo programs are actually for sale. Two functions:
+// createSoloCheckoutSession (the customer starts a purchase) and
+// soloStripeWebhook (Stripe tells us the payment actually went through —
+// the ONLY place a real soloPurchases doc now gets created; the client's
+// own former create permission for that collection is removed in
+// firestore.rules, so a browser can never grant itself a purchase it
+// didn't pay for, however the UI is driven).
+//
+// STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET come from the same
+// functions/.env.<project> + deploy-functions.yml mechanism already
+// wired up for ANTHROPIC_API_KEY/WHOOP_* above — see
+// functions/.env.example. Until both are real values, checkout throws a
+// clear error instead of silently doing nothing or taking an unverifiable
+// payment.
+// ---------------------------------------------------------------------
+let stripeClient = null;
+function stripeConfigured() {
+  return !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== "not-configured-yet");
+}
+function getStripeClient() {
+  if (!stripeClient) {
+    const Stripe = require("stripe");
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY);
+  }
+  return stripeClient;
+}
+
+// `returnOrigin` is the customer's own window.location.origin, sent by the
+// client rather than hardcoded here — Train Solo currently only exists on
+// Vercel Preview deployments (a fresh URL per deploy, not yet merged to
+// a production domain), so there's no single fixed app URL this function
+// could hardcode and still work. Validated against an allowlist of actual
+// known app hosts (not an open redirect to anywhere the caller names)
+// before being used to build the Checkout redirect URLs. *.vercel.app
+// covers every Preview/Production deployment of this Vercel project today;
+// add the real custom domain here too once one exists.
+const ALLOWED_RETURN_ORIGIN_SUFFIXES = [".vercel.app"];
+function isAllowedReturnOrigin(origin) {
+  if (typeof origin !== "string") return false;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
+    if (protocol !== "https:") return false;
+    return ALLOWED_RETURN_ORIGIN_SUFFIXES.some((suf) => hostname.endsWith(suf));
+  } catch {
+    return false;
+  }
+}
+
+exports.createSoloCheckoutSession = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  if (!stripeConfigured()) throw new HttpsError("failed-precondition", "Payments aren't configured yet.");
+
+  const { programId, returnOrigin } = request.data || {};
+  if (!programId || typeof programId !== "string") throw new HttpsError("invalid-argument", "programId is required.");
+  if (!isAllowedReturnOrigin(returnOrigin)) throw new HttpsError("invalid-argument", "Invalid returnOrigin.");
+
+  const programSnap = await db.collection("soloPrograms").doc(programId).get();
+  if (!programSnap.exists || programSnap.data().status !== "published") {
+    throw new HttpsError("not-found", "That program isn't available.");
+  }
+  const program = programSnap.data();
+
+  // Already owns it (and it's a real, non-refunded purchase) — no second
+  // charge, just tell the client so it can route straight to My Training
+  // the same way an already-owned program already does.
+  const purchaseId = `${uid}_${programId}`;
+  const existing = await db.collection("soloPurchases").doc(purchaseId).get();
+  if (existing.exists && !existing.data().refunded) {
+    return { alreadyOwned: true };
+  }
+
+  const stripe = getStripeClient();
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "aud",
+          product_data: { name: program.name },
+          unit_amount: program.priceCents,
+        },
+        quantity: 1,
+      },
+    ],
+    // Read back by the webhook below — the ONLY thing that ties a
+    // completed Stripe payment to which customer bought which program,
+    // since the webhook has no other session of its own to trust.
+    metadata: { soloUserId: uid, programId },
+    success_url: `${returnOrigin}/solo/home?checkout=success&programId=${encodeURIComponent(programId)}`,
+    cancel_url: `${returnOrigin}/solo/program/${encodeURIComponent(programId)}?checkout=cancelled`,
+  });
+
+  return { url: session.url };
+});
+
+// Stripe calls this directly (not the client) once a payment genuinely
+// completes — this is the only code path in the whole app allowed to
+// create a soloPurchases doc now (see firestore.rules' soloPurchases
+// create rule, now `if false`). Runs with the Admin SDK, so it bypasses
+// Firestore rules entirely; everything it writes is trusted because the
+// signature check below already proved the request really came from
+// Stripe, not a browser pretending to be the webhook.
+exports.soloStripeWebhook = onRequest(async (req, res) => {
+  if (!stripeConfigured() || !process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET === "not-configured-yet") {
+    res.status(503).send("Payments aren't configured yet.");
+    return;
+  }
+  const stripe = getStripeClient();
+  const signature = req.headers["stripe-signature"];
+  let event;
+  try {
+    // req.rawBody: the Functions Framework preserves the raw request body
+    // specifically for this — Stripe's signature is computed over the
+    // exact bytes it sent, so verifying against anything JSON-parsed
+    // (even if byte-identical once stringified) would fail.
+    event = stripe.webhooks.constructEvent(req.rawBody, signature, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error("Stripe webhook signature verification failed:", err.message);
+    res.status(400).send(`Webhook signature verification failed: ${err.message}`);
+    return;
+  }
+
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const soloUserId = session.metadata?.soloUserId;
+      const programId = session.metadata?.programId;
+      if (soloUserId && programId) {
+        const purchaseId = `${soloUserId}_${programId}`;
+        // merge: true, keyed by the same deterministic {uid}_{programId}
+        // id the old placeholder path used — a duplicate webhook delivery
+        // (Stripe's own documented at-least-once guarantee) just rewrites
+        // the same values, never creates a second purchase. refunded is
+        // explicitly reset to false here so re-buying a previously
+        // refunded program actually restores access, not just leaves the
+        // old refunded:true sitting there untouched by a merge write.
+        await db.collection("soloPurchases").doc(purchaseId).set(
+          {
+            id: purchaseId,
+            soloUserId,
+            programId,
+            purchasedAt: Date.now(),
+            placeholder: false,
+            refunded: false,
+            startDate: null,
+            stripeCheckoutSessionId: session.id,
+            stripePaymentIntentId: session.payment_intent || null,
+            amountPaidCents: session.amount_total ?? null,
+          },
+          { merge: true }
+        );
+      } else {
+        console.error("checkout.session.completed missing soloUserId/programId metadata:", session.id);
+      }
+    } else if (event.type === "charge.refunded" || event.type === "payment_intent.refunded") {
+      const obj = event.data.object;
+      const paymentIntentId = typeof obj.payment_intent === "string" ? obj.payment_intent : obj.id;
+      if (paymentIntentId) {
+        const snap = await db.collection("soloPurchases").where("stripePaymentIntentId", "==", paymentIntentId).limit(1).get();
+        if (!snap.empty) {
+          await snap.docs[0].ref.update({ refunded: true, refundedAt: Date.now() });
+        }
+      }
+    }
+  } catch (err) {
+    // Still ack with 200 below after logging — a processing bug on our
+    // side shouldn't make Stripe retry the same event forever; it's
+    // logged for manual follow-up instead.
+    console.error("Error handling Stripe webhook event:", event.type, err.message);
+  }
+
+  res.json({ received: true });
 });
