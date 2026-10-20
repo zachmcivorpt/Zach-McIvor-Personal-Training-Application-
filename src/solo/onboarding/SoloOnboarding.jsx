@@ -191,6 +191,23 @@ export default function SoloOnboarding() {
     const nextIndex = clampedIndex + 1;
     if (nextIndex >= nextVisible.length) {
       if (isComplete(nextAnswers) && isFlaggedForMedicalReview(nextAnswers) && !wasCompleteOnMount.current) {
+        // Shown immediately, same as before — but this branch used to
+        // never save at all, so `onboarding.completed` was never written
+        // here: "Got it, continue" (which only sets `finishing`) then had
+        // nothing to observe becoming true and always fell through to
+        // that waiting effect's blunt 5s timeout, on every single
+        // medically-flagged completion. Firing the same explicit save
+        // used below (not awaited, so the notice still appears
+        // instantly) gives Firestore a head start on holding
+        // `completed: true` well before the user even reads the notice
+        // and taps through, so that effect can navigate as soon as the
+        // write lands instead of always waiting out the timeout.
+        if (soloAuthUser) {
+          Promise.resolve(saveOnboardingAnswer(soloAuthUser.uid, nextAnswers, question.id, nextAnswers[question.id])).catch(() => {
+            // Best-effort — the waiting effect's own 5s timeout still
+            // recovers if this never lands.
+          });
+        }
         setShowMedicalNotice(true);
         return;
       }

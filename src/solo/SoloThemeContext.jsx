@@ -5,7 +5,9 @@ import { useSoloApp } from "../lib/SoloAppContext";
 // The one coach-configurable Train Solo branding setting (see
 // firestore.rules' settings/soloBranding and CoachTrainSolo.jsx's
 // Branding tab) — never the logo, which stays the real APEX mark always.
-export const SOLO_ACCENT_PALETTE = { blue: "#2F8FFF", slate: "#64748B", amber: "#C9862A", teal: "#2FA89A" };
+// No amber/yellow option — CLAUDE.md's visual-design rules ban it
+// anywhere in the UI, with no carve-out for per-coach branding choices.
+export const SOLO_ACCENT_PALETTE = { blue: "#2F8FFF", slate: "#64748B", teal: "#2FA89A" };
 
 // Train Solo's own light/dark toggle — independent of Coaching's
 // ClientThemeContext (src/client/ClientApp.jsx), since a Train Solo
