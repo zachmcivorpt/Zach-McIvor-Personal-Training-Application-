@@ -306,7 +306,27 @@ export function SoloAppProvider({ children }) {
       // arrives. getDocFromServer bypasses the cache for this one check.
       async fetchOnboardingCompletedFromServer(uid) {
         const snap = await getDocFromServer(doc(soloDb, "soloUsers", uid));
-        return !!snap.data()?.onboarding?.completed;
+        const data = snap.data();
+        if (data?.onboarding?.completed) return true;
+        // Self-heal a known historical write bug: before saveOnboardingAnswer/
+        // recordHealthConsent were switched to dot-notation field paths (see
+        // those actions' own comments), either write could replace the
+        // ENTIRE `onboarding` object instead of merging into it — capable of
+        // leaving `completed: false` (or missing) stuck on an account whose
+        // `answers` were, in fact, already complete. Never touches `answers`
+        // itself and never fabricates completion for an account that
+        // genuinely hasn't finished: `completed` is only ever set here when
+        // isComplete() — the same function that gates the questionnaire's
+        // own Finish button — says the stored answers already satisfy it.
+        const answers = data?.onboarding?.answers || {};
+        if (!isComplete(answers)) return false;
+        try {
+          await setDoc(doc(soloDb, "soloUsers", uid), { "onboarding.completed": true }, { merge: true });
+        } catch {
+          // Best-effort repair — the next read tries again; this read
+          // already knows the true answer regardless.
+        }
+        return true;
       },
 
       async soloLogout() {
