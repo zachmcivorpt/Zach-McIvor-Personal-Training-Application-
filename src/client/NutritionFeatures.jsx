@@ -72,6 +72,22 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
   // second scan-and-confirm of the same item, and a second, fully genuine
   // add landing in the log once the first one finally went through too.
   const [saving, setSaving] = useState(false);
+  // `saving` alone doesn't actually close the race it was meant to close:
+  // it's useState, which only takes effect on React's next render, so two
+  // click dispatches landing in the same task (a touchend/click double-
+  // fire for one physical tap) both read saving === false from the same
+  // stale render and both call onConfirm — producing two genuine,
+  // separately-committed log entries for one tap (the same bug class
+  // already fixed for ClientApp.jsx's addSuggestion/addFood). A ref flips
+  // synchronously, independent of any commit, so the second dispatch in
+  // the same beat is dropped even before React re-renders.
+  const confirmingRef = useRef(false);
+  // Generated once per sheet-open (not inside confirm()) so a retried
+  // confirm() for the *same* opening always proposes the same log-entry
+  // id — addFood's own id check (ClientApp.jsx) can then recognize a
+  // genuine retry of this exact add and no-op on it instead of double-
+  // logging it.
+  const logIdRef = useRef(null);
 
   const units = food ? unitsFor(food) : [];
 
@@ -92,16 +108,19 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
       setUnitId(unitsFor(food)[0].id);
       setQty(food.defaultQty || 100);
       setSaving(false);
+      confirmingRef.current = false;
+      logIdRef.current = `${food.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     }
   }, [food]);
 
   if (!food) return null;
 
   async function confirm() {
-    if (saving) return;
+    if (confirmingRef.current) return;
+    confirmingRef.current = true;
     setSaving(true);
     try {
-      await onConfirm(scaled);
+      await onConfirm(scaled, logIdRef.current);
     } catch {
       // A rejected save leaves the sheet open (onConfirm's own caller
       // already shows an error toast explaining why) so retrying doesn't
@@ -110,6 +129,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
       // unhandled rejection.
     } finally {
       setSaving(false);
+      confirmingRef.current = false;
     }
   }
 
