@@ -286,7 +286,19 @@ export function SoloAppProvider({ children }) {
       async soloLogin(email, password) {
         try {
           const cred = await signInWithEmailAndPassword(soloAuth, email.trim(), password);
-          setDoc(doc(soloDb, "soloUsers", cred.user.uid), { lastLoginAt: Date.now() }, { merge: true }).catch(() => {});
+          // updateDoc(), not setDoc(..., {merge: true}) — confirmed live
+          // that setDoc+merge here, on a brand-new login session against
+          // soloDb's real persistentLocalCache/persistentMultipleTabManager
+          // (not reproducible against a plain in-memory Firestore client),
+          // could silently wipe the entire soloUsers/{uid} document down
+          // to just this one lastLoginAt field — destroying name, email,
+          // onboarding.answers/completed, legalAcceptance, everything, on
+          // ordinary login. updateDoc() sends the same single-field
+          // server-side merge but never reproduced the wipe in repeated
+          // live testing (register → fresh login cycle, twice, both
+          // clean). Fire-and-forget on purpose: a slow/failed timestamp
+          // bump should never block getting into the app.
+          updateDoc(doc(soloDb, "soloUsers", cred.user.uid), { lastLoginAt: Date.now() }).catch(() => {});
           return cred.user;
         } catch (err) {
           throw new Error(friendlySoloAuthError(err));
