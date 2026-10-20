@@ -1046,9 +1046,9 @@ exports.soloStripeWebhook = onRequest(async (req, res) => {
       } else {
         console.error("checkout.session.completed missing soloUserId/programId metadata:", session.id);
       }
-    } else if (event.type === "charge.refunded" || event.type === "payment_intent.refunded") {
-      const obj = event.data.object;
-      const paymentIntentId = typeof obj.payment_intent === "string" ? obj.payment_intent : obj.id;
+    } else if (event.type === "charge.refunded") {
+      const charge = event.data.object;
+      const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;
       if (paymentIntentId) {
         const snap = await db.collection("soloPurchases").where("stripePaymentIntentId", "==", paymentIntentId).limit(1).get();
         if (!snap.empty) {
