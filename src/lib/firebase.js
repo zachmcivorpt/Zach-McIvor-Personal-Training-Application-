@@ -74,3 +74,9 @@ export const soloDb = (() => {
     return getFirestore(soloApp);
   }
 })();
+// Same reasoning as soloAuth/soloDb above: a Cloud Functions httpsCallable
+// through the Coaching `functions` export would carry the Coaching user's
+// token (or none) instead of the signed-in Solo customer's own — needed
+// for createSoloCheckoutSession (functions/index.js), which requires
+// request.auth to be that customer's verified uid.
+export const soloFunctions = getFunctions(soloApp);

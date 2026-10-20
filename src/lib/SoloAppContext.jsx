@@ -22,7 +22,8 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { soloAuth, soloDb } from "./firebase";
+import { httpsCallable } from "firebase/functions";
+import { soloAuth, soloDb, soloFunctions } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
 import { localDateKey } from "./dateKey";
 
@@ -419,37 +420,25 @@ export function SoloAppProvider({ children }) {
         await updateDoc(doc(soloDb, "soloUsers", uid), { "onboarding.healthConsentAcceptedAt": Date.now() });
       },
 
-      // The Phase 2 "purchase" placeholder — no payment processor is
-      // involved (see firestore.rules' soloPurchases comment). What this
-      // actually does is real: it creates the ownership record that gates
-      // every locked screen (Program Details' full Week 1+, My Training),
-      // so the rest of the access-control path can be built and tested
-      // end-to-end now, with only the payment step itself left for later.
-      // No-ops if the customer already owns this program rather than
-      // creating a second purchase of the same one.
-      // The doc id is deterministic — `${uid}_${programId}` — rather than
-      // random. This is what firestore.rules' soloProgramContent block
-      // checks for with a direct exists() (rules can't run an arbitrary
-      // query), so it's the mechanism that actually gates full program
-      // content to owners. It also means "purchasing" the same program
-      // twice can only ever overwrite the one real doc, never create a
-      // second — the existingPurchases check below is just a client-side
-      // short-circuit to skip the redundant write; the id scheme itself is
-      // what makes a duplicate structurally impossible, not this check.
-      async purchaseProgramPlaceholder(uid, programId, existingPurchases) {
-        const already = (existingPurchases || []).find((p) => p.programId === programId);
-        if (already) return already;
-        const id = `${uid}_${programId}`;
-        const purchase = {
-          id,
-          soloUserId: uid,
-          programId,
-          purchasedAt: Date.now(),
-          placeholder: true, // no real payment was taken — see Phase 2 scope
-          startDate: null,
-        };
-        await setDoc(doc(soloDb, "soloPurchases", id), purchase);
-        return purchase;
+      // Starts a real Stripe purchase — replaces the old Phase 2
+      // placeholder (which just wrote a soloPurchases doc directly from
+      // the client; firestore.rules now makes that `allow create: if
+      // false`, so that path would just fail). Calls
+      // createSoloCheckoutSession (functions/index.js) over soloFunctions
+      // (not the Coaching `functions` export — see firebase.js's comment)
+      // so the Cloud Function sees this customer's own verified uid, gets
+      // back a Stripe-hosted Checkout URL, and the caller navigates there
+      // (window.location.href = url) exactly like redirecting to any other
+      // external page. The actual soloPurchases doc only ever gets created
+      // after Stripe confirms payment, by the webhook — never here.
+      // `{ alreadyOwned: true }` comes back instead of a URL when the
+      // customer already holds a non-refunded purchase for this program,
+      // so the caller can skip straight to My Training without starting a
+      // pointless second checkout.
+      async startSoloCheckout(programId) {
+        const createCheckout = httpsCallable(soloFunctions, "createSoloCheckoutSession");
+        const result = await createCheckout({ programId, returnOrigin: window.location.origin });
+        return result.data;
       },
 
       // A customer picks or changes which calendar date Week 1, Day 1

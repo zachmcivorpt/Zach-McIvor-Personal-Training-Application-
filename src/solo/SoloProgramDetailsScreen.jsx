@@ -21,11 +21,12 @@ function formatSetsReps(row) {
 export default function SoloProgramDetailsScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { soloPrograms, soloProgramCategories, soloExercises, soloCurrentUser, soloPurchases, purchaseProgramPlaceholder } = useSoloApp();
+  const { soloPrograms, soloProgramCategories, soloExercises, soloCurrentUser, soloPurchases, startSoloCheckout } = useSoloApp();
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
+  const [purchaseError, setPurchaseError] = useState("");
   const [detailExercise, setDetailExercise] = useState(null);
 
   const exercisesById = useMemo(() => Object.fromEntries(soloExercises.map((e) => [e.id, e])), [soloExercises]);
@@ -43,14 +44,33 @@ export default function SoloProgramDetailsScreen() {
   const previewRows = preview.exercises || [];
   const phaseSummaries = preview.phaseSummaries || [];
 
-  async function confirmPlaceholderPurchase() {
+  async function confirmPurchase() {
     setPurchasing(true);
+    setPurchaseError("");
     try {
-      await purchaseProgramPlaceholder(soloCurrentUser.id, program.id, soloPurchases);
-      setConfirmOpen(false);
-      navigate("/solo/home", {
-        state: { soloTab: "training", openPurchaseId: `${soloCurrentUser.id}_${program.id}` },
-      });
+      const result = await startSoloCheckout(program.id);
+      if (result?.alreadyOwned) {
+        setConfirmOpen(false);
+        navigate("/solo/home", {
+          state: { soloTab: "training", openPurchaseId: `${soloCurrentUser.id}_${program.id}` },
+        });
+        return;
+      }
+      if (result?.url) {
+        // Stripe Checkout is a real, separate hosted page — leaving the
+        // app entirely is correct here, not a client-side route change.
+        // The eventual soloPurchases doc only gets created by the webhook
+        // once Stripe confirms payment (see createSoloCheckoutSession /
+        // soloStripeWebhook in functions/index.js), so there's nothing to
+        // show locally yet; My Training picks it up via its own
+        // onSnapshot listener the moment that write lands, same as the
+        // old placeholder flow's post-purchase redirect did.
+        window.location.href = result.url;
+        return;
+      }
+      setPurchaseError("Something went wrong starting checkout — please try again.");
+    } catch (err) {
+      setPurchaseError(err?.message || "Something went wrong starting checkout — please try again.");
     } finally {
       setPurchasing(false);
     }
@@ -247,11 +267,12 @@ export default function SoloProgramDetailsScreen() {
 
       <BottomSheet open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm">
         <p className="text-black/60 text-sm mb-5 leading-relaxed">
-          Train Solo purchases aren't live yet — this unlocks "{program.name}" for testing without taking any payment. A real checkout
-          replaces this step before launch.
+          You'll be taken to a secure Stripe checkout to pay {formatAudPrice(program.priceCents)} for "{program.name}". Your program
+          unlocks as soon as payment completes.
         </p>
-        <PrimaryButton className="w-full" onClick={confirmPlaceholderPurchase} disabled={purchasing}>
-          {purchasing ? "UNLOCKING…" : "UNLOCK FOR TESTING"}
+        {purchaseError && <p className="text-red-600 text-sm mb-4">{purchaseError}</p>}
+        <PrimaryButton className="w-full" onClick={confirmPurchase} disabled={purchasing}>
+          {purchasing ? "STARTING CHECKOUT…" : `PAY ${formatAudPrice(program.priceCents)}`}
         </PrimaryButton>
       </BottomSheet>
 

@@ -394,52 +394,57 @@ service cloud.firestore {
     //     program's content," not "can never access a since-unpublished
     //     one." ---
     match /soloProgramContent/{id} {
+      // exists() first so a customer who's never purchased this program
+      // short-circuits to false instead of get() throwing on a missing
+      // doc; refunded != true (via .get() with a default, since an
+      // old/placeholder purchase predating refunds has no `refunded`
+      // field at all) is what actually revokes access once
+      // soloStripeWebhook marks a purchase refunded — a refund doesn't
+      // delete the purchase doc (real purchase history stays visible in
+      // My Training/Profile), so exists() alone would otherwise keep
+      // granting content access forever after a refund.
       allow read: if isCoach() ||
-        (isSignedIn() && exists(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)));
+        (isSignedIn() &&
+          exists(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)) &&
+          get(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)).data.get("refunded", false) != true);
       allow write: if isCoach();
     }
 
     // --- soloPurchases/{id}: a Train Solo customer's ownership of one
-    //     program — Phase 2's purchase step is a placeholder (no real
-    //     payment), but the ownership record it creates is real and is
-    //     what actually gates locked content (soloProgramContent above).
-    //     Scoped entirely to the owning soloUserId, same shape as every
-    //     other "a user reads/writes only their own doc" collection in
-    //     this file (soloUsers above). isSignedIn() has no role check, so
-    //     this works unchanged for a Train Solo account signed in via
-    //     soloAuth; nothing here is reachable by isCoach()'s blanket
-    //     grant or by any Coaching collection.
+    //     program — what actually gates locked content (soloProgramContent
+    //     above). Scoped entirely to the owning soloUserId, same shape as
+    //     every other "a user reads/writes only their own doc" collection
+    //     in this file (soloUsers above). isSignedIn() has no role check,
+    //     so this works unchanged for a Train Solo account signed in via
+    //     soloAuth; nothing here is reachable by isCoach()'s blanket grant
+    //     or by any Coaching collection.
     //
-    //     The doc id itself must be `{uid}_{programId}` — enforced below,
-    //     not just followed by convention — so a customer can hold at
-    //     most ONE purchase per program ever: a second "purchase" of the
-    //     same program can only overwrite that same doc, never create a
-    //     second one, and the id can never be for a different uid or
-    //     program than the one actually in the doc's own fields. That's
-    //     what makes a duplicate placeholder purchase structurally unable
-    //     to grant unintended access — there's no second id a mismatched
-    //     doc could exist under for soloProgramContent's exists() check
-    //     above to find. The create rule also requires the target program
-    //     to be published, so a purchase (and the content access it
-    //     grants) can never be self-issued against a still-draft one. ---
+    //     Create is `if false`: now that Solo programs are real, paid
+    //     purchases (Stripe), the ONLY thing allowed to create a doc here
+    //     is functions/index.js's soloStripeWebhook, running with the
+    //     Admin SDK (which bypasses these rules entirely) only after
+    //     Stripe's signature on the webhook payload has been verified —
+    //     never the client. The Phase 2 placeholder path
+    //     (purchaseProgramPlaceholder, a direct client create) is retired;
+    //     a client granting itself access to paid content would otherwise
+    //     be exactly as easy as this `allow create` rule let it be.
+    //
+    //     The doc id is still `{uid}_{programId}` (the webhook enforces
+    //     this by construction, not a rule check it's subject to) — a
+    //     customer can hold at most one purchase per program ever,
+    //     keeping soloProgramContent's exists() check above meaningful. ---
     match /soloPurchases/{id} {
       allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
-      // The program being "bought" must actually be published — without
-      // this, a customer who knows/guesses an unpublished draft's id could
-      // place a placeholder purchase against it directly (bypassing the
-      // UI, which only ever offers Buy on an already-published program)
-      // and then legitimately pass soloProgramContent's exists() check for
-      // a program nobody is supposed to be able to access yet.
-      allow create: if isSignedIn() &&
-        request.resource.data.soloUserId == request.auth.uid &&
-        id == request.auth.uid + '_' + request.resource.data.programId &&
-        get(/databases/$(database)/documents/soloPrograms/$(request.resource.data.programId)).data.status == "published";
-      // Only the start date is ever edited post-purchase (picking/changing
-      // a start date); the owner can never reassign a purchase to a
-      // different soloUserId or programId after the fact.
+      allow create: if false;
+      // Only the start date is ever edited by the client post-purchase
+      // (picking/changing a start date) — `.diff().affectedKeys()` scopes
+      // that down to literally that one field, so a signed-in owner can
+      // never flip their own placeholder/refunded/payment-reference
+      // fields back to "owned" after a refund, the way checking those
+      // fields individually (matching their prior value) would still have
+      // allowed if a future field were ever added here and missed.
       allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
-        request.resource.data.soloUserId == resource.data.soloUserId &&
-        request.resource.data.programId == resource.data.programId;
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["startDate"]);
       allow delete: if false;
     }
 

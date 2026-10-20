@@ -16,10 +16,11 @@ vi.mock("firebase/auth", () => ({
 
 let getDocFromServerMock;
 let setDocMock;
+let updateDocMock;
 vi.mock("firebase/firestore", () => ({
   doc: (...args) => ({ path: args.slice(1).join("/") }),
   setDoc: (...args) => setDocMock(...args),
-  updateDoc: vi.fn(),
+  updateDoc: (...args) => updateDocMock(...args),
   deleteDoc: vi.fn(),
   deleteField: vi.fn(),
   getDocs: vi.fn(),
@@ -76,57 +77,60 @@ function renderConsumer(uid, onResult) {
   );
 }
 
-// Regression coverage for the historical write bug (pre dot-notation
-// saveOnboardingAnswer/recordHealthConsent — see those actions' comments
-// in SoloAppContext.jsx): either write could replace the whole
-// `onboarding` object, capable of leaving `completed: false` stuck on an
-// account whose `answers` were actually already complete. This can
-// reproduce even in a brand-new private-browsing session (no local cache
-// involved at all), since it's the real server document that's
-// inconsistent, not a stale read of it.
+// Regression coverage for two historical write bugs now fixed (see
+// saveOnboardingAnswer's/recordHealthConsent's own comments in
+// SoloAppContext.jsx): a nested-object write that replaced the whole
+// `onboarding` field, and later a setDoc+merge dot-key write that silently
+// never touched the real nested path at all. Either could leave
+// `completed: false` stuck on an account whose `answers` were actually
+// already complete. This can reproduce even in a brand-new private-
+// browsing session (no local cache involved at all), since it's the real
+// server document that's inconsistent, not a stale read of it. The
+// self-heal write itself uses updateDoc() (not setDoc+merge) — see
+// fetchOnboardingCompletedFromServer's own comment for why that
+// distinction is exactly what the second bug was.
 describe("fetchOnboardingCompletedFromServer — self-heals a completed-flag/answers mismatch", () => {
   it("repairs `completed` to true, without touching `answers`, when stored answers already satisfy isComplete()", async () => {
     getDocFromServerMock = vi.fn().mockResolvedValue({
       data: () => ({ onboarding: { completed: false, answers: FULL_ANSWERS } }),
     });
-    setDocMock = vi.fn().mockResolvedValue(undefined);
+    updateDocMock = vi.fn().mockResolvedValue(undefined);
 
     let result;
     renderConsumer("solo-uid-1", (r) => (result = r));
     fireEvent.click(screen.getByText("check"));
 
     await vi.waitFor(() => expect(result).toBe(true));
-    expect(setDocMock).toHaveBeenCalledTimes(1);
-    const [, payload, opts] = setDocMock.mock.calls[0];
+    expect(updateDocMock).toHaveBeenCalledTimes(1);
+    const [, payload] = updateDocMock.mock.calls[0];
     expect(payload).toEqual({ "onboarding.completed": true });
-    expect(opts).toEqual({ merge: true });
   });
 
   it("does NOT fabricate completion when the stored answers are genuinely incomplete", async () => {
     getDocFromServerMock = vi.fn().mockResolvedValue({
       data: () => ({ onboarding: { completed: false, answers: { age: "30" } } }),
     });
-    setDocMock = vi.fn().mockResolvedValue(undefined);
+    updateDocMock = vi.fn().mockResolvedValue(undefined);
 
     let result;
     renderConsumer("solo-uid-1", (r) => (result = r));
     fireEvent.click(screen.getByText("check"));
 
     await vi.waitFor(() => expect(result).toBe(false));
-    expect(setDocMock).not.toHaveBeenCalled();
+    expect(updateDocMock).not.toHaveBeenCalled();
   });
 
   it("does not re-write or re-check answers when the server already says completed: true", async () => {
     getDocFromServerMock = vi.fn().mockResolvedValue({
       data: () => ({ onboarding: { completed: true, answers: FULL_ANSWERS } }),
     });
-    setDocMock = vi.fn().mockResolvedValue(undefined);
+    updateDocMock = vi.fn().mockResolvedValue(undefined);
 
     let result;
     renderConsumer("solo-uid-1", (r) => (result = r));
     fireEvent.click(screen.getByText("check"));
 
     await vi.waitFor(() => expect(result).toBe(true));
-    expect(setDocMock).not.toHaveBeenCalled();
+    expect(updateDocMock).not.toHaveBeenCalled();
   });
 });
