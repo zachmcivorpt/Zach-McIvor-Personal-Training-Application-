@@ -24,8 +24,22 @@ export default function SoloLoginScreen() {
   // falling back to the (possibly cached) context value only if that
   // read itself fails, so a genuine offline login still goes somewhere
   // rather than hanging.
+  //
+  // Depends on soloCurrentUser?.id, not the soloCurrentUser object
+  // itself: Firestore's onSnapshot normally fires at least twice for the
+  // same logical document (once from local cache, once server-confirmed)
+  // and SoloAppContext.jsx builds a brand-new {id, ...data()} object on
+  // every emission, so the object reference changes even when nothing
+  // meaningful did. Depending on that reference meant every re-emission
+  // cancelled the in-flight server check and restarted it from scratch —
+  // including emissions provoked by this very check's own
+  // getDocFromServer call touching the same watched document — so the
+  // check could keep getting cancelled before it ever finished, leaving
+  // "SIGNING IN…" stuck indefinitely. The uid is stable across those
+  // re-emissions for the same signed-in account, so keying on it lets
+  // the check actually complete.
   useEffect(() => {
-    if (!soloCurrentUser) return;
+    if (!soloCurrentUser?.id) return;
     let cancelled = false;
     fetchOnboardingCompletedFromServer(soloCurrentUser.id)
       .then((completed) => {
@@ -37,7 +51,8 @@ export default function SoloLoginScreen() {
     return () => {
       cancelled = true;
     };
-  }, [soloCurrentUser, navigate, fetchOnboardingCompletedFromServer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloCurrentUser?.id, navigate, fetchOnboardingCompletedFromServer]);
 
   async function submit(e) {
     e.preventDefault();

@@ -157,7 +157,13 @@ export default function SoloOnboarding() {
     // false.
     const timeout = setTimeout(() => navigate("/solo/home", { replace: true }), 5000);
     return () => clearTimeout(timeout);
-  }, [finishing, soloCurrentUser, navigate]);
+    // Depends on the `completed` flag itself, not the soloCurrentUser
+    // object — see SoloLoginScreen.jsx's comment on the equivalent
+    // effect for why depending on the object reference lets Firestore's
+    // routine cache-then-server re-emissions keep restarting this timer
+    // from scratch instead of letting it actually elapse.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finishing, soloCurrentUser?.onboarding?.completed, navigate]);
 
   const visible = getVisibleQuestions(answers);
   const clampedIndex = Math.min(index, visible.length - 1);

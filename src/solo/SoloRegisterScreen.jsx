@@ -38,8 +38,15 @@ export default function SoloRegisterScreen() {
   // lands (e.g. a bookmark), so it shares SoloLoginScreen's same
   // server-confirmed check rather than trusting a potentially-cached
   // value for that case too (see that file's comment for why).
+  //
+  // Depends on soloCurrentUser?.id, not the soloCurrentUser object
+  // itself — see SoloLoginScreen.jsx's comment on this exact effect for
+  // why depending on the object reference let onSnapshot's own cache-
+  // then-server re-emissions (and this check's own getDocFromServer call
+  // touching the same watched document) cancel and restart the check
+  // indefinitely instead of ever letting it finish.
   useEffect(() => {
-    if (!soloCurrentUser) return;
+    if (!soloCurrentUser?.id) return;
     let cancelled = false;
     fetchOnboardingCompletedFromServer(soloCurrentUser.id)
       .then((completed) => {
@@ -51,7 +58,8 @@ export default function SoloRegisterScreen() {
     return () => {
       cancelled = true;
     };
-  }, [soloCurrentUser, navigate, fetchOnboardingCompletedFromServer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloCurrentUser?.id, navigate, fetchOnboardingCompletedFromServer]);
 
   async function submit(e) {
     e.preventDefault();
