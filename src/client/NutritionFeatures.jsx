@@ -40,6 +40,11 @@ function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
+// Must match ClientApp.jsx's addFood RETRY_DEDUPE_WINDOW_MS — both bucket
+// a log-entry id to the same width so a retried/reopened save of the same
+// food reconciles to one entry (see FoodQuantitySheet's logIdRef comment).
+const RETRY_DEDUPE_WINDOW_MS = 60_000;
+
 /* ============================================================================
    FOOD QUANTITY PICKER — pick how many grams of a food-database item was
    eaten, scaling its per-100g macros live. Shared by every place a food gets
@@ -114,7 +119,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
       setQty(food.defaultQty || 100);
       setSaving(false);
       confirmingRef.current = false;
-      logIdRef.current = `${food.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      logIdRef.current = `${food.id}-${Math.floor(Date.now() / RETRY_DEDUPE_WINDOW_MS)}`;
       setCorrecting(false);
       setDraft({ cals: String(food.cals ?? ""), protein: String(food.protein ?? ""), carbs: String(food.carbs ?? ""), fat: String(food.fat ?? "") });
     }
