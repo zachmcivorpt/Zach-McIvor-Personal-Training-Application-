@@ -231,6 +231,14 @@ function round1(n) {
   return Math.round((n + Number.EPSILON) * 10) / 10;
 }
 
+// addFood's own fallback dedup id (see its comment) buckets the timestamp
+// to this width so a retry of the same food/meal/day within the window
+// reconciles to one entry instead of logging it twice — wide enough to
+// cover a slow or offline-queued save followed by a manual retry or app
+// reopen, narrow enough that a deliberately separate logging of the same
+// food shortly after is still kept as its own entry.
+const RETRY_DEDUPE_WINDOW_MS = 60_000;
+
 const DEFAULT_NUTRITION = {
   calories: 0,
   protein: 0,
@@ -8851,11 +8859,41 @@ export default function ClientApp() {
     // on write contention), and a stable id computed here means every
     // retry of *this* call proposes the exact same entry rather than a
     // fresh one. A caller can also pass its own logId (addSuggestion does,
-    // derived from the suggestion's own stable key; FoodQuantitySheet does,
-    // derived once per sheet-open) to make a genuine retry of the same
-    // logical action — not just a Firestore-internal one — equally
-    // idempotent.
-    const id = logId || `${food.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    // derived from the suggestion's own stable key, so the exact same
+    // suggestion always reconciles to the same entry regardless of when
+    // it's clicked) to make a genuine retry of the same logical action —
+    // not just a Firestore-internal one — equally idempotent.
+    //
+    // Every other caller here (FoodQuantitySheet's ADD — the shared path
+    // for search, barcode scan, quick add, and the meal-choice flow — and
+    // guardedAdd's recent-foods/saved-meals/photo-estimate buttons) never
+    // supplies its own logId, so this fallback used to be
+    // `${food.id}-${Date.now()}-${random}` — unique to the millisecond,
+    // every single call. That only guarded a double-DISPATCH of one tap
+    // (two click events landing before a ref/state commit); it did
+    // nothing for a genuinely separate retry of the same action a few
+    // seconds or minutes later — which is exactly what a client does when
+    // a slow or offline-queued save (this app's Firestore client persists
+    // writes locally and syncs once reconnected, surviving an app close)
+    // gives no visible confirmation in time: they assume the tap didn't
+    // register and tap ADD again, or close and reopen the app and log it
+    // again. The original (still-queued) write and the retry then both
+    // eventually reach Firestore with different ids, landing as two
+    // separate, fully genuine entries once both sync — a real production
+    // duplicate this fallback never actually closed.
+    //
+    // Bucketing the timestamp to the nearest RETRY_DEDUPE_WINDOW_MS
+    // (rather than using the exact millisecond) means a retry of the
+    // *same* food into the *same* meal within that window reconciles to
+    // the same id — closing that gap — while a deliberately separate
+    // logging of the same food later (a second coffee an hour later, say)
+    // still falls in a different bucket and is kept as its own entry, per
+    // existing.some(f => f.id === id) below being scoped to this one
+    // meal's own array. A retry landing right on a bucket boundary can
+    // still slip into the next bucket and be treated as separate — an
+    // accepted, rare edge of any coarse time-bucketed key, not worth a
+    // sliding-window scheme for this.
+    const id = logId || `${food.id}-${meal}-${dateKey}-${Math.floor(Date.now() / RETRY_DEDUPE_WINDOW_MS)}`;
     return setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
       const existing = base.meals?.[meal] || [];

@@ -101,4 +101,61 @@ describe("FoodQuantitySheet — rapid double-tap does not double-log", () => {
     expect(onConfirm).toHaveBeenCalledTimes(2);
     expect(onConfirm.mock.calls[0][1]).not.toBe(onConfirm.mock.calls[1][1]);
   });
+
+  // Regression test for the actual production report: a double-dispatch
+  // of one tap (confirmingRef, tested above) and a fresh-random logId per
+  // sheet-open (the pre-existing fix) both leave one real gap — a client
+  // who closes the sheet (or the whole app) believing a slow/offline-
+  // queued save didn't register, then reopens and logs the same food
+  // again within the next few seconds/minutes. That's a brand-new
+  // component mount with no shared in-memory ref, so the old fresh-
+  // random-id-per-open scheme proposed a different id every time and
+  // both the original (still-queued) and the retried save eventually
+  // landed as two separate, genuine entries. The id is now bucketed by
+  // time instead, so a remount for the same food within that window
+  // still reconciles to the same id.
+  it("remounting for the same food shortly after (simulating a reopened sheet/app) reuses the same id", async () => {
+    const onConfirm = vi.fn(() => Promise.resolve());
+    const { unmount } = render(<FoodQuantitySheet food={FOOD} onClose={() => {}} onConfirm={onConfirm} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /ADD/ }));
+    });
+    unmount();
+
+    // A brand-new mount — the exact scenario a closed-then-reopened sheet
+    // (or app) produces, with no surviving in-memory state at all.
+    render(<FoodQuantitySheet food={FOOD} onClose={() => {}} onConfirm={onConfirm} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /ADD/ }));
+    });
+
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+    expect(onConfirm.mock.calls[0][1]).toBe(onConfirm.mock.calls[1][1]);
+  });
+
+  it("remounting for the same food well after the retry window gets a genuinely new id (a deliberate separate entry)", async () => {
+    vi.useFakeTimers();
+    try {
+      const onConfirm = vi.fn(() => Promise.resolve());
+      const { unmount } = render(<FoodQuantitySheet food={FOOD} onClose={() => {}} onConfirm={onConfirm} />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /ADD/ }));
+      });
+      unmount();
+
+      await act(async () => {
+        vi.advanceTimersByTime(5 * 60 * 1000); // 5 minutes later — a deliberate second log, not a retry
+      });
+
+      render(<FoodQuantitySheet food={FOOD} onClose={() => {}} onConfirm={onConfirm} />);
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: /ADD/ }));
+      });
+
+      expect(onConfirm).toHaveBeenCalledTimes(2);
+      expect(onConfirm.mock.calls[0][1]).not.toBe(onConfirm.mock.calls[1][1]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

@@ -40,6 +40,11 @@ function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
+// Must match ClientApp.jsx's addFood RETRY_DEDUPE_WINDOW_MS — both bucket
+// a log-entry id to the same width so a retried/reopened save of the same
+// food reconciles to one entry (see FoodQuantitySheet's logIdRef comment).
+const RETRY_DEDUPE_WINDOW_MS = 60_000;
+
 /* ============================================================================
    FOOD QUANTITY PICKER — pick how many grams of a food-database item was
    eaten, scaling its per-100g macros live. Shared by every place a food gets
@@ -82,11 +87,20 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
   // synchronously, independent of any commit, so the second dispatch in
   // the same beat is dropped even before React re-renders.
   const confirmingRef = useRef(false);
-  // Generated once per sheet-open (not inside confirm()) so a retried
-  // confirm() for the *same* opening always proposes the same log-entry
-  // id — addFood's own id check (ClientApp.jsx) can then recognize a
-  // genuine retry of this exact add and no-op on it instead of double-
-  // logging it.
+  // Bucketed by time (not a fresh random id per sheet-open) so a genuinely
+  // separate retry — the sheet closed and reopened for the same food
+  // because a slow or offline-queued save gave no visible confirmation in
+  // time, not just a double-tap on the same open sheet (confirmingRef
+  // above already covers that) — still reconciles to the same entry via
+  // addFood's own id check (ClientApp.jsx), instead of both eventually
+  // syncing as two separate, genuine log entries. Mirrors
+  // RETRY_DEDUPE_WINDOW_MS there: wide enough to absorb a reasonable
+  // retry/reopen, narrow enough that a deliberately separate logging of
+  // the same food shortly after still gets its own entry. Meal and date
+  // don't need to be in this id — addFood's own uniqueness check is
+  // already scoped to one meal's array within one date's own Firestore
+  // document, so collisions across either are structurally impossible
+  // regardless of what this id contains.
   const logIdRef = useRef(null);
 
   const units = food ? unitsFor(food) : [];
@@ -109,7 +123,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
       setQty(food.defaultQty || 100);
       setSaving(false);
       confirmingRef.current = false;
-      logIdRef.current = `${food.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      logIdRef.current = `${food.id}-${Math.floor(Date.now() / RETRY_DEDUPE_WINDOW_MS)}`;
     }
   }, [food]);
 
