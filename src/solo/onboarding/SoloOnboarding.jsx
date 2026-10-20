@@ -154,7 +154,7 @@ export default function SoloOnboarding() {
     }
   }
 
-  function goNext() {
+  async function goNext() {
     const nextAnswers = answers;
     const nextVisible = getVisibleQuestions(nextAnswers);
     const nextIndex = clampedIndex + 1;
@@ -162,6 +162,27 @@ export default function SoloOnboarding() {
       if (isComplete(nextAnswers) && isFlaggedForMedicalReview(nextAnswers) && !wasCompleteOnMount.current) {
         setShowMedicalNotice(true);
         return;
+      }
+      // Every answer-selection fires its own save in the background (see
+      // persist() below) without being awaited, so tapping Finish right
+      // after picking the last answer — the normal, fast way to actually
+      // finish this — could reach here before that save had even been
+      // sent, let alone landed. RequireOnboardingComplete (SoloRoutes.jsx)
+      // reads `completed` from the live Firestore-backed soloCurrentUser,
+      // not from this component's own local state, so navigating away
+      // before the completing write is confirmed meant it almost always
+      // still saw `completed: false` on arrival and bounced straight back
+      // to the questionnaire — reproducing from firstUnansweredIndex()
+      // against whatever had (or hadn't) been saved yet. Awaiting the
+      // save here, with the same already-computed full answer set, before
+      // navigating closes that race.
+      if (soloAuthUser) {
+        try {
+          await saveOnboardingAnswer(soloAuthUser.uid, nextAnswers, question.id, nextAnswers[question.id]);
+        } catch {
+          // Best-effort, same as persist() below — proceed regardless;
+          // this is no worse than the previous unawaited save.
+        }
       }
       navigate("/solo/home", { replace: true });
       return;

@@ -141,3 +141,52 @@ describe("SoloOnboarding — exercise-safety screening behaviour", () => {
     expect(screen.queryByText("SOLO_HOME")).toBeNull();
   });
 });
+
+describe("SoloOnboarding — completing the questionnaire", () => {
+  it("waits for the final answer's save to land before navigating away, instead of racing it", async () => {
+    // Regression test for the "Finish sends you back to the start"
+    // bug: goNext() must await the completing save before navigating,
+    // since RequireOnboardingComplete reads `completed` from Firestore-
+    // backed state, not from this component. A saveOnboardingAnswer that
+    // resolves on its own schedule (not synchronously, like the default
+    // vi.fn() elsewhere in this file) is what actually exercises that
+    // ordering — a save that already resolved before the click proves
+    // nothing about whether goNext() waits for it.
+    let resolveSave;
+    const saveOnboardingAnswer = vi.fn(() => new Promise((resolve) => (resolveSave = resolve)));
+    const answers = {
+      age: "30",
+      sexForScreening: "male",
+      lifestyleContext: "desk",
+      primaryGoal: "get_stronger",
+      mainObstacles: ["time"],
+      priorExperience: "beginner",
+      currentRoutine: "not_training",
+      trainingEnvironment: "home_gym",
+      availableEquipment: ["dumbbells"],
+      daysPerWeek: "3-4",
+      sessionDuration: "30-45",
+      preferredStyle: "strength",
+      healthConsent: true,
+      priorInjuriesSurgeries: "no",
+      currentPainLimitations: "no",
+      apss_heartCondition: "no",
+      apss_chestPain: "no",
+      apss_dizziness: "no",
+      apss_asthma: "no",
+      apss_diabetesControl: "na",
+      apss_otherConditions: "no",
+    };
+    // Resumes at the last unanswered required question (healthcareRestriction).
+    renderOnboarding({ answers, saveOnboardingAnswer });
+    fireEvent.click(screen.getByText(/^No$/));
+    fireEvent.click(screen.getByText("Finish"));
+
+    // The save is still pending — must not have navigated yet.
+    expect(screen.queryByText("SOLO_HOME")).toBeNull();
+    expect(screen.getByText("Finish")).toBeTruthy();
+
+    resolveSave();
+    expect(await screen.findByText("SOLO_HOME")).toBeTruthy();
+  });
+});
