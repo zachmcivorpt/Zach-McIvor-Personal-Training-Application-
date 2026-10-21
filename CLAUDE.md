@@ -64,6 +64,26 @@ rather than inventing new colors per screen:
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 
+## Deferred until the next App Store upload
+
+Do these together when the user is ready to submit a new App Store build
+(they asked for this to be remembered):
+
+- **Switch Stripe to live mode** (Train Solo website purchases). Still in
+  test mode — revealing the live secret key failed on Stripe's email
+  identity check. Steps: live `sk_live_` key → GitHub secret
+  `STRIPE_SECRET_KEY`; live webhook to
+  `https://us-central1-zach-mcivor-pt-app.cloudfunctions.net/soloStripeWebhook`
+  (`checkout.session.completed`, `charge.refunded`) → `STRIPE_WEBHOOK_SECRET`;
+  redeploy functions; one real purchase + refund to verify. Then rotate the
+  sandbox test key (it was visible in a screenshot).
+- Native iOS changes for the new build: status-bar strip that follows
+  dark screens (the installed build may predate the apexTheme handler),
+  App-Bound Domains so the service worker gives a full offline warm
+  start, and the edge-to-edge login frame.
+- Train Solo purchasing stays hidden inside the iOS app (Apple 3.1.1 —
+  `src/solo/appShell.js`); buying happens on the website only.
+
 ## Working style
 
 - When the user says "figure it out," that's a directive to solve the
