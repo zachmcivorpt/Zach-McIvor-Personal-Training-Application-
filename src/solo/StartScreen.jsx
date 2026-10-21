@@ -15,7 +15,7 @@ export default function StartScreen() {
   return (
     <SoloBackgroundFrame appDesign={appDesign}>
       <div className="flex justify-center pt-6">
-        <Logo variant="mark" tone="white" className="h-14 w-auto" />
+        <Logo variant="mark" tone="white" slot="login" className="h-14 w-auto" />
       </div>
 
       <div className="flex-1 flex flex-col justify-center gap-4 w-full max-w-sm mx-auto">

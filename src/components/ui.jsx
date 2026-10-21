@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { X, Check, AlertCircle, Camera, Dumbbell, Video, Play, Search, Sparkles, ChevronDown } from "lucide-react";
 import {
@@ -13,9 +13,8 @@ import {
   CLIENT_DARK_BORDER,
 } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
-import { appLogoUrls, rememberAppLogos, resolveAppLogoUrl } from "../lib/appLogo";
+import { getAppLogos, subscribeAppLogos, resolveAppLogoUrl } from "../lib/appLogo";
 import { fileToCompressedDataUrl } from "../lib/image";
-import { useApp } from "../lib/AppContext";
 import { parseVideoUrl } from "../lib/video";
 import { analyzeSession } from "../lib/sessionIntelligence";
 
@@ -179,7 +178,7 @@ const BRAND_SOURCES = {
 //
 // A coach-uploaded logo (Settings -> Design Settings) overrides the default
 // brand mark everywhere this component is used. There are two independent
-// uploads — one for dark surfaces (login screen, coach console) and one for
+// uploads — one for dark surfaces (coach console) and one for
 // light surfaces (client app) — because a single mark can't read on both:
 // a white "M" that looks right on the black coach header disappears
 // entirely on the client app's white background, and there's no reliable
@@ -189,25 +188,71 @@ const BRAND_SOURCES = {
 // is used everywhere rather than falling back to the default mark on the
 // surface that's missing its own.
 //
-// See lib/appLogo.js for how it shows instantly: remembered URLs before
-// settings load, a bundled copy for known uploads. If the image ever fails
-// to load, the default mark shows instead of a broken-image icon.
-export function Logo({ variant = "wordmark", tone = "white", className = "", style }) {
-  const { db } = useApp();
-  const { dark, light, loaded } = appLogoUrls(db?.appDesign);
+// See lib/appLogo.js: a Logo stays invisible (its space kept) until the
+// server confirms which logo is current and that image has fully loaded,
+// then fades in once — so changing the logo never flashes the old one. If
+// an uploaded logo fails to load, the default mark shows instead of a
+// broken-image icon.
+//
+// slot="login" is the photo screens' own logo (Coaching login, the
+// Coaching / Train Solo chooser, Train Solo's login/register/questionnaire):
+// settings/appDesign.loginLogoUrl, defaulting to the APEX mountain mark.
+// The mountain fills ~93% of its image's height where an uploaded square
+// logo fills ~41%, so it's scaled to the same on-screen size.
+const MOUNTAIN_TO_UPLOAD_SCALE = 0.44;
+const BLANK_PIXEL = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+
+function useLoadedImage(target) {
+  const [loaded, setLoaded] = useState({ src: null, ok: false });
   useEffect(() => {
-    if (loaded) rememberAppLogos(dark, light);
-  }, [loaded, dark, light]);
-  const customUrl = resolveAppLogoUrl(tone === "white" ? dark || light : light || dark);
-  const [failedUrl, setFailedUrl] = useState(null);
-  const fallback = BRAND_SOURCES[`${variant}-${tone}`];
+    if (!target) return;
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => !cancelled && setLoaded({ src: target, ok: true });
+    img.onerror = () => !cancelled && setLoaded({ src: target, ok: false });
+    img.src = target;
+    return () => {
+      cancelled = true;
+    };
+  }, [target]);
+  return loaded;
+}
+
+export function Logo({ variant = "wordmark", tone = "white", slot, className = "", style }) {
+  const { ready, logos } = useSyncExternalStore(subscribeAppLogos, getAppLogos);
+  const isLogin = slot === "login";
+  const uploaded = !ready
+    ? null
+    : isLogin
+      ? logos?.loginLogoUrl
+      : tone === "white"
+        ? logos?.appLogoUrlOnDark || logos?.appLogoUrlOnLight
+        : logos?.appLogoUrlOnLight || logos?.appLogoUrlOnDark;
+  const fallback = isLogin ? MARK_WHITE : BRAND_SOURCES[`${variant}-${tone}`];
+  const customUrl = resolveAppLogoUrl(uploaded);
+  const custom = useLoadedImage(customUrl);
+  const customFailed = custom.src === customUrl && !custom.ok;
+  // Nothing is shown until it's known which logo to show.
+  const target = !ready ? null : customUrl && !customFailed ? customUrl : fallback;
+  const shown = useLoadedImage(target === fallback ? fallback : null);
+  const visibleSrc =
+    target && target === customUrl && custom.src === customUrl && custom.ok
+      ? customUrl
+      : target === fallback && shown.src === fallback
+        ? fallback
+        : null;
+  const scaleMountain = isLogin && visibleSrc === fallback;
   return (
     <img
-      src={customUrl && customUrl !== failedUrl ? customUrl : fallback}
-      onError={() => customUrl && setFailedUrl(customUrl)}
+      src={visibleSrc || BLANK_PIXEL}
       alt="APEX Coaching Platform"
       className={className}
-      style={style}
+      style={{
+        ...style,
+        opacity: visibleSrc ? style?.opacity ?? undefined : 0,
+        transition: "opacity 150ms ease-out",
+        ...(scaleMountain ? { transform: `scale(${MOUNTAIN_TO_UPLOAD_SCALE})` } : null),
+      }}
       draggable={false}
     />
   );

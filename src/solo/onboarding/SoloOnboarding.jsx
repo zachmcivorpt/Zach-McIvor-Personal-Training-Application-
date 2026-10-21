@@ -366,7 +366,7 @@ function OnboardingHeader({ canGoBack, onBack, index, total, sectionLabel }) {
             <ChevronLeft size={16} /> Home
           </button>
         )}
-        <Logo variant="mark" tone="white" className="h-6 w-auto opacity-60" />
+        <Logo variant="mark" tone="white" slot="login" className="h-6 w-auto opacity-60" />
       </div>
       <p className="text-white/40 text-xs font-medium uppercase tracking-wide mb-2">{sectionLabel}</p>
       <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">

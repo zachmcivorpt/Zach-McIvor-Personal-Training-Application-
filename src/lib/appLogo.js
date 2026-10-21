@@ -1,14 +1,22 @@
-// The coach-uploaded logo (Settings -> Design Settings) used to take a
-// couple of seconds to appear on every launch: the app first had to load
-// settings/appDesign to learn the logo's URL (showing the default mark
-// meanwhile), then download a 1024px PNG that Firebase Storage serves with
-// no caching. Now:
-//  - the last-known logo URLs are remembered on the device, so the right
-//    logo renders on the very first frame;
-//  - known uploads map to a small copy bundled with the app (cached and
-//    available offline), same idea as LoginBackground's OPTIMIZED map;
-//  - new uploads are saved smaller and with a long cache lifetime (see
-//    storage.js / CoachMore's LogoCropModal).
+// Which logo the app shows, decided so it never flashes a wrong one.
+//
+// The coach-uploaded logos live on settings/appDesign. That doc's first
+// snapshot usually comes from this device's own Firestore cache, which can
+// be a logo the coach has since replaced, so showing it would flash the old
+// logo before the new one. Instead every Logo waits (invisible, space kept)
+// until the server confirms the current logos, has the image fully loaded,
+// and only then fades it in. The confirmation is one small direct request
+// for just the logo fields (much quicker than waiting for the live listener
+// to connect); the listener then keeps the logos live. Only when the device
+// is offline does it fall back to the logos remembered from the last
+// confirmed load — never on a timer while online, which could show an
+// out-of-date logo.
+//
+// Known uploads map to small copies bundled with the app (cached and
+// available offline), so once confirmed they appear immediately.
+import { doc, onSnapshot } from "firebase/firestore";
+import { db as firestore, firebaseApp } from "./firebase";
+
 const BUNDLED = {
   "design/appLogoUrlOnDark_1792373913084_7A4D6D51-051F-4656-84C7-217E22048388.png": "/brand/app-logo-dark-1792373913084.png",
   "design/appLogoUrlOnLight_1792373876950_IMG_2121.png": "/brand/app-logo-light-1792373876950.png",
@@ -19,37 +27,91 @@ const MEMORY_KEY = "apexAppLogos";
 function readMemory() {
   try {
     const v = JSON.parse(localStorage.getItem(MEMORY_KEY) || "null");
-    return v && typeof v === "object" ? v : {};
+    return v && typeof v === "object" ? v : null;
   } catch {
-    return {};
+    return null;
   }
 }
 
-// A device that has never loaded settings starts from the logos bundled
-// above (the current uploads) rather than the default mark, so even a
-// first launch shows the right logo instantly.
-const SEED = {
-  dark: "https://firebasestorage.googleapis.com/v0/b/zach-mcivor-pt-app.firebasestorage.app/o/design%2FappLogoUrlOnDark_1792373913084_7A4D6D51-051F-4656-84C7-217E22048388.png?alt=media&token=1179a71b-d285-45a5-bed8-298d3f7d37c6",
-  light: "https://firebasestorage.googleapis.com/v0/b/zach-mcivor-pt-app.firebasestorage.app/o/design%2FappLogoUrlOnLight_1792373876950_IMG_2121.png?alt=media&token=be8d3173-42fa-4836-b46b-38b59e0c1a34",
-};
-
-const stored = readMemory();
-let remembered = "dark" in stored || "light" in stored ? stored : SEED;
-
-// settings/appDesign hasn't arrived yet while neither logo field exists on
-// it (the pre-load default object has neither; a loaded doc has the field,
-// null once a logo is removed).
-export function appLogoUrls(design) {
-  const loaded = design && (design.appLogoUrlOnDark !== undefined || design.appLogoUrlOnLight !== undefined);
-  return loaded ? { dark: design.appLogoUrlOnDark || null, light: design.appLogoUrlOnLight || null, loaded } : { ...remembered, loaded: false };
+function pick(design) {
+  return {
+    appLogoUrlOnDark: design?.appLogoUrlOnDark || null,
+    appLogoUrlOnLight: design?.appLogoUrlOnLight || null,
+    loginLogoUrl: design?.loginLogoUrl || null,
+  };
 }
 
-export function rememberAppLogos(dark, light) {
-  if (remembered.dark === dark && remembered.light === light) return;
-  remembered = { dark, light };
+let state = { ready: false, logos: null };
+const subscribers = new Set();
+let started = false;
+
+function set(next) {
+  state = next;
+  subscribers.forEach((fn) => fn());
+}
+
+function confirm(logos) {
   try {
-    localStorage.setItem(MEMORY_KEY, JSON.stringify(remembered));
+    localStorage.setItem(MEMORY_KEY, JSON.stringify(logos));
   } catch {}
+  set({ ready: true, logos });
+}
+
+function fallBackIfOffline() {
+  if (!state.ready && typeof navigator !== "undefined" && navigator.onLine === false) {
+    set({ ready: true, logos: readMemory() || pick({}) });
+  }
+}
+
+// settings/appDesign is public-read (firestore.rules), so a plain REST GET
+// works before anyone signs in. Field values come back typed
+// ({ stringValue } / { nullValue }).
+async function fetchLogosFromServer() {
+  const { projectId, apiKey } = firebaseApp.options;
+  const fields = ["appLogoUrlOnDark", "appLogoUrlOnLight", "loginLogoUrl"].map((f) => `mask.fieldPaths=${f}`).join("&");
+  const res = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/appDesign?key=${apiKey}&${fields}`);
+  if (res.status === 404) return pick({});
+  if (!res.ok) throw new Error(`appDesign ${res.status}`);
+  const body = await res.json();
+  const f = body.fields || {};
+  return pick({
+    appLogoUrlOnDark: f.appLogoUrlOnDark?.stringValue,
+    appLogoUrlOnLight: f.appLogoUrlOnLight?.stringValue,
+    loginLogoUrl: f.loginLogoUrl?.stringValue,
+  });
+}
+
+function start() {
+  if (started) return;
+  started = true;
+  try {
+    onSnapshot(
+      doc(firestore, "settings", "appDesign"),
+      { includeMetadataChanges: true },
+      (snap) => {
+        if (snap.metadata.fromCache) return; // possibly stale — wait for the server
+        confirm(pick(snap.exists() ? snap.data() : {}));
+      },
+      () => {}
+    );
+  } catch {}
+  fetchLogosFromServer()
+    .then((logos) => {
+      if (!state.ready) confirm(logos);
+    })
+    .catch(fallBackIfOffline);
+  fallBackIfOffline();
+  if (typeof window !== "undefined") window.addEventListener("offline", fallBackIfOffline);
+}
+
+export function subscribeAppLogos(fn) {
+  start();
+  subscribers.add(fn);
+  return () => subscribers.delete(fn);
+}
+
+export function getAppLogos() {
+  return state;
 }
 
 function storagePath(url) {
@@ -64,4 +126,11 @@ function storagePath(url) {
 export function resolveAppLogoUrl(url) {
   if (!url) return null;
   return BUNDLED[storagePath(url)] || url;
+}
+
+// Test-only: reset the module's state between tests.
+export function __resetAppLogosForTest() {
+  state = { ready: false, logos: null };
+  started = false;
+  subscribers.clear();
 }

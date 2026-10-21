@@ -43,7 +43,7 @@ export default function SoloFinishSetupScreen() {
   return (
     <SoloBackgroundFrame appDesign={soloAppDesign}>
       <div className="flex justify-center pt-10 pb-8">
-        <Logo variant="mark" tone="white" className="h-12 w-auto" />
+        <Logo variant="mark" tone="white" slot="login" className="h-12 w-auto" />
       </div>
 
       <div className="w-full max-w-sm mx-auto">
