@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSoloCalendar, mondayOf, sessionOffsets } from "./soloCalendar";
+import { buildSoloCalendar, mondayOf, sessionOffsets, sessionDateKeys, sessionDayLabel } from "./soloCalendar";
 
 const program = { id: "p1", name: "Upper/Lower" };
 const content = {
@@ -114,5 +114,19 @@ describe("soloCalendar", () => {
   it("skips programs with no start date or no content yet", () => {
     const cal = build({ purchases: [{ ...purchase, startDate: null }] });
     expect(Object.values(cal).flat().some((i) => i.type === "workout")).toBe(false);
+  });
+});
+
+describe("sessionDateKeys / sessionDayLabel", () => {
+  it("places a week's sessions on the same days the calendar uses", () => {
+    expect(sessionDateKeys("2026-10-20", 1, 3)).toEqual(["2026-10-20", "2026-10-22", "2026-10-24"]);
+    expect(sessionDateKeys("2026-10-20", 2, 1)).toEqual(["2026-10-27"]);
+    expect(sessionDateKeys(null, 1, 3)).toEqual([]);
+  });
+  it("labels today, tomorrow and yesterday relatively", () => {
+    expect(sessionDayLabel("2026-10-21", "2026-10-21")).toBe("Today");
+    expect(sessionDayLabel("2026-10-22", "2026-10-21")).toBe("Tomorrow");
+    expect(sessionDayLabel("2026-10-20", "2026-10-21")).toBe("Yesterday");
+    expect(sessionDayLabel("2026-10-25", "2026-10-21")).toMatch(/25/);
   });
 });

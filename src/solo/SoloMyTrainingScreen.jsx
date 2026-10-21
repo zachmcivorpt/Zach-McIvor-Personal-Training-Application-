@@ -9,6 +9,8 @@ import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { programPhases } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { totalWeeksForProgram, currentWeekNumber, phaseForWeekNumber } from "./weekProgress";
+import { sessionDateKeys, sessionDayLabel } from "./soloCalendar";
+import SoloGlassBox from "./SoloGlassBox";
 import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -35,6 +37,8 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
   const weekNumber = selectedWeek || currentWeek;
   const current = weekNumber ? phaseForWeekNumber(phases, weekNumber) : null;
   const isFutureWeek = currentWeek != null && weekNumber > currentWeek;
+  const today = localDateKey();
+  const dateKeys = sessionDateKeys(purchase?.startDate, weekNumber, (current?.phase?.days || []).length);
 
   function isDayDone(dayId) {
     return soloWorkoutLogs.some((l) => l.purchaseId === purchase?.id && l.dayId === dayId && l.weekNumber === weekNumber);
@@ -68,7 +72,9 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
       ) : (
         <div>
           <p className="text-xs mb-1" style={{ color: t.textFaint }}>STARTED</p>
-          <p className="text-sm font-semibold mb-4">{purchase.startDate}</p>
+          <p className="text-sm font-semibold mb-4">
+            {new Date(`${purchase.startDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+          </p>
 
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs" style={{ color: t.textFaint }}>{isFutureWeek ? "UPCOMING WEEK" : "CURRENT WEEK"}</p>
@@ -109,13 +115,17 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
           )}
           {current?.phase && (
             <div className="space-y-2 mb-5">
-              {(current.phase.days || []).map((d) => {
+              {(current.phase.days || []).map((d, i) => {
                 const done = isDayDone(d.id);
+                const dateKey = dateKeys[i];
                 return (
-                  <div key={d.id} className="flex items-center justify-between rounded-xl px-3.5 py-3" style={rowStyle}>
-                    <div className="min-w-0">
+                  <div key={d.id} className="flex items-center gap-3 rounded-xl px-3.5 py-3" style={rowStyle}>
+                    <SessionDate dateKey={dateKey} today={today} t={t} />
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold">{d.label}</p>
-                      <p className="text-xs" style={{ color: t.textFaint }}>{(d.exercises || []).filter((e) => !e.isRest).length} exercises</p>
+                      <p className="text-xs" style={{ color: t.textFaint }}>
+                        {sessionDayLabel(dateKey, today)} · {exerciseCountLabel(d)}
+                      </p>
                     </div>
                     {isFutureWeek ? (
                       <Lock size={14} color={t.textFaint} className="shrink-0" />
@@ -225,6 +235,7 @@ export default function SoloMyTrainingScreen() {
   );
   const active = pickActiveRow(ownedRows, soloWorkoutLogs);
   const glass = soloGlass(t);
+  const todayKey = localDateKey();
 
   return (
     <div className="relative w-full">
@@ -290,6 +301,50 @@ export default function SoloMyTrainingScreen() {
                 </div>
               </div>
             </button>
+
+            {active.weekSessions.length > 0 && (
+              <>
+                <div className="flex items-baseline justify-between gap-3 mt-7 mb-3">
+                  <h2 className="text-lg font-bold shrink-0">This Week</h2>
+                  {active.phaseName && (
+                    <p className="text-xs truncate" style={{ color: t.textFaint }}>
+                      {active.phaseName}
+                    </p>
+                  )}
+                </div>
+                <SoloGlassBox t={t} className="rounded-2xl">
+                  {active.weekSessions.map(({ day, dateKey, done }, i) => (
+                    <div
+                      key={day.id}
+                      className="flex items-center gap-3 px-4 py-3"
+                      style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
+                    >
+                      <SessionDate dateKey={dateKey} today={todayKey} t={t} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold truncate">{day.label || "Workout"}</p>
+                        <p className="text-xs mt-0.5" style={{ color: dateKey === todayKey && !done ? MEASURE_BLUE : t.textFaint }}>
+                          {sessionDayLabel(dateKey, todayKey)} · {exerciseCountLabel(day)}
+                        </p>
+                      </div>
+                      {done ? (
+                        <span className="flex items-center gap-1 text-xs font-semibold text-green-600 shrink-0">
+                          <CheckCircle2 size={14} /> Done
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startDay(active.purchase, active.program, day, active.weekNumber)}
+                          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
+                          style={{ backgroundColor: t.text, color: t.bg }}
+                        >
+                          <Play size={11} fill="currentColor" /> Start
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </SoloGlassBox>
+              </>
+            )}
 
             <h2 className="text-lg font-bold mt-8 mb-3">Your Programs</h2>
             <div className="space-y-2.5">
@@ -377,6 +432,29 @@ export default function SoloMyTrainingScreen() {
   );
 }
 
+// A session's scheduled date as a figure: short weekday over the day of the
+// month, in the accent colour when it's today.
+function SessionDate({ dateKey, today, t }) {
+  if (!dateKey) return null;
+  const d = new Date(`${dateKey}T00:00:00`);
+  const color = dateKey === today ? MEASURE_BLUE : t.text;
+  return (
+    <div className="w-9 shrink-0 text-center leading-none">
+      <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: dateKey === today ? MEASURE_BLUE : t.textFaint }}>
+        {d.toLocaleDateString(undefined, { weekday: "short" })}
+      </p>
+      <p className="text-xl font-extrabold tabular-nums mt-1" style={{ color }}>
+        {d.getDate()}
+      </p>
+    </div>
+  );
+}
+
+function exerciseCountLabel(day) {
+  const n = (day.exercises || []).filter((e) => !e.isRest).length;
+  return `${n} exercise${n === 1 ? "" : "s"}`;
+}
+
 function ProgressBar({ pct, t, className = "", large = false }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
@@ -424,24 +502,25 @@ export function summarizeProgress(purchase, program, content, logs) {
   const days = current?.phase?.days || null;
   const sessionsThisWeek = days ? days.length : null;
   const doneThisWeek = days ? days.filter((d) => doneKeys.has(`${weekNumber}:${d.id}`)).length : 0;
+  const dateKeys = days ? sessionDateKeys(purchase.startDate, weekNumber, days.length) : [];
+  const weekSessions = (days || []).map((day, i) => ({ day, dateKey: dateKeys[i], done: doneKeys.has(`${weekNumber}:${day.id}`) }));
 
   let nextLabel = "—";
   let nextDetail = null;
   if (!purchase.startDate) {
     nextLabel = "Set a start date";
   } else if (days) {
-    const next = days.find((d) => !doneKeys.has(`${weekNumber}:${d.id}`));
+    const nextIndex = days.findIndex((d) => !doneKeys.has(`${weekNumber}:${d.id}`));
+    const next = nextIndex >= 0 ? days[nextIndex] : null;
     if (next) {
       nextLabel = next.label || "Workout";
       const past = purchaseLogs.filter((l) => l.dayId === next.id && l.durationMin > 0);
-      const exerciseCount = (next.exercises || []).filter((e) => !e.isRest).length;
-      nextDetail = past.length
-        ? `~${Math.round(past.reduce((a, l) => a + l.durationMin, 0) / past.length)} min`
-        : `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`;
+      const detail = past.length ? `~${Math.round(past.reduce((a, l) => a + l.durationMin, 0) / past.length)} min` : exerciseCountLabel(next);
+      nextDetail = `${sessionDayLabel(dateKeys[nextIndex])} · ${detail}`;
     } else {
       nextLabel = "Week complete";
     }
   }
 
-  return { totalWeeks, weekNumber, pct, sessionsThisWeek, doneThisWeek, nextLabel, nextDetail };
+  return { totalWeeks, weekNumber, pct, sessionsThisWeek, doneThisWeek, nextLabel, nextDetail, weekSessions, phaseName: current?.phase?.name || null };
 }
