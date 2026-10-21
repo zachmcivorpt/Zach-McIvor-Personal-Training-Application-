@@ -24,7 +24,86 @@ That's it — changes take effect within about a minute.
 
 WHAT CHANGED THIS TIME
 ------------------------
-Groups now has a client-facing side too: a client who's a member of a
+New `soloProgressPhotos` and `soloBodyMetrics` collections — completing
+the self-guided Progress tab with progress photos and manually-logged
+steps/sleep/resting heart rate/body fat/lean mass/measurements, on the
+same model as `soloWeighIns`: a customer reads/writes only their own
+entries, never another customer's, and none of this is ever visible to a
+coach or mixed with Coaching's own progressPhotos/bodyMetrics
+collections.
+
+Older change: new `soloWeighIns` collection — a Train Solo customer's own body-weight
+log, for the new self-guided Progress tab. Same ownership shape as
+`soloWorkoutLogs`: a customer reads/writes only their own entries, never
+another customer's, and this is never visible to a coach — self-guided
+progress has no coach check-in workflow by design.
+
+Older change: new `settings/soloBranding` doc — Train Solo's one coach-configurable
+branding setting (an accent colour; the logo stays the fixed APEX mark,
+never configurable). Same public-read/coach-write shape as the existing
+`settings/appDesign`, but its own separate doc rather than a field added
+to that one — Train Solo's branding is isolated from Coaching's.
+
+Older change — security fix: `soloPrograms` used to hold a program's full phases/days/
+exercises directly, on a doc that's public-read for the catalogue — so
+anyone could read a program's entire content for free, bypassing the
+"Week 1 preview only, rest locked until purchase" design. Full content
+now lives on a new, separately-gated `soloProgramContent/{id}` doc
+instead (same id as its `soloPrograms` entry): readable by the coach, or
+by a customer with a matching `soloPurchases` doc. `soloPrograms` itself
+now only ever holds public catalogue fields plus a small `weekOnePreview`
+(the program's total week count and the same two-exercise Day 1 preview
+that was already meant to be public).
+
+That gate only works because `soloPurchases` doc ids are now
+deterministic — `{uid}_{programId}` — rather than random, which the
+`create` rule now enforces explicitly (the id must actually match that
+pattern, not just the `soloUserId` field). A customer can therefore hold
+at most one purchase per program ever; "buying" the same program twice
+overwrites that one doc rather than creating a second, so a duplicate
+placeholder purchase can never grant access under some other id. The
+`create` rule also requires the target program to already be published,
+so a customer can't self-issue a purchase (and the content access it
+grants) against a still-draft program by guessing its id and calling the
+purchase action directly, bypassing the UI.
+
+Older change: `soloWorkoutLogs` — a Train Solo customer's own completed-
+workout history (Phase 3's training experience). Same ownership shape as
+`soloPurchases`: a customer can only ever read/write their OWN logs,
+never another customer's, and can never reassign a log to a different
+customer. The customer can also delete their own logs (used by
+self-service account deletion, which now runs entirely client-side for
+Train Solo — see `soloUsers` below, whose own rule already allowed this).
+
+Older change: three more Train Solo collections, all still fully
+isolated from Coaching's own data:
+
+- `soloProgramCategories` and `soloPrograms` — the coach's Train Solo
+  catalogue (Program Categories + the Program Builder). Public read, same
+  as `settings/appDesign` below — a Train Solo customer's catalogue needs
+  to load before/without a Coaching session, and a published program's
+  existence isn't sensitive (draft vs. published filtering happens in the
+  app, same as every other public-read settings doc). Only the coach can
+  create/edit/reorder/archive a category or a program.
+- `soloPurchases` — one doc per program a Train Solo customer owns.
+  Scoped entirely to that customer's own uid, same shape as `soloUsers`
+  below: they can read/create their own purchases and update only the
+  start date on one, never reassign it to a different program or
+  customer. This is Phase 2's placeholder "purchase" — no payment
+  processor is wired up yet, but the ownership record it creates is real
+  and is what actually gates every locked screen.
+
+Older change: new `soloUsers` collection — accounts for Train Solo, the
+new independent side of the app that exists alongside Coaching (not
+instead of it). A Train Solo user registers themselves, with no coach and
+no invite — their account lives entirely in `soloUsers/{uid}`, never
+`users/{uid}`, so none of the existing Coaching rules, queries, or
+coach-facing lists ever see it. The owning user can read/write only their
+own doc; nobody else (not even the coach) can read or write any
+`soloUsers` doc at all — there is no `isCoach()` grant on this collection,
+unlike every Coaching collection above it.
+
+Older change: Groups now has a client-facing side too: a client who's a
 group can read that group and its messages, and can post their own
 messages into it (never anyone else's). Creating a group, naming it, and
 managing membership stays a coach-only action either way.
@@ -191,6 +270,18 @@ service cloud.firestore {
       allow write: if isCoach();
     }
 
+    // --- settings/soloBranding: Train Solo's own, separate branding
+    //     setting — currently just an accent colour. Deliberately its own
+    //     doc, not a field added to settings/appDesign above: that doc is
+    //     Coaching's, and Train Solo's logo is NOT configurable (it's
+    //     always the real APEX mark, never a per-coach choice), so the
+    //     only thing that actually needs storing here is the accent.
+    //     Same public-read/coach-write shape as settings/appDesign. ---
+    match /settings/soloBranding {
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
     // --- shared library data: any signed-in user reads, coach writes ---
     match /exercises/{id} {
       allow read: if isSignedIn();
@@ -280,7 +371,18 @@ service cloud.firestore {
     }
     match /messages/{id} {
       allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
-      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      // `from` ("coach"/"client") used to go unchecked here — the rule only
+      // verified WHOSE thread a message landed in (via clientId), never
+      // who the signed-in writer actually was relative to that `from`
+      // value. A signed-in client could write into their own thread
+      // (clientId == their own uid, already required) but set
+      // `from: "coach"`, and it would render identically to a real
+      // coach-sent message. Now the authenticated role and the self-
+      // declared sender must actually match: a coach-authenticated write
+      // must claim from=="coach"; a client-authenticated write (already
+      // scoped to their own clientId) must claim from=="client".
+      allow create: if (isCoach() && request.resource.data.from == "coach") ||
+        (ownsClientId(request.resource.data.clientId) && request.resource.data.from == "client");
       allow update, delete: if isCoach();
     }
     // --- workoutComments/{id}: the per-workout comment thread shown from
@@ -411,6 +513,177 @@ service cloud.firestore {
     match /liveSessions/{clientId} {
       allow read: if isCoach() || ownsClientId(clientId);
       allow write: if ownsClientId(clientId);
+    }
+
+    // --- soloUsers/{uid}: Train Solo's independent accounts — the new,
+    //     separate side of the app alongside Coaching (see
+    //     src/lib/SoloAppContext.jsx). Deliberately its own collection, not
+    //     a third role inside users/{uid}: a Train Solo account has no
+    //     coach and must never be reachable by isCoach()'s blanket grant,
+    //     or appear in any coach-facing client list/query. Every existing
+    //     match block above (users, workoutLogs, programs, etc.) is
+    //     unchanged by this addition. Firestore Security Rules evaluate
+    //     request.auth by the verified uid on whichever ID token a given
+    //     request actually carries — a request made through soloAuth/
+    //     soloDb (a separate named Firebase app, same project) carries a
+    //     Train Solo user's own token, completely independent of whatever
+    //     Coaching session (if any) exists in the same browser. ---
+    match /soloUsers/{uid} {
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // --- soloProgramCategories/{id}, soloPrograms/{id}: Train Solo's own
+    //     program catalogue — entirely separate from Coaching's programs/
+    //     collection above, never read from it and never written to it.
+    //     Public read, same pattern as settings/appDesign: a Train Solo
+    //     customer browsing the catalogue (Phase 2) needs this before/
+    //     without a Coaching session, and a published program's existence
+    //     isn't sensitive — draft vs. published filtering happens in the
+    //     client query, same as every other public-read settings doc. Only
+    //     the coach can create/edit/reorder/archive a category or a
+    //     program; this isCoach() check is the same one every other
+    //     coach-only collection in this file already uses. ---
+    match /soloProgramCategories/{id} {
+      allow read: if true;
+      allow write: if isCoach();
+    }
+    // Public catalogue data only — name, price, level, description,
+    // artwork, categories, and the small weekOnePreview slice (total week
+    // count + the existing two-exercise Day 1 preview). The full
+    // phases/days/exercises array is NEVER written here — see
+    // soloProgramContent below, and AppContext.jsx's createSoloProgram/
+    // updateSoloProgram, which enforce the split on every write. This is
+    // the actual fix for the confirmed finding that a public, whole-
+    // document-read rule on a doc that also held full content let anyone
+    // read a program's content for free, regardless of purchase.
+    match /soloPrograms/{id} {
+      allow read: if true;
+      allow write: if isCoach();
+    }
+
+    // --- soloProgramContent/{id}: the full phases/days/exercises for one
+    //     Solo program, same doc id as its soloPrograms entry. Coach-read
+    //     (building/editing), or a customer with a matching soloPurchases
+    //     doc — see the deterministic id scheme below, which is exactly
+    //     what this exists() check relies on: rules can't run an
+    //     arbitrary query, only check a known path, so the purchase doc's
+    //     id must already encode which customer owns which program.
+    //     Deliberately checked by purchase existence alone, not by the
+    //     program's current publish status — a customer keeps access to
+    //     content they already own even if the coach later moves that
+    //     program back to draft; it's "can never access an unpurchased
+    //     program's content," not "can never access a since-unpublished
+    //     one." ---
+    match /soloProgramContent/{id} {
+      // exists() first so a customer who's never purchased this program
+      // short-circuits to false instead of get() throwing on a missing
+      // doc; refunded != true (via .get() with a default, since an
+      // old/placeholder purchase predating refunds has no `refunded`
+      // field at all) is what actually revokes access once
+      // soloStripeWebhook marks a purchase refunded — a refund doesn't
+      // delete the purchase doc (real purchase history stays visible in
+      // My Training/Profile), so exists() alone would otherwise keep
+      // granting content access forever after a refund.
+      allow read: if isCoach() ||
+        (isSignedIn() &&
+          exists(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)) &&
+          get(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)).data.get("refunded", false) != true);
+      allow write: if isCoach();
+    }
+
+    // --- soloPurchases/{id}: a Train Solo customer's ownership of one
+    //     program — what actually gates locked content (soloProgramContent
+    //     above). Scoped entirely to the owning soloUserId, same shape as
+    //     every other "a user reads/writes only their own doc" collection
+    //     in this file (soloUsers above). isSignedIn() has no role check,
+    //     so this works unchanged for a Train Solo account signed in via
+    //     soloAuth; nothing here is reachable by isCoach()'s blanket grant
+    //     or by any Coaching collection.
+    //
+    //     Create is `if false`: now that Solo programs are real, paid
+    //     purchases (Stripe), the ONLY thing allowed to create a doc here
+    //     is functions/index.js's soloStripeWebhook, running with the
+    //     Admin SDK (which bypasses these rules entirely) only after
+    //     Stripe's signature on the webhook payload has been verified —
+    //     never the client. The Phase 2 placeholder path
+    //     (purchaseProgramPlaceholder, a direct client create) is retired;
+    //     a client granting itself access to paid content would otherwise
+    //     be exactly as easy as this `allow create` rule let it be.
+    //
+    //     The doc id is still `{uid}_{programId}` (the webhook enforces
+    //     this by construction, not a rule check it's subject to) — a
+    //     customer can hold at most one purchase per program ever,
+    //     keeping soloProgramContent's exists() check above meaningful. ---
+    match /soloPurchases/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if false;
+      // Only the start date is ever edited by the client post-purchase
+      // (picking/changing a start date) — `.diff().affectedKeys()` scopes
+      // that down to literally that one field, so a signed-in owner can
+      // never flip their own placeholder/refunded/payment-reference
+      // fields back to "owned" after a refund, the way checking those
+      // fields individually (matching their prior value) would still have
+      // allowed if a future field were ever added here and missed.
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["startDate"]);
+      allow delete: if false;
+    }
+
+    // --- soloWorkoutLogs/{id}: a Train Solo customer's own completed-
+    //     workout history — the Phase 3 training experience. Same
+    //     ownership shape as soloPurchases above: a customer can only
+    //     ever read/write their OWN logs, never another customer's, and
+    //     can never reassign a log to a different soloUserId after the
+    //     fact. Entirely separate from Coaching's workoutLogs collection
+    //     — never read from it, never written to it. ---
+    match /soloWorkoutLogs/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
+
+    // --- soloWeighIns/{id}: a Train Solo customer's own body-weight log —
+    //     the Progress tab. Same ownership shape as soloWorkoutLogs above:
+    //     a customer can only ever read/write their OWN entries, never
+    //     another customer's, and can never reassign one to a different
+    //     soloUserId. Entirely separate from Coaching's weighIns
+    //     collection — never read from it, never written to it, and never
+    //     visible to a coach (self-guided progress has no coach check-in
+    //     workflow by design). ---
+    match /soloWeighIns/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
+
+    // --- soloProgressPhotos/{id}: a Train Solo customer's own progress-
+    //     photo timeline — same ownership shape as soloWeighIns above, and
+    //     equally separate from Coaching's progressPhotos collection. No
+    //     update rule: a photo is immutable once created (matches
+    //     Coaching's own addProgressPhoto/deleteProgressPhoto — create or
+    //     delete, never edit). ---
+    match /soloProgressPhotos/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
+
+    // --- soloBodyMetrics/{id}: a Train Solo customer's own steps/sleep/
+    //     resting-heart-rate/body-fat/lean-mass/measurements log, one doc
+    //     per customer per calendar day (id is `{uid}_{dateKey}`, mirroring
+    //     Coaching's own bodyMetrics). Same ownership shape as
+    //     soloWeighIns — entirely separate from Coaching's bodyMetrics
+    //     collection. ---
+    match /soloBodyMetrics/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
     }
   }
 }
