@@ -68,36 +68,25 @@ describe("soloCalendar", () => {
     expect(cal["2026-10-19"].find((i) => i.type === "bodystats").done).toBe(false);
   });
 
-  it("fills each rest day inside a program's span with Active Recovery", () => {
+  it("leaves rest days empty when no recovery add-on is active", () => {
     const cal = build();
-    const types = (k) => (cal[k] || []).map((i) => i.type);
-    expect(types("2026-10-06")).toEqual(["recovery"]); // between Upper (5th) and Lower (7th)
-    expect(types("2026-10-07")).toEqual(["workout"]); // training day: no recovery
-    expect(types("2026-10-12")).toEqual(["workout", "bodystats", "photos"]);
-    expect(types("2026-10-25")).toEqual(["recovery"]); // last day of the 3-week program
-    expect(types("2026-10-26")).toEqual(["bodystats", "photos"]); // program over: no recovery
-    expect(types("2026-10-02")).toEqual([]); // before the program starts
+    expect(cal["2026-10-06"]).toBeUndefined(); // rest day between Upper (5th) and Lower (7th)
+    expect((cal["2026-10-12"] || []).map((i) => i.type)).toEqual(["workout", "bodystats", "photos"]);
   });
 
-  it("marks a rest day's Active Recovery done when a recovery session was logged that day", () => {
-    const cal = build({ workoutLogs: [{ purchaseId: "u_recovery", dayId: "recovery-mobility", weekNumber: "2026-10-06", date: new Date("2026-10-06T18:00:00").getTime() }] });
-    expect(cal["2026-10-06"][0].done).toBe(true);
-    expect(cal["2026-10-08"][0].done).toBe(false);
-  });
-
-  it("lays a recovery add-on's week-N sessions onto week N's rest days, rest stays Active Recovery", () => {
+  it("lays a recovery add-on's week-N sessions onto week N's rest days, leaving the rest empty", () => {
     const addon = {
       id: "r1",
       name: "Mobility Add-on",
       recoveryPhases: [{ durationWeeks: 1, days: [{ id: "m1", label: "Hips" }, { id: "m2", label: "Spine" }] }, { durationWeeks: 1, days: [{ id: "m3", label: "Flow" }] }],
     };
     const cal = build({ recoveryAddon: addon });
-    const at = (k) => (cal[k] || []).filter((i) => i.type === "addon" || i.type === "recovery").map((i) => `${i.type}:${i.title}`);
+    const at = (k) => (cal[k] || []).filter((i) => i.type === "addon").map((i) => `${i.type}:${i.title}`);
     // Week 1 rest days: 6, 8, 10, 11 (Oct). Two add-on sessions spread across them.
     expect(at("2026-10-06")).toEqual(["addon:Hips"]);
-    expect(at("2026-10-08")).toEqual(["recovery:Active Recovery"]);
+    expect(at("2026-10-08")).toEqual([]);
     expect(at("2026-10-10")).toEqual(["addon:Spine"]);
-    expect(at("2026-10-11")).toEqual(["recovery:Active Recovery"]);
+    expect(at("2026-10-11")).toEqual([]);
     // Week 2 gets the add-on's week-2 session; week 3 is past the add-on's length.
     expect(at("2026-10-13")).toEqual(["addon:Flow"]);
     expect(Object.values(cal).flat().filter((i) => i.type === "addon" && i.weekNumber === 3)).toEqual([]);
