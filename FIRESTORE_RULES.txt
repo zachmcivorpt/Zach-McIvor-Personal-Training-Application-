@@ -371,7 +371,18 @@ service cloud.firestore {
     }
     match /messages/{id} {
       allow read: if isCoach() || (isSignedIn() && (resource == null || resource.data.clientId == request.auth.uid));
-      allow create: if isCoach() || ownsClientId(request.resource.data.clientId);
+      // `from` ("coach"/"client") used to go unchecked here — the rule only
+      // verified WHOSE thread a message landed in (via clientId), never
+      // who the signed-in writer actually was relative to that `from`
+      // value. A signed-in client could write into their own thread
+      // (clientId == their own uid, already required) but set
+      // `from: "coach"`, and it would render identically to a real
+      // coach-sent message. Now the authenticated role and the self-
+      // declared sender must actually match: a coach-authenticated write
+      // must claim from=="coach"; a client-authenticated write (already
+      // scoped to their own clientId) must claim from=="client".
+      allow create: if (isCoach() && request.resource.data.from == "coach") ||
+        (ownsClientId(request.resource.data.clientId) && request.resource.data.from == "client");
       allow update, delete: if isCoach();
     }
     // --- workoutComments/{id}: the per-workout comment thread shown from
