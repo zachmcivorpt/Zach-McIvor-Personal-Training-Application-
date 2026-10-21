@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Clock3 } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
-import { SoloMountainArt, SoloArtwork } from "./SoloMountainArt";
+import { SoloArtwork } from "./SoloArtwork";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { programPhases } from "../lib/AppContext";
@@ -221,10 +221,6 @@ export default function SoloMyTrainingScreen() {
 
   return (
     <div className="relative w-full">
-      <div className="absolute inset-x-0 top-0 h-80 pointer-events-none">
-        <SoloMountainArt fadeTo={t.bg} light={!dark} />
-      </div>
-
       <div className="relative w-full max-w-md mx-auto px-5 pt-6 pb-10">
         <h1 className="sr-only">My Training</h1>
         <img src={t.logo} alt="APEX" className="h-11 w-auto mb-6" />
@@ -297,7 +293,7 @@ export default function SoloMyTrainingScreen() {
                   className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
                   style={glass}
                 >
-                  <SoloArtwork program={row.program} logo={SOLO_THEMES.dark.logo} className="w-16 h-16 rounded-xl shrink-0" />
+                  <SoloArtwork program={row.program} t={t} className="w-16 h-16 rounded-xl shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold leading-snug">{row.program.name}</p>
                     <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>

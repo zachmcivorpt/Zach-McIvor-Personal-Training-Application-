@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Lock, Eye, PlayCircle } from "lucide-react";
-import { SoloMountainArt, SoloArtwork } from "./SoloMountainArt";
+import { SoloArtwork } from "./SoloArtwork";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { visiblePrograms, formatAudPrice } from "./recommendations";
@@ -111,7 +111,7 @@ export default function SoloProgramDetailsScreen() {
 
   return (
     <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg, color: t.text }}>
-      <div className="relative h-72 overflow-hidden">
+      <div className="relative h-72 overflow-hidden" style={program.artworkUrl ? undefined : { background: t.coverGradient }}>
         {program.artworkUrl ? (
           <>
             <img src={program.artworkUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
@@ -119,7 +119,7 @@ export default function SoloProgramDetailsScreen() {
           </>
         ) : (
           <>
-            <SoloMountainArt fadeTo={t.bg} light={!dark} />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,0) 55%, ${t.bg} 100%)` }} />
             <div className="absolute inset-0 flex items-center justify-center pb-6">
               <img src={t.logo} alt="" className="h-20 w-auto opacity-95" />
             </div>
@@ -206,7 +206,7 @@ export default function SoloProgramDetailsScreen() {
                 aria-expanded={previewOpen}
                 className="w-full flex items-center gap-3.5 p-2.5 pr-4 text-left"
               >
-                <SoloArtwork program={program} logo={SOLO_THEMES.dark.logo} className="w-14 h-14 rounded-xl shrink-0" />
+                <SoloArtwork program={program} t={t} className="w-14 h-14 rounded-xl shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{day1Label || "Week 1"}</p>
                   <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>

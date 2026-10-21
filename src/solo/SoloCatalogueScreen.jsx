@@ -5,7 +5,7 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { visibleCategories, visiblePrograms, recommendPrograms, formatAudPrice } from "./recommendations";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
-import { SoloArtwork } from "./SoloMountainArt";
+import { SoloArtwork } from "./SoloArtwork";
 
 function ProgramCard({ program, t, onClick }) {
   return (
@@ -131,7 +131,7 @@ export default function SoloCatalogueScreen() {
                       WebkitBackdropFilter: "blur(18px)",
                     }}
                   >
-                    <SoloArtwork program={p} logo={SOLO_THEMES.dark.logo} className="w-16 h-16 rounded-xl shrink-0" />
+                    <SoloArtwork program={p} t={t} className="w-16 h-16 rounded-xl shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold leading-snug">{p.name}</p>
                       <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
