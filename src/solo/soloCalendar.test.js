@@ -85,7 +85,7 @@ describe("soloCalendar", () => {
     expect(cal["2026-10-08"][0].done).toBe(false);
   });
 
-  it("lays a recovery add-on's week-N sessions onto week N's rest days, rest stays Active Recovery", () => {
+  it("lays a recovery add-on's week-N sessions onto week N's rest days and drops the built-in Active Recovery", () => {
     const addon = {
       id: "r1",
       name: "Mobility Add-on",
@@ -95,9 +95,10 @@ describe("soloCalendar", () => {
     const at = (k) => (cal[k] || []).filter((i) => i.type === "addon" || i.type === "recovery").map((i) => `${i.type}:${i.title}`);
     // Week 1 rest days: 6, 8, 10, 11 (Oct). Two add-on sessions spread across them.
     expect(at("2026-10-06")).toEqual(["addon:Hips"]);
-    expect(at("2026-10-08")).toEqual(["recovery:Active Recovery"]);
+    expect(at("2026-10-08")).toEqual([]);
     expect(at("2026-10-10")).toEqual(["addon:Spine"]);
-    expect(at("2026-10-11")).toEqual(["recovery:Active Recovery"]);
+    expect(at("2026-10-11")).toEqual([]);
+    expect(Object.values(cal).flat().some((i) => i.type === "recovery")).toBe(false);
     // Week 2 gets the add-on's week-2 session; week 3 is past the add-on's length.
     expect(at("2026-10-13")).toEqual(["addon:Flow"]);
     expect(Object.values(cal).flat().filter((i) => i.type === "addon" && i.weekNumber === 3)).toEqual([]);

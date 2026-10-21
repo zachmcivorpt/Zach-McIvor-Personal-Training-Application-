@@ -16,8 +16,10 @@
 //    product), its week-N sessions go onto week N's rest days of each
 //    started program, spread evenly. Done once that session is logged for
 //    that date.
-//  - Active Recovery: every other rest day inside a started program's
-//    span. Done once any Active Recovery session is logged that day.
+//  - Active Recovery (the built-in sessions): every rest day inside a
+//    started program's span — only for a customer with NO add-on. Once
+//    they choose an add-on, it replaces these on their calendar entirely.
+//    Done once any Active Recovery session is logged that day.
 import { localDateKey } from "../lib/dateKey";
 import { phaseForWeekNumber } from "./weekProgress";
 import { isRecoveryLog } from "./activeRecovery";
@@ -134,7 +136,7 @@ export function buildSoloCalendar({
       });
       for (const key of restDays) {
         restFilled.add(key);
-        if (placed.has(key)) continue;
+        if (placed.has(key) || addonPhases) continue;
         push(key, { type: "recovery", id: `recovery:${key}`, title: "Active Recovery", subtitle: "Rest day — light cardio or mobility.", done: recoveryDays.has(key) });
       }
     }
