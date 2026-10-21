@@ -13,9 +13,11 @@
 //  - Progress photos: same Mondays, done once a progress photo is added
 //    that week.
 //  - Recovery add-on: when the customer has one (a free kind:"recovery"
-//    product built by the coach), its week-N sessions go onto week N's
-//    rest days of each started program, spread evenly. Done once that
-//    session is logged for that date. Rest days it doesn't fill stay empty.
+//    product), its week-N sessions go onto week N's rest days of each
+//    started program, spread evenly. Done once that session is logged for
+//    that date.
+//  - Active Recovery: every other rest day inside a started program's
+//    span. Done once any Active Recovery session is logged that day.
 import { localDateKey } from "../lib/dateKey";
 import { phaseForWeekNumber } from "./weekProgress";
 import { isRecoveryLog } from "./activeRecovery";
@@ -73,6 +75,7 @@ export function buildSoloCalendar({
   };
 
   const doneSessions = new Set(workoutLogs.map((l) => `${l.purchaseId}:${l.weekNumber}:${l.dayId}`));
+  const recoveryDays = new Set(workoutLogs.filter(isRecoveryLog).map((l) => keyOf(l.date)));
   const addonDone = new Set(workoutLogs.filter(isRecoveryLog).map((l) => `${l.dayId}|${l.weekNumber}`));
   const workoutDays = new Set();
   const programSpans = [];
@@ -129,7 +132,11 @@ export function buildSoloCalendar({
           dateKey: key,
         });
       });
-      for (const key of restDays) restFilled.add(key);
+      for (const key of restDays) {
+        restFilled.add(key);
+        if (placed.has(key)) continue;
+        push(key, { type: "recovery", id: `recovery:${key}`, title: "Active Recovery", subtitle: "Rest day — light cardio or mobility.", done: recoveryDays.has(key) });
+      }
     }
   }
 

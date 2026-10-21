@@ -15,7 +15,7 @@ import { MEASURE_BLUE } from "../theme";
 // program in the Program Builder) is shown read-only as "PROGRAM NOTES"
 // instead of "COACH'S NOTES", since to a Train Solo customer it's part of
 // the program they bought, not live coaching.
-// Long timed targets (e.g. a 20-minute recovery walk) read as minutes,
+// Long timed targets (an Active Recovery 20-minute walk) read as minutes,
 // not "1200s"; short holds keep the plain seconds format.
 function formatSeconds(total) {
   const n = Number(total) || 0;
