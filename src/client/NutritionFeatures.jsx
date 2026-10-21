@@ -26,8 +26,8 @@ import "barcode-detector/polyfill";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
-import { FOOD_DATABASE, scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG } from "../lib/foodDatabase";
-import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey, detectBarcodeFormat } from "../lib/barcodeLookup";
+import { scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG, getAllFoods } from "../lib/foodDatabase";
+import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey, detectBarcodeFormat, pickBestFoodForBarcode, buildCorrectedFood } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { matchesSearch } from "../lib/search";
@@ -67,7 +67,7 @@ function presetsFor(food, unit) {
   return [1, 2, 3, 4];
 }
 
-export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
+export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, dark = false }) {
   const [unitId, setUnitId] = useState("g");
   const [qty, setQty] = useState(100);
   // onConfirm can be a real Firestore write (barcode scan / quick add /
@@ -102,6 +102,12 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
   // document, so collisions across either are structurally impossible
   // regardless of what this id contains.
   const logIdRef = useRef(null);
+  // Only ever shown for a scanned product whose data failed validation —
+  // lets the client type in the real numbers off the pack instead of
+  // closing this sheet and starting over in search/manual entry, which was
+  // previously the only way to react to a flagged scan.
+  const [correcting, setCorrecting] = useState(false);
+  const [draft, setDraft] = useState({ cals: "", protein: "", carbs: "", fat: "" });
 
   const units = food ? unitsFor(food) : [];
 
@@ -124,10 +130,23 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
       setSaving(false);
       confirmingRef.current = false;
       logIdRef.current = `${food.id}-${Math.floor(Date.now() / RETRY_DEDUPE_WINDOW_MS)}`;
+      setCorrecting(false);
+      setDraft({ cals: String(food.cals ?? ""), protein: String(food.protein ?? ""), carbs: String(food.carbs ?? ""), fat: String(food.fat ?? "") });
     }
   }, [food]);
 
   if (!food) return null;
+
+  function saveCorrection() {
+    if (draft.cals === "" || Number.isNaN(Number(draft.cals))) return;
+    onSaveCorrection({
+      cals: draft.cals,
+      protein: draft.protein === "" ? 0 : draft.protein,
+      carbs: draft.carbs === "" ? 0 : draft.carbs,
+      fat: draft.fat === "" ? 0 : draft.fat,
+    });
+    setCorrecting(false);
+  }
 
   async function confirm() {
     if (confirmingRef.current) return;
@@ -142,8 +161,8 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
       // below rather than leaving it stuck, or letting this become an
       // unhandled rejection.
     } finally {
-      setSaving(false);
       confirmingRef.current = false;
+      setSaving(false);
     }
   }
 
@@ -169,16 +188,15 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
     // moment later. Swallowing onClose while saving forces them to wait
     // for the ADD button's own outcome instead of being able to bail out
     // from under it.
-    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name}>
-      {food.fromBarcode && (
+    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name} keyboardSafeScroll>
+      {(food.fromBarcode || food.fromAFCD) && (
         <div className={dark ? "flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
-          {food.imageUrl ? (
-            <img src={food.imageUrl} alt="" className={dark ? "w-14 h-14 rounded-xl object-cover shrink-0 bg-black" : "w-14 h-14 rounded-xl object-cover shrink-0 bg-white"} />
-          ) : (
-            <div className={dark ? "w-14 h-14 rounded-xl bg-white/8 flex items-center justify-center shrink-0" : "w-14 h-14 rounded-xl bg-black/8 flex items-center justify-center shrink-0"}>
-              <ScanLine size={20} className={dark ? "text-white/25" : "text-black/25"} />
-            </div>
-          )}
+          {/* Information-first: a scanned product's own catalog photo is
+              decorative, not needed to log it accurately, so this always
+              shows the plain scan icon rather than food/product imagery. */}
+          <div className={dark ? "w-14 h-14 rounded-xl bg-white/8 flex items-center justify-center shrink-0" : "w-14 h-14 rounded-xl bg-black/8 flex items-center justify-center shrink-0"}>
+            <ScanLine size={20} className={dark ? "text-white/25" : "text-black/25"} />
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               {food.brand && <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>{food.brand}</p>}
@@ -186,8 +204,12 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
                   anything less than that gets a visible but calm nudge to
                   double-check — never a loud warning for data that's
                   merely incomplete rather than wrong (that's what the
-                  red "doesn't add up" banner below is for). */}
-              {(food.verificationLevel === "VERIFIED" || food.verificationLevel === "LIKELY") && (
+                  red "doesn't add up" banner below is for). AFCD foods
+                  carry no scan confidence score (there's no scan, no
+                  barcode match to score) — `correctedByUser` is still the
+                  signal that this exact entry was label-verified by a
+                  client, same green tick either way. */}
+              {(food.verificationLevel === "VERIFIED" || food.verificationLevel === "LIKELY" || (food.fromAFCD && food.correctedByUser)) && (
                 <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold shrink-0" style={{ color: "#22C55E" }}>
                   <Check size={10} /> Verified
                 </span>
@@ -197,17 +219,72 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, dark = false }) {
               )}
             </div>
             <p className={dark ? "text-white/50 text-xs mt-0.5" : "text-black/50 text-xs mt-0.5"}>
-              Matched from the barcode database — not what you scanned? Close this and search or enter it manually instead.
+              {food.fromAFCD
+                ? "From the Australian Food Composition Database — not what you meant? Close this and search or enter it manually instead."
+                : "Matched from the barcode database — not what you scanned? Close this and search or enter it manually instead."}
             </p>
           </div>
         </div>
       )}
-      {food.nutritionSuspect && (
+      {food.nutritionSuspect && !correcting && (
         <div className={dark ? "bg-[#EF4444]/10 border border-[#EF4444]/25 rounded-2xl p-3 mb-4" : "bg-red-50 border border-red-100 rounded-2xl p-3 mb-4"}>
           <p className={dark ? "text-[#EF4444] text-xs font-semibold" : "text-red-700 text-xs font-semibold"}>Double-check this against the label</p>
           <p className={dark ? "text-white/50 text-[11px] mt-0.5" : "text-black/50 text-[11px] mt-0.5"}>
-            The scanned data doesn't add up cleanly ({food.nutritionSuspectReason}) — the source listing may be wrong or mismatched. Check it against the pack before adding; close this and enter it manually if the numbers don't match.
+            The scanned data doesn't add up cleanly ({food.nutritionSuspectReason}) — the source listing may be wrong or mismatched. Check it against the pack before adding.
           </p>
+          {onSaveCorrection && (
+            <button
+              onClick={() => setCorrecting(true)}
+              className={dark ? "text-[#EF4444] text-[11px] font-semibold mt-2 underline" : "text-red-700 text-[11px] font-semibold mt-2 underline"}
+            >
+              Enter the correct numbers from the label
+            </button>
+          )}
+        </div>
+      )}
+      {!food.nutritionSuspect && food.missingNutritionFields?.length > 0 && !correcting && (
+        <div className={dark ? "bg-[#EF4444]/10 border border-[#EF4444]/25 rounded-2xl p-3 mb-4" : "bg-red-50 border border-red-100 rounded-2xl p-3 mb-4"}>
+          <p className={dark ? "text-[#EF4444] text-xs font-semibold" : "text-red-700 text-xs font-semibold"}>
+            Missing {food.missingNutritionFields.join(", ")} data
+          </p>
+          <p className={dark ? "text-white/50 text-[11px] mt-0.5" : "text-black/50 text-[11px] mt-0.5"}>
+            The source listing doesn't have a value for this — it's shown as 0 below, not a real figure from the label. Check the pack before adding.
+          </p>
+          {onSaveCorrection && (
+            <button
+              onClick={() => setCorrecting(true)}
+              className={dark ? "text-[#EF4444] text-[11px] font-semibold mt-2 underline" : "text-red-700 text-[11px] font-semibold mt-2 underline"}
+            >
+              Enter the correct numbers from the label
+            </button>
+          )}
+        </div>
+      )}
+      {correcting && (
+        <div className={dark ? "bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
+          <p className={dark ? "text-white/60 text-xs font-semibold mb-2" : "text-black/60 text-xs font-semibold mb-2"}>
+            Enter the values from the label (per 100{food.liquid ? "ml" : "g"})
+          </p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {["cals", "protein", "carbs", "fat"].map((k) => (
+              <input
+                key={k}
+                type="number"
+                value={draft[k]}
+                onChange={(e) => setDraft((d) => ({ ...d, [k]: e.target.value }))}
+                placeholder={k}
+                className={dark ? "bg-white/5 rounded-lg text-center text-white text-xs py-2 outline-none placeholder:text-white/25 placeholder:capitalize" : "bg-black/5 rounded-lg text-center text-black text-xs py-2 outline-none placeholder:text-black/25 placeholder:capitalize"}
+              />
+            ))}
+          </div>
+          <div className="flex gap-2 mt-2.5">
+            <SecondaryButton dark={dark} className="flex-1 !py-2" onClick={() => setCorrecting(false)}>
+              Cancel
+            </SecondaryButton>
+            <PrimaryButton dark={dark} className="flex-1 !py-2" onClick={saveCorrection} disabled={draft.cals === ""}>
+              Save correction
+            </PrimaryButton>
+          </div>
         </div>
       )}
       {food.servingSizeUnverified && (
@@ -466,7 +543,12 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     if (debugEnabled) {
       setDebugInfo((d) => ({ ...d, lookup: "looking-up" }));
     }
-    const known = (db.customFoods || []).find((f) => f.barcode === cacheKey);
+    // More than one customFoods doc can share a barcode — a client's own
+    // correction (buildCorrectedFood) is always a fresh create, never an
+    // update, so the original scanned entry and a correction for it can
+    // coexist. Always resolve to the best one, never just the first one
+    // this device's local array happens to list.
+    const known = pickBestFoodForBarcode((db.customFoods || []).filter((f) => f.barcode === cacheKey));
     if (known) {
       logOutcome("cache-hit", { verificationLevel: known.verificationLevel, confidenceScore: known.confidenceScore });
       if (debugEnabled) {
@@ -1126,16 +1208,27 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
   const { createFood } = useApp();
   const [manual, setManual] = useState(EMPTY_QUICK_ADD);
   const [moreOpen, setMoreOpen] = useState(false);
+  // createFood() is a fire-and-forget Firestore write (returns immediately,
+  // before the doc is actually saved) — a real double-tap on "Log it"
+  // before this sheet closes called submit() twice, each creating its own
+  // customFoods doc for the same food. A plain ref (not state) catches the
+  // second tap in the same beat, before React would ever get a chance to
+  // disable the button via a re-render — same pattern as ClientApp.jsx's
+  // addBusyRef guard for the direct-add paths.
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (open) {
       setManual(EMPTY_QUICK_ADD);
       setMoreOpen(false);
+      submittingRef.current = false;
     }
   }, [open]);
 
   function submit() {
     if (!manual.name.trim() || manual.cals === "") return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     // The macros typed in are for whatever serving size is entered here —
     // not always 100g. Saving `per` as that same size means logging this
     // food again later (at that size, or scaled up/down) stays accurate,
@@ -1166,7 +1259,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Quick Add">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Quick Add" keyboardSafeScroll>
       <p className={dark ? "text-white/30 text-xs tracking-wide mb-2" : "text-black/30 text-xs tracking-wide mb-2"}>LOG A FOOD BY NAME</p>
       <div className="space-y-2.5">
         <TextInput dark={dark}
@@ -1251,6 +1344,7 @@ export function QuickAddFoodSheet({ open, onClose, onAdd, dark = false }) {
 ============================================================================ */
 
 export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = false }) {
+  const { db, createFood } = useApp();
   const [status, setStatus] = useState("pick"); // pick | build
   const [photoUrl, setPhotoUrl] = useState(null);
   const [name, setName] = useState("");
@@ -1261,6 +1355,12 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   const [pendingFood, setPendingFood] = useState(null);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const fileRef = useRef(null);
+  // "ADD TO TODAY" goes through ClientApp.jsx's guardedAdd (already
+  // double-tap safe). "ALSO SAVE AS A MEAL" calls onSaveAsMeal directly —
+  // its own fire-and-forget Firestore write had no equivalent guard, so a
+  // real double-tap there could create two saved-meal docs for the same
+  // photo estimate.
+  const savingMealRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -1271,6 +1371,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
       setSearch("");
       setManualOpen(false);
       setBarcodeOpen(false);
+      savingMealRef.current = false;
     }
   }, [open]);
 
@@ -1293,7 +1394,13 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   );
   const totals = { cals: Math.round(rawTotals.cals), protein: round1(rawTotals.protein), carbs: round1(rawTotals.carbs), fat: round1(rawTotals.fat) };
 
-  const filtered = FOOD_DATABASE.filter((f) => matchesSearch(f.name, search));
+  // Same merge as NutritionScreen's own `allFoods` (ClientApp.jsx) — without
+  // this, a barcode-discovered or coach-added customFoods entry (including
+  // a client's own label correction) was invisible here even though it's
+  // already searchable everywhere else, so building a meal silently fell
+  // back to typing it in again from scratch.
+  const allFoods = getAllFoods(db.customFoods);
+  const filtered = allFoods.filter((f) => matchesSearch(f.name, search));
 
   function addIngredient(food) {
     setIngredients((list) => [...list, { ...food, id: `ing_${Math.random().toString(36).slice(2, 8)}` }]);
@@ -1316,7 +1423,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log a Meal Photo">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log a Meal Photo" keyboardSafeScroll>
       {status === "pick" && (
         <div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
@@ -1458,7 +1565,11 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
             <SecondaryButton dark={dark}
               className="w-full mt-2.5"
               disabled={!name.trim() || ingredients.length === 0}
-              onClick={() => onSaveAsMeal(buildResult())}
+              onClick={() => {
+                if (savingMealRef.current) return;
+                savingMealRef.current = true;
+                onSaveAsMeal(buildResult());
+              }}
             >
               <UtensilsCrossed size={15} /> ALSO SAVE AS A MEAL
             </SecondaryButton>
@@ -1473,6 +1584,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
           addIngredient(scaled);
           setPendingFood(null);
         }}
+        onSaveCorrection={(corrected) => setPendingFood((f) => (f ? createFood(buildCorrectedFood(f, corrected)) : f))}
       />
       <BarcodeScanSheet
         open={barcodeOpen}
@@ -1493,6 +1605,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
 const MEAL_TYPE_OPTIONS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 
 export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes = false, dark = false }) {
+  const { db, createFood } = useApp();
   const [name, setName] = useState("");
   const [ingredients, setIngredients] = useState([]);
   const [mealTypes, setMealTypes] = useState([]);
@@ -1502,6 +1615,11 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   const [manual, setManual] = useState({ name: "", cals: 0, protein: 0, carbs: 0, fat: 0 });
   const [pendingFood, setPendingFood] = useState(null);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
+  // Same reasoning as QuickAddFoodSheet's submittingRef: onSave's own
+  // Firestore write is fire-and-forget, so a real double-tap on "Save"
+  // before the sheet closes could create two saved-meal docs for the
+  // same meal. A plain ref catches the second tap in the same beat.
+  const savingRef = useRef(false);
 
   useEffect(() => {
     if (open) {
@@ -1512,6 +1630,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
       setSearch("");
       setManualOpen(false);
       setBarcodeOpen(false);
+      savingRef.current = false;
     }
   }, [open, prefill]);
 
@@ -1525,7 +1644,13 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   );
   const totals = { cals: Math.round(rawTotals.cals), protein: round1(rawTotals.protein), carbs: round1(rawTotals.carbs), fat: round1(rawTotals.fat) };
 
-  const filtered = FOOD_DATABASE.filter((f) => matchesSearch(f.name, search));
+  // Same merge as NutritionScreen's own `allFoods` (ClientApp.jsx) — without
+  // this, a barcode-discovered or coach-added customFoods entry (including
+  // a client's own label correction) was invisible here even though it's
+  // already searchable everywhere else, so building a meal silently fell
+  // back to typing it in again from scratch.
+  const allFoods = getAllFoods(db.customFoods);
+  const filtered = allFoods.filter((f) => matchesSearch(f.name, search));
 
   function addIngredient(food) {
     setIngredients((list) => [...list, { ...food, id: `ing_${Math.random().toString(36).slice(2, 8)}` }]);
@@ -1545,6 +1670,8 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
 
   function save() {
     if (!name.trim() || ingredients.length === 0) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     onSave({ name: name.trim(), ingredients, mealTypes, instructions: instructions.trim(), ...totals });
   }
 
@@ -1559,7 +1686,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   const dividerBorder = dark ? "border-white/8" : "border-black/5";
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Create Meal" dark={dark}>
+    <BottomSheet open={open} onClose={onClose} title="Create Meal" dark={dark} keyboardSafeScroll>
       <Field label="MEAL NAME" dark={dark}>
         <TextInput dark={dark} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. My go-to breakfast" />
       </Field>
@@ -1721,6 +1848,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
           addIngredient(scaled);
           setPendingFood(null);
         }}
+        onSaveCorrection={(corrected) => setPendingFood((f) => (f ? createFood(buildCorrectedFood(f, corrected)) : f))}
       />
       <BarcodeScanSheet
         open={barcodeOpen}

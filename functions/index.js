@@ -29,12 +29,14 @@ const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 const { getAuth } = require("firebase-admin/auth");
+const { getStorage } = require("firebase-admin/storage");
 const { buildSuggestions } = require("./nutritionContents");
 
 initializeApp();
 const db = getFirestore();
 const messaging = getMessaging();
 const adminAuth = getAuth();
+const storageBucket = getStorage().bucket();
 
 // Sends to every device token stored on a user's profile doc, then prunes
 // any token Firebase reports as dead (uninstalled app, revoked
@@ -442,6 +444,22 @@ exports.deleteMyAccount = onCall(async (request) => {
     await db.collection("habitLog").doc(uid).delete().catch(() => {});
     await db.collection("mealPlans").doc(uid).delete().catch(() => {});
     await db.collection("users").doc(uid).delete();
+    // Firestore's `messages` docs are gone via CLIENT_ID_COLLECTIONS above,
+    // but any image/video/PDF actually attached to one of them lives in
+    // Storage, not Firestore (see src/lib/storage.js — uploaded to
+    // messageImages/{clientId}/..., messageVideos/{clientId}/...,
+    // messageDocs/{clientId}/..., all keyed by this client's own uid).
+    // Deleting only the Firestore docs left those files permanently
+    // orphaned under a folder still named by the now-deleted account,
+    // even though the account-deletion warning tells the client their
+    // messages are fully removed. Best-effort, same as the rest of this
+    // flow — a Storage cleanup failure shouldn't block the account
+    // itself from being deleted.
+    await Promise.all(
+      ["messageImages", "messageVideos", "messageDocs"].map((prefix) =>
+        storageBucket.deleteFiles({ prefix: `${prefix}/${uid}/` }).catch(() => {})
+      )
+    );
   } else if (role === "coach") {
     // Deletes the coach's own account/profile, not the clients, programs,
     // and library they manage — that data isn't personal to the coach in
@@ -1025,7 +1043,7 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
     });
   } catch (err) {
     // Without this, any Stripe-side rejection (a bad key, an account
-    // restriction, an unsupported currency) surfaced as an opaque 500 to
+    // restriction, an unsupported setting) surfaced as an opaque 500 to
     // the client with no way to tell what actually went wrong short of
     // reading Cloud Functions' own server logs. Stripe's own message is
     // safe to relay — it never includes the secret key itself.

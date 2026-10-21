@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
+import { disablePush } from "../lib/push";
 import { Logo, Toast, Avatar, BottomSheet } from "../components/ui";
 import { MEASURE_BLUE, CLIENT_DARK_BG } from "../theme";
 import { LayoutDashboard, Users, Users2, MessageCircle, Library, Settings, LogOut, Bell, SlidersHorizontal, Trophy, Dumbbell, Mountain } from "lucide-react";
@@ -126,6 +127,21 @@ export default function CoachShell() {
   }
 
   async function doLogout() {
+    // Mirrors the client app's doLogout: this device's push token is tied
+    // to whichever account enabled it — left registered, the next coach
+    // (or client) who signs in on this same device would keep this
+    // coach's push notifications arriving here too, since nothing else
+    // ever clears it. Best-effort: logout must still proceed even if this
+    // fails.
+    const myPushToken = localStorage.getItem(`pushToken_${currentUser.id}`);
+    if (myPushToken) {
+      try {
+        await disablePush(currentUser.id, myPushToken);
+      } catch {
+        // ignore — logging out matters more than this cleanup succeeding
+      }
+      localStorage.removeItem(`pushToken_${currentUser.id}`);
+    }
     // See the client app's doLogout for why this is awaited before
     // navigating — navigating first could race a same-moment service
     // worker update reload against an auth state that hadn't actually

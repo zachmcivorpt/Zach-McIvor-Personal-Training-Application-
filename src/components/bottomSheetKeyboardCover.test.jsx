@@ -18,7 +18,7 @@
 // (keyboard open), the sheet actually shrinks to fit above it instead of
 // running underneath it.
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { BottomSheet } from "./ui";
 
 function makeVisualViewport(height, offsetTop = 0) {
@@ -77,4 +77,89 @@ describe("BottomSheet shrinks with the keyboard instead of running underneath it
     expect(wrapper.style.height).toBe("420px");
     expect(wrapper.style.top).toBe("10px");
   });
+});
+
+// Real production reports (see REGRESSION_TESTS.md #42/#44/#45/#51/#52):
+// in a native WKWebView (this app's actual shell, unlike Safari),
+// window.visualViewport never fires for the keyboard at all, so the
+// shrink-to-fit behavior above has nothing to react to there. This is the
+// shared, opt-in fallback (Phase 2 of the audit): a `keyboardSafeScroll`
+// prop on BottomSheet itself, so any sheet with a text input gets a
+// keyboard-detection-independent scroll spacer "for free" instead of each
+// sheet having to reinvent one. Off by default — a sheet with no text
+// input, or one that hasn't opted in, is completely unaffected.
+describe("BottomSheet's opt-in keyboardSafeScroll spacer", () => {
+  afterEach(() => cleanup());
+
+  function spacer() {
+    return document.querySelector('[data-testid="keyboard-safe-spacer"]');
+  }
+
+  it("renders no spacer when keyboardSafeScroll isn't passed, even with a focused text input", () => {
+    render(
+      <BottomSheet open onClose={() => {}} title="Test">
+        <input placeholder="Name" />
+      </BottomSheet>
+    );
+    fireEvent.focus(screen.getByPlaceholderText("Name"));
+    expect(spacer()).toBeNull();
+  });
+
+  it("renders no spacer before any input is focused, even with keyboardSafeScroll on", () => {
+    render(
+      <BottomSheet open onClose={() => {}} title="Test" keyboardSafeScroll>
+        <input placeholder="Name" />
+      </BottomSheet>
+    );
+    expect(spacer()).toBeNull();
+  });
+
+  it("reserves scroll room once a text input inside the sheet gains focus", () => {
+    render(
+      <BottomSheet open onClose={() => {}} title="Test" keyboardSafeScroll>
+        <input placeholder="Name" />
+      </BottomSheet>
+    );
+    fireEvent.focus(screen.getByPlaceholderText("Name"));
+    expect(spacer()).toBeTruthy();
+  });
+
+  it("removes the spacer once the input loses focus", () => {
+    render(
+      <BottomSheet open onClose={() => {}} title="Test" keyboardSafeScroll>
+        <input placeholder="Name" />
+      </BottomSheet>
+    );
+    const input = screen.getByPlaceholderText("Name");
+    fireEvent.focus(input);
+    fireEvent.blur(input);
+    expect(spacer()).toBeNull();
+  });
+
+  it("does not reserve scroll room for a non-text-entry focus target (e.g. a button)", () => {
+    render(
+      <BottomSheet open onClose={() => {}} title="Test" keyboardSafeScroll>
+        <button>Save</button>
+      </BottomSheet>
+    );
+    fireEvent.focus(screen.getByText("Save"));
+    expect(spacer()).toBeNull();
+  });
+
+  it("keeps the spacer when focus moves between two text inputs in the same sheet (no flicker)", () => {
+    render(
+      <BottomSheet open onClose={() => {}} title="Test" keyboardSafeScroll>
+        <input placeholder="First" />
+        <input placeholder="Second" />
+      </BottomSheet>
+    );
+    const first = screen.getByPlaceholderText("First");
+    const second = screen.getByPlaceholderText("Second");
+    fireEvent.focus(first);
+    expect(spacer()).toBeTruthy();
+    fireEvent.blur(first, { relatedTarget: second });
+    fireEvent.focus(second);
+    expect(spacer()).toBeTruthy();
+  });
+
 });

@@ -8,7 +8,7 @@ import { storage } from "./firebase";
 import { maybeCompressVideo } from "./videoCompress";
 import { compressImageFile } from "./image";
 
-const MAX_VIDEO_BYTES = 75 * 1024 * 1024; // 75MB
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200MB — enough for a ~90s+ phone-camera form-check clip
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
 const MAX_MESSAGE_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
 const MAX_DESIGN_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB

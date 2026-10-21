@@ -10,13 +10,89 @@
 // search results.
 function parseServingGrams(product) {
   // `serving_quantity` is Open Food Facts' own parsed numeric grams for
-  // `serving_size` (e.g. "30 g" -> 30) — prefer it when present.
+  // `serving_size` (e.g. "30 g" -> 30) — prefer it when present. It's
+  // already unit-agnostic (g for a solid, ml for a liquid), matching how
+  // this app's own `per`/`defaultQty` pair treats g and ml as the same
+  // base numeric unit (see UNIT_DEFS in foodDatabase.js).
   if (product.serving_quantity != null) {
     const n = Number(product.serving_quantity);
     if (n > 0) return n;
   }
-  const match = String(product.serving_size || "").match(/(\d+(?:\.\d+)?)\s*g\b/i);
-  return match ? parseFloat(match[1]) : null;
+  // Fallback: parse the free-text `serving_size` label. A liquid product's
+  // serving is normally printed in ml (e.g. "250 ml"), not g — the g-only
+  // regex this used to have missed every one of those, silently falling
+  // back to the 100-unit placeholder for a real, known serving size. US-
+  // origin products occasionally label the serving in oz instead; that
+  // value is converted to the internal g/ml figure here so it's never
+  // lost, but oz/lb/kg themselves are never surfaced as a logging UNIT for
+  // a scanned item's serving — only grams/ml ever are (see `per: 100`
+  // below and UNIT_DEFS/autoUnitIds in foodDatabase.js).
+  const gramsOrMl = String(product.serving_size || "").match(/(\d+(?:\.\d+)?)\s*(?:g|ml|mL)\b/i);
+  if (gramsOrMl) {
+    const n = parseFloat(gramsOrMl[1]);
+    if (n > 0) return n;
+  }
+  const oz = String(product.serving_size || "").match(/(\d+(?:\.\d+)?)\s*oz\b/i);
+  if (oz) {
+    const n = parseFloat(oz[1]) * 28.35;
+    if (n > 0) return Math.round(n * 10) / 10;
+  }
+  return null;
+}
+
+// Real production report: a scanned bread product offered only grams, no
+// "slice" option — even though Open Food Facts' own `serving_size` text
+// often spells one out directly (e.g. "1 slice (40 g)", "2 biscuits
+// (30g)", "1 piece (25g)"). This extracts a genuine, verified per-unit
+// weight straight from that text — never invented or guessed — so a
+// scanned product gets the same real countable "piece" unit a
+// hand-curated database entry already offers (bread/wraps/eggs/patties/
+// cans/bottles/etc. from the app's own serving-size requirements),
+// whenever the product's own label actually states one. A count prefix
+// ("2 biscuits") divides the parenthetical weight to get the correct
+// single-unit weight; a serving_size with no countable-unit word at all
+// (just "30 g", "250 ml") correctly yields nothing here, leaving the food
+// on its base g/ml unit only, exactly as before.
+const COUNTABLE_UNIT_WORDS = {
+  slice: "slice", slices: "slice",
+  piece: "piece", pieces: "piece",
+  biscuit: "biscuit", biscuits: "biscuit",
+  cracker: "cracker", crackers: "cracker",
+  cookie: "cookie", cookies: "cookie",
+  bar: "bar", bars: "bar",
+  pita: "pita", pitas: "pita",
+  wrap: "wrap", wraps: "wrap",
+  tortilla: "tortilla", tortillas: "tortilla",
+  scoop: "scoop", scoops: "scoop",
+  sachet: "sachet", sachets: "sachet",
+  bun: "bun", buns: "bun",
+  roll: "roll", rolls: "roll",
+  egg: "egg", eggs: "egg",
+  patty: "patty", patties: "patty",
+  can: "can", cans: "can",
+  bottle: "bottle", bottles: "bottle",
+  fillet: "fillet", fillets: "fillet",
+  cake: "cake", cakes: "cake",
+};
+// Open Food Facts formats serving_size both ways round in practice: unit
+// word first ("1 slice (40 g)", "2 biscuits (30g)") and weight first
+// ("355 ml (1 can)", "330ml (1 bottle)") — both are tried, word-first
+// first since it's the more common OFF convention.
+function parseServingUnit(product) {
+  const text = String(product.serving_size || "");
+  const wordFirst = text.match(/(?:(\d+(?:\.\d+)?)\s*)?\b([a-z]+)\b[^(0-9]*\((\d+(?:\.\d+)?)\s*(?:g|ml)\)/i);
+  const weightFirst = text.match(/(\d+(?:\.\d+)?)\s*(?:g|ml)\s*\((?:(\d+(?:\.\d+)?)\s*)?([a-z]+)\)/i);
+  const [wordIdx, countIdx, gramsIdx] = wordFirst ? [2, 1, 3] : [3, 2, 1];
+  const match = wordFirst || weightFirst;
+  if (!match) return null;
+  const word = COUNTABLE_UNIT_WORDS[match[wordIdx].toLowerCase()];
+  if (!word) return null;
+  const count = Number(match[countIdx]) || 1;
+  const totalGrams = Number(match[gramsIdx]);
+  if (!(totalGrams > 0) || !(count > 0)) return null;
+  const perUnitGrams = Math.round((totalGrams / count) * 10) / 10;
+  if (!(perUnitGrams > 0)) return null;
+  return { label: word, pluralLabel: `${word}s`, grams: perUnitGrams };
 }
 
 // Open Food Facts' `quantity` field is the real package size as printed on
@@ -77,10 +153,36 @@ export function detectBarcodeFormat(code) {
 
 export function validateNutrition({ cals, protein, carbs, fat }) {
   const reasons = [];
-  if (cals == null || cals < 0 || cals > 920) reasons.push("calories outside a plausible per-100g range");
-  if (protein == null || protein < 0 || protein > 100) reasons.push("protein outside a plausible per-100g range");
-  if (carbs == null || carbs < 0 || carbs > 100) reasons.push("carbs outside a plausible per-100g range");
-  if (fat == null || fat < 0 || fat > 100) reasons.push("fat outside a plausible per-100g range");
+  // Missing is a distinct failure from "present but implausible" — a null
+  // field means Open Food Facts' own label data simply doesn't have it,
+  // not that it was checked and found wrong. Both still fail validation
+  // (a scan with a real gap in its macro panel is exactly the case this
+  // function exists to catch), but the math checks below need real
+  // numbers on all four fields, so a missing one always short-circuits
+  // straight to this reason instead of silently treating it as zero.
+  const missing = [];
+  if (cals == null) missing.push("calories");
+  else if (cals < 0 || cals > 920) reasons.push("calories outside a plausible per-100g range");
+  if (protein == null) missing.push("protein");
+  else if (protein < 0 || protein > 100) reasons.push("protein outside a plausible per-100g range");
+  if (carbs == null) missing.push("carbs");
+  else if (carbs < 0 || carbs > 100) reasons.push("carbs outside a plausible per-100g range");
+  if (fat == null) missing.push("fat");
+  else if (fat < 0 || fat > 100) reasons.push("fat outside a plausible per-100g range");
+  if (missing.length > 0) reasons.unshift(`missing ${missing.join(", ")} data`);
+
+  if (reasons.length === 0) {
+    const totalMacroGrams = protein + carbs + fat;
+    // Protein + carbs + fat physically can't exceed the 100g/100ml this is
+    // all supposed to be measured per — fibre, water and ash make up the
+    // rest, hence some slack, but this catches an impossible panel (e.g a
+    // misplaced decimal) that the calorie-reconciliation check below can
+    // miss on its own when a bad calorie figure happens to "reconcile"
+    // with equally bad macro figures.
+    if (totalMacroGrams > 105) {
+      reasons.push(`protein + carbs + fat adds up to ${Math.round(totalMacroGrams)}g, more than the 100g/100ml this is meant to be per`);
+    }
+  }
   if (reasons.length === 0) {
     const expected = protein * 4 + carbs * 4 + fat * 9;
     // Generous tolerance — fibre, sugar alcohols, alcohol and rounding on
@@ -149,10 +251,21 @@ export function computeConfidence({ product, food, formatInfo, nutritionValidati
 
   if (!food) return { score, level: levelForScore(score), breakdown };
 
-  // Nutrition completeness (20 pts) — full macro panel vs. partial.
-  const macroFields = [food.cals, food.protein, food.carbs, food.fat];
-  const presentCount = macroFields.filter((v) => v != null).length;
-  add("Nutrition completeness", Math.round((presentCount / 4) * 20), 20, `${presentCount}/4 macro fields present`);
+  // Nutrition completeness (20 pts) — full macro panel vs. partial. Reads
+  // `missingNutritionFields` (set by mapProductToFood from the RAW, un-
+  // defaulted Open Food Facts fields) rather than checking food.cals/
+  // protein/carbs/fat for null — those are always numbers by the time
+  // they reach here (a missing field is defaulted to 0 for display/
+  // calculation), so a null check here would always see "4/4 present"
+  // even when a field was actually missing and silently zeroed.
+  const missingFields = food.missingNutritionFields || [];
+  const presentCount = 4 - missingFields.length;
+  add(
+    "Nutrition completeness",
+    Math.round((presentCount / 4) * 20),
+    20,
+    presentCount === 4 ? "4/4 macro fields present" : `${presentCount}/4 macro fields present — missing ${missingFields.join(", ")}`
+  );
 
   // Nutrition plausibility (15 pts) — the Atwater sanity check.
   add(
@@ -195,19 +308,58 @@ export function computeConfidence({ product, food, formatInfo, nutritionValidati
   return { score, level, breakdown };
 }
 
+// Real production report: a product (Woolworths eggs, among others) came
+// back as "Product Not Found" — investigating found that this function
+// collapsed every failure mode into the exact same `null`: a confirmed
+// "Open Food Facts has no record of this barcode" reads identically to a
+// timeout, a dropped connection, a 429 (rate-limited) or a 5xx (OFF's own
+// server having a bad moment). The caller (lookupBarcode) then always
+// reported "Product not found" for all of them — even though the app's
+// own scan UI (NutritionFeatures.jsx) already has a SEPARATE "Couldn't
+// complete that scan / Try again" screen specifically for a transient
+// failure, distinct from the "not found, add it manually" screen. That
+// retry screen was effectively unreachable for any real lookup failure,
+// because this function never reported one as anything other than "not
+// found." Returns `{ found, product?, confirmed, transientReason? }`:
+// `found` means a usable product record came back; when it didn't,
+// `confirmed: true` means Open Food Facts positively said "no such
+// product" (HTTP 404, or its own `status: 0`) — a genuine absence, safe
+// to send straight to manual entry — while `confirmed: false` means the
+// lookup itself failed before OFF could answer either way (timeout,
+// network error, rate limit, server error) and should be retried, not
+// treated as a confirmed missing product.
 async function fetchProduct(code, timeoutMs = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json`, {
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        // Open Food Facts' own API etiquette asks every production client to
+        // identify itself — an anonymous/default User-Agent risks being
+        // silently rate-limited or deprioritized under real-world load,
+        // which would look exactly like an intermittent "not found."
+        "User-Agent": "APEX-Coaching-Platform/1.0 (+https://apps.apple.com/app/id6810194114)",
+      },
       signal: controller.signal,
     });
-    if (!res.ok) return null;
+    // A 404 is Open Food Facts positively confirming this exact code has
+    // no record at all — a genuine, confirmed absence. Any other non-2xx
+    // (429 rate-limited, 500/502/503 server trouble, etc.) is the lookup
+    // itself failing, not OFF answering "no" — must NOT be treated the
+    // same as a confirmed missing product.
+    if (res.status === 404) return { found: false, confirmed: true };
+    if (!res.ok) return { found: false, confirmed: false, transientReason: `HTTP ${res.status}` };
     const data = await res.json();
-    return data.status === 1 && data.product ? data.product : null;
-  } catch {
-    return null; // timeout, offline, or a malformed response — treat as "not found" so the caller's fallbacks/manual-entry path still runs
+    if (data.status === 1 && data.product) return { found: true, product: data.product };
+    // OFF's own `status: 0` ("status_verbose: product not found") is the
+    // same positive, confirmed "no" as a 404 above.
+    return { found: false, confirmed: true };
+  } catch (err) {
+    // A timeout (AbortError) or a thrown network error (offline, DNS
+    // failure, connection reset) — the lookup never got an answer from
+    // Open Food Facts at all, so this can never be treated as confirmed.
+    return { found: false, confirmed: false, transientReason: err?.name === "AbortError" ? "timeout" : "network error" };
   } finally {
     clearTimeout(timer);
   }
@@ -265,26 +417,57 @@ export function codeVariants(code) {
 // the SLOWEST variant takes, not the sum of all of them, since the first
 // one to come back with an actual product wins immediately rather than
 // waiting for a previous attempt to fail first.
+// Returns `{ product }` on a hit, or `{ product: null, confirmed }` when
+// none of the variants had one — `confirmed: true` only when EVERY
+// variant positively came back "no such product" from Open Food Facts
+// itself; `confirmed: false` if any variant instead failed to get an
+// answer at all (timeout/network/rate-limit/server error), so the caller
+// can tell a genuine miss from a lookup that simply didn't go through.
 async function fetchFirstMatch(variants) {
   return new Promise((resolve) => {
     let pending = variants.length;
     let settled = false;
+    let allConfirmed = true;
     variants.forEach((variant) => {
-      fetchProduct(variant).then((product) => {
+      fetchProduct(variant).then((result) => {
         if (settled) return;
-        if (product) {
+        if (result.found) {
           settled = true;
-          resolve(product);
+          resolve({ product: result.product });
           return;
         }
+        if (!result.confirmed) allConfirmed = false;
         pending -= 1;
         if (pending === 0 && !settled) {
           settled = true;
-          resolve(null);
+          resolve({ product: null, confirmed: allConfirmed });
         }
       });
     });
   });
+}
+
+// Open Food Facts stores a product's brand separately from its name
+// (`product.brands`), and crowd-sourced `product_name` entries often don't
+// repeat it ("Tim Tam Original" with brands: "Arnott's") — so a scanned
+// product's own displayed/searched name silently had no brand in it at
+// all. That matters here specifically: `matchesSearch` (search.js) only
+// ever checks `food.name`, and every search results list only ever
+// renders `food.name` — never `food.brand` — so an unprefixed name meant
+// the product couldn't be found by searching its brand, and read as
+// generic in every list it appeared in. Every branded FOOD_DATABASE entry
+// already carries its brand in the name string for exactly this reason;
+// this makes a scanned product follow the same rule. Only the first
+// listed brand is used (OFF sometimes comma-separates several), and only
+// when the name doesn't already start with it — many OFF entries already
+// do include the brand, and prefixing it twice ("Arnott's Arnott's Tim
+// Tam Original") would be worse than the gap this fixes.
+function withBrandInName(name, brands) {
+  if (!brands) return name;
+  const primaryBrand = brands.split(",")[0].trim();
+  if (!primaryBrand) return name;
+  if (name.toLowerCase().startsWith(primaryBrand.toLowerCase())) return name;
+  return `${primaryBrand} ${name}`;
 }
 
 // Maps a raw Open Food Facts product onto a FOOD_DATABASE-shaped entry, or
@@ -295,8 +478,22 @@ async function fetchFirstMatch(variants) {
 // sync with it.
 function mapProductToFood(product, code) {
   const n = product.nutriments || {};
-  const name = product.product_name || product.generic_name || `Scanned item (${code})`;
-  const hasNutrition = n["energy-kcal_100g"] != null || n["proteins_100g"] != null || n["carbohydrates_100g"] != null || n["fat_100g"] != null;
+  // The raw OFF name, kept for `source` (provenance — see below) and for
+  // the not-found/no-nutrition error paths, where there's no brand-merge
+  // benefit (nothing gets saved/searched in those cases).
+  const rawName = product.product_name || product.generic_name || `Scanned item (${code})`;
+  const name = withBrandInName(rawName, product.brands);
+  // Raw, un-defaulted values — kept distinct from the 0-defaulted ones
+  // below so a field Open Food Facts genuinely doesn't have can be
+  // detected and flagged (missingNutritionFields) rather than silently
+  // invented as a real zero. hasNutrition only needs at least one of the
+  // four to exist; "found but incomplete" is a `missingNutritionFields`
+  // flag on an otherwise-usable result, not a "not found."
+  const rawCals = n["energy-kcal_100g"];
+  const rawProtein = n["proteins_100g"];
+  const rawCarbs = n["carbohydrates_100g"];
+  const rawFat = n["fat_100g"];
+  const hasNutrition = rawCals != null || rawProtein != null || rawCarbs != null || rawFat != null;
 
   if (!hasNutrition) {
     const formatInfo = detectBarcodeFormat(code);
@@ -304,12 +501,19 @@ function mapProductToFood(product, code) {
     return { notFound: true, reason: "no-nutrition", productName: name, confidenceScore: confidence.score, verificationLevel: confidence.level, confidenceBreakdown: confidence.breakdown };
   }
 
-  const cals = Math.round(n["energy-kcal_100g"] || 0);
-  const protein = Math.round((n["proteins_100g"] || 0) * 10) / 10;
-  const carbs = Math.round((n["carbohydrates_100g"] || 0) * 10) / 10;
-  const fat = Math.round((n["fat_100g"] || 0) * 10) / 10;
+  const missingNutritionFields = [];
+  if (rawCals == null) missingNutritionFields.push("calories");
+  if (rawProtein == null) missingNutritionFields.push("protein");
+  if (rawCarbs == null) missingNutritionFields.push("carbs");
+  if (rawFat == null) missingNutritionFields.push("fat");
+
+  const cals = Math.round(rawCals || 0);
+  const protein = Math.round((rawProtein || 0) * 10) / 10;
+  const carbs = Math.round((rawCarbs || 0) * 10) / 10;
+  const fat = Math.round((rawFat || 0) * 10) / 10;
 
   const servingGrams = parseServingGrams(product);
+  const servingUnit = parseServingUnit(product);
 
   const packageInfo = parseQuantity(product);
 
@@ -317,10 +521,6 @@ function mapProductToFood(product, code) {
     id: `off_${code}`,
     name,
     brand: product.brands || "",
-    // Small preview image, not the full-res photo — this is only ever shown
-    // at thumbnail size so the client can eyeball "is this really what I
-    // scanned" before adding it.
-    imageUrl: product.image_front_small_url || product.image_small_url || product.image_url || "",
     cals,
     protein,
     carbs,
@@ -337,6 +537,15 @@ function mapProductToFood(product, code) {
     // the serving size) so the confirm screen can say so plainly instead
     // of presenting a guess as fact.
     ...(servingGrams == null ? { servingSizeUnverified: true } : {}),
+    // Real production report: a scanned bread product offered only grams,
+    // no "slice" option. When Open Food Facts' own serving_size text
+    // names a genuine countable unit (see parseServingUnit above), carry
+    // it through as a real customUnit — exactly the same "1 egg"/"1
+    // slice"-style piece unit a hand-curated database entry already gets,
+    // just derived from the product's own verified label instead of
+    // typed in by hand. Never invented: absent when OFF's text doesn't
+    // clearly name one.
+    ...(servingUnit ? { customUnit: servingUnit } : {}),
     // Lets unitsFor() (foodDatabase.js) show ml/cup/tbsp instead of
     // g/oz/lb/kg — read straight off Open Food Facts' own `quantity`
     // field rather than guessing from the product name, since every
@@ -346,9 +555,24 @@ function mapProductToFood(product, code) {
     // "how much did you have," just the whole package regardless of how
     // much was actually consumed.)
     ...(packageInfo ? { liquid: packageInfo.liquid } : {}),
+    ...(missingNutritionFields.length ? { missingNutritionFields } : {}),
+    // The exact macros Open Food Facts returned for this barcode, kept
+    // untouched for as long as this entry exists — a later client
+    // correction (see buildCorrectedFood) only ever changes the top-level
+    // cals/protein/carbs/fat, never this, so what the source actually said
+    // stays auditable rather than being overwritten and lost.
+    source: { name: rawName, brand: product.brands || "", cals, protein, carbs, fat },
   };
 
-  const validation = validateNutrition({ cals, protein, carbs, fat });
+  // Validated against the RAW (possibly-null) values, not the 0-defaulted
+  // ones above — a missing field must be caught as missing, never treated
+  // as a confirmed zero.
+  const validation = validateNutrition({
+    cals: rawCals != null ? cals : null,
+    protein: rawProtein != null ? protein : null,
+    carbs: rawCarbs != null ? carbs : null,
+    fat: rawFat != null ? fat : null,
+  });
   if (!validation.plausible) {
     food.nutritionSuspect = true;
     food.nutritionSuspectReason = validation.reason;
@@ -389,10 +613,22 @@ function mapProductToFood(product, code) {
 }
 
 export async function lookupBarcode(code) {
-  const product = await fetchFirstMatch(codeVariants(code));
+  const { product, confirmed } = await fetchFirstMatch(codeVariants(code));
   const digits = String(code).replace(/\D/g, "");
 
   if (!product) {
+    // `confirmed === false` means the lookup itself didn't go through for
+    // ANY tried variant (timeout/network/rate-limit/server error) — Open
+    // Food Facts never actually got the chance to say "no such product."
+    // Reported WITHOUT `err.notFound`, so the scan UI's existing "Couldn't
+    // complete that scan / Try again" screen is used instead of routing
+    // straight to manual entry, which used to happen for every one of
+    // these (see this function's history/comments in fetchProduct above).
+    if (!confirmed) {
+      const err = new Error(`Barcode scanned: ${digits}\nCouldn't reach the product database — check your connection and try again.`);
+      err.scannedCode = digits;
+      throw err;
+    }
     const err = new Error(`Barcode scanned: ${digits}\nProduct not found — you can still add it manually below.`);
     err.notFound = true;
     err.scannedCode = digits;
@@ -434,25 +670,31 @@ export async function debugLookupBarcode(code) {
   const perVariant = await Promise.all(
     variants.map(async (variant) => {
       const t0 = Date.now();
-      const product = await fetchProduct(variant);
-      return { variant, found: !!product, product, ms: Date.now() - t0 };
+      const result = await fetchProduct(variant);
+      return { variant, found: result.found, product: result.found ? result.product : null, confirmed: result.confirmed, transientReason: result.transientReason, ms: Date.now() - t0 };
     })
   );
 
   const trace = {
     scannedCode: digits,
     sourcesSearched: [{ name: "Open Food Facts", url: "https://world.openfoodfacts.org", type: "barcode-exact-match" }],
-    variantsTried: perVariant.map(({ variant, found, ms }) => ({ variant, found, ms })),
+    // `confirmed`/`transientReason` surfaced per variant so a real "not
+    // found" (every variant positively confirmed absent) can be told apart
+    // from a lookup that simply never got an answer (timeout/network/rate
+    // limit/server error) — the exact distinction the scan UI itself now
+    // relies on (see lookupBarcode).
+    variantsTried: perVariant.map(({ variant, found, confirmed, transientReason, ms }) => ({ variant, found, confirmed, transientReason, ms })),
     totalMs: Date.now() - startedAt,
   };
 
   const hit = perVariant.find((v) => v.found);
   if (!hit) {
     const formatInfo = detectBarcodeFormat(code);
+    const allConfirmed = perVariant.every((v) => v.confirmed);
     const confidence = computeConfidence({ product: null, food: null, formatInfo, nutritionValidation: { plausible: false, reason: "no product found" } });
     trace.selectedVariant = null;
     trace.rawProduct = null;
-    trace.outcome = "not-found";
+    trace.outcome = allConfirmed ? "not-found" : "lookup-failed";
     trace.confidenceScore = confidence.score;
     trace.verificationLevel = confidence.level;
     trace.confidenceBreakdown = confidence.breakdown;
@@ -479,7 +721,76 @@ export async function debugLookupBarcode(code) {
   }
 
   trace.outcome = "resolved";
-  trace.nutritionValidation = validateNutrition({ cals: mapped.cals, protein: mapped.protein, carbs: mapped.carbs, fat: mapped.fat });
+  // Reconstructs the same raw (possibly-null) inputs mapProductToFood
+  // itself validated against — missingNutritionFields names which of the
+  // defaulted values below were actually absent, so the debug trace never
+  // reports a missing field as a confirmed, reconciling zero.
+  const missing = new Set(mapped.missingNutritionFields || []);
+  trace.nutritionValidation = validateNutrition({
+    cals: missing.has("calories") ? null : mapped.cals,
+    protein: missing.has("protein") ? null : mapped.protein,
+    carbs: missing.has("carbs") ? null : mapped.carbs,
+    fat: missing.has("fat") ? null : mapped.fat,
+  });
   trace.finalFood = mapped;
   return trace;
+}
+
+// Multiple customFoods docs can legitimately share a barcode. A client's
+// own correction (buildCorrectedFood, below) is always a fresh CREATE,
+// never an UPDATE — the shared food library's Firestore rules only let a
+// coach update/delete an existing doc, any signed-in client can only
+// create one (see firestore.rules) — so the original Open Food Facts
+// result and a client's correction for the same barcode end up as two
+// separate docs rather than one being overwritten. Whenever more than one
+// doc is found for a barcode, this is what decides which one a scan
+// actually uses: a corrected entry always wins over an uncorrected one
+// (a human read it off the real pack); among same-status docs, the most
+// recently verified one wins — never an arbitrary array/query order.
+export function pickBestFoodForBarcode(foods) {
+  if (!foods || foods.length === 0) return null;
+  const sorted = [...foods].sort((a, b) => {
+    const aCorrected = a.correctedByUser ? 1 : 0;
+    const bCorrected = b.correctedByUser ? 1 : 0;
+    if (aCorrected !== bCorrected) return bCorrected - aCorrected;
+    return (b.verifiedAt || 0) - (a.verifiedAt || 0);
+  });
+  return sorted[0];
+}
+
+// Builds the food record a client's own correction saves, when a scanned
+// product's nutrition data failed validation (nutritionSuspect) or was
+// missing fields (missingNutritionFields) and they typed in the real
+// numbers off the pack. Typed straight off the label by a person beats
+// anything a crowd-sourced database returned, so this is marked VERIFIED
+// outright — same treatment the existing barcode "add manually" flow
+// already gives a from-scratch manual entry (see addManual() in
+// NutritionFeatures.jsx) — rather than inheriting the scan's own uncertain
+// score. `food.source` (set once, in mapProductToFood, from the exact
+// values Open Food Facts returned) is carried forward untouched — a
+// correction only ever changes the top-level macros a client sees and
+// logs against, never the record of what the source actually said.
+export function buildCorrectedFood(food, corrected) {
+  const next = { ...food };
+  delete next.id; // createFood mints its own real Firestore id
+  next.cals = Math.max(0, Math.round(Number(corrected.cals) || 0));
+  next.protein = Math.max(0, Number(corrected.protein) || 0);
+  next.carbs = Math.max(0, Number(corrected.carbs) || 0);
+  next.fat = Math.max(0, Number(corrected.fat) || 0);
+  next.per = 100;
+  if (corrected.defaultQty != null && Number(corrected.defaultQty) > 0) {
+    next.defaultQty = Number(corrected.defaultQty);
+    next.servingSizeUnverified = false;
+  }
+  delete next.nutritionSuspect;
+  delete next.nutritionSuspectReason;
+  delete next.missingNutritionFields;
+  next.verificationLevel = VERIFICATION_LEVELS.VERIFIED;
+  next.confidenceScore = 100;
+  next.correctedByUser = true;
+  next.verifiedAt = Date.now();
+  if (!next.source) {
+    next.source = { name: food.name, brand: food.brand || "", cals: food.cals, protein: food.protein, carbs: food.carbs, fat: food.fat };
+  }
+  return next;
 }

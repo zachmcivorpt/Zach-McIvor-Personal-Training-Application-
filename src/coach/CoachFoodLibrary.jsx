@@ -1,52 +1,45 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { BottomSheet, Field, TextInput, PrimaryButton, DangerButton, SecondaryButton } from "../components/ui";
 import { FOOD_DATABASE } from "../lib/foodDatabase";
-import { fileToCompressedDataUrl } from "../lib/image";
 import { matchesSearch } from "../lib/search";
 import { CLIENT_DARK_BORDER, MEASURE_BLUE } from "../theme";
 import { DarkPanel } from "./darkUI";
-import { Plus, Search, Apple, Trash2, Camera, Download } from "lucide-react";
+import { Plus, Search, Apple, Trash2, Download } from "lucide-react";
 
 function emptyFood() {
-  return { name: "", cals: "", protein: "", carbs: "", fat: "", imageUrl: "" };
+  // `per` left blank rather than defaulted to "100" so the placeholder
+  // (showing "100") stays visibly distinct from a coach having actually
+  // typed 100 — same UX as QuickAddFoodSheet's own serving-size field.
+  return { name: "", cals: "", protein: "", carbs: "", fat: "", per: "" };
 }
 
-function FoodSheet({ food, open, onClose, showToast }) {
+export function FoodSheet({ food, open, onClose, showToast }) {
   const { createFood, updateFood, deleteFood } = useApp();
-  const [form, setForm] = useState(() => (food ? { ...emptyFood(), ...food } : emptyFood()));
+  const [form, setForm] = useState(() => (food ? { ...emptyFood(), ...food, per: food.per ?? "" } : emptyFood()));
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [photoBusy, setPhotoBusy] = useState(false);
-  const fileRef = useRef(null);
 
   function set(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  async function handlePhoto(e) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setPhotoBusy(true);
-    try {
-      const dataUrl = await fileToCompressedDataUrl(file, 500, 0.75);
-      set("imageUrl", dataUrl);
-    } catch {
-      showToast("Couldn't read that photo");
-    } finally {
-      setPhotoBusy(false);
-    }
-  }
-
   function submit(e) {
     e.preventDefault();
+    // Same convention as QuickAddFoodSheet (the client-side equivalent of
+    // this form): the macros typed in are for whatever serving size the
+    // coach enters here, not always 100g — a real production gap this
+    // closes was this form having no serving-size field at all, silently
+    // defaulting every coach-added food to "per 100g" regardless of what
+    // the coach actually typed the macros for.
+    const per = Math.max(1, Math.round(Number(form.per)) || 100);
     const data = {
       name: form.name.trim(),
-      cals: Number(form.cals) || 0,
-      protein: Number(form.protein) || 0,
-      carbs: Number(form.carbs) || 0,
-      fat: Number(form.fat) || 0,
-      imageUrl: form.imageUrl || "",
+      cals: Math.max(0, Number(form.cals) || 0),
+      protein: Math.max(0, Number(form.protein) || 0),
+      carbs: Math.max(0, Number(form.carbs) || 0),
+      fat: Math.max(0, Number(form.fat) || 0),
+      per,
+      defaultQty: per,
     };
     if (food) {
       updateFood(food.id, data);
@@ -61,25 +54,11 @@ function FoodSheet({ food, open, onClose, showToast }) {
   return (
     <BottomSheet open={open} onClose={onClose} title={food ? "Edit Food" : "Add Food"}>
       <form onSubmit={submit} className="space-y-4">
-        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="w-full flex items-center gap-3 bg-black/5 border border-dashed border-black/15 rounded-xl px-3.5 py-3"
-        >
-          {form.imageUrl ? (
-            <img src={form.imageUrl} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-          ) : (
-            <div className="w-12 h-12 rounded-lg bg-black/8 flex items-center justify-center shrink-0">
-              <Camera size={16} className="text-black/40" />
-            </div>
-          )}
-          <span className="text-black/50 text-sm font-medium">
-            {photoBusy ? "Reading photo..." : form.imageUrl ? "Change photo" : "Add a photo"}
-          </span>
-        </button>
-        <Field label="FOOD NAME" hint="Include the serving size, e.g. Chicken Breast (150g)">
-          <TextInput value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Chicken Breast (150g)" required />
+        <Field label="FOOD NAME">
+          <TextInput value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Chicken Breast" required />
+        </Field>
+        <Field label="SERVING SIZE THE MACROS BELOW ARE FOR (GRAMS)" hint="e.g. if the label is 165 kcal per 150g, set this to 150 and calories to 165 — clients logging more or less of this food will scale automatically.">
+          <TextInput type="number" min={1} value={form.per} onChange={(e) => set("per", e.target.value)} placeholder="100" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="CALORIES">
@@ -173,7 +152,7 @@ export default function CoachFoodLibrary({ showToast }) {
             <button
               onClick={handleImport}
               disabled={importing}
-              title="Turns every built-in food into a real, editable entry (add a photo, fix macros) here in your library"
+              title="Turns every built-in food into a real, editable entry (fix macros) here in your library"
               className="flex items-center gap-2 bg-white/8 hover:bg-white/15 disabled:opacity-50 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
             >
               <Download size={16} /> <span className="hidden sm:inline">{importing ? "IMPORTING…" : "MAKE BUILT-INS EDITABLE"}</span>
@@ -206,16 +185,12 @@ export default function CoachFoodLibrary({ showToast }) {
             {filteredCustom.map((f) => (
               <DarkPanel key={f.id} chamfer className="active:scale-[0.98] transition-transform">
                 <div onClick={() => setEditing(f)} className="relative flex items-center gap-3 p-4 cursor-pointer hover:bg-white/[0.03] transition-colors">
-                  {f.imageUrl ? (
-                    <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border" style={{ borderColor: CLIENT_DARK_BORDER }} />
-                  ) : (
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
-                      style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
-                    >
-                      <Apple size={16} style={{ color: MEASURE_BLUE }} />
-                    </div>
-                  )}
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                    style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}
+                  >
+                    <Apple size={16} style={{ color: MEASURE_BLUE }} />
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-semibold text-sm truncate">{f.name}</p>
                     <p className="text-white text-xs truncate mt-0.5">
@@ -238,13 +213,9 @@ export default function CoachFoodLibrary({ showToast }) {
         {filteredBase.map((f) => (
           <DarkPanel key={f.id} chamfer>
             <div className="relative flex items-center gap-3 p-4">
-              {f.imageUrl ? (
-                <img src={f.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0 border" style={{ borderColor: CLIENT_DARK_BORDER }} />
-              ) : (
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border" style={{ backgroundColor: "rgba(255,255,255,0.04)", borderColor: CLIENT_DARK_BORDER }}>
-                  <Apple size={16} className="text-white" />
-                </div>
-              )}
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border" style={{ backgroundColor: "rgba(255,255,255,0.04)", borderColor: CLIENT_DARK_BORDER }}>
+                <Apple size={16} className="text-white" />
+              </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-sm truncate">{f.name}</p>
                 <p className="text-white text-xs truncate mt-0.5">

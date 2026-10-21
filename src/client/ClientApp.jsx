@@ -137,13 +137,15 @@ import { isPersistedSessionStale } from "../lib/sessionStaleness";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
-import { FOOD_DATABASE, MICRO_FIELDS } from "../lib/foodDatabase";
+import { MICRO_FIELDS, getAllFoods } from "../lib/foodDatabase";
 import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
 import { NutritionTargetsCard } from "../coach/CoachClientDetail";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
+import { buildCorrectedFood, validateNutrition } from "../lib/barcodeLookup";
+import { AFCD_FOODS } from "../lib/afcdFoods";
 import {
   BODY_FAT_CONFIG,
   LEAN_MASS_CONFIG,
@@ -366,10 +368,33 @@ export function useClientDark() {
    HOME
 ============================================================================ */
 
-function BrandBar({ dark = false }) {
+function NutritionQuickTile({ icon: Icon, label, onClick, dark, invert = false }) {
   return (
-    <div className="flex items-center justify-center pt-3 pb-1">
-      <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-9 w-auto ${dark ? "opacity-90" : "opacity-95"}`} />
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center gap-1.5 rounded-2xl py-3.5 active:scale-95 transition-transform ${
+        invert ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/70" : "bg-black/8 text-black/70"
+      }`}
+    >
+      <Icon size={18} />
+      <span className="text-[11px] font-semibold text-center leading-tight">{label}</span>
+    </button>
+  );
+}
+
+// Logo + divider + page name — the per-tab heading used on every main tab
+// (Home/Training/Nutrition/Calendar/Progress/Profile), each passing its own
+// label. `right` renders an optional control (e.g. Progress's graph icon)
+// at the end of the same row.
+function TabHeader({ label, dark = false, right = null }) {
+  return (
+    <div className="px-2.5 pt-3 pb-2 flex items-center gap-3">
+      <Logo variant="mark" tone={dark ? "white" : "black"} className={`h-7 w-auto shrink-0 ${dark ? "opacity-90" : "opacity-95"}`} />
+      <div className={dark ? "w-px h-6 bg-white/15" : "w-px h-6 bg-black/15"} />
+      <h1 className={dark ? "text-white text-sm font-bold tracking-[0.14em] flex-1" : "text-black text-sm font-bold tracking-[0.14em] flex-1"}>
+        {label.toUpperCase()}
+      </h1>
+      {right}
     </div>
   );
 }
@@ -377,12 +402,12 @@ function BrandBar({ dark = false }) {
 function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const dark = useClientDark();
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
     <div className="flex items-center justify-between px-2.5 pt-4 pb-0">
       <div>
-        <p className={`text-xl font-semibold tracking-tight ${dark ? "text-white" : "text-black"}`}>
+        <p className={`text-lg font-bold ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
         </p>
         <p className={`text-sm mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>{dateStr}</p>
@@ -1174,7 +1199,10 @@ function HomeScreen({
   const dark = useClientDark();
   return (
     <div className="pb-28 space-y-5">
-      <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
+      <div>
+        <TabHeader label="Home" dark={dark} />
+        <Header user={user} onAvatarClick={onAvatarClick} notifCount={notifCount} onOpenNotifications={onOpenNotifications} />
+      </div>
       <DateStrip selectedOffset={dayOffset} onSelect={onSelectDay} />
       {isToday && <NotificationsPromptCard userId={userId} showToast={showToast} />}
       {isToday && bodyStatsDueToday && (
@@ -2395,6 +2423,9 @@ export function WorkoutSession({
   sessionNote,
   onChangeSessionNote,
   onSaveSessionNote,
+  coachUser,
+  unreadCount,
+  onOpenMessages,
 }) {
   const dark = useClientDark();
   const [noteOpenFor, setNoteOpenFor] = useState(null);
@@ -2402,25 +2433,45 @@ export function WorkoutSession({
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
   const [sessionNoteOpen, setSessionNoteOpen] = useState(false);
+  // `finishing` (a prop, backed by useState in the parent) only disables
+  // the Complete Workout button once React commits that update — two
+  // click dispatches landing in the same task (a touchend/click
+  // double-fire for one physical tap) both read the stale "not finishing"
+  // render and both call onFinish, firing finishWorkout() twice
+  // concurrently. A ref flips synchronously, so the second dispatch in
+  // the same beat is dropped before either commit happens — same pattern
+  // as the nutrition double-log fixes (addBusyRef/confirmingRef) for the
+  // identical race.
+  const finishingRef = useRef(false);
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
   const [restLabel, setRestLabel] = useState("");
   const timerRef = useRef(null);
-  // The real wall-clock moment rest ends, not a tick count — a phone
+  // The real elapsed-time moment rest ends, not a tick count — a phone
   // backgrounds this tab the moment a client switches apps or locks the
   // screen, and mobile browsers throttle/suspend setInterval while
   // backgrounded, so counting down "one tick per second" silently stalls
   // and loses however long they were away. Deriving remaining time from
-  // Date.now() vs this deadline on every tick (and immediately on return)
-  // means the timer is always correct regardless of how many ticks the
-  // browser actually let through.
+  // performance.now() vs this deadline on every tick (and immediately on
+  // return) means the timer is always correct regardless of how many
+  // ticks the browser actually let through.
+  //
+  // performance.now() specifically, not Date.now(): Date.now() reads the
+  // system wall clock, which phones routinely resync (NTP, timezone/DST)
+  // — often right as a backgrounded app wakes back up. A resync landing
+  // while this was computed from Date.now() made the "paused" (backgrounded,
+  // nothing visibly changing) timer jump to an unrelated, seemingly random
+  // value the instant the screen came back, with no actual bug in the
+  // countdown logic itself — just the wrong clock source. performance.now()
+  // is monotonic: immune to the system clock being adjusted, only ever
+  // reflecting real elapsed time.
   const restEndAtRef = useRef(null);
 
   useEffect(() => {
     if (!resting) return;
     const tick = () => {
-      const remaining = Math.max(0, Math.round((restEndAtRef.current - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.round((restEndAtRef.current - performance.now()) / 1000));
       setRestTime(remaining);
       if (remaining <= 0) {
         setResting(false);
@@ -2459,7 +2510,7 @@ export function WorkoutSession({
       // the client was away, since that's exactly the moment iOS is most
       // likely to have suspended the shared context.
       armRestTimerAudio();
-      const remaining = Math.max(0, Math.round((restEndAtRef.current - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.round((restEndAtRef.current - performance.now()) / 1000));
       setRestTime(remaining);
       if (remaining <= 0) {
         setResting(false);
@@ -2487,6 +2538,20 @@ export function WorkoutSession({
     document.addEventListener("pointerdown", armRestTimerAudio);
     return () => document.removeEventListener("pointerdown", armRestTimerAudio);
   }, []);
+
+  // Mirrors the parent's `finishing` state back into the ref once a save
+  // actually finishes (succeeds and this screen is about to unmount
+  // anyway, or fails and control genuinely comes back) — so a failed save
+  // can always be retried with a fresh tap, never permanently locked out.
+  useEffect(() => {
+    if (!finishing) finishingRef.current = false;
+  }, [finishing]);
+
+  function handleFinish() {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    onFinish?.();
+  }
 
   // The exercises actually being performed this session — the original
   // plan (with any swapped exercises substituted in), plus anything the
@@ -2581,7 +2646,32 @@ export function WorkoutSession({
     // Personal Bests card, which treats the first logged set the same way.
     const { bestScore, bestSet, maxWeight } = getBestEverStats(logsForClient, exMeta.exerciseId);
     const score = weight > 0 ? estimate1RM(weight, reps) : reps;
-    const isPR = !bestSet || weight > maxWeight || score > bestScore;
+
+    // getBestEverStats only sees SAVED logs — it has no idea about sets
+    // already completed earlier in this same, still-unsaved session. Real
+    // bug this fixes: logging progressively heavier sets of one exercise
+    // (85kg, 90kg, 95kg) each individually beat the stale saved record, so
+    // every one got flagged a PR instead of just the session's actual
+    // best set — inflating the in-session trophy count, the finished-
+    // workout PR tally, and (since `isPR` is saved verbatim on finish) the
+    // 30-day PR count on the Performance Timeline permanently. Folding in
+    // every other completed set of this exercise from the current session
+    // means only the genuine best-so-far set, saved history included,
+    // earns the badge.
+    let sessionBestScore = 0;
+    let sessionMaxWeight = 0;
+    arr.forEach((s, i) => {
+      if (i === idx || !s.completed) return;
+      const sReps = parseInt(s.reps, 10);
+      if (!sReps || isNaN(sReps)) return;
+      const sWeight = s.weight === "" || s.weight == null ? 0 : parseFloat(s.weight);
+      if (isNaN(sWeight)) return;
+      const sScore = sWeight > 0 ? estimate1RM(sWeight, sReps) : sReps;
+      if (sScore > sessionBestScore) sessionBestScore = sScore;
+      if (sWeight > sessionMaxWeight) sessionMaxWeight = sWeight;
+    });
+    const hasAnyPriorBest = !!bestSet || sessionBestScore > 0 || sessionMaxWeight > 0;
+    const isPR = !hasAnyPriorBest || weight > Math.max(maxWeight, sessionMaxWeight) || score > Math.max(bestScore, sessionBestScore);
 
     setActiveLog((prev) => {
       const nextSets = [...(prev[exMeta.exerciseId] || [])];
@@ -2598,7 +2688,7 @@ export function WorkoutSession({
   function handleStartRest(exMeta) {
     unlockTimerAudio();
     const rest = exMeta.restSeconds ?? 90;
-    restEndAtRef.current = Date.now() + rest * 1000;
+    restEndAtRef.current = performance.now() + rest * 1000;
     setRestTime(rest);
     setRestTotal(rest);
     setRestLabel(exercisesById[exMeta.exerciseId]?.name || "");
@@ -2686,7 +2776,7 @@ export function WorkoutSession({
             <Plus size={16} />
             Add Exercise
           </button>
-          <PrimaryButton dark={dark} className="w-full" onClick={onFinish} disabled={finishing}>
+          <PrimaryButton dark={dark} className="w-full" onClick={handleFinish} disabled={finishing}>
             {finishing ? "Saving…" : "Complete Workout"}
           </PrimaryButton>
         </div>
@@ -2734,6 +2824,17 @@ export function WorkoutSession({
             currentLogId={daySession.workoutLogId}
           />
         )}
+
+        {/* Same CoachChatBubble used everywhere else in the app, just
+            mounted here too — WorkoutSession's own root is an opaque
+            full-screen overlay (z-[90]) that otherwise completely covers
+            the app-level bubble (z-[55]) for the whole session, even
+            though that instance is still mounted underneath. Rendering it
+            as a child here puts it in this screen's own stacking context
+            instead, on top of the session content. ClientApp suppresses
+            its own top-level copy while a session is active so there's
+            only ever one bubble in the DOM. */}
+        {coachUser && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={onOpenMessages} />}
       </div>
     </FullScreenOverlay>
   );
@@ -3360,11 +3461,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>
-          {tab === "program" ? `${currentUser.name}'s Program` : "Training"}
-        </h1>
-      </div>
+      <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark={dark} />
       <div className="flex gap-2 px-2.5 mb-4">
         {["today", "program"].map((t) => (
           <button
@@ -4591,7 +4688,7 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
 
 export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
   const dark = useClientDark();
-  const { db, currentUser, swapMealPlanMeal } = useApp();
+  const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
   const [navOffset, setNavOffset] = useState(0); // 0 = today, 1 = yesterday, 2 = day before, ...
   const viewDateKey = useMemo(() => {
     if (navOffset === 0) return localDateKey();
@@ -4627,10 +4724,6 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
   function dismissKeyboard() {
     searchInputRef.current?.blur();
   }
-  // Tracks whether the search box currently has focus — used to reserve
-  // extra scroll room below the results while the on-screen keyboard is
-  // (presumably) up. See the spacer this drives, further down.
-  const [searchFocused, setSearchFocused] = useState(false);
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -4641,16 +4734,17 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
   const [nutritionDetailOpen, setNutritionDetailOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [tab, setTab] = useState("today"); // "today" | "plan"
+  // Set by the dashboard-level Scan/Search tiles (no meal preselected) so a
+  // food can be picked first and the destination meal chosen right after,
+  // vs. the per-meal "Log" buttons which set activeMeal immediately.
+  const [mealChoice, setMealChoice] = useState(null); // scaled food awaiting a meal pick, or null
+  const aiHelpRef = useRef(null);
 
   const mealCategories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
   // Coach-added and barcode-discovered foods (db.customFoods) are searched
   // alongside the static built-in database — they're what "save to food
   // library" from a barcode scan/manual entry is actually for.
-  const customFoodIds = new Set((db.customFoods || []).map((f) => f.id));
-  // A built-in food the coach has imported into customFoods (editable,
-  // maybe with a photo now) replaces the static entry rather than
-  // duplicating it — same id, so the imported version simply wins.
-  const allFoods = [...(db.customFoods || []), ...FOOD_DATABASE.filter((f) => !customFoodIds.has(f.id))];
+  const allFoods = getAllFoods(db.customFoods);
   const filteredFoods = allFoods.filter((f) => matchesSearch(f.name, search));
 
   // A plain ref, not state: these direct-add paths (recent foods, saved
@@ -4675,10 +4769,16 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
   function addAndClose(food) {
     dismissKeyboard();
-    guardedAdd(food);
     setBarcodeOpen(false);
     setPhotoOpen(false);
     setSheetOpen(false);
+    // No meal preselected (reached via a dashboard-level tile) — ask which
+    // meal this goes to instead of logging it to an undefined destination.
+    if (!activeMeal) {
+      setMealChoice(food);
+      return;
+    }
+    guardedAdd(food);
   }
 
   function saveMealFromEstimate(estimate) {
@@ -4696,8 +4796,19 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
     setSheetOpen(false);
   }
 
+  function scrollToAiHelp() {
+    aiHelpRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function logSavedMeal(meal, category) {
-    guardedAdd({ id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat }, category);
+    const food = { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat };
+    // No meal preselected (reached via a dashboard-level tile) — ask which
+    // meal this goes to instead of logging it to an undefined destination.
+    if (!category) {
+      setMealChoice(food);
+      return;
+    }
+    guardedAdd(food, category);
   }
 
   const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
@@ -4746,9 +4857,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Nutrition</h1>
-      </div>
+      <TabHeader label="Nutrition" dark={dark} />
 
       <div className="flex gap-2 px-2.5 mb-4">
         {[
@@ -4808,85 +4917,95 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
       {tab === "today" && (
       <>
-      <div
-        onClick={() => setNutritionDetailOpen(true)}
-        className="p-5 mt-3 cursor-pointer active:scale-[0.98] transition-transform"
-        style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
-      >
-          <div className="flex items-center gap-2.5 mb-3">
-            <Flame size={20} strokeWidth={2} className="text-orange-500 shrink-0" />
-            <p className={dark ? "text-white/50 text-xs font-bold tracking-wide flex-1" : "text-black/50 text-xs font-bold tracking-wide flex-1"}>YOUR CALORIE TARGET</p>
-            <ChevronRight size={15} className={dark ? "text-white/25" : "text-black/25"} />
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className={dark ? "text-white text-3xl font-bold" : "text-black text-3xl font-bold"}>{Math.max(0, targets.calories - nutrition.calories)}</span>
-            <span className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>remaining of {targets.calories}</span>
-          </div>
-          <div className="mt-3">
-            <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"}
-              value={nutrition.calories}
-              max={targets.calories}
-              color={targetBarColor(nutrition.calories, targets.calories)}
+      <div className="px-2.5 mt-3">
+        <div
+          onClick={() => setNutritionDetailOpen(true)}
+          className="relative overflow-hidden rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform"
+        >
+            {/* Same mountain-photo-hero pattern TodayWorkoutCard already uses
+                (login-bg.jpg) — reused here rather than a flat color, to
+                match the approved mockup. The card's own surface color
+                (not plain black) anchors the solid portion of the fade so
+                it reads as one continuous dark card, not an image with a
+                black box stuck on top of it. */}
+            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "75% 15%" }} />
+            <div
+              className="absolute inset-0"
+              style={{ background: `linear-gradient(to right, ${CLIENT_DARK_SURFACE} 0%, ${CLIENT_DARK_SURFACE} 46%, ${CLIENT_DARK_SURFACE}d9 54%, ${CLIENT_DARK_SURFACE}66 66%, transparent 82%)` }}
             />
-          </div>
-          <div className={dark ? "space-y-3 mt-4 pt-4 border-t border-white/5" : "space-y-3 mt-4 pt-4 border-t border-black/5"}>
-            {[
-              { l: "Protein", v: round1(nutrition.protein), t: targets.protein, capped: false },
-              { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs, capped: true },
-              { l: "Fat", v: round1(nutrition.fat), t: targets.fat, capped: true },
-            ].map((m) => (
-              <div key={m.l}>
-                <div className="flex items-baseline justify-between mb-1">
-                  <span className={dark ? "text-white/70 text-sm font-medium" : "text-black/70 text-sm font-medium"}>{m.l}</span>
-                  <span className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                    {m.v}g <span className={dark ? "text-white/25" : "text-black/25"}>/ {m.t}g</span>
-                  </span>
-                </div>
-                <ProgressBar trackClassName={dark ? "bg-white/8" : "bg-black/8"} value={m.v} max={m.t} height={6} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
-              </div>
-            ))}
-          </div>
+            {/* The macro row (Protein/Carbs/Fat) sits in the lower third of
+                the card, right where the mountain's brightest snow was
+                washing out the Fat column's numbers — this darkens just
+                that band, on top of the horizontal fade above, without
+                dimming the clear sky/peak area higher up the card. */}
+            <div className="absolute inset-x-0 bottom-0 h-[58%]" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }} />
+            <div className="relative">
+            <p className="text-white/50 text-[11px] font-bold tracking-[0.12em] mb-2">CALORIES REMAINING</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-white text-[28px] leading-none font-bold">{Math.max(0, targets.calories - nutrition.calories).toLocaleString()}</span>
+              <span className="text-white/40 text-sm">of {targets.calories.toLocaleString()} kcal</span>
+            </div>
+            <div className="mt-2.5">
+              <ProgressBar trackClassName="bg-white/15"
+                value={nutrition.calories}
+                max={targets.calories}
+                color={targetBarColor(nutrition.calories, targets.calories)}
+              />
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-white/10 mt-4">
+              {[
+                { l: "Protein", v: round1(nutrition.protein), t: targets.protein, capped: false },
+                { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs, capped: true },
+                { l: "Fat", v: round1(nutrition.fat), t: targets.fat, capped: true },
+              ].map((m) => {
+                const pct = m.t > 0 ? Math.min(100, Math.round((m.v / m.t) * 100)) : 0;
+                return (
+                  <div key={m.l} className="px-2.5 first:pl-0 last:pr-0">
+                    <p className="text-white/50 text-[10px] font-bold tracking-[0.1em]">{m.l.toUpperCase()}</p>
+                    <p className="mt-1">
+                      <span className="text-white text-[15px] font-bold">{m.v}</span>
+                      <span className="text-white/40 text-xs"> / {m.t}g</span>
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <div className="flex-1">
+                        <ProgressBar trackClassName="bg-white/15" value={m.v} max={m.t} height={5} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
+                      </div>
+                      <span className="text-white/40 text-[10px] shrink-0">{pct}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            </div>
+        </div>
       </div>
 
-      <div className="px-2.5 mt-4">
-        <Card dark={dark} className="!py-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <WaterCup value={nutrition.water} max={targets.water} size={32} />
-            <div className="flex-1 min-w-0">
-              <p className={dark ? "text-white text-sm font-semibold flex items-center gap-1.5" : "text-black text-sm font-semibold flex items-center gap-1.5"}>
-                {nutrition.water >= targets.water ? (
-                  <Droplets size={13} className={dark ? "text-white" : "text-black"} />
-                ) : (
-                  <GlassWater size={13} className={dark ? "text-white/60" : "text-black/60"} />
-                )}{" "}
-                Water
-              </p>
-              <p className={dark ? "text-white/50 text-xs mt-0.5" : "text-black/50 text-xs mt-0.5"}>
-                <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{nutrition.water}L</span> / {targets.water}L
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-1.5 mt-2.5">
-            <button
-              onClick={() => onAddWater(0.25, viewDateKey)}
-              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
-            >
-              +250ml
-            </button>
-            <button
-              onClick={() => onAddWater(0.5, viewDateKey)}
-              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
-            >
-              +500ml
-            </button>
-            <button
-              onClick={() => setWaterSheetOpen(true)}
-              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform"}
-            >
-              Custom
-            </button>
-          </div>
-        </Card>
+      <div className="px-2.5 mt-4 grid grid-cols-3 gap-2">
+        <NutritionQuickTile
+          dark={dark}
+          invert
+          icon={ScanLine}
+          label="Scan Food"
+          onClick={() => {
+            setActiveMeal(null);
+            setBarcodeOpen(true);
+          }}
+        />
+        <NutritionQuickTile
+          dark={dark}
+          icon={Search}
+          label="Search Food"
+          onClick={() => {
+            setActiveMeal(null);
+            setSearch("");
+            setSheetOpen(true);
+          }}
+        />
+        {/* Fuel IQ and the AiNutritionHelpCard below are the same feature —
+            this tile just jumps to it. The dashboard no longer shows a
+            separate "AI Food Help" tile for the same feature, but
+            scrollToAiHelp/AiNutritionHelpCard itself is untouched. */}
+        <NutritionQuickTile dark={dark} icon={Flame} label="Fuel IQ" onClick={scrollToAiHelp} />
       </div>
       </>
       )}
@@ -5057,21 +5176,17 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
 
       {tab === "today" && (
       <div className="px-2.5 mt-7">
-        <p className={dark ? "text-white/35 text-[11px] font-semibold tracking-wide mb-2 ml-1" : "text-black/35 text-[11px] font-semibold tracking-wide mb-2 ml-1"}>{navOffset === 0 ? "TODAY'S MEALS" : `${navLabel.toUpperCase()}'S MEALS`}</p>
-        <div className="space-y-2.5">
+        <h2 className={dark ? "text-white text-lg font-bold mb-3" : "text-black text-lg font-bold mb-3"}>{navOffset === 0 ? "Today's Meals" : `${navLabel}'s Meals`}</h2>
+        <div
+          className={dark ? "rounded-2xl border shadow-sm divide-y divide-white/8" : "rounded-2xl border shadow-sm divide-y divide-black/8"}
+          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+        >
           {mealCategories.map((meal) => {
             const items = nutrition.meals[meal] || [];
             const totalCals = items.reduce((a, f) => a + f.cals, 0);
             return (
-              <div
-                key={meal}
-                className="rounded-2xl border shadow-sm flex items-center gap-3 px-4 py-3.5"
-                style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
-              >
+              <div key={meal} className="flex items-center gap-3 px-4 py-3.5">
                 <button onClick={() => setDetailMeal(meal)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
-                  <div className={dark ? "w-11 h-11 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0" : "w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"}>
-                    <UtensilsCrossed size={18} className="text-blue-500" />
-                  </div>
                   <div className="min-w-0">
                     <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{meal}</p>
                     <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
@@ -5084,10 +5199,14 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     setActiveMeal(meal);
                     setSheetOpen(true);
                   }}
-                  className="shrink-0 text-xs font-bold px-6 py-1 rounded-full border-[1.5px] active:scale-95 transition-transform"
-                  style={{ borderColor: MEASURE_BLUE, color: MEASURE_BLUE, backgroundColor: "transparent" }}
+                  aria-label={`Add food to ${meal}`}
+                  className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                  style={{ backgroundColor: MEASURE_BLUE, color: "#fff" }}
                 >
-                  Log
+                  <Plus size={16} />
+                </button>
+                <button onClick={() => setDetailMeal(meal)} aria-label={`View ${meal}`} className="shrink-0">
+                  <ChevronRight size={15} className={dark ? "text-white/25" : "text-black/25"} />
                 </button>
               </div>
             );
@@ -5097,7 +5216,60 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
       )}
 
       {tab === "today" && (
-        <div className="mt-5">
+      <div className="px-2.5 mt-4">
+        <Card dark={dark} className="!py-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <WaterCup value={nutrition.water} max={targets.water} size={32} />
+            <div className="flex-1 min-w-0">
+              <p className={dark ? "text-white text-sm font-semibold flex items-center gap-1.5" : "text-black text-sm font-semibold flex items-center gap-1.5"}>
+                {nutrition.water >= targets.water ? (
+                  <Droplets size={13} className={dark ? "text-white" : "text-black"} />
+                ) : (
+                  <GlassWater size={13} className={dark ? "text-white/60" : "text-black/60"} />
+                )}{" "}
+                Water
+              </p>
+              <p className={dark ? "text-white/50 text-xs mt-0.5" : "text-black/50 text-xs mt-0.5"}>
+                <span className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{nutrition.water}L</span> / {targets.water}L
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-1.5 mt-2.5">
+            <button
+              onClick={() => onAddWater(0.25, viewDateKey)}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
+            >
+              +250ml
+            </button>
+            <button
+              onClick={() => onAddWater(0.5, viewDateKey)}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
+            >
+              +500ml
+            </button>
+            <button
+              onClick={() => setWaterSheetOpen(true)}
+              className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-[0.97] transition-transform"}
+            >
+              Custom
+            </button>
+          </div>
+        </Card>
+      </div>
+      )}
+
+      {tab === "today" && (
+        <div className={dark ? "mx-2.5 mt-4 flex items-center gap-3 rounded-2xl border border-white/10 px-4 py-3" : "mx-2.5 mt-4 flex items-center gap-3 rounded-2xl border border-black/10 px-4 py-3"}>
+          <Target size={16} style={{ color: MEASURE_BLUE }} className="shrink-0" />
+          <div className="min-w-0">
+            <p className={dark ? "text-white text-xs font-semibold" : "text-black text-xs font-semibold"}>Hit your targets. Build better habits.</p>
+            <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>Fuel your performance, day by day.</p>
+          </div>
+        </div>
+      )}
+
+      {tab === "today" && (
+        <div className="mt-5" ref={aiHelpRef}>
           <AiNutritionHelpCard
             targets={targets}
             todayNutrition={todayNutrition}
@@ -5184,7 +5356,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           setSheetOpen(false);
           setSearch("");
         }}
-        title={`Add to ${activeMeal}`}
+        title={activeMeal ? `Add to ${activeMeal}` : "Add Food"}
+        keyboardSafeScroll
       >
         <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
           <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
@@ -5192,8 +5365,6 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             ref={searchInputRef}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
             placeholder="Search foods or meals"
             type="search"
             enterKeyHint="search"
@@ -5256,9 +5427,23 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             // sheet mid-search rather than just failing to match.
             const matchedMeals = (savedMeals || []).filter((m) => matchesSearch(m?.name, search));
             const matchedFoods = allFoods.filter((f) => matchesSearch(f?.name, search));
+            // Falls back to the Australian Food Composition Database (a
+            // free, government-published dataset — see afcdFoods.js) only
+            // when APEX's own already-verified sources (customFoods +
+            // FOOD_DATABASE, searched above) have nothing — "check APEX's
+            // existing verified food database first" means AFCD is a
+            // last resort, never a competing/duplicate result shown
+            // alongside a food the client has already confirmed is right.
+            // A client's own saved correction for an AFCD food becomes a
+            // customFoods doc (see FoodQuantitySheet's onSaveCorrection),
+            // so it's matchedFoods (above) that finds it on a later
+            // search, not this block, the next time the same name is
+            // searched.
+            const matchedAfcd =
+              matchedMeals.length === 0 && matchedFoods.length === 0 ? AFCD_FOODS.filter((f) => matchesSearch(f?.name, search)) : [];
             return (
               <div className="space-y-1">
-                {matchedMeals.length === 0 && matchedFoods.length === 0 && (
+                {matchedMeals.length === 0 && matchedFoods.length === 0 && matchedAfcd.length === 0 && (
                   <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No matches for "{search.trim()}"</p>
                 )}
                 {matchedMeals.map((m) => (
@@ -5267,7 +5452,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     onClick={() => {
                       dismissKeyboard();
                       logSavedMeal(m, activeMeal);
-                      showToast(`Logged "${m.name}" to ${activeMeal}`);
+                      if (activeMeal) showToast(`Logged "${m.name}" to ${activeMeal}`);
                       setSheetOpen(false);
                       setSearch("");
                     }}
@@ -5282,9 +5467,13 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     )}
                     <div className="text-left flex-1 min-w-0">
                       <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>My Meals · P{round1(m.protein)} · C{round1(m.carbs)} · F{round1(m.fat)}</p>
+                      {/* Search results show kcal only, matching MyFitnessPal's
+                          compact mobile list — the full macro breakdown is
+                          still shown everywhere a food is actually being
+                          logged/reviewed (the quantity sheet, meal detail,
+                          recent foods, My Meals tab), just not in this list. */}
+                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>My Meals · {m.cals} kcal</p>
                     </div>
-                    <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{m.cals} kcal</span>
                   </button>
                 ))}
                 {matchedFoods.map((f) => (
@@ -5296,16 +5485,41 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                     }}
                     className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
                   >
-                    {f.imageUrl && <img src={f.imageUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
                     <div className="text-left flex-1 min-w-0">
                       <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                        P{f.protein} · C{f.carbs} · F{f.fat}
-                      </p>
+                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{f.cals} kcal</p>
                     </div>
-                    <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{f.cals} kcal</span>
                   </button>
                 ))}
+                {matchedAfcd.length > 0 && (
+                  <p className={dark ? "text-white/25 text-[10px] tracking-wide pt-2" : "text-black/25 text-[10px] tracking-wide pt-2"}>
+                    FROM THE AUSTRALIAN FOOD COMPOSITION DATABASE
+                  </p>
+                )}
+                {matchedAfcd.map((f) => {
+                  // Same Atwater/range check a live barcode scan gets
+                  // (validateNutrition, barcodeLookup.js) — belt and
+                  // braces on top of this file's own build-time filtering,
+                  // so a future edit to afcdFoods.js can't slip bad data
+                  // past validation just because it's bundled, not scanned.
+                  const validation = validateNutrition({ cals: f.cals, protein: f.protein, carbs: f.carbs, fat: f.fat });
+                  const shaped = { ...f, fromAFCD: true, ...(validation.plausible ? {} : { nutritionSuspect: true, nutritionSuspectReason: validation.reason }) };
+                  return (
+                    <button
+                      key={`afcd_${f.id}`}
+                      onClick={() => {
+                        dismissKeyboard();
+                        setPendingFood(shaped);
+                      }}
+                      className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
+                    >
+                      <div className="text-left flex-1 min-w-0">
+                        <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
+                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{f.cals} kcal</p>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             );
           })()
@@ -5389,7 +5603,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                           <button
                             onClick={() => {
                               logSavedMeal(m, activeMeal);
-                              showToast(`Logged "${m.name}" to ${activeMeal}`);
+                              if (activeMeal) showToast(`Logged "${m.name}" to ${activeMeal}`);
                               setSheetOpen(false);
                             }}
                             className={dark ? "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-white/8" : "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-black/[0.05]"}
@@ -5407,19 +5621,6 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             )}
           </>
         )}
-        {searchFocused && (
-          // Reserves generous extra scroll room below whatever's actually
-          // showing, while the search box has focus. This is deliberately
-          // NOT trying to detect the keyboard's real height — on iOS,
-          // WKWebView (this app's actual native shell, unlike Safari)
-          // never reports the keyboard to the page at all, so no amount
-          // of on-screen-keyboard detection can be trusted here. A big
-          // empty spacer works regardless: it just means there's always
-          // more room to scroll a result past wherever the keyboard
-          // happens to sit, using the same plain scroll gesture a client
-          // already uses for the list itself.
-          <div style={{ height: "45vh" }} aria-hidden="true" />
-        )}
       </BottomSheet>
 
       <FoodQuantitySheet
@@ -5427,6 +5628,16 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         food={pendingFood}
         onClose={() => setPendingFood(null)}
         onConfirm={async (scaled, logId) => {
+          // Opened from a dashboard-level tile (no meal preselected) —
+          // ask which meal this goes to before saving anything, instead
+          // of guessing. Opened from a meal's own Log button, activeMeal
+          // is already set and this saves straight through as before.
+          if (!activeMeal) {
+            setPendingFood(null);
+            setSheetOpen(false);
+            setMealChoice(scaled);
+            return;
+          }
           // Only closes on a confirmed successful save — closing first
           // (the old behaviour) made a slow save look identical to one
           // that silently did nothing, which is exactly what sent a
@@ -5437,7 +5648,40 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           setPendingFood(null);
           setSheetOpen(false);
         }}
+        onSaveCorrection={
+          createFood
+            ? (corrected) => setPendingFood((f) => (f ? createFood(buildCorrectedFood(f, corrected)) : f))
+            : undefined
+        }
       />
+
+      <BottomSheet dark={dark} open={!!mealChoice} onClose={() => setMealChoice(null)} title={mealChoice ? `Add "${mealChoice.name}" to…` : ""}>
+        <div className="grid grid-cols-2 gap-2">
+          {mealCategories.map((meal) => (
+            <button
+              key={meal}
+              onClick={async () => {
+                if (addBusyRef.current) return;
+                const food = mealChoice;
+                if (!food) return;
+                addBusyRef.current = true;
+                setMealChoice(null);
+                try {
+                  await onAddFood(meal, food, viewDateKey);
+                  showToast(`Logged "${food.name}" to ${meal}`);
+                } catch (err) {
+                  showToast(err?.message || "Couldn't log that food", true);
+                } finally {
+                  addBusyRef.current = false;
+                }
+              }}
+              className={dark ? "bg-white/8 text-white text-sm font-semibold py-3.5 rounded-xl active:scale-95 transition-transform" : "bg-black/8 text-black text-sm font-semibold py-3.5 rounded-xl active:scale-95 transition-transform"}
+            >
+              {meal}
+            </button>
+          ))}
+        </div>
+      </BottomSheet>
 
       <BottomSheet dark={dark} open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
         <div className="grid grid-cols-3 gap-2">
@@ -6185,10 +6429,7 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
 
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2 flex items-center justify-between">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Progress</h1>
-        <BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />
-      </div>
+      <TabHeader label="Progress" dark={dark} right={<BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />} />
 
       <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
 
@@ -6746,7 +6987,7 @@ function NotificationsCenterSheet({ open, onClose, items }) {
    PROFILE TAB
 ============================================================================ */
 
-function ProfileScreen({
+export function ProfileScreen({
   user,
   onLogout,
   coachOpen,
@@ -6769,6 +7010,13 @@ function ProfileScreen({
   const [devicesOpen, setDevicesOpen] = useState(false);
   const [pushOpen, setPushOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  // CoachChatBubble's own dismiss ("X") button sets this flag but has no
+  // corresponding way to clear it anywhere — once set on a device, the
+  // floating chat bubble is gone for good, with no in-app recovery path.
+  // Surfacing a one-time "restore" row here (this localStorage key is the
+  // ONLY place in the codebase that reads or writes it) fixes that without
+  // touching the bubble's own dismiss behavior.
+  const [bubbleHidden, setBubbleHidden] = useState(() => localStorage.getItem("chatBubbleHidden") === "1");
   const rows = [
     { label: "Goals", icon: Target, onClick: () => setPrefSection("goals") },
     { label: "Equipment", icon: Dumbbell, onClick: () => setPrefSection("equipment") },
@@ -6787,9 +7035,7 @@ function ProfileScreen({
   ];
   return (
     <div className="pb-28">
-      <div className="px-2.5 pt-1 pb-2">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Profile</h1>
-      </div>
+      <TabHeader label="Profile" dark={dark} />
       <div className="px-2.5">
         <Card dark={dark}>
           <div className="flex items-center gap-4">
@@ -6853,6 +7099,28 @@ function ProfileScreen({
             <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
           </div>
         </Card>
+
+        {bubbleHidden && (
+          <Card
+            dark={dark}
+            onClick={() => {
+              localStorage.removeItem("chatBubbleHidden");
+              setBubbleHidden(false);
+              showToast("Chat bubble restored");
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <div className={dark ? "w-10 h-10 rounded-full bg-white/10 flex items-center justify-center" : "w-10 h-10 rounded-full bg-black/10 flex items-center justify-center"}>
+                <MessageCircle size={18} className={dark ? "text-white" : "text-black"} />
+              </div>
+              <div className="flex-1">
+                <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>Show chat bubble</p>
+                <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>You previously hid the floating chat button</p>
+              </div>
+              <ChevronRight size={18} className={dark ? "text-white/30" : "text-black/30"} />
+            </div>
+          </Card>
+        )}
       </div>
 
       <div className="px-2.5 mt-4">
@@ -7380,10 +7648,8 @@ function CheckInsScreen({ userId, showToast }) {
 
   return (
     <div className="pb-28 space-y-4">
-      <div className="px-2.5 pt-1 pb-2">
-        <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Check-ins</h1>
-        <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scheduled by your coach</p>
-      </div>
+      <TabHeader label="Check-ins" dark={dark} />
+      <p className={dark ? "text-white/40 text-sm px-2.5 -mt-1 mb-1" : "text-black/40 text-sm px-2.5 -mt-1 mb-1"}>Scheduled by your coach</p>
 
       {schedules.length === 0 ? (
         <Card dark={dark} className="mx-2.5 text-center py-10">
@@ -7894,14 +8160,14 @@ function ClientCalendarScreen({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-2.5 pt-1 pb-2 shrink-0 flex items-center justify-between">
-        <div>
-          <h1 className={dark ? "text-white text-lg font-bold" : "text-black text-lg font-bold"}>Calendar</h1>
-          <p className={dark ? "text-white/40 text-sm mt-0.5" : "text-black/40 text-sm mt-0.5"}>Scroll to see anything past or upcoming.</p>
+      <div className="shrink-0">
+        <TabHeader label="Calendar" dark={dark} />
+        <div className="px-2.5 pb-2 flex items-center justify-between">
+          <p className={dark ? "text-white/40 text-sm" : "text-black/40 text-sm"}>Scroll to see anything past or upcoming.</p>
+          <button onClick={jumpToToday} className={dark ? "text-white/50 hover:text-white text-sm font-semibold shrink-0" : "text-black/50 hover:text-black text-sm font-semibold shrink-0"}>
+            Today
+          </button>
         </div>
-        <button onClick={jumpToToday} className={dark ? "text-white/50 hover:text-white text-sm font-semibold shrink-0" : "text-black/50 hover:text-black text-sm font-semibold shrink-0"}>
-          Today
-        </button>
       </div>
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto px-2.5 pb-6" style={{ maxHeight: "calc(100vh - 180px)" }}>
         {days.map(({ date: d, dateStr, scheduledList, dayLogs, dayHabits, checkinsToday, bodyStatsToday, hasContent }, i) => {
@@ -8241,18 +8507,28 @@ export default function ClientApp() {
   // closes the app, and finishes it hours later would rack up hours of
   // "duration" and a wildly inflated calories-burned estimate.
   const sessionActiveMsRef = useRef(persistedSession?.activeMs || 0); // accumulated active ms, not counting the current still-running segment
-  const segmentStartRef = useRef(null); // wall-clock moment the current active segment began, or null while paused
+  // performance.now(), not Date.now() — the moment the current active
+  // segment began, or null while paused. Date.now() reads the system wall
+  // clock, which can jump (NTP resync, timezone/DST change) without any
+  // real time having passed, especially right as a backgrounded app wakes
+  // back up — exactly when this is read again, in resumeActiveSegment and
+  // the elapsed-ms calculation below. That jump either inflated or
+  // corrupted the accumulated duration with no actual bug in the
+  // pause/resume logic itself. performance.now() is monotonic: immune to
+  // the system clock being adjusted, only ever reflecting real elapsed
+  // time — same reasoning as the rest timer's restEndAtRef above.
+  const segmentStartRef = useRef(null);
   const [activeMsTick, setActiveMsTick] = useState(0); // bumped on every pause so the persist effect below picks up the fresh total
 
   function pauseActiveSegment() {
     if (segmentStartRef.current != null) {
-      sessionActiveMsRef.current += Date.now() - segmentStartRef.current;
+      sessionActiveMsRef.current += performance.now() - segmentStartRef.current;
       segmentStartRef.current = null;
       setActiveMsTick((n) => n + 1);
     }
   }
   function resumeActiveSegment() {
-    if (segmentStartRef.current == null) segmentStartRef.current = Date.now();
+    if (segmentStartRef.current == null) segmentStartRef.current = performance.now();
   }
 
   // The session is only "active" while its screen is open AND the tab is
@@ -8856,13 +9132,13 @@ export default function ClientApp() {
   function addFood(meal, food, dateKey = todayDateKey, logId) {
     // Generated once per call, outside the transaction updater below —
     // the updater can run more than once (Firestore retries it internally
-    // on write contention), and a stable id computed here means every
-    // retry of *this* call proposes the exact same entry rather than a
-    // fresh one. A caller can also pass its own logId (addSuggestion does,
-    // derived from the suggestion's own stable key, so the exact same
-    // suggestion always reconciles to the same entry regardless of when
-    // it's clicked) to make a genuine retry of the same logical action —
-    // not just a Firestore-internal one — equally idempotent.
+    // on write contention; see setNutritionForDate's own comment), and a
+    // stable id computed here means every retry of *this* call proposes
+    // the exact same entry rather than a fresh one. A caller can also pass
+    // its own logId (AiNutritionHelpCard's addSuggestion does, derived
+    // from the suggestion's own stable key) to make a genuine retry of the
+    // same logical action — not just a Firestore-internal one — equally
+    // idempotent.
     //
     // Every other caller here (FoodQuantitySheet's ADD — the shared path
     // for search, barcode scan, quick add, and the meal-choice flow — and
@@ -8979,7 +9255,13 @@ export default function ClientApp() {
   function addWater(liters, dateKey = todayDateKey) {
     setNutritionForDate(currentUser.id, dateKey, (n) => {
       const base = n || DEFAULT_NUTRITION;
-      return { ...base, water: Math.round((base.water + liters) * 100) / 100 };
+      // An older nutritionLogs doc saved before `water` was tracked (or
+      // any doc missing the field for another reason) has `base.water ===
+      // undefined` — unguarded, `undefined + liters` is NaN, silently
+      // corrupting that day's total (and every later add, since NaN + x is
+      // always NaN) rather than just treating the missing field as 0, the
+      // same guard addFood/removeFood already apply to every other field.
+      return { ...base, water: Math.round(((base.water || 0) + liters) * 100) / 100 };
     })
       .then(() => showToast(`+${Math.round(liters * 1000)}ml logged`))
       .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));
@@ -9069,7 +9351,9 @@ export default function ClientApp() {
             </button>
           </div>
         )}
-        <BrandBar dark={dark} />
+        {/* Every tab (including Check-ins) now renders its own logo +
+            divider + page-name TabHeader, so no shared bar is mounted
+            above the tab switch any more. */}
         {currentUser.accessPaused && !viewingAsClient ? (
           <AccessPausedScreen onMessageCoach={openMessages} onLogout={doLogout} />
         ) : (
@@ -9241,7 +9525,13 @@ export default function ClientApp() {
         )}
         </TabFade>
 
-        {coachUser && !messagesOpen && <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />}
+        {/* Suppressed while an active workout session is open — WorkoutSession
+            mounts its own copy of this same bubble inside its own overlay so
+            it's actually visible above the session's opaque background;
+            without this check both copies would be mounted at once. */}
+        {coachUser && !messagesOpen && !(sessionOpen && activeLog && (runningSession || todaySession)) && (
+          <CoachChatBubble coachUser={coachUser} unreadCount={unreadCount} onOpen={openMessages} />
+        )}
 
         {/* Promoted to its own GPU layer (translateZ(0)) — otherwise this
             fixed bar visibly lags behind during a fast scroll in the iOS App
@@ -9299,6 +9589,9 @@ export default function ClientApp() {
             sessionNote={sessionNote}
             onChangeSessionNote={setSessionNote}
             onSaveSessionNote={(value) => saveSessionNote(currentUser.id, value)}
+            coachUser={coachUser}
+            unreadCount={unreadCount}
+            onOpenMessages={openMessages}
           />
         )}
         {summaryOpen && summaryData && (

@@ -404,6 +404,71 @@ function useVisualViewportInsets() {
   return insets;
 }
 
+// Real production reports (nutrition search specifically — see
+// REGRESSION_TESTS.md #42/#44/#45/#51/#52): on iOS, WKWebView (this app's
+// actual native shell, unlike Safari) never reports the on-screen keyboard
+// to the page at all — no resize event, no visualViewport change, nothing
+// — so useVisualViewportInsets above has nothing to react to there, even
+// though it's correct wherever visualViewport genuinely fires. Rather than
+// trying to detect the keyboard's real height (no reliable signal exists
+// for it in this environment), reserve a large, unconditional scroll
+// spacer below a sheet's content whenever a text input inside it has
+// focus — guarantees whatever's being typed, or a result being tapped,
+// can always be scrolled clear of wherever the keyboard actually sits,
+// using the same plain scroll gesture already used for the sheet itself.
+// Opt-in via `keyboardSafeScroll` so every other BottomSheet (most of
+// which have no text input, or close before one could matter) is
+// completely unaffected.
+function isTextEntryElement(el) {
+  if (!el || !el.tagName) return false;
+  if (el.tagName === "TEXTAREA") return true;
+  if (el.tagName === "INPUT") {
+    const type = (el.type || "text").toLowerCase();
+    return ["text", "search", "email", "tel", "number", "url", "password"].includes(type);
+  }
+  return false;
+}
+
+// Real production report (Oct 2026): a dynamic version of this spacer
+// (measuring content height on every render via a dependency-less
+// useLayoutEffect) shipped briefly and caused a live crash ("Something
+// went wrong") in the nutrition area — most likely a runaway render loop
+// under real viewport-resize conditions (the keyboard opening/closing)
+// that never surfaced in this environment's device-less testing. Reverted
+// to the simple, previously-stable flat reserve: a worst-case keyboard-
+// height estimate, applied unconditionally once a text input is focused,
+// with no live measurement and no risk of a measurement-driven render
+// loop. (A real dead-gap complaint on short content is still open — any
+// future fix for it needs real-device verification before shipping.)
+function useKeyboardSafeScroll(enabled, panelRef, mounted) {
+  const [active, setActive] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    // `focus`/`blur` don't bubble, but a capture-phase listener on an
+    // ancestor still sees them on the way down to the actual target —
+    // this works for any input anywhere inside the sheet without each one
+    // needing its own onFocus/onBlur handlers.
+    function handleFocus(e) {
+      if (isTextEntryElement(e.target)) setActive(true);
+    }
+    function handleBlur(e) {
+      // Moving focus straight to another text input inside the same sheet
+      // (e.g. tabbing) shouldn't flicker the spacer off and back on.
+      const next = e.relatedTarget;
+      if (!next || !panel.contains(next) || !isTextEntryElement(next)) setActive(false);
+    }
+    panel.addEventListener("focus", handleFocus, true);
+    panel.addEventListener("blur", handleBlur, true);
+    return () => {
+      panel.removeEventListener("focus", handleFocus, true);
+      panel.removeEventListener("blur", handleBlur, true);
+    };
+  }, [enabled, panelRef, mounted]);
+  return enabled && active;
+}
+
 // Optional replacement for every BottomSheet's solid fill within a subtree.
 // Train Solo provides its frosted-glass style here (SoloThemeContext.jsx);
 // nothing else provides it, so every other sheet renders exactly as before.
@@ -411,7 +476,7 @@ export const SheetSurfaceContext = createContext(undefined);
 
 // `surface` (optional) overrides the fill for one sheet; otherwise the
 // nearest SheetSurfaceContext value (if any) applies.
-export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", surface: surfaceProp }) {
+export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", keyboardSafeScroll = false, surface: surfaceProp }) {
   const contextSurface = useContext(SheetSurfaceContext);
   const surface = surfaceProp || contextSurface;
   // Opening already slid up smoothly, but closing just vanished the instant
@@ -423,6 +488,8 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(open);
   const viewport = useVisualViewportInsets();
+  const panelRef = useRef(null);
+  const keyboardSpacerActive = useKeyboardSafeScroll(keyboardSafeScroll, panelRef, mounted);
   useEffect(() => {
     if (open) {
       setMounted(true);
@@ -449,6 +516,7 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
           onClick={onClose}
         />
         <div
+          ref={panelRef}
           // overscroll-contain: stops a scroll that hits the top/bottom of
           // THIS list from "chaining" into scrolling the page behind the
           // sheet, the other classic iOS cause of the same symptom.
@@ -475,7 +543,10 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
               <X size={16} />
             </button>
           </div>
-          <div className={bodyClassName}>{children}</div>
+          <div className={bodyClassName}>
+            {children}
+            {keyboardSpacerActive && <div data-testid="keyboard-safe-spacer" style={{ height: "45vh" }} aria-hidden="true" />}
+          </div>
         </div>
       </div>
     </FullScreenOverlay>
