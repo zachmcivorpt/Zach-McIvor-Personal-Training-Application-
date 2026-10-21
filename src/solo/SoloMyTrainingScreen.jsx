@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock } from "lucide-react";
+import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Clock3 } from "lucide-react";
+import { MEASURE_BLUE } from "../theme";
+import { SoloMountainArt, SoloArtwork } from "./SoloMountainArt";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { programPhases } from "../lib/AppContext";
@@ -167,6 +169,11 @@ export default function SoloMyTrainingScreen() {
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [openPurchaseId, setOpenPurchaseId] = useState(null);
 
+  // Switching tabs keeps the window's scroll position; start at the header.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Arriving here right after a purchase (see SoloProgramDetailsScreen's
   // post-purchase navigate) opens that program's progress sheet
   // immediately, so the customer lands straight on "pick a start date"
@@ -190,50 +197,120 @@ export default function SoloMyTrainingScreen() {
     });
   }
 
-  return (
-    <div className="w-full max-w-md mx-auto px-5 pt-5 pb-10">
-      <h1 className="text-xl font-extrabold mb-4">My Training</h1>
+  // Everything shown per program is derived from real data: the purchase's
+  // start date, the owned soloProgramContent (sessions per week, total
+  // sessions, next day), and this customer's own soloWorkoutLogs.
+  const ownedRows = useMemo(
+    () =>
+      soloPurchases
+        .map((purchase) => {
+          const program = programsById[purchase.programId];
+          if (!program) return null;
+          return { purchase, program, ...summarizeProgress(purchase, program, soloProgramContentByProgramId[purchase.programId], soloWorkoutLogs) };
+        })
+        .filter(Boolean),
+    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs]
+  );
+  const active = pickActiveRow(ownedRows, soloWorkoutLogs);
+  const glass = {
+    backgroundColor: dark ? "rgba(28,28,30,0.55)" : "rgba(255,255,255,0.62)",
+    border: `1px solid ${t.panelBorder}`,
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+  };
 
-      {soloPurchases.length === 0 ? (
-        <div className="rounded-2xl px-5 py-10 text-center" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}>
-          <CalendarDays size={22} color={t.textFaint} className="mx-auto mb-3" />
-          <p className="text-sm mb-4" style={{ color: t.textMuted }}>
-            You don't own any programs yet.
-          </p>
-          <button onClick={() => navigate("/solo/home")} className="text-sm font-bold underline">
-            Browse the catalogue
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {soloPurchases.map((purchase) => {
-            const program = programsById[purchase.programId];
-            if (!program) return null;
-            // The owned program's week count is read from the public
-            // doc's own small, non-sensitive weekOnePreview.totalWeeks —
-            // not from soloProgramContent — so this row renders instantly
-            // without waiting on that per-program listener to resolve.
-            const totalWeeks = program.weekOnePreview?.totalWeeks || 0;
-            const weekNumber = currentWeekNumber(purchase.startDate, totalWeeks);
-            return (
-              <button
-                key={purchase.id}
-                onClick={() => setOpenPurchaseId(purchase.id)}
-                className="w-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3.5 text-left"
-                style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-bold truncate">{program.name}</p>
-                  <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
-                    {purchase.startDate ? `Week ${weekNumber} of ${totalWeeks}` : "Set a start date"}
-                  </p>
+  return (
+    <div className="relative w-full">
+      <div className="absolute inset-x-0 top-0 h-80 pointer-events-none">
+        <SoloMountainArt fadeTo={t.bg} />
+      </div>
+
+      <div className="relative w-full max-w-md mx-auto px-5 pt-6 pb-10">
+        <h1 className="sr-only">My Training</h1>
+        <img src={SOLO_THEMES.dark.logo} alt="APEX" className="h-11 w-auto mb-6" />
+
+        {ownedRows.length === 0 ? (
+          <div className="rounded-3xl px-5 py-10 text-center" style={glass}>
+            <CalendarDays size={22} color={t.textFaint} className="mx-auto mb-3" />
+            <p className="text-sm mb-4" style={{ color: t.textMuted }}>
+              You don't own any programs yet.
+            </p>
+            <button onClick={() => navigate("/solo/home")} className="text-sm font-bold underline">
+              Browse the catalogue
+            </button>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={() => setOpenPurchaseId(active.purchase.id)}
+              className="w-full text-left rounded-3xl px-5 pt-5 pb-4"
+              style={glass}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-2xl font-extrabold leading-tight">{active.program.name}</h2>
+                <ChevronRight size={20} color={t.textMuted} className="mt-1 shrink-0" />
+              </div>
+              <p className="text-sm mt-1.5" style={{ color: t.textMuted }}>
+                {weekLine(active)}
+              </p>
+              {active.purchase.startDate && <ProgressBar pct={active.pct} t={t} className="mt-4" large />}
+
+              <div className="mt-4 pt-3.5 grid grid-cols-2" style={{ borderTop: `1px solid ${t.panelBorder}` }}>
+                <div className="flex items-start gap-2.5 pr-3">
+                  <CalendarDays size={18} color={t.textMuted} className="mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[11px]" style={{ color: t.textMuted }}>
+                      Next session
+                    </p>
+                    <p className="text-sm font-semibold truncate">{active.nextLabel}</p>
+                    {active.nextDetail && (
+                      <p className="text-[11px]" style={{ color: t.textFaint }}>
+                        {active.nextDetail}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <ChevronRight size={16} color={t.textFaint} />
-              </button>
-            );
-          })}
-        </div>
-      )}
+                <div className="flex items-start gap-2.5 pl-3" style={{ borderLeft: `1px solid ${t.panelBorder}` }}>
+                  <Clock3 size={18} color={t.textMuted} className="mt-0.5 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[11px]" style={{ color: t.textMuted }}>
+                      Completed
+                    </p>
+                    <p className="text-sm font-semibold">
+                      {active.sessionsThisWeek != null ? `${active.doneThisWeek} of ${active.sessionsThisWeek}` : "—"}
+                    </p>
+                    <p className="text-[11px]" style={{ color: t.textFaint }}>
+                      sessions this week
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            <h2 className="text-lg font-bold mt-8 mb-3">Your Programs</h2>
+            <div className="space-y-2.5">
+              {ownedRows.map((row) => (
+                <button
+                  key={row.purchase.id}
+                  onClick={() => setOpenPurchaseId(row.purchase.id)}
+                  className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
+                  style={glass}
+                >
+                  <SoloArtwork program={row.program} logo={SOLO_THEMES.dark.logo} className="w-16 h-16 rounded-xl shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold leading-snug">{row.program.name}</p>
+                    <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                      {weekLine(row)}
+                    </p>
+                    {row.purchase.startDate && row.pct > 0 && <ProgressBar pct={row.pct} t={t} className="mt-2" />}
+                  </div>
+                  <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
       {soloWorkoutLogs.length > 0 && (
         <div className="mt-8">
@@ -270,6 +347,76 @@ export default function SoloMyTrainingScreen() {
           await setPurchaseStartDate(openPurchase.id, date);
         }}
       />
+      </div>
     </div>
   );
+}
+
+function ProgressBar({ pct, t, className = "", large = false }) {
+  return (
+    <div className={`flex items-center gap-3 ${className}`}>
+      <div className={`flex-1 rounded-full overflow-hidden ${large ? "h-2.5" : "h-1.5"}`} style={{ backgroundColor: t.chipBg }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: MEASURE_BLUE }} />
+      </div>
+      <span className={`${large ? "text-sm" : "text-[11px]"} font-semibold tabular-nums`} style={{ color: t.textMuted }}>
+        {pct}%
+      </span>
+    </div>
+  );
+}
+
+function weekLine(row) {
+  if (!row.purchase.startDate) return "Set a start date";
+  const parts = [`Week ${row.weekNumber} of ${row.totalWeeks}`];
+  if (row.sessionsThisWeek != null) parts.push(`${row.sessionsThisWeek} session${row.sessionsThisWeek === 1 ? "" : "s"}/week`);
+  return parts.join(" · ");
+}
+
+// The program a customer is most likely "on": the one they last logged a
+// workout for, else the most recently started one, else the first owned.
+function pickActiveRow(rows, logs) {
+  if (rows.length === 0) return null;
+  const latestLog = logs.reduce((best, l) => (!best || (l.date || 0) > (best.date || 0) ? l : best), null);
+  const fromLog = latestLog && rows.find((r) => r.purchase.id === latestLog.purchaseId);
+  if (fromLog) return fromLog;
+  const started = rows.filter((r) => r.purchase.startDate).sort((a, b) => (a.purchase.startDate < b.purchase.startDate ? 1 : -1));
+  return started[0] || rows[0];
+}
+
+export function summarizeProgress(purchase, program, content, logs) {
+  const phases = programPhases(content);
+  // Week count comes from the public doc's weekOnePreview so it's
+  // available before the gated content listener resolves.
+  const totalWeeks = program.weekOnePreview?.totalWeeks || totalWeeksForProgram(phases);
+  const weekNumber = currentWeekNumber(purchase.startDate, totalWeeks);
+  const purchaseLogs = logs.filter((l) => l.purchaseId === purchase.id);
+  // A day counts once per week however many times it was logged.
+  const doneKeys = new Set(purchaseLogs.map((l) => `${l.weekNumber}:${l.dayId}`));
+  const totalSessions = phases.reduce((sum, p) => sum + (p.durationWeeks || 0) * (p.days || []).length, 0);
+  const pct = totalSessions > 0 ? Math.min(100, Math.round((doneKeys.size / totalSessions) * 100)) : 0;
+
+  const current = weekNumber ? phaseForWeekNumber(phases, weekNumber) : null;
+  const days = current?.phase?.days || null;
+  const sessionsThisWeek = days ? days.length : null;
+  const doneThisWeek = days ? days.filter((d) => doneKeys.has(`${weekNumber}:${d.id}`)).length : 0;
+
+  let nextLabel = "—";
+  let nextDetail = null;
+  if (!purchase.startDate) {
+    nextLabel = "Set a start date";
+  } else if (days) {
+    const next = days.find((d) => !doneKeys.has(`${weekNumber}:${d.id}`));
+    if (next) {
+      nextLabel = next.label || "Workout";
+      const past = purchaseLogs.filter((l) => l.dayId === next.id && l.durationMin > 0);
+      const exerciseCount = (next.exercises || []).filter((e) => !e.isRest).length;
+      nextDetail = past.length
+        ? `~${Math.round(past.reduce((a, l) => a + l.durationMin, 0) / past.length)} min`
+        : `${exerciseCount} exercise${exerciseCount === 1 ? "" : "s"}`;
+    } else {
+      nextLabel = "Week complete";
+    }
+  }
+
+  return { totalWeeks, weekNumber, pct, sessionsThisWeek, doneThisWeek, nextLabel, nextDetail };
 }

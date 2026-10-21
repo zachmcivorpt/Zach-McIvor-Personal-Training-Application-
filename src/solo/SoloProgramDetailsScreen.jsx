@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Lock, Eye, Target, Dumbbell } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, Eye, PlayCircle } from "lucide-react";
+import { SoloMountainArt, SoloArtwork } from "./SoloMountainArt";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { visiblePrograms, formatAudPrice } from "./recommendations";
@@ -28,11 +29,19 @@ export default function SoloProgramDetailsScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState("");
   const [detailExercise, setDetailExercise] = useState(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Arriving from a scrolled Catalogue would otherwise open this page
+  // part-way down, past the hero.
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [id]);
 
   const exercisesById = useMemo(() => Object.fromEntries(soloExercises.map((e) => [e.id, e])), [soloExercises]);
   const published = useMemo(() => visiblePrograms(soloPrograms, soloProgramCategories), [soloPrograms, soloProgramCategories]);
   const program = published.find((p) => p.id === id);
-  const owned = soloPurchases.some((p) => p.programId === id);
+  const ownedPurchase = soloPurchases.find((p) => p.programId === id);
+  const owned = !!ownedPurchase;
   // The full phases/days live on the separately-gated soloProgramContent
   // doc, never on this public program object — see
   // AppContext.jsx's computeWeekOnePreview comment. Pre-purchase, this
@@ -89,78 +98,83 @@ export default function SoloProgramDetailsScreen() {
     );
   }
 
+  const glass = {
+    backgroundColor: dark ? "rgba(28,28,30,0.55)" : "rgba(255,255,255,0.62)",
+    border: `1px solid ${t.panelBorder}`,
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+  };
+  const tags = [
+    ...(program.goals || []).map((g) => GOAL_LABELS[g] || g),
+    ...(program.environments || []).map((e) => ENVIRONMENT_LABELS[e] || e),
+  ];
+
   return (
     <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg, color: t.text }}>
-      <div className="relative h-52 flex items-center justify-center overflow-hidden" style={{ background: t.coverGradient }}>
+      <div className="relative h-72 overflow-hidden">
         {program.artworkUrl ? (
-          <img src={program.artworkUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+          <>
+            <img src={program.artworkUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0" style={{ background: `linear-gradient(to bottom, rgba(0,0,0,0) 40%, ${t.bg} 100%)` }} />
+          </>
         ) : (
-          <img src={t.logo} alt="" className="h-16 w-auto opacity-90" />
+          <>
+            <SoloMountainArt fadeTo={t.bg} />
+            <div className="absolute inset-0 flex items-center justify-center pb-6">
+              <img src={SOLO_THEMES.dark.logo} alt="" className="h-20 w-auto opacity-95" />
+            </div>
+          </>
         )}
         <button
           onClick={() => navigate(-1)}
           aria-label="Back"
-          className="absolute top-5 left-5 w-9 h-9 rounded-full flex items-center justify-center backdrop-blur-md"
-          style={{ backgroundColor: "rgba(0,0,0,0.35)" }}
+          className="absolute left-5 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md"
+          style={{ top: "calc(16px + env(safe-area-inset-top,0px))", backgroundColor: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.14)" }}
         >
           <ChevronLeft size={18} color="#fff" />
         </button>
       </div>
 
-      <div className="px-5 pt-5 pb-28 max-w-md mx-auto">
+      <div className="relative -mt-10 px-5 pb-32 max-w-md mx-auto">
         <div className="flex items-start justify-between gap-3">
-          <h1 className="text-xl font-extrabold leading-tight">{program.name}</h1>
-          <p className="text-lg font-extrabold whitespace-nowrap">{formatAudPrice(program.priceCents)}</p>
+          <h1 className="text-[26px] font-extrabold leading-tight">{program.name}</h1>
+          <p className="text-lg font-extrabold whitespace-nowrap mt-1">{formatAudPrice(program.priceCents)}</p>
         </div>
-        <p className="text-xs mt-1.5" style={{ color: t.textMuted }}>
+        <p className="text-sm mt-1.5" style={{ color: t.textMuted }}>
           {program.level} · {totalWeeks} week{totalWeeks === 1 ? "" : "s"}
         </p>
+
+        {tags.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {tags.map((label) => (
+              <span
+                key={label}
+                className="text-xs font-semibold px-3.5 py-1.5 rounded-full"
+                style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}`, color: t.text }}
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        )}
+
         {program.description && (
-          <p className="text-sm mt-3 leading-relaxed" style={{ color: t.textMuted }}>
+          <p className="text-sm mt-5 leading-relaxed" style={{ color: t.textMuted }}>
             {program.description}
           </p>
         )}
 
-        {(program.goals?.length > 0 || program.environments?.length > 0) && (
-          <div className="mt-4 space-y-3">
-            {program.goals?.length > 0 && (
-              <div className="flex items-start gap-2">
-                <Target size={14} color={t.textFaint} className="mt-0.5 shrink-0" />
-                <div className="flex flex-wrap gap-1.5">
-                  {program.goals.map((g) => (
-                    <span key={g} className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: t.chipBg, color: t.textMuted }}>
-                      {GOAL_LABELS[g] || g}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {program.environments?.length > 0 && (
-              <div className="flex items-start gap-2">
-                <Dumbbell size={14} color={t.textFaint} className="mt-0.5 shrink-0" />
-                <div className="flex flex-wrap gap-1.5">
-                  {program.environments.map((e) => (
-                    <span key={e} className="text-xs font-semibold px-2.5 py-1 rounded-full" style={{ backgroundColor: t.chipBg, color: t.textMuted }}>
-                      {ENVIRONMENT_LABELS[e] || e}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {phaseSummaries.length > 0 && (
-          <div className="mt-6">
-            <p className="text-[11px] font-bold tracking-wide uppercase mb-2.5" style={{ color: t.textMuted }}>
+          <div className="mt-7">
+            <p className="text-xs font-bold tracking-wide uppercase mb-2.5" style={{ color: t.textMuted }}>
               Weekly structure
             </p>
-            <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${t.panelBorder}` }}>
+            <div className="rounded-2xl overflow-hidden" style={glass}>
               {phaseSummaries.map((p, i) => (
                 <div
                   key={i}
-                  className="flex items-center justify-between px-4 py-3"
-                  style={{ backgroundColor: t.cardBg, borderBottom: i === phaseSummaries.length - 1 ? "none" : `1px solid ${t.panelBorder}` }}
+                  className="flex items-center justify-between px-4 py-3.5"
+                  style={{ borderBottom: i === phaseSummaries.length - 1 ? "none" : `1px solid ${t.panelBorder}` }}
                 >
                   <p className="text-sm font-semibold">{p.name || `Phase ${i + 1}`}</p>
                   <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
@@ -172,10 +186,10 @@ export default function SoloProgramDetailsScreen() {
           </div>
         )}
 
-        <div className="mt-6">
-          <div className="flex items-center gap-2 mb-3">
-            <Eye size={14} color={t.textMuted} />
-            <p className="text-[11px] font-bold tracking-wide uppercase" style={{ color: t.textMuted }}>
+        <div className="mt-7">
+          <div className="flex items-center gap-2 mb-2.5">
+            <Eye size={15} color={t.textMuted} />
+            <p className="text-xs font-bold tracking-wide uppercase" style={{ color: t.textMuted }}>
               Preview — {day1Label || "Week 1"}
             </p>
           </div>
@@ -185,83 +199,72 @@ export default function SoloProgramDetailsScreen() {
               Preview not available yet for this program.
             </p>
           ) : (
-            <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${t.panelBorder}` }}>
-              {previewRows.map((row, i) => {
-                const ex = exercisesById[row.exerciseId];
-                const setsReps = formatSetsReps(row);
-                return (
-                  <button
-                    key={row.rowId || i}
-                    type="button"
-                    onClick={() => ex && setDetailExercise(ex)}
-                    disabled={!ex}
-                    className="w-full flex items-center justify-between px-4 py-3 text-left"
-                    style={{ backgroundColor: t.cardBg, borderBottom: i === 0 ? `1px solid ${t.panelBorder}` : "none" }}
-                  >
-                    <p className="text-sm font-semibold">{ex?.name || "Exercise"}</p>
-                    {setsReps && (
-                      <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-                        {setsReps}
-                      </p>
-                    )}
-                  </button>
-                );
-              })}
+            <div className="rounded-2xl overflow-hidden" style={glass}>
+              <button
+                type="button"
+                onClick={() => setPreviewOpen((o) => !o)}
+                aria-expanded={previewOpen}
+                className="w-full flex items-center gap-3.5 p-2.5 pr-4 text-left"
+              >
+                <SoloArtwork program={program} logo={SOLO_THEMES.dark.logo} className="w-14 h-14 rounded-xl shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">{day1Label || "Week 1"}</p>
+                  <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                    Week 1 · Day 1
+                  </p>
+                </div>
+                <ChevronRight size={16} color={t.textFaint} className="shrink-0 transition-transform" style={{ transform: previewOpen ? "rotate(90deg)" : "none" }} />
+              </button>
+              {previewOpen &&
+                previewRows.map((row, i) => {
+                  const ex = exercisesById[row.exerciseId];
+                  const setsReps = formatSetsReps(row);
+                  return (
+                    <button
+                      key={row.rowId || i}
+                      type="button"
+                      onClick={() => ex && setDetailExercise(ex)}
+                      disabled={!ex}
+                      className="w-full flex items-center justify-between px-4 py-3 text-left"
+                      style={{ borderTop: `1px solid ${t.panelBorder}` }}
+                    >
+                      <p className="text-sm font-semibold">{ex?.name || "Exercise"}</p>
+                      {setsReps && (
+                        <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+                          {setsReps}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
             </div>
           )}
 
           {!owned && (
-            <>
-              <div
-                className="mt-2 rounded-2xl px-4 py-3.5 flex items-center gap-2.5"
-                style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }}
-              >
-                <Lock size={14} color={t.textFaint} />
-                <p className="text-xs" style={{ color: t.textFaint }}>
-                  Rest of {day1Label || "Week 1"}, and every other week, unlocks once you own this program.
-                </p>
-              </div>
-              <div className="mt-2 flex flex-col gap-1.5">
-                {["Rest of Week 1", "Week 2", totalWeeks > 2 ? `Weeks 3–${totalWeeks}` : null].filter(Boolean).map((label) => (
-                  <div
-                    key={label}
-                    className="flex items-center justify-between px-4 py-3 rounded-xl"
-                    style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}`, opacity: 0.6 }}
-                  >
-                    <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-                      {label}
-                    </p>
-                    <Lock size={13} color={t.textFaint} />
-                  </div>
-                ))}
-              </div>
-            </>
+            <div className="mt-2.5 flex items-center gap-2.5 px-1">
+              <Lock size={13} color={t.textFaint} className="shrink-0" />
+              <p className="text-xs" style={{ color: t.textFaint }}>
+                The rest of {day1Label || "Week 1"}, and every other week, unlocks once you own this program.
+              </p>
+            </div>
           )}
         </div>
       </div>
 
-      <div
-        className="fixed bottom-0 left-0 right-0 px-5 py-4 backdrop-blur-xl"
-        style={{ backgroundColor: t.navBg, borderTop: `1px solid ${t.navBorder}`, paddingBottom: "calc(16px + env(safe-area-inset-bottom,0px))" }}
-      >
+      <div className="fixed bottom-0 left-0 right-0 px-5 pt-3" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom,0px))", background: `linear-gradient(to bottom, rgba(0,0,0,0), ${t.bg} 35%)` }}>
         <div className="max-w-md mx-auto">
-          {owned ? (
-            <button
-              onClick={() => navigate("/solo/home", { state: { soloTab: "training" } })}
-              className="w-full font-extrabold text-sm py-3.5 rounded-full"
-              style={{ backgroundColor: t.text, color: t.bg }}
-            >
-              You own this — go to My Training
-            </button>
-          ) : (
-            <button
-              onClick={() => setConfirmOpen(true)}
-              className="w-full font-extrabold text-sm py-3.5 rounded-full"
-              style={{ backgroundColor: t.text, color: t.bg }}
-            >
-              Get this program · {formatAudPrice(program.priceCents)}
-            </button>
-          )}
+          <button
+            onClick={() =>
+              owned
+                ? navigate("/solo/home", { state: { soloTab: "training", openPurchaseId: ownedPurchase?.id } })
+                : setConfirmOpen(true)
+            }
+            className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full"
+            style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
+          >
+            <PlayCircle size={18} />
+            {owned ? "Go to My Training" : "Start Programme"}
+          </button>
         </div>
       </div>
 
