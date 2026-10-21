@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, Timer, TrendingUp } from "lucide-react";
+import { ChevronDown, Timer, TrendingUp, Play } from "lucide-react";
 import { useClientDark, formatTargetReps } from "../client/ClientApp";
 import { ExerciseThumb } from "../components/ui";
 import { playTimerDing, unlockTimerAudio } from "./timerAudio";
@@ -110,14 +110,20 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
       )}
 
       {expanded && (
+        // The whole row starts the rest timer (unchanged), with an explicit
+        // "Start timer" button on the right so it's obvious it's tappable.
         <button
           type="button"
           onClick={() => onStartRest(exMeta)}
+          aria-label={`Start ${exMeta.restSeconds ?? 90} second rest timer`}
           className={dark ? "mt-3 w-full flex items-center gap-2 bg-white/[0.04] hover:bg-white/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors" : "mt-3 w-full flex items-center gap-2 bg-black/[0.04] hover:bg-black/[0.07] rounded-full pl-3 pr-1.5 py-1.5 transition-colors"}
         >
           <Timer size={14} className={dark ? "text-white/50" : "text-black/50"} />
-          <span className={dark ? "text-white/60 text-xs font-medium" : "text-black/60 text-xs font-medium"}>
+          <span className={`${dark ? "text-white/60" : "text-black/60"} text-xs font-medium flex-1 text-left`}>
             Rest {exMeta.restSeconds ?? 90}s between sets
+          </span>
+          <span className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full shrink-0 text-white" style={{ backgroundColor: accent }}>
+            <Play size={10} fill="currentColor" /> Start timer
           </span>
         </button>
       )}
