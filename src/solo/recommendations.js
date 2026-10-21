@@ -20,6 +20,9 @@ export function formatAudPrice(priceCents) {
 // category's program even if a caller forgets to pre-filter.
 function isVisible(program, categoriesById) {
   if (!program || program.status !== "published") return false;
+  // Recovery add-ons have their own Catalogue section (visibleRecoveryAddons
+  // below) and are never recommended or listed under a category.
+  if (isRecoveryAddon(program)) return false;
   const categoryIds = program.categoryIds || [];
   // A program with zero categories, or whose only categories are all
   // archived, has nowhere visible to appear in the catalogue — same "no
@@ -29,11 +32,22 @@ function isVisible(program, categoriesById) {
 }
 
 export function visibleCategories(categories, programs) {
-  const published = programs.filter((p) => p.status === "published");
+  const published = programs.filter((p) => p.status === "published" && !isRecoveryAddon(p));
   return categories
     .filter((c) => !c.archived)
     .filter((c) => published.some((p) => (p.categoryIds || []).includes(c.id)))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+// A free recovery/mobility product (kind "recovery") a customer can add
+// alongside a purchased program — see SoloAppContext's setRecoveryAddon and
+// soloCalendar.js, which lays its sessions onto the program's rest days.
+export function isRecoveryAddon(program) {
+  return program?.kind === "recovery";
+}
+
+export function visibleRecoveryAddons(programs) {
+  return programs.filter((p) => p.status === "published" && isRecoveryAddon(p));
 }
 
 export function visiblePrograms(programs, categories) {

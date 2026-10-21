@@ -364,6 +364,14 @@ export function SoloAppProvider({ children }) {
         await signOut(soloAuth);
       },
 
+      // The customer's one active recovery add-on (a free kind:"recovery"
+      // soloPrograms product), or null to remove it. Only one at a time —
+      // setting a new one replaces the old. Its sessions are laid onto the
+      // rest days of their started programs by src/solo/soloCalendar.js.
+      async setRecoveryAddon(uid, programId) {
+        await updateDoc(doc(soloDb, "soloUsers", uid), { recoveryAddon: programId ? { programId, addedAt: Date.now() } : null });
+      },
+
       // Monday check-in reminders on/off (soloWeeklyCheckInReminder in
       // functions/index.js skips anyone with this set to false).
       async setSoloReminderPref(uid, enabled) {

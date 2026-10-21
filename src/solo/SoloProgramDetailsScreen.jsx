@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Lock, Eye, PlayCircle } from "lucide-react";
 import { SoloArtwork } from "./SoloArtwork";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
-import { visiblePrograms, formatAudPrice } from "./recommendations";
+import { visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, formatAudPrice } from "./recommendations";
 import { GOAL_OPTIONS, ENVIRONMENT_OPTIONS } from "./programAttributes";
 import { BottomSheet, PrimaryButton } from "../components/ui";
 import { ClientThemeContext, ExerciseDetailSheet } from "../client/ClientApp";
@@ -22,7 +22,7 @@ function formatSetsReps(row) {
 export default function SoloProgramDetailsScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { soloPrograms, soloProgramCategories, soloExercises, soloCurrentUser, soloPurchases, startSoloCheckout } = useSoloApp();
+  const { soloPrograms, soloProgramCategories, soloExercises, soloCurrentUser, soloPurchases, startSoloCheckout, setRecoveryAddon } = useSoloApp();
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -30,6 +30,8 @@ export default function SoloProgramDetailsScreen() {
   const [purchaseError, setPurchaseError] = useState("");
   const [detailExercise, setDetailExercise] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [replaceOpen, setReplaceOpen] = useState(false);
+  const [addonSaving, setAddonSaving] = useState(false);
 
   // Arriving from a scrolled Catalogue would otherwise open this page
   // part-way down, past the hero.
@@ -39,9 +41,27 @@ export default function SoloProgramDetailsScreen() {
 
   const exercisesById = useMemo(() => Object.fromEntries(soloExercises.map((e) => [e.id, e])), [soloExercises]);
   const published = useMemo(() => visiblePrograms(soloPrograms, soloProgramCategories), [soloPrograms, soloProgramCategories]);
-  const program = published.find((p) => p.id === id);
+  const program = published.find((p) => p.id === id) || visibleRecoveryAddons(soloPrograms).find((p) => p.id === id);
   const ownedPurchase = soloPurchases.find((p) => p.programId === id);
   const owned = !!ownedPurchase;
+  // A free recovery add-on: no checkout — it's "added" instead, one at a
+  // time, and its sessions fill the customer's program rest days.
+  const isAddon = isRecoveryAddon(program);
+  const activeAddonId = soloCurrentUser?.recoveryAddon?.programId || null;
+  const addonActive = isAddon && activeAddonId === id;
+  const otherAddon = isAddon && activeAddonId && activeAddonId !== id ? soloPrograms.find((p) => p.id === activeAddonId) : null;
+  const hasStartedProgram = soloPurchases.some((p) => p.startDate);
+
+  async function applyAddon(programId) {
+    setAddonSaving(true);
+    try {
+      await setRecoveryAddon(soloCurrentUser.id, programId);
+      setReplaceOpen(false);
+      if (programId) navigate("/solo/calendar");
+    } finally {
+      setAddonSaving(false);
+    }
+  }
   // The full phases/days live on the separately-gated soloProgramContent
   // doc, never on this public program object — see
   // AppContext.jsx's computeWeekOnePreview comment. Pre-purchase, this
@@ -133,7 +153,7 @@ export default function SoloProgramDetailsScreen() {
       <div className="relative -mt-10 px-3 pb-32 max-w-md mx-auto">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-[26px] font-extrabold leading-tight">{program.name}</h1>
-          <p className="text-lg font-extrabold whitespace-nowrap mt-1">{formatAudPrice(program.priceCents)}</p>
+          <p className="text-lg font-extrabold whitespace-nowrap mt-1">{isAddon ? "Free" : formatAudPrice(program.priceCents)}</p>
         </div>
         <p className="text-sm mt-1.5" style={{ color: t.textMuted }}>
           {program.level} · {totalWeeks} week{totalWeeks === 1 ? "" : "s"}
@@ -235,7 +255,15 @@ export default function SoloProgramDetailsScreen() {
             </div>
           )}
 
-          {!owned && (
+          {isAddon && (
+            <p className="mt-3 text-xs leading-relaxed px-1" style={{ color: t.textMuted }}>
+              Free add-on. Its sessions are placed on the rest days of the program you're running — week 1 alongside your program's week 1,
+              and so on. One recovery add-on can be active at a time.
+              {!hasStartedProgram && " Set a start date for one of your programs to see them on your calendar."}
+            </p>
+          )}
+
+          {!owned && !isAddon && (
             <div className="mt-2.5 flex items-center gap-2.5 px-1">
               <Lock size={13} color={t.textFaint} className="shrink-0" />
               <p className="text-xs" style={{ color: t.textFaint }}>
@@ -248,6 +276,28 @@ export default function SoloProgramDetailsScreen() {
 
       <div className="fixed bottom-0 left-0 right-0 px-3 pt-3" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom,0px))", background: `linear-gradient(to bottom, rgba(0,0,0,0), ${t.bg} 35%)` }}>
         <div className="max-w-md mx-auto">
+          {isAddon ? (
+            addonActive ? (
+              <button
+                onClick={() => applyAddon(null)}
+                disabled={addonSaving}
+                className="w-full font-bold text-sm py-4 rounded-full disabled:opacity-50"
+                style={{ ...soloGlass(t), color: t.text }}
+              >
+                {addonSaving ? "Removing…" : "Active — remove from my training"}
+              </button>
+            ) : (
+              <button
+                onClick={() => (otherAddon ? setReplaceOpen(true) : applyAddon(id))}
+                disabled={addonSaving}
+                className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full disabled:opacity-50"
+                style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
+              >
+                <PlayCircle size={18} />
+                {addonSaving ? "Adding…" : "Add to my training · Free"}
+              </button>
+            )
+          ) : (
           <button
             onClick={() =>
               owned
@@ -260,6 +310,7 @@ export default function SoloProgramDetailsScreen() {
             <PlayCircle size={18} />
             {owned ? "Go to My Training" : "Start Program"}
           </button>
+          )}
         </div>
       </div>
 
@@ -271,6 +322,16 @@ export default function SoloProgramDetailsScreen() {
         {purchaseError && <p className="text-red-500 text-sm mb-4">{purchaseError}</p>}
         <PrimaryButton dark={dark} className="w-full" onClick={confirmPurchase} disabled={purchasing}>
           {purchasing ? "STARTING CHECKOUT…" : `PAY ${formatAudPrice(program.priceCents)}`}
+        </PrimaryButton>
+      </BottomSheet>
+
+      <BottomSheet open={replaceOpen} onClose={() => setReplaceOpen(false)} title="Replace add-on?" dark={dark}>
+        <p className="text-sm mb-5 leading-relaxed" style={{ color: t.textMuted }}>
+          Only one recovery add-on can run at a time. Replace "{otherAddon?.name}" with "{program.name}"? Sessions you've already completed stay
+          in your history.
+        </p>
+        <PrimaryButton dark={dark} className="w-full" onClick={() => applyAddon(id)} disabled={addonSaving}>
+          {addonSaving ? "REPLACING…" : "REPLACE"}
         </PrimaryButton>
       </BottomSheet>
 

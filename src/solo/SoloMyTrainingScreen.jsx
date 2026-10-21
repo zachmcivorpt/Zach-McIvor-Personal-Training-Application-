@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Clock3 } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { SoloArtwork } from "./SoloArtwork";
+import { isRecoveryAddon } from "./recommendations";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { programPhases } from "../lib/AppContext";
@@ -174,7 +175,8 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
 export default function SoloMyTrainingScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { soloPrograms, soloPurchases, soloWorkoutLogs, soloProgramContentByProgramId, setPurchaseStartDate } = useSoloApp();
+  const { soloPrograms, soloPurchases, soloWorkoutLogs, soloProgramContentByProgramId, setPurchaseStartDate, soloCurrentUser } = useSoloApp();
+  const activeAddon = soloPrograms.find((p) => p.id === soloCurrentUser?.recoveryAddon?.programId && p.status === "published" && isRecoveryAddon(p)) || null;
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [openPurchaseId, setOpenPurchaseId] = useState(null);
@@ -310,6 +312,26 @@ export default function SoloMyTrainingScreen() {
                 </button>
               ))}
             </div>
+          </>
+        )}
+
+        {activeAddon && (
+          <>
+            <h2 className="text-lg font-bold mt-8 mb-3">Recovery Add-on</h2>
+            <button
+              onClick={() => navigate("/solo/calendar")}
+              className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
+              style={glass}
+            >
+              <SoloArtwork program={activeAddon} t={t} className="w-16 h-16 rounded-xl shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-snug">{activeAddon.name}</p>
+                <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                  Free · on your rest days — see your calendar
+                </p>
+              </div>
+              <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+            </button>
           </>
         )}
 

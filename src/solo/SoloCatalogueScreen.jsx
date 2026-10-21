@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
-import { visibleCategories, visiblePrograms, recommendPrograms, formatAudPrice } from "./recommendations";
+import { visibleCategories, visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, recommendPrograms, formatAudPrice } from "./recommendations";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { SoloArtwork } from "./SoloArtwork";
 
@@ -24,7 +24,7 @@ function ProgramCard({ program, t, onClick }) {
       <div className="px-4 py-3.5">
         <div className="flex items-start justify-between gap-2.5">
           <p className="text-[15px] font-bold leading-tight">{program.name}</p>
-          <p className="text-sm font-extrabold whitespace-nowrap">{formatAudPrice(program.priceCents)}</p>
+          <p className="text-sm font-extrabold whitespace-nowrap">{isRecoveryAddon(program) ? "Free" : formatAudPrice(program.priceCents)}</p>
         </div>
         {program.description && (
           <p className="text-xs mt-1 line-clamp-2" style={{ color: t.textMuted }}>
@@ -50,6 +50,8 @@ export default function SoloCatalogueScreen() {
 
   const categories = useMemo(() => visibleCategories(soloProgramCategories, soloPrograms), [soloProgramCategories, soloPrograms]);
   const published = useMemo(() => visiblePrograms(soloPrograms, soloProgramCategories), [soloPrograms, soloProgramCategories]);
+  const recoveryAddons = useMemo(() => visibleRecoveryAddons(soloPrograms), [soloPrograms]);
+  const activeAddonId = soloCurrentUser?.recoveryAddon?.programId;
 
   const answers = soloCurrentUser?.onboarding?.answers || {};
   // The two best fits for this customer's consultation answers, leaving
@@ -182,6 +184,28 @@ export default function SoloCatalogueScreen() {
               ))}
             </div>
           ))
+        )}
+
+        {/* Free recovery/mobility add-ons — one can run alongside a
+            purchased program, filling its rest days on the calendar. Not
+            category-filtered, so it shows under every category chip. */}
+        {recoveryAddons.length > 0 && (
+          <section className="mb-7">
+            <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: accent }}>
+              Free · add one to your program
+            </p>
+            <h2 className="text-lg font-bold mt-1 mb-3">Recovery add-ons</h2>
+            {recoveryAddons.map((p) => (
+              <div key={p.id} className="relative">
+                <ProgramCard program={p} t={t} onClick={() => openProgram(p.id)} />
+                {activeAddonId === p.id && (
+                  <span className="absolute top-3 right-3 text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: accent, color: "#fff" }}>
+                    Active
+                  </span>
+                )}
+              </div>
+            ))}
+          </section>
         )}
       </div>
     </div>

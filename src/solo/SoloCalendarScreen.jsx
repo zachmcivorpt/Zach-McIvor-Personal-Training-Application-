@@ -6,6 +6,7 @@ import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { localDateKey } from "../lib/dateKey";
 import { buildSoloCalendar, rangeKeys, addDays } from "./soloCalendar";
 import { currentWeekNumber } from "./weekProgress";
+import { isRecoveryAddon } from "./recommendations";
 
 // Train Solo's calendar (Profile → My Calendar) — the same scrolling
 // day-by-day list the coached client's Calendar tab uses, built from the
@@ -27,6 +28,8 @@ export default function SoloCalendarScreen() {
   const todayKey = localDateKey();
 
   const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
+  const addonProgram = programsById[soloCurrentUser?.recoveryAddon?.programId];
+  const recoveryAddon = addonProgram && addonProgram.status === "published" && isRecoveryAddon(addonProgram) ? addonProgram : null;
   const { fromKey, toKey } = rangeKeys(daysBack, daysForward, todayKey);
   const byDate = useMemo(
     () =>
@@ -38,11 +41,12 @@ export default function SoloCalendarScreen() {
         weighIns: soloWeighIns,
         bodyMetrics: soloBodyMetrics,
         progressPhotos: soloProgressPhotos,
+        recoveryAddon,
         accountCreatedAt: soloCurrentUser?.createdAt,
         fromKey,
         toKey,
       }),
-    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, soloCurrentUser?.createdAt, fromKey, toKey]
+    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, fromKey, toKey]
   );
 
   // Only days with something on them, plus today so the list always has
@@ -84,6 +88,13 @@ export default function SoloCalendarScreen() {
 
   function actionFor(item) {
     if (item.type === "recovery") return () => navigate("/solo/recovery");
+    if (item.type === "addon") {
+      if (item.done || item.dateKey > todayKey) return null; // a future day's add-on session waits for its day
+      return () =>
+        navigate("/solo/workout", {
+          state: { purchaseId: `${soloCurrentUser.id}_recovery`, programId: item.addonId, dayId: item.sessionId, weekNumber: item.dateKey, day: item.day },
+        });
+    }
     if (item.type === "bodystats" || item.type === "photos") {
       return () => navigate("/solo/home", { state: { soloTab: "progress" } });
     }
@@ -148,7 +159,7 @@ export default function SoloCalendarScreen() {
                   )}
                   {items.map((item) => {
                     const action = actionFor(item);
-                    const locked = item.type === "workout" && !item.done && !action;
+                    const locked = (item.type === "workout" || item.type === "addon") && !item.done && !action;
                     return (
                       <button
                         key={item.id}
@@ -169,7 +180,7 @@ export default function SoloCalendarScreen() {
                             {item.title}
                           </p>
                           <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
-                            {item.done ? (item.type === "workout" || item.type === "recovery" ? "Completed." : "Done for this week.") : item.subtitle}
+                            {item.done ? (item.type === "workout" || item.type === "recovery" || item.type === "addon" ? "Completed." : "Done for this week.") : item.subtitle}
                           </p>
                         </div>
                         {locked ? <Lock size={14} color={t.textFaint} className="shrink-0" /> : action ? <ChevronRight size={16} color={t.textFaint} className="shrink-0" /> : null}

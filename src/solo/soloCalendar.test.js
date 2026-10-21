@@ -85,6 +85,31 @@ describe("soloCalendar", () => {
     expect(cal["2026-10-08"][0].done).toBe(false);
   });
 
+  it("lays a recovery add-on's week-N sessions onto week N's rest days, rest stays Active Recovery", () => {
+    const addon = {
+      id: "r1",
+      name: "Mobility Add-on",
+      recoveryPhases: [{ durationWeeks: 1, days: [{ id: "m1", label: "Hips" }, { id: "m2", label: "Spine" }] }, { durationWeeks: 1, days: [{ id: "m3", label: "Flow" }] }],
+    };
+    const cal = build({ recoveryAddon: addon });
+    const at = (k) => (cal[k] || []).filter((i) => i.type === "addon" || i.type === "recovery").map((i) => `${i.type}:${i.title}`);
+    // Week 1 rest days: 6, 8, 10, 11 (Oct). Two add-on sessions spread across them.
+    expect(at("2026-10-06")).toEqual(["addon:Hips"]);
+    expect(at("2026-10-08")).toEqual(["recovery:Active Recovery"]);
+    expect(at("2026-10-10")).toEqual(["addon:Spine"]);
+    expect(at("2026-10-11")).toEqual(["recovery:Active Recovery"]);
+    // Week 2 gets the add-on's week-2 session; week 3 is past the add-on's length.
+    expect(at("2026-10-13")).toEqual(["addon:Flow"]);
+    expect(Object.values(cal).flat().filter((i) => i.type === "addon" && i.weekNumber === 3)).toEqual([]);
+  });
+
+  it("marks an add-on session done only for the date it was scheduled", () => {
+    const addon = { id: "r1", name: "A", recoveryPhases: [{ durationWeeks: 3, days: [{ id: "m1", label: "Hips" }] }] };
+    const cal = build({ recoveryAddon: addon, workoutLogs: [{ purchaseId: "u_recovery", dayId: "r1:m1", weekNumber: "2026-10-06", date: Date.now() }] });
+    expect(cal["2026-10-06"].find((i) => i.type === "addon").done).toBe(true);
+    expect(cal["2026-10-13"].find((i) => i.type === "addon").done).toBe(false);
+  });
+
   it("skips programs with no start date or no content yet", () => {
     const cal = build({ purchases: [{ ...purchase, startDate: null }] });
     expect(Object.values(cal).flat().some((i) => i.type === "workout")).toBe(false);

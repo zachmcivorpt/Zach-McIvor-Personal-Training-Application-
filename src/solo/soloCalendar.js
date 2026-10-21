@@ -12,9 +12,12 @@
 //    Monday–Sunday week.
 //  - Progress photos: same Mondays, done once a progress photo is added
 //    that week.
-//  - Active Recovery: every day inside a started program's span that has
-//    no program workout (a rest day). Done once an Active Recovery
-//    session is logged that day.
+//  - Recovery add-on: when the customer has one (a free kind:"recovery"
+//    product), its week-N sessions go onto week N's rest days of each
+//    started program, spread evenly. Done once that session is logged for
+//    that date.
+//  - Active Recovery: every other rest day inside a started program's
+//    span. Done once any Active Recovery session is logged that day.
 import { localDateKey } from "../lib/dateKey";
 import { phaseForWeekNumber } from "./weekProgress";
 import { isRecoveryLog } from "./activeRecovery";
@@ -60,6 +63,7 @@ export function buildSoloCalendar({
   weighIns = [],
   bodyMetrics = [],
   progressPhotos = [],
+  recoveryAddon = null,
   accountCreatedAt,
   fromKey,
   toKey,
@@ -72,6 +76,7 @@ export function buildSoloCalendar({
 
   const doneSessions = new Set(workoutLogs.map((l) => `${l.purchaseId}:${l.weekNumber}:${l.dayId}`));
   const recoveryDays = new Set(workoutLogs.filter(isRecoveryLog).map((l) => keyOf(l.date)));
+  const addonDone = new Set(workoutLogs.filter(isRecoveryLog).map((l) => `${l.dayId}|${l.weekNumber}`));
   const workoutDays = new Set();
   const programSpans = [];
 
@@ -80,7 +85,7 @@ export function buildSoloCalendar({
     const phases = contentByProgramId[purchase.programId]?.phases;
     if (!program || !purchase.startDate || !Array.isArray(phases)) continue;
     const totalWeeks = phases.reduce((sum, p) => sum + (p.durationWeeks || 0), 0);
-    if (totalWeeks > 0) programSpans.push([purchase.startDate, addDays(purchase.startDate, totalWeeks * 7 - 1)]);
+    if (totalWeeks > 0) programSpans.push({ start: purchase.startDate, totalWeeks });
     for (let week = 1; week <= totalWeeks; week++) {
       const days = phaseForWeekNumber(phases, week)?.phase?.days || [];
       const offsets = sessionOffsets(days.length);
@@ -102,12 +107,36 @@ export function buildSoloCalendar({
     }
   }
 
-  for (const [start, end] of programSpans) {
-    const first = start < fromKey ? fromKey : start;
-    const last = end > toKey ? toKey : end;
-    for (let key = first; key <= last; key = addDays(key, 1)) {
-      if (workoutDays.has(key) || (byDate[key] || []).some((i) => i.type === "recovery")) continue;
-      push(key, { type: "recovery", id: `recovery:${key}`, title: "Active Recovery", subtitle: "Rest day — light cardio or mobility.", done: recoveryDays.has(key) });
+  const addonPhases = Array.isArray(recoveryAddon?.recoveryPhases) ? recoveryAddon.recoveryPhases : null;
+  const restFilled = new Set();
+  for (const { start, totalWeeks } of programSpans) {
+    for (let week = 1; week <= totalWeeks; week++) {
+      const weekStart = addDays(start, (week - 1) * 7);
+      const restDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).filter((k) => !workoutDays.has(k) && !restFilled.has(k));
+      const addonDays = addonPhases ? phaseForWeekNumber(addonPhases, week)?.phase?.days || [] : [];
+      const placed = new Set();
+      addonDays.slice(0, restDays.length).forEach((day, i) => {
+        const key = restDays[Math.floor((i * restDays.length) / Math.min(addonDays.length, restDays.length))];
+        placed.add(key);
+        const sessionId = `${recoveryAddon.id}:${day.id}`;
+        push(key, {
+          type: "addon",
+          id: `addon:${key}:${day.id}`,
+          title: day.label || "Recovery session",
+          subtitle: `${recoveryAddon.name} · Week ${week}`,
+          done: addonDone.has(`${sessionId}|${key}`),
+          addonId: recoveryAddon.id,
+          sessionId,
+          day,
+          weekNumber: week,
+          dateKey: key,
+        });
+      });
+      for (const key of restDays) {
+        restFilled.add(key);
+        if (placed.has(key)) continue;
+        push(key, { type: "recovery", id: `recovery:${key}`, title: "Active Recovery", subtitle: "Rest day — light cardio or mobility.", done: recoveryDays.has(key) });
+      }
     }
   }
 

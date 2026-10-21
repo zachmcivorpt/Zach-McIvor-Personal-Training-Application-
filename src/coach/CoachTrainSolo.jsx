@@ -402,7 +402,9 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
   const [goals, setGoals] = useState([]);
   const [style, setStyle] = useState("");
   const [environments, setEnvironments] = useState([]);
+  const [kind, setKind] = useState("program");
   const [saving, setSaving] = useState(false);
+  const isRecovery = kind === "recovery";
 
   React.useEffect(() => {
     if (open) {
@@ -414,6 +416,7 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
       setGoals(program?.goals || []);
       setStyle(program?.style || "");
       setEnvironments(program?.environments || []);
+      setKind(program?.kind === "recovery" ? "recovery" : "program");
     }
   }, [open, program?.id]);
 
@@ -438,7 +441,9 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
         level,
         description,
         categoryIds,
-        priceCents: Number.isFinite(parsedPrice) && parsedPrice >= 0 ? Math.round(parsedPrice * 100) : null,
+        // A recovery add-on is always free; a program keeps its own price.
+        kind,
+        priceCents: isRecovery ? 0 : Number.isFinite(parsedPrice) && parsedPrice >= 0 ? Math.round(parsedPrice * 100) : null,
         goals,
         style: style || null,
         environments,
@@ -455,6 +460,19 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
         <Field label="PROGRAM NAME">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Strength Foundations" autoFocus />
         </Field>
+        <Field
+          label="TYPE"
+          hint={
+            isRecovery
+              ? "Free. Shown in the Catalogue's Recovery add-ons section; a customer runs one alongside a purchased program, with its week-N sessions placed on that program's week-N rest days."
+              : "A paid program, bought through Stripe checkout."
+          }
+        >
+          <Select value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="program">Program (paid)</option>
+            <option value="recovery">Recovery add-on (free)</option>
+          </Select>
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="LEVEL">
             <Select value={level} onChange={(e) => setLevel(e.target.value)}>
@@ -463,6 +481,11 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
               ))}
             </Select>
           </Field>
+          {isRecovery ? (
+            <Field label="PRICE">
+              <p className="text-white text-sm py-2.5">Free</p>
+            </Field>
+          ) : (
           <Field label="PRICE (AUD)" hint="Leave blank while still drafting">
             <TextInput
               type="number"
@@ -473,13 +496,16 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
               placeholder="79.00"
             />
           </Field>
+          )}
         </div>
         <Field label="DESCRIPTION">
           <TextArea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this program is for, who it suits..." />
         </Field>
+        {!isRecovery && (
         <Field label="CATEGORIES">
           <CategoryChips allCategories={allCategories} selectedIds={categoryIds} onToggle={toggleCategory} />
         </Field>
+        )}
         <Field
           label="GOALS THIS PROGRAM SUITS"
           hint="Used to recommend this program to customers whose consultation answers match"
@@ -628,9 +654,12 @@ function CoachSoloPrograms({ showToast }) {
     setSelectedPhaseId(null);
   }
 
+  // A recovery add-on is free, so its sessions are also mirrored onto the
+  // public soloPrograms doc (recoveryPhases) — customers read them from
+  // there without a purchase, while paid programs stay purchase-gated.
   function savePhases(next) {
     if (!selected) return;
-    return updateSoloProgram(selected.id, { phases: next });
+    return updateSoloProgram(selected.id, { phases: next, ...(selected.kind === "recovery" && { recoveryPhases: next }) });
   }
 
   async function handleCreate(data) {
@@ -647,7 +676,7 @@ function CoachSoloPrograms({ showToast }) {
   async function handleSaveEdits(data) {
     if (!selected) return;
     try {
-      await updateSoloProgram(selected.id, data);
+      await updateSoloProgram(selected.id, { ...data, recoveryPhases: data.kind === "recovery" ? phases : null });
       showToast("Program saved");
     } catch (err) {
       showToast(err.message || "Couldn't save — check your connection and try again");
@@ -731,8 +760,11 @@ function CoachSoloPrograms({ showToast }) {
   // explanation, which is exactly the bug this check exists to prevent
   // from recurring.
   const hasAnyWorkout = phases.some((p) => (p.days || []).length > 0);
-  const hasPrice = selected?.priceCents != null;
-  const hasCategory = (selected?.categoryIds || []).some((id) => categoriesById[id] && !categoriesById[id].archived);
+  // Recovery add-ons are free and live in their own Catalogue section, so
+  // they need neither a price nor a category to be visible.
+  const isRecoverySelected = selected?.kind === "recovery";
+  const hasPrice = isRecoverySelected || selected?.priceCents != null;
+  const hasCategory = isRecoverySelected || (selected?.categoryIds || []).some((id) => categoriesById[id] && !categoriesById[id].archived);
   async function togglePublish() {
     if (!selected) return;
     if (selected.status !== "published" && !hasAnyWorkout) {
@@ -787,7 +819,9 @@ function CoachSoloPrograms({ showToast }) {
                       {p.status === "published" ? "LIVE" : "DRAFT"}
                     </span>
                   </div>
-                  <p className="text-xs mt-0.5 text-white">{(p.categoryIds || []).map((id) => categoriesById[id]?.name).filter(Boolean).join(", ") || "No categories"}</p>
+                  <p className="text-xs mt-0.5 text-white">
+                    {p.kind === "recovery" ? "Recovery add-on · Free" : (p.categoryIds || []).map((id) => categoriesById[id]?.name).filter(Boolean).join(", ") || "No categories"}
+                  </p>
                 </button>
               );
             })}
@@ -816,7 +850,10 @@ function CoachSoloPrograms({ showToast }) {
                   className="w-full text-left px-3.5 py-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
                 >
                   <p className="text-white text-sm font-semibold truncate">{p.name}</p>
-                  <p className="text-white text-xs mt-0.5">{p.status === "published" ? "Live" : "Draft"}</p>
+                  <p className="text-white text-xs mt-0.5">
+                    {p.status === "published" ? "Live" : "Draft"}
+                    {p.kind === "recovery" ? " · Recovery add-on" : ""}
+                  </p>
                 </button>
               ))}
             </div>
@@ -838,7 +875,7 @@ function CoachSoloPrograms({ showToast }) {
               <div className="flex items-start justify-between gap-3 mb-4">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="text-white text-[11px] font-semibold tracking-wide">PROGRAM</p>
+                    <p className="text-white text-[11px] font-semibold tracking-wide">{isRecoverySelected ? "RECOVERY ADD-ON" : "PROGRAM"}</p>
                     <span
                       className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
                       style={{ backgroundColor: selected.status === "published" ? "rgba(34,197,94,0.2)" : "rgba(255,255,255,0.12)" }}
@@ -849,11 +886,13 @@ function CoachSoloPrograms({ showToast }) {
                   <h2 className="text-white text-xl font-bold truncate">{selected.name}</h2>
                   <p className="text-white text-xs mt-1">
                     {selected.level} · {phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total ·{" "}
-                    {selected.priceCents != null ? formatAudPrice(selected.priceCents) : "No price set"}
+                    {isRecoverySelected ? "Free" : selected.priceCents != null ? formatAudPrice(selected.priceCents) : "No price set"}
                   </p>
                   {selected.description && <p className="text-white text-sm mt-2.5 leading-relaxed">{selected.description}</p>}
                   <p className="text-white text-xs mt-2">
-                    {(selected.categoryIds || []).map((id) => categoriesById[id]?.name).filter(Boolean).join(", ") || "No categories assigned"}
+                    {isRecoverySelected
+                      ? "Shown in the Catalogue's Recovery add-ons section."
+                      : (selected.categoryIds || []).map((id) => categoriesById[id]?.name).filter(Boolean).join(", ") || "No categories assigned"}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 pt-4">
