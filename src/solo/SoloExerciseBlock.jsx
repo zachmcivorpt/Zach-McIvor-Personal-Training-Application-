@@ -114,11 +114,11 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
 
       {expanded && (
         <div className="mt-3 space-y-1.5">
-          <div className="grid grid-cols-[22px_minmax(0,1.3fr)_1fr_1fr_16px] gap-2 px-1">
+          <div className="grid grid-cols-[22px_minmax(0,1fr)_72px_72px_12px] gap-2 px-1">
             <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>SET</span>
             <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>PREVIOUS</span>
-            <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>{isTimeBased ? "" : "KG"}</span>
-            <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>{isTimeBased ? "SECONDS" : "REPS"}</span>
+            {!isTimeBased && <span className={dark ? "text-white/30 text-[10px] font-semibold text-center" : "text-black/30 text-[10px] font-semibold text-center"}>KG</span>}
+            <span className={`${dark ? "text-white/30" : "text-black/30"} text-[10px] font-semibold text-center ${isTimeBased ? "col-span-2" : ""}`}>{isTimeBased ? "SECONDS" : "REPS"}</span>
             <span />
           </div>
           {rows.map((row, i) => {
@@ -130,7 +130,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
             const prev = previousSets[i];
             const suggestion = isTimeBased ? null : suggestNextSet(prev, exMeta.targetReps);
             return (
-            <div key={i} className={`grid grid-cols-[22px_minmax(0,1.3fr)_1fr_1fr_16px] gap-2 px-1 ${isTimeBased ? "items-center" : "items-start"}`}>
+            <div key={i} className={`grid grid-cols-[22px_minmax(0,1fr)_72px_72px_12px] gap-2 px-1 ${isTimeBased ? "items-center" : "items-start"}`}>
               <span className={`${dark ? "text-white/50" : "text-black/50"} text-sm font-semibold ${isTimeBased ? "" : "pt-2"}`}>{i + 1}</span>
               <div className={`min-w-0 ${isTimeBased ? "" : "pt-1"}`}>
                 <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>
@@ -153,7 +153,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                   </button>
                 )}
               </div>
-              {isTimeBased ? <span /> : (
+              {!isTimeBased && (
                 <input
                   type="number"
                   inputMode="decimal"
@@ -169,7 +169,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                   <button
                     type="button"
                     onClick={() => stopRowTimer(i)}
-                    className="w-full rounded-lg px-2.5 py-2 text-sm font-bold text-center"
+                    className="col-span-2 w-full rounded-lg px-2.5 py-2 text-sm font-bold text-center"
                     style={{ backgroundColor: accent, color: "#fff" }}
                   >
                     {timerRemaining}s — stop
@@ -178,7 +178,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                   <button
                     type="button"
                     onClick={() => startRowTimer(i)}
-                    className={dark ? "w-full bg-white/8 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm text-center" : "w-full bg-black/5 border border-black/10 rounded-lg px-2.5 py-2 text-black text-sm text-center"}
+                    className={dark ? "col-span-2 w-full bg-white/8 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm text-center" : "col-span-2 w-full bg-black/5 border border-black/10 rounded-lg px-2.5 py-2 text-black text-sm text-center"}
                   >
                     {row.reps ? `${row.reps}s` : "Start"}
                   </button>
