@@ -1,5 +1,5 @@
 import React from "react";
-import LoginBackground from "../components/LoginBackground";
+import { PinnedLoginBackdrop } from "../components/LoginBackground";
 
 // Reuses the exact same coach-configured background
 // (settings/appDesign.loginBackgroundUrl, public read) and overlay
@@ -11,13 +11,7 @@ import LoginBackground from "../components/LoginBackground";
 // SoloRegisterScreen, and the consultation questionnaire — so there is
 // exactly one place this logic lives, not one copy per screen.
 function SoloBackgroundLayer({ appDesign }) {
-  if (!appDesign?.loginBackgroundUrl) return null;
-  return (
-    <>
-      <LoginBackground appDesign={appDesign} />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
-    </>
-  );
+  return <PinnedLoginBackdrop appDesign={appDesign} />;
 }
 
 // Every full-screen Train Solo entry state renders its content through

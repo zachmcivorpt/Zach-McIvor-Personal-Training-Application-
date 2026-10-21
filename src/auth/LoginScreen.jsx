@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import LoginBackground from "../components/LoginBackground";
+import { PinnedLoginBackdrop } from "../components/LoginBackground";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Tagline } from "../components/ui";
@@ -252,8 +252,7 @@ export default function LoginScreen() {
           video; nothing renders here at all until a coach sets one. Shared
           with Train Solo's screens — see LoginBackground for how the
           known upload loads from a small cached copy. */}
-      <LoginBackground appDesign={db.appDesign} />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
+      <PinnedLoginBackdrop appDesign={db.appDesign} />
 
       {/* pt-safe (env(safe-area-inset-top)) stacks on top of the existing
           py-8 — on every surface except the native iOS edge-to-edge login

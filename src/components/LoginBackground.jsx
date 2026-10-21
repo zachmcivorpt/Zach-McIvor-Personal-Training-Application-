@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // The coach-set login background (settings/appDesign.loginBackgroundUrl),
 // shared by the Coaching login and Train Solo's start/login/register/
@@ -38,6 +38,30 @@ export function resolveLoginBackground(appDesign) {
 }
 
 const MEDIA_STYLE = { filter: "brightness(0.95) contrast(1.05) saturate(0.95)" };
+
+// The photo/video screens (Coaching login, the Coaching / Train Solo
+// chooser, Train Solo's login/register/questionnaire) keep their background
+// pinned to the screen: it sits in a fixed layer, and while one of these
+// screens is up the page itself can't rubber-band (iOS dragged the whole
+// page, photo included, showing the white page behind it) and its own
+// background is the same near-black, so nothing white ever shows.
+export function PinnedLoginBackdrop({ appDesign }) {
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("apex-photo-page");
+    return () => root.classList.remove("apex-photo-page");
+  }, []);
+  return (
+    <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
+      {appDesign?.loginBackgroundUrl && (
+        <>
+          <LoginBackground appDesign={appDesign} />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function LoginBackground({ appDesign }) {
   const bg = resolveLoginBackground(appDesign);

@@ -106,3 +106,12 @@
 .solo-glass-inner > div {
   background-color: transparent !important;
 }
+
+/* While a login/chooser photo screen is up (PinnedLoginBackdrop): no
+   rubber-band bounce of the page, and a near-black page behind it so a
+   bounce on older iOS never shows white. */
+html.apex-photo-page,
+html.apex-photo-page body {
+  background-color: #0a0a0b;
+  overscroll-behavior: none;
+}
