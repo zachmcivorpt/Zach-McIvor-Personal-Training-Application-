@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, Timer } from "lucide-react";
+import { ChevronDown, Timer, TrendingUp } from "lucide-react";
 import { useClientDark, formatTargetReps } from "../client/ClientApp";
 import { ExerciseThumb } from "../components/ui";
 import { playTimerDing, unlockTimerAudio } from "./timerAudio";
 import { useSoloTheme } from "./SoloThemeContext";
+import { suggestNextSet } from "../lib/trainingStats";
+import { MEASURE_BLUE } from "../theme";
 
 // A trimmed fork of ClientApp.jsx's ExerciseBlock for Train Solo: same set-
 // logging row layout, rest-timer start, and time-based-set row timer, but
@@ -13,7 +15,7 @@ import { useSoloTheme } from "./SoloThemeContext";
 // program in the Program Builder) is shown read-only as "PROGRAM NOTES"
 // instead of "COACH'S NOTES", since to a Train Solo customer it's part of
 // the program they bought, not live coaching.
-export default function SoloExerciseBlock({ exMeta, exercise, rows, onChangeField, onBlurKg, onAddSet, onStartRest, onOpenDetail }) {
+export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets = [], onChangeField, onBlurKg, onAddSet, onStartRest, onOpenDetail }) {
   const dark = useClientDark();
   const { accent } = useSoloTheme();
   const isWarmup = (exMeta.section || "main") === "warmup";
@@ -112,16 +114,46 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, onChangeFiel
 
       {expanded && (
         <div className="mt-3 space-y-1.5">
-          <div className="grid grid-cols-[28px_1fr_1fr_32px] gap-2 px-1">
+          <div className="grid grid-cols-[22px_minmax(0,1.3fr)_1fr_1fr_16px] gap-2 px-1">
             <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>SET</span>
-            {!isTimeBased && <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>KG</span>}
+            <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>PREVIOUS</span>
+            <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>{isTimeBased ? "" : "KG"}</span>
             <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>{isTimeBased ? "SECONDS" : "REPS"}</span>
             <span />
           </div>
-          {rows.map((row, i) => (
-            <div key={i} className="grid grid-cols-[28px_1fr_1fr_32px] gap-2 items-center px-1">
-              <span className={dark ? "text-white/50 text-sm font-semibold" : "text-black/50 text-sm font-semibold"}>{i + 1}</span>
-              {!isTimeBased && (
+          {rows.map((row, i) => {
+            // Same "Previous" + double-progression "Try" hint as the
+            // coached client's ExerciseBlock (ClientApp.jsx), from this
+            // customer's own last logged session of this exercise.
+            // Time-based sets are driven by the row timer, so they show
+            // the previous time only.
+            const prev = previousSets[i];
+            const suggestion = isTimeBased ? null : suggestNextSet(prev, exMeta.targetReps);
+            return (
+            <div key={i} className={`grid grid-cols-[22px_minmax(0,1.3fr)_1fr_1fr_16px] gap-2 px-1 ${isTimeBased ? "items-center" : "items-start"}`}>
+              <span className={`${dark ? "text-white/50" : "text-black/50"} text-sm font-semibold ${isTimeBased ? "" : "pt-2"}`}>{i + 1}</span>
+              <div className={`min-w-0 ${isTimeBased ? "" : "pt-1"}`}>
+                <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>
+                  {prev ? (isTimeBased ? `${prev.reps}s` : `${prev.reps} × ${prev.weight} kg`) : "–"}
+                </p>
+                {suggestion && !row.weight && !row.reps && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // A bodyweight move's suggestion carries a real logged
+                      // 0 kg — leave Kg blank rather than typing a literal 0.
+                      if (suggestion.weight > 0) onChangeField(i, "weight", String(suggestion.weight));
+                      onChangeField(i, "reps", String(suggestion.reps));
+                    }}
+                    className="flex items-center gap-1 text-[10px] font-semibold mt-0.5 max-w-full"
+                    style={{ color: MEASURE_BLUE }}
+                  >
+                    <TrendingUp size={10} className="shrink-0" />
+                    <span className="truncate">Try {suggestion.reps}{suggestion.weight > 0 ? ` × ${suggestion.weight}kg` : " reps"}</span>
+                  </button>
+                )}
+              </div>
+              {isTimeBased ? <span /> : (
                 <input
                   type="number"
                   inputMode="decimal"
@@ -163,10 +195,11 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, onChangeFiel
                 />
               )}
               <div className="flex items-center justify-center">
-                {row.completed && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: row.isPR ? "#F5A623" : "#22C55E" }} />}
+                {row.completed && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: row.isPR ? MEASURE_BLUE : "#22C55E" }} />}
               </div>
             </div>
-          ))}
+            );
+          })}
           <button type="button" onClick={onAddSet} className={dark ? "text-white/40 text-xs font-semibold px-1 pt-1" : "text-black/40 text-xs font-semibold px-1 pt-1"}>
             + Add set
           </button>

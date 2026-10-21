@@ -9,7 +9,7 @@ import {
   sectionedExercises,
 } from "../client/ClientApp";
 import { FullScreenOverlay, PrimaryButton, SessionIntelligenceCard } from "../components/ui";
-import { getBestEverStats, estimate1RM } from "../lib/AppContext";
+import { getBestEverStats, estimate1RM, getPreviousSets } from "../lib/AppContext";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme } from "./SoloThemeContext";
 import SoloExerciseBlock from "./SoloExerciseBlock";
@@ -199,6 +199,7 @@ export default function SoloWorkoutSessionScreen() {
                         exMeta={exMeta}
                         exercise={exercise}
                         rows={rowsFor(exMeta)}
+                        previousSets={getPreviousSets(soloWorkoutLogs, exMeta.exerciseId)}
                         onChangeField={(idx, field, value) => setField(exMeta.exerciseId, idx, field, value)}
                         onBlurKg={(idx) => handleBlurKg(exMeta, idx)}
                         onAddSet={() => addSet(exMeta)}
