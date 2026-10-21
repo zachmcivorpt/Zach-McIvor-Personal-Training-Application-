@@ -88,13 +88,13 @@ export default function SoloCatalogueScreen() {
         <img src={t.logo} alt="" style={{ height: 19 }} />
       </div>
 
-      <div className="px-3 pt-3 pb-2">
+      <div className="px-3 pt-3 pb-0">
         <h1 className="text-xl font-bold leading-tight">
           {firstName ? `Welcome, ${firstName}` : "Welcome"}
         </h1>
       </div>
 
-      <div className="px-3 pt-3 pb-1">
+      <div className="px-3 pt-2 pb-1">
         {flagged && (
           <div
             className="rounded-2xl px-4 py-3 mb-4 flex gap-2.5"
