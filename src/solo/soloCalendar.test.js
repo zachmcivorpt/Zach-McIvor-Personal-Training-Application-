@@ -68,6 +68,23 @@ describe("soloCalendar", () => {
     expect(cal["2026-10-19"].find((i) => i.type === "bodystats").done).toBe(false);
   });
 
+  it("fills each rest day inside a program's span with Active Recovery", () => {
+    const cal = build();
+    const types = (k) => (cal[k] || []).map((i) => i.type);
+    expect(types("2026-10-06")).toEqual(["recovery"]); // between Upper (5th) and Lower (7th)
+    expect(types("2026-10-07")).toEqual(["workout"]); // training day: no recovery
+    expect(types("2026-10-12")).toEqual(["workout", "bodystats", "photos"]);
+    expect(types("2026-10-25")).toEqual(["recovery"]); // last day of the 3-week program
+    expect(types("2026-10-26")).toEqual(["bodystats", "photos"]); // program over: no recovery
+    expect(types("2026-10-02")).toEqual([]); // before the program starts
+  });
+
+  it("marks a rest day's Active Recovery done when a recovery session was logged that day", () => {
+    const cal = build({ workoutLogs: [{ purchaseId: "u_recovery", dayId: "recovery-mobility", weekNumber: "2026-10-06", date: new Date("2026-10-06T18:00:00").getTime() }] });
+    expect(cal["2026-10-06"][0].done).toBe(true);
+    expect(cal["2026-10-08"][0].done).toBe(false);
+  });
+
   it("skips programs with no start date or no content yet", () => {
     const cal = build({ purchases: [{ ...purchase, startDate: null }] });
     expect(Object.values(cal).flat().some((i) => i.type === "workout")).toBe(false);

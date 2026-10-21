@@ -12,8 +12,12 @@
 //    Monday–Sunday week.
 //  - Progress photos: same Mondays, done once a progress photo is added
 //    that week.
+//  - Active Recovery: every day inside a started program's span that has
+//    no program workout (a rest day). Done once an Active Recovery
+//    session is logged that day.
 import { localDateKey } from "../lib/dateKey";
 import { phaseForWeekNumber } from "./weekProgress";
+import { isRecoveryLog } from "./activeRecovery";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -67,17 +71,22 @@ export function buildSoloCalendar({
   };
 
   const doneSessions = new Set(workoutLogs.map((l) => `${l.purchaseId}:${l.weekNumber}:${l.dayId}`));
+  const recoveryDays = new Set(workoutLogs.filter(isRecoveryLog).map((l) => keyOf(l.date)));
+  const workoutDays = new Set();
+  const programSpans = [];
 
   for (const purchase of purchases) {
     const program = programsById[purchase.programId];
     const phases = contentByProgramId[purchase.programId]?.phases;
     if (!program || !purchase.startDate || !Array.isArray(phases)) continue;
     const totalWeeks = phases.reduce((sum, p) => sum + (p.durationWeeks || 0), 0);
+    if (totalWeeks > 0) programSpans.push([purchase.startDate, addDays(purchase.startDate, totalWeeks * 7 - 1)]);
     for (let week = 1; week <= totalWeeks; week++) {
       const days = phaseForWeekNumber(phases, week)?.phase?.days || [];
       const offsets = sessionOffsets(days.length);
       const weekStart = addDays(purchase.startDate, (week - 1) * 7);
       days.forEach((day, i) => {
+        workoutDays.add(addDays(weekStart, offsets[i]));
         push(addDays(weekStart, offsets[i]), {
           type: "workout",
           id: `${purchase.id}:${week}:${day.id}`,
@@ -90,6 +99,15 @@ export function buildSoloCalendar({
           weekNumber: week,
         });
       });
+    }
+  }
+
+  for (const [start, end] of programSpans) {
+    const first = start < fromKey ? fromKey : start;
+    const last = end > toKey ? toKey : end;
+    for (let key = first; key <= last; key = addDays(key, 1)) {
+      if (workoutDays.has(key) || (byDate[key] || []).some((i) => i.type === "recovery")) continue;
+      push(key, { type: "recovery", id: `recovery:${key}`, title: "Active Recovery", subtitle: "Rest day — light cardio or mobility.", done: recoveryDays.has(key) });
     }
   }
 

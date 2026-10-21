@@ -228,7 +228,7 @@ export default function SoloMyTrainingScreen() {
     <div className="relative w-full">
       <div className="relative w-full max-w-md mx-auto px-3 pt-6 pb-10">
         <h1 className="sr-only">My Training</h1>
-        <img src={t.logo} alt="APEX" className="h-11 w-auto mb-6" />
+        <img src={t.logo} alt="APEX" className="w-auto mb-5" style={{ height: 19 }} />
 
         {ownedRows.length === 0 ? (
           <div className="rounded-3xl px-5 py-10 text-center" style={glass}>

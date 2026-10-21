@@ -15,6 +15,16 @@ import { MEASURE_BLUE } from "../theme";
 // program in the Program Builder) is shown read-only as "PROGRAM NOTES"
 // instead of "COACH'S NOTES", since to a Train Solo customer it's part of
 // the program they bought, not live coaching.
+// Long timed targets (an Active Recovery 20-minute walk) read as minutes,
+// not "1200s"; short holds keep the plain seconds format.
+function formatSeconds(total) {
+  const n = Number(total) || 0;
+  if (n < 60) return `${n}s`;
+  const m = Math.floor(n / 60);
+  const sec = n % 60;
+  return sec ? `${m}:${String(sec).padStart(2, "0")}` : `${m} min`;
+}
+
 export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets = [], onChangeField, onBlurKg, onAddSet, onStartRest, onOpenDetail }) {
   const dark = useClientDark();
   const { accent } = useSoloTheme();
@@ -71,7 +81,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
             )}
           </div>
           <p className={dark ? "text-white/45 text-[11px] mt-0.5" : "text-black/45 text-[11px] mt-0.5"}>
-            {exMeta.targetSets} sets × {formatTargetReps(exMeta)}
+            {exMeta.targetSets} {exMeta.targetSets === 1 ? "set" : "sets"} × {exMeta.targetType === "time" ? formatSeconds(exMeta.targetReps || 30) : formatTargetReps(exMeta)}
           </p>
         </button>
         {isWarmup && (
@@ -134,7 +144,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
               <span className={`${dark ? "text-white/50" : "text-black/50"} text-sm font-semibold ${isTimeBased ? "" : "pt-2"}`}>{i + 1}</span>
               <div className={`min-w-0 ${isTimeBased ? "" : "pt-1"}`}>
                 <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>
-                  {prev ? (isTimeBased ? `${prev.reps}s` : `${prev.reps} × ${prev.weight} kg`) : "–"}
+                  {prev ? (isTimeBased ? formatSeconds(prev.reps) : `${prev.reps} × ${prev.weight} kg`) : "–"}
                 </p>
                 {suggestion && !row.weight && !row.reps && (
                   <button
@@ -172,7 +182,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                     className="col-span-2 w-full rounded-lg px-2.5 py-2 text-sm font-bold text-center"
                     style={{ backgroundColor: accent, color: "#fff" }}
                   >
-                    {timerRemaining}s — stop
+                    {formatSeconds(timerRemaining)} — stop
                   </button>
                 ) : (
                   <button
@@ -180,7 +190,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                     onClick={() => startRowTimer(i)}
                     className={dark ? "col-span-2 w-full bg-white/8 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm text-center" : "col-span-2 w-full bg-black/5 border border-black/10 rounded-lg px-2.5 py-2 text-black text-sm text-center"}
                   >
-                    {row.reps ? `${row.reps}s` : "Start"}
+                    {row.reps ? formatSeconds(row.reps) : "Start"}
                   </button>
                 )
               ) : (

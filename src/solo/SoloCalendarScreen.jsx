@@ -83,6 +83,7 @@ export default function SoloCalendarScreen() {
   }
 
   function actionFor(item) {
+    if (item.type === "recovery") return () => navigate("/solo/recovery");
     if (item.type === "bodystats" || item.type === "photos") {
       return () => navigate("/solo/home", { state: { soloTab: "progress" } });
     }
@@ -168,7 +169,7 @@ export default function SoloCalendarScreen() {
                             {item.title}
                           </p>
                           <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
-                            {item.done ? (item.type === "workout" ? "Completed." : "Done for this week.") : item.subtitle}
+                            {item.done ? (item.type === "workout" || item.type === "recovery" ? "Completed." : "Done for this week.") : item.subtitle}
                           </p>
                         </div>
                         {locked ? <Lock size={14} color={t.textFaint} className="shrink-0" /> : action ? <ChevronRight size={16} color={t.textFaint} className="shrink-0" /> : null}
