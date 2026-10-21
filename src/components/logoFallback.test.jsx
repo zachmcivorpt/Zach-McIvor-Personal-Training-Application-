@@ -3,7 +3,7 @@
 // The logo never flashes a wrong one: nothing shows until the SERVER
 // confirms the current logos (a cache snapshot may hold a replaced logo)
 // and the image has loaded; a failed upload falls back to the default
-// mark; the login screens' own slot defaults to the APEX mountain.
+// mark.
 import React from "react";
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,19 +78,4 @@ describe("Logo — no flash", () => {
     expect(visibleSrc()).toBe("/brand/mark-white.png");
   });
 
-  it("login screens use their own slot, defaulting to the mountain at the uploaded logos' size", async () => {
-    render(<Logo variant="mark" tone="white" slot="login" />);
-    await act(async () => emit(snap({ appLogoUrlOnDark: NEW }, false)));
-    await flush();
-    expect(visibleSrc()).toBe("/brand/mark-white.png");
-    expect(img().style.transform).toBe("scale(0.44)");
-  });
-
-  it("login screens show an uploaded login logo, unscaled", async () => {
-    render(<Logo variant="mark" tone="white" slot="login" />);
-    await act(async () => emit(snap({ appLogoUrlOnDark: OLD, loginLogoUrl: NEW }, false)));
-    await flush();
-    expect(visibleSrc()).toBe(NEW);
-    expect(img().style.transform).toBe("");
-  });
 });

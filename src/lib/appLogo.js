@@ -17,8 +17,12 @@
 import { doc, onSnapshot } from "firebase/firestore";
 import { db as firestore, firebaseApp } from "./firebase";
 
+// The current dark-backgrounds upload (a white "M") now shows as the APEX
+// mountain, laid out on the same square canvas as the M so it appears at
+// the same size. Uploading a new logo in Design Settings replaces it as
+// usual — only this one stored upload is mapped.
 const BUNDLED = {
-  "design/appLogoUrlOnDark_1792373913084_7A4D6D51-051F-4656-84C7-217E22048388.png": "/brand/app-logo-dark-1792373913084.png",
+  "design/appLogoUrlOnDark_1792373913084_7A4D6D51-051F-4656-84C7-217E22048388.png": "/brand/app-logo-dark-mountain.png",
   "design/appLogoUrlOnLight_1792373876950_IMG_2121.png": "/brand/app-logo-light-1792373876950.png",
 };
 
@@ -37,7 +41,6 @@ function pick(design) {
   return {
     appLogoUrlOnDark: design?.appLogoUrlOnDark || null,
     appLogoUrlOnLight: design?.appLogoUrlOnLight || null,
-    loginLogoUrl: design?.loginLogoUrl || null,
   };
 }
 
@@ -68,7 +71,7 @@ function fallBackIfOffline() {
 // ({ stringValue } / { nullValue }).
 async function fetchLogosFromServer() {
   const { projectId, apiKey } = firebaseApp.options;
-  const fields = ["appLogoUrlOnDark", "appLogoUrlOnLight", "loginLogoUrl"].map((f) => `mask.fieldPaths=${f}`).join("&");
+  const fields = ["appLogoUrlOnDark", "appLogoUrlOnLight"].map((f) => `mask.fieldPaths=${f}`).join("&");
   const res = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/settings/appDesign?key=${apiKey}&${fields}`);
   if (res.status === 404) return pick({});
   if (!res.ok) throw new Error(`appDesign ${res.status}`);
@@ -77,7 +80,6 @@ async function fetchLogosFromServer() {
   return pick({
     appLogoUrlOnDark: f.appLogoUrlOnDark?.stringValue,
     appLogoUrlOnLight: f.appLogoUrlOnLight?.stringValue,
-    loginLogoUrl: f.loginLogoUrl?.stringValue,
   });
 }
 

@@ -5,7 +5,7 @@ import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput, DeleteA
 import { fileToDataUrl, removeFlatLogoBackground } from "../lib/image";
 import { enablePush, disablePush, isNativeApp } from "../lib/push";
 import { uploadDesignImage, uploadLoginBackground } from "../lib/storage";
-import { MARK_WHITE } from "../lib/brand";
+import { resolveAppLogoUrl } from "../lib/appLogo";
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../lib/firebase";
 import { DarkPage, DarkPageHeader, DarkPanel } from "./darkUI";
@@ -273,7 +273,6 @@ function DesignAssetRow({
   onUpload,
   onRemove,
   iconClassName = "text-white",
-  placeholderUrl,
 }) {
   const fileRef = useRef(null);
 
@@ -291,8 +290,6 @@ function DesignAssetRow({
           ) : (
             <img src={previewUrl} alt={label} className={previewClassName || "w-full h-full object-cover"} />
           )
-        ) : placeholderUrl ? (
-          <img src={placeholderUrl} alt={label} className={previewClassName || "w-full h-full object-cover"} />
         ) : (
           <ImageIcon size={22} className={iconClassName} />
         )}
@@ -499,8 +496,6 @@ function DesignSettingsCard() {
   const [logoDarkProgress, setLogoDarkProgress] = useState(0);
   const [uploadingLogoLight, setUploadingLogoLight] = useState(false);
   const [logoLightProgress, setLogoLightProgress] = useState(0);
-  const [uploadingLoginLogo, setUploadingLoginLogo] = useState(false);
-  const [loginLogoProgress, setLoginLogoProgress] = useState(0);
   const [error, setError] = useState("");
   // A logo file goes through the crop/zoom modal first — see LogoCropModal —
   // before it's actually uploaded, so a coach can scale it up to fill the
@@ -670,23 +665,9 @@ function DesignSettingsCard() {
         <div className="border-t" style={{ borderColor: CLIENT_DARK_BORDER }} />
 
         <DesignAssetRow
-          label="Logo — Login Screens"
-          description="Every login and sign-up screen over the background photo (Coaching and Train Solo). Shows the APEX mountain until you upload one — needs a light-colored mark"
-          previewUrl={design.loginLogoUrl}
-          placeholderUrl={MARK_WHITE}
-          previewClassName="max-w-[40%] max-h-[40%] object-contain"
-          aspectClassName="h-24 !bg-black"
-          iconClassName="text-white"
-          uploading={uploadingLoginLogo}
-          progress={loginLogoProgress}
-          onUpload={(file) => setCropRequest({ field: "loginLogoUrl", setUploading: setUploadingLoginLogo, setProgress: setLoginLogoProgress, file })}
-          onRemove={() => handleRemove("loginLogoUrl")}
-        />
-
-        <DesignAssetRow
           label="Logo — Dark Backgrounds"
-          description="Your coach console header, and your client app when its theme is set to Dark above — needs a light-colored mark"
-          previewUrl={design.appLogoUrlOnDark}
+          description="Login screen, your coach console header, and your client app when its theme is set to Dark above — needs a light-colored mark"
+          previewUrl={resolveAppLogoUrl(design.appLogoUrlOnDark)}
           previewClassName="max-w-[65%] max-h-[65%] object-contain"
           aspectClassName="h-24 !bg-black"
           iconClassName="text-white"

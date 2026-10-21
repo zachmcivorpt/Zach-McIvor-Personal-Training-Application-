@@ -262,7 +262,7 @@ export default function LoginScreen() {
           (see NativeStatusBarSync in App.jsx). */}
       <div className="relative min-h-dvh w-full flex flex-col px-6 py-8 pt-safe">
         <div className="flex justify-center pt-2">
-          <Logo variant="mark" tone="white" slot="login" className="h-14 w-auto" />
+          <Logo variant="mark" tone="white" className="h-14 w-auto" />
         </div>
 
         <div className="flex-1 flex flex-col justify-center">

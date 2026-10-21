@@ -5,8 +5,8 @@ const DARK = "https://firebasestorage.googleapis.com/v0/b/zach-mcivor-pt-app.fir
 const OTHER = "https://firebasestorage.googleapis.com/v0/b/zach-mcivor-pt-app.firebasestorage.app/o/design%2FappLogoUrlOnDark_999_new.png?alt=media&token=y";
 
 describe("resolveAppLogoUrl", () => {
-  it("maps the known upload to the small bundled copy, leaves new uploads as-is", () => {
-    expect(resolveAppLogoUrl(DARK)).toBe("/brand/app-logo-dark-1792373913084.png");
+  it("shows the current dark upload as the mountain, leaves new uploads as-is", () => {
+    expect(resolveAppLogoUrl(DARK)).toBe("/brand/app-logo-dark-mountain.png");
     expect(resolveAppLogoUrl(OTHER)).toBe(OTHER);
     expect(resolveAppLogoUrl(null)).toBe(null);
   });
