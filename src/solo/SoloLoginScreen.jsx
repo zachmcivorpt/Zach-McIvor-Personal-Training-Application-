@@ -7,7 +7,7 @@ import { SoloBackgroundFrame } from "./SoloBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function SoloLoginScreen() {
-  const { soloLogin, soloCurrentUser, soloAppDesign, fetchOnboardingCompletedFromServer } = useSoloApp();
+  const { soloLogin, soloCurrentUser, soloAppDesign, soloProfileMissing, fetchOnboardingCompletedFromServer } = useSoloApp();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -53,6 +53,12 @@ export default function SoloLoginScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soloCurrentUser?.id, navigate, fetchOnboardingCompletedFromServer]);
+
+  // Signed in but no profile (registration's profile save failed): the
+  // questionnaire route's guard shows the finish-setup screen.
+  useEffect(() => {
+    if (soloProfileMissing) navigate("/solo/onboarding", { replace: true });
+  }, [soloProfileMissing, navigate]);
 
   async function submit(e) {
     e.preventDefault();

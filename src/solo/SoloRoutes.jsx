@@ -12,14 +12,16 @@ import SoloCalendarScreen from "./SoloCalendarScreen";
 import SoloActiveRecoveryScreen from "./SoloActiveRecoveryScreen";
 import SoloOnboarding from "./onboarding/SoloOnboarding";
 import SoloConsultationScreen from "./SoloConsultationScreen";
+import SoloFinishSetupScreen from "./SoloFinishSetupScreen";
 
 function SoloSessionLoadingScreen() {
   return <div className="w-full h-screen flex items-center justify-center bg-[#0A0A0B]" />;
 }
 
 function RequireSoloAuth({ children }) {
-  const { soloCurrentUser, soloSessionLoading } = useSoloApp();
+  const { soloAuthUser, soloCurrentUser, soloSessionLoading, soloProfileMissing } = useSoloApp();
   if (soloSessionLoading) return <SoloSessionLoadingScreen />;
+  if (soloAuthUser && soloProfileMissing) return <SoloFinishSetupScreen />;
   if (!soloCurrentUser) return <Navigate to="/solo/register" replace />;
   return children;
 }

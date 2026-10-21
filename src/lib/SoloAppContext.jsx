@@ -52,6 +52,13 @@ const SoloAppCtx = createContext(null);
 export function SoloAppProvider({ children }) {
   const [soloAuthUser, setSoloAuthUser] = useState(undefined); // undefined = still checking, null = signed out
   const [soloProfile, setSoloProfile] = useState(null); // soloUsers/{uid} doc
+  // True once the SERVER confirms a signed-in account has no soloUsers doc
+  // (registration's profile write failed after the Auth account was
+  // created). Without it the session "loaded" state never arrived and the
+  // app sat on a blank screen; RequireSoloAuth shows SoloFinishSetupScreen
+  // instead. A cache-only "doesn't exist" doesn't count — on a fresh
+  // device the cache is simply empty.
+  const [soloProfileMissing, setSoloProfileMissing] = useState(false);
   const [soloProgramCategories, setSoloProgramCategories] = useState([]);
   const [soloPrograms, setSoloPrograms] = useState([]);
   const [soloPurchases, setSoloPurchases] = useState([]);
@@ -102,10 +109,13 @@ export function SoloAppProvider({ children }) {
   useEffect(() => {
     if (!soloAuthUser) {
       setSoloProfile(null);
+      setSoloProfileMissing(false);
       return;
     }
-    return onSnapshot(doc(soloDb, "soloUsers", soloAuthUser.uid), (snap) => {
+    setSoloProfileMissing(false);
+    return onSnapshot(doc(soloDb, "soloUsers", soloAuthUser.uid), { includeMetadataChanges: true }, (snap) => {
       setSoloProfile(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+      setSoloProfileMissing(!snap.exists() && !snap.metadata.fromCache);
     });
   }, [soloAuthUser]);
 
@@ -239,7 +249,7 @@ export function SoloAppProvider({ children }) {
     });
   }, [soloAuthUser]);
 
-  const soloSessionLoading = soloAuthUser === undefined || (!!soloAuthUser && soloProfile === null && soloAuthUser !== null);
+  const soloSessionLoading = soloAuthUser === undefined || (!!soloAuthUser && soloProfile === null && !soloProfileMissing);
 
   const actions = useMemo(
     () => ({
@@ -283,6 +293,27 @@ export function SoloAppProvider({ children }) {
           );
         }
         return { id: uid, ...account };
+      },
+
+      // Recovery for an Auth account whose soloUsers doc was never written
+      // (see soloProfileMissing): re-collects the same Terms/Privacy
+      // acceptance registration requires, then creates the profile exactly
+      // as registerSoloAccount would have. setDoc, not a merge — the doc
+      // is confirmed not to exist.
+      async completeSoloProfile({ name, legalAcceptance }) {
+        const user = soloAuth.currentUser;
+        if (!user) throw new Error("You're signed out — log in again.");
+        if (!legalAcceptance?.termsAcceptedAt || !legalAcceptance?.privacyAcceptedAt) {
+          throw new Error("You must accept the Terms of Service and Privacy Policy to continue.");
+        }
+        await setDoc(doc(soloDb, "soloUsers", user.uid), {
+          name: (name || "").trim(),
+          email: user.email || "",
+          createdAt: Date.now(),
+          lastLoginAt: Date.now(),
+          legalAcceptance,
+          onboarding: { completed: false, answers: {} },
+        });
       },
 
       async soloLogin(email, password) {
@@ -582,6 +613,7 @@ export function SoloAppProvider({ children }) {
       soloAuthUser,
       soloProfile,
       soloCurrentUser: soloProfile,
+      soloProfileMissing,
       soloSessionLoading,
       soloProgramCategories,
       soloPrograms,
@@ -599,6 +631,7 @@ export function SoloAppProvider({ children }) {
     [
       soloAuthUser,
       soloProfile,
+      soloProfileMissing,
       soloSessionLoading,
       soloProgramCategories,
       soloPrograms,

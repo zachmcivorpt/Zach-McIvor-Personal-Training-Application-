@@ -21,7 +21,7 @@ const TERMS_VERSION = LEGAL_DOCS["terms-of-service"].effectiveDate;
 const PRIVACY_VERSION = LEGAL_DOCS["privacy-policy"].effectiveDate;
 
 export default function SoloRegisterScreen() {
-  const { registerSoloAccount, soloCurrentUser, soloAppDesign, fetchOnboardingCompletedFromServer } = useSoloApp();
+  const { registerSoloAccount, soloCurrentUser, soloAppDesign, soloProfileMissing, fetchOnboardingCompletedFromServer } = useSoloApp();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -60,6 +60,12 @@ export default function SoloRegisterScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soloCurrentUser?.id, navigate, fetchOnboardingCompletedFromServer]);
+
+  // Signed in but no profile (registration's profile save failed): the
+  // questionnaire route's guard shows the finish-setup screen.
+  useEffect(() => {
+    if (soloProfileMissing && !busy) navigate("/solo/onboarding", { replace: true });
+  }, [soloProfileMissing, busy, navigate]);
 
   async function submit(e) {
     e.preventDefault();
