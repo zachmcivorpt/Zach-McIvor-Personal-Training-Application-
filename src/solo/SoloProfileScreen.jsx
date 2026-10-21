@@ -159,7 +159,7 @@ export default function SoloProfileScreen() {
 
       <SoloGlassBox t={t} className="rounded-2xl mb-5">
         <Link
-          to="/solo/onboarding?review=1"
+          to="/solo/consultation"
           className="block px-4 py-3.5 text-sm font-semibold"
           style={{ borderBottom: `1px solid ${t.panelBorder}` }}
         >
