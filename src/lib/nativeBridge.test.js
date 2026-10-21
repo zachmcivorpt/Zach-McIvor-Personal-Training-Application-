@@ -22,7 +22,9 @@ vi.mock("firebase/auth", () => ({
   },
 }));
 
-vi.mock("./push", () => ({ saveNativeFcmToken }));
+const saveSoloNativeFcmToken = vi.fn();
+vi.mock("./push", () => ({ saveNativeFcmToken, saveSoloNativeFcmToken }));
+vi.mock("./firebase", () => ({ soloAuth: {} }));
 
 function fireAuthChange(user) {
   authStateCallbacks.forEach((cb) => cb(user));
@@ -33,6 +35,7 @@ describe("nativeBridge push token isolation", () => {
     vi.resetModules();
     authStateCallbacks.length = 0;
     saveNativeFcmToken.mockClear();
+    saveSoloNativeFcmToken.mockClear();
     localStorage.clear();
   });
 
@@ -80,5 +83,18 @@ describe("nativeBridge push token isolation", () => {
     window.__apexNativePush.setToken(null);
     window.__apexNativePush.setToken("");
     expect(saveNativeFcmToken).not.toHaveBeenCalled();
+    expect(saveSoloNativeFcmToken).not.toHaveBeenCalled();
+  });
+
+  it("also saves the device token onto a signed-in Train Solo account (its own soloAuth)", async () => {
+    await import("./nativeBridge.js");
+    window.__apexNativePush.setToken("tok-solo");
+    // Mocked onAuthStateChanged registers both listeners; the second is soloAuth's.
+    authStateCallbacks[1]({ uid: "solo-1" });
+    expect(saveSoloNativeFcmToken).toHaveBeenCalledWith("solo-1", "tok-solo");
+    authStateCallbacks[1](null);
+    saveSoloNativeFcmToken.mockClear();
+    window.__apexNativePush.setToken("tok-2");
+    expect(saveSoloNativeFcmToken).not.toHaveBeenCalled();
   });
 });

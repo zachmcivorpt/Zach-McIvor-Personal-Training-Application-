@@ -26,6 +26,7 @@ import { httpsCallable } from "firebase/functions";
 import { soloAuth, soloDb, soloFunctions } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
 import { localDateKey } from "./dateKey";
+import { removeSoloPushToken } from "./push";
 
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
 // Solo's session must never share a React context, a listener, or an
@@ -356,7 +357,17 @@ export function SoloAppProvider({ children }) {
       },
 
       async soloLogout() {
+        // Take this device's push token off the account first, while still
+        // signed in (the rules only let the owner edit soloUsers/{uid}).
+        const uid = soloAuth.currentUser?.uid;
+        if (uid) await removeSoloPushToken(uid);
         await signOut(soloAuth);
+      },
+
+      // Monday check-in reminders on/off (soloWeeklyCheckInReminder in
+      // functions/index.js skips anyone with this set to false).
+      async setSoloReminderPref(uid, enabled) {
+        await updateDoc(doc(soloDb, "soloUsers", uid), { "notificationPrefs.weeklyCheckIn": !!enabled });
       },
 
       // Writes one answer and re-derives `onboarding.completed` from the

@@ -8,10 +8,16 @@
 // On every other build (regular browser, Android TWA) this module does
 // nothing — nobody ever calls window.__apexNativePush.setToken.
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { saveNativeFcmToken } from "./push";
+import { saveNativeFcmToken, saveSoloNativeFcmToken } from "./push";
+import { soloAuth } from "./firebase";
 
 let currentUid = null;
 let pendingToken = null;
+// Train Solo signs in on its own auth instance (soloAuth), so its customer
+// never shows up in the listener below. The device's latest token is kept
+// and saved onto the Solo account too whenever one is signed in.
+let currentSoloUid = null;
+let latestToken = null;
 
 // Mirrors enablePush()'s own localStorage write (src/lib/push.js), keyed
 // per-uid the same way — so the Push Notifications toggle in Settings
@@ -36,10 +42,17 @@ onAuthStateChanged(getAuth(), (user) => {
   }
 });
 
+onAuthStateChanged(soloAuth, (user) => {
+  currentSoloUid = user?.uid || null;
+  if (currentSoloUid && latestToken) saveSoloNativeFcmToken(currentSoloUid, latestToken);
+});
+
 if (typeof window !== "undefined") {
   window.__apexNativePush = {
     setToken(token) {
       if (!token) return;
+      latestToken = token;
+      if (currentSoloUid) saveSoloNativeFcmToken(currentSoloUid, token);
       if (currentUid) {
         registerToken(currentUid, token);
       } else {

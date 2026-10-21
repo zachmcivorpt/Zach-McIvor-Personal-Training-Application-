@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, AlertTriangle } from "lucide-react";
+import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight } from "lucide-react";
+import { enableSoloPush, hasSoloPushToken, isNativeApp } from "../lib/push";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
@@ -16,16 +17,40 @@ import { DeleteAccountSheet } from "../components/ui";
 // tracking in Train Solo's scope. "My Programs" replaces all of that with
 // what's actually relevant here: what this customer owns.
 //
-// Deliberately nothing notification-related on this screen — no push
-// toggle, no permission prompt, no reminder settings. Train Solo has no
-// notifications anywhere in its customer experience, confirmed scope for
-// this phase; there is nothing here to wire up and nothing to remove.
+// My Calendar opens SoloCalendarScreen. Monday check-in reminders are
+// Train Solo's one notification: a weekly push to log body stats and take
+// progress photos (soloWeeklyCheckInReminder in functions/index.js).
 export default function SoloProfileScreen() {
-  const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount } = useSoloApp();
+  const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount, setSoloReminderPref } = useSoloApp();
   const { dark, accent, toggleSoloTheme } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const flagged = isFlaggedForMedicalReview(soloCurrentUser?.onboarding?.answers || {});
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [reminderBusy, setReminderBusy] = useState(false);
+  const [reminderError, setReminderError] = useState("");
+  const uid = soloCurrentUser?.id;
+  // On the App Store build the device token is saved automatically at
+  // launch (nativeBridge.js); in a browser this device needs to opt in once.
+  const deviceRegistered = isNativeApp || (uid && hasSoloPushToken(uid));
+  const remindersOn = !!deviceRegistered && soloCurrentUser?.notificationPrefs?.weeklyCheckIn !== false;
+
+  async function toggleReminders() {
+    if (!uid || reminderBusy) return;
+    setReminderError("");
+    setReminderBusy(true);
+    try {
+      if (remindersOn) {
+        await setSoloReminderPref(uid, false);
+      } else {
+        if (!deviceRegistered) await enableSoloPush(uid);
+        await setSoloReminderPref(uid, true);
+      }
+    } catch (err) {
+      setReminderError(err?.message || "Couldn't update reminders — please try again.");
+    } finally {
+      setReminderBusy(false);
+    }
+  }
 
   const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
 
@@ -91,6 +116,32 @@ export default function SoloProfileScreen() {
           })}
         </div>
       )}
+
+      <div className="rounded-2xl overflow-hidden mb-5" style={soloGlass(t)}>
+        <Link to="/solo/calendar" className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: `1px solid ${t.panelBorder}` }}>
+          <CalendarDays size={17} color={t.textMuted} className="shrink-0" />
+          <span className="text-sm font-semibold flex-1">My Calendar</span>
+          <ChevronRight size={16} color={t.textFaint} />
+        </Link>
+        <button type="button" onClick={toggleReminders} disabled={reminderBusy} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
+          <Bell size={17} color={t.textMuted} className="shrink-0" />
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-semibold">Monday check-in reminders</span>
+            <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
+              Body stats and progress photos, every Monday.
+            </span>
+          </span>
+          <span
+            role="switch"
+            aria-checked={remindersOn}
+            className="w-11 h-6 rounded-full p-0.5 shrink-0 transition-colors"
+            style={{ backgroundColor: remindersOn ? accent : t.chipBg, border: `1px solid ${t.panelBorder}`, opacity: reminderBusy ? 0.6 : 1 }}
+          >
+            <span className="block w-5 h-5 rounded-full bg-white shadow transition-transform" style={{ transform: remindersOn ? "translateX(18px)" : "none" }} />
+          </span>
+        </button>
+        {reminderError && <p className="text-xs text-red-500 px-4 pb-3 -mt-1">{reminderError}</p>}
+      </div>
 
       <div className="rounded-2xl overflow-hidden mb-5" style={soloGlass(t)}>
         <Link

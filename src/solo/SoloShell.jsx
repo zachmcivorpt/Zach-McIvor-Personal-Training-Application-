@@ -16,11 +16,9 @@ const TABS = [
 
 // The signed-in customer's home — a persistent bottom nav over four
 // tabs, matching the approved design canvas's Main/Purchased/Profile
-// bottom nav exactly (Progress added alongside it). Deliberately no
-// notification badge/bell anywhere here or on any tab inside it — Train
-// Solo has no notifications at all (push, in-app centre, or otherwise);
-// see SoloProfileScreen for where that was explicitly confirmed to have
-// nothing to remove.
+// bottom nav exactly (Progress added alongside it). No notification
+// badge/bell or in-app centre — Train Solo's only notification is the
+// Monday check-in push (see SoloProfileScreen's reminders toggle).
 //
 // Initial tab can be requested via navigate(path, { state: { soloTab } })
 // from elsewhere in Train Solo (e.g. after a purchase completes) so the

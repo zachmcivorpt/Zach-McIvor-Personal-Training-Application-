@@ -4,7 +4,7 @@
 // button tap (they must run from a real user gesture, per the browser
 // Notification permission API).
 import { getMessaging, getToken, onMessage, isSupported } from "firebase/messaging";
-import { firebaseApp, db as firestore } from "./firebase";
+import { firebaseApp, db as firestore, soloDb } from "./firebase";
 import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { VAPID_KEY } from "./config";
 
@@ -39,6 +39,14 @@ export async function pushSupported() {
 // (an array field, since one account can have several devices). Must be
 // called from a user gesture (a click/tap handler), not on mount.
 export async function enablePush(uid) {
+  const token = await requestWebPushToken();
+  await updateDoc(doc(firestore, "users", uid), { fcmTokens: arrayUnion(token) });
+  return token;
+}
+
+// Permission + service worker + device token — the browser half of
+// enablePush/enableSoloPush, which differ only in where the token is saved.
+async function requestWebPushToken() {
   if (VAPID_KEY.includes("PASTE_YOUR")) {
     throw new Error("Push notifications aren't set up yet on this app — see PUSH_NOTIFICATIONS_SETUP.txt.");
   }
@@ -53,8 +61,50 @@ export async function enablePush(uid) {
   const messaging = getMessaging(firebaseApp);
   const token = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
   if (!token) throw new Error("Couldn't get a notification token — please try again.");
-  await updateDoc(doc(firestore, "users", uid), { fcmTokens: arrayUnion(token) });
   return token;
+}
+
+// Train Solo's equivalents: a Solo customer's tokens live on their own
+// soloUsers/{uid} doc (never Coaching's users/{uid}), which is where the
+// soloWeeklyCheckInReminder Cloud Function reads them from.
+// The device's token is also remembered per Solo uid, so signing out can
+// take it back off that account (removeSoloPushToken) — otherwise a phone
+// keeps getting a signed-out customer's reminders.
+const soloTokenKey = (uid) => `soloPushToken_${uid}`;
+
+export async function enableSoloPush(uid) {
+  const token = await requestWebPushToken();
+  await updateDoc(doc(soloDb, "soloUsers", uid), { fcmTokens: arrayUnion(token) });
+  try {
+    localStorage.setItem(soloTokenKey(uid), token);
+  } catch {}
+  return token;
+}
+
+export async function saveSoloNativeFcmToken(uid, token) {
+  if (!uid || !token) return;
+  try {
+    localStorage.setItem(soloTokenKey(uid), token);
+  } catch {}
+  await updateDoc(doc(soloDb, "soloUsers", uid), { fcmTokens: arrayUnion(token) }).catch(() => {});
+}
+
+export function hasSoloPushToken(uid) {
+  try {
+    return !!localStorage.getItem(soloTokenKey(uid));
+  } catch {
+    return false;
+  }
+}
+
+export async function removeSoloPushToken(uid) {
+  let token = null;
+  try {
+    token = localStorage.getItem(soloTokenKey(uid));
+    localStorage.removeItem(soloTokenKey(uid));
+  } catch {}
+  if (!token) return;
+  await updateDoc(doc(soloDb, "soloUsers", uid), { fcmTokens: arrayRemove(token) }).catch(() => {});
 }
 
 export async function disablePush(uid, token) {

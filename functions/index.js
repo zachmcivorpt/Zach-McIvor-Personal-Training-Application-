@@ -129,6 +129,44 @@ exports.checkInReminders = onSchedule(
 );
 
 // ---------------------------------------------------------------------
+// Train Solo: Monday check-in reminder. Every Monday 8am Sydney, each Solo
+// customer with a registered device (soloUsers/{uid}.fcmTokens — saved by
+// src/lib/push.js / nativeBridge.js) gets one push to log their body stats
+// and take progress photos, matching the Monday "Body Stats Check-in" and
+// "Progress Photos" entries on their Solo calendar (src/solo/soloCalendar.js).
+// Opting out (Profile → Monday check-in reminders) sets
+// notificationPrefs.weeklyCheckIn = false. Solo tokens never live on
+// Coaching's users/ docs, so this can't reach a Coaching client.
+exports.soloWeeklyCheckInReminder = onSchedule(
+  { schedule: "0 8 * * 1", timeZone: "Australia/Sydney" },
+  async () => {
+    const usersSnap = await db.collection("soloUsers").get();
+    for (const userDoc of usersSnap.docs) {
+      const data = userDoc.data() || {};
+      const tokens = data.fcmTokens || [];
+      if (tokens.length === 0 || data.notificationPrefs?.weeklyCheckIn === false) continue;
+      try {
+        const res = await messaging.sendEachForMulticast({
+          tokens,
+          notification: {
+            title: "Monday check-in",
+            body: "Log your body stats and take this week's progress photos — it only takes a minute.",
+          },
+          webpush: { fcmOptions: { link: "/solo/calendar" } },
+        });
+        const deadTokens = tokens.filter((_, i) => !res.responses[i].success);
+        if (deadTokens.length > 0) {
+          await userDoc.ref.update({ fcmTokens: tokens.filter((t) => !deadTokens.includes(t)) });
+        }
+      } catch (err) {
+        // One bad account shouldn't stop everyone else's reminder.
+        console.error("soloWeeklyCheckInReminder failed for", userDoc.id, err);
+      }
+    }
+  }
+);
+
+// ---------------------------------------------------------------------
 // Inactivity-triggered "Reignition Workout" WOD — a client who's gone a few
 // days without logging a workout gets a notification AND a ready-to-go
 // full-body session auto-dropped onto today's calendar, pulled only from
