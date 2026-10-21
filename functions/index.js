@@ -31,6 +31,11 @@ const { getMessaging } = require("firebase-admin/messaging");
 const { getAuth } = require("firebase-admin/auth");
 const { getStorage } = require("firebase-admin/storage");
 const { buildSuggestions } = require("./nutritionContents");
+const { optimizeLoginVideo, storagePathFromUrl } = require("./videoOptimize");
+const os = require("os");
+const path = require("path");
+const fs = require("fs/promises");
+const crypto = require("crypto");
 
 initializeApp();
 const db = getFirestore();
@@ -607,6 +612,59 @@ async function requireCoach(uid) {
   const snap = await db.collection("users").doc(uid).get();
   if (snap.data()?.role !== "coach") throw new HttpsError("permission-denied", "Only the coach can do this.");
 }
+
+// ---------------------------------------------------------------------
+// Shrinks a just-uploaded login background video (Settings -> Design
+// Settings) into a web-ready MP4 + first-frame poster — see
+// videoOptimize.js. Called by the coach console right after the upload;
+// it returns the new URLs and the console saves them to
+// settings/appDesign. Both outputs are stored with a one-year cache so
+// phones keep them instead of re-downloading on every login screen. The
+// original upload is left in place, untouched.
+exports.optimizeLoginBackground = onCall({ memory: "2GiB", timeoutSeconds: 300 }, async (request) => {
+  await requireCoach(request.auth?.uid);
+  const sourcePath = storagePathFromUrl(request.data?.url);
+  if (!sourcePath || !/^design\/login-bg_[^/]+$/.test(sourcePath)) {
+    throw new HttpsError("invalid-argument", "That isn't a login background upload.");
+  }
+  const bucket = storageBucket;
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "loginbg-"));
+  const input = path.join(workDir, "input");
+  const outVideo = path.join(workDir, "out.mp4");
+  const outPoster = path.join(workDir, "out.jpg");
+  try {
+    const [metadata] = await bucket.file(sourcePath).getMetadata();
+    if (!String(metadata.contentType || "").startsWith("video/")) {
+      throw new HttpsError("invalid-argument", "That upload isn't a video.");
+    }
+    await bucket.file(sourcePath).download({ destination: input });
+    await optimizeLoginVideo(input, outVideo, outPoster);
+
+    const stamp = Date.now();
+    async function save(localPath, destPath, contentType) {
+      const token = crypto.randomUUID();
+      await bucket.upload(localPath, {
+        destination: destPath,
+        metadata: {
+          contentType,
+          cacheControl: "public, max-age=31536000, immutable",
+          metadata: { firebaseStorageDownloadTokens: token },
+        },
+      });
+      return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(destPath)}?alt=media&token=${token}`;
+    }
+    const videoUrl = await save(outVideo, `design/login-bg-optimized_${stamp}.mp4`, "video/mp4");
+    const posterUrl = await save(outPoster, `design/login-bg-poster_${stamp}.jpg`, "image/jpeg");
+    const [before, after] = await Promise.all([fs.stat(input), fs.stat(outVideo)]);
+    return { videoUrl, posterUrl, bytesBefore: before.size, bytesAfter: after.size };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    console.error("optimizeLoginBackground failed:", err);
+    throw new HttpsError("internal", "Couldn't optimize that video.");
+  } finally {
+    await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
+  }
+});
 
 // Replaces the client-side detectNoteContext() keyword heuristic with
 // real language understanding — returns the exact same shape

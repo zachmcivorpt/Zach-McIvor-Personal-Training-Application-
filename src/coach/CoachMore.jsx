@@ -5,6 +5,8 @@ import { Card, DangerButton, AvatarPicker, Tagline, TextArea, TextInput, DeleteA
 import { fileToDataUrl, removeFlatLogoBackground } from "../lib/image";
 import { enablePush, disablePush, isNativeApp } from "../lib/push";
 import { uploadDesignImage, uploadLoginBackground } from "../lib/storage";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../lib/firebase";
 import { DarkPage, DarkPageHeader, DarkPanel } from "./darkUI";
 import { MEASURE_BLUE, GOAL_GREEN, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
 import { debugLookupBarcode } from "../lib/barcodeLookup";
@@ -486,6 +488,7 @@ function DesignSettingsCard() {
   }
   const [uploadingBg, setUploadingBg] = useState(false);
   const [bgProgress, setBgProgress] = useState(0);
+  const [bgStatus, setBgStatus] = useState("");
   const [uploadingLogoDark, setUploadingLogoDark] = useState(false);
   const [logoDarkProgress, setLogoDarkProgress] = useState(0);
   const [uploadingLogoLight, setUploadingLogoLight] = useState(false);
@@ -522,13 +525,38 @@ function DesignSettingsCard() {
   // Login background accepts an image OR a short video — the resulting
   // `type` ("image" | "video") from the upload is saved alongside the URL
   // so LoginScreen and this preview know which element to render.
+  //
+  // A video is then shrunk server-side (optimizeLoginBackground in
+  // functions/index.js): a web-ready MP4 plus a first-frame poster that
+  // every login screen can show instantly. If that step fails for any
+  // reason, the original upload is used exactly as before.
   async function handleBgUpload(file) {
     setError("");
+    setBgStatus("");
     setUploadingBg(true);
     setBgProgress(0);
     try {
       const { url, type } = await uploadLoginBackground(file, setBgProgress);
-      await updateAppDesign({ loginBackgroundUrl: url, loginBackgroundType: type });
+      if (type === "video") {
+        setBgStatus("Optimizing video for fast loading…");
+        try {
+          const { data } = await httpsCallable(functions, "optimizeLoginBackground", { timeout: 300000 })({ url });
+          await updateAppDesign({
+            loginBackgroundUrl: data.videoUrl,
+            loginBackgroundType: "video",
+            loginBackgroundPosterUrl: data.posterUrl,
+            loginBackgroundOriginalUrl: url,
+          });
+          const mb = (n) => (n / 1024 / 1024).toFixed(n < 1024 * 1024 ? 2 : 1);
+          setBgStatus(`Optimized for fast loading: ${mb(data.bytesBefore)} MB → ${mb(data.bytesAfter)} MB.`);
+        } catch (err) {
+          console.error("Login background optimization failed:", err);
+          await updateAppDesign({ loginBackgroundUrl: url, loginBackgroundType: type, loginBackgroundPosterUrl: null, loginBackgroundOriginalUrl: null });
+          setBgStatus("Saved, but couldn't optimize this video — it'll load more slowly. Try a shorter clip.");
+        }
+      } else {
+        await updateAppDesign({ loginBackgroundUrl: url, loginBackgroundType: type, loginBackgroundPosterUrl: null, loginBackgroundOriginalUrl: null });
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -540,7 +568,12 @@ function DesignSettingsCard() {
     setError("");
     try {
       const patch = { [field]: null };
-      if (field === "loginBackgroundUrl") patch.loginBackgroundType = null;
+      if (field === "loginBackgroundUrl") {
+        patch.loginBackgroundType = null;
+        patch.loginBackgroundPosterUrl = null;
+        patch.loginBackgroundOriginalUrl = null;
+        setBgStatus("");
+      }
       await updateAppDesign(patch);
     } catch (err) {
       setError(err.message);
@@ -599,6 +632,7 @@ function DesignSettingsCard() {
           onUpload={handleBgUpload}
           onRemove={() => handleRemove("loginBackgroundUrl")}
         />
+        {bgStatus && <p className="text-white text-xs -mt-2">{bgStatus}</p>}
 
         <div className="border-t" style={{ borderColor: CLIENT_DARK_BORDER }} />
 

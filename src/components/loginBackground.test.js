@@ -16,6 +16,16 @@ describe("resolveLoginBackground", () => {
     expect(resolveLoginBackground({ loginBackgroundUrl: other, loginBackgroundType: "video" })).toEqual({ type: "video", src: other, poster: null });
     expect(resolveLoginBackground({ loginBackgroundUrl: other, loginBackgroundType: null })).toEqual({ type: "image", src: other, poster: null });
   });
+  it("uses the poster saved by the upload-time optimizer for newer videos", () => {
+    const optimized = "https://firebasestorage.googleapis.com/v0/b/x/o/design%2Flogin-bg-optimized_9.mp4?alt=media";
+    const poster = "https://firebasestorage.googleapis.com/v0/b/x/o/design%2Flogin-bg-poster_9.jpg?alt=media";
+    expect(resolveLoginBackground({ loginBackgroundUrl: optimized, loginBackgroundType: "video", loginBackgroundPosterUrl: poster })).toEqual({
+      type: "video",
+      src: optimized,
+      poster,
+    });
+  });
+
   it("renders nothing when no background is set", () => {
     expect(resolveLoginBackground({ loginBackgroundUrl: null })).toBeNull();
     expect(resolveLoginBackground(undefined)).toBeNull();

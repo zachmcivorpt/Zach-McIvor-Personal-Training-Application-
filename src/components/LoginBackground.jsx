@@ -9,8 +9,9 @@ import React, { useState } from "react";
 // before anything appeared. Known uploads are mapped to a web-optimized
 // copy bundled with the app (≈0.65 MB MP4 + a first-frame poster, cached
 // on the device): the poster shows instantly, the video fades in over it.
-// Any other upload (e.g. a new one the coach sets later) still plays from
-// Storage exactly as before.
+// Videos uploaded since then are shrunk server-side on upload
+// (optimizeLoginBackground), which saves loginBackgroundPosterUrl alongside
+// the optimized loginBackgroundUrl, so they get the same instant poster.
 const OPTIMIZED = {
   "design/login-bg_1790774514875_IMG_7441.mov": {
     video: "/brand/login-bg-1790774514875.mp4",
@@ -33,7 +34,7 @@ export function resolveLoginBackground(appDesign) {
   const isVideo = appDesign?.loginBackgroundType === "video";
   const optimized = isVideo ? OPTIMIZED[storagePath(url)] : null;
   if (optimized) return { type: "video", src: optimized.video, poster: optimized.poster };
-  return { type: isVideo ? "video" : "image", src: url, poster: null };
+  return { type: isVideo ? "video" : "image", src: url, poster: (isVideo && appDesign?.loginBackgroundPosterUrl) || null };
 }
 
 const MEDIA_STYLE = { filter: "brightness(0.95) contrast(1.05) saturate(0.95)" };
