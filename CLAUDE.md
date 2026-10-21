@@ -80,7 +80,13 @@ Do these together when the user is ready to submit a new App Store build
 - Native iOS changes for the new build: status-bar strip that follows
   dark screens (the installed build may predate the apexTheme handler),
   App-Bound Domains so the service worker gives a full offline warm
-  start, and the edge-to-edge login frame.
+  start, and the edge-to-edge login frame. The user chose the full-length
+  photo/video for the official update: the web already asks for it on
+  /login, /start and Train Solo's login/register/questionnaire/finish-setup
+  screens (`edgeToEdge: true`); confirm it on the TestFlight build. The
+  rubber-band bounce on those screens is stopped web-side
+  (PinnedLoginBackdrop); if any bounce still shows on device, also stop
+  the webview's bounce natively for those screens.
 - Train Solo purchasing stays hidden inside the iOS app (Apple 3.1.1 —
   `src/solo/appShell.js`); buying happens on the website only.
 
