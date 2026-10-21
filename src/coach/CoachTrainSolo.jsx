@@ -16,6 +16,9 @@ import {
   X,
   Check,
   Image as ImageIcon,
+  Copy,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
@@ -697,6 +700,32 @@ function CoachSoloPrograms({ showToast }) {
     showToast("Phase saved");
   }
 
+  // Copies a phase (and every workout in it) straight after the original,
+  // with fresh ids — day ids key customers' workout logs, so a copy must
+  // never share them with the phase it came from.
+  function duplicatePhase(idx) {
+    const source = phases[idx];
+    if (!source) return;
+    const copy = {
+      ...source,
+      id: newId("ph"),
+      name: `${source.name} (copy)`,
+      days: (source.days || []).map((d) => ({ ...d, id: newId("d") })),
+    };
+    savePhases([...phases.slice(0, idx + 1), copy, ...phases.slice(idx + 1)]);
+    setSelectedPhaseId(copy.id);
+    showToast("Phase duplicated");
+  }
+
+  function movePhase(idx, dir) {
+    const to = idx + dir;
+    if (to < 0 || to >= phases.length) return;
+    const next = [...phases];
+    [next[idx], next[to]] = [next[to], next[idx]];
+    savePhases(next);
+    showToast(dir < 0 ? "Phase moved up" : "Phase moved down");
+  }
+
   function deletePhase() {
     if (phaseIndex < 0) return;
     savePhases(phases.filter((_, idx) => idx !== phaseIndex));
@@ -945,40 +974,70 @@ function CoachSoloPrograms({ showToast }) {
                 </div>
               ) : (
                 <>
-                  <div className="border-t pt-4 mb-4" style={{ borderColor: CLIENT_DARK_BORDER }}>
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <p className="text-white text-[11px] font-semibold tracking-wide">PHASE</p>
-                      <Select value={selectedPhase.id} onChange={(e) => setSelectedPhaseId(e.target.value)} className="!w-auto text-xs">
-                        {phases.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </Select>
+                  {/* Every phase, in order — tap one to edit its workouts below. */}
+                  <div className="border-t pt-4 mb-5" style={{ borderColor: CLIENT_DARK_BORDER }}>
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <p className="text-white text-[11px] font-semibold tracking-wide">
+                        PHASES ({phases.length}) · {phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} WEEKS
+                      </p>
+                      <button onClick={addPhase} className="flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-white/10">
+                        <Plus size={13} /> Add phase
+                      </button>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-white font-bold text-base truncate">{selectedPhase.name}</h3>
-                        <p className="text-white text-xs mt-0.5">
-                          {selectedPhase.durationWeeks} wk{selectedPhase.durationWeeks === 1 ? "" : "s"} · {(selectedPhase.days || []).length} workout
-                          {(selectedPhase.days || []).length === 1 ? "" : "s"}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => setEditPhaseOpen(true)} aria-label="Edit phase" className="w-8 h-8 flex items-center justify-center text-white rounded-lg hover:bg-white/10">
-                          <Pencil size={14} />
-                        </button>
-                        <button onClick={addPhase} aria-label="Add phase" className="w-8 h-8 flex items-center justify-center text-white rounded-lg hover:bg-white/10">
-                          <Plus size={14} />
-                        </button>
-                        <OverflowMenu items={[{ icon: Trash2, label: "Delete phase", onClick: () => setConfirmDeletePhase(true), danger: true }]} />
-                      </div>
+                    <div className="space-y-1.5">
+                      {phases.map((p, idx) => {
+                        const active = p.id === selectedPhase.id;
+                        const count = (p.days || []).length;
+                        return (
+                          <div
+                            key={p.id}
+                            className="flex items-center gap-2 rounded-xl pl-3.5 pr-1.5 py-2 border transition-colors"
+                            style={{
+                              borderColor: active ? MEASURE_BLUE : CLIENT_DARK_BORDER,
+                              backgroundColor: active ? "rgba(47,143,255,0.12)" : "rgba(255,255,255,0.03)",
+                            }}
+                          >
+                            <button onClick={() => setSelectedPhaseId(p.id)} className="flex-1 min-w-0 text-left" aria-label={`Select ${p.name}`}>
+                              <p className="text-white text-[10px] font-semibold tracking-wide opacity-70">PHASE {idx + 1}</p>
+                              <p className="text-white text-sm font-semibold truncate">{p.name}</p>
+                              <p className="text-white text-xs opacity-70">
+                                {p.durationWeeks} wk{p.durationWeeks === 1 ? "" : "s"} · {count} workout{count === 1 ? "" : "s"}
+                              </p>
+                            </button>
+                            <OverflowMenu
+                              label={`${p.name} actions`}
+                              items={[
+                                {
+                                  icon: Pencil,
+                                  label: "Edit name & weeks",
+                                  onClick: () => {
+                                    setSelectedPhaseId(p.id);
+                                    setEditPhaseOpen(true);
+                                  },
+                                },
+                                { icon: Copy, label: "Duplicate", onClick: () => duplicatePhase(idx) },
+                                ...(idx > 0 ? [{ icon: ArrowUp, label: "Move up", onClick: () => movePhase(idx, -1) }] : []),
+                                ...(idx < phases.length - 1 ? [{ icon: ArrowDown, label: "Move down", onClick: () => movePhase(idx, 1) }] : []),
+                                {
+                                  icon: Trash2,
+                                  label: "Delete phase",
+                                  danger: true,
+                                  onClick: () => {
+                                    setSelectedPhaseId(p.id);
+                                    setConfirmDeletePhase(true);
+                                  },
+                                },
+                              ]}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-white font-semibold text-sm">
-                      Workouts {(selectedPhase.days || []).length > 0 && `(${(selectedPhase.days || []).length})`}
+                    <p className="text-white font-semibold text-sm min-w-0 truncate">
+                      Workouts in {selectedPhase.name} {(selectedPhase.days || []).length > 0 && `(${(selectedPhase.days || []).length})`}
                     </p>
                     <button onClick={openNewWorkout} className="flex items-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg">
                       <Plus size={13} /> New
