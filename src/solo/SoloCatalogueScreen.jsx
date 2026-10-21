@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, AlertTriangle } from "lucide-react";
+import { Search, AlertTriangle, ChevronRight } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { visibleCategories, visiblePrograms, recommendPrograms, formatAudPrice } from "./recommendations";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
+import { SoloArtwork } from "./SoloMountainArt";
 
 function ProgramCard({ program, t, onClick }) {
   return (
@@ -42,7 +43,7 @@ function ProgramCard({ program, t, onClick }) {
 
 export default function SoloCatalogueScreen() {
   const navigate = useNavigate();
-  const { soloProgramCategories, soloPrograms, soloCurrentUser } = useSoloApp();
+  const { soloProgramCategories, soloPrograms, soloCurrentUser, soloPurchases } = useSoloApp();
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [activeCategoryId, setActiveCategoryId] = useState(null);
@@ -52,7 +53,13 @@ export default function SoloCatalogueScreen() {
   const published = useMemo(() => visiblePrograms(soloPrograms, soloProgramCategories), [soloPrograms, soloProgramCategories]);
 
   const answers = soloCurrentUser?.onboarding?.answers || {};
-  const recommended = useMemo(() => recommendPrograms(soloPrograms, soloProgramCategories, answers), [soloPrograms, soloProgramCategories, answers]);
+  // The two best fits for this customer's consultation answers, leaving
+  // out anything they already own.
+  const ownedIds = useMemo(() => (soloPurchases || []).map((p) => p.programId), [soloPurchases]);
+  const recommended = useMemo(
+    () => recommendPrograms(soloPrograms, soloProgramCategories, answers, { limit: 2, excludeIds: ownedIds }),
+    [soloPrograms, soloProgramCategories, answers, ownedIds]
+  );
   const flagged = isFlaggedForMedicalReview(answers);
 
   const searchLower = search.trim().toLowerCase();
@@ -104,29 +111,41 @@ export default function SoloCatalogueScreen() {
         )}
 
         {recommended.length > 0 ? (
-          <div className="rounded-[22px] p-4.5 mb-5 backdrop-blur-xl" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}>
-            <p className="text-[10.5px] font-bold tracking-wide uppercase mb-2" style={{ color: accent }}>
+          <section className="mb-7">
+            <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: accent }}>
               From your consultation
             </p>
-            <div className="flex flex-col gap-2">
-              {recommended.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => openProgram(p.id)}
-                  className="flex items-center justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left"
-                  style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }}
-                >
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-bold truncate">{p.name}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: t.textMuted }}>
-                      {p.level}
-                    </p>
-                  </div>
-                  <p className="text-xs font-extrabold whitespace-nowrap">{formatAudPrice(p.priceCents)}</p>
-                </button>
-              ))}
+            <h2 className="text-lg font-bold mt-1 mb-3">Recommended for you</h2>
+            <div className="space-y-2.5">
+              {recommended.map((p) => {
+                const weeks = p.weekOnePreview?.totalWeeks || 0;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => openProgram(p.id)}
+                    className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
+                    style={{
+                      backgroundColor: dark ? "rgba(28,28,30,0.55)" : "rgba(255,255,255,0.62)",
+                      border: `1px solid ${t.panelBorder}`,
+                      backdropFilter: "blur(18px)",
+                      WebkitBackdropFilter: "blur(18px)",
+                    }}
+                  >
+                    <SoloArtwork program={p} logo={SOLO_THEMES.dark.logo} className="w-16 h-16 rounded-xl shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold leading-snug">{p.name}</p>
+                      <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                        {p.level}
+                        {weeks > 0 ? ` · ${weeks} weeks` : ""}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold whitespace-nowrap">{formatAudPrice(p.priceCents)}</p>
+                    <ChevronRight size={16} color={t.textFaint} className="shrink-0 -ml-1" />
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </section>
         ) : (
           published.length > 0 && (
             <p className="text-xs mb-5" style={{ color: t.textFaint }}>

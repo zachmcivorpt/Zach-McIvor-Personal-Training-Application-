@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { useSoloApp } from "../lib/SoloAppContext";
 
@@ -40,6 +41,29 @@ export function SoloThemeProvider({ children }) {
       // the choice doesn't persist across visits, nothing else breaks.
     }
   }, [dark]);
+
+  // The strip at the very top of the phone follows Solo's own light/dark
+  // toggle: the App Store build's native status-bar background (see
+  // NativeStatusBarSync in App.jsx, which skips /solo routes for this) and
+  // the browser's theme-color. Re-posted on every Solo route change since
+  // NativeStatusBarSync no longer does it here.
+  const { pathname } = useLocation();
+  // Declared first so it captures index.html's value before the effect
+  // below overwrites it, and puts it back when leaving Train Solo.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const original = meta?.getAttribute("content");
+    return () => {
+      if (meta && original != null) meta.setAttribute("content", original);
+    };
+  }, []);
+  useEffect(() => {
+    try {
+      window.webkit?.messageHandlers?.apexTheme?.postMessage({ dark, edgeToEdge: false });
+    } catch {}
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", SOLO_THEMES[dark ? "dark" : "light"].bg);
+  }, [dark, pathname]);
 
   const accent = SOLO_ACCENT_PALETTE[soloBranding?.accent] || SOLO_ACCENT_PALETTE.blue;
   const value = useMemo(

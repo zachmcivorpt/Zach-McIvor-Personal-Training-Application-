@@ -119,9 +119,9 @@ export default function SoloProgramDetailsScreen() {
           </>
         ) : (
           <>
-            <SoloMountainArt fadeTo={t.bg} />
+            <SoloMountainArt fadeTo={t.bg} light={!dark} />
             <div className="absolute inset-0 flex items-center justify-center pb-6">
-              <img src={SOLO_THEMES.dark.logo} alt="" className="h-20 w-auto opacity-95" />
+              <img src={t.logo} alt="" className="h-20 w-auto opacity-95" />
             </div>
           </>
         )}

@@ -53,6 +53,10 @@ describe("NativeStatusBarSync", () => {
     expect(renderAt("/activate")).toHaveBeenCalledWith({ dark: false, edgeToEdge: false });
   });
 
+  it("leaves Train Solo routes to SoloThemeProvider, which follows the Solo light/dark toggle", () => {
+    expect(renderAt("/solo/home")).not.toHaveBeenCalled();
+  });
+
   it("does not throw in a regular browser with no window.webkit", () => {
     expect(() =>
       render(

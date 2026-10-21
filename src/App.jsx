@@ -77,6 +77,9 @@ function RootRedirect() {
 export function NativeStatusBarSync() {
   const location = useLocation();
   useEffect(() => {
+    // Train Solo has its own light/dark toggle, so it posts its own theme
+    // from SoloThemeProvider (src/solo/SoloThemeContext.jsx) instead.
+    if (location.pathname.startsWith("/solo")) return;
     try {
       window.webkit?.messageHandlers?.apexTheme?.postMessage({
         dark: location.pathname.startsWith("/coach"),

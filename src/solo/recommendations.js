@@ -53,9 +53,13 @@ function scoreProgram(program, answers) {
 
   if (answers.preferredStyle && program.style && answers.preferredStyle === program.style) score += 3;
 
-  const customerGoals = new Set([answers.primaryGoal, ...(answers.secondaryGoals || [])].filter(Boolean));
+  // The customer's primary goal outweighs any secondary goal, so between
+  // two otherwise-equal programs the one built for what they said matters
+  // most ranks first.
+  const secondaryGoals = new Set((answers.secondaryGoals || []).filter(Boolean));
   for (const goal of program.goals || []) {
-    if (customerGoals.has(goal)) score += 2;
+    if (answers.primaryGoal && goal === answers.primaryGoal) score += 3;
+    else if (secondaryGoals.has(goal)) score += 2;
   }
 
   if (answers.trainingEnvironment && (program.environments || []).includes(answers.trainingEnvironment)) score += 2;
@@ -76,8 +80,9 @@ function scoreProgram(program, answers) {
 // its own standing safety notice instead (see SoloCatalogueScreen.jsx and
 // SoloProfileScreen.jsx), same as the earlier placeholder home screen
 // this phase replaced.
-export function recommendPrograms(programs, categories, answers, { limit = 3 } = {}) {
-  const candidates = visiblePrograms(programs, categories);
+export function recommendPrograms(programs, categories, answers, { limit = 2, excludeIds = [] } = {}) {
+  const excluded = new Set(excludeIds);
+  const candidates = visiblePrograms(programs, categories).filter((p) => !excluded.has(p.id));
   const scored = candidates.map((program) => ({ program, score: scoreProgram(program, answers || {}) }));
   const matched = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
   return matched.slice(0, limit).map((s) => s.program);
