@@ -334,7 +334,9 @@ function DesignAssetRow({
 }
 
 const CROP_FRAME = 280; // on-screen square crop frame, in px
-const CROP_OUTPUT = 1024; // exported square canvas, in px
+// 512px covers the largest logo on screen (56px tall) at 3x with room to
+// spare — 1024 was four times the pixels to download on every device.
+const CROP_OUTPUT = 512; // exported square canvas, in px
 
 // Lets a coach pan and zoom their uploaded logo within a square frame before
 // it's saved. The most common reason an uploaded mark "comes out too small"

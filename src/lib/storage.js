@@ -17,6 +17,7 @@ const MAX_DESIGN_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
 // doesn't turn "sign in" into a slow, data-heavy download on someone's
 // phone. 25MB is still generous for a short, muted, looping clip.
 const MAX_LOGIN_BG_VIDEO_BYTES = 25 * 1024 * 1024; // 25MB
+const DESIGN_CACHE = { cacheControl: "public, max-age=31536000, immutable" };
 
 // Firebase's own error text for the two most common setup gaps ("storage/
 // unknown" and "storage/unauthorized") is a cryptic server-response dump
@@ -52,9 +53,9 @@ function friendlyStorageError(err, kind) {
 // Firebase's own retry loop indefinitely.
 const STALL_TIMEOUT_MS = 45000;
 
-function uploadToPath(path, file, type, kind, onProgress) {
+function uploadToPath(path, file, type, kind, onProgress, metadata) {
   return new Promise((resolve, reject) => {
-    const task = uploadBytesResumable(ref(storage, path), file);
+    const task = uploadBytesResumable(ref(storage, path), file, metadata);
     let settled = false;
     let timedOut = false;
     let lastProgressAt = Date.now();
@@ -166,7 +167,10 @@ export function uploadDesignImage(kind, file, onProgress) {
       new Error(`That image is ${(file.size / 1024 / 1024).toFixed(1)}MB — please keep it under ${MAX_DESIGN_IMAGE_BYTES / 1024 / 1024}MB.`)
     );
   }
-  return uploadToPath(`design/${kind}_${Date.now()}_${file.name}`, file, "image", "Image", onProgress);
+  // Every design upload gets its own timestamped path, so it can be cached
+  // on the device for good instead of Storage's default of re-checking on
+  // every launch (what made the logo appear a couple of seconds late).
+  return uploadToPath(`design/${kind}_${Date.now()}_${file.name}`, file, "image", "Image", onProgress, DESIGN_CACHE);
 }
 
 // The login background specifically also accepts a short video (autoplayed

@@ -13,6 +13,7 @@ import {
   CLIENT_DARK_BORDER,
 } from "../theme";
 import { LOGO_BLACK, LOGO_WHITE, MARK_BLACK, MARK_WHITE } from "../lib/brand";
+import { appLogoUrls, rememberAppLogos, resolveAppLogoUrl } from "../lib/appLogo";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { parseVideoUrl } from "../lib/video";
@@ -187,15 +188,23 @@ const BRAND_SOURCES = {
 // doubles as which upload to use; if only one has been uploaded, that one
 // is used everywhere rather than falling back to the default mark on the
 // surface that's missing its own.
+//
+// See lib/appLogo.js for how it shows instantly: remembered URLs before
+// settings load, a bundled copy for known uploads. If the image ever fails
+// to load, the default mark shows instead of a broken-image icon.
 export function Logo({ variant = "wordmark", tone = "white", className = "", style }) {
   const { db } = useApp();
-  const design = db?.appDesign || {};
-  const customUrl = tone === "white"
-    ? design.appLogoUrlOnDark || design.appLogoUrlOnLight
-    : design.appLogoUrlOnLight || design.appLogoUrlOnDark;
+  const { dark, light, loaded } = appLogoUrls(db?.appDesign);
+  useEffect(() => {
+    if (loaded) rememberAppLogos(dark, light);
+  }, [loaded, dark, light]);
+  const customUrl = resolveAppLogoUrl(tone === "white" ? dark || light : light || dark);
+  const [failedUrl, setFailedUrl] = useState(null);
+  const fallback = BRAND_SOURCES[`${variant}-${tone}`];
   return (
     <img
-      src={customUrl || BRAND_SOURCES[`${variant}-${tone}`]}
+      src={customUrl && customUrl !== failedUrl ? customUrl : fallback}
+      onError={() => customUrl && setFailedUrl(customUrl)}
       alt="APEX Coaching Platform"
       className={className}
       style={style}
