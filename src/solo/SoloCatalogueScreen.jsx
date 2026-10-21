@@ -81,7 +81,7 @@ export default function SoloCatalogueScreen() {
       </div>
 
       <div className="px-3 pt-3 pb-2">
-        <h1 className="text-[28px] font-extrabold leading-tight tracking-tight">
+        <h1 className="text-xl font-bold leading-tight">
           {firstName ? `Welcome, ${firstName}` : "Welcome"}
         </h1>
       </div>
