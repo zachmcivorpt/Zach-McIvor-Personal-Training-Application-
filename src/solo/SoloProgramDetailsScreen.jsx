@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Lock, Eye, PlayCircle } from "lucide-react";
 import { SoloArtwork } from "./SoloArtwork";
+import { inIosApp } from "./appShell";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, formatAudPrice } from "./recommendations";
@@ -51,6 +52,10 @@ export default function SoloProgramDetailsScreen() {
   const addonActive = isAddon && activeAddonId === id;
   const otherAddon = isAddon && activeAddonId && activeAddonId !== id ? soloPrograms.find((p) => p.id === activeAddonId) : null;
   const hasStartedProgram = soloPurchases.some((p) => p.startDate);
+  // Inside the iOS app a paid program can't be bought (see appShell.js):
+  // no price, no checkout — owned programs and free add-ons work as normal.
+  const iosApp = inIosApp();
+  const purchasable = !isAddon && !owned && !iosApp;
 
   async function applyAddon(programId) {
     setAddonSaving(true);
@@ -74,6 +79,7 @@ export default function SoloProgramDetailsScreen() {
   const phaseSummaries = preview.phaseSummaries || [];
 
   async function confirmPurchase() {
+    if (inIosApp()) return; // never start a Stripe checkout inside the iOS app
     setPurchasing(true);
     setPurchaseError("");
     try {
@@ -153,7 +159,7 @@ export default function SoloProgramDetailsScreen() {
       <div className="relative -mt-10 px-3 pb-32 max-w-md mx-auto">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-[26px] font-extrabold leading-tight">{program.name}</h1>
-          <p className="text-lg font-extrabold whitespace-nowrap mt-1">{isAddon ? "Free" : formatAudPrice(program.priceCents)}</p>
+          {(isAddon || !iosApp) && <p className="text-lg font-extrabold whitespace-nowrap mt-1">{isAddon ? "Free" : formatAudPrice(program.priceCents)}</p>}
         </div>
         <p className="text-sm mt-1.5" style={{ color: t.textMuted }}>
           {program.level} · {totalWeeks} week{totalWeeks === 1 ? "" : "s"}
@@ -267,7 +273,9 @@ export default function SoloProgramDetailsScreen() {
             <div className="mt-2.5 flex items-center gap-2.5 px-1">
               <Lock size={13} color={t.textFaint} className="shrink-0" />
               <p className="text-xs" style={{ color: t.textFaint }}>
-                The rest of {day1Label || "Week 1"}, and every other week, unlocks once you own this program.
+                {iosApp
+                  ? `The rest of ${day1Label || "Week 1"}, and every other week, is part of the full program.`
+                  : `The rest of ${day1Label || "Week 1"}, and every other week, unlocks once you own this program.`}
               </p>
             </div>
           )}
@@ -297,6 +305,10 @@ export default function SoloProgramDetailsScreen() {
                 {addonSaving ? "Adding…" : "Add to my training · Free"}
               </button>
             )
+          ) : !owned && iosApp ? (
+            <p className="w-full text-center text-sm font-semibold py-4 rounded-full" style={{ ...soloGlass(t), color: t.textMuted }}>
+              Not available in the app
+            </p>
           ) : (
           <button
             onClick={() =>
@@ -314,7 +326,7 @@ export default function SoloProgramDetailsScreen() {
         </div>
       </div>
 
-      <BottomSheet open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm" dark={dark}>
+      <BottomSheet open={confirmOpen && purchasable} onClose={() => setConfirmOpen(false)} title="Confirm" dark={dark}>
         <p className="text-sm mb-5 leading-relaxed" style={{ color: t.textMuted }}>
           You'll be taken to a secure Stripe checkout to pay {formatAudPrice(program.priceCents)} for "{program.name}". Your program
           unlocks as soon as payment completes.

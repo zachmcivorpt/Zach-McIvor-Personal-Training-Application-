@@ -82,3 +82,40 @@ describe("recovery add-ons", () => {
     await waitFor(() => expect(setRecoveryAddon).toHaveBeenCalledWith("u1", null));
   });
 });
+
+describe("inside the iOS App Store app", () => {
+  beforeEach(() => {
+    window.webkit = { messageHandlers: { apexTheme: { postMessage: () => {} } } };
+  });
+  afterEach(() => {
+    delete window.webkit;
+  });
+
+  it("shows no price and no way to buy an unowned paid program", async () => {
+    await renderDetail("p1");
+    expect(screen.queryByText("A$79.99")).toBeNull();
+    expect(screen.queryByRole("button", { name: /start program/i })).toBeNull();
+    expect(screen.getByText("Not available in the app")).toBeTruthy();
+    expect(screen.queryByText(/stripe/i)).toBeNull();
+  });
+
+  it("still opens an owned program", async () => {
+    ctx.soloPurchases = [{ id: "u1_p1", programId: "p1", soloUserId: "u1" }];
+    await renderDetail("p1");
+    expect(screen.getByRole("button", { name: /go to my training/i })).toBeTruthy();
+  });
+
+  it("still lets a free recovery add-on be added", async () => {
+    await renderDetail("r1");
+    fireEvent.click(screen.getByRole("button", { name: /add to my training/i }));
+    await waitFor(() => expect(setRecoveryAddon).toHaveBeenCalledWith("u1", "r1"));
+  });
+});
+
+describe("in a regular browser", () => {
+  it("keeps the price and Start Program checkout", async () => {
+    await renderDetail("p1");
+    expect(screen.getAllByText("A$79.99").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /start program/i })).toBeTruthy();
+  });
+});

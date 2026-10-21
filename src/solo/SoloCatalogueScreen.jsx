@@ -6,6 +6,7 @@ import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visibleCategories, visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, recommendPrograms, formatAudPrice } from "./recommendations";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { SoloArtwork } from "./SoloArtwork";
+import { inIosApp } from "./appShell";
 
 function ProgramCard({ program, t, onClick }) {
   return (
@@ -24,7 +25,12 @@ function ProgramCard({ program, t, onClick }) {
       <div className="px-4 py-3.5">
         <div className="flex items-start justify-between gap-2.5">
           <p className="text-[15px] font-bold leading-tight">{program.name}</p>
-          <p className="text-sm font-extrabold whitespace-nowrap">{isRecoveryAddon(program) ? "Free" : formatAudPrice(program.priceCents)}</p>
+          {/* No price for paid programs inside the iOS app — see appShell.js. */}
+          {isRecoveryAddon(program) ? (
+            <p className="text-sm font-extrabold whitespace-nowrap">Free</p>
+          ) : (
+            !inIosApp() && <p className="text-sm font-extrabold whitespace-nowrap">{formatAudPrice(program.priceCents)}</p>
+          )}
         </div>
         {program.description && (
           <p className="text-xs mt-1 line-clamp-2" style={{ color: t.textMuted }}>
@@ -126,7 +132,7 @@ export default function SoloCatalogueScreen() {
                         {weeks > 0 ? ` · ${weeks} weeks` : ""}
                       </p>
                     </div>
-                    <p className="text-sm font-bold whitespace-nowrap">{formatAudPrice(p.priceCents)}</p>
+                    {!inIosApp() && <p className="text-sm font-bold whitespace-nowrap">{formatAudPrice(p.priceCents)}</p>}
                     <ChevronRight size={16} color={t.textFaint} className="shrink-0 -ml-1" />
                   </button>
                 );
