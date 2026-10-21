@@ -118,6 +118,7 @@ export default function SoloProfileScreen() {
       </div>
 
       <DeleteAccountSheet
+        dark={dark}
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
         warning="This permanently deletes your Train Solo account, every program you own, and your workout history. This can't be undone."

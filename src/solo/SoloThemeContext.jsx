@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { SheetSurfaceContext } from "../components/ui";
 import { MARK_BLACK, MARK_WHITE } from "../lib/brand";
 import { useSoloApp } from "../lib/SoloAppContext";
 
@@ -70,7 +71,15 @@ export function SoloThemeProvider({ children }) {
     () => ({ dark, accent, toggleSoloTheme: () => setDark((d) => !d), setSoloThemeDark: setDark }),
     [dark, accent]
   );
-  return <SoloThemeCtx.Provider value={value}>{children}</SoloThemeCtx.Provider>;
+  // Every BottomSheet opened anywhere in Train Solo (its own sheets and the
+  // shared ones it reuses — Add Exercise, Log Weight, Delete account) gets
+  // the frosted-glass fill instead of a solid one.
+  const sheetSurface = useMemo(() => soloSheetGlass(SOLO_THEMES[dark ? "dark" : "light"]), [dark]);
+  return (
+    <SoloThemeCtx.Provider value={value}>
+      <SheetSurfaceContext.Provider value={sheetSurface}>{children}</SheetSurfaceContext.Provider>
+    </SoloThemeCtx.Provider>
+  );
 }
 
 export function useSoloTheme() {
@@ -97,6 +106,7 @@ export const SOLO_THEMES = {
     inputBg: "rgba(255,255,255,0.08)",
     inputBorder: "rgba(255,255,255,0.1)",
     glassBg: "rgba(28,28,30,0.55)",
+    sheetGlassBg: "rgba(24,24,26,0.78)",
   },
   light: {
     bg: "#F5F4F1",
@@ -114,6 +124,7 @@ export const SOLO_THEMES = {
     inputBg: "rgba(20,19,15,0.05)",
     inputBorder: "rgba(20,19,15,0.08)",
     glassBg: "rgba(255,255,255,0.62)",
+    sheetGlassBg: "rgba(250,249,246,0.8)",
   },
 };
 
@@ -133,4 +144,14 @@ export function soloGlass(t) {
 // same glass to the shared Card-based widgets Train Solo reuses.
 export function soloGlassVars(t) {
   return { "--solo-glass-bg": t.glassBg, "--solo-glass-border": t.panelBorder };
+}
+
+// Glass for Train Solo's bottom sheets (BottomSheet's `surface` prop) —
+// a denser fill than soloGlass so text stays readable over the dimmed page.
+export function soloSheetGlass(t) {
+  return {
+    backgroundColor: t.sheetGlassBg,
+    backdropFilter: "blur(28px)",
+    WebkitBackdropFilter: "blur(28px)",
+  };
 }

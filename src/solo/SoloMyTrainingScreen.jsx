@@ -22,7 +22,9 @@ import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 // because this customer owns a purchase for it — see SoloAppContext.jsx's
 // soloProgramContentByProgramId and firestore.rules' soloProgramContent
 // block. `program` itself (the public catalogue doc) never has this data.
-function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay }) {
+function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay, dark, t }) {
+  const rowStyle = { backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` };
+  const inputStyle = { backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" };
   const [draftDate, setDraftDate] = useState("");
   const [editingDate, setEditingDate] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(null);
@@ -46,34 +48,37 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
   }, [open, purchase?.startDate]);
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={program?.name} wide>
+    <BottomSheet open={open} onClose={onClose} title={program?.name} wide dark={dark}>
+      <div style={{ color: t.text }}>
       {!purchase?.startDate ? (
         <div>
-          <p className="text-black/60 text-sm mb-4">Pick the date Week 1, Day 1 starts — everything else is tracked from there.</p>
+          <p className="text-sm mb-4" style={{ color: t.textMuted }}>Pick the date Week 1, Day 1 starts — everything else is tracked from there.</p>
           <input
             type="date"
             value={draftDate}
             onChange={(e) => setDraftDate(e.target.value)}
-            className="w-full border border-black/10 rounded-xl px-3.5 py-2.5 text-sm mb-4"
+            className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4"
+            style={inputStyle}
           />
-          <PrimaryButton className="w-full" onClick={() => onSetStartDate(draftDate)} disabled={!draftDate}>
+          <PrimaryButton dark={dark} className="w-full" onClick={() => onSetStartDate(draftDate)} disabled={!draftDate}>
             SET START DATE
           </PrimaryButton>
         </div>
       ) : (
         <div>
-          <p className="text-black/40 text-xs mb-1">STARTED</p>
-          <p className="text-black text-sm font-semibold mb-4">{purchase.startDate}</p>
+          <p className="text-xs mb-1" style={{ color: t.textFaint }}>STARTED</p>
+          <p className="text-sm font-semibold mb-4">{purchase.startDate}</p>
 
           <div className="flex items-center justify-between mb-1">
-            <p className="text-black/40 text-xs">{isFutureWeek ? "UPCOMING WEEK" : "CURRENT WEEK"}</p>
+            <p className="text-xs" style={{ color: t.textFaint }}>{isFutureWeek ? "UPCOMING WEEK" : "CURRENT WEEK"}</p>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 aria-label="Previous week"
                 onClick={() => setSelectedWeek(Math.max(1, weekNumber - 1))}
                 disabled={weekNumber <= 1}
-                className="w-7 h-7 rounded-full flex items-center justify-center bg-black/5 disabled:opacity-30"
+                className="w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-30"
+                style={rowStyle}
               >
                 <ChevronLeft size={14} />
               </button>
@@ -82,20 +87,21 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                 aria-label="Next week"
                 onClick={() => setSelectedWeek(Math.min(totalWeeks, weekNumber + 1))}
                 disabled={weekNumber >= totalWeeks}
-                className="w-7 h-7 rounded-full flex items-center justify-center bg-black/5 disabled:opacity-30"
+                className="w-7 h-7 rounded-full flex items-center justify-center disabled:opacity-30"
+                style={rowStyle}
               >
                 <ChevronRight size={14} />
               </button>
             </div>
           </div>
-          <p className="text-black text-lg font-extrabold mb-4">
+          <p className="text-lg font-extrabold mb-4">
             Week {weekNumber} of {totalWeeks}
-            {current?.phase && <span className="text-black/40 text-sm font-semibold"> · {current.phase.name}</span>}
+            {current?.phase && <span className="text-sm font-semibold" style={{ color: t.textFaint }}> · {current.phase.name}</span>}
           </p>
           {isFutureWeek && (
-            <div className="flex items-center gap-2 bg-black/[0.03] rounded-xl px-3.5 py-2.5 mb-4">
-              <Lock size={13} className="text-black/40 shrink-0" />
-              <p className="text-black/50 text-xs">
+            <div className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 mb-4" style={rowStyle}>
+              <Lock size={13} color={t.textFaint} className="shrink-0" />
+              <p className="text-xs" style={{ color: t.textMuted }}>
                 This week unlocks once Week {currentWeek} is underway — you're browsing ahead, not starting it yet.
               </p>
             </div>
@@ -105,13 +111,13 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
               {(current.phase.days || []).map((d) => {
                 const done = isDayDone(d.id);
                 return (
-                  <div key={d.id} className="flex items-center justify-between bg-black/[0.03] rounded-xl px-3.5 py-3">
+                  <div key={d.id} className="flex items-center justify-between rounded-xl px-3.5 py-3" style={rowStyle}>
                     <div className="min-w-0">
-                      <p className="text-black text-sm font-semibold">{d.label}</p>
-                      <p className="text-black/40 text-xs">{(d.exercises || []).filter((e) => !e.isRest).length} exercises</p>
+                      <p className="text-sm font-semibold">{d.label}</p>
+                      <p className="text-xs" style={{ color: t.textFaint }}>{(d.exercises || []).filter((e) => !e.isRest).length} exercises</p>
                     </div>
                     {isFutureWeek ? (
-                      <Lock size={14} className="text-black/30 shrink-0" />
+                      <Lock size={14} color={t.textFaint} className="shrink-0" />
                     ) : done ? (
                       <span className="flex items-center gap-1 text-xs font-semibold text-green-600 shrink-0">
                         <CheckCircle2 size={14} /> Done
@@ -120,19 +126,20 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                       <button
                         type="button"
                         onClick={() => onStartDay(d, weekNumber)}
-                        className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-black text-white shrink-0"
+                        className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: t.text, color: t.bg }}
                       >
-                        <Play size={11} fill="white" /> Start
+                        <Play size={11} fill="currentColor" /> Start
                       </button>
                     )}
                   </div>
                 );
               })}
-              {(current.phase.days || []).length === 0 && <p className="text-black/40 text-xs">No workouts in this phase yet.</p>}
+              {(current.phase.days || []).length === 0 && <p className="text-xs" style={{ color: t.textFaint }}>No workouts in this phase yet.</p>}
             </div>
           )}
           {!editingDate ? (
-            <SecondaryButton className="w-full" type="button" onClick={() => setEditingDate(true)}>
+            <SecondaryButton dark={dark} className="w-full" type="button" onClick={() => setEditingDate(true)}>
               Change start date
             </SecondaryButton>
           ) : (
@@ -141,9 +148,11 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                 type="date"
                 value={draftDate}
                 onChange={(e) => setDraftDate(e.target.value)}
-                className="w-full border border-black/10 rounded-xl px-3.5 py-2.5 text-sm mb-3"
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-3"
+                style={inputStyle}
               />
               <PrimaryButton
+                dark={dark}
                 className="w-full"
                 onClick={() => {
                   onSetStartDate(draftDate);
@@ -157,6 +166,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
           )}
         </div>
       )}
+      </div>
     </BottomSheet>
   );
 }
@@ -333,6 +343,8 @@ export default function SoloMyTrainingScreen() {
         content={openContent}
         purchase={openPurchase}
         soloWorkoutLogs={soloWorkoutLogs}
+        dark={dark}
+        t={t}
         onStartDay={(day, weekNumber) => startDay(openPurchase, openProgram, day, weekNumber)}
         onSetStartDate={async (date) => {
           await setPurchaseStartDate(openPurchase.id, date);

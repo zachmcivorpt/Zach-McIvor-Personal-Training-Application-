@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Check, AlertCircle, Camera, Dumbbell, Video, Play, Search, Sparkles, ChevronDown } from "lucide-react";
 import {
@@ -404,7 +404,16 @@ function useVisualViewportInsets() {
   return insets;
 }
 
-export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5" }) {
+// Optional replacement for every BottomSheet's solid fill within a subtree.
+// Train Solo provides its frosted-glass style here (SoloThemeContext.jsx);
+// nothing else provides it, so every other sheet renders exactly as before.
+export const SheetSurfaceContext = createContext(undefined);
+
+// `surface` (optional) overrides the fill for one sheet; otherwise the
+// nearest SheetSurfaceContext value (if any) applies.
+export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", surface: surfaceProp }) {
+  const contextSurface = useContext(SheetSurfaceContext);
+  const surface = surfaceProp || contextSurface;
   // Opening already slid up smoothly, but closing just vanished the instant
   // `open` went false — no exit animation at all, which is exactly the kind
   // of "blocky" jump a native app never has. Keeping the sheet mounted for
@@ -450,11 +459,11 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
           className={`relative w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-t-3xl overflow-y-auto overscroll-contain border-t transition-transform duration-300 ease-out ${
             dark ? "border-white/10" : "border-black/10"
           } ${visible ? "translate-y-0" : "translate-y-full"}`}
-          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, maxHeight: Math.round(viewport.height * 0.88) }}
+          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, ...surface, maxHeight: Math.round(viewport.height * 0.88) }}
         >
           <div
             className="sticky top-0 pt-3 pb-2 px-5 border-b flex items-center justify-between"
-            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER, ...(surface && { backgroundColor: "transparent" }) }}
           >
             <div className="w-8" />
             <div className={`w-10 h-1 rounded-full absolute left-1/2 -translate-x-1/2 top-2 ${dark ? "bg-white/20" : "bg-black/20"}`} />

@@ -53,6 +53,10 @@ rather than inventing new colors per screen:
   `SoloThemeContext.jsx` for Solo's own boxes; shared Card-based widgets
   rendered inside Solo pick it up via the `.solo-glass-scope` rule in
   `index.css`. Never a solid filled card on a Solo screen.
+- **Pop-ups (bottom sheets) are glass too**: SoloThemeProvider supplies
+  `soloSheetGlass` through `SheetSurfaceContext`, so every `BottomSheet`
+  opened inside Train Solo is frosted; pass `dark={dark}` and use theme
+  text colours inside Solo sheets.
 - Cards run near full screen width: 12px (`px-3`) page gutters.
 - No drawn/stock artwork: a program shows only its coach-uploaded
   `artworkUrl`, otherwise the plain cover gradient + APEX mark.

@@ -263,13 +263,13 @@ export default function SoloProgramDetailsScreen() {
         </div>
       </div>
 
-      <BottomSheet open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm">
-        <p className="text-black/60 text-sm mb-5 leading-relaxed">
+      <BottomSheet open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm" dark={dark}>
+        <p className="text-sm mb-5 leading-relaxed" style={{ color: t.textMuted }}>
           You'll be taken to a secure Stripe checkout to pay {formatAudPrice(program.priceCents)} for "{program.name}". Your program
           unlocks as soon as payment completes.
         </p>
-        {purchaseError && <p className="text-red-600 text-sm mb-4">{purchaseError}</p>}
-        <PrimaryButton className="w-full" onClick={confirmPurchase} disabled={purchasing}>
+        {purchaseError && <p className="text-red-500 text-sm mb-4">{purchaseError}</p>}
+        <PrimaryButton dark={dark} className="w-full" onClick={confirmPurchase} disabled={purchasing}>
           {purchasing ? "STARTING CHECKOUT…" : `PAY ${formatAudPrice(program.priceCents)}`}
         </PrimaryButton>
       </BottomSheet>
