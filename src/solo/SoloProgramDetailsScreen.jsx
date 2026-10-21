@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Lock, Eye, PlayCircle } from "lucide-react";
 import { SoloArtwork } from "./SoloArtwork";
 import { inIosApp } from "./appShell";
+import SoloGlassBox from "./SoloGlassBox";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, formatAudPrice } from "./recommendations";
@@ -220,7 +221,7 @@ export default function SoloProgramDetailsScreen() {
               Preview not available yet for this program.
             </p>
           ) : (
-            <div className="rounded-2xl overflow-hidden" style={glass}>
+            <SoloGlassBox t={t} className="rounded-2xl">
               <button
                 type="button"
                 onClick={() => setPreviewOpen((o) => !o)}
@@ -258,7 +259,7 @@ export default function SoloProgramDetailsScreen() {
                     </button>
                   );
                 })}
-            </div>
+            </SoloGlassBox>
           )}
 
           {isAddon && (

@@ -44,7 +44,10 @@ export default function SoloShell() {
 
   return (
     <div className="min-h-dvh w-full flex flex-col" style={{ backgroundColor: t.bg, color: t.text, transition: "background-color 0.2s,color 0.2s" }}>
-      <div className="flex-1 overflow-y-auto solo-glass-scope" style={soloGlassVars(t)}>
+      {/* No overflow here: the window is what scrolls. A non-scrolling
+          overflow-y-auto column made iOS treat taps on its content as
+          possible scroll gestures, so buttons/links responded unreliably. */}
+      <div className="flex-1 solo-glass-scope" style={soloGlassVars(t)}>
         {tab === "catalogue" && <SoloCatalogueScreen />}
         {tab === "training" && <SoloMyTrainingScreen />}
         {tab === "progress" && <SoloProgressScreen />}

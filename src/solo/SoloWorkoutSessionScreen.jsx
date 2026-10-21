@@ -39,6 +39,7 @@ export default function SoloWorkoutSessionScreen() {
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null);
   const [finishing, setFinishing] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [resting, setResting] = useState(false);
   const [restTime, setRestTime] = useState(90);
   const [restTotal, setRestTotal] = useState(90);
@@ -112,18 +113,22 @@ export default function SoloWorkoutSessionScreen() {
       return { ...prev, [exMeta.exerciseId]: arr };
     });
   }
+  // Reads the row from the LATEST state (functional update), not this
+  // render's `activeLog`: the Try suggestion and the timed-set timer both
+  // fill a row and then call this straight away, before a re-render — a
+  // closure-captured `activeLog` still saw the row empty, so those sets were
+  // saved but never marked completed (summary undercounted them, no PRs).
   function handleBlurKg(exMeta, idx) {
-    const arr = activeLog[exMeta.exerciseId] || [];
-    const row = arr[idx];
-    if (!row) return;
-    const reps = parseInt(row.reps, 10);
-    if (!reps || isNaN(reps)) return;
-    const weight = row.weight === "" || row.weight == null ? 0 : parseFloat(row.weight);
-    if (isNaN(weight)) return;
     const { bestScore, bestSet, maxWeight } = getBestEverStats(soloWorkoutLogs, exMeta.exerciseId);
-    const score = weight > 0 ? estimate1RM(weight, reps) : reps;
-    const isPR = !bestSet || weight > maxWeight || score > bestScore;
     setActiveLog((prev) => {
+      const row = (prev[exMeta.exerciseId] || [])[idx];
+      if (!row) return prev;
+      const reps = parseInt(row.reps, 10);
+      if (!reps || isNaN(reps)) return prev;
+      const weight = row.weight === "" || row.weight == null ? 0 : parseFloat(row.weight);
+      if (isNaN(weight)) return prev;
+      const score = weight > 0 ? estimate1RM(weight, reps) : reps;
+      const isPR = !bestSet || weight > maxWeight || score > bestScore;
       const nextSets = [...(prev[exMeta.exerciseId] || [])];
       nextSets[idx] = { ...nextSets[idx], completed: true, isPR };
       return { ...prev, [exMeta.exerciseId]: nextSets };
@@ -163,10 +168,15 @@ export default function SoloWorkoutSessionScreen() {
       .filter((e) => e.sets.length > 0);
 
     setFinishing(true);
+    setSaveError("");
     try {
       await logSoloWorkout(soloCurrentUser.id, { purchaseId, dayId, weekNumber, dayLabel: day.label, entries, durationMin });
     } catch {
+      // Previously silent — the button just reverted, so a failed save
+      // looked like nothing happened and the customer could leave thinking
+      // it was logged.
       setFinishing(false);
+      setSaveError("Couldn't save this workout — check your connection and tap Complete Workout again.");
       return;
     }
     navigate("/solo/workout-summary", { state: { daySession: day, activeLog, durationMin }, replace: true });
@@ -219,6 +229,7 @@ export default function SoloWorkoutSessionScreen() {
               <Plus size={16} />
               Add Exercise
             </button>
+            {saveError && <p className="text-sm text-red-500 text-center">{saveError}</p>}
             <PrimaryButton dark={dark} className="w-full" onClick={handleFinish} disabled={finishing}>
               {finishing ? "Saving…" : "Complete Workout"}
             </PrimaryButton>

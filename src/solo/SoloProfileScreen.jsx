@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight } from "lucide-react";
-import { enableSoloPush, hasSoloPushToken, isNativeApp } from "../lib/push";
+import { enableSoloPush, hasSoloPushToken } from "../lib/push";
+import { inIosApp } from "./appShell";
+import SoloGlassBox from "./SoloGlassBox";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
@@ -30,8 +32,12 @@ export default function SoloProfileScreen() {
   const [reminderError, setReminderError] = useState("");
   const uid = soloCurrentUser?.id;
   // On the App Store build the device token is saved automatically at
-  // launch (nativeBridge.js); in a browser this device needs to opt in once.
-  const deviceRegistered = isNativeApp || (uid && hasSoloPushToken(uid));
+  // launch (nativeBridge.js) once iOS notification permission is granted;
+  // in a browser this device needs to opt in once. (push.js's isNativeApp is
+  // always false at import time, so the App Store app is detected with
+  // inIosApp() instead.)
+  const iosApp = inIosApp();
+  const deviceRegistered = !!uid && hasSoloPushToken(uid);
   const remindersOn = !!deviceRegistered && soloCurrentUser?.notificationPrefs?.weeklyCheckIn !== false;
 
   async function toggleReminders() {
@@ -42,7 +48,15 @@ export default function SoloProfileScreen() {
       if (remindersOn) {
         await setSoloReminderPref(uid, false);
       } else {
-        if (!deviceRegistered) await enableSoloPush(uid);
+        if (!deviceRegistered) {
+          // The App Store app's web view has no browser Push API — its
+          // token only arrives from iOS itself, after permission is given.
+          if (iosApp) {
+            setReminderError("Allow notifications for APEX in your iPhone Settings, then reopen the app to turn these on.");
+            return;
+          }
+          await enableSoloPush(uid);
+        }
         await setSoloReminderPref(uid, true);
       }
     } catch (err) {
@@ -117,7 +131,7 @@ export default function SoloProfileScreen() {
         </div>
       )}
 
-      <div className="rounded-2xl overflow-hidden mb-5" style={soloGlass(t)}>
+      <SoloGlassBox t={t} className="rounded-2xl mb-5">
         <Link to="/solo/calendar" className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: `1px solid ${t.panelBorder}` }}>
           <CalendarDays size={17} color={t.textMuted} className="shrink-0" />
           <span className="text-sm font-semibold flex-1">My Calendar</span>
@@ -141,9 +155,9 @@ export default function SoloProfileScreen() {
           </span>
         </button>
         {reminderError && <p className="text-xs text-red-500 px-4 pb-3 -mt-1">{reminderError}</p>}
-      </div>
+      </SoloGlassBox>
 
-      <div className="rounded-2xl overflow-hidden mb-5" style={soloGlass(t)}>
+      <SoloGlassBox t={t} className="rounded-2xl mb-5">
         <Link
           to="/solo/onboarding?review=1"
           className="block px-4 py-3.5 text-sm font-semibold"
@@ -154,7 +168,7 @@ export default function SoloProfileScreen() {
         <button onClick={soloLogout} className="block w-full text-left px-4 py-3.5 text-sm font-semibold" style={{ color: "#EF4444" }}>
           Log out
         </button>
-      </div>
+      </SoloGlassBox>
 
       <div className="flex items-center justify-center gap-4">
         <Link to="/legal/privacy-policy" className="text-xs font-medium" style={{ color: t.textFaint }}>

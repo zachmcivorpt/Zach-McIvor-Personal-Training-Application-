@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { Logo } from "../components/ui";
 import { estimateCalories } from "../client/ClientApp";
@@ -17,10 +17,9 @@ export default function SoloWorkoutSummaryScreen() {
   const { dark } = useSoloTheme();
   const { daySession, activeLog, durationMin = 0 } = location.state || {};
 
-  if (!daySession) {
-    navigate("/solo/home", { replace: true });
-    return null;
-  }
+  // <Navigate> rather than navigate() during render (a side effect React
+  // Router warns about) — e.g. reopening this page with no workout state.
+  if (!daySession) return <Navigate to="/solo/home" replace />;
 
   const allSets = Object.values(activeLog || {})
     .flat()

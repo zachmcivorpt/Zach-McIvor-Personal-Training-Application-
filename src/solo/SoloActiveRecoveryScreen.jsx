@@ -4,6 +4,7 @@ import { ChevronLeft, Play, Check } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { localDateKey } from "../lib/dateKey";
+import SoloGlassBox from "./SoloGlassBox";
 import { ACTIVE_RECOVERY_SESSIONS, recoverySessionState, isRecoveryLog } from "./activeRecovery";
 
 // Opened from a calendar rest day's "Active Recovery" entry: the cardio and
@@ -37,7 +38,7 @@ export default function SoloActiveRecoveryScreen() {
           {ACTIVE_RECOVERY_SESSIONS.map((session) => {
             const done = doneToday.has(session.id);
             return (
-              <div key={session.id} className="rounded-2xl p-4" style={soloGlass(t)}>
+              <SoloGlassBox key={session.id} t={t} className="rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: accent }}>
@@ -73,7 +74,7 @@ export default function SoloActiveRecoveryScreen() {
                   {done ? <Check size={15} /> : <Play size={14} fill="currentColor" />}
                   {done ? "Done today — do it again" : "Start session"}
                 </button>
-              </div>
+              </SoloGlassBox>
             );
           })}
         </div>

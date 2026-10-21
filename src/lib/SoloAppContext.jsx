@@ -545,21 +545,29 @@ export function SoloAppProvider({ children }) {
           throw new Error(friendlySoloAuthError(err));
         }
         try {
-          const batch = writeBatch(soloDb);
-          const [purchasesSnap, logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap] = await Promise.all([
-            getDocs(query(collection(soloDb, "soloPurchases"), where("soloUserId", "==", user.uid))),
+          // soloPurchases are NOT deleted: firestore.rules never lets a
+          // customer delete one (`allow delete: if false` — they're the
+          // Stripe payment record, kept for refunds/tax), and including them
+          // made this whole batch fail for every customer who'd bought a
+          // program, so account deletion never worked for paying customers.
+          // They hold no personal details beyond the (now deleted) uid.
+          const [logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap] = await Promise.all([
             getDocs(query(collection(soloDb, "soloWorkoutLogs"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWeighIns"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloProgressPhotos"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloBodyMetrics"), where("soloUserId", "==", user.uid))),
           ]);
-          purchasesSnap.forEach((d) => batch.delete(d.ref));
-          logsSnap.forEach((d) => batch.delete(d.ref));
-          weighInsSnap.forEach((d) => batch.delete(d.ref));
-          photosSnap.forEach((d) => batch.delete(d.ref));
-          bodyMetricsSnap.forEach((d) => batch.delete(d.ref));
-          batch.delete(doc(soloDb, "soloUsers", user.uid));
-          await batch.commit();
+          const refs = [...logsSnap.docs, ...weighInsSnap.docs, ...photosSnap.docs, ...bodyMetricsSnap.docs].map((d) => d.ref);
+          // Firestore caps a batch at 500 writes — a long-time customer's
+          // history can exceed that, so delete in chunks. The profile doc
+          // goes last, so a failure part-way leaves a still-usable account
+          // the customer can retry from.
+          for (let i = 0; i < refs.length; i += 400) {
+            const batch = writeBatch(soloDb);
+            refs.slice(i, i + 400).forEach((ref) => batch.delete(ref));
+            await batch.commit();
+          }
+          await deleteDoc(doc(soloDb, "soloUsers", user.uid));
           await deleteUser(user);
         } catch (err) {
           throw new Error(err.message || "Couldn't delete your account — please try again.");

@@ -154,6 +154,11 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                       // 0 kg — leave Kg blank rather than typing a literal 0.
                       if (suggestion.weight > 0) onChangeField(i, "weight", String(suggestion.weight));
                       onChangeField(i, "reps", String(suggestion.reps));
+                      // Same completion step typing + leaving the field does
+                      // (marks the set done and checks for a PR) — without it
+                      // a Try-filled set was saved but never counted as
+                      // completed on the summary, and never flagged as a PR.
+                      setTimeout(() => onBlurKg(i), 0);
                     }}
                     className="flex items-center gap-1 text-[10px] font-semibold mt-0.5 max-w-full"
                     style={{ color: MEASURE_BLUE }}
