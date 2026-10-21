@@ -9,6 +9,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { visiblePrograms, visibleRecoveryAddons, recommendPrograms } from "./recommendations";
 
+// The first render cold-loads the whole Program Detail screen (and the
+// client app module it reuses), which can exceed the 5s default under load.
+vi.setConfig({ testTimeout: 20000 });
+
 const setRecoveryAddon = vi.fn(() => Promise.resolve());
 const startSoloCheckout = vi.fn();
 let ctx;

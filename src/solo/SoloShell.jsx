@@ -51,8 +51,11 @@ export default function SoloShell() {
         {tab === "profile" && <SoloProfileScreen />}
       </div>
 
+      {/* Pinned to the bottom of the screen at all times — the page itself
+          scrolls (the window, not this column), so without sticky the bar
+          only appeared once you scrolled to the very end of a long tab. */}
       <div
-        className="flex shrink-0 backdrop-blur-xl"
+        className="sticky bottom-0 z-40 flex shrink-0 backdrop-blur-xl"
         style={{
           borderTop: `1px solid ${t.navBorder}`,
           backgroundColor: t.navBg,
