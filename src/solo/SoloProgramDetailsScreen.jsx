@@ -263,7 +263,7 @@ export default function SoloProgramDetailsScreen() {
             style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
           >
             <PlayCircle size={18} />
-            {owned ? "Go to My Training" : "Start Programme"}
+            {owned ? "Go to My Training" : "Start Program"}
           </button>
         </div>
       </div>
