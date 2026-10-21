@@ -30,9 +30,11 @@ function readStored() {
   }
 }
 
+const FULL_BLEED_PATHS = ["/solo/login", "/solo/register", "/solo/onboarding"];
+
 export function SoloThemeProvider({ children }) {
   const [dark, setDark] = useState(readStored);
-  const { soloBranding } = useSoloApp();
+  const { soloBranding, soloProfileMissing } = useSoloApp();
 
   useEffect(() => {
     try {
@@ -48,7 +50,15 @@ export function SoloThemeProvider({ children }) {
   // NativeStatusBarSync in App.jsx, which skips /solo routes for this) and
   // the browser's theme-color. Re-posted on every Solo route change since
   // NativeStatusBarSync no longer does it here.
+  //
+  // The full-bleed photo screens (login, register, the questionnaire and
+  // the finish-setup screen) instead run the photo all the way up behind
+  // the status bar — the same edge-to-edge frame Coaching's /login uses —
+  // with light status-bar icons; their content is padded clear of it by
+  // SoloBackgroundFrame. A build without edge-to-edge support still gets a
+  // dark strip there rather than a white one.
   const { pathname } = useLocation();
+  const fullBleed = FULL_BLEED_PATHS.includes(pathname) || !!soloProfileMissing;
   // Declared first so it captures index.html's value before the effect
   // below overwrites it, and puts it back when leaving Train Solo.
   useEffect(() => {
@@ -60,11 +70,11 @@ export function SoloThemeProvider({ children }) {
   }, []);
   useEffect(() => {
     try {
-      window.webkit?.messageHandlers?.apexTheme?.postMessage({ dark, edgeToEdge: false });
+      window.webkit?.messageHandlers?.apexTheme?.postMessage({ dark: dark || fullBleed, edgeToEdge: fullBleed });
     } catch {}
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", SOLO_THEMES[dark ? "dark" : "light"].bg);
-  }, [dark, pathname]);
+    if (meta) meta.setAttribute("content", fullBleed ? "#0A0A0B" : SOLO_THEMES[dark ? "dark" : "light"].bg);
+  }, [dark, pathname, fullBleed]);
 
   const accent = SOLO_ACCENT_PALETTE[soloBranding?.accent] || SOLO_ACCENT_PALETTE.blue;
   const value = useMemo(

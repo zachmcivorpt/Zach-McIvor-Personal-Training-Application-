@@ -69,7 +69,8 @@ function RootRedirect() {
 // `edgeToEdge` is a separate flag, not folded into `dark`: it tells native
 // to extend the webview's own frame up past the status bar/notch instead
 // of pinning below it, specifically for the login screen's full-bleed gym
-// photo. Scoped to exactly "/login" — every other route keeps native's
+// photo. Scoped to exactly "/login" and "/start" (the Coaching / Train Solo
+// chooser, same photo) — every other route keeps native's
 // existing pinned-below-safe-area frame untouched. LoginScreen.jsx's own
 // `pt-safe` padding (env(safe-area-inset-top), already 0 everywhere this
 // isn't true) is what keeps the logo/form clear of the status bar once the
@@ -83,7 +84,7 @@ export function NativeStatusBarSync() {
     try {
       window.webkit?.messageHandlers?.apexTheme?.postMessage({
         dark: location.pathname.startsWith("/coach"),
-        edgeToEdge: location.pathname === "/login",
+        edgeToEdge: location.pathname === "/login" || location.pathname === "/start",
       });
     } catch {}
   }, [location.pathname]);

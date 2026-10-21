@@ -49,6 +49,10 @@ describe("NativeStatusBarSync", () => {
     expect(renderAt("/login")).toHaveBeenCalledWith({ dark: false, edgeToEdge: true });
   });
 
+  it("posts edgeToEdge:true on the Coaching / Train Solo chooser — same full-bleed photo", () => {
+    expect(renderAt("/start")).toHaveBeenCalledWith({ dark: false, edgeToEdge: true });
+  });
+
   it("posts edgeToEdge:false on the activate route — the edge-to-edge frame is login-only", () => {
     expect(renderAt("/activate")).toHaveBeenCalledWith({ dark: false, edgeToEdge: false });
   });

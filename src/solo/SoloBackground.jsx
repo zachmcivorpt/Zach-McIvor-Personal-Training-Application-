@@ -23,9 +23,16 @@ function SoloBackgroundLayer({ appDesign }) {
 // Every full-screen Train Solo entry state renders its content through
 // this frame — the background/overlay sits at z-0, the screen's actual
 // content at z-10 above it.
+//
+// The top padding adds the status-bar/notch height (env(safe-area-inset-top),
+// 0 everywhere except the App Store app's edge-to-edge frame), so content
+// stays clear of it while the photo runs up behind it.
 export function SoloBackgroundFrame({ appDesign, className = "flex flex-col px-6 py-8", children }) {
   return (
-    <div className={`min-h-dvh w-full relative overflow-hidden bg-[#0A0A0B] ${className}`}>
+    <div
+      className={`min-h-dvh w-full relative overflow-hidden bg-[#0A0A0B] ${className}`}
+      style={{ paddingTop: "calc(2rem + env(safe-area-inset-top, 0px))" }}
+    >
       <SoloBackgroundLayer appDesign={appDesign} />
       <div className="relative z-10 flex flex-col flex-1 w-full">{children}</div>
     </div>
