@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle, ChevronRight } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visibleCategories, visiblePrograms, recommendPrograms, formatAudPrice } from "./recommendations";
@@ -47,7 +47,6 @@ export default function SoloCatalogueScreen() {
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [activeCategoryId, setActiveCategoryId] = useState(null);
-  const [search, setSearch] = useState("");
 
   const categories = useMemo(() => visibleCategories(soloProgramCategories, soloPrograms), [soloProgramCategories, soloPrograms]);
   const published = useMemo(() => visiblePrograms(soloPrograms, soloProgramCategories), [soloPrograms, soloProgramCategories]);
@@ -61,15 +60,13 @@ export default function SoloCatalogueScreen() {
     [soloPrograms, soloProgramCategories, answers, ownedIds]
   );
   const flagged = isFlaggedForMedicalReview(answers);
-
-  const searchLower = search.trim().toLowerCase();
-  const matchesSearch = (p) => !searchLower || p.name.toLowerCase().includes(searchLower);
+  const firstName = (soloCurrentUser?.name || "").trim().split(/\s+/)[0];
 
   const groups = categories
     .filter((c) => !activeCategoryId || c.id === activeCategoryId)
     .map((c) => ({
       category: c,
-      programs: published.filter((p) => (p.categoryIds || []).includes(c.id) && matchesSearch(p)),
+      programs: published.filter((p) => (p.categoryIds || []).includes(c.id)),
     }))
     .filter((g) => g.programs.length > 0);
 
@@ -83,17 +80,10 @@ export default function SoloCatalogueScreen() {
         <img src={t.logo} alt="" style={{ height: 19 }} />
       </div>
 
-      <div className="px-3 pb-2">
-        <div className="flex items-center gap-2 rounded-full px-3.5 py-2" style={soloGlass(t)}>
-          <Search size={14} color={t.textMuted} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search programs"
-            className="bg-transparent outline-none text-sm flex-1"
-            style={{ color: t.text }}
-          />
-        </div>
+      <div className="px-3 pt-3 pb-2">
+        <h1 className="text-[28px] font-extrabold leading-tight tracking-tight">
+          {firstName ? `Welcome, ${firstName}` : "Welcome"}
+        </h1>
       </div>
 
       <div className="px-3 pt-3 pb-1">
@@ -179,7 +169,7 @@ export default function SoloCatalogueScreen() {
           </p>
         ) : groups.length === 0 ? (
           <p className="text-sm text-center py-16" style={{ color: t.textFaint }}>
-            No programs match "{search}".
+            No programs in this category yet.
           </p>
         ) : (
           groups.map((g) => (
