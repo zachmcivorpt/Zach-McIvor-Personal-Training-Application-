@@ -79,10 +79,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     }
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
-        // The edge-to-edge login frame is only ever used against that
-        // screen's dark gym photo, so its status bar icons need to be
-        // light regardless of isDarkBackground (which /login never sets —
-        // see NativeStatusBarSync's own `dark` condition).
+        // The edge-to-edge frame is only ever used against the login
+        // screens' dark gym photo, so its status bar icons are light
+        // regardless of isDarkBackground (which those screens now also
+        // set, so a frame that isn't edge-to-edge shows a dark strip).
         (isDarkBackground || isEdgeToEdge) ? .lightContent : .darkContent
     }
 

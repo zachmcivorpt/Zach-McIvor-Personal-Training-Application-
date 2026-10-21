@@ -81,10 +81,14 @@ export function NativeStatusBarSync() {
     // Train Solo has its own light/dark toggle, so it posts its own theme
     // from SoloThemeProvider (src/solo/SoloThemeContext.jsx) instead.
     if (location.pathname.startsWith("/solo")) return;
+    // The full-bleed photo screens also get a dark strip, so an App Store
+    // build that doesn't support the edge-to-edge frame yet shows black
+    // above the photo instead of a white bar.
+    const fullBleed = location.pathname === "/login" || location.pathname === "/start";
     try {
       window.webkit?.messageHandlers?.apexTheme?.postMessage({
-        dark: location.pathname.startsWith("/coach"),
-        edgeToEdge: location.pathname === "/login" || location.pathname === "/start",
+        dark: location.pathname.startsWith("/coach") || fullBleed,
+        edgeToEdge: fullBleed,
       });
     } catch {}
   }, [location.pathname]);
