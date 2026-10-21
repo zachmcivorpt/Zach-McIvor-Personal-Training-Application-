@@ -30,7 +30,9 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,jpg,svg,ico}'],
+        // mp4: the bundled, web-optimized login background video (see
+        // src/components/LoginBackground.jsx) so it's available offline too.
+        globPatterns: ['**/*.{js,css,html,png,jpg,svg,ico,mp4}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         // Without these, a newly-deployed service worker sits "waiting"
         // until every open tab/installed-app instance is fully closed, so

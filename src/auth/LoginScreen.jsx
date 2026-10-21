@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import LoginBackground from "../components/LoginBackground";
 import { useNavigate, Link } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { Logo, Tagline } from "../components/ui";
@@ -180,7 +181,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [bgLoaded, setBgLoaded] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   // Set the instant a sign-in genuinely succeeds — Firebase accepted the
   // credential and handed back a real account. Distinct from `session`
@@ -249,36 +249,10 @@ export default function LoginScreen() {
       {/* Background — plain black by default, so the logo reads clean and
           sharp. Coach-customizable via Settings -> Design Settings
           (db.appDesign.loginBackgroundUrl), a photo OR a short looping
-          video; nothing renders here at all until a coach sets one. */}
-      {db.appDesign?.loginBackgroundUrl && db.appDesign?.loginBackgroundType === "video" ? (
-        <video
-          key={db.appDesign.loginBackgroundUrl}
-          src={db.appDesign.loginBackgroundUrl}
-          autoPlay
-          muted
-          loop
-          playsInline
-          onLoadedData={() => setBgLoaded(true)}
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-          }}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
-        />
-      ) : db.appDesign?.loginBackgroundUrl ? (
-        <img
-          key={db.appDesign.loginBackgroundUrl}
-          src={db.appDesign.loginBackgroundUrl}
-          alt=""
-          onLoad={() => setBgLoaded(true)}
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-          }}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${bgLoaded ? "opacity-100" : "opacity-0"}`}
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
-          draggable={false}
-        />
-      ) : null}
+          video; nothing renders here at all until a coach sets one. Shared
+          with Train Solo's screens — see LoginBackground for how the
+          known upload loads from a small cached copy. */}
+      <LoginBackground appDesign={db.appDesign} />
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
 
       {/* pt-safe (env(safe-area-inset-top)) stacks on top of the existing

@@ -1,4 +1,5 @@
 import React from "react";
+import LoginBackground from "../components/LoginBackground";
 
 // Reuses the exact same coach-configured background
 // (settings/appDesign.loginBackgroundUrl, public read) and overlay
@@ -10,32 +11,10 @@ import React from "react";
 // SoloRegisterScreen, and the consultation questionnaire — so there is
 // exactly one place this logic lives, not one copy per screen.
 function SoloBackgroundLayer({ appDesign }) {
-  const url = appDesign?.loginBackgroundUrl;
-  if (!url) return null;
-  const isVideo = appDesign?.loginBackgroundType === "video";
+  if (!appDesign?.loginBackgroundUrl) return null;
   return (
     <>
-      {isVideo ? (
-        <video
-          key={url}
-          src={url}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
-        />
-      ) : (
-        <img
-          key={url}
-          src={url}
-          alt=""
-          draggable={false}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ filter: "brightness(0.95) contrast(1.05) saturate(0.95)" }}
-        />
-      )}
+      <LoginBackground appDesign={appDesign} />
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/70" />
     </>
   );

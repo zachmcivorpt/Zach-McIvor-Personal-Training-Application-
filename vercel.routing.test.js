@@ -21,12 +21,25 @@ function vercelSourceToRegex(source) {
 const vercelConfig = JSON.parse(readFileSync(new URL("./vercel.json", import.meta.url)));
 
 describe("vercel.json SPA rewrite", () => {
-  it("has exactly one rewrite rule and no conflicting headers/redirects/cleanUrls", () => {
+  it("has exactly one rewrite rule and no conflicting redirects/cleanUrls", () => {
     expect(vercelConfig.rewrites).toHaveLength(1);
-    expect(vercelConfig.headers).toBeUndefined();
     expect(vercelConfig.redirects).toBeUndefined();
     expect(vercelConfig.cleanUrls).toBeUndefined();
     expect(vercelConfig.trailingSlash).toBeUndefined();
+  });
+
+  // Headers never change routing; the only ones allowed are long-lived
+  // Cache-Control on content-hashed /assets/* files and the versioned login
+  // background (warm start — see the vercel.json commit). index.html and
+  // sw.js must NOT be covered, or new deploys would stop being picked up.
+  it("only adds Cache-Control headers, and only for hashed/versioned static files", () => {
+    for (const rule of vercelConfig.headers || []) {
+      expect(rule.headers.map((h) => h.key)).toEqual(["Cache-Control"]);
+      const regex = vercelSourceToRegex(rule.source);
+      for (const path of ["/", "/index.html", "/sw.js", "/login", "/solo/home", "/manifest.webmanifest"]) {
+        expect(regex.test(path)).toBe(false);
+      }
+    }
   });
 
   it("does NOT rewrite /assets/* — a missing hashed chunk must 404, never fall back to index.html", () => {
