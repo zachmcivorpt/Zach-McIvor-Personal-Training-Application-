@@ -79,11 +79,11 @@ export default function SoloCatalogueScreen() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="flex items-center justify-between gap-3 px-5 pt-5 pb-2">
+      <div className="flex items-center justify-between gap-3 px-3 pt-5 pb-2">
         <img src={t.logo} alt="" style={{ height: 19 }} />
       </div>
 
-      <div className="px-5 pb-2">
+      <div className="px-3 pb-2">
         <div className="flex items-center gap-2 rounded-full px-3.5 py-2" style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }}>
           <Search size={14} color={t.textMuted} />
           <input
@@ -96,7 +96,7 @@ export default function SoloCatalogueScreen() {
         </div>
       </div>
 
-      <div className="px-5 pt-3 pb-1">
+      <div className="px-3 pt-3 pb-1">
         {flagged && (
           <div
             className="rounded-2xl px-4 py-3 mb-4 flex gap-2.5"
@@ -154,7 +154,7 @@ export default function SoloCatalogueScreen() {
           )
         )}
 
-        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-5 -mx-5 px-5">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 mb-5 -mx-3 px-3">
           <button
             onClick={() => setActiveCategoryId(null)}
             className="shrink-0 text-[12.5px] font-bold px-3.5 py-2 rounded-full"

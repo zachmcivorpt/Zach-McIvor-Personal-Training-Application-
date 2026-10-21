@@ -30,7 +30,7 @@ export default function SoloProfileScreen() {
   const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
 
   return (
-    <div className="w-full max-w-md mx-auto px-5 pt-5 pb-10">
+    <div className="w-full max-w-md mx-auto px-3 pt-5 pb-10">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-extrabold">Profile</h1>
         <button

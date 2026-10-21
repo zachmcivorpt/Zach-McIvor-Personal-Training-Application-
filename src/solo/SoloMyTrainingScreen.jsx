@@ -221,7 +221,7 @@ export default function SoloMyTrainingScreen() {
 
   return (
     <div className="relative w-full">
-      <div className="relative w-full max-w-md mx-auto px-5 pt-6 pb-10">
+      <div className="relative w-full max-w-md mx-auto px-3 pt-6 pb-10">
         <h1 className="sr-only">My Training</h1>
         <img src={t.logo} alt="APEX" className="h-11 w-auto mb-6" />
 

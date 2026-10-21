@@ -159,13 +159,13 @@ export default function SoloProgressScreen() {
   return (
     <ClientThemeContext.Provider value={dark}>
       <div className="pb-10">
-        <div className="px-5 pt-5 pb-2">
+        <div className="px-3 pt-5 pb-2">
           <h1 className="text-xl font-extrabold">Progress</h1>
         </div>
 
         <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
 
-        <div className="px-5 space-y-4 mt-4 max-w-md mx-auto">
+        <div className="px-3 space-y-4 mt-4 max-w-md mx-auto">
           <div>
             <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>My Progress</p>
             <div className="grid grid-cols-2 gap-3">

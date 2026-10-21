@@ -128,14 +128,14 @@ export default function SoloProgramDetailsScreen() {
         <button
           onClick={() => navigate(-1)}
           aria-label="Back"
-          className="absolute left-5 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md"
+          className="absolute left-3 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-md"
           style={{ top: "calc(16px + env(safe-area-inset-top,0px))", backgroundColor: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.14)" }}
         >
           <ChevronLeft size={18} color="#fff" />
         </button>
       </div>
 
-      <div className="relative -mt-10 px-5 pb-32 max-w-md mx-auto">
+      <div className="relative -mt-10 px-3 pb-32 max-w-md mx-auto">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-[26px] font-extrabold leading-tight">{program.name}</h1>
           <p className="text-lg font-extrabold whitespace-nowrap mt-1">{formatAudPrice(program.priceCents)}</p>
@@ -251,7 +251,7 @@ export default function SoloProgramDetailsScreen() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 px-5 pt-3" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom,0px))", background: `linear-gradient(to bottom, rgba(0,0,0,0), ${t.bg} 35%)` }}>
+      <div className="fixed bottom-0 left-0 right-0 px-3 pt-3" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom,0px))", background: `linear-gradient(to bottom, rgba(0,0,0,0), ${t.bg} 35%)` }}>
         <div className="max-w-md mx-auto">
           <button
             onClick={() =>
