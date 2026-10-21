@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
@@ -59,6 +59,7 @@ export function SoloAppProvider({ children }) {
   // instead. A cache-only "doesn't exist" doesn't count — on a fresh
   // device the cache is simply empty.
   const [soloProfileMissing, setSoloProfileMissing] = useState(false);
+  const deletingAccountRef = useRef(false);
   const [soloProgramCategories, setSoloProgramCategories] = useState([]);
   const [soloPrograms, setSoloPrograms] = useState([]);
   const [soloPurchases, setSoloPurchases] = useState([]);
@@ -110,13 +111,36 @@ export function SoloAppProvider({ children }) {
     if (!soloAuthUser) {
       setSoloProfile(null);
       setSoloProfileMissing(false);
+      deletingAccountRef.current = false;
       return;
     }
     setSoloProfileMissing(false);
-    return onSnapshot(doc(soloDb, "soloUsers", soloAuthUser.uid), { includeMetadataChanges: true }, (snap) => {
-      setSoloProfile(snap.exists() ? { id: snap.id, ...snap.data() } : null);
-      setSoloProfileMissing(!snap.exists() && !snap.metadata.fromCache);
+    const ref = doc(soloDb, "soloUsers", soloAuthUser.uid);
+    let latestExists = false;
+    let cancelled = false;
+    const unsubscribe = onSnapshot(ref, { includeMetadataChanges: true }, (snap) => {
+      latestExists = snap.exists();
+      setSoloProfile(latestExists ? { id: snap.id, ...snap.data() } : null);
+      if (latestExists) {
+        setSoloProfileMissing(false);
+        return;
+      }
+      // The listener can briefly report "doesn't exist" right after a
+      // login even when the doc is there (the lastLoginAt write is still
+      // pending against a doc this device hasn't cached yet), which sent
+      // fully set-up customers to the questionnaire. Only a direct server
+      // read saying it doesn't exist counts as missing.
+      if (snap.metadata.fromCache || snap.metadata.hasPendingWrites || deletingAccountRef.current) return;
+      getDocFromServer(ref)
+        .then((server) => {
+          if (!cancelled && !latestExists && !deletingAccountRef.current) setSoloProfileMissing(!server.exists());
+        })
+        .catch(() => {});
     });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [soloAuthUser]);
 
   // Public-read catalogue data — loads before/without a signed-in Train
@@ -598,9 +622,16 @@ export function SoloAppProvider({ children }) {
             refs.slice(i, i + 400).forEach((ref) => batch.delete(ref));
             await batch.commit();
           }
+          // The profile doc goes before the login itself (deleting the
+          // login first would leave no permission to delete the doc), so
+          // for that moment the account has no profile — flagged here so
+          // it isn't mistaken for a failed registration (the finish-setup
+          // screen).
+          deletingAccountRef.current = true;
           await deleteDoc(doc(soloDb, "soloUsers", user.uid));
           await deleteUser(user);
         } catch (err) {
+          deletingAccountRef.current = false;
           throw new Error(err.message || "Couldn't delete your account — please try again.");
         }
       },

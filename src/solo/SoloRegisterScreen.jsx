@@ -61,10 +61,11 @@ export default function SoloRegisterScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soloCurrentUser?.id, navigate, fetchOnboardingCompletedFromServer]);
 
-  // Signed in but no profile (registration's profile save failed): the
-  // questionnaire route's guard shows the finish-setup screen.
+  // Signed in but no profile (registration's profile save failed): Home's
+  // guard shows the finish-setup screen (and, once it's done, routes on to
+  // the questionnaire).
   useEffect(() => {
-    if (soloProfileMissing && !busy) navigate("/solo/onboarding", { replace: true });
+    if (soloProfileMissing && !busy) navigate("/solo/home", { replace: true });
   }, [soloProfileMissing, busy, navigate]);
 
   async function submit(e) {

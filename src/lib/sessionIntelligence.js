@@ -149,6 +149,7 @@ function buildPersonalNote(list, exercisesById, logsForClient) {
   let trendUp = null; // best % climb across the lifts programmed today
   let stalled = null; // a lift flat across the last 3 sessions
   let brandNew = null; // first lift programmed today with zero history
+  let brandNewTimed = false; // ...and it's a timed exercise (a hold, a walk), not a weighted lift
 
   for (const exMeta of list) {
     const exercise = exercisesById?.[exMeta.exerciseId];
@@ -164,7 +165,10 @@ function buildPersonalNote(list, exercisesById, logsForClient) {
     }
 
     if (sessionsForLift.length === 0) {
-      if (!brandNew) brandNew = exercise.name;
+      if (!brandNew) {
+        brandNew = exercise.name;
+        brandNewTimed = exMeta.targetType === "time";
+      }
       continue;
     }
 
@@ -186,7 +190,9 @@ function buildPersonalNote(list, exercisesById, logsForClient) {
     return `Your ${stalled} has held at the same best for ${TREND_SESSIONS} sessions straight — today could be the day to add a rep or a little weight.`;
   }
   if (brandNew && list.length > 0 && exercisesById?.[list[0].exerciseId]?.name === brandNew) {
-    return `First time logging ${brandNew} in this program — focus on finding a solid working weight today.`;
+    return brandNewTimed
+      ? `First time logging ${brandNew} in this program — focus on a steady, comfortable effort today.`
+      : `First time logging ${brandNew} in this program — focus on finding a solid working weight today.`;
   }
   return null;
 }

@@ -2077,6 +2077,30 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Verification performed vs. NOT performed, stated explicitly**: all of the above is automated-test and build verification. This has NOT been tested on an actual device/real browser — there is no way to exercise a real service-worker lifecycle, a real app backgrounding/foregrounding transition, or a real native iOS WKWebView session from this environment. The jsdom-based tests mock `navigator.serviceWorker` entirely; they prove the module's own logic is correct, not that a real browser's service-worker implementation behaves identically. Not merged/deployed — awaiting authorization, per this task's explicit instruction.
 - **Date added**: 2026-10-12
 
+### 80. Train Solo: a fully set-up customer was sent to the questionnaire on about 1 login in 3
+- **Root cause**: the same-day fix for a missing Solo profile (#81) flagged the profile "missing" whenever the `soloUsers/{uid}` listener emitted a non-cache "doesn't exist". Right after login, that listener can briefly report "doesn't exist" for a doc that's really there: the login's own `lastLoginAt` update is pending against a doc this device hasn't cached yet. `SoloLoginScreen` then navigated straight to `/solo/onboarding`, which has no completion guard, so a completed customer landed on their last questionnaire question. Reproduced 3/8 fresh-device logins locally and 1/2 against production.
+- **Fix**: `SoloAppContext.jsx`: "missing" is only set after a direct `getDocFromServer` read confirms the doc doesn't exist. Pending-write and cache-only snapshots are ignored, and a late read never overrides a snapshot that has since found the doc. The login/register screens now route a missing profile to `/solo/home` (whose guards decide) instead of `/solo/onboarding`.
+- **Regression test**: `src/lib/SoloAppContext.profileMissing.test.jsx`. The "pending-write" and "server read finds the profile after all" cases were verified to fail against the shipped version. Live check: 12/12 then 8/8 fresh-device logins landed on Home.
+- **Date added**: 2026-10-21
+
+### 81. Train Solo: a login whose profile never saved sat on a blank screen forever
+- **Root cause**: if registration created the Auth account but the `soloUsers/{uid}` write failed, `soloSessionLoading` never became false (it waited for a profile that would never arrive).
+- **Fix**: a server-confirmed missing profile ends loading and sets `soloProfileMissing`. `RequireSoloAuth` then shows `SoloFinishSetupScreen`, which re-collects the name and the Terms/Privacy acceptance, creates the profile with `completeSoloProfile`, and continues to the questionnaire (Log out is offered too). While an account deletion is in progress (the profile is deleted just before the login), the flag is suppressed, so the setup screen doesn't flash.
+- **Regression test**: `src/lib/SoloAppContext.profileMissing.test.jsx` → "keeps loading on a cache-only 'doesn't exist', then flags missing once a server read confirms it". Verified to fail with the old `soloSessionLoading` expression. Live check: a real Auth-only account showed the setup screen, completed it, reached the questionnaire, and stayed there after a reload.
+- **Date added**: 2026-10-21
+
+### 82. Train Solo workouts: a 0-second rest showed a "Start timer" button
+- **Root cause**: `SoloExerciseBlock` always rendered the rest row, so an exercise with `restSeconds: 0` (Active Recovery's Stationary Cycling) showed "Rest 0s between sets" with a Start timer button that started a zero-length timer.
+- **Fix**: the rest row only renders when the rest is above 0 (unset still defaults to 90s).
+- **Regression test**: `src/solo/soloRestRow.test.jsx`. The 0s case was verified to fail without the fix.
+- **Date added**: 2026-10-21
+
+### 83. Session Intelligence told a first-time timed exercise to "find a solid working weight"
+- **Root cause**: `buildPersonalNote` (`src/lib/sessionIntelligence.js`, shared by the coached client app and Train Solo) used one weighted-lift sentence for every first-time exercise, including timed ones (a treadmill walk, a plank).
+- **Fix**: a first-time `targetType: "time"` exercise gets "focus on a steady, comfortable effort today". Weighted lifts keep the original wording.
+- **Regression test**: `src/lib/sessionIntelligenceTimed.test.js`. The timed case was verified to fail without the fix; the weighted case asserts the original sentence is unchanged.
+- **Date added**: 2026-10-21
+
 ---
 
 ## What still requires manual testing

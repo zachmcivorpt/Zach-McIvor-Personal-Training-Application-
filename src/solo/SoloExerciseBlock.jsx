@@ -109,9 +109,10 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
         </div>
       )}
 
-      {expanded && (
+      {expanded && (exMeta.restSeconds ?? 90) > 0 && (
         // The whole row starts the rest timer (unchanged), with an explicit
         // "Start timer" button on the right so it's obvious it's tappable.
+        // Hidden for a 0s rest — there's nothing to time.
         <button
           type="button"
           onClick={() => onStartRest(exMeta)}
