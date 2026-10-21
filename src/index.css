@@ -87,3 +87,22 @@
 .drag-ghost-pop {
   animation: drag-ghost-pop 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
 }
+
+/* Train Solo: every card follows the frosted-glass style. Scoped to
+   .solo-glass-scope (set on Train Solo's own screen roots only) so the
+   shared Card-based widgets Train Solo reuses — Progress tiles, charts,
+   heatmap — go glass there while the coached client app is untouched.
+   The colours come from SoloThemeContext's soloGlassVars(). */
+.solo-glass-scope .rounded-xl.border:not(input):not(select):not(textarea),
+.solo-glass-scope .rounded-2xl.border:not(input):not(select):not(textarea),
+.solo-glass-scope .rounded-3xl.border:not(input):not(select):not(textarea) {
+  background-color: var(--solo-glass-bg) !important;
+  border-color: var(--solo-glass-border) !important;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+
+/* A shared widget with its own solid fill, wrapped in a Solo glass card. */
+.solo-glass-inner > div {
+  background-color: transparent !important;
+}

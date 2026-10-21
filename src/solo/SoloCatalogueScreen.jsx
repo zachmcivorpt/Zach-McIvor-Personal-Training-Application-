@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, AlertTriangle, ChevronRight } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visibleCategories, visiblePrograms, recommendPrograms, formatAudPrice } from "./recommendations";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { SoloArtwork } from "./SoloArtwork";
@@ -11,8 +11,8 @@ function ProgramCard({ program, t, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="block w-full text-left rounded-[22px] overflow-hidden mb-3.5 backdrop-blur-xl"
-      style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}`, boxShadow: t.cardShadow }}
+      className="block w-full text-left rounded-[22px] overflow-hidden mb-3.5"
+      style={soloGlass(t)}
     >
       <div className="h-[120px] flex items-center justify-center relative overflow-hidden" style={{ background: t.coverGradient }}>
         {program.artworkUrl ? (
@@ -84,7 +84,7 @@ export default function SoloCatalogueScreen() {
       </div>
 
       <div className="px-3 pb-2">
-        <div className="flex items-center gap-2 rounded-full px-3.5 py-2" style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }}>
+        <div className="flex items-center gap-2 rounded-full px-3.5 py-2" style={soloGlass(t)}>
           <Search size={14} color={t.textMuted} />
           <input
             value={search}
@@ -100,7 +100,7 @@ export default function SoloCatalogueScreen() {
         {flagged && (
           <div
             className="rounded-2xl px-4 py-3 mb-4 flex gap-2.5"
-            style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}
+            style={soloGlass(t)}
           >
             <AlertTriangle size={16} color={accent} className="shrink-0 mt-0.5" />
             <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
@@ -124,12 +124,7 @@ export default function SoloCatalogueScreen() {
                     key={p.id}
                     onClick={() => openProgram(p.id)}
                     className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
-                    style={{
-                      backgroundColor: dark ? "rgba(28,28,30,0.55)" : "rgba(255,255,255,0.62)",
-                      border: `1px solid ${t.panelBorder}`,
-                      backdropFilter: "blur(18px)",
-                      WebkitBackdropFilter: "blur(18px)",
-                    }}
+                    style={soloGlass(t)}
                   >
                     <SoloArtwork program={p} t={t} className="w-16 h-16 rounded-xl shrink-0" />
                     <div className="min-w-0 flex-1">

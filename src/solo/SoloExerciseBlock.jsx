@@ -3,7 +3,7 @@ import { ChevronDown, Timer, TrendingUp } from "lucide-react";
 import { useClientDark, formatTargetReps } from "../client/ClientApp";
 import { ExerciseThumb } from "../components/ui";
 import { playTimerDing, unlockTimerAudio } from "./timerAudio";
-import { useSoloTheme } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { suggestNextSet } from "../lib/trainingStats";
 import { MEASURE_BLUE } from "../theme";
 
@@ -86,7 +86,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
       </div>
 
       {expanded && programNote && (
-        <div className={dark ? "mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5" : "mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5"}>
+        <div className="mt-3 rounded-2xl px-3.5 py-2.5" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>
           <p className={dark ? "text-white/35 text-[10px] font-semibold tracking-wide mb-1" : "text-black/35 text-[10px] font-semibold tracking-wide mb-1"}>PROGRAM NOTES</p>
           <div className="flex items-start gap-2">
             <p className={`${dark ? "text-white/80" : "text-black/80"} text-[14px] leading-snug flex-1 ${!notesExpanded && isLongNote ? "line-clamp-2" : ""}`}>{programNote}</p>

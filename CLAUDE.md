@@ -46,6 +46,20 @@ rather than inventing new colors per screen:
   buried in small print.
 - Photography used sparingly, not as filler.
 
+### Train Solo (self-guided app, `src/solo/`) design rules
+
+- **Every box/card is frosted glass**: translucent fill + hairline border +
+  backdrop blur, in both Solo light and dark mode. Use `soloGlass(t)` from
+  `SoloThemeContext.jsx` for Solo's own boxes; shared Card-based widgets
+  rendered inside Solo pick it up via the `.solo-glass-scope` rule in
+  `index.css`. Never a solid filled card on a Solo screen.
+- Cards run near full screen width: 12px (`px-3`) page gutters.
+- No drawn/stock artwork: a program shows only its coach-uploaded
+  `artworkUrl`, otherwise the plain cover gradient + APEX mark.
+- Spelling is "Program", never "Programme".
+- Solo work stays Solo-only — don't restyle the coached app, coach console
+  or shared components to get a Solo look.
+
 ## Working style
 
 - When the user says "figure it out," that's a directive to solve the

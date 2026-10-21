@@ -96,6 +96,7 @@ export const SOLO_THEMES = {
     logo: MARK_WHITE,
     inputBg: "rgba(255,255,255,0.08)",
     inputBorder: "rgba(255,255,255,0.1)",
+    glassBg: "rgba(28,28,30,0.55)",
   },
   light: {
     bg: "#F5F4F1",
@@ -112,5 +113,24 @@ export const SOLO_THEMES = {
     logo: MARK_BLACK,
     inputBg: "rgba(20,19,15,0.05)",
     inputBorder: "rgba(20,19,15,0.08)",
+    glassBg: "rgba(255,255,255,0.62)",
   },
 };
+
+// Train Solo's one card style: translucent glass over the page background.
+// Every Solo box uses this rather than a solid fill (see CLAUDE.md's Train
+// Solo design rule). `t` is the active SOLO_THEMES entry.
+export function soloGlass(t) {
+  return {
+    backgroundColor: t.glassBg,
+    border: `1px solid ${t.panelBorder}`,
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+  };
+}
+
+// CSS variables for index.css's .solo-glass-scope rule, which applies the
+// same glass to the shared Card-based widgets Train Solo reuses.
+export function soloGlassVars(t) {
+  return { "--solo-glass-bg": t.glassBg, "--solo-glass-border": t.panelBorder };
+}

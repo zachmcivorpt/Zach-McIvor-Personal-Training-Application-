@@ -4,7 +4,7 @@ import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Cloc
 import { MEASURE_BLUE } from "../theme";
 import { SoloArtwork } from "./SoloArtwork";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { programPhases } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { totalWeeksForProgram, currentWeekNumber, phaseForWeekNumber } from "./weekProgress";
@@ -212,12 +212,7 @@ export default function SoloMyTrainingScreen() {
     [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs]
   );
   const active = pickActiveRow(ownedRows, soloWorkoutLogs);
-  const glass = {
-    backgroundColor: dark ? "rgba(28,28,30,0.55)" : "rgba(255,255,255,0.62)",
-    border: `1px solid ${t.panelBorder}`,
-    backdropFilter: "blur(18px)",
-    WebkitBackdropFilter: "blur(18px)",
-  };
+  const glass = soloGlass(t);
 
   return (
     <div className="relative w-full">
@@ -315,7 +310,7 @@ export default function SoloMyTrainingScreen() {
           </p>
           <div className="space-y-2">
             {soloWorkoutLogs.slice(0, 10).map((log) => (
-              <div key={log.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}>
+              <div key={log.id} className="flex items-center justify-between rounded-2xl px-4 py-3" style={glass}>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{log.dayLabel}</p>
                   <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>

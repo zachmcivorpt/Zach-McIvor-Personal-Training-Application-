@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { LayoutGrid, CalendarDays, LineChart, CircleUserRound } from "lucide-react";
-import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlassVars } from "./SoloThemeContext";
 import SoloCatalogueScreen from "./SoloCatalogueScreen";
 import SoloMyTrainingScreen from "./SoloMyTrainingScreen";
 import SoloProgressScreen from "./SoloProgressScreen";
@@ -46,7 +46,7 @@ export default function SoloShell() {
 
   return (
     <div className="min-h-dvh w-full flex flex-col" style={{ backgroundColor: t.bg, color: t.text, transition: "background-color 0.2s,color 0.2s" }}>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto solo-glass-scope" style={soloGlassVars(t)}>
         {tab === "catalogue" && <SoloCatalogueScreen />}
         {tab === "training" && <SoloMyTrainingScreen />}
         {tab === "progress" && <SoloProgressScreen />}

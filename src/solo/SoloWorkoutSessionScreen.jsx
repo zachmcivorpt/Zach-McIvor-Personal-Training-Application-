@@ -11,7 +11,7 @@ import {
 import { FullScreenOverlay, PrimaryButton, SessionIntelligenceCard } from "../components/ui";
 import { getBestEverStats, estimate1RM, getPreviousSets } from "../lib/AppContext";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlassVars } from "./SoloThemeContext";
 import SoloExerciseBlock from "./SoloExerciseBlock";
 import { playTimerDing, armRestTimerAudio, unlockTimerAudio } from "./timerAudio";
 
@@ -175,7 +175,7 @@ export default function SoloWorkoutSessionScreen() {
   return (
     <ClientThemeContext.Provider value={dark}>
       <FullScreenOverlay>
-        <div className={dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"}>
+        <div className={`${dark ? "fixed inset-0 z-[90] bg-black flex flex-col" : "fixed inset-0 z-[90] bg-white flex flex-col"} solo-glass-scope`} style={soloGlassVars(SOLO_THEMES[dark ? "dark" : "light"])}>
           <div className={dark ? "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-white/5" : "flex items-center justify-between px-5 pt-6 pb-3 shrink-0 border-b border-black/5"}>
             <div className="w-[60px]" />
             <h1 className={dark ? "text-white font-bold text-[17px] truncate px-2" : "text-black font-bold text-[17px] truncate px-2"}>{day.label}</h1>

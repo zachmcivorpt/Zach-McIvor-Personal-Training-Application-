@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sun, Moon, AlertTriangle } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { DeleteAccountSheet } from "../components/ui";
 
@@ -37,13 +37,13 @@ export default function SoloProfileScreen() {
           onClick={toggleSoloTheme}
           aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
           className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }}
+          style={soloGlass(t)}
         >
           {dark ? <Sun size={15} color={t.text} /> : <Moon size={15} color={t.text} />}
         </button>
       </div>
 
-      <div className="rounded-2xl px-4 py-4 mb-5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}>
+      <div className="rounded-2xl px-4 py-4 mb-5" style={soloGlass(t)}>
         <p className="text-sm font-bold">{soloCurrentUser?.name || "there"}</p>
         <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
           {soloCurrentUser?.email}
@@ -51,7 +51,7 @@ export default function SoloProfileScreen() {
       </div>
 
       {flagged && (
-        <div className="rounded-2xl px-4 py-3.5 mb-5 flex gap-2.5" style={{ backgroundColor: t.cardBg, border: `1px solid ${t.panelBorder}` }}>
+        <div className="rounded-2xl px-4 py-3.5 mb-5 flex gap-2.5" style={soloGlass(t)}>
           <AlertTriangle size={16} color={accent} className="shrink-0 mt-0.5" />
           <p className="text-xs leading-relaxed" style={{ color: t.textMuted }}>
             Based on your answers, it's worth checking in with a doctor or allied health professional before training. This isn't a
@@ -68,7 +68,7 @@ export default function SoloProfileScreen() {
           You don't own any programs yet — browse the Catalogue tab.
         </p>
       ) : (
-        <div className="rounded-2xl overflow-hidden mb-5" style={{ border: `1px solid ${t.panelBorder}` }}>
+        <div className="rounded-2xl overflow-hidden mb-5" style={soloGlass(t)}>
           {soloPurchases.map((purchase, i) => {
             const program = programsById[purchase.programId];
             if (!program) return null;
@@ -80,7 +80,7 @@ export default function SoloProfileScreen() {
               <div
                 key={purchase.id}
                 className="px-4 py-3.5"
-                style={{ backgroundColor: t.cardBg, borderBottom: i < soloPurchases.length - 1 ? `1px solid ${t.panelBorder}` : "none" }}
+                style={{ borderBottom: i < soloPurchases.length - 1 ? `1px solid ${t.panelBorder}` : "none" }}
               >
                 <p className="text-sm font-semibold">{program.name}</p>
                 <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
@@ -92,15 +92,15 @@ export default function SoloProfileScreen() {
         </div>
       )}
 
-      <div className="rounded-2xl overflow-hidden mb-5" style={{ border: `1px solid ${t.panelBorder}` }}>
+      <div className="rounded-2xl overflow-hidden mb-5" style={soloGlass(t)}>
         <Link
           to="/solo/onboarding?review=1"
           className="block px-4 py-3.5 text-sm font-semibold"
-          style={{ backgroundColor: t.cardBg, borderBottom: `1px solid ${t.panelBorder}` }}
+          style={{ borderBottom: `1px solid ${t.panelBorder}` }}
         >
           Review my consultation answers
         </Link>
-        <button onClick={soloLogout} className="block w-full text-left px-4 py-3.5 text-sm font-semibold" style={{ backgroundColor: t.cardBg, color: "#EF4444" }}>
+        <button onClick={soloLogout} className="block w-full text-left px-4 py-3.5 text-sm font-semibold" style={{ color: "#EF4444" }}>
           Log out
         </button>
       </div>

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Lock, Eye, PlayCircle } from "lucide-react";
 import { SoloArtwork } from "./SoloArtwork";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visiblePrograms, formatAudPrice } from "./recommendations";
 import { GOAL_OPTIONS, ENVIRONMENT_OPTIONS } from "./programAttributes";
 import { BottomSheet, PrimaryButton } from "../components/ui";
@@ -98,12 +98,7 @@ export default function SoloProgramDetailsScreen() {
     );
   }
 
-  const glass = {
-    backgroundColor: dark ? "rgba(28,28,30,0.55)" : "rgba(255,255,255,0.62)",
-    border: `1px solid ${t.panelBorder}`,
-    backdropFilter: "blur(18px)",
-    WebkitBackdropFilter: "blur(18px)",
-  };
+  const glass = soloGlass(t);
   const tags = [
     ...(program.goals || []).map((g) => GOAL_LABELS[g] || g),
     ...(program.environments || []).map((e) => ENVIRONMENT_LABELS[e] || e),

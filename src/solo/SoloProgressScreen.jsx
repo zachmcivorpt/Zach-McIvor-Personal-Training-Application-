@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Trophy } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { Card } from "../components/ui";
 import {
   BODY_FAT_CONFIG,
@@ -163,7 +163,11 @@ export default function SoloProgressScreen() {
           <h1 className="text-xl font-extrabold">Progress</h1>
         </div>
 
-        <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
+        {/* The shared timeline paints its own solid band; inside Train Solo it
+            sits in a glass card instead (index.css clears the inner fill). */}
+        <div className="mx-3 rounded-2xl overflow-hidden solo-glass-inner" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>
+          <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
+        </div>
 
         <div className="px-3 space-y-4 mt-4 max-w-md mx-auto">
           <div>

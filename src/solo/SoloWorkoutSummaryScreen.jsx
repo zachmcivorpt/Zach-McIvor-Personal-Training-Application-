@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { Logo } from "../components/ui";
 import { estimateCalories } from "../client/ClientApp";
-import { useSoloTheme } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 
 // Adapted from ClientApp.jsx's WorkoutSummary, with the nutrition/protein
 // "next objective" card removed — Train Solo has no nutrition tracking in
@@ -43,19 +43,19 @@ export default function SoloWorkoutSummaryScreen() {
       <p className={`text-4xl font-bold tabular-nums mt-6 ${dark ? "text-white" : "text-black"}`}>{durationMin} min</p>
 
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-6">
-        <div className={`rounded-2xl p-4 border ${dark ? "bg-[#1C1C1C] border-white/8" : "bg-[#F7F7F8] border-black/5"}`}>
+        <div className="rounded-2xl p-4" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>
           <p className={`text-xl font-bold ${dark ? "text-white" : "text-black"}`}>{totalSets}</p>
           <p className={`text-xs mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>Sets completed</p>
         </div>
-        <div className={`rounded-2xl p-4 border ${dark ? "bg-[#1C1C1C] border-white/8" : "bg-[#F7F7F8] border-black/5"}`}>
+        <div className="rounded-2xl p-4" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>
           <p className={`text-xl font-bold ${dark ? "text-white" : "text-black"}`}>{totalVolume.toLocaleString()} kg</p>
           <p className={`text-xs mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>Total volume</p>
         </div>
-        <div className={`rounded-2xl p-4 border ${dark ? "bg-[#1C1C1C] border-white/8" : "bg-[#F7F7F8] border-black/5"}`}>
+        <div className="rounded-2xl p-4" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>
           <p className={`text-xl font-bold ${dark ? "text-white" : "text-black"}`}>{calories}</p>
           <p className={`text-xs mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>Calories burned</p>
         </div>
-        <div className={`rounded-2xl p-4 border ${dark ? "bg-[#1C1C1C] border-white/8" : "bg-[#F7F7F8] border-black/5"}`}>
+        <div className="rounded-2xl p-4" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>
           <p className={`text-xl font-bold ${dark ? "text-white" : "text-black"}`}>{prCount} new</p>
           <p className={`text-xs mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>Personal records</p>
         </div>
