@@ -1,8 +1,9 @@
-import React from "react";
-import { Check, Trophy } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Check, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
-import { BottomSheet, PrimaryButton } from "../components/ui";
-import { SoloArtwork } from "./SoloArtwork";
+import { BottomSheet, PrimaryButton, ExerciseThumb } from "../components/ui";
+import SoloGlassBox from "./SoloGlassBox";
+import { countExercises, countWorkoutSets, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { programPhases } from "../lib/AppContext";
 import { totalWeeksForProgram } from "./weekProgress";
 
@@ -142,16 +143,131 @@ export function CompletedSessionSheet({ log, programName, exercisesById, onClose
   );
 }
 
+// The overview's header: the program's artwork (or the APEX mark) fading
+// into the sheet's own glass rather than sitting in a solid box.
+function OverviewHero({ program, t }) {
+  const fade = "linear-gradient(to bottom, #000 35%, transparent 100%)";
+  return (
+    <div className="relative h-36 -mt-2 mb-1 overflow-hidden">
+      {program.artworkUrl ? (
+        <img src={program.artworkUrl} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ WebkitMaskImage: fade, maskImage: fade }} />
+      ) : (
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ background: `radial-gradient(closest-side, ${t.glassBg} 0%, transparent 100%)` }}
+        >
+          <img src={t.logo} alt="" className="h-9 w-auto opacity-80" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MuscleChips({ muscles, className = "" }) {
+  if (!muscles.length) return null;
+  return (
+    <div className={`flex flex-wrap gap-1.5 ${className}`}>
+      {muscles.map((m) => (
+        <span key={m} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(47,143,255,0.12)", color: MEASURE_BLUE }}>
+          {m}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// One session's preview: its exercises with their video still (tap to
+// play), main muscles and the sets × reps the program sets.
+function SessionPreview({ day, phaseName, exercisesById, onBack, dark, t }) {
+  const rows = (day.exercises || []).filter((e) => !e.isRest);
+  const muscles = sessionMuscles(day, exercisesById);
+  return (
+    <div>
+      <button type="button" onClick={onBack} className="flex items-center gap-1 text-xs font-semibold mb-4" style={{ color: t.textMuted }}>
+        <ChevronLeft size={14} /> All sessions
+      </button>
+      {phaseName && (
+        <p className="text-[11px] font-bold tracking-wide uppercase" style={{ color: t.textFaint }}>
+          {phaseName}
+        </p>
+      )}
+      <h3 className="text-2xl font-extrabold leading-tight mt-1">{day.label || "Session"}</h3>
+      <MuscleChips muscles={muscles} className="mt-3" />
+      <div className="grid grid-cols-3 gap-3 py-4 mt-4 mb-4" style={{ borderTop: `1px solid ${t.panelBorder}`, borderBottom: `1px solid ${t.panelBorder}` }}>
+        <Figure value={countExercises(rows)} label="Exercises" t={t} />
+        <Figure value={countWorkoutSets(rows)} label="Sets" t={t} />
+        <Figure value={`~${estimateWorkoutMinutes(day.exercises)}`} unit="min" label="Est. time" t={t} />
+      </div>
+      {rows.length === 0 ? (
+        <p className="text-sm" style={{ color: t.textMuted }}>
+          No exercises in this session yet.
+        </p>
+      ) : (
+        <SoloGlassBox t={t} className="rounded-2xl">
+          {rows.map((row, i) => {
+            const ex = exercisesById[row.exerciseId];
+            const setsReps = formatSetsReps(row);
+            const exMuscles = (ex?.primaryMuscles || []).filter(Boolean);
+            return (
+              <div key={row.rowId || `${row.exerciseId}-${i}`} className="flex items-center gap-3 p-2.5 pr-4" style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}>
+                <ExerciseThumb exercise={ex} size={60} rounded="rounded-xl" dark={dark} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold leading-snug">{ex?.name || "Exercise"}</p>
+                  {(exMuscles.length > 0 || ex?.category) && (
+                    <p className="text-[11px] mt-0.5 truncate" style={{ color: t.textFaint }}>
+                      {exMuscles.length ? exMuscles.join(" · ") : ex.category}
+                    </p>
+                  )}
+                </div>
+                {setsReps && (
+                  <p className="text-xs font-bold tabular-nums shrink-0" style={{ color: t.textMuted }}>
+                    {setsReps}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </SoloGlassBox>
+      )}
+    </div>
+  );
+}
+
+function formatSetsReps(row) {
+  if (!row.targetSets) return null;
+  if (row.targetReps) return `${row.targetSets} × ${row.targetReps}`;
+  return `${row.targetSets} sets`;
+}
+
 export function ProgramOverviewSheet({ open, onClose, program, content, purchase, exercisesById, onOpenSchedule, dark, t }) {
   const phases = programPhases(content);
   const totalWeeks = totalWeeksForProgram(phases) || program?.weekOnePreview?.totalWeeks || 0;
   const benefits = program ? programBenefits(program, phases) : [];
   const phaseStarts = phases.map((_, i) => 1 + phases.slice(0, i).reduce((sum, p) => sum + (p.durationWeeks || 0), 0));
+  const [preview, setPreview] = useState(null); // { day, phaseName }
+
+  const topRef = useRef(null);
+
+  useEffect(() => {
+    if (open) setPreview(null);
+  }, [open, program?.id]);
+
+  // Opening a session (or going back) starts at the top of the sheet.
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ block: "start" });
+  }, [preview]);
+
   return (
     <BottomSheet open={open} onClose={onClose} title={program?.name} wide dark={dark}>
-      {program && (
+      <div ref={topRef} />
+      {program && preview && (
         <div style={{ color: t.text }}>
-          <SoloArtwork program={program} t={t} className="w-full h-32 rounded-2xl mb-4" />
+          <SessionPreview day={preview.day} phaseName={preview.phaseName} exercisesById={exercisesById} onBack={() => setPreview(null)} dark={dark} t={t} />
+        </div>
+      )}
+      {program && !preview && (
+        <div style={{ color: t.text }}>
+          <OverviewHero program={program} t={t} />
           <p className="text-xs font-semibold mb-3" style={{ color: t.textMuted }}>
             {[program.level, totalWeeks ? `${totalWeeks} week${totalWeeks === 1 ? "" : "s"}` : null].filter(Boolean).join(" · ")}
           </p>
@@ -182,10 +298,11 @@ export function ProgramOverviewSheet({ open, onClose, program, content, purchase
             const to = from + (phase.durationWeeks || 0) - 1;
             const days = phase.days || [];
             if (days.length === 0) return null;
+            const phaseName = phase.name || `Phase ${pi + 1}`;
             return (
               <div key={phase.id || pi} className="mb-5">
-                <p className="text-sm font-bold mb-1">
-                  {phase.name || `Phase ${pi + 1}`}
+                <p className="text-sm font-bold mb-2">
+                  {phaseName}
                   {!/week/i.test(phase.name || "") && (
                     <span className="font-semibold" style={{ color: t.textFaint }}>
                       {" "}
@@ -193,31 +310,30 @@ export function ProgramOverviewSheet({ open, onClose, program, content, purchase
                     </span>
                   )}
                 </p>
-                <div>
+                <SoloGlassBox t={t} className="rounded-2xl">
                   {days.map((day, di) => {
                     const muscles = sessionMuscles(day, exercisesById);
-                    const n = (day.exercises || []).filter((e) => !e.isRest).length;
+                    const n = countExercises(day.exercises);
                     return (
-                      <div key={day.id || di} className="py-3" style={{ borderTop: `1px solid ${t.panelBorder}` }}>
-                        <div className="flex items-baseline justify-between gap-3">
-                          <p className="text-sm font-semibold truncate">{day.label || `Session ${di + 1}`}</p>
-                          <p className="text-[11px] shrink-0 tabular-nums" style={{ color: t.textFaint }}>
+                      <button
+                        key={day.id || di}
+                        type="button"
+                        onClick={() => setPreview({ day, phaseName })}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+                        style={di > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold truncate">{day.label || `Session ${di + 1}`}</p>
+                          <p className="text-[11px] mt-0.5" style={{ color: t.textFaint }}>
                             {n} exercise{n === 1 ? "" : "s"}
                           </p>
+                          <MuscleChips muscles={muscles} className="mt-2" />
                         </div>
-                        {muscles.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {muscles.map((m) => (
-                              <span key={m} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "rgba(47,143,255,0.12)", color: MEASURE_BLUE }}>
-                                {m}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                        <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+                      </button>
                     );
                   })}
-                </div>
+                </SoloGlassBox>
               </div>
             );
           })}
