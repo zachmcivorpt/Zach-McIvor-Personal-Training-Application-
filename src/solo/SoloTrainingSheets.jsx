@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { Check, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { BottomSheet, PrimaryButton, ExerciseThumb } from "../components/ui";
-import SoloGlassBox from "./SoloGlassBox";
 import { countExercises, countWorkoutSets, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { programPhases } from "../lib/AppContext";
 import { totalWeeksForProgram } from "./weekProgress";
@@ -145,20 +144,30 @@ export function CompletedSessionSheet({ log, programName, exercisesById, onClose
 
 // The overview's header: the program's artwork (or the APEX mark) fading
 // into the sheet's own glass rather than sitting in a solid box.
+// The overview's header: the program's artwork fading into the sheet, or
+// just the APEX mark on the sheet itself — never a filled box.
 function OverviewHero({ program, t }) {
   const fade = "linear-gradient(to bottom, #000 35%, transparent 100%)";
-  return (
-    <div className="relative h-36 -mt-2 mb-1 overflow-hidden">
-      {program.artworkUrl ? (
+  if (program.artworkUrl) {
+    return (
+      <div className="relative h-36 -mt-2 mb-1 overflow-hidden">
         <img src={program.artworkUrl} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ WebkitMaskImage: fade, maskImage: fade }} />
-      ) : (
-        <div
-          className="absolute inset-0 flex items-center justify-center"
-          style={{ background: `radial-gradient(closest-side, ${t.glassBg} 0%, transparent 100%)` }}
-        >
-          <img src={t.logo} alt="" className="h-9 w-auto opacity-80" />
-        </div>
-      )}
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center justify-center h-24 -mt-1 mb-2">
+      <img src={t.logo} alt="" className="h-9 w-auto opacity-85" />
+    </div>
+  );
+}
+
+// A grouped list sitting on a sheet: a faint tint + hairline, so it reads
+// as part of the sheet's glass instead of a white box on top of it.
+function Inset({ t, className = "", children }) {
+  return (
+    <div className={`overflow-hidden ${className}`} style={{ backgroundColor: t.insetBg, border: `1px solid ${t.panelBorder}` }}>
+      {children}
     </div>
   );
 }
@@ -203,7 +212,7 @@ function SessionPreview({ day, phaseName, exercisesById, onBack, dark, t }) {
           No exercises in this session yet.
         </p>
       ) : (
-        <SoloGlassBox t={t} className="rounded-2xl">
+        <Inset t={t} className="rounded-2xl">
           {rows.map((row, i) => {
             const ex = exercisesById[row.exerciseId];
             const setsReps = formatSetsReps(row);
@@ -227,7 +236,7 @@ function SessionPreview({ day, phaseName, exercisesById, onBack, dark, t }) {
               </div>
             );
           })}
-        </SoloGlassBox>
+        </Inset>
       )}
     </div>
   );
@@ -310,7 +319,7 @@ export function ProgramOverviewSheet({ open, onClose, program, content, purchase
                     </span>
                   )}
                 </p>
-                <SoloGlassBox t={t} className="rounded-2xl">
+                <Inset t={t} className="rounded-2xl">
                   {days.map((day, di) => {
                     const muscles = sessionMuscles(day, exercisesById);
                     const n = countExercises(day.exercises);
@@ -333,7 +342,7 @@ export function ProgramOverviewSheet({ open, onClose, program, content, purchase
                       </button>
                     );
                   })}
-                </SoloGlassBox>
+                </Inset>
               </div>
             );
           })}

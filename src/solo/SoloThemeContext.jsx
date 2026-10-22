@@ -117,6 +117,7 @@ export const SOLO_THEMES = {
     inputBorder: "rgba(255,255,255,0.1)",
     glassBg: "rgba(28,28,30,0.55)",
     sheetGlassBg: "rgba(24,24,26,0.78)",
+    insetBg: "rgba(255,255,255,0.045)",
   },
   light: {
     bg: "#F5F4F1",
@@ -134,7 +135,8 @@ export const SOLO_THEMES = {
     inputBg: "rgba(20,19,15,0.05)",
     inputBorder: "rgba(20,19,15,0.08)",
     glassBg: "rgba(255,255,255,0.62)",
-    sheetGlassBg: "rgba(250,249,246,0.8)",
+    sheetGlassBg: "rgba(247,246,243,0.92)",
+    insetBg: "rgba(20,19,15,0.035)",
   },
 };
 
