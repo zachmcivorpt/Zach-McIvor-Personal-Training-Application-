@@ -577,7 +577,7 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
   const trackClass = dark ? "bg-white/8" : "bg-black/8";
   const actionBtn = dark ? "bg-white/8 text-white" : "bg-black/8 text-black";
   return (
-    <div className={`mx-2.5 rounded-2xl p-5 ${border} border`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
+    <div className={`mx-2.5 rounded-2xl p-5 ${border} border`} style={clientGlass(dark)}>
       <div className="flex items-center justify-between mb-4">
         <h3 className={`${primaryText} font-semibold`}>{isToday ? "Nutrition Today" : "Nutrition"}</h3>
         <Utensils size={15} className={muted25} />
@@ -759,7 +759,7 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
   const notDoneCheckBorder = dark ? "border-white/20" : "border-black/20";
   const checkIconColor = dark ? "text-black" : "text-white";
   return (
-    <div className={`mx-2.5 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}>
+    <div className={`mx-2.5 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={clientGlass(dark)}>
       <div className="flex items-center justify-between mb-0.5">
         <h3 className={`font-semibold ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
         <span className={`text-xs font-medium tracking-wide ${dark ? "text-white/35" : "text-black/35"}`}>
@@ -827,7 +827,7 @@ function ActiveChallengesCard({ challenges, userId }) {
           <div
             key={c.id}
             className={`rounded-2xl p-4 border ${dark ? "border-white/8" : "border-black/8"}`}
-            style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+            style={clientGlass(dark)}
           >
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${dark ? "bg-white/8" : "bg-black/8"}`}>
@@ -873,7 +873,7 @@ function ClientGroupsCard({ groups, onOpen }) {
             key={g.id}
             onClick={() => onOpen(g.id)}
             className={`w-full flex items-center gap-3 rounded-2xl p-4 border text-left ${dark ? "border-white/8" : "border-black/8"}`}
-            style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+            style={clientGlass(dark)}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.15)" }}>
               <Users2 size={17} style={{ color: MEASURE_BLUE }} />
@@ -1115,7 +1115,7 @@ export function NotificationsPromptCard({ userId, showToast }) {
   return (
     <div
       className={`mx-2.5 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
-      style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+      style={clientGlass(dark)}
     >
       <BellRing size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
       <p className={`flex-1 text-[13px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>
@@ -1152,7 +1152,7 @@ function CardioLogCard({ logs }) {
         <div
           key={log.id}
           className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
-          style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+          style={clientGlass(dark)}
         >
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.15)" }}>
             <Footprints size={17} style={{ color: MEASURE_BLUE }} />
@@ -1221,7 +1221,7 @@ function HomeScreen({
       {isToday && bodyStatsDueToday && (
         <div
           className={`mx-2.5 flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
-          style={{ backgroundColor: dark ? "#141414" : "#F7F7F8" }}
+          style={clientGlass(dark)}
         >
           <Scale size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
           <p className={`flex-1 text-[13px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>Body stats check-in due today</p>
