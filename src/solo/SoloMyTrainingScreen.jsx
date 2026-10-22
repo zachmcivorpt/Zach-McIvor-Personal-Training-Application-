@@ -413,6 +413,13 @@ const ITEM_ICON = { workout: Dumbbell, addon: HeartPulse, recovery: HeartPulse, 
 const DEFAULT_WATER_GOAL_ML = 2500;
 const WATER_GOALS_ML = [2000, 2500, 3000, 3500, 4000];
 
+// 1st, 2nd, 3rd, 4th … 11th, 12th, 13th … 21st, 22nd, 23rd …
+function ordinal(n) {
+  const v = n % 100;
+  const suffix = v >= 11 && v <= 13 ? "th" : { 1: "st", 2: "nd", 3: "rd" }[n % 10] || "th";
+  return `${n}${suffix}`;
+}
+
 function litres(ml) {
   return String(Math.round(ml / 10) / 100);
 }
@@ -485,18 +492,13 @@ function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftW
 function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBrowse, t }) {
   const d = new Date(`${dateKey}T00:00:00`);
   const relative = dateKey === todayKey ? "Today" : sessionDayLabel(dateKey, todayKey);
-  const heading = ["Today", "Tomorrow", "Yesterday"].includes(relative) ? relative : d.toLocaleDateString(undefined, { weekday: "long" });
+  const dayName = ["Today", "Tomorrow", "Yesterday"].includes(relative) ? relative : d.toLocaleDateString("en-AU", { weekday: "long" });
+  const heading = `${dayName}, ${ordinal(d.getDate())} ${d.toLocaleDateString("en-AU", { month: "long" })}`;
   const sessions = items.filter((i) => i.type === "workout" || i.type === "addon");
   const others = items.filter((i) => i.type !== "workout" && i.type !== "addon");
   return (
     <div className="mt-6">
-      <div className="flex items-baseline justify-between gap-3 mb-3">
-        <h2 className="text-2xl font-extrabold leading-tight">{heading}</h2>
-        <p className="text-xs shrink-0" style={{ color: t.textFaint }}>
-          {d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}
-          {sessions.length > 0 ? ` · ${sessions.length} session${sessions.length === 1 ? "" : "s"}` : ""}
-        </p>
-      </div>
+      <h2 className="text-lg font-bold leading-tight mb-3">{heading}</h2>
       {items.length === 0 ? (
         <div className="rounded-3xl px-5 py-8 text-center" style={soloGlass(t)}>
           {ownsPrograms ? (
