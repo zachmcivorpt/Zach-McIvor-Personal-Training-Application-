@@ -81,7 +81,9 @@ Do these together when the user is ready to submit a new App Store build
   dark screens (the installed build may predate the apexTheme handler),
   App-Bound Domains so the service worker gives a full offline warm
   start, and the edge-to-edge login frame. The user chose the full-length
-  photo/video for the official update: the web already asks for it on
+  photo/video for the official update (native side done in 1.0.2:
+  remembered launch state, no bounce on those screens; verify on
+  TestFlight): the web already asks for it on
   /login, /start and Train Solo's login/register/questionnaire/finish-setup
   screens (`edgeToEdge: true`); confirm it on the TestFlight build. The
   rubber-band bounce on those screens is stopped web-side

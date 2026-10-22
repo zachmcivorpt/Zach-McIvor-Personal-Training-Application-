@@ -47,36 +47,46 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // the login/activate screens) are light, so this is driven by a
     // postMessage from the web app (src/App.jsx's NativeStatusBarSync)
     // rather than hardcoded, which would otherwise put a black bar over
-    // the client app's and auth screens' light backgrounds. Starts false
-    // so a cold launch (before the page has loaded and posted anything)
-    // matches today's existing white strip exactly.
+    // the client app's light background. A cold launch starts from the
+    // last screen's look (see lastDarkKey below) until the page posts.
     private var isDarkBackground = false {
         didSet {
             guard isDarkBackground != oldValue else { return }
             view.backgroundColor = isDarkBackground ? nearBlack : .white
+            // The webview's own backdrop (what shows before the page paints)
+            // matches too, so a dark screen never flashes white while loading.
+            webView?.backgroundColor = isDarkBackground ? nearBlack : .white
             setNeedsStatusBarAppearanceUpdate()
         }
     }
 
-    // Set only for the login screen (src/App.jsx's NativeStatusBarSync,
-    // scoped to exactly "/login") — extends the webview's own frame up
-    // behind the status bar/notch so its full-bleed gym photo background
-    // reaches the top edge instead of sitting below a plain white/black
-    // native strip. Every other screen keeps the normal pinned-below-
-    // safe-area frame untouched; LoginScreen.jsx's own `pt-safe` padding
-    // (env(safe-area-inset-top), a no-op everywhere else) is what keeps
-    // its logo/form clear of the status bar once this is true. Starts
-    // false so a cold launch — before the page has loaded and posted
-    // anything — matches today's existing pinned-below-safe-area frame
-    // exactly, same reasoning as isDarkBackground above.
+    // Set for the full-bleed photo screens — the Coaching login, the
+    // Coaching / Train Solo chooser, and Train Solo's login/register/
+    // questionnaire screens (src/App.jsx's NativeStatusBarSync and
+    // src/solo/SoloThemeContext.jsx) — extends the webview's own frame up
+    // behind the status bar/notch so the photo/video reaches the top edge
+    // instead of sitting below a plain native strip. Every other screen
+    // (the client app, coach console, Train Solo once signed in) keeps the
+    // normal pinned-below-safe-area frame. The pages' own top padding
+    // (env(safe-area-inset-top), 0 everywhere else) keeps their logo and
+    // form clear of the status bar. The rubber-band bounce is also off on
+    // these screens, so the photo stays still.
     private var isEdgeToEdge = false {
         didSet {
             guard isEdgeToEdge != oldValue else { return }
             webViewTopConstraint.isActive = !isEdgeToEdge
             webViewTopConstraintEdgeToEdge.isActive = isEdgeToEdge
+            webView?.scrollView.bounces = !isEdgeToEdge
             setNeedsStatusBarAppearanceUpdate()
         }
     }
+
+    // The last screen's look is remembered, so a cold launch opens the way
+    // the app was left — full screen on the login photo for a signed-out
+    // user, the normal white strip for a signed-in client — instead of
+    // starting white and visibly jumping once the page posts its theme.
+    private let lastDarkKey = "apexLastDarkBackground"
+    private let lastEdgeKey = "apexLastEdgeToEdge"
 
     override var preferredStatusBarStyle: UIStatusBarStyle {
         // The edge-to-edge frame is only ever used against the login
@@ -122,12 +132,14 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             webViewBottomConstraint,
         ])
+        isDarkBackground = UserDefaults.standard.bool(forKey: lastDarkKey)
+        isEdgeToEdge = UserDefaults.standard.bool(forKey: lastEdgeKey)
 
         NotificationCenter.default.addObserver(
             self, selector: #selector(keyboardWillChangeFrame(_:)), name: UIResponder.keyboardWillChangeFrameNotification, object: nil
         )
 
-        spinner.color = .gray
+        spinner.color = isDarkBackground ? .lightGray : .gray
         spinner.center = view.center
         spinner.autoresizingMask = [.flexibleLeftMargin, .flexibleRightMargin, .flexibleTopMargin, .flexibleBottomMargin]
         view.addSubview(spinner)
@@ -212,6 +224,8 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // "not edge-to-edge" (today's existing behavior) rather than
         // dropping the whole message and also losing the dark/light update.
         isEdgeToEdge = (body["edgeToEdge"] as? Bool) ?? false
+        UserDefaults.standard.set(isDarkBackground, forKey: lastDarkKey)
+        UserDefaults.standard.set(isEdgeToEdge, forKey: lastEdgeKey)
     }
 
     deinit {
