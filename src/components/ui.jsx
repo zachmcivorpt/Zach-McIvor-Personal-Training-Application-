@@ -793,12 +793,18 @@ export function Ring({ value, max, size = 64, stroke = 7, children }) {
   );
 }
 
+// The coached client app provides a frosted-glass surface here (see
+// ClientApp's root) so its cards match Train Solo's glass look; everywhere
+// else (coach console, etc.) gets no value and keeps the solid surface.
+export const CardSurfaceContext = createContext(null);
+
 export function Card({ children, className = "", onClick, style, dark = false }) {
+  const surface = useContext(CardSurfaceContext);
   return (
     <div
       onClick={onClick}
       className={`rounded-2xl p-5 border ${onClick ? "active:scale-[0.98] cursor-pointer" : ""} transition-transform ${className}`}
-      style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE, borderColor: dark ? CLIENT_DARK_BORDER : BORDER, ...style }}
+      style={surface ? { ...surface, ...style } : { backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE, borderColor: dark ? CLIENT_DARK_BORDER : BORDER, ...style }}
     >
       {children}
     </div>

@@ -66,6 +66,7 @@ import {
   Flame,
   ArrowRight,
   StickyNote,
+  Minus,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported, isNativeApp } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
@@ -95,6 +96,7 @@ import {
   Pill,
   ProgressBar,
   WaterCup,
+  CardSurfaceContext,
   BottomSheet,
   Toast,
   FullScreenOverlay,
@@ -405,7 +407,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
   const dateStr = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
   return (
-    <div className="flex items-center justify-between px-2.5 pt-4 pb-0">
+    <div className="flex items-center justify-between px-2.5 pt-0.5 pb-0">
       <div>
         <p className={`text-lg font-bold ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
@@ -439,13 +441,20 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
 // Frosted-glass card surface for the client app's session/program cards —
 // the same translucent fill + hairline border + blur Train Solo uses, in
 // the client app's light or dark theme.
+const CLIENT_GLASS_DARK = {
+  backgroundColor: "rgba(28,28,30,0.55)",
+  border: "1px solid rgba(255,255,255,0.1)",
+  backdropFilter: "blur(18px)",
+  WebkitBackdropFilter: "blur(18px)",
+};
+const CLIENT_GLASS_LIGHT = {
+  backgroundColor: "rgba(255,255,255,0.62)",
+  border: "1px solid rgba(20,19,15,0.08)",
+  backdropFilter: "blur(18px)",
+  WebkitBackdropFilter: "blur(18px)",
+};
 function clientGlass(dark) {
-  return {
-    backgroundColor: dark ? "rgba(28,28,30,0.55)" : "rgba(255,255,255,0.62)",
-    border: `1px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(20,19,15,0.08)"}`,
-    backdropFilter: "blur(18px)",
-    WebkitBackdropFilter: "blur(18px)",
-  };
+  return dark ? CLIENT_GLASS_DARK : CLIENT_GLASS_LIGHT;
 }
 
 export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onDiscard, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
@@ -603,30 +612,41 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
         ))}
       </div>
       <div className={`mt-4 pt-4 border-t ${border} flex items-center gap-3`}>
-        <WaterCup value={logged.water} max={targets.water} size={36} dark={dark} />
+        <WaterCup value={logged.water} max={targets.water} size={30} dark={dark} />
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            {logged.water >= targets.water ? (
-              <Droplets size={16} className={`${primaryText} shrink-0`} />
-            ) : (
-              <GlassWater size={16} className={`${muted50} shrink-0`} />
-            )}
-            <span className={`${muted70} text-sm`}>
-              Water: <span className={`font-semibold ${primaryText}`}>{logged.water}L</span> / {targets.water}L
-            </span>
-          </div>
+          <p className={`${muted50} text-[11px] font-semibold`}>Water</p>
+          <p className={`${muted70} text-sm`}>
+            <span className={`font-bold ${primaryText}`}>{logged.water}</span> / {targets.water} L
+          </p>
         </div>
+        {isToday && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              aria-label="Remove 250 ml"
+              onClick={() => onLogWater(-0.25)}
+              disabled={!(logged.water > 0)}
+              className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 ${actionBtn}`}
+            >
+              <Minus size={14} />
+            </button>
+            <button type="button" onClick={() => onLogWater(0.25)} className={`h-9 px-3 rounded-full text-xs font-bold active:scale-90 transition-transform ${actionBtn}`}>
+              +250ml
+            </button>
+            <button
+              type="button"
+              onClick={() => onLogWater(0.5)}
+              className={`h-9 px-3 rounded-full text-xs font-bold active:scale-90 transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
+            >
+              +500ml
+            </button>
+          </div>
+        )}
       </div>
       {isToday && (
         <div className="flex gap-2 mt-4">
           <button onClick={onLogFood} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
             + LOG FOOD
-          </button>
-          <button
-            onClick={onLogWater}
-            className={`flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold py-3 rounded-xl active:scale-90 transition-transform duration-150 ${actionBtn}`}
-          >
-            <GlassWater size={15} /> + LOG WATER
           </button>
         </div>
       )}
@@ -4104,9 +4124,7 @@ function NutritionGoalSummaryCard({ targets, dark, onEditTargets }) {
   const total = proteinPct + carbsPct + fatPct;
 
   return (
-    <div
-      className={`relative overflow-hidden border ${dark ? "border-white/10" : "border-black/8"}`}
-      style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
+    <div className="relative overflow-hidden rounded-2xl" style={clientGlass(dark)}
     >
       <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
       <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
@@ -4200,10 +4218,7 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets, show
             dark={dark}
             onEditTargets={viewingAsClient ? () => setTargetsOpen(true) : undefined}
           />
-          <div
-            className={`relative overflow-hidden border ${dark ? "border-white/10" : "border-black/8"}`}
-            style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}
-          >
+          <div className="relative overflow-hidden rounded-2xl" style={clientGlass(dark)}>
             {/* Thin blue gradient line top and bottom — no glow, no corner
                 brackets, just the lines. */}
             <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
@@ -4936,38 +4951,22 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         <div
           onClick={() => setNutritionDetailOpen(true)}
           className="relative overflow-hidden rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform"
+          style={clientGlass(dark)}
         >
-            {/* Mountain-photo hero (login-bg.jpg) — the one card that keeps
-                it (the session/program cards are glass now), rather than a flat color, to
-                match the approved mockup. The card's own surface color
-                (not plain black) anchors the solid portion of the fade so
-                it reads as one continuous dark card, not an image with a
-                black box stuck on top of it. */}
-            <img src="/brand/login-bg.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "75% 15%" }} />
-            <div
-              className="absolute inset-0"
-              style={{ background: `linear-gradient(to right, ${CLIENT_DARK_SURFACE} 0%, ${CLIENT_DARK_SURFACE} 46%, ${CLIENT_DARK_SURFACE}d9 54%, ${CLIENT_DARK_SURFACE}66 66%, transparent 82%)` }}
-            />
-            {/* The macro row (Protein/Carbs/Fat) sits in the lower third of
-                the card, right where the mountain's brightest snow was
-                washing out the Fat column's numbers — this darkens just
-                that band, on top of the horizontal fade above, without
-                dimming the clear sky/peak area higher up the card. */}
-            <div className="absolute inset-x-0 bottom-0 h-[58%]" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.6), transparent)" }} />
             <div className="relative">
-            <p className="text-white/50 text-[11px] font-bold tracking-[0.12em] mb-2">CALORIES REMAINING</p>
+            <p className={`${dark ? "text-white/50" : "text-black/45"} text-[11px] font-bold tracking-[0.12em] mb-2`}>CALORIES REMAINING</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-white text-[28px] leading-none font-bold">{Math.max(0, targets.calories - nutrition.calories).toLocaleString()}</span>
-              <span className="text-white/40 text-sm">of {targets.calories.toLocaleString()} kcal</span>
+              <span className={`${dark ? "text-white" : "text-black"} text-[28px] leading-none font-bold`}>{Math.max(0, targets.calories - nutrition.calories).toLocaleString()}</span>
+              <span className={`${dark ? "text-white/40" : "text-black/40"} text-sm`}>of {targets.calories.toLocaleString()} kcal</span>
             </div>
             <div className="mt-2.5">
-              <ProgressBar trackClassName="bg-white/15"
+              <ProgressBar trackClassName={dark ? "bg-white/15" : "bg-black/8"}
                 value={nutrition.calories}
                 max={targets.calories}
                 color={targetBarColor(nutrition.calories, targets.calories)}
               />
             </div>
-            <div className="grid grid-cols-3 divide-x divide-white/10 mt-4">
+            <div className={`grid grid-cols-3 divide-x ${dark ? "divide-white/10" : "divide-black/8"} mt-4`}>
               {[
                 { l: "Protein", v: round1(nutrition.protein), t: targets.protein, capped: false },
                 { l: "Carbs", v: round1(nutrition.carbs), t: targets.carbs, capped: true },
@@ -4976,16 +4975,16 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                 const pct = m.t > 0 ? Math.min(100, Math.round((m.v / m.t) * 100)) : 0;
                 return (
                   <div key={m.l} className="px-2.5 first:pl-0 last:pr-0">
-                    <p className="text-white/50 text-[10px] font-bold tracking-[0.1em]">{m.l.toUpperCase()}</p>
+                    <p className={`${dark ? "text-white/50" : "text-black/45"} text-[10px] font-bold tracking-[0.1em]`}>{m.l.toUpperCase()}</p>
                     <p className="mt-1">
-                      <span className="text-white text-[15px] font-bold">{m.v}</span>
-                      <span className="text-white/40 text-xs"> / {m.t}g</span>
+                      <span className={`${dark ? "text-white" : "text-black"} text-[15px] font-bold`}>{m.v}</span>
+                      <span className={`${dark ? "text-white/40" : "text-black/40"} text-xs`}> / {m.t}g</span>
                     </p>
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <div className="flex-1">
-                        <ProgressBar trackClassName="bg-white/15" value={m.v} max={m.t} height={5} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
+                        <ProgressBar trackClassName={dark ? "bg-white/15" : "bg-black/8"} value={m.v} max={m.t} height={5} color={targetBarColor(m.v, m.t, { capped: m.capped })} />
                       </div>
-                      <span className="text-white/40 text-[10px] shrink-0">{pct}%</span>
+                      <span className={`${dark ? "text-white/40" : "text-black/40"} text-[10px] shrink-0`}>{pct}%</span>
                     </div>
                   </div>
                 );
@@ -5193,8 +5192,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
       <div className="px-2.5 mt-7">
         <h2 className={dark ? "text-white text-lg font-bold mb-3" : "text-black text-lg font-bold mb-3"}>{navOffset === 0 ? "Today's Meals" : `${navLabel}'s Meals`}</h2>
         <div
-          className={dark ? "rounded-2xl border shadow-sm divide-y divide-white/8" : "rounded-2xl border shadow-sm divide-y divide-black/8"}
-          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+          className={dark ? "rounded-2xl divide-y divide-white/8" : "rounded-2xl divide-y divide-black/8"}
+          style={clientGlass(dark)}
         >
           {mealCategories.map((meal) => {
             const items = nutrition.meals[meal] || [];
@@ -5250,6 +5249,14 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             </div>
           </div>
           <div className="flex gap-1.5 mt-2.5">
+            <button
+              aria-label="Remove 250 ml"
+              onClick={() => onAddWater(-0.25, viewDateKey)}
+              disabled={!(nutrition.water > 0)}
+              className={dark ? "w-10 flex items-center justify-center bg-white/8 text-white rounded-lg active:scale-90 transition-transform duration-150 disabled:opacity-30" : "w-10 flex items-center justify-center bg-black/8 text-black rounded-lg active:scale-90 transition-transform duration-150 disabled:opacity-30"}
+            >
+              <Minus size={13} />
+            </button>
             <button
               onClick={() => onAddWater(0.25, viewDateKey)}
               className={dark ? "flex-1 bg-white/8 text-white text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150" : "flex-1 bg-black/8 text-black text-xs font-semibold py-1.5 rounded-lg active:scale-90 transition-transform duration-150"}
@@ -9276,9 +9283,10 @@ export default function ClientApp() {
       // corrupting that day's total (and every later add, since NaN + x is
       // always NaN) rather than just treating the missing field as 0, the
       // same guard addFood/removeFood already apply to every other field.
-      return { ...base, water: Math.round(((base.water || 0) + liters) * 100) / 100 };
+      // Never below 0 — the remove (−250ml) button can't take a day negative.
+      return { ...base, water: Math.max(0, Math.round(((base.water || 0) + liters) * 100) / 100) };
     })
-      .then(() => showToast(`+${Math.round(liters * 1000)}ml logged`))
+      .then(() => showToast(liters >= 0 ? `+${Math.round(liters * 1000)}ml logged` : `${Math.round(-liters * 1000)}ml removed`))
       .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true));
   }
 
@@ -9350,6 +9358,7 @@ export default function ClientApp() {
 
   return (
     <ClientThemeContext.Provider value={dark}>
+    <CardSurfaceContext.Provider value={dark ? CLIENT_GLASS_DARK : CLIENT_GLASS_LIGHT}>
     <div className={`w-full h-full min-h-screen font-sans flex justify-center ${dark ? "bg-[#090909]" : "bg-white"}`}>
       <div className="w-full max-w-md relative">
         {viewingAsClient && (
@@ -9385,7 +9394,7 @@ export default function ClientApp() {
             dayNutrition={dayNutrition}
             targets={targets}
             onLogFood={() => setTab("nutrition")}
-            onLogWater={() => addWater(0.25)}
+            onLogWater={(liters = 0.25) => addWater(liters)}
             showToast={showToast}
             habits={habits}
             completedHabitIds={completedHabitIds}
@@ -9675,6 +9684,7 @@ export default function ClientApp() {
         <Toast dark={dark} message={toast.message} show={toast.show} tone={toast.tone} />
       </div>
     </div>
+    </CardSurfaceContext.Provider>
     </ClientThemeContext.Provider>
   );
 }
