@@ -275,7 +275,6 @@ export default function SoloMyTrainingScreen() {
     [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, weekStart]
   );
   const dayItems = [...(byDate[selectedKey] || [])].sort((a, b) => ITEM_ORDER[a.type] - ITEM_ORDER[b.type]);
-  const notStarted = ownedRows.filter((r) => !r.purchase.startDate);
 
   function openItem(item) {
     const target = calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloProgramContentByProgramId });
@@ -309,23 +308,6 @@ export default function SoloMyTrainingScreen() {
           onBrowse={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })}
           t={t}
         />
-
-        {notStarted.map((row) => (
-          <button
-            key={row.purchase.id}
-            type="button"
-            onClick={() => setOpenPurchaseId(row.purchase.id)}
-            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 mt-2.5 text-left"
-            style={glass}
-          >
-            <CalendarDays size={18} color={MEASURE_BLUE} className="shrink-0" />
-            <p className="text-sm flex-1 min-w-0">
-              <span className="font-semibold">Set a start date</span>
-              <span style={{ color: t.textMuted }}> for {row.program.name} to see its sessions here.</span>
-            </p>
-            <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
-          </button>
-        ))}
 
         <WaterCard
           dateKey={selectedKey}
@@ -496,10 +478,10 @@ function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftW
   );
 }
 
-// Everything on the selected day, in one place. The session is the hero —
-// a large card with its name, program/week, exercise count and a
-// full-width Start button — with rest-day recovery and Monday check-ins as
-// smaller rows underneath.
+// Everything on the selected day, in one place. The session leads — a
+// slightly larger card with a blue edge, its name, program/week, exercise
+// count and Start — with rest-day recovery and Monday check-ins as smaller
+// rows underneath.
 function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBrowse, t }) {
   const d = new Date(`${dateKey}T00:00:00`);
   const relative = dateKey === todayKey ? "Today" : sessionDayLabel(dateKey, todayKey);
@@ -581,41 +563,39 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBro
 
 function SessionHero({ item, actionable, onStart, future, t }) {
   const exercises = (item.day?.exercises || []).filter((e) => !e.isRest).length;
-  const kind = item.type === "addon" ? "RECOVERY SESSION" : "WORKOUT";
+  const Icon = item.type === "addon" ? HeartPulse : Dumbbell;
   return (
-    <SoloGlassBox t={t} className="rounded-3xl px-5 pt-5 pb-4">
-      <div className="flex items-center gap-2">
-        <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "rgba(47,143,255,0.14)" }}>
-          {item.type === "addon" ? <HeartPulse size={15} color={MEASURE_BLUE} /> : <Dumbbell size={15} color={MEASURE_BLUE} />}
-        </span>
-        <p className="text-[11px] font-bold tracking-[0.12em]" style={{ color: MEASURE_BLUE }}>
-          {kind}
+    <button
+      type="button"
+      onClick={() => actionable && onStart()}
+      disabled={!actionable}
+      className="w-full flex items-center gap-3 rounded-2xl px-4 py-4 text-left disabled:cursor-default"
+      style={{ ...soloGlass(t), borderColor: item.done ? t.panelBorder : "rgba(47,143,255,0.45)" }}
+    >
+      <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.14)" }}>
+        <Icon size={18} color={MEASURE_BLUE} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-lg font-extrabold leading-tight truncate">{item.title}</p>
+        <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
+          {item.subtitle}
+          {exercises > 0 ? ` · ${exercises} exercise${exercises === 1 ? "" : "s"}` : ""}
         </p>
       </div>
-      <p className="text-[28px] font-extrabold leading-tight mt-3">{item.title}</p>
-      <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-        {item.subtitle}
-        {exercises > 0 ? ` · ${exercises} exercise${exercises === 1 ? "" : "s"}` : ""}
-      </p>
       {item.done ? (
-        <div className="mt-4 h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold" style={{ backgroundColor: "rgba(47,143,255,0.12)", color: MEASURE_BLUE }}>
-          <CheckCircle2 size={17} /> Completed
-        </div>
+        <span className="flex items-center gap-1 text-xs font-bold shrink-0" style={{ color: MEASURE_BLUE }}>
+          <CheckCircle2 size={15} /> Done
+        </span>
       ) : actionable ? (
-        <button
-          type="button"
-          onClick={onStart}
-          className="mt-4 w-full h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold active:scale-[0.98] transition-transform"
-          style={{ backgroundColor: t.text, color: t.bg }}
-        >
-          <Play size={14} fill="currentColor" /> Start session
-        </button>
+        <span className="flex items-center gap-1 text-xs font-bold px-3.5 py-2 rounded-full shrink-0" style={{ backgroundColor: t.text, color: t.bg }}>
+          <Play size={11} fill="currentColor" /> Start
+        </span>
       ) : (
-        <div className="mt-4 h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-semibold" style={{ backgroundColor: t.chipBg, color: t.textMuted }}>
-          <Lock size={15} /> {future ? "Unlocks on the day" : "Locked"}
-        </div>
+        <span className="flex items-center gap-1 text-[11px] font-semibold shrink-0" style={{ color: t.textFaint }}>
+          <Lock size={13} /> {future ? "On the day" : "Locked"}
+        </span>
       )}
-    </SoloGlassBox>
+    </button>
   );
 }
 
