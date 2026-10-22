@@ -496,28 +496,31 @@ function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftW
   );
 }
 
-// Everything on the selected day, in one place: the session(s) with a
-// Start button, rest-day recovery, and Monday check-ins.
+// Everything on the selected day, in one place. The session is the hero —
+// a large card with its name, program/week, exercise count and a
+// full-width Start button — with rest-day recovery and Monday check-ins as
+// smaller rows underneath.
 function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBrowse, t }) {
   const d = new Date(`${dateKey}T00:00:00`);
   const relative = dateKey === todayKey ? "Today" : sessionDayLabel(dateKey, todayKey);
   const heading = ["Today", "Tomorrow", "Yesterday"].includes(relative) ? relative : d.toLocaleDateString(undefined, { weekday: "long" });
-  const sessionCount = items.filter((i) => i.type === "workout" || i.type === "addon").length;
+  const sessions = items.filter((i) => i.type === "workout" || i.type === "addon");
+  const others = items.filter((i) => i.type !== "workout" && i.type !== "addon");
   return (
     <div className="mt-6">
       <div className="flex items-baseline justify-between gap-3 mb-3">
         <h2 className="text-2xl font-extrabold leading-tight">{heading}</h2>
         <p className="text-xs shrink-0" style={{ color: t.textFaint }}>
           {d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}
-          {sessionCount > 0 ? ` · ${sessionCount} session${sessionCount === 1 ? "" : "s"}` : ""}
+          {sessions.length > 0 ? ` · ${sessions.length} session${sessions.length === 1 ? "" : "s"}` : ""}
         </p>
       </div>
       {items.length === 0 ? (
-        <div className="rounded-2xl px-5 py-6 text-center" style={soloGlass(t)}>
+        <div className="rounded-3xl px-5 py-8 text-center" style={soloGlass(t)}>
           {ownsPrograms ? (
             <>
-              <p className="text-sm font-semibold">Rest day</p>
-              <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+              <p className="text-lg font-extrabold">Rest day</p>
+              <p className="text-sm mt-1" style={{ color: t.textMuted }}>
                 Nothing scheduled — recover and come back fresh.
               </p>
             </>
@@ -533,57 +536,89 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBro
           )}
         </div>
       ) : (
-        <SoloGlassBox t={t} className="rounded-2xl">
-          {items.map((item, i) => {
-            const Icon = ITEM_ICON[item.type] || CalendarDays;
-            const actionable = !!target(item);
-            const isSession = item.type === "workout" || item.type === "addon";
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => actionable && onOpen(item)}
-                disabled={!actionable}
-                className="w-full flex items-center gap-3 px-4 py-3.5 text-left disabled:cursor-default"
-                style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
-              >
-                <span
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: isSession ? "rgba(47,143,255,0.14)" : t.chipBg }}
-                >
-                  <Icon size={17} color={isSession ? MEASURE_BLUE : t.textMuted} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className={`truncate ${isSession ? "text-base font-bold" : "text-sm font-semibold"}`}>{item.title}</p>
-                  <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
-                    {item.subtitle}
-                  </p>
-                </div>
-                {item.done ? (
-                  <span className="flex items-center gap-1 text-xs font-semibold shrink-0" style={{ color: MEASURE_BLUE }}>
-                    <CheckCircle2 size={14} /> Done
-                  </span>
-                ) : isSession && actionable ? (
-                  <span className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full shrink-0" style={{ backgroundColor: t.text, color: t.bg }}>
-                    <Play size={11} fill="currentColor" /> Start
-                  </span>
-                ) : !actionable ? (
-                  <Lock size={14} color={t.textFaint} className="shrink-0" />
-                ) : (
-                  <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </SoloGlassBox>
+        <div className="space-y-2.5">
+          {sessions.map((item) => (
+            <SessionHero key={item.id} item={item} actionable={!!target(item)} onStart={() => onOpen(item)} future={dateKey > todayKey} t={t} />
+          ))}
+          {others.length > 0 && (
+            <SoloGlassBox t={t} className="rounded-2xl">
+              {others.map((item, i) => {
+                const Icon = ITEM_ICON[item.type] || CalendarDays;
+                const actionable = !!target(item);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => actionable && onOpen(item)}
+                    disabled={!actionable}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left disabled:cursor-default"
+                    style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
+                  >
+                    <Icon size={16} color={t.textMuted} className="shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate">{item.title}</p>
+                      <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
+                        {item.subtitle}
+                      </p>
+                    </div>
+                    {item.done ? (
+                      <CheckCircle2 size={16} color={MEASURE_BLUE} className="shrink-0" />
+                    ) : actionable ? (
+                      <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+                    ) : (
+                      <Lock size={14} color={t.textFaint} className="shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </SoloGlassBox>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-// Water for the selected day: a big figure against the goal, a bar, and
-// quick add/remove buttons. Future days can't be logged; the goal is set
-// from a pop-up (saved on the customer's profile).
+function SessionHero({ item, actionable, onStart, future, t }) {
+  const exercises = (item.day?.exercises || []).filter((e) => !e.isRest).length;
+  const kind = item.type === "addon" ? "RECOVERY SESSION" : "WORKOUT";
+  return (
+    <SoloGlassBox t={t} className="rounded-3xl px-5 pt-5 pb-4">
+      <div className="flex items-center gap-2">
+        <span className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: "rgba(47,143,255,0.14)" }}>
+          {item.type === "addon" ? <HeartPulse size={15} color={MEASURE_BLUE} /> : <Dumbbell size={15} color={MEASURE_BLUE} />}
+        </span>
+        <p className="text-[11px] font-bold tracking-[0.12em]" style={{ color: MEASURE_BLUE }}>
+          {kind}
+        </p>
+      </div>
+      <p className="text-[28px] font-extrabold leading-tight mt-3">{item.title}</p>
+      <p className="text-sm mt-1" style={{ color: t.textMuted }}>
+        {item.subtitle}
+        {exercises > 0 ? ` · ${exercises} exercise${exercises === 1 ? "" : "s"}` : ""}
+      </p>
+      {item.done ? (
+        <div className="mt-4 h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold" style={{ backgroundColor: "rgba(47,143,255,0.12)", color: MEASURE_BLUE }}>
+          <CheckCircle2 size={17} /> Completed
+        </div>
+      ) : actionable ? (
+        <button
+          type="button"
+          onClick={onStart}
+          className="mt-4 w-full h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold active:scale-[0.98] transition-transform"
+          style={{ backgroundColor: t.text, color: t.bg }}
+        >
+          <Play size={14} fill="currentColor" /> Start session
+        </button>
+      ) : (
+        <div className="mt-4 h-12 rounded-2xl flex items-center justify-center gap-2 text-sm font-semibold" style={{ backgroundColor: t.chipBg, color: t.textMuted }}>
+          <Lock size={15} /> {future ? "Unlocks on the day" : "Locked"}
+        </div>
+      )}
+    </SoloGlassBox>
+  );
+}
+
 // A glass that fills to the day's progress. Each add drops a droplet into
 // it (falling to the water line, then a ripple) — `drops` is a counter so
 // every tap restarts the animation, even several in a row.
@@ -639,6 +674,10 @@ function WaterGlass({ pct, drops, dark }) {
   );
 }
 
+// Water for the selected day, kept to one slim row so the session stays
+// the focus: a small glass that fills (a drop falls in on every add), the
+// amount against the goal (tap to change the goal), and quick buttons.
+// Future days can't be logged.
 function WaterCard({ dateKey, todayKey, ml, goalMl, onAdd, onSetGoal, dark, t }) {
   const [goalOpen, setGoalOpen] = useState(false);
   const [drops, setDrops] = useState(0);
@@ -649,60 +688,56 @@ function WaterCard({ dateKey, todayKey, ml, goalMl, onAdd, onSetGoal, dark, t })
     if (delta > 0) setDrops((n) => n + 1);
     onAdd(delta, ml);
   };
+  const scale = 0.5;
   return (
-    <SoloGlassBox t={t} className="rounded-2xl px-4 py-4 mt-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Droplet size={16} color={MEASURE_BLUE} fill={MEASURE_BLUE} />
-          <p className="text-sm font-bold">Water</p>
+    <SoloGlassBox t={t} className="rounded-2xl px-3.5 py-2.5 mt-3">
+      <div className="flex items-center gap-3">
+        <div className="shrink-0" style={{ width: CUP_W * scale, height: CUP_H * scale }}>
+          <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>
+            <WaterGlass pct={pct} drops={drops} dark={dark} />
+          </div>
         </div>
-        <button type="button" onClick={() => setGoalOpen(true)} className="text-xs font-semibold" style={{ color: t.textMuted }}>
-          Goal {litres(goalMl)} L
-        </button>
-      </div>
-      <div className="flex items-end justify-between gap-4 mt-2">
-        <div className="min-w-0">
-          <p className="leading-none">
-            <span className="text-4xl font-extrabold tabular-nums">{litres(ml)}</span>
-            <span className="text-sm font-semibold ml-1.5" style={{ color: t.textMuted }}>
+        <button type="button" onClick={() => setGoalOpen(true)} className="min-w-0 flex-1 text-left" aria-label={`Water ${litres(ml)} of ${litres(goalMl)} litres — change goal`}>
+          <p className="text-[11px] font-semibold" style={{ color: t.textFaint }}>
+            Water{pct >= 100 ? " · goal reached" : ` · ${pct}%`}
+          </p>
+          <p className="leading-tight mt-0.5">
+            <span className="text-lg font-extrabold tabular-nums">{litres(ml)}</span>
+            <span className="text-xs font-semibold ml-1" style={{ color: t.textMuted }}>
               / {litres(goalMl)} L
             </span>
           </p>
-          <p className="text-xs mt-2" style={{ color: pct >= 100 ? MEASURE_BLUE : t.textFaint }}>
-            {pct >= 100 ? "Goal reached — nice work." : `${litres(Math.max(0, goalMl - ml))} L to go · ${pct}%`}
+        </button>
+        {future ? (
+          <p className="text-[11px] shrink-0" style={{ color: t.textFaint }}>
+            Log on the day
           </p>
-        </div>
-        <WaterGlass pct={pct} drops={drops} dark={dark} />
+        ) : (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              aria-label="Remove 250 ml"
+              onClick={() => add(-250)}
+              disabled={ml <= 0}
+              className="w-9 h-9 rounded-full flex items-center justify-center disabled:opacity-30"
+              style={chip}
+            >
+              <Minus size={14} />
+            </button>
+            <button type="button" onClick={() => add(250)} className="h-9 px-3 rounded-full text-xs font-bold flex items-center gap-0.5" style={chip}>
+              <Plus size={12} /> 250 ml
+            </button>
+            <button
+              type="button"
+              onClick={() => add(500)}
+              className="h-9 px-3 rounded-full text-xs font-bold flex items-center gap-0.5"
+              style={{ backgroundColor: t.text, color: t.bg }}
+            >
+              <Plus size={12} /> 500 ml
+            </button>
+          </div>
+        )}
       </div>
-      {future ? (
-        <p className="text-xs mt-3" style={{ color: t.textFaint }}>
-          You can log water on the day.
-        </p>
-      ) : (
-        <div className="flex items-center gap-2 mt-3.5">
-          <button
-            type="button"
-            aria-label="Remove 250 ml"
-            onClick={() => add(-250)}
-            disabled={ml <= 0}
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30"
-            style={chip}
-          >
-            <Minus size={16} />
-          </button>
-          <button type="button" onClick={() => add(250)} className="flex-1 h-10 rounded-full text-sm font-bold flex items-center justify-center gap-1" style={chip}>
-            <Plus size={14} /> 250 ml
-          </button>
-          <button
-            type="button"
-            onClick={() => add(500)}
-            className="flex-1 h-10 rounded-full text-sm font-bold flex items-center justify-center gap-1"
-            style={{ backgroundColor: t.text, color: t.bg }}
-          >
-            <Plus size={14} /> 500 ml
-          </button>
-        </div>
-      )}
       <BottomSheet open={goalOpen} onClose={() => setGoalOpen(false)} title="Daily water goal" dark={dark}>
         <div style={{ color: t.text }} className="space-y-2">
           {WATER_GOALS_ML.map((g) => (

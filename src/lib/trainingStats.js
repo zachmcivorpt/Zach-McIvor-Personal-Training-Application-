@@ -176,8 +176,10 @@ export function findExerciseByKeyword(exercises, label) {
 }
 
 // Best-ever set for a curated list of "main lift" exercises — only lifts
-// the client has actually logged show up.
-export function computePersonalBests(logs, exercisesById) {
+// the client has actually logged show up, plus the always-shown ones.
+// `alwaysShow` lets a caller (Train Solo) list extra lifts to show from day
+// one; everyone else gets the default three.
+export function computePersonalBests(logs, exercisesById, { alwaysShow = ALWAYS_SHOW_LIFTS } = {}) {
   const best = {};
   logs.forEach((log) => {
     log.entries.forEach((entry) => {
@@ -196,7 +198,7 @@ export function computePersonalBests(logs, exercisesById) {
   });
   return KEY_LIFTS.map((k) => {
     const b = best[k.label];
-    if (!b) return ALWAYS_SHOW_LIFTS.has(k.label) ? { name: k.label, value: null } : null;
+    if (!b) return alwaysShow.has(k.label) ? { name: k.label, value: null } : null;
     return { name: k.label, value: b.weight > 0 ? `${b.weight} kg × ${b.reps}` : `${b.reps} Repetitions` };
   }).filter(Boolean);
 }

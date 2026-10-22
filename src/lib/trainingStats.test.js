@@ -8,7 +8,7 @@
 // weight x reps across every set) so "no progression in reps or sets" is
 // what actually drives the flag.
 import { describe, expect, it } from "vitest";
-import { computePlateaus } from "./trainingStats";
+import { computePlateaus, computePersonalBests } from "./trainingStats";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const exercisesById = { bench: { id: "bench", name: "Bench Press" } };
@@ -63,5 +63,20 @@ describe("computePlateaus", () => {
 
     const plateaus = computePlateaus(inWindow, exercisesById);
     expect(plateaus).toHaveLength(0);
+  });
+});
+
+describe("computePersonalBests alwaysShow", () => {
+  it("defaults to the three big lifts; a caller can show more from day one", () => {
+    expect(computePersonalBests([], {}).map((p) => p.name)).toEqual(["Bench Press", "Barbell Back Squat", "Deadlift"]);
+    const extra = new Set(["Barbell Back Squat", "Deadlift", "Bench Press", "Pull-ups", "Dumbbell Shoulder Press", "Hip Thrust"]);
+    expect(computePersonalBests([], {}, { alwaysShow: extra }).map((p) => p.name)).toEqual([
+      "Bench Press",
+      "Barbell Back Squat",
+      "Deadlift",
+      "Pull-ups",
+      "Dumbbell Shoulder Press",
+      "Hip Thrust",
+    ]);
   });
 });

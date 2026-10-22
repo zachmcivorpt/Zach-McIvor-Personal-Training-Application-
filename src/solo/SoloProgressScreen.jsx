@@ -42,6 +42,11 @@ import {
 
 const axisStyleFor = (dark) => ({ fontSize: 11, fill: dark ? "rgba(255,255,255,0.35)" : "rgba(10,10,11,0.35)" });
 
+// Train Solo's Strength Personal Bests show these from day one (the
+// coached client app keeps its own default three).
+const SOLO_ALWAYS_SHOW_LIFTS = new Set(["Barbell Back Squat", "Deadlift", "Bench Press", "Pull-ups", "Dumbbell Shoulder Press", "Hip Thrust"]);
+const SOLO_LIFT_LABELS = { "Hip Thrust": "Barbell Hip Thrust" };
+
 // Consecutive calendar days (back from today) with at least one logged
 // workout. Coaching's computeWorkoutStreak instead counts consecutive
 // *scheduled* days hit — meaningless here, since a self-guided customer
@@ -105,7 +110,14 @@ export default function SoloProgressScreen() {
   );
 
   const weeklyVolume = useMemo(() => computeWeeklyVolume(soloWorkoutLogs), [soloWorkoutLogs]);
-  const personalBests = useMemo(() => computePersonalBests(soloWorkoutLogs, exercisesById), [soloWorkoutLogs, exercisesById]);
+  const personalBests = useMemo(
+    () =>
+      computePersonalBests(soloWorkoutLogs, exercisesById, { alwaysShow: SOLO_ALWAYS_SHOW_LIFTS }).map((pb) => ({
+        ...pb,
+        name: SOLO_LIFT_LABELS[pb.name] || pb.name,
+      })),
+    [soloWorkoutLogs, exercisesById]
+  );
   const achievements = useMemo(
     () => computeAchievements(soloWorkoutLogs, soloWeighIns, exercisesById),
     [soloWorkoutLogs, soloWeighIns, exercisesById]
