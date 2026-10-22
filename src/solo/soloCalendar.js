@@ -21,7 +21,7 @@
 //    they choose an add-on, it replaces these on their calendar entirely.
 //    Done once any Active Recovery session is logged that day.
 import { localDateKey } from "../lib/dateKey";
-import { phaseForWeekNumber } from "./weekProgress";
+import { phaseForWeekNumber, currentWeekNumber } from "./weekProgress";
 import { isRecoveryLog } from "./activeRecovery";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -170,6 +170,32 @@ export function buildSoloCalendar({
   }
 
   return byDate;
+}
+
+// Where tapping a calendar entry goes — shared by the Calendar and My
+// Training's day view so both behave the same. Returns { path, state } or
+// null when the entry isn't actionable (done, or a future week/day that's
+// still locked).
+export function calendarItemTarget(item, { todayKey, soloUid, contentByProgramId }) {
+  if (item.type === "recovery") return { path: "/solo/recovery" };
+  if (item.type === "addon") {
+    if (item.done || item.dateKey > todayKey) return null; // a future day's add-on session waits for its day
+    return {
+      path: "/solo/workout",
+      state: { purchaseId: `${soloUid}_recovery`, programId: item.addonId, dayId: item.sessionId, weekNumber: item.dateKey, day: item.day },
+    };
+  }
+  if (item.type === "bodystats" || item.type === "photos") return { path: "/solo/home", state: { soloTab: "progress" } };
+  if (item.type === "workout" && !item.done) {
+    const totalWeeks = (contentByProgramId[item.programId]?.phases || []).reduce((s, p) => s + (p.durationWeeks || 0), 0);
+    const current = currentWeekNumber(item.purchase.startDate, totalWeeks);
+    if (current == null || item.weekNumber > current) return null; // a future week — locked, same as My Training
+    return {
+      path: "/solo/workout",
+      state: { purchaseId: item.purchase.id, programId: item.programId, dayId: item.day.id, weekNumber: item.weekNumber, day: item.day },
+    };
+  }
+  return null;
 }
 
 export function rangeKeys(daysBack, daysForward, today = localDateKey()) {

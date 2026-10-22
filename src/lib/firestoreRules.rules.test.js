@@ -448,6 +448,40 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
   // uid on whichever token a request carries — these tests authenticate
   // as that uid directly, which is the correct way to exercise the rule
   // regardless of which named app actually minted the token in production).
+  describe("soloWaterLogs", () => {
+    const SOLO_A = "solo-a";
+    const SOLO_B = "solo-b";
+    const id = `${SOLO_A}_2026-10-22`;
+    const water = (uid, ml) => ({ id, soloUserId: uid, date: "2026-10-22", ml, updatedAt: Date.now() });
+
+    it("lets a Train Solo customer log, read, update and delete their own water", async () => {
+      const db = dbAs(SOLO_A);
+      await assertSucceeds(setDoc(doc(db, "soloWaterLogs", id), water(SOLO_A, 250), { merge: true }));
+      await assertSucceeds(getDoc(doc(db, "soloWaterLogs", id)));
+      await assertSucceeds(setDoc(doc(db, "soloWaterLogs", id), water(SOLO_A, 500), { merge: true }));
+      await assertSucceeds(getDocs(query(collection(db, "soloWaterLogs"), where("soloUserId", "==", SOLO_A))));
+      await assertSucceeds(deleteDoc(doc(db, "soloWaterLogs", id)));
+    });
+
+    it("blocks another customer, the coach and anonymous users from reading or writing it", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloWaterLogs", id), water(SOLO_A, 250));
+      });
+      for (const other of [SOLO_B, COACH_UID, null]) {
+        const db = dbAs(other);
+        await assertFails(getDoc(doc(db, "soloWaterLogs", id)));
+        await assertFails(setDoc(doc(db, "soloWaterLogs", id), water(SOLO_A, 9999), { merge: true }));
+      }
+    });
+
+    it("never lets a customer create water under someone else's uid or reassign their own", async () => {
+      const dbB = dbAs(SOLO_B);
+      await assertFails(setDoc(doc(dbB, "soloWaterLogs", `${SOLO_A}_2026-10-23`), { soloUserId: SOLO_A, ml: 250 }));
+      await setDoc(doc(dbB, "soloWaterLogs", `${SOLO_B}_2026-10-22`), { soloUserId: SOLO_B, ml: 250 });
+      await assertFails(updateDoc(doc(dbB, "soloWaterLogs", `${SOLO_B}_2026-10-22`), { soloUserId: SOLO_A }));
+    });
+  });
+
   describe("soloUsers", () => {
     const SOLO_A = "solo-a";
     const SOLO_B = "solo-b";

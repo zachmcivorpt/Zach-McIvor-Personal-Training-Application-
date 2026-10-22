@@ -118,7 +118,7 @@ export default function SoloProgramDetailsScreen() {
         <p className="text-sm mb-4" style={{ color: t.textMuted }}>
           This program isn't available.
         </p>
-        <button onClick={() => navigate("/solo/home")} className="text-sm font-semibold underline">
+        <button onClick={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })} className="text-sm font-semibold underline">
           Back to catalogue
         </button>
       </div>

@@ -21,6 +21,7 @@ import {
   collection,
   query,
   where,
+  increment,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { soloAuth, soloDb, soloFunctions } from "./firebase";
@@ -88,6 +89,10 @@ export function SoloAppProvider({ children }) {
   // collections, never visible to a coach.
   const [soloProgressPhotos, setSoloProgressPhotos] = useState([]);
   const [soloBodyMetrics, setSoloBodyMetrics] = useState([]);
+  // Daily water intake (My Training's water tracker) — its own collection,
+  // one doc per customer per day, kept apart from soloBodyMetrics so a
+  // glass of water never counts as the Monday body-stats check-in.
+  const [soloWaterLogs, setSoloWaterLogs] = useState([]);
   // The full phases/days/exercises for programs this customer actually
   // OWNS — keyed by programId. Deliberately fetched per owned program
   // (never a collection-wide listener): soloProgramContent/{id} is gated
@@ -275,6 +280,17 @@ export function SoloAppProvider({ children }) {
     const q = query(collection(soloDb, "soloBodyMetrics"), where("soloUserId", "==", soloAuthUser.uid));
     return onSnapshot(q, (snap) => {
       setSoloBodyMetrics(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+  }, [soloAuthUser]);
+
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloWaterLogs([]);
+      return;
+    }
+    const q = query(collection(soloDb, "soloWaterLogs"), where("soloUserId", "==", soloAuthUser.uid));
+    return onSnapshot(q, (snap) => {
+      setSoloWaterLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
   }, [soloAuthUser]);
 
@@ -585,6 +601,18 @@ export function SoloAppProvider({ children }) {
         await updateDoc(doc(soloDb, "soloBodyMetrics", id), { [field]: deleteField() });
       },
 
+      // Water for one day: adding uses an atomic increment so quick
+      // repeated taps all count; taking away writes the clamped total
+      // (never below 0) from the amount currently shown.
+      async addSoloWater(uid, dateKey, deltaMl, currentMl = 0) {
+        const id = `${uid}_${dateKey}`;
+        const ml = deltaMl >= 0 ? increment(deltaMl) : Math.max(0, (Number(currentMl) || 0) + deltaMl);
+        await setDoc(doc(soloDb, "soloWaterLogs", id), { id, soloUserId: uid, date: dateKey, ml, updatedAt: Date.now() }, { merge: true });
+      },
+      async setSoloWaterGoal(uid, goalMl) {
+        await updateDoc(doc(soloDb, "soloUsers", uid), { waterGoalMl: goalMl });
+      },
+
       // Self-service account deletion — same App Store/Play Data Safety
       // requirement Coaching's own deleteMyAccount exists for, but doable
       // entirely client-side here rather than through a Cloud Function:
@@ -611,13 +639,14 @@ export function SoloAppProvider({ children }) {
           // made this whole batch fail for every customer who'd bought a
           // program, so account deletion never worked for paying customers.
           // They hold no personal details beyond the (now deleted) uid.
-          const [logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap] = await Promise.all([
+          const [logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap, waterSnap] = await Promise.all([
             getDocs(query(collection(soloDb, "soloWorkoutLogs"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWeighIns"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloProgressPhotos"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloBodyMetrics"), where("soloUserId", "==", user.uid))),
+            getDocs(query(collection(soloDb, "soloWaterLogs"), where("soloUserId", "==", user.uid))),
           ]);
-          const refs = [...logsSnap.docs, ...weighInsSnap.docs, ...photosSnap.docs, ...bodyMetricsSnap.docs].map((d) => d.ref);
+          const refs = [...logsSnap.docs, ...weighInsSnap.docs, ...photosSnap.docs, ...bodyMetricsSnap.docs, ...waterSnap.docs].map((d) => d.ref);
           // Firestore caps a batch at 500 writes — a long-time customer's
           // history can exceed that, so delete in chunks. The profile doc
           // goes last, so a failure part-way leaves a still-usable account
@@ -661,6 +690,7 @@ export function SoloAppProvider({ children }) {
       soloWeighIns,
       soloProgressPhotos,
       soloBodyMetrics,
+      soloWaterLogs,
       soloProgramContentByProgramId,
       ...actions,
     }),
@@ -679,6 +709,7 @@ export function SoloAppProvider({ children }) {
       soloWeighIns,
       soloProgressPhotos,
       soloBodyMetrics,
+      soloWaterLogs,
       soloProgramContentByProgramId,
       actions,
     ]

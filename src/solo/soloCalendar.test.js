@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSoloCalendar, mondayOf, sessionOffsets, sessionDateKeys, sessionDayLabel } from "./soloCalendar";
+import { buildSoloCalendar, mondayOf, sessionOffsets, sessionDateKeys, sessionDayLabel, calendarItemTarget } from "./soloCalendar";
 
 const program = { id: "p1", name: "Upper/Lower" };
 const content = {
@@ -128,5 +128,21 @@ describe("sessionDateKeys / sessionDayLabel", () => {
     expect(sessionDayLabel("2026-10-22", "2026-10-21")).toBe("Tomorrow");
     expect(sessionDayLabel("2026-10-20", "2026-10-21")).toBe("Yesterday");
     expect(sessionDayLabel("2026-10-25", "2026-10-21")).toMatch(/25/);
+  });
+});
+
+describe("calendarItemTarget (shared by the Calendar and My Training's day view)", () => {
+  const ctx = { todayKey: "2026-10-22", soloUid: "u1", contentByProgramId: { p1: { phases: [{ durationWeeks: 4, days: [{ id: "d1" }] }] } } };
+  const purchase = { id: "u1_p1", startDate: "2026-10-19" };
+  it("starts a due workout, locks a future week and a done one", () => {
+    const item = { type: "workout", done: false, purchase, programId: "p1", day: { id: "d1" }, weekNumber: 1 };
+    expect(calendarItemTarget(item, ctx)).toEqual({ path: "/solo/workout", state: { purchaseId: "u1_p1", programId: "p1", dayId: "d1", weekNumber: 1, day: { id: "d1" } } });
+    expect(calendarItemTarget({ ...item, weekNumber: 2 }, ctx)).toBe(null);
+    expect(calendarItemTarget({ ...item, done: true }, ctx)).toBe(null);
+  });
+  it("sends recovery to its screen and check-ins to Progress; future add-on days wait", () => {
+    expect(calendarItemTarget({ type: "recovery" }, ctx)).toEqual({ path: "/solo/recovery" });
+    expect(calendarItemTarget({ type: "bodystats" }, ctx)).toEqual({ path: "/solo/home", state: { soloTab: "progress" } });
+    expect(calendarItemTarget({ type: "addon", done: false, dateKey: "2026-10-23" }, ctx)).toBe(null);
   });
 });

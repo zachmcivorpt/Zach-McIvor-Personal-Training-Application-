@@ -4,8 +4,7 @@ import { ChevronLeft, ChevronRight, Lock, Check } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { localDateKey } from "../lib/dateKey";
-import { buildSoloCalendar, rangeKeys, addDays } from "./soloCalendar";
-import { currentWeekNumber } from "./weekProgress";
+import { buildSoloCalendar, rangeKeys, addDays, calendarItemTarget } from "./soloCalendar";
 import { isRecoveryAddon } from "./recommendations";
 
 // Train Solo's calendar (Profile → My Calendar) — the same scrolling
@@ -87,27 +86,8 @@ export default function SoloCalendarScreen() {
   }
 
   function actionFor(item) {
-    if (item.type === "recovery") return () => navigate("/solo/recovery");
-    if (item.type === "addon") {
-      if (item.done || item.dateKey > todayKey) return null; // a future day's add-on session waits for its day
-      return () =>
-        navigate("/solo/workout", {
-          state: { purchaseId: `${soloCurrentUser.id}_recovery`, programId: item.addonId, dayId: item.sessionId, weekNumber: item.dateKey, day: item.day },
-        });
-    }
-    if (item.type === "bodystats" || item.type === "photos") {
-      return () => navigate("/solo/home", { state: { soloTab: "progress" } });
-    }
-    if (item.type === "workout" && !item.done) {
-      const totalWeeks = (soloProgramContentByProgramId[item.programId]?.phases || []).reduce((s, p) => s + (p.durationWeeks || 0), 0);
-      const current = currentWeekNumber(item.purchase.startDate, totalWeeks);
-      if (current == null || item.weekNumber > current) return null; // a future week — locked, same as My Training
-      return () =>
-        navigate("/solo/workout", {
-          state: { purchaseId: item.purchase.id, programId: item.programId, dayId: item.day.id, weekNumber: item.weekNumber, day: item.day },
-        });
-    }
-    return null;
+    const target = calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser.id, contentByProgramId: soloProgramContentByProgramId });
+    return target ? () => navigate(target.path, target.state ? { state: target.state } : undefined) : null;
   }
 
   return (

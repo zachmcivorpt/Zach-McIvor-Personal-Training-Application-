@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Clock3 } from "lucide-react";
+import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { SoloArtwork } from "./SoloArtwork";
 import { isRecoveryAddon } from "./recommendations";
@@ -9,7 +9,7 @@ import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { programPhases } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { totalWeeksForProgram, currentWeekNumber, phaseForWeekNumber } from "./weekProgress";
-import { sessionDateKeys, sessionDayLabel } from "./soloCalendar";
+import { sessionDateKeys, sessionDayLabel, buildSoloCalendar, calendarItemTarget, mondayOf, addDays } from "./soloCalendar";
 import SoloGlassBox from "./SoloGlassBox";
 import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 
@@ -185,7 +185,20 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
 export default function SoloMyTrainingScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { soloPrograms, soloPurchases, soloWorkoutLogs, soloProgramContentByProgramId, setPurchaseStartDate, soloCurrentUser } = useSoloApp();
+  const {
+    soloPrograms,
+    soloPurchases,
+    soloWorkoutLogs,
+    soloProgramContentByProgramId,
+    setPurchaseStartDate,
+    soloCurrentUser,
+    soloWeighIns,
+    soloBodyMetrics,
+    soloProgressPhotos,
+    soloWaterLogs,
+    addSoloWater,
+    setSoloWaterGoal,
+  } = useSoloApp();
   const activeAddon = soloPrograms.find((p) => p.id === soloCurrentUser?.recoveryAddon?.programId && p.status === "published" && isRecoveryAddon(p)) || null;
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
@@ -233,9 +246,41 @@ export default function SoloMyTrainingScreen() {
         .filter(Boolean),
     [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs]
   );
-  const active = pickActiveRow(ownedRows, soloWorkoutLogs);
   const glass = soloGlass(t);
   const todayKey = localDateKey();
+
+  // The day view: a Mon–Sun strip, and that day's plan taken from the same
+  // schedule the Calendar builds (buildSoloCalendar), so the two always
+  // agree on what's on which day.
+  const [selectedKey, setSelectedKey] = useState(todayKey);
+  const weekStart = mondayOf(selectedKey);
+  const weekKeys = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
+  const addonProgram = programsById[soloCurrentUser?.recoveryAddon?.programId];
+  const recoveryAddon = addonProgram && addonProgram.status === "published" && isRecoveryAddon(addonProgram) ? addonProgram : null;
+  const byDate = useMemo(
+    () =>
+      buildSoloCalendar({
+        purchases: soloPurchases,
+        programsById,
+        contentByProgramId: soloProgramContentByProgramId,
+        workoutLogs: soloWorkoutLogs,
+        weighIns: soloWeighIns,
+        bodyMetrics: soloBodyMetrics,
+        progressPhotos: soloProgressPhotos,
+        recoveryAddon,
+        accountCreatedAt: soloCurrentUser?.createdAt,
+        fromKey: weekStart,
+        toKey: addDays(weekStart, 6),
+      }),
+    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, weekStart]
+  );
+  const dayItems = [...(byDate[selectedKey] || [])].sort((a, b) => ITEM_ORDER[a.type] - ITEM_ORDER[b.type]);
+  const notStarted = ownedRows.filter((r) => !r.purchase.startDate);
+
+  function openItem(item) {
+    const target = calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloProgramContentByProgramId });
+    if (target) navigate(target.path, target.state ? { state: target.state } : undefined);
+  }
 
   return (
     <div className="relative w-full">
@@ -243,109 +288,58 @@ export default function SoloMyTrainingScreen() {
         <h1 className="sr-only">My Training</h1>
         <img src={t.logo} alt="APEX" className="w-auto mb-5" style={{ height: 19 }} />
 
-        {ownedRows.length === 0 ? (
-          <div className="rounded-3xl px-5 py-10 text-center" style={glass}>
-            <CalendarDays size={22} color={t.textFaint} className="mx-auto mb-3" />
-            <p className="text-sm mb-4" style={{ color: t.textMuted }}>
-              You don't own any programs yet.
+        <WeekStrip
+          weekKeys={weekKeys}
+          selectedKey={selectedKey}
+          todayKey={todayKey}
+          byDate={byDate}
+          onSelect={setSelectedKey}
+          onShiftWeek={(n) => setSelectedKey(addDays(weekStart, n * 7))}
+          onToday={() => setSelectedKey(todayKey)}
+          t={t}
+        />
+
+        <DayPlan
+          dateKey={selectedKey}
+          todayKey={todayKey}
+          items={dayItems}
+          ownsPrograms={ownedRows.length > 0}
+          onOpen={openItem}
+          target={(item) => calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloProgramContentByProgramId })}
+          onBrowse={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })}
+          t={t}
+        />
+
+        {notStarted.map((row) => (
+          <button
+            key={row.purchase.id}
+            type="button"
+            onClick={() => setOpenPurchaseId(row.purchase.id)}
+            className="w-full flex items-center gap-3 rounded-2xl px-4 py-3 mt-2.5 text-left"
+            style={glass}
+          >
+            <CalendarDays size={18} color={MEASURE_BLUE} className="shrink-0" />
+            <p className="text-sm flex-1 min-w-0">
+              <span className="font-semibold">Set a start date</span>
+              <span style={{ color: t.textMuted }}> for {row.program.name} to see its sessions here.</span>
             </p>
-            <button onClick={() => navigate("/solo/home")} className="text-sm font-bold underline">
-              Browse the catalogue
-            </button>
-          </div>
-        ) : (
+            <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+          </button>
+        ))}
+
+        <WaterCard
+          dateKey={selectedKey}
+          todayKey={todayKey}
+          ml={soloWaterLogs.find((w) => w.date === selectedKey)?.ml || 0}
+          goalMl={soloCurrentUser?.waterGoalMl || DEFAULT_WATER_GOAL_ML}
+          onAdd={(delta, current) => soloCurrentUser && addSoloWater(soloCurrentUser.id, selectedKey, delta, current)}
+          onSetGoal={(goal) => soloCurrentUser && setSoloWaterGoal(soloCurrentUser.id, goal)}
+          dark={dark}
+          t={t}
+        />
+
+        {ownedRows.length > 0 && (
           <>
-            <button
-              type="button"
-              onClick={() => setOpenPurchaseId(active.purchase.id)}
-              className="w-full text-left rounded-3xl px-5 pt-5 pb-4"
-              style={glass}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <h2 className="text-2xl font-extrabold leading-tight">{active.program.name}</h2>
-                <ChevronRight size={20} color={t.textMuted} className="mt-1 shrink-0" />
-              </div>
-              <p className="text-sm mt-1.5" style={{ color: t.textMuted }}>
-                {weekLine(active)}
-              </p>
-              {active.purchase.startDate && <ProgressBar pct={active.pct} t={t} className="mt-4" large />}
-
-              <div className="mt-4 pt-3.5 grid grid-cols-2" style={{ borderTop: `1px solid ${t.panelBorder}` }}>
-                <div className="flex items-start gap-2.5 pr-3">
-                  <CalendarDays size={18} color={t.textMuted} className="mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[11px]" style={{ color: t.textMuted }}>
-                      Next session
-                    </p>
-                    <p className="text-sm font-semibold truncate">{active.nextLabel}</p>
-                    {active.nextDetail && (
-                      <p className="text-[11px]" style={{ color: t.textFaint }}>
-                        {active.nextDetail}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-start gap-2.5 pl-3" style={{ borderLeft: `1px solid ${t.panelBorder}` }}>
-                  <Clock3 size={18} color={t.textMuted} className="mt-0.5 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-[11px]" style={{ color: t.textMuted }}>
-                      Completed
-                    </p>
-                    <p className="text-sm font-semibold">
-                      {active.sessionsThisWeek != null ? `${active.doneThisWeek} of ${active.sessionsThisWeek}` : "—"}
-                    </p>
-                    <p className="text-[11px]" style={{ color: t.textFaint }}>
-                      sessions this week
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </button>
-
-            {active.weekSessions.length > 0 && (
-              <>
-                <div className="flex items-baseline justify-between gap-3 mt-7 mb-3">
-                  <h2 className="text-lg font-bold shrink-0">This Week</h2>
-                  {active.phaseName && (
-                    <p className="text-xs truncate" style={{ color: t.textFaint }}>
-                      {active.phaseName}
-                    </p>
-                  )}
-                </div>
-                <SoloGlassBox t={t} className="rounded-2xl">
-                  {active.weekSessions.map(({ day, dateKey, done }, i) => (
-                    <div
-                      key={day.id}
-                      className="flex items-center gap-3 px-4 py-3"
-                      style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
-                    >
-                      <SessionDate dateKey={dateKey} today={todayKey} t={t} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold truncate">{day.label || "Workout"}</p>
-                        <p className="text-xs mt-0.5" style={{ color: dateKey === todayKey && !done ? MEASURE_BLUE : t.textFaint }}>
-                          {sessionDayLabel(dateKey, todayKey)} · {exerciseCountLabel(day)}
-                        </p>
-                      </div>
-                      {done ? (
-                        <span className="flex items-center gap-1 text-xs font-semibold text-green-600 shrink-0">
-                          <CheckCircle2 size={14} /> Done
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => startDay(active.purchase, active.program, day, active.weekNumber)}
-                          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
-                          style={{ backgroundColor: t.text, color: t.bg }}
-                        >
-                          <Play size={11} fill="currentColor" /> Start
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </SoloGlassBox>
-              </>
-            )}
-
             <h2 className="text-lg font-bold mt-8 mb-3">Your Programs</h2>
             <div className="space-y-2.5">
               {ownedRows.map((row) => (
@@ -355,7 +349,7 @@ export default function SoloMyTrainingScreen() {
                   className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
                   style={glass}
                 >
-                  <SoloArtwork program={row.program} t={t} className="w-16 h-16 rounded-xl shrink-0" />
+                  <SoloArtwork program={row.program} t={t} className="w-14 h-14 rounded-xl shrink-0" />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold leading-snug">{row.program.name}</p>
                     <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
@@ -378,7 +372,7 @@ export default function SoloMyTrainingScreen() {
               className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
               style={glass}
             >
-              <SoloArtwork program={activeAddon} t={t} className="w-16 h-16 rounded-xl shrink-0" />
+              <SoloArtwork program={activeAddon} t={t} className="w-14 h-14 rounded-xl shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold leading-snug">{activeAddon.name}</p>
                 <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
@@ -432,6 +426,245 @@ export default function SoloMyTrainingScreen() {
   );
 }
 
+const ITEM_ORDER = { workout: 0, addon: 1, recovery: 2, bodystats: 3, photos: 4 };
+const ITEM_ICON = { workout: Dumbbell, addon: HeartPulse, recovery: HeartPulse, bodystats: Scale, photos: Camera };
+const DEFAULT_WATER_GOAL_ML = 2500;
+const WATER_GOALS_ML = [2000, 2500, 3000, 3500, 4000];
+
+function litres(ml) {
+  return String(Math.round(ml / 10) / 100);
+}
+
+// Mon–Sun for the selected week: weekday letter over the date figure, a dot
+// under any day with a session still to do, a check once it's all done.
+function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftWeek, onToday, t }) {
+  const first = new Date(`${weekKeys[0]}T00:00:00`);
+  const showToday = !weekKeys.includes(todayKey) || selectedKey !== todayKey;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-sm font-semibold">{first.toLocaleDateString(undefined, { month: "long", year: "numeric" })}</p>
+        <div className="flex items-center gap-1.5">
+          {showToday && (
+            <button type="button" onClick={onToday} className="text-xs font-semibold px-3 h-7 rounded-full" style={{ ...soloGlass(t), color: MEASURE_BLUE }}>
+              Today
+            </button>
+          )}
+          <button type="button" aria-label="Previous week" onClick={() => onShiftWeek(-1)} className="w-7 h-7 rounded-full flex items-center justify-center" style={soloGlass(t)}>
+            <ChevronLeft size={14} />
+          </button>
+          <button type="button" aria-label="Next week" onClick={() => onShiftWeek(1)} className="w-7 h-7 rounded-full flex items-center justify-center" style={soloGlass(t)}>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+      <SoloGlassBox t={t} className="rounded-2xl grid grid-cols-7 p-1.5">
+        {weekKeys.map((key) => {
+          const d = new Date(`${key}T00:00:00`);
+          const sessions = (byDate[key] || []).filter((i) => i.type === "workout" || i.type === "addon");
+          const allDone = sessions.length > 0 && sessions.every((i) => i.done);
+          const selected = key === selectedKey;
+          const isToday = key === todayKey;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSelect(key)}
+              aria-label={d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })}
+              aria-pressed={selected}
+              className="flex flex-col items-center py-2 rounded-xl"
+              style={selected ? { backgroundColor: t.text, color: t.bg } : undefined}
+            >
+              <span className="text-[10px] font-bold uppercase" style={{ color: selected ? t.bg : isToday ? MEASURE_BLUE : t.textFaint }}>
+                {d.toLocaleDateString(undefined, { weekday: "narrow" })}
+              </span>
+              <span className="text-lg font-extrabold tabular-nums leading-tight mt-0.5" style={{ color: selected ? t.bg : isToday ? MEASURE_BLUE : t.text }}>
+                {d.getDate()}
+              </span>
+              <span className="h-3 mt-0.5 flex items-center">
+                {allDone ? (
+                  <CheckCircle2 size={10} color={selected ? t.bg : MEASURE_BLUE} />
+                ) : sessions.length > 0 ? (
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selected ? t.bg : MEASURE_BLUE }} />
+                ) : null}
+              </span>
+            </button>
+          );
+        })}
+      </SoloGlassBox>
+    </div>
+  );
+}
+
+// Everything on the selected day, in one place: the session(s) with a
+// Start button, rest-day recovery, and Monday check-ins.
+function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBrowse, t }) {
+  const d = new Date(`${dateKey}T00:00:00`);
+  const relative = dateKey === todayKey ? "Today" : sessionDayLabel(dateKey, todayKey);
+  const heading = ["Today", "Tomorrow", "Yesterday"].includes(relative) ? relative : d.toLocaleDateString(undefined, { weekday: "long" });
+  const sessionCount = items.filter((i) => i.type === "workout" || i.type === "addon").length;
+  return (
+    <div className="mt-6">
+      <div className="flex items-baseline justify-between gap-3 mb-3">
+        <h2 className="text-2xl font-extrabold leading-tight">{heading}</h2>
+        <p className="text-xs shrink-0" style={{ color: t.textFaint }}>
+          {d.toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+          {sessionCount > 0 ? ` · ${sessionCount} session${sessionCount === 1 ? "" : "s"}` : ""}
+        </p>
+      </div>
+      {items.length === 0 ? (
+        <div className="rounded-2xl px-5 py-6 text-center" style={soloGlass(t)}>
+          {ownsPrograms ? (
+            <>
+              <p className="text-sm font-semibold">Rest day</p>
+              <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+                Nothing scheduled — recover and come back fresh.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm mb-3" style={{ color: t.textMuted }}>
+                You don't own any programs yet.
+              </p>
+              <button type="button" onClick={onBrowse} className="text-sm font-bold underline">
+                Browse the catalogue
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <SoloGlassBox t={t} className="rounded-2xl">
+          {items.map((item, i) => {
+            const Icon = ITEM_ICON[item.type] || CalendarDays;
+            const actionable = !!target(item);
+            const isSession = item.type === "workout" || item.type === "addon";
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => actionable && onOpen(item)}
+                disabled={!actionable}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-left disabled:cursor-default"
+                style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}
+              >
+                <span
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: isSession ? "rgba(47,143,255,0.14)" : t.chipBg }}
+                >
+                  <Icon size={17} color={isSession ? MEASURE_BLUE : t.textMuted} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className={`truncate ${isSession ? "text-base font-bold" : "text-sm font-semibold"}`}>{item.title}</p>
+                  <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
+                    {item.subtitle}
+                  </p>
+                </div>
+                {item.done ? (
+                  <span className="flex items-center gap-1 text-xs font-semibold shrink-0" style={{ color: MEASURE_BLUE }}>
+                    <CheckCircle2 size={14} /> Done
+                  </span>
+                ) : isSession && actionable ? (
+                  <span className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full shrink-0" style={{ backgroundColor: t.text, color: t.bg }}>
+                    <Play size={11} fill="currentColor" /> Start
+                  </span>
+                ) : !actionable ? (
+                  <Lock size={14} color={t.textFaint} className="shrink-0" />
+                ) : (
+                  <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+                )}
+              </button>
+            );
+          })}
+        </SoloGlassBox>
+      )}
+    </div>
+  );
+}
+
+// Water for the selected day: a big figure against the goal, a bar, and
+// quick add/remove buttons. Future days can't be logged; the goal is set
+// from a pop-up (saved on the customer's profile).
+function WaterCard({ dateKey, todayKey, ml, goalMl, onAdd, onSetGoal, dark, t }) {
+  const [goalOpen, setGoalOpen] = useState(false);
+  const future = dateKey > todayKey;
+  const pct = Math.min(100, Math.round((ml / goalMl) * 100));
+  const chip = { backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` };
+  return (
+    <SoloGlassBox t={t} className="rounded-2xl px-4 py-4 mt-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Droplet size={16} color={MEASURE_BLUE} fill={MEASURE_BLUE} />
+          <p className="text-sm font-bold">Water</p>
+        </div>
+        <button type="button" onClick={() => setGoalOpen(true)} className="text-xs font-semibold" style={{ color: t.textMuted }}>
+          Goal {litres(goalMl)} L
+        </button>
+      </div>
+      <p className="mt-2 leading-none">
+        <span className="text-4xl font-extrabold tabular-nums">{litres(ml)}</span>
+        <span className="text-sm font-semibold ml-1.5" style={{ color: t.textMuted }}>
+          / {litres(goalMl)} L
+        </span>
+      </p>
+      <div className="h-2 rounded-full overflow-hidden mt-3" style={{ backgroundColor: t.chipBg }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: MEASURE_BLUE }} />
+      </div>
+      {future ? (
+        <p className="text-xs mt-3" style={{ color: t.textFaint }}>
+          You can log water on the day.
+        </p>
+      ) : (
+        <div className="flex items-center gap-2 mt-3.5">
+          <button
+            type="button"
+            aria-label="Remove 250 ml"
+            onClick={() => onAdd(-250, ml)}
+            disabled={ml <= 0}
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30"
+            style={chip}
+          >
+            <Minus size={16} />
+          </button>
+          <button type="button" onClick={() => onAdd(250, ml)} className="flex-1 h-10 rounded-full text-sm font-bold flex items-center justify-center gap-1" style={chip}>
+            <Plus size={14} /> 250 ml
+          </button>
+          <button
+            type="button"
+            onClick={() => onAdd(500, ml)}
+            className="flex-1 h-10 rounded-full text-sm font-bold flex items-center justify-center gap-1"
+            style={{ backgroundColor: t.text, color: t.bg }}
+          >
+            <Plus size={14} /> 500 ml
+          </button>
+        </div>
+      )}
+      <BottomSheet open={goalOpen} onClose={() => setGoalOpen(false)} title="Daily water goal" dark={dark}>
+        <div style={{ color: t.text }} className="space-y-2">
+          {WATER_GOALS_ML.map((g) => (
+            <button
+              key={g}
+              type="button"
+              onClick={() => {
+                onSetGoal(g);
+                setGoalOpen(false);
+              }}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-semibold"
+              style={
+                g === goalMl
+                  ? { backgroundColor: "rgba(47,143,255,0.16)", border: `1px solid ${MEASURE_BLUE}` }
+                  : { backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }
+              }
+            >
+              {litres(g)} L a day
+              {g === goalMl && <CheckCircle2 size={16} color={MEASURE_BLUE} />}
+            </button>
+          ))}
+        </div>
+      </BottomSheet>
+    </SoloGlassBox>
+  );
+}
+
 // A session's scheduled date as a figure: short weekday over the day of the
 // month, in the accent colour when it's today.
 function SessionDate({ dateKey, today, t }) {
@@ -473,17 +706,6 @@ function weekLine(row) {
   const parts = [`Week ${row.weekNumber} of ${row.totalWeeks}`];
   if (row.sessionsThisWeek != null) parts.push(`${row.sessionsThisWeek} session${row.sessionsThisWeek === 1 ? "" : "s"}/week`);
   return parts.join(" · ");
-}
-
-// The program a customer is most likely "on": the one they last logged a
-// workout for, else the most recently started one, else the first owned.
-function pickActiveRow(rows, logs) {
-  if (rows.length === 0) return null;
-  const latestLog = logs.reduce((best, l) => (!best || (l.date || 0) > (best.date || 0) ? l : best), null);
-  const fromLog = latestLog && rows.find((r) => r.purchase.id === latestLog.purchaseId);
-  if (fromLog) return fromLog;
-  const started = rows.filter((r) => r.purchase.startDate).sort((a, b) => (a.purchase.startDate < b.purchase.startDate ? 1 : -1));
-  return started[0] || rows[0];
 }
 
 export function summarizeProgress(purchase, program, content, logs) {
