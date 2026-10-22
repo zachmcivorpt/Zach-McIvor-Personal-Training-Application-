@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import React, { createContext, useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { X, Check, AlertCircle, Camera, Dumbbell, Video, Play, Search, Sparkles, ChevronDown } from "lucide-react";
 import {
@@ -713,41 +713,56 @@ export function ProgressBar({ value, max, height = 8, dim = false, color, trackC
   );
 }
 
-// A little glass that visibly fills with blue water as a client logs
-// intake (+250ml, +500ml, custom) — the fill line eases up smoothly on
-// every log so it reads as "pouring in" rather than jumping, and it never
-// rises past the rim: any amount beyond `max` still just reads as a full
-// glass, it doesn't overflow the drawing.
+// A glass that fills with blue water as a client logs intake, with a gentle
+// wave on top; the level eases up on every log and never passes the rim
+// (anything beyond `max` reads as full). Whenever the amount goes up, a
+// drop falls into the glass and ripples on the surface — the same glass as
+// Train Solo's water tracker. Animations are off for reduced-motion users.
+const CUP_PATH = "M6 6 H58 L52 74 Q51.4 80 45.5 80 H18.5 Q12.6 80 12 74 Z";
+const CUP_TOP = 8;
+const CUP_BOTTOM = 78;
+
 export function WaterCup({ value, max, size = 56, dark = false }) {
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
-  // Fill spans the bottle's body only (not the cap/neck), same convention
-  // as the old cup version — a real bottle's neck stays clear even full.
-  const topY = 16;
-  const baseY = 80;
-  const fillY = baseY - pct * (baseY - topY);
-  const bottlePath =
-    "M26 2 H38 Q40 2 40 4 V11 Q40 13 42 15 L45 20 Q48 24 48 29 V78 Q48 82 44 82 H20 Q16 82 16 78 V29 Q16 24 19 20 L22 15 Q24 13 24 11 V4 Q24 2 26 2 Z";
-  const capPath = "M26 2 H38 Q40 2 40 4 V11 H24 V4 Q24 2 26 2 Z";
+  const level = CUP_BOTTOM - (CUP_BOTTOM - CUP_TOP) * pct;
+  const clipId = `water-cup-${useId().replace(/:/g, "")}`;
+  const prev = useRef(value);
+  const [drops, setDrops] = useState(0);
+  useEffect(() => {
+    if (value > prev.current) setDrops((n) => n + 1);
+    prev.current = value;
+  }, [value]);
   return (
-    <svg width={size} height={Math.round(size * (86 / 64))} viewBox="0 0 64 86" className="shrink-0" aria-hidden="true">
+    <svg width={size} height={Math.round(size * (84 / 64))} viewBox="0 0 64 84" className="shrink-0 overflow-visible" aria-hidden="true">
       <defs>
-        <clipPath id="waterBottleClip">
-          <path d={bottlePath} />
+        <clipPath id={clipId}>
+          <path d={CUP_PATH} />
         </clipPath>
       </defs>
-      <g clipPath="url(#waterBottleClip)">
-        <rect x="0" y="0" width="64" height="86" fill={dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,11,0.04)"} />
-        <rect
-          x="0"
-          y={fillY}
-          width="64"
-          height={86 - fillY}
-          fill={MEASURE_BLUE}
-          style={{ transition: "y 0.7s cubic-bezier(0.22,1,0.36,1), height 0.7s cubic-bezier(0.22,1,0.36,1)" }}
-        />
+      <path d={CUP_PATH} fill={dark ? "rgba(255,255,255,0.06)" : "rgba(10,10,11,0.04)"} />
+      <g clipPath={`url(#${clipId})`}>
+        <g style={{ transform: `translateY(${level}px)`, opacity: pct > 0 ? 1 : 0, transition: "transform 0.7s cubic-bezier(0.22,1,0.36,1), opacity 0.3s" }}>
+          <path d="M-20 3 Q-4 -2 12 3 T44 3 T76 3 T108 3 V120 H-20 Z" fill={MEASURE_BLUE} opacity="0.9" className="apex-water-wave" />
+          <rect x="-20" y="3" width="140" height="120" fill={MEASURE_BLUE} opacity="0.9" />
+          <rect x="16" y="10" width="5" height="120" rx="2.5" fill="#fff" opacity="0.18" />
+        </g>
       </g>
-      <path d={bottlePath} fill="none" stroke={dark ? "rgba(255,255,255,0.25)" : "rgba(10,10,11,0.35)"} strokeWidth="2.5" strokeLinejoin="round" />
-      <path d={capPath} fill={dark ? "rgba(255,255,255,0.12)" : "rgba(10,10,11,0.08)"} stroke={dark ? "rgba(255,255,255,0.25)" : "rgba(10,10,11,0.35)"} strokeWidth="2.5" strokeLinejoin="round" />
+      <path d={CUP_PATH} fill="none" stroke={dark ? "rgba(255,255,255,0.35)" : "rgba(10,10,11,0.3)"} strokeWidth="2" strokeLinejoin="round" />
+      {drops > 0 && (
+        <g key={drops} style={{ "--apex-drop-fall": `${level - 4}px` }}>
+          <path d="M32 -14 C32 -14 26 -6 26 -2 A6 6 0 0 0 38 -2 C38 -6 32 -14 32 -14 Z" fill={MEASURE_BLUE} className="apex-water-drop" />
+          <ellipse cx="32" cy={level} rx="9" ry="2.5" fill="none" stroke={dark ? "rgba(255,255,255,0.7)" : MEASURE_BLUE} strokeWidth="1.5" className="apex-water-ripple" />
+        </g>
+      )}
+      <style>{`
+        .apex-water-drop { animation: apex-water-drop 520ms cubic-bezier(0.55, 0, 1, 0.45) forwards; }
+        @keyframes apex-water-drop { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 92% { opacity: 1; } 100% { transform: translateY(var(--apex-drop-fall)); opacity: 0; } }
+        .apex-water-ripple { opacity: 0; transform-box: fill-box; transform-origin: center; animation: apex-water-ripple 520ms ease-out 470ms forwards; }
+        @keyframes apex-water-ripple { 0% { transform: scale(0.3); opacity: 0.9; } 100% { transform: scale(1.8); opacity: 0; } }
+        .apex-water-wave { animation: apex-water-wave 3.2s linear infinite; }
+        @keyframes apex-water-wave { from { transform: translateX(0); } to { transform: translateX(-32px); } }
+        @media (prefers-reduced-motion: reduce) { .apex-water-drop, .apex-water-ripple, .apex-water-wave { animation: none; display: none; } }
+      `}</style>
     </svg>
   );
 }

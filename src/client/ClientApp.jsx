@@ -436,13 +436,25 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   );
 }
 
+// Frosted-glass card surface for the client app's session/program cards —
+// the same translucent fill + hairline border + blur Train Solo uses, in
+// the client app's light or dark theme.
+function clientGlass(dark) {
+  return {
+    backgroundColor: dark ? "rgba(28,28,30,0.55)" : "rgba(255,255,255,0.62)",
+    border: `1px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(20,19,15,0.08)"}`,
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
+  };
+}
+
 export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onDiscard, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
   const dark = useClientDark();
-  const outerMargin = fullWidth ? "" : "mx-2.5";
-  const outerRadius = fullWidth ? "rounded-none" : "rounded-2xl";
-  const outerBorder = fullWidth ? "" : `border ${dark ? "border-white/10" : "border-black/10"}`;
-  const cardBg = dark ? "#141414" : "#F7F7F8";
-  const border = dark ? "border-white/8" : "border-black/8";
+  // Always a rounded glass card with side margins now (`fullWidth` is kept
+  // only so existing callers don't break).
+  void fullWidth;
+  const outerMargin = "mx-2.5";
+  const outerRadius = "rounded-2xl";
   const muted20 = dark ? "text-white/20" : "text-black/20";
   const muted30 = dark ? "text-white/45" : "text-black/45";
   const muted70 = dark ? "text-white/70" : "text-black/70";
@@ -450,7 +462,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
 
   if (!todaySession) {
     return (
-      <div className={`${outerMargin} ${outerRadius} p-8 ${border} border text-center`} style={{ backgroundColor: cardBg }}>
+      <div className={`${outerMargin} ${outerRadius} p-8 text-center`} style={clientGlass(dark)}>
         <Dumbbell size={22} className={`${muted20} mx-auto mb-3`} />
         <p className={`${muted70} font-medium text-sm`}>{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
         {dbReady && (
@@ -471,32 +483,31 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   const estMin = estimateWorkoutMinutes(todaySession.exercises);
   const pillLabel = completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : todaySession.wod ? "WORKOUT OF THE DAY" : isToday ? "TODAY'S FOCUS" : "SCHEDULED";
 
+  const primary = dark ? "text-white" : "text-black";
   return (
-    <div className={`relative overflow-hidden ${outerMargin} ${outerRadius} p-5 ${outerBorder}`}>
-      <img src={dark ? "/brand/login-bg.jpg" : "/brand/login-bg-light.jpg"} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/55 to-black/75" />
-      <div className="relative">
+    <div className={`${outerMargin} ${outerRadius} p-5`} style={clientGlass(dark)}>
+      <div>
         <div className="flex items-center justify-between mb-2.5">
-          <span className="text-white/70 text-[11px] font-bold tracking-[0.14em]">{pillLabel}</span>
-          {completedOnDate && !started && <Check size={15} className="text-white/80" />}
+          <span className="text-[11px] font-bold tracking-[0.14em]" style={{ color: MEASURE_BLUE }}>
+            {pillLabel}
+          </span>
+          {completedOnDate && !started && <Check size={15} style={{ color: MEASURE_BLUE }} />}
         </div>
-        <h2 className="text-white text-xl font-bold tracking-tight">{todaySession.label}</h2>
-        {(todaySession.muscleGroups || []).length > 0 && (
-          <p className="text-white/70 text-[13px] mt-1">{todaySession.muscleGroups.join(" & ")} Focus</p>
-        )}
-        <p className="text-white/50 text-[12px] mt-2.5 tracking-wide">
+        <h2 className={`${primary} text-xl font-bold tracking-tight`}>{todaySession.label}</h2>
+        {(todaySession.muscleGroups || []).length > 0 && <p className={`${muted70} text-[13px] mt-1`}>{todaySession.muscleGroups.join(" & ")} Focus</p>}
+        <p className={`${muted30} text-[12px] mt-2.5 tracking-wide`}>
           {exCount} EXERCISE{exCount === 1 ? "" : "S"} · {estMin} MINUTE{estMin === 1 ? "" : "S"}
         </p>
 
         {started && (
           <div className="mt-4">
-            <div className="flex justify-between text-xs text-white/70 mb-1.5">
+            <div className={`flex justify-between text-xs ${muted70} mb-1.5`}>
               <span>Progress</span>
               <span>
                 {completedSets}/{totalSets} sets
               </span>
             </div>
-            <ProgressBar value={completedSets} max={totalSets} color="#FFFFFF" trackClassName="bg-white/20" />
+            <ProgressBar value={completedSets} max={totalSets} color={MEASURE_BLUE} trackClassName={dark ? "bg-white/10" : "bg-black/8"} />
           </div>
         )}
 
@@ -504,17 +515,19 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
           {(!completedOnDate || started) && (
             <button
               onClick={onStart}
-              className="flex-1 font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform bg-white text-black"
+              className={`flex-1 font-bold py-3.5 rounded-xl text-[14px] flex items-center justify-center gap-2 active:scale-[0.98] transition-transform ${
+                dark ? "bg-white text-black" : "bg-black text-white"
+              }`}
             >
-              <Play size={15} fill="black" />
+              <Play size={15} fill="currentColor" />
               {started ? "RESUME WORKOUT" : "START WORKOUT"}
             </button>
           )}
           <button
             onClick={onView}
-            className={`text-white text-sm font-semibold px-4 rounded-xl border border-white/25 bg-white/10 backdrop-blur-sm active:scale-[0.98] transition-transform ${
-              completedOnDate && !started ? "flex-1 py-3.5" : ""
-            }`}
+            className={`${primary} text-sm font-semibold px-4 rounded-xl border active:scale-[0.98] transition-transform ${
+              dark ? "border-white/15 bg-white/5" : "border-black/10 bg-black/[0.03]"
+            } ${completedOnDate && !started ? "flex-1 py-3.5" : ""}`}
           >
             View
           </button>
@@ -535,7 +548,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
                 setConfirmDiscard(true);
               }
             }}
-            className={`w-full text-center text-[11px] font-medium mt-3 ${confirmDiscard ? "text-white" : "text-white/45"}`}
+            className={`w-full text-center text-[11px] font-medium mt-3 ${confirmDiscard ? primary : muted30}`}
           >
             {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
           </button>
@@ -1490,19 +1503,17 @@ export function WorkoutPreviewSheet({ session, exercisesById, logsForClient, can
         {menuOpen && <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />}
 
         <div className="flex-1 overflow-y-auto pb-28">
-          <div className="relative h-56 shrink-0 overflow-hidden">
-            <img src={dark ? "/brand/login-bg.jpg" : "/brand/login-bg-light.jpg"} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/10 to-black/85" />
-            <div className="absolute bottom-0 inset-x-0 p-5">
-              <p className="text-white/65 text-[11px] font-bold tracking-[0.15em] uppercase mb-1.5">
+          <div className="mx-5 mt-4 rounded-2xl p-5" style={clientGlass(dark)}>
+            <div>
+              <p className="text-[11px] font-bold tracking-[0.15em] uppercase mb-1.5" style={{ color: MEASURE_BLUE }}>
                 {session.date
                   ? new Date(session.date + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })
                   : session.workoutLogId
                   ? "Completed"
                   : "Scheduled"}
               </p>
-              <h1 className="text-white text-[26px] font-extrabold tracking-tight uppercase leading-[1.1] truncate">{session.label}</h1>
-              <p className="text-white/50 text-[11px] font-bold tracking-[0.1em] uppercase mt-1.5">
+              <h1 className={`${dark ? "text-white" : "text-black"} text-[26px] font-extrabold tracking-tight uppercase leading-[1.1] truncate`}>{session.label}</h1>
+              <p className={`${dark ? "text-white/50" : "text-black/50"} text-[11px] font-bold tracking-[0.1em] uppercase mt-1.5`}>
                 Strength · {displayMinutes} Min
               </p>
             </div>
@@ -3218,22 +3229,26 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   return (
     <div className="space-y-4">
-      <div className={`overflow-hidden border ${dark ? "" : ""}`} style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}>
-        <div className="relative h-40">
-          <img src={dark ? "/brand/login-bg.jpg" : "/brand/login-bg-light.jpg"} alt="" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/10" />
-          <button
-            onClick={() => setHistoryOpen(true)}
-            className="absolute top-3 right-3 flex items-center gap-1.5 bg-black/40 backdrop-blur-sm text-white text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full active:scale-[0.96] transition-transform"
-          >
-            <Calendar size={12} /> PHASES
-          </button>
-          {phase.id === current?.id && (
-            <span className="absolute top-3 left-3 bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">CURRENT</span>
-          )}
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h2 className="text-white text-xl font-bold tracking-tight truncate">{phase.name}</h2>
-            <p className="text-white/70 text-xs mt-1">
+      <div className="mx-2.5 rounded-2xl overflow-hidden" style={clientGlass(dark)}>
+        <div className="px-4 pt-4 md:px-5">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            {phase.id === current?.id ? (
+              <span className="bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">CURRENT</span>
+            ) : (
+              <span />
+            )}
+            <button
+              onClick={() => setHistoryOpen(true)}
+              className={`flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full border active:scale-[0.96] transition-transform ${
+                dark ? "text-white border-white/15 bg-white/5" : "text-black border-black/10 bg-black/[0.03]"
+              }`}
+            >
+              <Calendar size={12} /> PHASES
+            </button>
+          </div>
+          <div>
+            <h2 className={`${dark ? "text-white" : "text-black"} text-xl font-bold tracking-tight truncate`}>{phase.name}</h2>
+            <p className={`${dark ? "text-white/60" : "text-black/55"} text-xs mt-1`}>
               {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
               {phase.endDate
                 ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
@@ -3242,7 +3257,7 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
           </div>
         </div>
 
-        <div className="p-4 md:p-5" style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE : SURFACE }}>
+        <div className="p-4 md:p-5">
           {phase.description && (
             <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line" : "text-black/60 text-sm leading-relaxed whitespace-pre-line"}>
               {phase.description}
@@ -4922,8 +4937,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           onClick={() => setNutritionDetailOpen(true)}
           className="relative overflow-hidden rounded-2xl p-4 cursor-pointer active:scale-[0.98] transition-transform"
         >
-            {/* Same mountain-photo-hero pattern TodayWorkoutCard already uses
-                (login-bg.jpg) — reused here rather than a flat color, to
+            {/* Mountain-photo hero (login-bg.jpg) — the one card that keeps
+                it (the session/program cards are glass now), rather than a flat color, to
                 match the approved mockup. The card's own surface color
                 (not plain black) anchors the solid portion of the fade so
                 it reads as one continuous dark card, not an image with a
@@ -5219,7 +5234,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
       <div className="px-2.5 mt-4">
         <Card dark={dark} className="!py-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <WaterCup value={nutrition.water} max={targets.water} size={32} />
+            <WaterCup value={nutrition.water} max={targets.water} size={32} dark={dark} />
             <div className="flex-1 min-w-0">
               <p className={dark ? "text-white text-sm font-semibold flex items-center gap-1.5" : "text-black text-sm font-semibold flex items-center gap-1.5"}>
                 {nutrition.water >= targets.water ? (
