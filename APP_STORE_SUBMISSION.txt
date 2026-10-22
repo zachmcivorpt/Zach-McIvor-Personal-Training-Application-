@@ -227,6 +227,32 @@ Notes for reviewer (optional but helpful):
   assign training programs, track nutrition, review client check-ins,
   and message your roster, all from one app.
 
+  --- Version 1.0.2 (current submission) ---
+
+  What's New in This Version:
+
+    A refreshed look and a smoother start. The login screens now run
+    full screen, the app opens straight into the right screen, and the
+    training, nutrition and home screens have a cleaner design. Plus a
+    new water tracker, swipe-to-delete for cardio sessions, and general
+    fixes and performance improvements.
+
+  Notes for reviewer (App Review Information -> Notes) — add to the
+  existing notes:
+
+    "This version adds Train Solo, a self-guided training option
+    alongside Coaching. Train Solo programs are purchased on our
+    website, not in the app: the app shows no prices, purchase buttons
+    or links to buy (guideline 3.1.1). To see Train Solo with a program
+    already owned: on the start screen tap Train Solo -> Log in with
+    the Train Solo demo account below."
+
+    Train Solo demo account: use a dedicated Train Solo login that
+    already owns a program (don't use a real customer's).
+
+  Version number: 1.0.2 (ios/project.yml). Build number is set by
+  Codemagic automatically.
+
 
 ===========================================================================
 9. SCREENSHOTS — SHOT LIST
