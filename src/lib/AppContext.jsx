@@ -1917,8 +1917,12 @@ export function AppProvider({ children }) {
       // Removes a completed session (a workoutLogs entry) entirely — used
       // by the coach's calendar bulk-delete for cleaning up test/duplicate
       // entries, including client-logged cardio sessions.
+      // Returns the delete itself (already logged on failure), so a caller
+      // like the client's swipe-to-delete can react to a failed delete.
       deleteWorkoutLog(logId) {
-        deleteDoc(doc(firestore, "workoutLogs", logId)).catch(console.error);
+        const done = deleteDoc(doc(firestore, "workoutLogs", logId));
+        done.catch(console.error);
+        return done;
       },
 
       // Coach corrections to an already-completed session — editing the

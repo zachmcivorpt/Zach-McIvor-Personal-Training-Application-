@@ -1163,14 +1163,17 @@ export function NotificationsPromptCard({ userId, showToast }) {
 // Cardio logged for the day being viewed on Home — a client's cardio
 // sessions (entries: [], cardio: {...}) previously only ever surfaced
 // buried in the Workouts tab's history list.
-function CardioLogCard({ logs }) {
+// A logged cardio session on Home — swipe left to remove one logged by
+// mistake (same swipe-to-delete as Nutrition's food entries; the row snaps
+// back if the delete fails).
+function CardioLogCard({ logs, onDelete }) {
   const dark = useClientDark();
   if (!logs || logs.length === 0) return null;
   return (
     <div className="mx-2.5 space-y-2">
       {logs.map((log) => (
+        <SwipeableRow key={log.id} rounded="rounded-2xl" onDelete={() => onDelete?.(log)}>
         <div
-          key={log.id}
           className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
           style={clientGlass(dark)}
         >
@@ -1190,13 +1193,18 @@ function CardioLogCard({ logs }) {
             </p>
           </div>
         </div>
+        </SwipeableRow>
       ))}
+      {onDelete && (
+        <p className={`text-[10px] text-center ${dark ? "text-white/30" : "text-black/30"}`}>Swipe left on a session to remove it</p>
+      )}
     </div>
   );
 }
 
 function HomeScreen({
   user,
+  onDeleteCardio,
   todaySession,
   activeLog,
   onStartWorkout,
@@ -1264,7 +1272,7 @@ function HomeScreen({
         dbReady={dbReady}
         fullWidth
       />
-      <CardioLogCard logs={cardioLogs} />
+      <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} />
       <DailyHabitsCard
         habits={habits}
         completedIds={isToday ? completedHabitIds : dayHabitCompletedIds}
@@ -3666,7 +3674,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
 // Swipe (or drag) a row left past the threshold to delete it — reveals a red
 // trash affordance underneath as it moves. Works with touch and mouse alike
 // since it's built on pointer events.
-export function SwipeableRow({ onDelete, children }) {
+export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
   const dark = useClientDark();
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -3724,8 +3732,8 @@ export function SwipeableRow({ onDelete, children }) {
   }
 
   return (
-    <div ref={rowRef} className="relative overflow-hidden rounded-lg">
-      <div className="absolute inset-0 bg-red-500 rounded-lg flex items-center justify-end pr-3">
+    <div ref={rowRef} className={`relative overflow-hidden ${rounded}`}>
+      <div className={`absolute inset-0 bg-red-500 ${rounded} flex items-center justify-end pr-3`}>
         <Trash2 size={14} className="text-white" />
       </div>
       <div
@@ -9386,6 +9394,14 @@ export default function ClientApp() {
         {tab === "home" && (
           <HomeScreen
             user={currentUser}
+            onDeleteCardio={(log) =>
+              deleteWorkoutLog(log.id)
+                .then(() => showToast(`${log.cardio?.activityLabel || "Cardio session"} removed`))
+                .catch((err) => {
+                  showToast(err.message || "Couldn't remove — check your connection and try again", true);
+                  throw err;
+                })
+            }
             todaySession={todaySession}
             activeLog={activeLog}
             onStartWorkout={() => startWorkout(daySession)}
