@@ -11,6 +11,7 @@ import { localDateKey } from "../lib/dateKey";
 import { totalWeeksForProgram, currentWeekNumber, phaseForWeekNumber } from "./weekProgress";
 import { sessionDateKeys, sessionDayLabel, buildSoloCalendar, calendarItemTarget, mondayOf, addDays } from "./soloCalendar";
 import SoloGlassBox from "./SoloGlassBox";
+import { CompletedSessionSheet, ProgramOverviewSheet } from "./SoloTrainingSheets";
 import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -25,7 +26,7 @@ import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 // because this customer owns a purchase for it — see SoloAppContext.jsx's
 // soloProgramContentByProgramId and firestore.rules' soloProgramContent
 // block. `program` itself (the public catalogue doc) never has this data.
-function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay, dark, t }) {
+function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay, onViewLog, dark, t }) {
   const rowStyle = { backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` };
   const inputStyle = { backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" };
   const [draftDate, setDraftDate] = useState("");
@@ -40,8 +41,8 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
   const today = localDateKey();
   const dateKeys = sessionDateKeys(purchase?.startDate, weekNumber, (current?.phase?.days || []).length);
 
-  function isDayDone(dayId) {
-    return soloWorkoutLogs.some((l) => l.purchaseId === purchase?.id && l.dayId === dayId && l.weekNumber === weekNumber);
+  function logForDay(dayId) {
+    return soloWorkoutLogs.find((l) => l.purchaseId === purchase?.id && l.dayId === dayId && l.weekNumber === weekNumber) || null;
   }
 
   React.useEffect(() => {
@@ -116,7 +117,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
           {current?.phase && (
             <div className="space-y-2 mb-5">
               {(current.phase.days || []).map((d, i) => {
-                const done = isDayDone(d.id);
+                const doneLog = logForDay(d.id);
                 const dateKey = dateKeys[i];
                 return (
                   <div key={d.id} className="flex items-center gap-3 rounded-xl px-3.5 py-3" style={rowStyle}>
@@ -129,10 +130,14 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                     </div>
                     {isFutureWeek ? (
                       <Lock size={14} color={t.textFaint} className="shrink-0" />
-                    ) : done ? (
-                      <span className="flex items-center gap-1 text-xs font-semibold text-green-600 shrink-0">
-                        <CheckCircle2 size={14} /> Done
-                      </span>
+                    ) : doneLog ? (
+                      <button
+                        type="button"
+                        onClick={() => onViewLog(doneLog)}
+                        className="flex items-center gap-1 text-xs font-semibold text-green-600 shrink-0"
+                      >
+                        <CheckCircle2 size={14} /> Done <ChevronRight size={13} />
+                      </button>
                     ) : (
                       <button
                         type="button"
@@ -190,6 +195,7 @@ export default function SoloMyTrainingScreen() {
     soloPurchases,
     soloWorkoutLogs,
     soloProgramContentByProgramId,
+    soloExercises,
     setPurchaseStartDate,
     soloCurrentUser,
     soloWeighIns,
@@ -203,6 +209,9 @@ export default function SoloMyTrainingScreen() {
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [openPurchaseId, setOpenPurchaseId] = useState(null);
+  const [overviewPurchaseId, setOverviewPurchaseId] = useState(null);
+  const [viewLog, setViewLog] = useState(null);
+  const exercisesById = useMemo(() => Object.fromEntries((soloExercises || []).map((e) => [e.id, e])), [soloExercises]);
 
   // Switching tabs keeps the window's scroll position; start at the header.
   useEffect(() => {
@@ -225,6 +234,7 @@ export default function SoloMyTrainingScreen() {
   const openPurchase = soloPurchases.find((p) => p.id === openPurchaseId) || null;
   const openProgram = openPurchase ? programsById[openPurchase.programId] : null;
   const openContent = openPurchase ? soloProgramContentByProgramId[openPurchase.programId] : null;
+  const overviewPurchase = soloPurchases.find((p) => p.id === overviewPurchaseId) || null;
 
   function startDay(purchase, program, day, weekNumber) {
     navigate("/solo/workout", {
@@ -276,7 +286,24 @@ export default function SoloMyTrainingScreen() {
   );
   const dayItems = [...(byDate[selectedKey] || [])].sort((a, b) => ITEM_ORDER[a.type] - ITEM_ORDER[b.type]);
 
+  // The log a finished session on the day view was saved as — a program
+  // workout by purchase + week + day, a recovery add-on session by its
+  // recovery purchase + session + date (see calendarItemTarget).
+  function logForItem(item) {
+    if (!item.done) return null;
+    if (item.type === "workout") return soloWorkoutLogs.find((l) => l.purchaseId === item.purchase.id && l.weekNumber === item.weekNumber && l.dayId === item.day.id) || null;
+    if (item.type === "addon") return soloWorkoutLogs.find((l) => l.purchaseId === `${soloCurrentUser?.id}_recovery` && l.dayId === item.sessionId && l.weekNumber === item.dateKey) || null;
+    return null;
+  }
+
+  function logProgramName(log) {
+    const purchase = soloPurchases.find((p) => p.id === log?.purchaseId);
+    return (purchase && programsById[purchase.programId]?.name) || null;
+  }
+
   function openItem(item) {
+    const log = logForItem(item);
+    if (log) return setViewLog(log);
     const target = calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloProgramContentByProgramId });
     if (target) navigate(target.path, target.state ? { state: target.state } : undefined);
   }
@@ -304,7 +331,7 @@ export default function SoloMyTrainingScreen() {
           items={dayItems}
           ownsPrograms={ownedRows.length > 0}
           onOpen={openItem}
-          target={(item) => calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloProgramContentByProgramId })}
+          target={(item) => !!logForItem(item) || calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloProgramContentByProgramId })}
           onBrowse={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })}
           t={t}
         />
@@ -327,7 +354,7 @@ export default function SoloMyTrainingScreen() {
               {ownedRows.map((row) => (
                 <button
                   key={row.purchase.id}
-                  onClick={() => setOpenPurchaseId(row.purchase.id)}
+                  onClick={() => setOverviewPurchaseId(row.purchase.id)}
                   className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
                   style={glass}
                 >
@@ -373,7 +400,7 @@ export default function SoloMyTrainingScreen() {
           </p>
           <div className="space-y-2">
             {soloWorkoutLogs.slice(0, 10).map((log) => (
-              <div key={log.id} className="flex items-center justify-between rounded-2xl px-4 py-3" style={glass}>
+              <button key={log.id} type="button" onClick={() => setViewLog(log)} className="w-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left" style={glass}>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold truncate">{log.dayLabel}</p>
                   <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
@@ -383,7 +410,7 @@ export default function SoloMyTrainingScreen() {
                 <p className="text-xs font-semibold shrink-0" style={{ color: t.textMuted }}>
                   {(log.entries || []).reduce((a, e) => a + (e.sets || []).length, 0)} sets
                 </p>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -399,10 +426,31 @@ export default function SoloMyTrainingScreen() {
         dark={dark}
         t={t}
         onStartDay={(day, weekNumber) => startDay(openPurchase, openProgram, day, weekNumber)}
+        onViewLog={(log) => {
+          setOpenPurchaseId(null);
+          setViewLog(log);
+        }}
         onSetStartDate={async (date) => {
           await setPurchaseStartDate(openPurchase.id, date);
         }}
       />
+
+      <ProgramOverviewSheet
+        open={!!overviewPurchase}
+        onClose={() => setOverviewPurchaseId(null)}
+        program={overviewPurchase ? programsById[overviewPurchase.programId] : null}
+        content={overviewPurchase ? soloProgramContentByProgramId[overviewPurchase.programId] : null}
+        purchase={overviewPurchase}
+        exercisesById={exercisesById}
+        onOpenSchedule={() => {
+          setOverviewPurchaseId(null);
+          setOpenPurchaseId(overviewPurchase.id);
+        }}
+        dark={dark}
+        t={t}
+      />
+
+      <CompletedSessionSheet log={viewLog} programName={logProgramName(viewLog)} exercisesById={exercisesById} onClose={() => setViewLog(null)} dark={dark} t={t} />
       </div>
     </div>
   );
@@ -587,6 +635,7 @@ function SessionHero({ item, actionable, onStart, future, t }) {
       {item.done ? (
         <span className="flex items-center gap-1 text-xs font-bold shrink-0" style={{ color: MEASURE_BLUE }}>
           <CheckCircle2 size={15} /> Done
+          {actionable && <ChevronRight size={14} />}
         </span>
       ) : actionable ? (
         <span className="flex items-center gap-1 text-xs font-bold px-3.5 py-2 rounded-full shrink-0" style={{ backgroundColor: t.text, color: t.bg }}>
