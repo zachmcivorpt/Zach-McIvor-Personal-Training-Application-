@@ -71,8 +71,8 @@ Do these together when the user is ready to submit a new App Store build
 
 - **Switch Stripe to live mode** (Train Solo website purchases). DONE
   2026-10-22: live keys in GitHub secrets, functions redeployed, checkout
-  confirmed creating cs_live_ sessions. Still to do: one real purchase +
-  refund to confirm the live webhook, then roll the sandbox test key.
+  confirmed creating cs_live_ sessions; the user did one real purchase +
+  refund. Optional: roll the sandbox test key (test-mode only, low risk).
   Original steps: live `sk_live_` key → GitHub secret
   `STRIPE_SECRET_KEY`; live webhook to
   `https://us-central1-zach-mcivor-pt-app.cloudfunctions.net/soloStripeWebhook`
