@@ -69,9 +69,11 @@ rather than inventing new colors per screen:
 Do these together when the user is ready to submit a new App Store build
 (they asked for this to be remembered):
 
-- **Switch Stripe to live mode** (Train Solo website purchases). Still in
-  test mode — revealing the live secret key failed on Stripe's email
-  identity check. Steps: live `sk_live_` key → GitHub secret
+- **Switch Stripe to live mode** (Train Solo website purchases). DONE
+  2026-10-22: live keys in GitHub secrets, functions redeployed, checkout
+  confirmed creating cs_live_ sessions. Still to do: one real purchase +
+  refund to confirm the live webhook, then roll the sandbox test key.
+  Original steps: live `sk_live_` key → GitHub secret
   `STRIPE_SECRET_KEY`; live webhook to
   `https://us-central1-zach-mcivor-pt-app.cloudfunctions.net/soloStripeWebhook`
   (`checkout.session.completed`, `charge.refunded`) → `STRIPE_WEBHOOK_SECRET`;
