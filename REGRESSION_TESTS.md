@@ -2101,6 +2101,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: `src/lib/sessionIntelligenceTimed.test.js`. The timed case was verified to fail without the fix; the weighted case asserts the original sentence is unchanged.
 - **Date added**: 2026-10-21
 
+### 84. Train Solo: a refunded program stayed in My Training
+- **Root cause**: `soloStripeWebhook` marks a refunded purchase `refunded: true` (and `firestore.rules` lock its content), but `SoloAppContext`'s `soloPurchases` listener kept every purchase. Every screen (My Training, Calendar, Profile, Catalogue/Program details "owned") reads that list as "programs you own", so a refunded program still showed as owned. Found by the first live-mode purchase + refund.
+- **Fix**: the listener leaves out purchases with `refunded === true`. Older purchases without the field still count as owned; buying again resets `refunded` to false, so access returns.
+- **Regression test**: `src/lib/SoloAppContext.refundedPurchase.test.jsx`, verified to fail without the fix.
+- **Date added**: 2026-10-22
+
 ---
 
 ## What still requires manual testing

@@ -190,8 +190,13 @@ export function SoloAppProvider({ children }) {
       return;
     }
     const q = query(collection(soloDb, "soloPurchases"), where("soloUserId", "==", soloAuthUser.uid));
+    // A refunded purchase (soloStripeWebhook sets refunded: true) is no
+    // longer owned: firestore.rules already lock its content, and every
+    // screen reads this list as "programs you own", so it's left out here
+    // — the program leaves My Training/Calendar/Profile and can be bought
+    // again (a new purchase resets refunded to false).
     return onSnapshot(q, (snap) => {
-      setSoloPurchases(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setSoloPurchases(snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.refunded !== true));
     });
   }, [soloAuthUser]);
 
