@@ -584,11 +584,71 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBro
 // Water for the selected day: a big figure against the goal, a bar, and
 // quick add/remove buttons. Future days can't be logged; the goal is set
 // from a pop-up (saved on the customer's profile).
+// A glass that fills to the day's progress. Each add drops a droplet into
+// it (falling to the water line, then a ripple) — `drops` is a counter so
+// every tap restarts the animation, even several in a row.
+const CUP_W = 64;
+const CUP_H = 84;
+const CUP_TOP = 8; // inside rim
+const CUP_BOTTOM = 78; // inside base
+const CUP_PATH = "M6 6 H58 L52 74 Q51.4 80 45.5 80 H18.5 Q12.6 80 12 74 Z";
+
+function WaterGlass({ pct, drops, dark }) {
+  const level = CUP_BOTTOM - ((CUP_BOTTOM - CUP_TOP) * pct) / 100; // y of the water line
+  const clipId = "solo-water-cup";
+  return (
+    <div className="relative shrink-0" style={{ width: CUP_W, height: CUP_H }} aria-hidden="true">
+      <svg width={CUP_W} height={CUP_H} viewBox={`0 0 ${CUP_W} ${CUP_H}`} className="absolute inset-0 overflow-visible">
+        <defs>
+          <clipPath id={clipId}>
+            <path d={CUP_PATH} />
+          </clipPath>
+        </defs>
+        <path d={CUP_PATH} fill={dark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)"} />
+        <g clipPath={`url(#${clipId})`}>
+          <g
+            style={{
+              transform: `translateY(${level}px)`,
+              opacity: pct > 0 ? 1 : 0,
+              transition: "transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms",
+            }}
+          >
+            <path d="M-20 3 Q-4 -2 12 3 T44 3 T76 3 T108 3 V120 H-20 Z" fill={MEASURE_BLUE} opacity="0.9" className="solo-water-wave" />
+            <rect x="-20" y="3" width="140" height="120" fill={MEASURE_BLUE} opacity="0.9" />
+            <rect x="16" y="10" width="5" height="120" rx="2.5" fill="#fff" opacity="0.18" />
+          </g>
+        </g>
+        <path d={CUP_PATH} fill="none" stroke={dark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.22)"} strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+      {drops > 0 && (
+        <span key={drops} className="absolute left-1/2 top-0 pointer-events-none" style={{ "--solo-drop-fall": `${level - 6}px` }}>
+          <Droplet size={12} color={MEASURE_BLUE} fill={MEASURE_BLUE} className="solo-water-drop" />
+          <span className="solo-water-ripple" style={{ top: `${level}px`, borderColor: dark ? "rgba(255,255,255,0.7)" : MEASURE_BLUE }} />
+        </span>
+      )}
+      <style>{`
+        .solo-water-drop { position: absolute; left: -6px; top: -14px; animation: solo-water-drop 520ms cubic-bezier(0.55, 0, 1, 0.45) forwards; }
+        @keyframes solo-water-drop { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 92% { opacity: 1; } 100% { transform: translateY(var(--solo-drop-fall)); opacity: 0; } }
+        .solo-water-ripple { position: absolute; left: -10px; width: 20px; height: 6px; margin-top: -3px; border: 1.5px solid; border-radius: 50%; opacity: 0; animation: solo-water-ripple 520ms ease-out 470ms forwards; }
+        @keyframes solo-water-ripple { 0% { transform: scale(0.3); opacity: 0.9; } 100% { transform: scale(1.8); opacity: 0; } }
+        .solo-water-wave { animation: solo-water-wave 3.2s linear infinite; }
+        @keyframes solo-water-wave { from { transform: translateX(0); } to { transform: translateX(-32px); } }
+        @media (prefers-reduced-motion: reduce) { .solo-water-drop, .solo-water-ripple, .solo-water-wave { animation: none; display: none; } }
+      `}</style>
+    </div>
+  );
+}
+
 function WaterCard({ dateKey, todayKey, ml, goalMl, onAdd, onSetGoal, dark, t }) {
   const [goalOpen, setGoalOpen] = useState(false);
+  const [drops, setDrops] = useState(0);
   const future = dateKey > todayKey;
   const pct = Math.min(100, Math.round((ml / goalMl) * 100));
   const chip = { backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` };
+  const add = (delta) => {
+    if (delta > 0) setDrops((n) => n + 1);
+    onAdd(delta, ml);
+  };
   return (
     <SoloGlassBox t={t} className="rounded-2xl px-4 py-4 mt-5">
       <div className="flex items-center justify-between gap-3">
@@ -600,14 +660,19 @@ function WaterCard({ dateKey, todayKey, ml, goalMl, onAdd, onSetGoal, dark, t })
           Goal {litres(goalMl)} L
         </button>
       </div>
-      <p className="mt-2 leading-none">
-        <span className="text-4xl font-extrabold tabular-nums">{litres(ml)}</span>
-        <span className="text-sm font-semibold ml-1.5" style={{ color: t.textMuted }}>
-          / {litres(goalMl)} L
-        </span>
-      </p>
-      <div className="h-2 rounded-full overflow-hidden mt-3" style={{ backgroundColor: t.chipBg }}>
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: MEASURE_BLUE }} />
+      <div className="flex items-end justify-between gap-4 mt-2">
+        <div className="min-w-0">
+          <p className="leading-none">
+            <span className="text-4xl font-extrabold tabular-nums">{litres(ml)}</span>
+            <span className="text-sm font-semibold ml-1.5" style={{ color: t.textMuted }}>
+              / {litres(goalMl)} L
+            </span>
+          </p>
+          <p className="text-xs mt-2" style={{ color: pct >= 100 ? MEASURE_BLUE : t.textFaint }}>
+            {pct >= 100 ? "Goal reached — nice work." : `${litres(Math.max(0, goalMl - ml))} L to go · ${pct}%`}
+          </p>
+        </div>
+        <WaterGlass pct={pct} drops={drops} dark={dark} />
       </div>
       {future ? (
         <p className="text-xs mt-3" style={{ color: t.textFaint }}>
@@ -618,19 +683,19 @@ function WaterCard({ dateKey, todayKey, ml, goalMl, onAdd, onSetGoal, dark, t })
           <button
             type="button"
             aria-label="Remove 250 ml"
-            onClick={() => onAdd(-250, ml)}
+            onClick={() => add(-250)}
             disabled={ml <= 0}
             className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 disabled:opacity-30"
             style={chip}
           >
             <Minus size={16} />
           </button>
-          <button type="button" onClick={() => onAdd(250, ml)} className="flex-1 h-10 rounded-full text-sm font-bold flex items-center justify-center gap-1" style={chip}>
+          <button type="button" onClick={() => add(250)} className="flex-1 h-10 rounded-full text-sm font-bold flex items-center justify-center gap-1" style={chip}>
             <Plus size={14} /> 250 ml
           </button>
           <button
             type="button"
-            onClick={() => onAdd(500, ml)}
+            onClick={() => add(500)}
             className="flex-1 h-10 rounded-full text-sm font-bold flex items-center justify-center gap-1"
             style={{ backgroundColor: t.text, color: t.bg }}
           >
