@@ -26,7 +26,7 @@ import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 // because this customer owns a purchase for it — see SoloAppContext.jsx's
 // soloProgramContentByProgramId and firestore.rules' soloProgramContent
 // block. `program` itself (the public catalogue doc) never has this data.
-function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay, onViewLog, dark, t }) {
+function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay, onViewLog, trainingDays, dark, t }) {
   const rowStyle = { backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` };
   const inputStyle = { backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" };
   const [draftDate, setDraftDate] = useState("");
@@ -39,7 +39,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
   const current = weekNumber ? phaseForWeekNumber(phases, weekNumber) : null;
   const isFutureWeek = currentWeek != null && weekNumber > currentWeek;
   const today = localDateKey();
-  const dateKeys = sessionDateKeys(purchase?.startDate, weekNumber, (current?.phase?.days || []).length);
+  const dateKeys = sessionDateKeys(purchase?.startDate, weekNumber, (current?.phase?.days || []).length, trainingDays);
 
   function logForDay(dayId) {
     return soloWorkoutLogs.find((l) => l.purchaseId === purchase?.id && l.dayId === dayId && l.weekNumber === weekNumber) || null;
@@ -231,6 +231,8 @@ export default function SoloMyTrainingScreen() {
   }, [location.state, soloPurchases]);
 
   const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
+  // The weekdays chosen in the consultation — sessions are scheduled on them.
+  const trainingDays = soloCurrentUser?.onboarding?.answers?.trainingDays;
   const openPurchase = soloPurchases.find((p) => p.id === openPurchaseId) || null;
   const openProgram = openPurchase ? programsById[openPurchase.programId] : null;
   const openContent = openPurchase ? soloProgramContentByProgramId[openPurchase.programId] : null;
@@ -251,10 +253,10 @@ export default function SoloMyTrainingScreen() {
         .map((purchase) => {
           const program = programsById[purchase.programId];
           if (!program) return null;
-          return { purchase, program, ...summarizeProgress(purchase, program, soloProgramContentByProgramId[purchase.programId], soloWorkoutLogs) };
+          return { purchase, program, ...summarizeProgress(purchase, program, soloProgramContentByProgramId[purchase.programId], soloWorkoutLogs, trainingDays) };
         })
         .filter(Boolean),
-    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs]
+    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, trainingDays]
   );
   const glass = soloGlass(t);
   const todayKey = localDateKey();
@@ -279,10 +281,11 @@ export default function SoloMyTrainingScreen() {
         progressPhotos: soloProgressPhotos,
         recoveryAddon,
         accountCreatedAt: soloCurrentUser?.createdAt,
+        trainingDays,
         fromKey: weekStart,
         toKey: addDays(weekStart, 6),
       }),
-    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, weekStart]
+    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, trainingDays, weekStart]
   );
   const dayItems = [...(byDate[selectedKey] || [])].sort((a, b) => ITEM_ORDER[a.type] - ITEM_ORDER[b.type]);
 
@@ -423,6 +426,7 @@ export default function SoloMyTrainingScreen() {
         content={openContent}
         purchase={openPurchase}
         soloWorkoutLogs={soloWorkoutLogs}
+        trainingDays={trainingDays}
         dark={dark}
         t={t}
         onStartDay={(day, weekNumber) => startDay(openPurchase, openProgram, day, weekNumber)}
@@ -839,7 +843,7 @@ function weekLine(row) {
   return parts.join(" · ");
 }
 
-export function summarizeProgress(purchase, program, content, logs) {
+export function summarizeProgress(purchase, program, content, logs, trainingDays = []) {
   const phases = programPhases(content);
   // Week count comes from the public doc's weekOnePreview so it's
   // available before the gated content listener resolves.
@@ -855,7 +859,7 @@ export function summarizeProgress(purchase, program, content, logs) {
   const days = current?.phase?.days || null;
   const sessionsThisWeek = days ? days.length : null;
   const doneThisWeek = days ? days.filter((d) => doneKeys.has(`${weekNumber}:${d.id}`)).length : 0;
-  const dateKeys = days ? sessionDateKeys(purchase.startDate, weekNumber, days.length) : [];
+  const dateKeys = days ? sessionDateKeys(purchase.startDate, weekNumber, days.length, trainingDays) : [];
   const weekSessions = (days || []).map((day, i) => ({ day, dateKey: dateKeys[i], done: doneKeys.has(`${weekNumber}:${day.id}`) }));
 
   let nextLabel = "—";

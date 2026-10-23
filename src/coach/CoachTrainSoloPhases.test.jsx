@@ -15,11 +15,12 @@ const phases = [
 ];
 vi.mock("../lib/AppContext", () => ({
   programPhases: (content) => content?.phases || [],
+  computeWeekOnePreview: () => ({ sessionsPerWeek: 0 }),
   useApp: () => ({
     db: {
       exercises: [],
       soloProgramCategories: [],
-      soloPrograms: [{ id: "p1", name: "Test Program", status: "draft", level: "Beginner", categoryIds: [] }],
+      soloPrograms: [{ id: "p1", name: "Test Program", status: "draft", level: "Beginner", categoryIds: [], weekOnePreview: { sessionsPerWeek: 1 } }],
       soloProgramContent: [{ id: "p1", phases }],
       soloBranding: {},
     },

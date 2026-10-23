@@ -45,12 +45,13 @@ function SolidPanel({ children }) {
   );
 }
 
-function OptionButton({ selected, onClick, children }) {
+function OptionButton({ selected, onClick, disabled = false, children }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left px-4 py-3.5 rounded-2xl border transition-colors"
+      disabled={disabled}
+      className="w-full text-left px-4 py-3.5 rounded-2xl border transition-colors disabled:opacity-35"
       style={
         selected
           ? { backgroundColor: MEASURE_BLUE_SOFT, borderColor: MEASURE_BLUE, color: "#fff" }
@@ -62,7 +63,7 @@ function OptionButton({ selected, onClick, children }) {
   );
 }
 
-function QuestionBody({ question, value, onChange }) {
+function QuestionBody({ question, value, onChange, answers }) {
   if (question.type === "select") {
     return (
       <div className="space-y-2">
@@ -76,13 +77,21 @@ function QuestionBody({ question, value, onChange }) {
   }
   if (question.type === "multiselect") {
     const selected = Array.isArray(value) ? value : [];
+    const max = question.exactCount ? question.exactCount(answers || {}) : null;
+    const full = max != null && selected.length >= max;
     function toggle(v) {
-      onChange(selected.includes(v) ? selected.filter((x) => x !== v) : [...selected, v]);
+      if (selected.includes(v)) onChange(selected.filter((x) => x !== v));
+      else if (!full) onChange([...selected, v]);
     }
     return (
       <div className="space-y-2">
+        {max != null && (
+          <p className="text-white/60 text-xs font-semibold mb-1">
+            Choose {max} day{max === 1 ? "" : "s"} · {selected.length} of {max} chosen
+          </p>
+        )}
         {question.options.map((opt) => (
-          <OptionButton key={opt.value} selected={selected.includes(opt.value)} onClick={() => toggle(opt.value)}>
+          <OptionButton key={opt.value} selected={selected.includes(opt.value)} disabled={full && !selected.includes(opt.value)} onClick={() => toggle(opt.value)}>
             {opt.label}
           </OptionButton>
         ))}
@@ -323,7 +332,7 @@ export default function SoloOnboarding() {
           <h1 className="text-white text-lg font-bold mb-1.5 leading-snug">{question.label}</h1>
           {question.helper && <p className="text-white/50 text-xs leading-relaxed mb-5">{question.helper}</p>}
           {!question.helper && <div className="mb-5" />}
-          <QuestionBody question={question} value={answers[question.id]} onChange={(v) => persist(question.id, v)} />
+          <QuestionBody question={question} value={answers[question.id]} answers={answers} onChange={(v) => persist(question.id, v)} />
           <div className="flex items-center gap-3 mt-6">
             {!question.required && (
               <button type="button" onClick={goNext} className="text-white/40 text-sm font-medium">

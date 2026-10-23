@@ -53,10 +53,19 @@ export function sessionOffsets(n) {
 
 // The scheduled date (YYYY-MM-DD) of each of a program week's `count`
 // sessions — the same placement the calendar uses, so My Training's
-// "This week" list and the calendar always agree.
-export function sessionDateKeys(startDate, weekNumber, count) {
+// "This week" list and the calendar always agree. `trainingDays` are the
+// weekdays (0 = Sunday) the customer chose in their consultation: when
+// there are at least as many as the week's sessions, the sessions go on
+// those weekdays, in order, within the week; otherwise they're spread
+// evenly across the week.
+export function sessionDateKeys(startDate, weekNumber, count, trainingDays = []) {
   if (!startDate || !weekNumber) return [];
   const weekStart = addDays(startDate, (weekNumber - 1) * 7);
+  const chosen = new Set((trainingDays || []).map(Number));
+  if (count > 0 && chosen.size >= count) {
+    const keys = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).filter((k) => chosen.has(parseKey(k).getDay()));
+    return keys.slice(0, count);
+  }
   return sessionOffsets(count).map((offset) => addDays(weekStart, offset));
 }
 
@@ -85,6 +94,7 @@ export function buildSoloCalendar({
   progressPhotos = [],
   recoveryAddon = null,
   accountCreatedAt,
+  trainingDays = [],
   fromKey,
   toKey,
 }) {
@@ -108,7 +118,7 @@ export function buildSoloCalendar({
     if (totalWeeks > 0) programSpans.push({ start: purchase.startDate, totalWeeks });
     for (let week = 1; week <= totalWeeks; week++) {
       const days = phaseForWeekNumber(phases, week)?.phase?.days || [];
-      const dates = sessionDateKeys(purchase.startDate, week, days.length);
+      const dates = sessionDateKeys(purchase.startDate, week, days.length, trainingDays);
       days.forEach((day, i) => {
         workoutDays.add(dates[i]);
         push(dates[i], {

@@ -2728,9 +2728,12 @@ export function computeWeekOnePreview(phases) {
   // program's weekly structure on the pre-purchase details screen without
   // exposing any actual workout content.
   const phaseSummaries = (phases || []).map((p) => ({ name: p.name, durationWeeks: p.durationWeeks || 0 }));
-  if (!day1) return { totalWeeks, dayLabel: null, exercises: [], phaseSummaries };
+  // The busiest week's session count — Train Solo only suggests a program
+  // to customers who want at least that many sessions a week.
+  const sessionsPerWeek = Math.max(0, ...(phases || []).map((p) => (p.days || []).length));
+  if (!day1) return { totalWeeks, dayLabel: null, exercises: [], phaseSummaries, sessionsPerWeek };
   const exercises = (day1.exercises || []).filter((e) => !e.isRest).slice(0, 2);
-  return { totalWeeks, dayLabel: day1.label, exercises, phaseSummaries };
+  return { totalWeeks, dayLabel: day1.label, exercises, phaseSummaries, sessionsPerWeek };
 }
 
 // Flattens every program into an ordered list of "sessions" (days), each

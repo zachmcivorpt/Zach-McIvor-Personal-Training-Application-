@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { useApp, programPhases } from "../lib/AppContext";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useApp, programPhases, computeWeekOnePreview } from "../lib/AppContext";
 import { newId } from "../lib/id";
 import { uploadSoloProgramArtwork } from "../lib/storage";
 import { Field, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, BottomSheet, ExerciseThumb } from "../components/ui";
@@ -658,6 +658,20 @@ function CoachSoloPrograms({ showToast }) {
   // coach reads it here the same way any other coach-only collection is
   // read (db.soloProgramContent, watched coach-wide in AppContext.jsx).
   const selectedContent = (db.soloProgramContent || []).find((c) => c.id === selected?.id);
+
+  // One-off backfill: programs saved before weekOnePreview carried
+  // sessionsPerWeek (used to match suggestions to a customer's chosen
+  // sessions a week) get it filled in from their content.
+  const backfilledRef = useRef(new Set());
+  useEffect(() => {
+    for (const program of programs) {
+      if (typeof program.weekOnePreview?.sessionsPerWeek === "number" || backfilledRef.current.has(program.id)) continue;
+      const content = (db.soloProgramContent || []).find((c) => c.id === program.id);
+      if (!content) continue;
+      backfilledRef.current.add(program.id);
+      updateSoloProgram(program.id, { weekOnePreview: computeWeekOnePreview(programPhases(content)) }).catch(() => backfilledRef.current.delete(program.id));
+    }
+  }, [programs, db.soloProgramContent, updateSoloProgram]);
   const phases = programPhases(selectedContent);
   const selectedPhase = phases.find((p) => p.id === selectedPhaseId) || phases[0] || null;
   const phaseIndex = selectedPhase ? phases.findIndex((p) => p.id === selectedPhase.id) : -1;

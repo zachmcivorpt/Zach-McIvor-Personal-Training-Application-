@@ -170,6 +170,7 @@ export default function SoloConsultationScreen() {
       <EditAnswerSheet
         question={editing}
         value={editing ? answers[editing.id] : undefined}
+        answers={answers}
         onClose={() => setEditingId(null)}
         onDone={(value) => {
           setDraft((d) => ({ ...d, [editing.id]: value }));
@@ -209,14 +210,14 @@ function formatAnswer(question, value) {
 
 // One question in a glass pop-up. Holds its own value until Done, so
 // backing out of the pop-up leaves the answer as it was.
-function EditAnswerSheet({ question, value, onClose, onDone, t, dark }) {
+function EditAnswerSheet({ question, value, answers, onClose, onDone, t, dark }) {
   const [local, setLocal] = useState(value);
   const [forId, setForId] = useState(null);
   if (question && question.id !== forId) {
     setForId(question.id);
     setLocal(value);
   }
-  const ok = !question || !question.required || isAnswered(question, { [question.id]: local });
+  const ok = !question || !question.required || isAnswered(question, { ...answers, [question.id]: local });
   const textLike = question && (question.type === "text" || question.type === "number");
 
   return (
@@ -230,7 +231,7 @@ function EditAnswerSheet({ question, value, onClose, onDone, t, dark }) {
             </p>
           )}
           {!question.helper && <div className="mb-4" />}
-          <AnswerInput question={question} value={local} onChange={setLocal} t={t} dark={dark} />
+          <AnswerInput question={question} value={local} answers={answers} onChange={setLocal} t={t} dark={dark} />
           <PrimaryButton dark={dark} className="w-full mt-5" type="button" disabled={!ok} onClick={() => onDone(local)}>
             Done
           </PrimaryButton>
@@ -240,7 +241,7 @@ function EditAnswerSheet({ question, value, onClose, onDone, t, dark }) {
   );
 }
 
-function AnswerInput({ question, value, onChange, t, dark }) {
+function AnswerInput({ question, value, answers, onChange, t, dark }) {
   const option = (selected) =>
     selected
       ? { backgroundColor: MEASURE_BLUE_SOFT, border: `1px solid ${MEASURE_BLUE}`, color: t.text }
@@ -250,16 +251,25 @@ function AnswerInput({ question, value, onChange, t, dark }) {
   if (question.type === "select" || question.type === "multiselect") {
     const multi = question.type === "multiselect";
     const selected = multi ? (Array.isArray(value) ? value : []) : [value];
+    // A day picker allows exactly as many days as sessions chosen.
+    const max = multi && question.exactCount ? question.exactCount(answers || {}) : null;
+    const full = max != null && selected.length >= max;
     return (
       <div className="space-y-2">
+        {max != null && (
+          <p className="text-xs font-semibold mb-1" style={{ color: t.textMuted }}>
+            Choose {max} day{max === 1 ? "" : "s"} · {selected.length} of {max} chosen
+          </p>
+        )}
         {question.options.map((opt) => {
           const on = selected.includes(opt.value);
           return (
             <button
               key={opt.value}
               type="button"
+              disabled={full && !on}
               onClick={() => onChange(multi ? (on ? selected.filter((x) => x !== opt.value) : [...selected, opt.value]) : opt.value)}
-              className="w-full text-left px-4 py-3 rounded-2xl text-sm"
+              className="w-full text-left px-4 py-3 rounded-2xl text-sm disabled:opacity-35"
               style={option(on)}
             >
               {opt.label}

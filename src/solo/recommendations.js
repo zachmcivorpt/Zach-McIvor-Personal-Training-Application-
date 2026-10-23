@@ -105,9 +105,20 @@ export function suitsAudience(program, answers) {
   return audience.includes(sex);
 }
 
+// A program asking for more sessions a week than the customer said they
+// want (consultation sessionsPerWeek) isn't suggested. A program whose
+// count isn't known yet (weekOnePreview.sessionsPerWeek missing) isn't
+// filtered.
+export function fitsSessionsPerWeek(program, answers) {
+  const wanted = Number(answers?.sessionsPerWeek);
+  const needs = program.weekOnePreview?.sessionsPerWeek;
+  if (!wanted || typeof needs !== "number" || needs === 0) return true;
+  return needs <= wanted;
+}
+
 export function recommendPrograms(programs, categories, answers, { limit = 2, excludeIds = [] } = {}) {
   const excluded = new Set(excludeIds);
-  const candidates = visiblePrograms(programs, categories).filter((p) => !excluded.has(p.id) && suitsAudience(p, answers));
+  const candidates = visiblePrograms(programs, categories).filter((p) => !excluded.has(p.id) && suitsAudience(p, answers) && fitsSessionsPerWeek(p, answers));
   const scored = candidates.map((program) => ({ program, score: scoreProgram(program, answers || {}) }));
   const matched = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
   return matched.slice(0, limit).map((s) => s.program);

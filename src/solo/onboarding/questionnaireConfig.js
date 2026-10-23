@@ -37,6 +37,17 @@ const YES_NO = [
   { value: "no", label: "No" },
 ];
 
+// Weekday values match Date#getDay() (0 = Sunday), listed Monday first.
+export const TRAINING_DAY_OPTIONS = [
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+  { value: 0, label: "Sunday" },
+];
+
 export const SECTIONS = [
   { id: "personal", label: "A few basics" },
   { id: "goals", label: "Goals & motivation" },
@@ -276,17 +287,25 @@ export const QUESTIONS = [
     required: true,
   },
   {
-    id: "daysPerWeek",
+    id: "sessionsPerWeek",
     section: "preferences",
     type: "select",
-    label: "Realistically, how many days a week can you train?",
-    options: [
-      { value: "1-2", label: "1–2 days" },
-      { value: "3-4", label: "3–4 days" },
-      { value: "5-6", label: "5–6 days" },
-      { value: "7", label: "Every day" },
-    ],
+    label: "How many sessions would you like to train each week?",
+    helper: "Your suggested programs won't ask for more than this.",
+    options: [1, 2, 3, 4, 5, 6, 7].map((n) => ({ value: String(n), label: `${n} session${n === 1 ? "" : "s"}` })),
     required: true,
+  },
+  {
+    id: "trainingDays",
+    section: "preferences",
+    type: "multiselect",
+    label: "Which days would you like to train?",
+    helper: "Your program's sessions are scheduled on these days.",
+    options: TRAINING_DAY_OPTIONS,
+    // Exactly as many days as sessions chosen above.
+    exactCount: (a) => Number(a.sessionsPerWeek) || 0,
+    required: true,
+    visibleIf: (a) => !!a.sessionsPerWeek,
   },
   {
     id: "sessionDuration",
@@ -452,7 +471,10 @@ export function getVisibleQuestions(answers) {
 export function isAnswered(question, answers) {
   const v = answers?.[question.id];
   if (question.type === "consent") return v === true;
-  if (question.type === "multiselect") return Array.isArray(v) && v.length > 0;
+  if (question.type === "multiselect") {
+    if (!Array.isArray(v) || v.length === 0) return false;
+    return question.exactCount ? v.length === question.exactCount(answers || {}) : true;
+  }
   if (question.type === "number") return v !== undefined && v !== null && v !== "" && !Number.isNaN(Number(v));
   return v !== undefined && v !== null && String(v).trim() !== "";
 }
