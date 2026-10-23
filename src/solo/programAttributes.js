@@ -35,6 +35,13 @@ export const ENVIRONMENT_OPTIONS = [
 
 export const LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
 
+// Who a program is built for, matched against the consultation's
+// sexForScreening answer. None selected (or both) means it suits everyone.
+export const AUDIENCE_OPTIONS = [
+  { value: "male", label: "Men" },
+  { value: "female", label: "Women" },
+];
+
 // priorExperience (questionnaire) -> the program level it maps to for
 // matching purposes. "none" and "beginner" both point at a Beginner
 // program — there's no narrower program level to tell them apart.

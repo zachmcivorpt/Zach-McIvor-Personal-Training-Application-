@@ -62,7 +62,7 @@ export const QUESTIONS = [
     section: "personal",
     type: "select",
     label: "Which of these best applies to you?",
-    helper: "Used for your own context only.",
+    helper: "Used to suggest programs built for you.",
     options: [
       { value: "male", label: "Male" },
       { value: "female", label: "Female" },

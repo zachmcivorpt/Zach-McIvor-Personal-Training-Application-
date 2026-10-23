@@ -94,9 +94,20 @@ function scoreProgram(program, answers) {
 // its own standing safety notice instead (see SoloCatalogueScreen.jsx and
 // SoloProfileScreen.jsx), same as the earlier placeholder home screen
 // this phase replaced.
+// A program tagged for men or women (program.audience) is only suggested to
+// a customer whose consultation sex matches. Untagged programs suit
+// everyone, and a customer who chose "Other / prefer not to say" (or hasn't
+// answered) is never filtered either way.
+export function suitsAudience(program, answers) {
+  const audience = program.audience || [];
+  const sex = answers?.sexForScreening;
+  if (audience.length === 0 || (sex !== "male" && sex !== "female")) return true;
+  return audience.includes(sex);
+}
+
 export function recommendPrograms(programs, categories, answers, { limit = 2, excludeIds = [] } = {}) {
   const excluded = new Set(excludeIds);
-  const candidates = visiblePrograms(programs, categories).filter((p) => !excluded.has(p.id));
+  const candidates = visiblePrograms(programs, categories).filter((p) => !excluded.has(p.id) && suitsAudience(p, answers));
   const scored = candidates.map((program) => ({ program, score: scoreProgram(program, answers || {}) }));
   const matched = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
   return matched.slice(0, limit).map((s) => s.program);

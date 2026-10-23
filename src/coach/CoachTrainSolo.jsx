@@ -23,7 +23,7 @@ import {
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
 import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED, TEXT, TEXT_MUTED, BORDER_STRONG } from "../theme";
-import { GOAL_OPTIONS, STYLE_OPTIONS, ENVIRONMENT_OPTIONS, LEVEL_OPTIONS } from "../solo/programAttributes";
+import { GOAL_OPTIONS, STYLE_OPTIONS, ENVIRONMENT_OPTIONS, LEVEL_OPTIONS, AUDIENCE_OPTIONS } from "../solo/programAttributes";
 import { formatAudPrice } from "../solo/recommendations";
 import { SOLO_ACCENT_PALETTE } from "../solo/SoloThemeContext";
 
@@ -401,6 +401,7 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
   const [goals, setGoals] = useState([]);
   const [style, setStyle] = useState("");
   const [environments, setEnvironments] = useState([]);
+  const [audience, setAudience] = useState([]);
   const [kind, setKind] = useState("program");
   const [saving, setSaving] = useState(false);
   const isRecovery = kind === "recovery";
@@ -415,6 +416,7 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
       setGoals(program?.goals || []);
       setStyle(program?.style || "");
       setEnvironments(program?.environments || []);
+      setAudience(program?.audience || []);
       setKind(program?.kind === "recovery" ? "recovery" : "program");
     }
   }, [open, program?.id]);
@@ -424,6 +426,9 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
   }
   function toggleGoal(value) {
     setGoals((ids) => (ids.includes(value) ? ids.filter((x) => x !== value) : [...ids, value]));
+  }
+  function toggleAudience(value) {
+    setAudience((ids) => (ids.includes(value) ? ids.filter((x) => x !== value) : [...ids, value]));
   }
   function toggleEnvironment(value) {
     setEnvironments((ids) => (ids.includes(value) ? ids.filter((x) => x !== value) : [...ids, value]));
@@ -446,6 +451,7 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
         goals,
         style: style || null,
         environments,
+        audience,
       });
       onClose();
     } finally {
@@ -503,6 +509,14 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
         {!isRecovery && (
         <Field label="CATEGORIES">
           <CategoryChips allCategories={allCategories} selectedIds={categoryIds} onToggle={toggleCategory} />
+        </Field>
+        )}
+        {!isRecovery && (
+        <Field
+          label="WHO IT'S FOR"
+          hint="Suggestions only show this program to customers whose consultation answer matches. Leave both off (or pick both) if it suits everyone."
+        >
+          <TagChips options={AUDIENCE_OPTIONS} selectedValues={audience} onToggle={toggleAudience} />
         </Field>
         )}
         <Field
