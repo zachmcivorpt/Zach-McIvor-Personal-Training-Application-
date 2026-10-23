@@ -150,7 +150,7 @@ function OverviewHero({ program, t }) {
   const fade = "linear-gradient(to bottom, #000 35%, transparent 100%)";
   if (program.artworkUrl) {
     return (
-      <div className="relative h-36 -mt-2 mb-1 overflow-hidden">
+      <div className="relative h-36 -mt-2 mb-1 overflow-hidden rounded-t-xl">
         <img src={program.artworkUrl} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ WebkitMaskImage: fade, maskImage: fade }} />
       </div>
     );
