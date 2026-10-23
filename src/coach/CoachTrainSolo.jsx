@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
-import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
+import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED, TEXT, TEXT_MUTED, BORDER_STRONG } from "../theme";
 import { GOAL_OPTIONS, STYLE_OPTIONS, ENVIRONMENT_OPTIONS, LEVEL_OPTIONS } from "../solo/programAttributes";
 import { formatAudPrice } from "../solo/recommendations";
 import { SOLO_ACCENT_PALETTE } from "../solo/SoloThemeContext";
@@ -347,7 +347,7 @@ function CategoryChips({ allCategories, selectedIds, onToggle }) {
   const selectable = allCategories.filter((c) => !c.archived);
   return (
     <div className="flex flex-wrap gap-2">
-      {selectable.length === 0 && <p className="text-white text-xs">No categories yet — add one in the Categories tab.</p>}
+      {selectable.length === 0 && <p className="text-xs" style={{ color: TEXT_MUTED }}>No categories yet — add one in the Categories tab.</p>}
       {selectable.map((c) => {
         const on = selectedIds.includes(c.id);
         return (
@@ -355,10 +355,8 @@ function CategoryChips({ allCategories, selectedIds, onToggle }) {
             key={c.id}
             type="button"
             onClick={() => onToggle(c.id)}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-              on ? "bg-white text-black border-white" : "text-white hover:bg-white/10"
-            }`}
-            style={!on ? { borderColor: CLIENT_DARK_BORDER } : undefined}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors"
+            style={on ? { backgroundColor: TEXT, borderColor: TEXT, color: "#FFFFFF" } : { borderColor: BORDER_STRONG, color: TEXT }}
           >
             {c.name}
             {on && <X size={11} />}
@@ -382,10 +380,8 @@ function TagChips({ options, selectedValues, onToggle }) {
             key={opt.value}
             type="button"
             onClick={() => onToggle(opt.value)}
-            className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${
-              on ? "bg-white text-black border-white" : "text-white hover:bg-white/10"
-            }`}
-            style={!on ? { borderColor: CLIENT_DARK_BORDER } : undefined}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors"
+            style={on ? { backgroundColor: TEXT, borderColor: TEXT, color: "#FFFFFF" } : { borderColor: BORDER_STRONG, color: TEXT }}
           >
             {opt.label}
             {on && <X size={11} />}
@@ -486,7 +482,7 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
           </Field>
           {isRecovery ? (
             <Field label="PRICE">
-              <p className="text-white text-sm py-2.5">Free</p>
+              <p className="text-sm py-2.5" style={{ color: TEXT }}>Free</p>
             </Field>
           ) : (
           <Field label="PRICE (AUD)" hint="Leave blank while still drafting">

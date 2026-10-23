@@ -3,6 +3,12 @@ Firebase Storage Security Rules — Zach McIvor Personal Training app
 
 WHAT THIS IS
 ------------
+UPDATE: these rules now live in storage.rules and are published
+automatically on every production deploy (scripts/deploy-firestore-rules.js),
+the same way firestore.rules is. Edit storage.rules, not this file, and
+keep the copy below in step with it. The manual steps below are only a
+fallback if the automatic publish ever fails.
+
 This unlocks video, PDF and photo attachments in Messages (a client
 sending a form-check video or a meal/injury photo, either side sending
 a PDF — a program, invoice, form, etc.), and image uploads in Settings

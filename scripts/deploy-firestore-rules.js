@@ -34,13 +34,25 @@ const keyPath = join(tmpdir(), `firebase-sa-${Date.now()}.json`);
 
 try {
   writeFileSync(keyPath, serviceAccountJson);
-  execFileSync("npx", ["firebase-tools", "deploy", "--only", "firestore:rules", "--non-interactive"], {
-    stdio: "inherit",
-    env: { ...process.env, GOOGLE_APPLICATION_CREDENTIALS: keyPath },
-  });
-  console.log("[firestore-rules] Published successfully.");
+  // Firestore rules, then Storage rules (storage.rules) — published
+  // separately so one failing never stops the other.
+  for (const [target, label] of [
+    ["firestore:rules", "firestore-rules"],
+    ["storage", "storage-rules"],
+  ]) {
+    try {
+      execFileSync("npx", ["firebase-tools", "deploy", "--only", target, "--non-interactive"], {
+        stdio: "inherit",
+        env: { ...process.env, GOOGLE_APPLICATION_CREDENTIALS: keyPath },
+      });
+      console.log(`[${label}] Published successfully.`);
+    } catch (err) {
+      console.error(`[${label}] Deploy failed — rules may be out of date. Publish manually in Firebase Console if needed.`);
+      console.error(err.message || err);
+    }
+  }
 } catch (err) {
-  console.error("[firestore-rules] Deploy failed — rules may be out of date. Publish manually in Firebase Console if needed.");
+  console.error("[firestore-rules] Couldn't prepare the rules deploy.");
   console.error(err.message || err);
 } finally {
   try {
