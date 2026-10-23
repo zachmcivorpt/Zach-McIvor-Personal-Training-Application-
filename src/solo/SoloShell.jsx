@@ -24,6 +24,10 @@ const TABS = [
 // from elsewhere in Train Solo (e.g. after a purchase completes) so the
 // customer lands where the flow left off instead of always on My Training
 // (the first tab and the default).
+// The tab bar's height (10px padding + icon, label and gaps + 10px + the
+// home-indicator inset), reserved under the page content.
+const NAV_SPACE = "calc(68px + env(safe-area-inset-bottom,0px))";
+
 export default function SoloShell() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,18 +53,20 @@ export default function SoloShell() {
       {/* No overflow here: the window is what scrolls. A non-scrolling
           overflow-y-auto column made iOS treat taps on its content as
           possible scroll gestures, so buttons/links responded unreliably. */}
-      <div className="flex-1 solo-glass-scope" style={soloGlassVars(t)}>
+      <div className="flex-1 solo-glass-scope" style={{ ...soloGlassVars(t), paddingBottom: NAV_SPACE }}>
         {tab === "catalogue" && <SoloCatalogueScreen />}
         {tab === "training" && <SoloMyTrainingScreen />}
         {tab === "progress" && <SoloProgressScreen />}
         {tab === "profile" && <SoloProfileScreen />}
       </div>
 
-      {/* Pinned to the bottom of the screen at all times — the page itself
-          scrolls (the window, not this column), so without sticky the bar
-          only appeared once you scrolled to the very end of a long tab. */}
+      {/* Pinned to the bottom of the screen at all times (the window
+          scrolls, not this column). Fixed rather than sticky: on iOS a
+          sticky, blurred bar could come loose and float up the screen
+          during a momentum scroll. The content above reserves NAV_SPACE so
+          nothing sits hidden behind it. */}
       <div
-        className="sticky bottom-0 z-40 flex shrink-0 backdrop-blur-xl"
+        className="fixed left-0 right-0 bottom-0 z-40 flex backdrop-blur-xl"
         style={{
           borderTop: `1px solid ${t.navBorder}`,
           backgroundColor: t.navBg,
