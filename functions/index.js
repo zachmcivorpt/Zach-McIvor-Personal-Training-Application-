@@ -32,6 +32,7 @@ const { getAuth } = require("firebase-admin/auth");
 const { getStorage } = require("firebase-admin/storage");
 const { buildSuggestions } = require("./nutritionContents");
 const { optimizeLoginVideo, storagePathFromUrl } = require("./videoOptimize");
+const { sendWelcomeEmail, smtpConfigured } = require("./soloWelcomeEmail");
 const os = require("os");
 const path = require("path");
 const fs = require("fs/promises");
@@ -1051,6 +1052,43 @@ function isAllowedReturnOrigin(origin) {
     return false;
   }
 }
+
+// Train Solo welcome email (see soloWelcomeEmail.js for why it exists and
+// how it's configured). Called by the app right after a Train Solo profile
+// is created. Sends at most once per account: soloWelcomeEmails/{uid} is
+// claimed with create(), which fails if it already exists, so a retry,
+// double call or second device never sends a duplicate. Admin-only
+// collection — firestore.rules has no client access to it. The address is
+// the account's own verified sign-in email, never anything the caller
+// passes in.
+exports.sendSoloWelcomeEmail = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  if (!smtpConfigured()) return { sent: false, reason: "not-configured" };
+
+  const profile = await db.collection("soloUsers").doc(uid).get();
+  if (!profile.exists) return { sent: false, reason: "no-profile" };
+  const user = await getAuth().getUser(uid);
+  if (!user.email) return { sent: false, reason: "no-email" };
+
+  const marker = db.collection("soloWelcomeEmails").doc(uid);
+  try {
+    await marker.create({ uid, email: user.email, claimedAt: Date.now() });
+  } catch (err) {
+    if (err.code === 6 /* ALREADY_EXISTS */) return { sent: false, reason: "already-sent" };
+    throw err;
+  }
+  try {
+    await sendWelcomeEmail({ to: user.email, name: profile.data().name });
+    await marker.update({ sentAt: Date.now() });
+    return { sent: true };
+  } catch (err) {
+    // Release the claim so a later call can try again.
+    await marker.delete().catch(() => {});
+    console.error("sendSoloWelcomeEmail failed", uid, err.message);
+    throw new HttpsError("internal", "Couldn't send the welcome email.");
+  }
+});
 
 exports.createSoloCheckoutSession = onCall(async (request) => {
   const uid = request.auth?.uid;

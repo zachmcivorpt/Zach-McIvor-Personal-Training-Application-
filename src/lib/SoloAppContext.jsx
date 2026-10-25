@@ -50,6 +50,14 @@ function friendlySoloAuthError(err) {
 
 const SoloAppCtx = createContext(null);
 
+// Asks the server to send the one-time Train Solo welcome email (see
+// functions/soloWelcomeEmail.js) once a profile exists. Fire-and-forget: the
+// server sends at most once per account and does nothing until email is
+// configured, and a failure here must never affect signing up.
+function requestSoloWelcomeEmail() {
+  httpsCallable(soloFunctions, "sendSoloWelcomeEmail")().catch(() => {});
+}
+
 export function SoloAppProvider({ children }) {
   const [soloAuthUser, setSoloAuthUser] = useState(undefined); // undefined = still checking, null = signed out
   const [soloProfile, setSoloProfile] = useState(null); // soloUsers/{uid} doc
@@ -337,6 +345,7 @@ export function SoloAppProvider({ children }) {
               (err.message || "check your connection and try again, then sign in.")
           );
         }
+        requestSoloWelcomeEmail();
         return { id: uid, ...account };
       },
 
@@ -359,6 +368,7 @@ export function SoloAppProvider({ children }) {
           legalAcceptance,
           onboarding: { completed: false, answers: {} },
         });
+        requestSoloWelcomeEmail();
       },
 
       async soloLogin(email, password) {

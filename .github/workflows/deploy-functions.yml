@@ -41,12 +41,18 @@ jobs:
       - name: Write functions .env
         working-directory: functions
         run: |
-          cat > .env.zach-mcivor-pt-app <<EOF
+          cat > .env.zach-mcivor-pt-app <<'EOF'
           ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}
           WHOOP_CLIENT_ID=${{ secrets.WHOOP_CLIENT_ID }}
           WHOOP_CLIENT_SECRET=${{ secrets.WHOOP_CLIENT_SECRET }}
           STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          SMTP_HOST=${{ secrets.SMTP_HOST }}
+          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_USER=${{ secrets.SMTP_USER }}
+          SMTP_PASS="${{ secrets.SMTP_PASS }}"
+          MAIL_FROM="${{ secrets.MAIL_FROM }}"
+          MAIL_REPLY_TO="${{ secrets.MAIL_REPLY_TO }}"
           EOF
 
       - name: Deploy to Firebase
