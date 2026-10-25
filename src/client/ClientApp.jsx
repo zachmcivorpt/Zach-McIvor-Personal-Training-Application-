@@ -567,7 +567,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   );
 }
 
-function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isToday = true }) {
+function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoToday, isToday = true }) {
   const dark = useClientDark();
   const logged = nutrition || DEFAULT_NUTRITION;
   const items = [
@@ -643,12 +643,20 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, isTod
           </div>
         )}
       </div>
-      {isToday && (
+      {isToday ? (
         <div className="flex gap-2 mt-4">
           <button onClick={onLogFood} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
             + LOG FOOD
           </button>
         </div>
+      ) : (
+        onGoToday && (
+          <div className="flex gap-2 mt-4">
+            <button onClick={onGoToday} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
+              LOG FOOD &amp; WATER FOR TODAY
+            </button>
+          </div>
+        )
       )}
     </div>
   );
@@ -1280,7 +1288,7 @@ function HomeScreen({
         interactive={isToday}
         showToast={showToast}
       />
-      <NutritionSummaryCard nutrition={dayNutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} isToday={isToday} />
+      <NutritionSummaryCard nutrition={dayNutrition} targets={targets} onLogFood={onLogFood} onLogWater={onLogWater} onGoToday={() => onSelectDay(0)} isToday={isToday} />
     </div>
   );
 }
@@ -8658,6 +8666,20 @@ export default function ClientApp() {
       document.removeEventListener("visibilitychange", refresh);
       window.removeEventListener("focus", refresh);
     };
+  }, []);
+
+  // Coming back to the app after a while lands Home on today again — a day
+  // picked on the date strip otherwise stayed selected indefinitely, and
+  // with it the Nutrition card's water/food logging (today-only) stayed
+  // hidden.
+  useEffect(() => {
+    let hiddenAt = null;
+    function onVisibility() {
+      if (document.visibilityState === "hidden") hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > 5 * 60 * 1000) setDayOffset(0);
+    }
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
   const thread = db.messages[currentUser.id] || [];
