@@ -507,12 +507,13 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
           <TextArea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this program is for, who it suits..." />
         </Field>
         {!isRecovery && (
-        <Field label="CATEGORIES">
+        <Field group label="CATEGORIES">
           <CategoryChips allCategories={allCategories} selectedIds={categoryIds} onToggle={toggleCategory} />
         </Field>
         )}
         {!isRecovery && (
         <Field
+          group
           label="WHO IT'S FOR"
           hint="Suggestions only show this program to customers whose consultation answer matches. Leave both off (or pick both) if it suits everyone."
         >
@@ -520,6 +521,7 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
         </Field>
         )}
         <Field
+          group
           label="GOALS THIS PROGRAM SUITS"
           hint="Used to recommend this program to customers whose consultation answers match"
         >
@@ -535,7 +537,7 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
             ))}
           </Select>
         </Field>
-        <Field label="SUITABLE TRAINING ENVIRONMENTS">
+        <Field group label="SUITABLE TRAINING ENVIRONMENTS">
           <TagChips options={ENVIRONMENT_OPTIONS} selectedValues={environments} onToggle={toggleEnvironment} />
         </Field>
         <PrimaryButton type="submit" className="w-full" disabled={!name.trim() || saving}>
@@ -578,7 +580,7 @@ function EditPhaseSheet({ open, onClose, phase, onSave }) {
         <Field label="PHASE NAME">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Foundation" />
         </Field>
-        <Field label="DURATION">
+        <Field group label="DURATION">
           <div className="flex items-center gap-3">
             <button
               type="button"

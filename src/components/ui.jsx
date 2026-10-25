@@ -874,13 +874,19 @@ export function NumberStepper({ label, value, setValue, step, min = 0, dark = fa
    FORM CONTROLS (shared by coach admin forms)
 ============================================================================ */
 
-export function Field({ label, children, hint, dark = false }) {
+// `group`: render as a plain <div> for a field whose content is buttons
+// (chips, a −/+ stepper) rather than one input. A <label> forwards a tap
+// anywhere on it that isn't a control — its title, hint, the gap between
+// chips — to the first button inside, silently toggling that chip or
+// stepping the value.
+export function Field({ label, children, hint, dark = false, group = false }) {
+  const Tag = group ? "div" : "label";
   return (
-    <label className="block">
+    <Tag className="block">
       <span className={`block text-xs tracking-wide mb-1.5 ${dark ? "text-white/40" : "text-black/40"}`}>{label}</span>
       {children}
       {hint && <span className={`block text-xs mt-1 ${dark ? "text-white/30" : "text-black/30"}`}>{hint}</span>}
-    </label>
+    </Tag>
   );
 }
 

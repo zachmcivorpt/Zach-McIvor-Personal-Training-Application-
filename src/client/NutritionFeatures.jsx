@@ -1693,6 +1693,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
 
       {showMealTypes && (
         <Field
+          group
           label="WHEN SHOULD THIS BE SUGGESTED?"
           hint="Used by Auto-Build to only suggest this meal for the right slot. Leave all unchecked to allow any time."
           dark={dark}

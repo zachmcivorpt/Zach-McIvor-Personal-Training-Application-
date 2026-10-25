@@ -2107,6 +2107,13 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: `src/lib/SoloAppContext.refundedPurchase.test.jsx`, verified to fail without the fix.
 - **Date added**: 2026-10-22
 
+
+### 85. Tapping a field's title toggled the first chip (or stepped a duration down)
+- **Root cause**: `Field` (`src/components/ui.jsx`) renders a `<label>`. A label forwards a tap anywhere on it that isn't a control (its title, hint, the gap between chips) to the first button inside it. Fields holding chip groups or a −/+ stepper therefore toggled their first chip or decreased the value. Affected: Train Solo Edit Program (Categories, Who it's for, Goals, Environments), Train Solo Edit Phase and the coaching Program builder's Duration steppers, and the client Nutrition meal-type chips. Found in the 2026-10-25 weekly audit: tapping only the titles saved "Home Training", "Men" and "Commercial gym" on a program. A stray "Men" tag hides a program from women's suggestions.
+- **Fix**: `Field` takes an opt-in `group` prop that renders a plain `<div>` with the same look. Those seven fields use it; every other `Field` (text inputs, selects) still renders a label.
+- **Regression test**: `src/components/fieldGroup.test.jsx`, verified to fail without the fix. Also checked in the browser on the Edit Program sheet: tapping titles/hints selects nothing; tapping chips still toggles them.
+- **Date added**: 2026-10-25
+
 ---
 
 ## What still requires manual testing

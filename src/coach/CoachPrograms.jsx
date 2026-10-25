@@ -282,7 +282,7 @@ function EditPhaseSheet({ open, onClose, phase, onSave }) {
         <Field label="PHASE NAME">
           <TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Foundation" />
         </Field>
-        <Field label="DURATION">
+        <Field group label="DURATION">
           <div className="flex items-center gap-3">
             <button
               type="button"
