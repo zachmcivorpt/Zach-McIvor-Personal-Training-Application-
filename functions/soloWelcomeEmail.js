@@ -31,7 +31,12 @@ function escapeHtml(s) {
 function buildWelcomeEmail({ name, siteUrl = DEFAULT_SITE_URL }) {
   const first = String(name || "").trim().split(/\s+/)[0] || "";
   const greeting = first ? `Hi ${first},` : "Hi,";
-  const link = `${siteUrl.replace(/\/+$/, "")}/solo/login`;
+  const base = siteUrl.replace(/\/+$/, "");
+  const link = `${base}/solo/login`;
+  // The APEX mountain mark, served by the live web app. A copy of
+  // public/brand/mark-black.png with its faint background noise (alpha
+  // 1-15) cleared, which otherwise shows as a pale square in some mail apps.
+  const logo = `${base}/brand/mark-black-email.png`;
   const subject = "Welcome to APEX Train Solo";
 
   const text = [
@@ -57,7 +62,7 @@ function buildWelcomeEmail({ name, siteUrl = DEFAULT_SITE_URL }) {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F5F4F1;">
 <tr><td align="center" style="padding:40px 16px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#0A0A0B;">
-<tr><td style="font-size:13px;font-weight:800;letter-spacing:0.18em;padding-bottom:32px;">APEX</td></tr>
+<tr><td style="padding-bottom:32px;"><img src="${escapeHtml(logo)}" width="42" height="32" alt="APEX" style="display:block;border:0;width:42px;height:32px;"></td></tr>
 <tr><td style="font-size:26px;font-weight:800;line-height:1.2;padding-bottom:16px;">Welcome to Train Solo</td></tr>
 <tr><td style="font-size:15px;line-height:1.6;color:#3A3A3E;padding-bottom:14px;">${escapeHtml(greeting)}</td></tr>
 <tr><td style="font-size:15px;line-height:1.6;color:#3A3A3E;padding-bottom:14px;">Your account is ready. Train Solo gives you a complete, coach-built program: every session planned for you, every lift logged, and your personal bests tracked automatically.</td></tr>
