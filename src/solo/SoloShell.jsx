@@ -6,6 +6,9 @@ import SoloCatalogueScreen from "./SoloCatalogueScreen";
 import SoloMyTrainingScreen from "./SoloMyTrainingScreen";
 import SoloProgressScreen from "./SoloProgressScreen";
 import SoloProfileScreen from "./SoloProfileScreen";
+import { useSoloApp } from "../lib/SoloAppContext";
+import { soloDb } from "../lib/firebase";
+import { useAppleHealthSync } from "../lib/appleHealth";
 
 const TABS = [
   { id: "training", label: "My Training", icon: CalendarDays },
@@ -47,6 +50,14 @@ export default function SoloShell() {
 
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
+
+  // Apple Health (iPhone app only, connected from Profile).
+  const { soloCurrentUser } = useSoloApp();
+  useAppleHealthSync(
+    "solo",
+    { db: soloDb, metrics: "soloBodyMetrics", weighIns: "soloWeighIns", owner: "soloUserId", uid: soloCurrentUser?.id },
+    true
+  );
 
   return (
     <div className="min-h-dvh w-full flex flex-col" style={{ backgroundColor: t.bg, color: t.text, transition: "background-color 0.2s,color 0.2s" }}>

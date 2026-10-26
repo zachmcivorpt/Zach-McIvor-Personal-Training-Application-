@@ -41,6 +41,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private var pendingFCMToken: String?
     private var webViewReady = false
 
+    // Apple Health reads for the web app — see HealthBridge.swift.
+    private let health = HealthBridge()
+
     // The strip above the webview (status bar + notch) is this view's own
     // background showing through — it doesn't track the page's background
     // on its own. The coach console is always dark but the client app (and
@@ -108,6 +111,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         config.userContentController.add(self, name: "apexTheme")
+        config.userContentController.add(self, name: "apexHealth")
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
@@ -115,6 +119,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isOpaque = false
         webView.backgroundColor = .white
+        health.webView = webView
         view.addSubview(webView)
 
         // Pin below the status bar/notch — a bare WKWebView doesn't auto-inset
@@ -214,6 +219,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // src/App.jsx posts this once on mount and again every time the
     // active route changes.
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "apexHealth" {
+            if let body = message.body as? [String: Any] { health.handle(body) }
+            return
+        }
         guard message.name == "apexTheme",
               let body = message.body as? [String: Any],
               let dark = body["dark"] as? Bool
@@ -234,6 +243,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // handler — without removing it, this ViewController (and its
         // WKWebView) would never deallocate.
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexTheme")
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexHealth")
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

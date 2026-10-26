@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight } from "lucide-react";
+import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity } from "lucide-react";
+import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth } from "../lib/appleHealth";
 import { enableSoloPush, hasSoloPushToken } from "../lib/push";
 import { inIosApp } from "./appShell";
 import SoloGlassBox from "./SoloGlassBox";
@@ -39,6 +40,32 @@ export default function SoloProfileScreen() {
   const iosApp = inIosApp();
   const deviceRegistered = !!uid && hasSoloPushToken(uid);
   const remindersOn = !!deviceRegistered && soloCurrentUser?.notificationPrefs?.weeklyCheckIn !== false;
+  // Apple Health — only in the iPhone app (src/lib/appleHealth.js); synced
+  // by SoloShell while the app is open.
+  const healthAvailable = appleHealthAvailable();
+  const [healthOn, setHealthOn] = useState(() => isAppleHealthOn("solo", uid));
+  const [healthBusy, setHealthBusy] = useState(false);
+  const [healthError, setHealthError] = useState("");
+  useEffect(() => setHealthOn(isAppleHealthOn("solo", uid)), [uid]);
+
+  async function toggleHealth() {
+    if (!uid || healthBusy) return;
+    setHealthError("");
+    if (healthOn) {
+      disconnectAppleHealth("solo", uid);
+      setHealthOn(false);
+      return;
+    }
+    setHealthBusy(true);
+    try {
+      await connectAppleHealth("solo", uid);
+      setHealthOn(true);
+    } catch (err) {
+      setHealthError(err?.message || "Couldn't connect Apple Health — please try again.");
+    } finally {
+      setHealthBusy(false);
+    }
+  }
 
   async function toggleReminders() {
     if (!uid || reminderBusy) return;
@@ -137,7 +164,13 @@ export default function SoloProfileScreen() {
           <span className="text-sm font-semibold flex-1">My Calendar</span>
           <ChevronRight size={16} color={t.textFaint} />
         </Link>
-        <button type="button" onClick={toggleReminders} disabled={reminderBusy} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
+        <button
+          type="button"
+          onClick={toggleReminders}
+          disabled={reminderBusy}
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+          style={healthAvailable ? { borderBottom: `1px solid ${t.panelBorder}` } : undefined}
+        >
           <Bell size={17} color={t.textMuted} className="shrink-0" />
           <span className="flex-1 min-w-0">
             <span className="block text-sm font-semibold">Monday check-in reminders</span>
@@ -155,6 +188,26 @@ export default function SoloProfileScreen() {
           </span>
         </button>
         {reminderError && <p className="text-xs text-red-500 px-4 pb-3 -mt-1">{reminderError}</p>}
+        {healthAvailable && (
+          <button type="button" onClick={toggleHealth} disabled={healthBusy} className="w-full flex items-center gap-3 px-4 py-3.5 text-left">
+            <Activity size={17} color={t.textMuted} className="shrink-0" />
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold">Apple Health</span>
+              <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
+                Sync steps, sleep, resting heart rate and weight to Progress.
+              </span>
+            </span>
+            <span
+              role="switch"
+              aria-checked={healthOn}
+              className="w-11 h-6 rounded-full p-0.5 shrink-0 transition-colors"
+              style={{ backgroundColor: healthOn ? accent : t.chipBg, border: `1px solid ${t.panelBorder}`, opacity: healthBusy ? 0.6 : 1 }}
+            >
+              <span className="block w-5 h-5 rounded-full bg-white shadow transition-transform" style={{ transform: healthOn ? "translateX(18px)" : "none" }} />
+            </span>
+          </button>
+        )}
+        {healthError && <p className="text-xs text-red-500 px-4 pb-3 -mt-1">{healthError}</p>}
       </SoloGlassBox>
 
       <SoloGlassBox t={t} className="rounded-2xl mb-5">

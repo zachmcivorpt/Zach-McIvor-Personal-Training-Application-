@@ -169,7 +169,11 @@ export function buildSoloCalendar({
     }
   }
 
-  const statsWeeks = new Set([...weighIns.map((w) => keyOf(w.date)), ...bodyMetrics.map((m) => keyOf(m.date))].filter(Boolean).map(mondayOf));
+  // A day whose only values were synced from Apple Health (marked in its
+  // `appleHealth` map — see src/lib/appleHealth.js) isn't a check-in;
+  // steps sync in every day on their own.
+  const handLogged = (m) => Object.keys(m).some((k) => !["id", "soloUserId", "date", "appleHealth"].includes(k) && !m.appleHealth?.[k]);
+  const statsWeeks = new Set([...weighIns.map((w) => keyOf(w.date)), ...bodyMetrics.filter(handLogged).map((m) => keyOf(m.date))].filter(Boolean).map(mondayOf));
   const photoWeeks = new Set(progressPhotos.map((p) => keyOf(p.date)).filter(Boolean).map(mondayOf));
   const firstMonday = mondayOf(keyOf(accountCreatedAt) || fromKey);
   let monday = firstMonday < mondayOf(fromKey) ? mondayOf(fromKey) : firstMonday;

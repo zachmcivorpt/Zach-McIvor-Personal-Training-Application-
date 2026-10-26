@@ -90,6 +90,8 @@ import {
 import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { WHOOP_CLIENT_ID } from "../lib/config";
+import { db as firestore } from "../lib/firebase";
+import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth, useAppleHealthSync } from "../lib/appleHealth";
 import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "../lib/workoutStats";
 import {
   Card,
@@ -6866,11 +6868,34 @@ function startWhoopConnect() {
   window.location.href = `https://api.prod.whoop.com/oauth/oauth2/auth?${params.toString()}`;
 }
 
-function ConnectedDevicesSheet({ open, onClose, connected, showToast }) {
+function ConnectedDevicesSheet({ open, onClose, connected, showToast, userId }) {
   const dark = useClientDark();
   const { disconnectWhoop } = useApp();
   const [busy, setBusy] = useState(false);
   const whoopSetUp = WHOOP_CLIENT_ID !== "not-configured-yet";
+  // Apple Health — only in the iPhone app (src/lib/appleHealth.js).
+  const healthAvailable = appleHealthAvailable();
+  const [healthOn, setHealthOn] = useState(() => isAppleHealthOn("coached", userId));
+  const [healthBusy, setHealthBusy] = useState(false);
+
+  async function toggleHealth() {
+    if (healthOn) {
+      disconnectAppleHealth("coached", userId);
+      setHealthOn(false);
+      showToast?.("Apple Health disconnected");
+      return;
+    }
+    setHealthBusy(true);
+    try {
+      await connectAppleHealth("coached", userId);
+      setHealthOn(true);
+      showToast?.("Apple Health connected");
+    } catch (err) {
+      showToast?.(err.message || "Couldn't connect Apple Health — please try again", true);
+    } finally {
+      setHealthBusy(false);
+    }
+  }
 
   async function disconnect() {
     setBusy(true);
@@ -6913,8 +6938,34 @@ function ConnectedDevicesSheet({ open, onClose, connected, showToast }) {
           </button>
         )}
       </div>
+      {healthAvailable && (
+        <div className={dark ? "flex items-center gap-3 bg-white/5 border border-white/8 rounded-xl px-4 py-3.5 mt-3" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-xl px-4 py-3.5 mt-3"}>
+          <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center shrink-0">
+            <Activity size={18} className="text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={dark ? "text-white font-semibold text-sm" : "text-black font-semibold text-sm"}>Apple Health</p>
+            <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
+              {healthOn ? "Connected — steps, sleep, resting heart rate & weight sync automatically" : "Sync steps, sleep, resting heart rate & weight"}
+            </p>
+          </div>
+          <button
+            onClick={toggleHealth}
+            disabled={healthBusy}
+            className={
+              healthOn
+                ? "bg-red-50 border border-red-100 text-red-600 text-xs font-semibold px-3 py-2 rounded-lg shrink-0 disabled:opacity-50"
+                : "bg-black text-white text-xs font-semibold px-3 py-2 rounded-lg shrink-0 disabled:opacity-50"
+            }
+          >
+            {healthBusy ? "…" : healthOn ? "Disconnect" : "Connect"}
+          </button>
+        </div>
+      )}
       <p className={dark ? "text-white/30 text-xs mt-4 text-center" : "text-black/30 text-xs mt-4 text-center"}>
-        Apple Health and Garmin syncing isn't built yet — on the roadmap for a future update.
+        {healthAvailable
+          ? "Garmin syncing isn't built yet — on the roadmap for a future update."
+          : "Apple Health connects in the APEX iPhone app. Garmin syncing isn't built yet — on the roadmap for a future update."}
       </p>
     </BottomSheet>
   );
@@ -7208,7 +7259,7 @@ export function ProfileScreen({
 
       <PreferencesSheet section={prefSection} open={!!prefSection} onClose={() => setPrefSection(null)} user={user} />
       {!viewingAsClient && (
-        <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} connected={!!user.whoopConnected} showToast={showToast} />
+        <ConnectedDevicesSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} connected={!!user.whoopConnected} showToast={showToast} userId={user.id} />
       )}
       <PushNotificationsSheet open={pushOpen} onClose={() => setPushOpen(false)} showToast={showToast} userId={user.id} />
       <DeleteAccountSheet
@@ -8509,6 +8560,9 @@ export default function ClientApp() {
   const [dayOffset, setDayOffset] = useState(0); // days from today, selected on the Home calendar strip
   const [notifOpen, setNotifOpen] = useState(false);
   const [autoOpenWeighIn, setAutoOpenWeighIn] = useState(0);
+  // Apple Health (iPhone app only) — never while a coach is viewing as
+  // this client, so the coach's own phone can't sync into their records.
+  useAppleHealthSync("coached", { db: firestore, metrics: "bodyMetrics", weighIns: "weighIns", owner: "clientId", uid: currentUser.id }, !viewingAsClient);
 
   // Finishes a WHOOP OAuth connect — WHOOP just redirected the whole page
   // back here with ?code=...&state=... after the client signed in on
