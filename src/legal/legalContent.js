@@ -5,12 +5,12 @@
 // `body` is an array of either a plain paragraph string or a
 // `{ list: [...] }` bullet list.
 export const LEGAL_CONTACT = {
-  email: "apexplatformmanagement@outlook.com",
+  email: "apexcoachingplatform@gmail.com",
   address: "", // fill in once you have a business address you want published
   abn: "", // optional — leave blank if you don't have one yet
 };
 
-const EFFECTIVE_DATE = "6 September 2026";
+const EFFECTIVE_DATE = "26 October 2026";
 
 export const LEGAL_DOCS = {
   "privacy-policy": {
@@ -120,6 +120,7 @@ export const LEGAL_DOCS = {
         heading: "11. Direct marketing",
         body: [
           "APEX may send service-related communications necessary to operate an account. Where permitted, APEX may also send marketing communications. You may opt out of marketing communications at any time.",
+          "When you create a Train Solo account, APEX sends you a one-off welcome email to the address you signed up with, explaining how to browse and buy Train Solo programs. You can opt out of further emails by replying \"unsubscribe\" or contacting APEX.",
         ],
       },
       {

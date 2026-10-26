@@ -1,7 +1,7 @@
 # APEX Coaching Platform — Coach Responsibility & Client Data Agreement
 
-**Effective Date:** 6 September 2026
-**Last Updated:** 6 September 2026
+**Effective Date:** 26 October 2026
+**Last Updated:** 26 October 2026
 
 ## 1. Purpose
 
@@ -436,6 +436,6 @@ By using APEX to store or process Client Data, the Coach confirms that they:
 Questions regarding this Agreement should be directed to:
 
 APEX Coaching Platform
-Legal/Privacy Contact: [INSERT EMAIL]
+Legal/Privacy Contact: apexcoachingplatform@gmail.com
 Address: [INSERT ADDRESS]
 ABN/ACN: [INSERT ABN/ACN]

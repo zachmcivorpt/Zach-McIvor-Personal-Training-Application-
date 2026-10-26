@@ -1,7 +1,7 @@
 # APEX Coaching Platform — Terms of Service
 
-**Effective Date:** 6 September 2026
-**Last Updated:** 6 September 2026
+**Effective Date:** 26 October 2026
+**Last Updated:** 26 October 2026
 
 ## 1. About these Terms
 
@@ -350,6 +350,6 @@ If any provision of these Terms is invalid or unenforceable, that provision will
 Questions regarding these Terms may be directed to:
 
 APEX Coaching Platform
-Legal/Privacy Contact: [INSERT EMAIL]
+Legal/Privacy Contact: apexcoachingplatform@gmail.com
 Business Address: [INSERT ADDRESS]
 ABN/ACN: [INSERT ABN/ACN]

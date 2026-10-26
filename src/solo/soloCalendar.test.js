@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildSoloCalendar, mondayOf, sessionOffsets, sessionDateKeys, sessionDayLabel, calendarItemTarget } from "./soloCalendar";
 
 const program = { id: "p1", name: "Upper/Lower" };
@@ -132,6 +132,14 @@ describe("sessionDateKeys / sessionDayLabel", () => {
 });
 
 describe("calendarItemTarget (shared by the Calendar and My Training's day view)", () => {
+  // The current program week comes from the real clock (weekProgress.js),
+  // so pin it to the same day as ctx.todayKey — otherwise this went stale
+  // once the real date passed into the program's week 2.
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-22T12:00:00"));
+  });
+  afterEach(() => vi.useRealTimers());
   const ctx = { todayKey: "2026-10-22", soloUid: "u1", contentByProgramId: { p1: { phases: [{ durationWeeks: 4, days: [{ id: "d1" }] }] } } };
   const purchase = { id: "u1_p1", startDate: "2026-10-19" };
   it("starts a due workout, locks a future week and a done one", () => {

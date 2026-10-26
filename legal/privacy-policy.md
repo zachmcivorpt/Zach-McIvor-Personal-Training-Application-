@@ -1,7 +1,7 @@
 # APEX Coaching Platform — Privacy Policy
 
-**Effective Date:** 6 September 2026
-**Last Updated:** 6 September 2026
+**Effective Date:** 26 October 2026
+**Last Updated:** 26 October 2026
 
 ## 1. About this Privacy Policy
 
@@ -207,6 +207,8 @@ APEX may send service-related communications necessary to operate an account.
 
 Where permitted, APEX may also send marketing communications.
 
+When you create a Train Solo account, APEX sends you a one-off welcome email to the address you signed up with, explaining how to browse and buy Train Solo programs. You can opt out of further emails by replying "unsubscribe" or contacting APEX.
+
 You may opt out of marketing communications at any time by following the unsubscribe instructions or contacting APEX.
 
 APEX will comply with applicable privacy and electronic marketing laws.
@@ -354,7 +356,7 @@ Privacy enquiries, access requests, correction requests and complaints should be
 
 APEX Coaching Platform
 Privacy Officer: [INSERT NAME/ROLE]
-Email: [INSERT PRIVACY EMAIL]
+Email: apexcoachingplatform@gmail.com
 Address: [INSERT BUSINESS ADDRESS]
 ABN/ACN: [INSERT ABN/ACN]
 

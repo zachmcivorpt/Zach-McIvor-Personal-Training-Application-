@@ -1,7 +1,7 @@
 # APEX Coaching Platform — Data Processing & Privacy Terms
 
-**Effective Date:** 6 September 2026
-**Last Updated:** 6 September 2026
+**Effective Date:** 26 October 2026
+**Last Updated:** 26 October 2026
 
 ## 1. Purpose
 
@@ -319,6 +319,6 @@ Privacy, confidentiality, intellectual property, security, liability and data pr
 Data protection enquiries should be directed to:
 
 APEX Coaching Platform
-Privacy/Data Protection Contact: [INSERT EMAIL]
+Privacy/Data Protection Contact: apexcoachingplatform@gmail.com
 Address: [INSERT ADDRESS]
 ABN/ACN: [INSERT ABN/ACN]
