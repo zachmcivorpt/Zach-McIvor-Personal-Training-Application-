@@ -94,7 +94,10 @@ Do these together when the user is ready to submit a new App Store build
 - Train Solo purchasing stays hidden inside the iOS app (Apple 3.1.1 —
   `src/solo/appShell.js`); buying happens on the website only.
 - Update the iPhone screenshots in App Store Connect for the 1.0.2
-  submission (the user asked for this to be remembered). The current ones
+  submission (the user asked for this to be remembered). PREPARED
+  2026-10-26: 10 framed 1320x2868 images (start screen, 4 coached-client
+  screens from the user's phone, 5 Train Solo screens captured in iOS-app
+  mode); the user uploads them in App Store Connect. The current ones
   show only the coach console; new ones should cover the refreshed login,
   the coached client app and Train Solo, at the required 6.9" iPhone size
   (1320 x 2868 portrait). Screenshots must not show prices or buy buttons
