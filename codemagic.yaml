@@ -58,7 +58,10 @@ workflows:
   android-workflow:
     name: APEX Coaching Platform - Android
     max_build_duration: 30
-    instance_type: linux_x2
+    # mac_mini_m2: the free plan has no Linux instances ("instance type is
+    # not available with the current billing plan"). It ships the same JDK
+    # and Android SDK the Bubblewrap build below uses.
+    instance_type: mac_mini_m2
     triggering:
       events:
         - push
