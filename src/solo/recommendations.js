@@ -125,3 +125,48 @@ export function recommendPrograms(programs, categories, answers, { limit = 2, ex
     .slice(0, limit)
     .map((x) => x.program);
 }
+
+// How many of the matchable answers a program meets, for the "closest"
+// fallback below — one point each for sessions a week, level, main goal,
+// style and environment. Unanswered / "Something else" answers score
+// nothing either way.
+function answersMatched(program, a) {
+  let n = 0;
+  const wanted = Number(a.sessionsPerWeek);
+  if (wanted && program.weekOnePreview?.sessionsPerWeek === wanted) n++;
+  const level = EXPERIENCE_TO_LEVEL[a.priorExperience];
+  if (level && program.level === level) n++;
+  if (a.primaryGoal && a.primaryGoal !== "other" && (program.goals || []).includes(a.primaryGoal)) n++;
+  if (a.preferredStyle && a.preferredStyle !== "other" && program.style === a.preferredStyle) n++;
+  if (a.trainingEnvironment && (program.environments || []).includes(a.trainingEnvironment)) n++;
+  return n;
+}
+
+// The Catalogue's and consultation screen's picks: exact matches when there
+// are any (`exact: true`), otherwise the closest programs (`exact: false`) —
+// most answers matched, then the nearest sessions a week, then the most
+// shared secondary goals. "Who it's for" stays a hard rule even for the
+// closest picks, and a program matching none of the answers is never
+// offered.
+export function recommendForAnswers(programs, categories, answers, { limit = 2, excludeIds = [] } = {}) {
+  const exactPicks = recommendPrograms(programs, categories, answers, { limit, excludeIds });
+  if (exactPicks.length > 0) return { programs: exactPicks, exact: true };
+  const a = answers || {};
+  if (!hasMatchableAnswer(a)) return { programs: [], exact: false };
+  const excluded = new Set(excludeIds);
+  const secondary = new Set((a.secondaryGoals || []).filter((g) => g && g !== "none"));
+  const wanted = Number(a.sessionsPerWeek);
+  const closest = visiblePrograms(programs, categories)
+    .filter((p) => !excluded.has(p.id) && suitsAudience(p, a))
+    .map((program) => ({
+      program,
+      matched: answersMatched(program, a),
+      sessionsGap: wanted && typeof program.weekOnePreview?.sessionsPerWeek === "number" ? Math.abs(program.weekOnePreview.sessionsPerWeek - wanted) : 99,
+      overlap: (program.goals || []).filter((g) => secondary.has(g)).length,
+    }))
+    .filter((x) => x.matched > 0)
+    .sort((x, y) => y.matched - x.matched || x.sessionsGap - y.sessionsGap || y.overlap - x.overlap)
+    .slice(0, limit)
+    .map((x) => x.program);
+  return { programs: closest, exact: false };
+}

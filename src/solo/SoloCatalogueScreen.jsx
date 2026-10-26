@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
-import { visibleCategories, visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, recommendPrograms, formatAudPrice } from "./recommendations";
+import { visibleCategories, visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, recommendForAnswers, formatAudPrice } from "./recommendations";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { SoloArtwork } from "./SoloArtwork";
 import { inIosApp, APP_STORE_URL } from "./appShell";
@@ -63,10 +63,11 @@ export default function SoloCatalogueScreen() {
   // The two best fits for this customer's consultation answers, leaving
   // out anything they already own.
   const ownedIds = useMemo(() => (soloPurchases || []).map((p) => p.programId), [soloPurchases]);
-  const recommended = useMemo(
-    () => recommendPrograms(soloPrograms, soloProgramCategories, answers, { limit: 2, excludeIds: ownedIds }),
+  const picks = useMemo(
+    () => recommendForAnswers(soloPrograms, soloProgramCategories, answers, { limit: 2, excludeIds: ownedIds }),
     [soloPrograms, soloProgramCategories, answers, ownedIds]
   );
+  const recommended = picks.programs;
   const flagged = isFlaggedForMedicalReview(answers);
   const firstName = (soloCurrentUser?.name || "").trim().split(/\s+/)[0];
 
@@ -128,7 +129,12 @@ export default function SoloCatalogueScreen() {
             <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: accent }}>
               From your consultation
             </p>
-            <h2 className="text-lg font-bold mt-1 mb-3">Recommended for you</h2>
+            <h2 className={`text-lg font-bold mt-1 ${picks.exact ? "mb-3" : ""}`}>{picks.exact ? "Recommended for you" : "Closest to your answers"}</h2>
+            {!picks.exact && (
+              <p className="text-xs mt-0.5 mb-3" style={{ color: t.textMuted }}>
+                No program matches every answer yet — these are the nearest.
+              </p>
+            )}
             <div className="space-y-2.5">
               {recommended.map((p) => {
                 const weeks = p.weekOnePreview?.totalWeeks || 0;

@@ -6,7 +6,7 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import SoloGlassBox from "./SoloGlassBox";
 import { SoloArtwork } from "./SoloArtwork";
-import { recommendPrograms } from "./recommendations";
+import { recommendForAnswers } from "./recommendations";
 import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 import { SECTIONS, getVisibleQuestions, isAnswered, isComplete, isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 
@@ -326,7 +326,8 @@ function AnswerInput({ question, value, answers, onChange, t, dark }) {
 }
 
 function SavedConfirmation({ answers, t, dark, accent, programs, categories, ownedIds, onOpenProgram, onCatalogue, onProfile }) {
-  const recommended = recommendPrograms(programs, categories, answers, { limit: 2, excludeIds: ownedIds });
+  const picks = recommendForAnswers(programs, categories, answers, { limit: 2, excludeIds: ownedIds });
+  const recommended = picks.programs;
   const flagged = isFlaggedForMedicalReview(answers);
   return (
     <div className="w-full max-w-md mx-auto px-3 pb-10">
@@ -353,7 +354,12 @@ function SavedConfirmation({ answers, t, dark, accent, programs, categories, own
           <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: accent }}>
             From your consultation
           </p>
-          <h3 className="text-lg font-bold mt-1 mb-3">Recommended for you</h3>
+          <h3 className={`text-lg font-bold mt-1 ${picks.exact ? "mb-3" : ""}`}>{picks.exact ? "Recommended for you" : "Closest to your answers"}</h3>
+          {!picks.exact && (
+            <p className="text-xs mt-0.5 mb-3" style={{ color: t.textMuted }}>
+              No program matches every answer yet — these are the nearest.
+            </p>
+          )}
           <div className="space-y-2.5">
             {recommended.map((p) => {
               const weeks = p.weekOnePreview?.totalWeeks || 0;

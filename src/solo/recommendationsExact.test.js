@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { recommendPrograms, matchesAnswers } from "./recommendations";
+import { recommendPrograms, matchesAnswers, recommendForAnswers } from "./recommendations";
 
 const category = { id: "c1", name: "Strength" };
 const answers = {
@@ -60,5 +60,38 @@ describe("recommendations match the consultation exactly", () => {
 
   it("recommends nothing before the consultation is answered", () => {
     expect(ids([exact], {})).toEqual([]);
+  });
+});
+
+describe("closest picks when nothing matches every answer", () => {
+  it("returns exact matches flagged exact when there are any", () => {
+    const res = recommendForAnswers([exact], [category], answers);
+    expect(res).toEqual({ programs: [exact], exact: true });
+  });
+
+  it("falls back to the programs matching the most answers, nearest sessions a week first", () => {
+    const fourOfFive = { ...exact, id: "fourOfFive", style: "hypertrophy" }; // all but style
+    const threeNear = { ...exact, id: "threeNear", style: "hypertrophy", level: "Beginner", weekOnePreview: { sessionsPerWeek: 4 } };
+    const threeFar = { ...exact, id: "threeFar", style: "hypertrophy", environments: ["home_minimal"], weekOnePreview: { sessionsPerWeek: 4 } };
+    const twoMatch = { ...exact, id: "twoMatch", style: "hypertrophy", level: "Beginner", goals: ["lose_fat"] };
+    const res = recommendForAnswers([twoMatch, threeFar, fourOfFive, threeNear], [category], answers, { limit: 3 });
+    expect(res.exact).toBe(false);
+    expect(res.programs.map((p) => p.id)[0]).toBe("fourOfFive");
+    expect(res.programs).toHaveLength(3);
+    expect(res.programs.map((p) => p.id)).not.toContain("twoMatch");
+  });
+
+  it("breaks a tie on matched answers by the nearest sessions a week", () => {
+    // Both match level, goal and environment (3 answers); 3 sessions is nearer 4 than 7 is.
+    const near = { ...exact, id: "near", style: "hypertrophy", weekOnePreview: { sessionsPerWeek: 3 } };
+    const far = { ...exact, id: "far", style: "hypertrophy", weekOnePreview: { sessionsPerWeek: 7 } };
+    const res = recommendForAnswers([far, near], [category], answers);
+    expect(res.programs.map((p) => p.id)).toEqual(["near", "far"]);
+  });
+
+  it("never offers a program for the other sex, or one matching no answers", () => {
+    const womens = { ...exact, id: "womens", style: "hypertrophy", audience: ["female"] };
+    const nothing = { ...exact, id: "nothing", level: "Advanced", goals: ["lose_fat"], style: "conditioning", environments: ["outdoors"], weekOnePreview: { sessionsPerWeek: 1 } };
+    expect(recommendForAnswers([womens, nothing], [category], answers)).toEqual({ programs: [], exact: false });
   });
 });
