@@ -263,7 +263,12 @@ export function ProgramOverviewSheet({ open, onClose, program, content, purchase
 
   // Opening a session (or going back) starts at the top of the sheet.
   useEffect(() => {
-    topRef.current?.scrollIntoView({ block: "start" });
+    // Scroll the sheet's own scroll area to its top. scrollIntoView lined
+    // this marker up with the very top of the screen instead, leaving the
+    // start of the session preview hidden under the sheet's sticky title.
+    let el = topRef.current?.parentElement;
+    while (el && !(el.scrollHeight > el.clientHeight && /(auto|scroll)/.test(getComputedStyle(el).overflowY))) el = el.parentElement;
+    if (el) el.scrollTop = 0;
   }, [preview]);
 
   return (
