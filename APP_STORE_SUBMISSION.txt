@@ -231,11 +231,15 @@ Notes for reviewer (optional but helpful):
 
   What's New in This Version:
 
-    A refreshed look and a smoother start. The login screens now run
-    full screen, the app opens straight into the right screen, and the
-    training, nutrition and home screens have a cleaner design. Plus a
-    new water tracker, swipe-to-delete for cardio sessions, and general
-    fixes and performance improvements.
+    Introducing Train Solo: self-guided programs built by your coach,
+    scheduled on the days you choose to train. See your day at a
+    glance, preview every session and its main muscles, review the
+    lifts from any completed workout, and track your water.
+
+    Plus a refreshed look and a smoother start: full-screen login
+    screens, the app opens straight into the right screen, cleaner
+    training, nutrition and home screens, swipe-to-delete for cardio
+    sessions, and general fixes and performance improvements.
 
   Notes for reviewer (App Review Information -> Notes) — add to the
   existing notes:
@@ -247,8 +251,10 @@ Notes for reviewer (optional but helpful):
     already owned: on the start screen tap Train Solo -> Log in with
     the Train Solo demo account below."
 
-    Train Solo demo account: use a dedicated Train Solo login that
-    already owns a program (don't use a real customer's).
+    Train Solo demo account: the dedicated Train Solo test login, which
+    already owns programs and has completed its consultation. Its email
+    and password are kept out of this repository; enter them in App
+    Store Connect only.
 
   Version number: 1.0.2 (ios/project.yml). Build number is set by
   Codemagic automatically.
