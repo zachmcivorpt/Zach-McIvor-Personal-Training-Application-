@@ -157,7 +157,9 @@ export default function SoloCatalogueScreen() {
         ) : (
           published.length > 0 && (
             <p className="text-xs mb-5" style={{ color: t.textFaint }}>
-              Complete your consultation for personalised picks — browse every program below in the meantime.
+              {soloCurrentUser?.onboarding?.completed
+                ? "No program matches every one of your consultation answers yet — browse every program below."
+                : "Complete your consultation for personalised picks — browse every program below in the meantime."}
             </p>
           )
         )}

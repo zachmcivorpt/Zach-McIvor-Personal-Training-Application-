@@ -55,45 +55,38 @@ export function visiblePrograms(programs, categories) {
   return programs.filter((p) => isVisible(p, categoriesById));
 }
 
-// One program's score against one set of answers — higher is a better
-// match. Returns 0 for "no meaningful signal", never negative, so callers
-// can treat "score > 0" as "worth recommending" and sort the rest only as
-// a browse-all fallback order.
-function scoreProgram(program, answers) {
-  let score = 0;
-
-  const experienceLevel = EXPERIENCE_TO_LEVEL[answers.priorExperience];
-  if (experienceLevel && program.level === experienceLevel) score += 3;
-
-  if (answers.preferredStyle && program.style && answers.preferredStyle === program.style) score += 3;
-
-  // The customer's primary goal outweighs any secondary goal, so between
-  // two otherwise-equal programs the one built for what they said matters
-  // most ranks first.
-  const secondaryGoals = new Set((answers.secondaryGoals || []).filter(Boolean));
-  for (const goal of program.goals || []) {
-    if (answers.primaryGoal && goal === answers.primaryGoal) score += 3;
-    else if (secondaryGoals.has(goal)) score += 2;
-  }
-
-  if (answers.trainingEnvironment && (program.environments || []).includes(answers.trainingEnvironment)) score += 2;
-
-  return score;
+// Recommendations are an EXACT match to the consultation, not a best
+// guess: a program is suggested only if it matches every answer that has a
+// program setting to match against —
+//   sessionsPerWeek   = the program's sessions a week (weekOnePreview)
+//   priorExperience   → the program's level (EXPERIENCE_TO_LEVEL)
+//   primaryGoal       ∈ the program's goals
+//   preferredStyle    = the program's training style
+//   trainingEnvironment ∈ the program's environments
+//   sexForScreening   → the program's "Who it's for" (suitsAudience)
+// A question that wasn't answered (older accounts), or answered "Something
+// else" (goal/style — matches nothing), is skipped rather than failing
+// every program. Secondary goals aren't required — they only order the
+// matches, most overlap first. Questions with no program setting (age,
+// session length, equipment, injuries) can't be matched and don't filter.
+export function matchesAnswers(program, answers) {
+  const a = answers || {};
+  if (!suitsAudience(program, a)) return false;
+  if (!fitsSessionsPerWeek(program, a)) return false;
+  const level = EXPERIENCE_TO_LEVEL[a.priorExperience];
+  if (level && program.level !== level) return false;
+  if (a.primaryGoal && a.primaryGoal !== "other" && !(program.goals || []).includes(a.primaryGoal)) return false;
+  if (a.preferredStyle && a.preferredStyle !== "other" && program.style !== a.preferredStyle) return false;
+  if (a.trainingEnvironment && !(program.environments || []).includes(a.trainingEnvironment)) return false;
+  return true;
 }
 
-// `answers` may be partial/empty (questionnaire not completed, or a
-// customer who skipped every non-required question) — scoreProgram simply
-// contributes 0 for whatever's missing, so this degrades gracefully to "no
-// particular match" rather than throwing or guessing.
-//
-// Deliberately does NOT filter out or re-rank anything based on
-// isFlaggedForMedicalReview — APSS Stage 1's own instruction is "seek
-// guidance before exercising," not "here is a safe subset of programs";
-// inventing a filter would be inventing a clinical judgment this app has
-// no basis to make. The caller (SoloCatalogueScreen) surfaces that flag as
-// its own standing safety notice instead (see SoloCatalogueScreen.jsx and
-// SoloProfileScreen.jsx), same as the earlier placeholder home screen
-// this phase replaced.
+// True once the customer has answered at least one question that can be
+// matched — before that (no consultation yet) nothing is recommended.
+function hasMatchableAnswer(a) {
+  return !!(Number(a.sessionsPerWeek) || EXPERIENCE_TO_LEVEL[a.priorExperience] || (a.primaryGoal && a.primaryGoal !== "other") || (a.preferredStyle && a.preferredStyle !== "other") || a.trainingEnvironment);
+}
+
 // A program tagged for men or women (program.audience) is only suggested to
 // a customer whose consultation sex matches. Untagged programs suit
 // everyone, and a customer who chose "Other / prefer not to say" (or hasn't
@@ -105,21 +98,30 @@ export function suitsAudience(program, answers) {
   return audience.includes(sex);
 }
 
-// A program asking for more sessions a week than the customer said they
-// want (consultation sessionsPerWeek) isn't suggested. A program whose
-// count isn't known yet (weekOnePreview.sessionsPerWeek missing) isn't
-// filtered.
+// Exactly the number of sessions a week the customer chose. Unanswered →
+// not filtered; a program whose count isn't known (or has no sessions yet)
+// never matches someone who did answer.
 export function fitsSessionsPerWeek(program, answers) {
   const wanted = Number(answers?.sessionsPerWeek);
-  const needs = program.weekOnePreview?.sessionsPerWeek;
-  if (!wanted || typeof needs !== "number" || needs === 0) return true;
-  return needs <= wanted;
+  if (!wanted) return true;
+  return program.weekOnePreview?.sessionsPerWeek === wanted;
 }
 
+// Deliberately does NOT filter out or re-rank anything based on
+// isFlaggedForMedicalReview — APSS Stage 1's own instruction is "seek
+// guidance before exercising," not "here is a safe subset of programs";
+// inventing a filter would be inventing a clinical judgment this app has
+// no basis to make. The caller (SoloCatalogueScreen) surfaces that flag as
+// its own standing safety notice instead.
 export function recommendPrograms(programs, categories, answers, { limit = 2, excludeIds = [] } = {}) {
+  const a = answers || {};
+  if (!hasMatchableAnswer(a)) return [];
   const excluded = new Set(excludeIds);
-  const candidates = visiblePrograms(programs, categories).filter((p) => !excluded.has(p.id) && suitsAudience(p, answers) && fitsSessionsPerWeek(p, answers));
-  const scored = candidates.map((program) => ({ program, score: scoreProgram(program, answers || {}) }));
-  const matched = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
-  return matched.slice(0, limit).map((s) => s.program);
+  const secondary = new Set((a.secondaryGoals || []).filter((g) => g && g !== "none"));
+  return visiblePrograms(programs, categories)
+    .filter((p) => !excluded.has(p.id) && matchesAnswers(p, a))
+    .map((program) => ({ program, overlap: (program.goals || []).filter((g) => secondary.has(g)).length }))
+    .sort((x, y) => y.overlap - x.overlap)
+    .slice(0, limit)
+    .map((x) => x.program);
 }

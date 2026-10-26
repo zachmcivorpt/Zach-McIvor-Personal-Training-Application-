@@ -41,14 +41,14 @@ describe("questionnaire: sessions per week, then exactly that many days", () => 
   });
 });
 
-describe("suggestions never exceed the sessions a week chosen", () => {
+describe("suggestions have exactly the sessions a week chosen", () => {
   const category = { id: "c1", name: "Strength" };
   const make = (id, n) => ({ id, status: "published", categoryIds: ["c1"], goals: ["get_stronger"], weekOnePreview: { sessionsPerWeek: n } });
   const programs = [make("two", 2), make("three", 3), make("five", 5), { ...make("unknown", 0), weekOnePreview: {} }];
 
-  it("leaves out programs with more sessions a week than chosen", () => {
+  it("only suggests programs with exactly that many sessions a week", () => {
     const ids = recommendPrograms(programs, [category], { primaryGoal: "get_stronger", sessionsPerWeek: "3" }, { limit: 10 }).map((p) => p.id).sort();
-    expect(ids).toEqual(["three", "two", "unknown"]);
+    expect(ids).toEqual(["three"]);
   });
 
   it("doesn't filter when sessions per week hasn't been answered", () => {
