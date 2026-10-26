@@ -80,7 +80,19 @@ import {
   ChevronLeft,
   Play,
   Flame,
+  Footprints,
+  Moon,
+  Heart,
 } from "lucide-react";
+
+// Same keys/labels/units as ClientApp.jsx's BODY_METRICS_CONFIG (the
+// client's own Steps / Sleep / Resting Heart Rate graphs), kept here so the
+// coach console doesn't pull in the whole client app bundle.
+const DAILY_METRICS_CONFIG = [
+  { key: "steps", label: "Steps", unit: "", icon: Footprints, placeholder: "e.g. 8500" },
+  { key: "sleepHours", label: "Sleep", unit: "hrs", icon: Moon, placeholder: "e.g. 7.5" },
+  { key: "restingHeartRate", label: "Resting Heart Rate", unit: "bpm", icon: Heart, placeholder: "e.g. 58" },
+];
 import { fileToCompressedDataUrl } from "../lib/image";
 import { MICRO_FIELDS } from "../lib/foodDatabase";
 import { parseVideoUrl } from "../lib/video";
@@ -5004,7 +5016,7 @@ function EditWorkoutModal({ mode, log, exercisesById, onClose }) {
   );
 }
 
-function ProgressPanel({ client, showToast }) {
+export function ProgressPanel({ client, showToast }) {
   const { db, logWeight, deleteWeighIn, logBodyMetric, deleteBodyMetric } = useApp();
   const photos = db.progressPhotos[client.id] || [];
   const logs = db.workoutLogs[client.id] || [];
@@ -5019,7 +5031,7 @@ function ProgressPanel({ client, showToast }) {
 
   const personalBests = useMemo(() => computePersonalBests(logs, exercisesById), [logs, exercisesById]);
   const bodyMetricEntries = useMemo(
-    () => buildBodyMetricEntries(bodyMetrics, [BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
+    () => buildBodyMetricEntries(bodyMetrics, [...DAILY_METRICS_CONFIG, BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
     [bodyMetrics]
   );
   const latestWeighIn = weighIns[weighIns.length - 1];
@@ -5082,6 +5094,12 @@ function ProgressPanel({ client, showToast }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <BodyMetricCard dark config={BODY_FAT_CONFIG} entries={bodyMetricEntries.bodyFatPct} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
         <BodyMetricCard dark config={LEAN_MASS_CONFIG} entries={bodyMetricEntries.leanMassKg} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {DAILY_METRICS_CONFIG.map((cfg) => (
+          <BodyMetricCard key={cfg.key} dark config={cfg} entries={bodyMetricEntries[cfg.key]} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
+        ))}
       </div>
 
       <BodyMeasurementsListCard dark entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
