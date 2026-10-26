@@ -10,6 +10,14 @@ workflows:
         - pattern: main
           include: true
           source: true
+    # Only when the native app itself changes. The app loads the live web
+    # app, so web-only pushes reach it without a new build, and building
+    # on every push to main used up the plan's build minutes.
+    when:
+      changeset:
+        includes:
+          - 'ios/'
+          - 'codemagic.yaml'
     integrations:
       app_store_connect: APEX
     environment:
@@ -58,6 +66,11 @@ workflows:
         - pattern: main
           include: true
           source: true
+    when:
+      changeset:
+        includes:
+          - 'android/'
+          - 'codemagic.yaml'
     environment:
       vars:
         PACKAGE_NAME: "com.apexcoaching.platform"
