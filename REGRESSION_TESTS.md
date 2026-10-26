@@ -2114,6 +2114,13 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: `src/components/fieldGroup.test.jsx`, verified to fail without the fix. Also checked in the browser on the Edit Program sheet: tapping titles/hints selects nothing; tapping chips still toggles them.
 - **Date added**: 2026-10-25
 
+
+### 86. Push-notification test failed at random (test timeout, not an app bug)
+- **Root cause**: `src/client/pushNotificationsNativeAware.test.jsx` re-imports all of `ClientApp.jsx` fresh for every test (`vi.resetModules()`). On a busy machine that import alone can pass vitest's default 5s limit, so a test failed with "Test timed out in 5000ms" whether or not the code was right. It failed and passed on the same untouched main commit. Push notifications in the app were never affected.
+- **Fix**: that file sets a 30s test timeout (`vi.setConfig`). No app code or assertions changed.
+- **Regression test**: the file itself — passed 4 runs in a row on its own and in two full `npm test` runs (515 passed), plus `npm run test:rules` (75 passed) and `npm run build`.
+- **Date added**: 2026-10-26
+
 ---
 
 ## What still requires manual testing

@@ -23,6 +23,11 @@ vi.mock("../lib/push", () => ({
   },
 }));
 
+// Every test re-imports the whole of ClientApp.jsx fresh (resetModules
+// below), which can take longer than the default 5s on a busy machine —
+// that, not the behaviour under test, is what made this file flaky.
+vi.setConfig({ testTimeout: 30000 });
+
 afterEach(() => {
   cleanup();
   localStorage.clear();
