@@ -34,3 +34,8 @@ export function inIosApp() {
     return false;
   }
 }
+
+// The APEX app's App Store page — linked from the website only (Train Solo
+// on the web tells buyers to train in the app; the app itself never links
+// out to buy).
+export const APP_STORE_URL = "https://apps.apple.com/app/id6810194114";

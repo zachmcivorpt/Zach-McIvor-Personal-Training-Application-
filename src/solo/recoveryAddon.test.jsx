@@ -99,7 +99,7 @@ describe("inside the iOS App Store app", () => {
     await renderDetail("p1");
     expect(screen.queryByText("A$79.99")).toBeNull();
     expect(screen.queryByRole("button", { name: /start program/i })).toBeNull();
-    expect(screen.getByText("Not available in the app")).toBeTruthy();
+    expect(screen.getByText("Purchasing isn't available in the app")).toBeTruthy();
     expect(screen.queryByText(/stripe/i)).toBeNull();
   });
 

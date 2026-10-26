@@ -308,7 +308,7 @@ export default function SoloProgramDetailsScreen() {
             )
           ) : !owned && iosApp ? (
             <p className="w-full text-center text-sm font-semibold py-4 rounded-full" style={{ ...soloGlass(t), color: t.textMuted }}>
-              Not available in the app
+              Purchasing isn't available in the app
             </p>
           ) : (
           <button

@@ -6,7 +6,7 @@ import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visibleCategories, visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, recommendPrograms, formatAudPrice } from "./recommendations";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { SoloArtwork } from "./SoloArtwork";
-import { inIosApp } from "./appShell";
+import { inIosApp, APP_STORE_URL } from "./appShell";
 
 function ProgramCard({ program, t, onClick }) {
   return (
@@ -95,6 +95,21 @@ export default function SoloCatalogueScreen() {
       </div>
 
       <div className="px-3 pt-2 pb-1">
+        {/* Website only: how buying works. The iOS app shows no prices and
+            never points to the website (guideline 3.1.1), so this never
+            renders there. */}
+        {!inIosApp() && (
+          <div className="rounded-2xl px-4 py-3 mb-4" style={soloGlass(t)}>
+            <p className="text-sm font-bold">Buy your program here</p>
+            <p className="text-xs leading-relaxed mt-0.5" style={{ color: t.textMuted }}>
+              It unlocks instantly in the APEX app — log in with this same account to train.{" "}
+              <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline" style={{ color: t.text }}>
+                Get the app
+              </a>
+            </p>
+          </div>
+        )}
+
         {flagged && (
           <div
             className="rounded-2xl px-4 py-3 mb-4 flex gap-2.5"

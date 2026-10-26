@@ -12,6 +12,7 @@ import { totalWeeksForProgram, currentWeekNumber, phaseForWeekNumber } from "./w
 import { sessionDateKeys, sessionDayLabel, buildSoloCalendar, calendarItemTarget, mondayOf, addDays } from "./soloCalendar";
 import SoloGlassBox from "./SoloGlassBox";
 import { CompletedSessionSheet, ProgramOverviewSheet } from "./SoloTrainingSheets";
+import { APP_STORE_URL } from "./appShell";
 import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -231,6 +232,24 @@ export default function SoloMyTrainingScreen() {
   }, [location.state, soloPurchases]);
 
   const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
+
+  // Back from a website Stripe checkout (success_url in functions/index.js:
+  // /solo/home?checkout=success&programId=…). Only the website ever gets
+  // here — the iOS app never starts a checkout. Says the program is theirs
+  // (or unlocking: the purchase doc lands a few seconds later, from the
+  // Stripe webhook), points them to the app to train, and opens that
+  // program's start-date sheet once the purchase arrives.
+  const checkoutParams = new URLSearchParams(location.search);
+  const boughtProgramId = checkoutParams.get("checkout") === "success" ? checkoutParams.get("programId") : null;
+  const boughtPurchase = boughtProgramId ? soloPurchases.find((p) => p.programId === boughtProgramId) || null : null;
+  const [checkoutDismissed, setCheckoutDismissed] = useState(false);
+  const [checkoutSheetOpened, setCheckoutSheetOpened] = useState(false);
+  useEffect(() => {
+    if (boughtPurchase && !checkoutSheetOpened) {
+      setCheckoutSheetOpened(true);
+      setOpenPurchaseId(boughtPurchase.id);
+    }
+  }, [boughtPurchase, checkoutSheetOpened]);
   // The weekdays chosen in the consultation — sessions are scheduled on them.
   const trainingDays = soloCurrentUser?.onboarding?.answers?.trainingDays;
   const openPurchase = soloPurchases.find((p) => p.id === openPurchaseId) || null;
@@ -316,6 +335,32 @@ export default function SoloMyTrainingScreen() {
       <div className="relative w-full max-w-md mx-auto px-3 pt-6 pb-10">
         <h1 className="sr-only">My Training</h1>
         <img src={t.logo} alt="APEX" className="w-auto mb-5" style={{ height: 19 }} />
+
+        {boughtProgramId && !checkoutDismissed && (
+          <div className="rounded-2xl px-4 py-3.5 mb-5" style={{ ...glass, borderColor: "rgba(47,143,255,0.45)" }}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-base font-extrabold">{boughtPurchase ? "You're in." : "Unlocking your program…"}</p>
+                <p className="text-xs leading-relaxed mt-1" style={{ color: t.textMuted }}>
+                  {programsById[boughtProgramId]?.name ? `${programsById[boughtProgramId].name} is yours. ` : ""}
+                  Open the APEX app and log in with this account to start training — it's waiting in My Training.
+                </p>
+                <a
+                  href={APP_STORE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block mt-3 text-xs font-bold px-4 py-2 rounded-full"
+                  style={{ backgroundColor: t.text, color: t.bg }}
+                >
+                  Get the APEX app
+                </a>
+              </div>
+              <button type="button" aria-label="Dismiss" onClick={() => setCheckoutDismissed(true)} className="text-lg leading-none shrink-0" style={{ color: t.textFaint }}>
+                ×
+              </button>
+            </div>
+          </div>
+        )}
 
         <WeekStrip
           weekKeys={weekKeys}

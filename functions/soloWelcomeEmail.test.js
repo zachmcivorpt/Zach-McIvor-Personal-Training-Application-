@@ -7,7 +7,7 @@ const { buildWelcomeEmail, smtpConfigured, DEFAULT_SITE_URL } = require("./soloW
 describe("Train Solo welcome email", () => {
   it("greets by first name and links to the website's Train Solo login", () => {
     const { subject, text, html } = buildWelcomeEmail({ name: "  Jordan Smith " });
-    expect(subject).toBe("Welcome to APEX Train Solo");
+    expect(subject).toBe("How to get your APEX program");
     expect(text.startsWith("Hi Jordan,")).toBe(true);
     expect(text).toContain(`${DEFAULT_SITE_URL}/solo/login?next=catalogue`);
     expect(html).toContain(`href="${DEFAULT_SITE_URL}/solo/login?next=catalogue"`);

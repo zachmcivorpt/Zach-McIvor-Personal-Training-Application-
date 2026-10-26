@@ -39,7 +39,7 @@ function buildWelcomeEmail({ name, siteUrl = DEFAULT_SITE_URL }) {
   // public/brand/mark-black.png with its faint background noise (alpha
   // 1-15) cleared, which otherwise shows as a pale square in some mail apps.
   const logo = `${base}/brand/mark-black-email.png`;
-  const subject = "Welcome to APEX Train Solo";
+  const subject = "How to get your APEX program";
 
   const text = [
     greeting,
