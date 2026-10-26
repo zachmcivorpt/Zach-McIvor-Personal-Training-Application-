@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { Logo } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "../auth/authUi";
@@ -9,6 +9,10 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 export default function SoloLoginScreen() {
   const { soloLogin, soloCurrentUser, soloAppDesign, soloProfileMissing, fetchOnboardingCompletedFromServer } = useSoloApp();
   const navigate = useNavigate();
+  const location = useLocation();
+  // `?next=catalogue` (the Train Solo welcome email's link) lands on the
+  // Catalogue after signing in, where the website shows prices and Buy.
+  const homeState = new URLSearchParams(location.search).get("next") === "catalogue" ? { soloTab: "catalogue" } : undefined;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -43,10 +47,13 @@ export default function SoloLoginScreen() {
     let cancelled = false;
     fetchOnboardingCompletedFromServer(soloCurrentUser.id)
       .then((completed) => {
-        if (!cancelled) navigate(completed ? "/solo/home" : "/solo/onboarding", { replace: true });
+        if (!cancelled) navigate(completed ? "/solo/home" : "/solo/onboarding", { replace: true, state: completed ? homeState : undefined });
       })
       .catch(() => {
-        if (!cancelled) navigate(soloCurrentUser.onboarding?.completed ? "/solo/home" : "/solo/onboarding", { replace: true });
+        if (!cancelled) {
+          const completed = !!soloCurrentUser.onboarding?.completed;
+          navigate(completed ? "/solo/home" : "/solo/onboarding", { replace: true, state: completed ? homeState : undefined });
+        }
       });
     return () => {
       cancelled = true;

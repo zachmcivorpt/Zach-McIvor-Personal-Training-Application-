@@ -32,7 +32,9 @@ function buildWelcomeEmail({ name, siteUrl = DEFAULT_SITE_URL }) {
   const first = String(name || "").trim().split(/\s+/)[0] || "";
   const greeting = first ? `Hi ${first},` : "Hi,";
   const base = siteUrl.replace(/\/+$/, "");
-  const link = `${base}/solo/login`;
+  // Lands on the website's Catalogue after signing in, where Train Solo
+  // shows prices and Buy (the app can't — guideline 3.1.1).
+  const link = `${base}/solo/login?next=catalogue`;
   // The APEX mountain mark, served by the live web app. A copy of
   // public/brand/mark-black.png with its faint background noise (alpha
   // 1-15) cleared, which otherwise shows as a pale square in some mail apps.
@@ -46,10 +48,10 @@ function buildWelcomeEmail({ name, siteUrl = DEFAULT_SITE_URL }) {
     "",
     "Train Solo gives you a complete, coach-built program: every session planned for you, every lift logged, and your personal bests tracked automatically.",
     "",
-    "Browse the programs and choose yours here:",
+    "Get your program here:",
     link,
     "",
-    "Log in with this email address, then open Catalogue. Once a program is yours, it's ready in the APEX app under My Training.",
+    "Log in with this email address to see prices and buy. Once a program is yours, it's ready in the APEX app under My Training.",
     "",
     "Zach McIvor",
     "APEX",
@@ -66,8 +68,8 @@ function buildWelcomeEmail({ name, siteUrl = DEFAULT_SITE_URL }) {
 <tr><td style="font-size:26px;font-weight:800;line-height:1.2;padding-bottom:16px;">Welcome to Train Solo</td></tr>
 <tr><td style="font-size:15px;line-height:1.6;color:#3A3A3E;padding-bottom:14px;">${escapeHtml(greeting)}</td></tr>
 <tr><td style="font-size:15px;line-height:1.6;color:#3A3A3E;padding-bottom:14px;">Your account is ready. Train Solo gives you a complete, coach-built program: every session planned for you, every lift logged, and your personal bests tracked automatically.</td></tr>
-<tr><td style="padding:12px 0 24px;"><a href="${escapeHtml(link)}" style="display:inline-block;background:#0A0A0B;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;letter-spacing:0.04em;padding:14px 26px;border-radius:999px;">Browse programs</a></td></tr>
-<tr><td style="font-size:14px;line-height:1.6;color:#6B6B70;padding-bottom:28px;border-bottom:1px solid rgba(10,10,11,0.08);">Log in with this email address, then open Catalogue. Once a program is yours, it's ready in the APEX app under My Training.</td></tr>
+<tr><td style="padding:12px 0 24px;"><a href="${escapeHtml(link)}" style="display:inline-block;background:#0A0A0B;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;letter-spacing:0.04em;padding:14px 26px;border-radius:999px;">Buy your program</a></td></tr>
+<tr><td style="font-size:14px;line-height:1.6;color:#6B6B70;padding-bottom:28px;border-bottom:1px solid rgba(10,10,11,0.08);">Log in with this email address to see prices and buy. Once a program is yours, it's ready in the APEX app under My Training.</td></tr>
 <tr><td style="font-size:14px;line-height:1.6;padding-top:20px;">Zach McIvor<br><span style="color:#6B6B70;">APEX</span></td></tr>
 <tr><td style="font-size:12px;line-height:1.6;color:#AFAFB4;padding-top:28px;">You're receiving this because you created an APEX Train Solo account. Reply &ldquo;unsubscribe&rdquo; and we won't email you again.</td></tr>
 </table>

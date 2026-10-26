@@ -9,14 +9,14 @@ describe("Train Solo welcome email", () => {
     const { subject, text, html } = buildWelcomeEmail({ name: "  Jordan Smith " });
     expect(subject).toBe("Welcome to APEX Train Solo");
     expect(text.startsWith("Hi Jordan,")).toBe(true);
-    expect(text).toContain(`${DEFAULT_SITE_URL}/solo/login`);
-    expect(html).toContain(`href="${DEFAULT_SITE_URL}/solo/login"`);
+    expect(text).toContain(`${DEFAULT_SITE_URL}/solo/login?next=catalogue`);
+    expect(html).toContain(`href="${DEFAULT_SITE_URL}/solo/login?next=catalogue"`);
   });
 
   it("has a plain greeting with no name, and uses a custom site URL without doubling slashes", () => {
     const { text } = buildWelcomeEmail({ name: "", siteUrl: "https://example.com/" });
     expect(text.startsWith("Hi,")).toBe(true);
-    expect(text).toContain("https://example.com/solo/login");
+    expect(text).toContain("https://example.com/solo/login?next=catalogue");
   });
 
   it("identifies the sender and offers an opt-out (Spam Act)", () => {
