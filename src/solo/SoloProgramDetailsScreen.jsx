@@ -307,9 +307,15 @@ export default function SoloProgramDetailsScreen() {
               </button>
             )
           ) : !owned && iosApp ? (
-            <p className="w-full text-center text-sm font-semibold py-4 rounded-full" style={{ ...soloGlass(t), color: t.textMuted }}>
-              Purchasing isn't available in the app
-            </p>
+            // Neutral on purpose: no pointer to buying elsewhere (3.1.1).
+            <div className="w-full text-center py-3 rounded-full" style={soloGlass(t)}>
+              <p className="text-sm font-semibold" style={{ color: t.text }}>
+                Not available to buy in the app
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+                Already own it? You'll find it in My Training.
+              </p>
+            </div>
           ) : (
           <button
             onClick={() =>
