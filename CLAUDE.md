@@ -94,6 +94,20 @@ Do these together when the user is ready to submit a new App Store build
 - Train Solo purchasing stays hidden inside the iOS app (Apple 3.1.1 —
   `src/solo/appShell.js`); buying happens on the website only.
 
+## iOS builds (Codemagic)
+
+- The iOS app is a WKWebView on the live web app, so web-only changes reach
+  App Store users the moment Vercel deploys — no build, no review. Only
+  native changes (`ios/`) need a new build + TestFlight + App Review.
+- `codemagic.yaml` builds iOS only when `ios/` or `codemagic.yaml` change
+  (Android: `android/`). Builds are triggered by Codemagic's GitHub webhook;
+  until 2026-10-26 that webhook was missing, so no build ever ran on its
+  own — builds 1–17 were all started by hand. If a TestFlight build is
+  expected and missing, check Codemagic → app → Webhooks → Recent
+  deliveries before assuming a failed build.
+- Codemagic's ▶ on an old build row rebuilds that old commit; a build of
+  the latest code is "Start new build" → branch `main`.
+
 ## Working style
 
 - When the user says "figure it out," that's a directive to solve the
