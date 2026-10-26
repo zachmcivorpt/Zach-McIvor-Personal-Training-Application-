@@ -16,11 +16,12 @@ targets:
     dependencies:
       - package: Firebase
         product: FirebaseMessaging
+      - sdk: HealthKit.framework
     info:
       path: Generated-Info.plist
       properties:
         CFBundleDisplayName: APEX Coaching Platform
-        CFBundleShortVersionString: "1.0.2"
+        CFBundleShortVersionString: "1.0.3"
         CFBundleVersion: "1"
         LSRequiresIPhoneOS: true
         UILaunchScreen: {}
@@ -42,13 +43,14 @@ targets:
         NSCameraUsageDescription: "Used to scan food barcodes for nutrition tracking."
         NSPhotoLibraryUsageDescription: "Used to attach and upload photos within the app (progress photos, messages)."
         NSPhotoLibraryAddUsageDescription: "Used to save photos from the app to your library."
+        NSHealthShareUsageDescription: "APEX reads your steps, sleep, resting heart rate and body weight from Apple Health to show them on your progress, and to your coach if you have one. Nothing is written to Apple Health."
         ITSAppUsesNonExemptEncryption: false
         UIBackgroundModes:
           - remote-notification
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.apexcoaching.platform
-        MARKETING_VERSION: "1.0.2"
+        MARKETING_VERSION: "1.0.3"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1,2"

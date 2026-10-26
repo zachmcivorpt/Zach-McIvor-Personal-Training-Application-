@@ -137,6 +137,8 @@ Coaches must not collect excessive health information merely because the Platfor
 
 Coaches should only request information reasonably necessary for their services and should explain to clients why information is being collected.
 
+If you connect Apple Health in the APEX iPhone app, APEX reads (and never writes) your steps, sleep, resting heart rate and body weight from Apple Health, only after you give permission in iOS. This information is saved to your APEX progress — and, if you train with a coach, is visible to your coach — and is used only to show your progress. Information from Apple Health is never used for advertising or marketing, never sold, and never shared with third parties for those purposes. You can disconnect at any time in the app, and change or withdraw access in the iPhone's Health settings.
+
 ## 7. Client Data controlled by coaches
 
 A coach or coaching organisation may upload and manage Client Data through APEX.

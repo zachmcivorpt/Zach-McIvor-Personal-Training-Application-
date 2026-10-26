@@ -103,6 +103,14 @@ Do these together when the user is ready to submit a new App Store build
   (1320 x 2868 portrait). Screenshots must not show prices or buy buttons
   for Train Solo (3.1.1).
 
+- **Apple Health (1.0.3)**: native HealthKit bridge + web sync are on
+  main (web side is hidden until a build with the native handler is
+  installed). Needs the HealthKit capability ticked on the App ID
+  `com.apexcoaching.platform` and a refreshed App Store provisioning
+  profile in Codemagic before the build signs. Before submitting 1.0.3,
+  add "Health" in App Store Connect → App Privacy (app functionality,
+  linked to the user, not tracking).
+
 ## iOS builds (Codemagic)
 
 - The iOS app is a WKWebView on the live web app, so web-only changes reach

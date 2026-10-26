@@ -2121,6 +2121,20 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: the file itself — passed 4 runs in a row on its own and in two full `npm test` runs (515 passed), plus `npm run test:rules` (75 passed) and `npm run build`.
 - **Date added**: 2026-10-26
 
+
+### 87. Coach console didn't show a client's Steps, Sleep or Resting Heart Rate
+- **Root cause**: the coach's client Progress panel (`ProgressPanel`, `src/coach/CoachClientDetail.jsx`) built its graphs only from body fat, lean mass and measurements. Steps/sleep/resting heart rate the client logged (and, from 1.0.3, synced from Apple Health) were saved but invisible to the coach.
+- **Fix**: the panel adds Steps, Sleep and Resting Heart Rate cards, using the same `BodyMetricCard` and the same keys/units as the client's own graphs.
+- **Regression test**: `src/coach/coachDailyMetrics.test.jsx` (also checks another client's data doesn't show), verified to fail without the fix.
+- **Date added**: 2026-10-26
+
+
+### 88. Apple Health sync guards (1.0.3)
+- **Risk covered**: Apple Health syncing into a client's records must never overwrite a hand-typed value, re-add a weigh-in the client deleted, sync a coach's phone into a client while "viewing as" them, carry one account's connection to another on the same phone, or tick off Train Solo's Monday Body Stats Check-in by itself (steps sync every day).
+- **How**: `src/lib/appleHealth.js` reads the person's docs fresh before writing, marks synced fields in each day's `appleHealth` map, remembers imported weigh-in days per account, and is disabled while `viewingAsClient`. `src/solo/soloCalendar.js` ignores days whose only values are synced.
+- **Regression test**: `src/lib/appleHealth.test.js` (sync plan, check-in rule, native bridge round-trip and error, per-account/side flag).
+- **Date added**: 2026-10-26
+
 ---
 
 ## What still requires manual testing
@@ -2147,6 +2161,7 @@ sandbox):
 - **WHOOP integration** (real OAuth round-trip against WHOOP's servers,
   real webhook delivery into Cloud Functions, real recovery/sleep/strain
   data sync).
+- **Apple Health on a real iPhone** (1.0.3): the HealthKit permission sheet, the numbers HealthBridge.swift reads (steps, sleep, resting heart rate, weight) against the Health app, and that they appear on the client's Progress, the coach's client Progress panel and Train Solo Progress. Only a TestFlight build on a device can exercise this.
 - **Apple App Store distribution path** (per `CLAUDE.md`'s product
   status: APEX is a published App Store app — the native WKWebView shell,
   the invite-email → App Store download → activation-link flow, and the
