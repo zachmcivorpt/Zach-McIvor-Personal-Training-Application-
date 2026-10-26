@@ -6065,7 +6065,7 @@ export function WeightHistoryScreen({ weighIns, onClose, onLog, onDelete }) {
                 {[...weighIns].reverse().map((w) => (
                   <div key={w.id} className={dark ? "flex items-center justify-between py-2.5 border-b border-white/5 last:border-0" : "flex items-center justify-between py-2.5 border-b border-black/5 last:border-0"}>
                     <span className={dark ? "text-white/50 text-sm" : "text-black/50 text-sm"}>
-                      {new Date(w.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+                      {new Date(w.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
                     </span>
                     <div className="flex items-center gap-3">
                       <span className={dark ? "text-white font-semibold text-sm" : "text-black font-semibold text-sm"}>{w.weight} kg</span>
