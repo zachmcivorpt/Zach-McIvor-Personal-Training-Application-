@@ -19,6 +19,7 @@ import { matchesSearch } from "../lib/search";
 import { CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, MEASURE_BLUE, OVER_RED } from "../theme";
 import { DarkPanel } from "./darkUI";
 import { localDateKey } from "../lib/dateKey";
+import { isMealPlanEnded } from "../lib/mealPlanEnd";
 
 const MEAL_SLOTS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -606,7 +607,11 @@ export default function MealPlanBuilder({ client, onClose, showToast }) {
   }
 
   function publish() {
-    setMealPlan(client.id, { days, weeks: weeksCount, startDate: existing?.startDate || localDateKey() });
+    // Editing a running guide keeps its start date; one whose last week is
+    // already over starts again from today, or it would be "ended" (and
+    // hidden from the client) the moment it's saved.
+    const startDate = existing?.startDate && !isMealPlanEnded(existing) ? existing.startDate : localDateKey();
+    setMealPlan(client.id, { days, weeks: weeksCount, startDate });
     showToast(`Meal guide saved for ${client.name}`);
     onClose();
   }

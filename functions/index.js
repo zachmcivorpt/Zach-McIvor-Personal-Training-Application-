@@ -33,6 +33,7 @@ const { getStorage } = require("firebase-admin/storage");
 const { buildSuggestions } = require("./nutritionContents");
 const { optimizeLoginVideo, storagePathFromUrl } = require("./videoOptimize");
 const { sendWelcomeEmail, smtpConfigured } = require("./soloWelcomeEmail");
+const { mealPlanReminder } = require("./mealPlanEnd");
 const os = require("os");
 const path = require("path");
 const fs = require("fs/promises");
@@ -301,6 +302,34 @@ async function buildInactivityWod(clientId, todayKey) {
     notes: "",
   }));
 }
+
+// ---------------------------------------------------------------------
+// Meal guide reminders for the coach. Every day at 9am Sydney, each active
+// client's meal guide (mealPlans/{clientId}) that ends in 2 days, ends
+// today, or ended yesterday sends the coach one push (functions/
+// mealPlanEnd.js). Once a guide's last day has passed the client app
+// stops showing it (src/lib/mealPlanEnd.js), so this is the coach's cue to
+// build the next one. Same coach lookup as api-lib/notify.js's getCoachId.
+exports.mealPlanEndingReminders = onSchedule(
+  { schedule: "0 9 * * *", timeZone: "Australia/Sydney" },
+  async () => {
+    const todayKey = new Intl.DateTimeFormat("en-CA", { timeZone: "Australia/Sydney" }).format(new Date());
+    const coachesSnap = await db.collection("users").where("role", "==", "coach").get();
+    if (coachesSnap.empty) return;
+    const coachId = coachesSnap.docs.slice().sort((a, b) => (b.data().lastLoginAt || 0) - (a.data().lastLoginAt || 0))[0].id;
+
+    const plansSnap = await db.collection("mealPlans").get();
+    for (const planDoc of plansSnap.docs) {
+      const plan = planDoc.data();
+      const clientId = plan.clientId || planDoc.id;
+      const clientSnap = await db.collection("users").doc(clientId).get();
+      const client = clientSnap.data();
+      if (!client || client.role !== "client" || client.status !== "active" || client.accessPaused) continue;
+      const reminder = mealPlanReminder(plan, client.name, todayKey);
+      if (reminder) await notifyUser(coachId, reminder);
+    }
+  }
+);
 
 exports.inactivityWod = onSchedule(
   { schedule: "0 8 * * *", timeZone: "Australia/Sydney" },

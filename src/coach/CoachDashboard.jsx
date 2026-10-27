@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
+import { isMealPlanEnded, mealPlanEndDateKey } from "../lib/mealPlanEnd";
 import { Pill, Avatar, BottomSheet, Logo } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
 import WorkoutEditor from "./WorkoutEditor";
@@ -571,7 +572,18 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
     computeApexInsights(c, db).forEach((apexAlert) => needsAttention.push(apexAlert));
 
     const mealPlanDays = mealPlanDaysLeft(c);
-    if (mealPlanDays !== null && mealPlanDays <= 2) {
+    // Past its last day the client no longer sees the guide — flagged
+    // until the coach builds the next one (or removes it).
+    const endedPlan = (db.mealPlans[c.id] || [])[0];
+    if (isMealPlanEnded(endedPlan, todayKey)) {
+      needsAttention.push({
+        id: `mealplan-${c.id}`,
+        client: c,
+        kind: "mealPlan",
+        title: "Meal guide ended",
+        detail: `Ended ${new Date(`${mealPlanEndDateKey(endedPlan)}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })} — it no longer shows in their app. Build their next one.`,
+      });
+    } else if (mealPlanDays !== null && mealPlanDays <= 2) {
       needsAttention.push({
         id: `mealplan-${c.id}`,
         client: c,

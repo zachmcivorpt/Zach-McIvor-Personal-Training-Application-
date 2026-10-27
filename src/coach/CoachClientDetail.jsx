@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useApp, getCurrentPhase, programPhases } from "../lib/AppContext";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { localDateKey } from "../lib/dateKey";
+import { isMealPlanEnded, mealPlanEndDateKey } from "../lib/mealPlanEnd";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay, ExerciseThumb, Field } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGramsSet, adjustMacroPct, resolveNutritionTargets } from "../lib/nutritionTargets";
 import {
@@ -4312,7 +4313,9 @@ function NutritionPanel({ client, showToast }) {
           </div>
           <p className="relative text-white text-xs mb-4 ml-[42px]">
             {mealPlan
-              ? `${mealPlanWeeks ? `${mealPlanWeeks}-week guide · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
+              ? isMealPlanEnded(mealPlan)
+                ? `Ended ${new Date(`${mealPlanEndDateKey(mealPlan)}T00:00:00`).toLocaleDateString(undefined, { day: "numeric", month: "short" })} — no longer showing in the client's app. Edit it to start a new one from today.`
+                : `${mealPlanWeeks ? `${mealPlanWeeks}-week guide · ` : ""}${mealPlanDayCount} day${mealPlanDayCount === 1 ? "" : "s"} · ${mealPlanMealCount} meal${mealPlanMealCount === 1 ? "" : "s"} assigned`
               : "This client has no meal guide yet — build one from your Meal Library."}
           </p>
           <div className="relative flex gap-2">

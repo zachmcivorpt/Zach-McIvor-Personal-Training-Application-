@@ -91,6 +91,7 @@ import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase
 import { localDateKey } from "../lib/dateKey";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
+import { isMealPlanEnded } from "../lib/mealPlanEnd";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth, useAppleHealthSync } from "../lib/appleHealth";
 import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "../lib/workoutStats";
 import {
@@ -4887,7 +4888,9 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
     guardedAdd(food, category);
   }
 
-  const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
+  // A guide whose last week is over is no longer shown (mealPlanEnd.js).
+  const assignedMealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
+  const mealPlan = assignedMealPlan && !isMealPlanEnded(assignedMealPlan) ? assignedMealPlan : null;
   const mealsById = Object.fromEntries((db.masterMeals || []).map((m) => [m.id, m]));
   // Plans built before the week-structure existed have no weekIndex on
   // their days — fall back to grouping them into blocks of 7 by position
@@ -9059,7 +9062,8 @@ export default function ClientApp() {
   const todayKey = todayDateKey;
   const completedHabitIds = ((db.habitLog || {})[currentUser.id] || {})[todayKey] || [];
   const bodyStatsDueToday = bodyStatsSchedulesForClient.some((s) => s.date === todayDateKey) && !weighIns.some((w) => localDateKey(w.date) === todayDateKey);
-  const mealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
+  const assignedMealPlan = (db.mealPlans[currentUser.id] || [])[0] || null;
+  const mealPlan = assignedMealPlan && !isMealPlanEnded(assignedMealPlan) ? assignedMealPlan : null;
 
   const isToday = dayOffset === 0;
   const selectedDateKey = useMemo(() => {

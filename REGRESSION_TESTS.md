@@ -2145,6 +2145,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: `src/client/bodyStatsAndCardioEdit.test.jsx` still covers the check-in sheet; checked in Chromium in light and dark mode: every Progress box is glass, and the button opens the Log Body Stats sheet.
 - **Date added**: 2026-10-27
 
+### 91. Finished meal guides stayed in the client app, and the coach was never reminded
+- **Root cause**: nothing ever ended a meal guide. The client's Nutrition tab clamped "this week" to the last week (`planCurrentWeek`), so a finished guide stayed on screen forever. The coach dashboard only flagged a guide from 2 days before its end until its last day, then dropped it with no "ended" state, and there was no push for it. Also `MealPlanBuilder.publish` always kept the old `startDate`, so a guide rebuilt after it ended would count as already over.
+- **Fix**: `src/lib/mealPlanEnd.js` gives a guide's last day (startDate + weeks × 7 − 1, the same week rule as before). The client app hides a guide the day after its last day. The coach dashboard's Needs Attention shows "Meal guide ended" until the coach acts, and the client's Meal Guide panel says it has ended. Saving a guide whose last week is over restarts it from today, while a running guide keeps its start date. The new scheduled function `mealPlanEndingReminders` (9am Sydney, rule in `functions/mealPlanEnd.js`) pushes the coach 2 days before, on the last day, and the day after. Plans with no start date never end on their own. Train Solo is untouched.
+- **Regression test**: `src/lib/mealPlanEnd.test.js`. End dates are checked by hand (1 Oct + 1 week → 7 Oct, 2 weeks → 14 Oct, 28 Oct → 3 Nov, 10 legacy days → 2 weeks), as are shown-on-last-day / hidden-the-day-after, the function's copy giving the same dates, and push only on −2/0/+1 days.
+- **Date added**: 2026-10-27
+
 ---
 
 ## What still requires manual testing
