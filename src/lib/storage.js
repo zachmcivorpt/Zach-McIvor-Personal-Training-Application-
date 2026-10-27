@@ -8,7 +8,7 @@ import { storage } from "./firebase";
 import { maybeCompressVideo } from "./videoCompress";
 import { compressImageFile } from "./image";
 
-const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200MB — enough for a ~90s+ phone-camera form-check clip
+const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200MB uploaded — a compressed 2-minute clip is ~30MB
 const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20MB
 const MAX_MESSAGE_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
 const MAX_DESIGN_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB
@@ -101,15 +101,17 @@ export async function uploadMessageVideo(clientId, file, onProgress) {
   if (!file.type.startsWith("video/")) {
     throw new Error("Please choose a video file.");
   }
-  if (file.size > MAX_VIDEO_BYTES) {
-    throw new Error(`That video is ${(file.size / 1024 / 1024).toFixed(0)}MB — please keep it under ${MAX_VIDEO_BYTES / 1024 / 1024}MB.`);
-  }
   // Large phone-camera clips get downscaled/recompressed client-side first
   // so there are fewer bytes to actually push over the network — the real
   // lever on upload time. Falls straight back to the original file if
-  // compression isn't applicable or fails for any reason.
+  // compression isn't applicable or fails for any reason. The size limit
+  // applies to what's uploaded, so a long clip that compresses under it
+  // (a 2-minute iPhone clip is often 300MB+ before) still goes.
   const upload = await maybeCompressVideo(file, onProgress);
   const compressed = upload !== file;
+  if (upload.size > MAX_VIDEO_BYTES) {
+    throw new Error(`That video is ${(upload.size / 1024 / 1024).toFixed(0)}MB — please keep it under ${MAX_VIDEO_BYTES / 1024 / 1024}MB.`);
+  }
   return uploadToPath(
     `messageVideos/${clientId}/${Date.now()}_${upload.name}`,
     upload,

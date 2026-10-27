@@ -11,7 +11,7 @@
 // that can't do this (or a video that's already small) uploads exactly as
 // it did before this existed.
 
-const SKIP_BELOW_BYTES = 20 * 1024 * 1024; // not worth the CPU time for a clip this small already
+const SKIP_BELOW_BYTES = 8 * 1024 * 1024; // already quick to upload as it is
 const TARGET_MAX_DIM = 960;
 const TARGET_BITRATE = 2_000_000; // ~2 Mbps — plenty for reviewing exercise form
 
@@ -24,10 +24,68 @@ function pickMimeType() {
   return null;
 }
 
+// Fast path: hardware re-encoding through WebCodecs (Safari 16.4+, Chrome),
+// via mediabunny, which reads the file in pieces — a 2-minute clip takes
+// seconds, not the clip's own length like the playback path below. It's
+// loaded only when a video is picked. Resolves with the compressed File,
+// the original `file` (it ran but timed out or didn't shrink it), or
+// `undefined` when this device can't do it, so the playback path is tried.
+async function fastCompress(file, onProgress) {
+  if (typeof window === "undefined" || typeof window.VideoEncoder === "undefined" || typeof window.VideoDecoder === "undefined") return undefined;
+  let input;
+  try {
+    const mb = await import("mediabunny");
+    const mp4 = await mb.canEncodeVideo("avc", { width: TARGET_MAX_DIM, height: 540, bitrate: TARGET_BITRATE });
+    const codec = mp4 ? "avc" : (await mb.canEncodeVideo("vp9", { width: TARGET_MAX_DIM, height: 540, bitrate: TARGET_BITRATE })) ? "vp9" : null;
+    if (!codec) return undefined;
+    input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
+    const output = new mb.Output({
+      format: mp4 ? new mb.Mp4OutputFormat({ fastStart: "in-memory" }) : new mb.WebMOutputFormat(),
+      target: new mb.BufferTarget(),
+    });
+    const conversion = await mb.Conversion.init({
+      input,
+      output,
+      video: async (track) => {
+        const w = await track.getDisplayWidth();
+        const h = await track.getDisplayHeight();
+        const scale = Math.min(1, TARGET_MAX_DIM / Math.max(w, h));
+        return { width: Math.round((w * scale) / 2) * 2, height: Math.round((h * scale) / 2) * 2, fit: "contain", codec, bitrate: TARGET_BITRATE, forceTranscode: true };
+      },
+    });
+    if (!conversion.isValid || conversion.discardedTracks.some((d) => d.track.type === "video")) return undefined;
+    conversion.onProgress = (p) => onProgress?.(Math.min(0.3, p * 0.3));
+    const duration = await input.computeDuration().catch(() => 120);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      conversion.cancel().catch(() => {});
+    }, 30_000 + duration * 1500);
+    try {
+      await conversion.execute();
+    } catch (err) {
+      if (timedOut) return file;
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+    const type = mp4 ? "video/mp4" : "video/webm";
+    const name = file.name.replace(/\.[^.]+$/, "") + `_compressed.${mp4 ? "mp4" : "webm"}`;
+    const compressed = new File([output.target.buffer], name, { type });
+    return compressed.size < file.size * 0.85 ? compressed : file;
+  } catch {
+    return undefined;
+  } finally {
+    input?.dispose?.();
+  }
+}
+
 // Resolves with a compressed File, or the original `file` if compression
 // isn't applicable, isn't supported, or fails/times out for any reason.
 export async function maybeCompressVideo(file, onProgress) {
   if (!file.type.startsWith("video/") || file.size < SKIP_BELOW_BYTES) return file;
+  const fast = await fastCompress(file, onProgress);
+  if (fast) return fast;
   const mimeType = pickMimeType();
   if (!mimeType || typeof window === "undefined" || !window.MediaRecorder) return file;
 

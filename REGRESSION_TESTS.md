@@ -2187,6 +2187,14 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 
 ---
 
+### 97. Form-check videos: fast automatic compression, 2-minute clips upload
+- **Problem**: compression replayed the whole clip in real time before the upload began (a 2-minute clip waited 2+ minutes), clips under 20MB weren't compressed, and the 200MB limit was checked on the original, so a 2-minute iPhone clip (often 300MB+) was refused before it could be compressed.
+- **Fix**: `src/lib/videoCompress.js` tries a fast path first: hardware re-encoding through WebCodecs via `mediabunny` (pinned 1.62.1, loaded only when a video is picked). It produces H.264 mp4 (VP9 webm where H.264 can't be encoded), longest side 960, 2 Mbps, rotation and audio kept, and the file is read in pieces. If the device can't do it, the existing playback compressor runs, then the original file, as before. It compresses from 8MB up. `uploadMessageVideo` (`src/lib/storage.js`) now applies the 200MB limit to the file actually uploaded. Storage rules are unchanged. The same helper is used for coach chat videos.
+- **Regression tests**: `src/lib/videoUploadCompression.test.js`: fast path used, with the right size/codec/orientation; the 8MB threshold; fallback when it can't encode; a 400MB clip that compresses uploads; still refused if over 200MB after compression. The first three fail without the fix. In Chromium (software VP9, no hardware), 2:00 landscape and 2:10 portrait 1080p clips went 100MB→25MB and 109MB→27MB, full length, orientation and audio intact, in ~77s; iPhones encode H.264 in hardware.
+- **Date added**: 2026-10-28
+
+---
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
@@ -2211,7 +2219,7 @@ sandbox):
 - **WHOOP integration** (real OAuth round-trip against WHOOP's servers,
   real webhook delivery into Cloud Functions, real recovery/sleep/strain
   data sync).
-- **Voice notes, form-check videos and the lock-screen rest alert on a real iPhone** (1.0.3): the one-time microphone prompt, recording and playing back on iPhone, a coach's desktop-recorded note playing on the phone, filming a set from the workout, and "Rest's up" arriving on a locked phone (and not while the app is open).
+- **Voice notes, form-check videos and the lock-screen rest alert on a real iPhone** (1.0.3): the one-time microphone prompt, recording and playing back on iPhone, a coach's desktop-recorded note playing on the phone, filming a set from the workout (a 2-minute clip should compress and upload quickly), and "Rest's up" arriving on a locked phone (and not while the app is open).
 - **Apple Health on a real iPhone** (1.0.3): the HealthKit permission sheet, the numbers HealthBridge.swift reads (steps, sleep, resting heart rate, weight) against the Health app, and that they appear on the client's Progress, the coach's client Progress panel and Train Solo Progress. Only a TestFlight build on a device can exercise this.
 - **Apple App Store distribution path** (per `CLAUDE.md`'s product
   status: APEX is a published App Store app — the native WKWebView shell,
