@@ -45,6 +45,7 @@ targets:
         NSPhotoLibraryUsageDescription: "Used to attach and upload photos within the app (progress photos, messages)."
         NSPhotoLibraryAddUsageDescription: "Used to save photos from the app to your library."
         NSHealthShareUsageDescription: "APEX reads your steps, sleep, resting heart rate and body weight from Apple Health to show them on your progress, and to your coach if you have one. Nothing is written to Apple Health."
+        NSHealthUpdateUsageDescription: "APEX only reads from Apple Health and never writes to it. Apple requires this description for any app that uses Health."
         ITSAppUsesNonExemptEncryption: false
         UIBackgroundModes:
           - remote-notification
