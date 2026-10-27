@@ -1175,16 +1175,27 @@ export function NotificationsPromptCard({ userId, showToast }) {
 // buried in the Workouts tab's history list.
 // A logged cardio session on Home — swipe left to remove one logged by
 // mistake (same swipe-to-delete as Nutrition's food entries; the row snaps
-// back if the delete fails).
-function CardioLogCard({ logs, onDelete }) {
+// back if the delete fails), tap to edit it.
+export function CardioLogCard({ logs, onDelete, onUpdate }) {
   const dark = useClientDark();
+  const [editing, setEditing] = useState(null);
+  // A swipe ends in a click too — only a tap (finger barely moved) edits.
+  const downXRef = useRef(null);
   if (!logs || logs.length === 0) return null;
   return (
     <div className="mx-2.5 space-y-2">
       {logs.map((log) => (
         <SwipeableRow key={log.id} rounded="rounded-2xl" onDelete={() => onDelete?.(log)}>
         <div
-          className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${dark ? "border-white/8" : "border-black/8"}`}
+          role={onUpdate ? "button" : undefined}
+          aria-label={onUpdate ? `Edit ${log.cardio.activityLabel}` : undefined}
+          onPointerDownCapture={(e) => (downXRef.current = e.clientX)}
+          onClick={(e) => {
+            if (!onUpdate) return;
+            if (downXRef.current != null && Math.abs(e.clientX - downXRef.current) > 8) return;
+            setEditing(log);
+          }}
+          className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${onUpdate ? "cursor-pointer" : ""} ${dark ? "border-white/8" : "border-black/8"}`}
           style={clientGlass(dark)}
         >
           <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.15)" }}>
@@ -1202,11 +1213,26 @@ function CardioLogCard({ logs, onDelete }) {
                 .join(" · ")}
             </p>
           </div>
+          {onUpdate && <Edit3 size={14} className={`shrink-0 ${dark ? "text-white/30" : "text-black/30"}`} />}
         </div>
         </SwipeableRow>
       ))}
-      {onDelete && (
-        <p className={`text-[10px] text-center ${dark ? "text-white/30" : "text-black/30"}`}>Swipe left on a session to remove it</p>
+      {(onDelete || onUpdate) && (
+        <p className={`text-[10px] text-center ${dark ? "text-white/30" : "text-black/30"}`}>
+          {onUpdate && onDelete ? "Tap a session to edit it · swipe left to remove it" : onUpdate ? "Tap a session to edit it" : "Swipe left on a session to remove it"}
+        </p>
+      )}
+      {onUpdate && (
+        <LogCardioSheet
+          open={!!editing}
+          initial={editing?.cardio}
+          onClose={() => setEditing(null)}
+          onSave={(cardio) => {
+            const log = editing;
+            setEditing(null);
+            onUpdate(log, cardio);
+          }}
+        />
       )}
     </div>
   );
@@ -1215,6 +1241,7 @@ function CardioLogCard({ logs, onDelete }) {
 function HomeScreen({
   user,
   onDeleteCardio,
+  onUpdateCardio,
   todaySession,
   activeLog,
   onStartWorkout,
@@ -1264,7 +1291,7 @@ function HomeScreen({
           <Scale size={17} className="shrink-0" style={{ color: MEASURE_BLUE }} />
           <p className={`flex-1 text-[13px] font-medium ${dark ? "text-white/65" : "text-black/65"}`}>Body stats check-in due today</p>
           <button onClick={onLogWeight} className="text-white text-xs font-bold px-3 py-2 rounded-lg shrink-0" style={{ backgroundColor: MEASURE_BLUE }}>
-            LOG WEIGHT
+            LOG STATS
           </button>
         </div>
       )}
@@ -1282,7 +1309,7 @@ function HomeScreen({
         dbReady={dbReady}
         fullWidth
       />
-      <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} />
+      <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} onUpdate={onUpdateCardio} />
       <DailyHabitsCard
         habits={habits}
         completedIds={isToday ? completedHabitIds : dayHabitCompletedIds}
@@ -3092,7 +3119,8 @@ const CARDIO_ACTIVITIES = [
   { id: "other", label: "Other", icon: Sparkles },
 ];
 
-function LogCardioSheet({ open, onClose, onSave }) {
+// `initial` (an already-logged session's cardio) opens it for editing.
+function LogCardioSheet({ open, onClose, onSave, initial }) {
   const dark = useClientDark();
   const [activityId, setActivityId] = useState("running");
   const [duration, setDuration] = useState(30);
@@ -3101,12 +3129,12 @@ function LogCardioSheet({ open, onClose, onSave }) {
 
   useEffect(() => {
     if (open) {
-      setActivityId("running");
-      setDuration(30);
-      setDistance(0);
-      setCaloriesBurned(0);
+      setActivityId(CARDIO_ACTIVITIES.some((a) => a.id === initial?.activityId) ? initial.activityId : "running");
+      setDuration(initial ? Number(initial.durationMin) || 0 : 30);
+      setDistance(initial ? Number(initial.distanceKm) || 0 : 0);
+      setCaloriesBurned(initial ? Number(initial.caloriesBurned) || 0 : 0);
     }
-  }, [open]);
+  }, [open, initial]);
 
   function save() {
     const activity = CARDIO_ACTIVITIES.find((a) => a.id === activityId);
@@ -3120,7 +3148,7 @@ function LogCardioSheet({ open, onClose, onSave }) {
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log Activity">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title={initial ? "Edit Activity" : "Log Activity"}>
       <p className={dark ? "text-white/40 text-xs tracking-wide mb-2" : "text-black/40 text-xs tracking-wide mb-2"}>ACTIVITY</p>
       <div className="grid grid-cols-3 gap-2 mb-5">
         {CARDIO_ACTIVITIES.map((a) => {
@@ -3150,7 +3178,7 @@ function LogCardioSheet({ open, onClose, onSave }) {
       </div>
 
       <PrimaryButton dark={dark} className="w-full" disabled={duration <= 0} onClick={save}>
-        <Check size={16} /> LOG ACTIVITY
+        <Check size={16} /> {initial ? "SAVE CHANGES" : "LOG ACTIVITY"}
       </PrimaryButton>
     </BottomSheet>
   );
@@ -6365,21 +6393,145 @@ function WhoopCard({ bodyMetrics, dark }) {
   );
 }
 
+// A whole body-stats check-in in one sheet: weight, body fat, lean mass,
+// tape measurements and progress photos, all on one date, instead of a
+// separate "+" on each Progress card. Only what's filled in is saved, each
+// through the same log call its own card uses.
+export function BodyStatsCheckInSheet({ open, onClose, onSave, lastValues, busy }) {
+  const dark = useClientDark();
+  const fileRef = useRef(null);
+  const [dateKey, setDateKey] = useState(() => localDateKey());
+  const [values, setValues] = useState({});
+  const [showMeasurements, setShowMeasurements] = useState(false);
+  const [files, setFiles] = useState([]);
+  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+
+  useEffect(() => {
+    if (open) {
+      setDateKey(localDateKey());
+      setValues({});
+      setShowMeasurements(false);
+      setFiles([]);
+    }
+  }, [open]);
+
+  const entered = Object.entries(values).filter(([, v]) => v !== "");
+  const invalid = entered.some(([, v]) => isNaN(Number(v)) || Number(v) <= 0);
+  const canSave = !!dateKey && !invalid && (entered.length > 0 || files.length > 0) && !busy;
+
+  function input(cfg) {
+    const last = lastValues?.[cfg.key];
+    return (
+      <Field key={cfg.key} dark={dark} label={`${cfg.label.toUpperCase()} (${cfg.unit.toUpperCase()})`}>
+        <TextInput
+          dark={dark}
+          type="number"
+          inputMode="decimal"
+          value={values[cfg.key] ?? ""}
+          onChange={(e) => setValues((v) => ({ ...v, [cfg.key]: e.target.value }))}
+          placeholder={last != null ? `Last: ${last}` : cfg.placeholder}
+        />
+      </Field>
+    );
+  }
+
+  function save() {
+    const metrics = {};
+    let weight = null;
+    for (const [k, v] of entered) {
+      if (k === "weight") weight = Number(v);
+      else metrics[k] = Number(v);
+    }
+    onSave({ dateKey, weight, metrics, files });
+  }
+
+  return (
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log Body Stats">
+      <Field dark={dark} label="DATE">
+        <TextInput dark={dark} type="date" value={dateKey} max={localDateKey()} onChange={(e) => setDateKey(e.target.value)} />
+      </Field>
+      <div className="mt-3 space-y-3">
+        {input({ key: "weight", label: "Weight", unit: "kg", placeholder: "e.g. 82.4" })}
+        <div className="grid grid-cols-2 gap-3">
+          {input(BODY_FAT_CONFIG)}
+          {input(LEAN_MASS_CONFIG)}
+        </div>
+      </div>
+      {invalid && <p className="text-red-500 text-xs mt-1.5">Enter numbers greater than 0</p>}
+
+      {showMeasurements ? (
+        <div className="grid grid-cols-2 gap-3 mt-3">{BODY_MEASUREMENTS_CONFIG.map(input)}</div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowMeasurements(true)}
+          className={`w-full mt-3 py-2.5 rounded-xl text-xs font-semibold border border-dashed ${dark ? "border-white/15 text-white/60" : "border-black/15 text-black/60"}`}
+        >
+          + Add measurements (neck, chest, waist, arms…)
+        </button>
+      )}
+
+      <p className={`text-xs tracking-wide mt-5 mb-2 ${dark ? "text-white/40" : "text-black/40"}`}>PROGRESS PHOTOS</p>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const picked = Array.from(e.target.files || []);
+          if (picked.length) setFiles((f) => [...f, ...picked]);
+          e.target.value = "";
+        }}
+      />
+      <div className="grid grid-cols-4 gap-2">
+        {previews.map((url, i) => (
+          <div key={url} className={`relative aspect-square rounded-xl overflow-hidden ${dark ? "bg-white/5" : "bg-black/5"}`}>
+            <img src={url} alt="" className="w-full h-full object-cover" />
+            <button
+              type="button"
+              aria-label="Remove photo"
+              onClick={() => setFiles((f) => f.filter((_, j) => j !== i))}
+              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className={`aspect-square rounded-xl border border-dashed flex flex-col items-center justify-center gap-1 ${dark ? "border-white/15 bg-white/[0.03] text-white/40" : "border-black/15 bg-black/[0.03] text-black/40"}`}
+        >
+          <ImageIcon size={16} />
+          <span className="text-[10px] font-medium">Add</span>
+        </button>
+      </div>
+
+      <PrimaryButton dark={dark} className="w-full mt-5" disabled={!canSave} onClick={save}>
+        <Check size={16} /> {busy ? "Uploading…" : "SAVE CHECK-IN"}
+      </PrimaryButton>
+    </BottomSheet>
+  );
+}
+
 function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey }) {
   const dark = useClientDark();
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
   const [quickLogOpen, setQuickLogOpen] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
   const [logMetricConfig, setLogMetricConfig] = useState(null);
   const [historyMetricConfig, setHistoryMetricConfig] = useState(null);
 
   // "Body stats check-in due today" jumps straight here from Home/the
-  // notification bell — landing on the tab isn't the ask, opening the log
-  // sheet itself is. autoOpenWeighInKey increments each time that happens,
-  // so a repeat tap re-opens it even if the client dismissed it last time.
+  // notification bell — landing on the tab isn't the ask, opening the
+  // check-in sheet itself is. autoOpenWeighInKey increments each time that
+  // happens, so a repeat tap re-opens it even if the client dismissed it.
   useEffect(() => {
-    if (autoOpenWeighInKey) setQuickLogOpen(true);
+    if (autoOpenWeighInKey) setCheckInOpen(true);
   }, [autoOpenWeighInKey]);
 
   const bodyMetricEntries = useMemo(
@@ -6474,6 +6626,10 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
       <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
 
       <div className="px-2.5 space-y-4 mt-4">
+        <PrimaryButton dark={dark} className="w-full" onClick={() => setCheckInOpen(true)}>
+          <Scale size={16} /> LOG BODY STATS & PHOTOS
+        </PrimaryButton>
+
         <WhoopCard bodyMetrics={bodyMetrics} dark={dark} />
 
         <div>
@@ -6644,6 +6800,23 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
       {weightHistoryOpen && (
         <WeightHistoryScreen weighIns={weighIns} onClose={() => setWeightHistoryOpen(false)} onLog={onLogWeight} onDelete={onDeleteWeighIn} />
       )}
+      <BodyStatsCheckInSheet
+        open={checkInOpen}
+        onClose={() => setCheckInOpen(false)}
+        busy={uploading}
+        lastValues={{
+          weight: latestWeighIn?.weight,
+          ...Object.fromEntries(
+            [BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG].map((c) => [c.key, bodyMetricEntries[c.key]?.[bodyMetricEntries[c.key].length - 1]?.value])
+          ),
+        }}
+        onSave={({ dateKey, weight, metrics, files }) => {
+          setCheckInOpen(false);
+          if (weight) onLogWeight(weight, dateKey);
+          Object.entries(metrics).forEach(([key, value]) => onLogBodyMetric(key, value, dateKey));
+          if (files.length) handleAddPhoto(files, dateKey);
+        }}
+      />
       <LogWeightSheet
         open={quickLogOpen}
         onClose={() => setQuickLogOpen(false)}
@@ -9479,6 +9652,11 @@ export default function ClientApp() {
                   showToast(err.message || "Couldn't remove — check your connection and try again", true);
                   throw err;
                 })
+            }
+            onUpdateCardio={(log, cardio) =>
+              updateWorkoutLogEntries(log.id, log.entries || [], { cardio, dayLabel: `${cardio.activityLabel} (Cardio)` })
+                .then(() => showToast(`${cardio.activityLabel} updated`))
+                .catch((err) => showToast(err.message || "Couldn't save your changes — check your connection and try again", true))
             }
             todaySession={todaySession}
             activeLog={activeLog}

@@ -2135,6 +2135,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: `src/lib/appleHealth.test.js` (sync plan, check-in rule, native bridge round-trip and error, per-account/side flag).
 - **Date added**: 2026-10-26
 
+### 89. Coached client: one-sheet body-stats check-in, and editing logged cardio
+- **What changed**: Progress has a "LOG BODY STATS & PHOTOS" button opening `BodyStatsCheckInSheet` (`src/client/ClientApp.jsx`): one date, then weight, body fat, lean mass, optional measurements and photos. It saves only what's filled in, through the same `onLogWeight` / `onLogBodyMetric` / photo upload each card already used. Home's "Body stats check-in due" button (now "LOG STATS") and the notification bell open the same sheet. On Home, tapping a logged cardio session opens `LogCardioSheet` filled in ("Edit Activity"), and saving updates that log (`updateWorkoutLogEntries` with the new `cardio` + `dayLabel`). A swipe-to-delete never opens the editor. Train Solo is untouched; its shared `LogWeightSheet`/`PhotosSection` are unchanged.
+- **Regression test**: `src/client/bodyStatsAndCardioEdit.test.jsx` (only filled fields saved on the chosen date; zero/negative blocked; tap edits with values pre-filled; swipe doesn't). Also exercised in Chromium with touch: tap opens the editor, a partial swipe doesn't, a saved edit updates the row, a photo picked in the check-in is passed on.
+- **Date added**: 2026-10-27
+
 ---
 
 ## What still requires manual testing
