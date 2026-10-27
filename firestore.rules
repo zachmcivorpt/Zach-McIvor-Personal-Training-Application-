@@ -517,6 +517,18 @@ service cloud.firestore {
       allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
     }
 
+    // --- soloCustomSessions/{id}: sessions a Train Solo customer built
+    //     themselves (free training — src/solo/customSessions.js). Same
+    //     ownership shape as soloWorkoutLogs: only that customer reads or
+    //     writes them, and one can never be handed to another account. ---
+    match /soloCustomSessions/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
+
     // --- soloWaterLogs/{id}: a Train Solo customer's own daily water
     //     intake (My Training's water tracker), one doc per customer per
     //     day (id `{uid}_{dateKey}`). Same ownership shape as

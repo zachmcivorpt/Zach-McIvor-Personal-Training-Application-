@@ -13,6 +13,7 @@ import SoloActiveRecoveryScreen from "./SoloActiveRecoveryScreen";
 import SoloOnboarding from "./onboarding/SoloOnboarding";
 import SoloConsultationScreen from "./SoloConsultationScreen";
 import SoloFinishSetupScreen from "./SoloFinishSetupScreen";
+import SoloSessionBuilderScreen from "./SoloSessionBuilderScreen";
 
 function SoloSessionLoadingScreen() {
   return <div className="w-full h-screen flex items-center justify-center bg-[#0A0A0B]" />;
@@ -147,6 +148,16 @@ export default function SoloRoutes() {
               <RequireSoloAuth>
                 <RequireOnboardingComplete>
                   <SoloWorkoutSummaryScreen />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="session-builder"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloSessionBuilderScreen />
                 </RequireOnboardingComplete>
               </RequireSoloAuth>
             }

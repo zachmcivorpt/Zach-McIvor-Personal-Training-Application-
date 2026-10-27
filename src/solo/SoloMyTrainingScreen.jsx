@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus } from "lucide-react";
+import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus, Zap, Pencil } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { SoloArtwork } from "./SoloArtwork";
 import { isRecoveryAddon } from "./recommendations";
@@ -14,6 +14,7 @@ import SoloGlassBox from "./SoloGlassBox";
 import { CompletedSessionSheet, ProgramOverviewSheet } from "./SoloTrainingSheets";
 import { APP_STORE_URL } from "./appShell";
 import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
+import { customSessionState } from "./customSessions";
 
 // A purchased program's own overview — which week the customer is in, that
 // week's workouts, and a Start button for each that opens
@@ -205,6 +206,7 @@ export default function SoloMyTrainingScreen() {
     soloWaterLogs,
     addSoloWater,
     setSoloWaterGoal,
+    soloCustomSessions,
   } = useSoloApp();
   const activeAddon = soloPrograms.find((p) => p.id === soloCurrentUser?.recoveryAddon?.programId && p.status === "published" && isRecoveryAddon(p)) || null;
   const { dark } = useSoloTheme();
@@ -315,7 +317,15 @@ export default function SoloMyTrainingScreen() {
     if (!item.done) return null;
     if (item.type === "workout") return soloWorkoutLogs.find((l) => l.purchaseId === item.purchase.id && l.weekNumber === item.weekNumber && l.dayId === item.day.id) || null;
     if (item.type === "addon") return soloWorkoutLogs.find((l) => l.purchaseId === `${soloCurrentUser?.id}_recovery` && l.dayId === item.sessionId && l.weekNumber === item.dateKey) || null;
+    if (item.type === "custom") return soloWorkoutLogs.find((l) => l.id === item.logId) || null;
     return null;
+  }
+
+  // Free training (customSessions.js): a quick empty session, or one the
+  // customer built.
+  function startCustomSession(session = null) {
+    if (!soloCurrentUser) return;
+    navigate("/solo/workout", { state: customSessionState(soloCurrentUser.id, session) });
   }
 
   function logProgramName(log) {
@@ -392,6 +402,15 @@ export default function SoloMyTrainingScreen() {
           onAdd={(delta, current) => soloCurrentUser && addSoloWater(soloCurrentUser.id, selectedKey, delta, current)}
           onSetGoal={(goal) => soloCurrentUser && setSoloWaterGoal(soloCurrentUser.id, goal)}
           dark={dark}
+          t={t}
+        />
+
+        <YourSessions
+          sessions={soloCustomSessions}
+          onQuickStart={() => startCustomSession(null)}
+          onBuild={() => navigate("/solo/session-builder")}
+          onStart={startCustomSession}
+          onEdit={(session) => navigate("/solo/session-builder", { state: { sessionId: session.id } })}
           t={t}
         />
 
@@ -505,8 +524,70 @@ export default function SoloMyTrainingScreen() {
   );
 }
 
-const ITEM_ORDER = { workout: 0, addon: 1, recovery: 2, bodystats: 3, photos: 4 };
-const ITEM_ICON = { workout: Dumbbell, addon: HeartPulse, recovery: HeartPulse, bodystats: Scale, photos: Camera };
+const ITEM_ORDER = { workout: 0, custom: 0.5, addon: 1, recovery: 2, bodystats: 3, photos: 4 };
+const ITEM_ICON = { workout: Dumbbell, custom: Dumbbell, addon: HeartPulse, recovery: HeartPulse, bodystats: Scale, photos: Camera };
+// Session-type entries (the large card on the day, the dot on the week strip).
+const isSessionItem = (i) => i.type === "workout" || i.type === "addon" || i.type === "custom";
+
+// Free training: start an empty session, build one, or run a saved one.
+function YourSessions({ sessions, onQuickStart, onBuild, onStart, onEdit, t }) {
+  return (
+    <div className="mt-8">
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <h2 className="text-lg font-bold">Your Sessions</h2>
+        <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: t.textFaint }}>
+          Free
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2.5">
+        <button type="button" onClick={onQuickStart} className="flex items-center gap-2.5 rounded-2xl px-3.5 py-3.5 text-left" style={soloGlass(t)}>
+          <Zap size={17} color={MEASURE_BLUE} className="shrink-0" />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">Quick session</span>
+            <span className="block text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+              Log as you go
+            </span>
+          </span>
+        </button>
+        <button type="button" onClick={onBuild} className="flex items-center gap-2.5 rounded-2xl px-3.5 py-3.5 text-left" style={soloGlass(t)}>
+          <Plus size={17} color={MEASURE_BLUE} className="shrink-0" />
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">Build a session</span>
+            <span className="block text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+              Save it to reuse
+            </span>
+          </span>
+        </button>
+      </div>
+      {sessions.length > 0 && (
+        <SoloGlassBox t={t} className="rounded-2xl mt-2.5">
+          {sessions.map((session, i) => (
+            <div key={session.id} className="flex items-center gap-2 pl-4 pr-2 py-3" style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold truncate">{session.name}</p>
+                <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                  {session.exercises.length} exercise{session.exercises.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <button type="button" onClick={() => onEdit(session)} aria-label={`Edit ${session.name}`} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ color: t.textMuted }}>
+                <Pencil size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onStart(session)}
+                aria-label={`Start ${session.name}`}
+                className="flex items-center gap-1 text-xs font-bold px-3.5 py-2 rounded-full shrink-0"
+                style={{ backgroundColor: t.text, color: t.bg }}
+              >
+                <Play size={11} fill="currentColor" /> Start
+              </button>
+            </div>
+          ))}
+        </SoloGlassBox>
+      )}
+    </div>
+  );
+}
 const DEFAULT_WATER_GOAL_ML = 2500;
 const WATER_GOALS_ML = [2000, 2500, 3000, 3500, 4000];
 
@@ -547,7 +628,7 @@ function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftW
       <SoloGlassBox t={t} className="rounded-2xl grid grid-cols-7 p-1.5">
         {weekKeys.map((key) => {
           const d = new Date(`${key}T00:00:00`);
-          const sessions = (byDate[key] || []).filter((i) => i.type === "workout" || i.type === "addon");
+          const sessions = (byDate[key] || []).filter(isSessionItem);
           const allDone = sessions.length > 0 && sessions.every((i) => i.done);
           const selected = key === selectedKey;
           const isToday = key === todayKey;
@@ -591,8 +672,8 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBro
   const relative = dateKey === todayKey ? "Today" : sessionDayLabel(dateKey, todayKey);
   const dayName = ["Today", "Tomorrow", "Yesterday"].includes(relative) ? relative : d.toLocaleDateString("en-AU", { weekday: "long" });
   const heading = `${dayName}, ${ordinal(d.getDate())} ${d.toLocaleDateString("en-AU", { month: "long" })}`;
-  const sessions = items.filter((i) => i.type === "workout" || i.type === "addon");
-  const others = items.filter((i) => i.type !== "workout" && i.type !== "addon");
+  const sessions = items.filter(isSessionItem);
+  const others = items.filter((i) => !isSessionItem(i));
   return (
     <div className="mt-6">
       <h2 className="text-lg font-bold leading-tight mb-3">{heading}</h2>
@@ -608,7 +689,7 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBro
           ) : (
             <>
               <p className="text-sm mb-3" style={{ color: t.textMuted }}>
-                You don't own any programs yet.
+                Train free with your own sessions below, or find a program built for you.
               </p>
               <button type="button" onClick={onBrowse} className="text-sm font-bold underline">
                 Browse the catalogue

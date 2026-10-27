@@ -482,6 +482,42 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
     });
   });
 
+  // Free training: sessions a Train Solo customer builds themselves.
+  describe("soloCustomSessions", () => {
+    const SOLO_A = "solo-a";
+    const SOLO_B = "solo-b";
+    const id = "session-1";
+    const session = (uid) => ({ id, soloUserId: uid, name: "Upper", exercises: [{ exerciseId: "e1", targetSets: 3, targetReps: 10 }], createdAt: 1, updatedAt: 1 });
+
+    it("lets a customer create, list, read, edit and delete their own sessions", async () => {
+      const db = dbAs(SOLO_A);
+      await assertSucceeds(setDoc(doc(db, "soloCustomSessions", id), session(SOLO_A)));
+      await assertSucceeds(getDoc(doc(db, "soloCustomSessions", id)));
+      await assertSucceeds(getDocs(query(collection(db, "soloCustomSessions"), where("soloUserId", "==", SOLO_A))));
+      await assertSucceeds(setDoc(doc(db, "soloCustomSessions", id), { ...session(SOLO_A), name: "Upper B" }));
+      await assertSucceeds(deleteDoc(doc(db, "soloCustomSessions", id)));
+    });
+
+    it("blocks another customer, the coach and anonymous users", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloCustomSessions", id), session(SOLO_A));
+      });
+      for (const other of [SOLO_B, COACH_UID, null]) {
+        const db = dbAs(other);
+        await assertFails(getDoc(doc(db, "soloCustomSessions", id)));
+        await assertFails(setDoc(doc(db, "soloCustomSessions", id), session(SOLO_A)));
+        await assertFails(deleteDoc(doc(db, "soloCustomSessions", id)));
+      }
+    });
+
+    it("never lets a customer save a session under someone else's uid or reassign their own", async () => {
+      const dbB = dbAs(SOLO_B);
+      await assertFails(setDoc(doc(dbB, "soloCustomSessions", "s-x"), { ...session(SOLO_A), id: "s-x" }));
+      await setDoc(doc(dbB, "soloCustomSessions", "s-b"), { ...session(SOLO_B), id: "s-b" });
+      await assertFails(updateDoc(doc(dbB, "soloCustomSessions", "s-b"), { soloUserId: SOLO_A }));
+    });
+  });
+
   describe("soloUsers", () => {
     const SOLO_A = "solo-a";
     const SOLO_B = "solo-b";

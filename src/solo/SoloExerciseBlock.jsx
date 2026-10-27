@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, Timer, TrendingUp, Play } from "lucide-react";
+import { ChevronDown, Timer, TrendingUp, Play, ArrowRightLeft } from "lucide-react";
 import { useClientDark, formatTargetReps } from "../client/ClientApp";
 import { ExerciseThumb } from "../components/ui";
 import { playTimerDing, unlockTimerAudio } from "./timerAudio";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
-import { suggestNextSet } from "../lib/trainingStats";
 import { MEASURE_BLUE } from "../theme";
 
 // A trimmed fork of ClientApp.jsx's ExerciseBlock for Train Solo: same set-
 // logging row layout, rest-timer start, and time-based-set row timer, but
-// with no exercise-swap button and no editable "note for your coach" —
-// there is no coach to swap for or notify in Train Solo. The exercise's
+// with no editable "note for your coach" — there is no coach to notify in
+// Train Solo. Swapping (onSwap) opens SoloSwapSheet and needs no reason.
+// Each set's "Target" comes from soloProgression.js via `targets`, with
+// `targetReason` explaining it in one line. The exercise's
 // pre-authored note (exMeta.notes, written by the coach while BUILDING the
 // program in the Program Builder) is shown read-only as "PROGRAM NOTES"
 // instead of "COACH'S NOTES", since to a Train Solo customer it's part of
@@ -25,7 +26,7 @@ function formatSeconds(total) {
   return sec ? `${m}:${String(sec).padStart(2, "0")}` : `${m} min`;
 }
 
-export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets = [], onChangeField, onBlurKg, onAddSet, onStartRest, onOpenDetail }) {
+export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets = [], targets = [], targetReason = null, swappedFromName = null, onSwap, onChangeField, onBlurKg, onAddSet, onStartRest, onOpenDetail }) {
   const dark = useClientDark();
   const { accent } = useSoloTheme();
   const isWarmup = (exMeta.section || "main") === "warmup";
@@ -83,7 +84,20 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
           <p className={dark ? "text-white/45 text-[11px] mt-0.5" : "text-black/45 text-[11px] mt-0.5"}>
             {exMeta.targetSets} {exMeta.targetSets === 1 ? "set" : "sets"} × {exMeta.targetType === "time" ? formatSeconds(exMeta.targetReps || 30) : formatTargetReps(exMeta)}
           </p>
+          {swappedFromName && (
+            <p className={dark ? "text-white/35 text-[10px] mt-0.5 truncate" : "text-black/35 text-[10px] mt-0.5 truncate"}>Swapped from {swappedFromName}</p>
+          )}
         </button>
+        {onSwap && (
+          <button
+            type="button"
+            onClick={onSwap}
+            aria-label={`Swap ${exercise.name}`}
+            className={dark ? "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white/50 hover:text-white" : "w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-black/50 hover:text-black"}
+          >
+            <ArrowRightLeft size={16} />
+          </button>
+        )}
         {isWarmup && (
           <button
             type="button"
@@ -129,6 +143,13 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
         </button>
       )}
 
+      {expanded && targetReason && !isTimeBased && (
+        <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-snug px-1" style={{ color: MEASURE_BLUE }}>
+          <TrendingUp size={12} className="shrink-0 mt-px" />
+          <span>{targetReason}</span>
+        </p>
+      )}
+
       {expanded && (
         <div className="mt-3 space-y-1.5">
           <div className="grid grid-cols-[22px_minmax(0,1fr)_72px_72px_12px] gap-2 px-1">
@@ -139,13 +160,12 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
             <span />
           </div>
           {rows.map((row, i) => {
-            // Same "Previous" + double-progression "Try" hint as the
-            // coached client's ExerciseBlock (ClientApp.jsx), from this
-            // customer's own last logged session of this exercise.
+            // "Previous" from this customer's own last logged session of
+            // this exercise, and that set's "Target" (soloProgression.js).
             // Time-based sets are driven by the row timer, so they show
             // the previous time only.
             const prev = previousSets[i];
-            const suggestion = isTimeBased ? null : suggestNextSet(prev, exMeta.targetReps);
+            const suggestion = isTimeBased ? null : targets[i] || null;
             return (
             <div key={i} className={`grid grid-cols-[22px_minmax(0,1fr)_72px_72px_12px] gap-2 px-1 ${isTimeBased ? "items-center" : "items-start"}`}>
               <span className={`${dark ? "text-white/50" : "text-black/50"} text-sm font-semibold ${isTimeBased ? "" : "pt-2"}`}>{i + 1}</span>
@@ -171,7 +191,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                     style={{ color: MEASURE_BLUE }}
                   >
                     <TrendingUp size={10} className="shrink-0" />
-                    <span className="truncate">Try {suggestion.reps}{suggestion.weight > 0 ? ` × ${suggestion.weight}kg` : " reps"}</span>
+                    <span className="truncate">Target {suggestion.reps}{suggestion.weight > 0 ? ` × ${suggestion.weight}kg` : " reps"}</span>
                   </button>
                 )}
               </div>

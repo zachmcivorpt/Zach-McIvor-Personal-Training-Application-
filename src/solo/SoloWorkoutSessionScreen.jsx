@@ -13,6 +13,9 @@ import { getBestEverStats, estimate1RM, getPreviousSets } from "../lib/AppContex
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlassVars } from "./SoloThemeContext";
 import SoloExerciseBlock from "./SoloExerciseBlock";
+import SoloSwapSheet from "./SoloSwapSheet";
+import { planExerciseTargets, isStalled, targetReasonText } from "./soloProgression";
+import { isCustomSessionLog } from "./customSessions";
 import { playTimerDing, armRestTimerAudio, unlockTimerAudio } from "./timerAudio";
 
 // Train Solo's own workout session — adapted from ClientApp.jsx's
@@ -33,9 +36,15 @@ export default function SoloWorkoutSessionScreen() {
   const { dark } = useSoloTheme();
 
   const sessionInfo = location.state; // { purchaseId, programId, phaseId, dayId, weekNumber, day }
+  // A free session the customer built (or a quick, empty one) — logged
+  // under `${uid}_custom` (see customSessions.js), never against a program.
+  const isCustom = isCustomSessionLog(sessionInfo);
 
   const [activeLog, setActiveLog] = useState({});
   const [extraExercises, setExtraExercises] = useState([]);
+  // Swapped exercises: original exerciseId → the exerciseId done instead.
+  const [swaps, setSwaps] = useState({});
+  const [swapFor, setSwapFor] = useState(null); // the exMeta being swapped
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null);
   const [finishing, setFinishing] = useState(false);
@@ -54,8 +63,12 @@ export default function SoloWorkoutSessionScreen() {
   // which branch ends up rendering, so none can sit after a conditional
   // return.
   const exercisesForSession = useMemo(
-    () => (sessionInfo?.day?.exercises || []).filter((exMeta) => !exMeta.isRest).concat(extraExercises),
-    [sessionInfo?.day, extraExercises]
+    () =>
+      (sessionInfo?.day?.exercises || [])
+        .filter((exMeta) => !exMeta.isRest)
+        .concat(extraExercises)
+        .map((exMeta) => (swaps[exMeta.exerciseId] ? { ...exMeta, exerciseId: swaps[exMeta.exerciseId], swappedFrom: exMeta.exerciseId } : exMeta)),
+    [sessionInfo?.day, extraExercises, swaps]
   );
 
   useEffect(() => {
@@ -142,6 +155,16 @@ export default function SoloWorkoutSessionScreen() {
     setRestTotal(rest);
     setResting(true);
   }
+  function swapExercise(exMeta, exercise) {
+    const original = exMeta.swappedFrom || exMeta.exerciseId;
+    setSwaps((prev) => {
+      const next = { ...prev };
+      if (exercise.id === original) delete next[original];
+      else next[original] = exercise.id;
+      return next;
+    });
+    setSwapFor(null);
+  }
   function addExtraExercise(exercise) {
     setExtraExercises((prev) => [
       ...prev,
@@ -167,6 +190,10 @@ export default function SoloWorkoutSessionScreen() {
       }))
       .filter((e) => e.sets.length > 0);
 
+    if (isCustom && entries.length === 0) {
+      setSaveError("Log at least one set before completing this session.");
+      return;
+    }
     setFinishing(true);
     setSaveError("");
     try {
@@ -203,13 +230,20 @@ export default function SoloWorkoutSessionScreen() {
                 <div className="space-y-4">
                   {group.items.map(({ exMeta, i }) => {
                     const exercise = exercisesById[exMeta.exerciseId] || { id: exMeta.exerciseId, name: "Unknown exercise" };
+                    const rows = rowsFor(exMeta);
+                    const previousSets = getPreviousSets(soloWorkoutLogs, exMeta.exerciseId);
+                    const targets = planExerciseTargets(previousSets, exMeta.targetReps, rows.length, { stalled: isStalled(soloWorkoutLogs, exMeta.exerciseId) });
                     return (
                       <SoloExerciseBlock
-                        key={exMeta.exerciseId + i}
+                        key={(exMeta.swappedFrom || exMeta.exerciseId) + i}
                         exMeta={exMeta}
                         exercise={exercise}
-                        rows={rowsFor(exMeta)}
-                        previousSets={getPreviousSets(soloWorkoutLogs, exMeta.exerciseId)}
+                        rows={rows}
+                        previousSets={previousSets}
+                        targets={targets}
+                        targetReason={targetReasonText(targets.find(Boolean), exMeta.targetReps)}
+                        swappedFromName={exMeta.swappedFrom ? exercisesById[exMeta.swappedFrom]?.name || "the planned exercise" : null}
+                        onSwap={() => setSwapFor(exMeta)}
                         onChangeField={(idx, field, value) => setField(exMeta.exerciseId, idx, field, value)}
                         onBlurKg={(idx) => handleBlurKg(exMeta, idx)}
                         onAddSet={() => addSet(exMeta)}
@@ -241,6 +275,14 @@ export default function SoloWorkoutSessionScreen() {
             excludeIds={new Set(exercisesForSession.map((e) => e.exerciseId))}
             onClose={() => setAddExerciseOpen(false)}
             onConfirm={addExtraExercise}
+          />
+
+          <SoloSwapSheet
+            exercise={swapFor ? exercisesById[swapFor.exerciseId] || { id: swapFor.exerciseId, name: "exercise" } : null}
+            allExercises={soloExercises}
+            excludeIds={new Set(exercisesForSession.map((e) => e.exerciseId).filter((id) => id !== swapFor?.swappedFrom))}
+            onClose={() => setSwapFor(null)}
+            onPick={(exercise) => swapExercise(swapFor, exercise)}
           />
 
           {detailExercise && <ExerciseDetailSheet exercise={detailExercise} logsForClient={soloWorkoutLogs} onClose={() => setDetailExercise(null)} />}

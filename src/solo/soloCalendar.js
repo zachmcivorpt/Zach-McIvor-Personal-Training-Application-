@@ -23,6 +23,7 @@
 import { localDateKey } from "../lib/dateKey";
 import { phaseForWeekNumber, currentWeekNumber } from "./weekProgress";
 import { isRecoveryLog } from "./activeRecovery";
+import { isCustomSessionLog } from "./customSessions";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -109,6 +110,13 @@ export function buildSoloCalendar({
   const addonDone = new Set(workoutLogs.filter(isRecoveryLog).map((l) => `${l.dayId}|${l.weekNumber}`));
   const workoutDays = new Set();
   const programSpans = [];
+
+  // Free sessions the customer built or started themselves, shown on the
+  // day they were done (customSessions.js).
+  for (const log of workoutLogs) {
+    if (!isCustomSessionLog(log)) continue;
+    push(keyOf(log.date), { type: "custom", id: `custom:${log.id}`, logId: log.id, title: log.dayLabel || "Your session", subtitle: "Your own session", done: true });
+  }
 
   for (const purchase of purchases) {
     const program = programsById[purchase.programId];

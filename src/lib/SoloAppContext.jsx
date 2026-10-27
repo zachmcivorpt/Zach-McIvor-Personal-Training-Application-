@@ -101,6 +101,9 @@ export function SoloAppProvider({ children }) {
   // one doc per customer per day, kept apart from soloBodyMetrics so a
   // glass of water never counts as the Monday body-stats check-in.
   const [soloWaterLogs, setSoloWaterLogs] = useState([]);
+  // Sessions a customer built themselves (free training — see
+  // src/solo/customSessions.js). Newest edited first.
+  const [soloCustomSessions, setSoloCustomSessions] = useState([]);
   // The full phases/days/exercises for programs this customer actually
   // OWNS — keyed by programId. Deliberately fetched per owned program
   // (never a collection-wide listener): soloProgramContent/{id} is gated
@@ -299,6 +302,17 @@ export function SoloAppProvider({ children }) {
     const q = query(collection(soloDb, "soloWaterLogs"), where("soloUserId", "==", soloAuthUser.uid));
     return onSnapshot(q, (snap) => {
       setSoloWaterLogs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+  }, [soloAuthUser]);
+
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloCustomSessions([]);
+      return;
+    }
+    const q = query(collection(soloDb, "soloCustomSessions"), where("soloUserId", "==", soloAuthUser.uid));
+    return onSnapshot(q, (snap) => {
+      setSoloCustomSessions(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)));
     });
   }, [soloAuthUser]);
 
@@ -623,6 +637,26 @@ export function SoloAppProvider({ children }) {
         await updateDoc(doc(soloDb, "soloUsers", uid), { waterGoalMl: goalMl });
       },
 
+      // A session the customer built (customSessions.js). A new one gets a
+      // fresh id; saving an existing one keeps its id and creation date.
+      async saveSoloCustomSession(uid, session) {
+        const id = session.id || doc(collection(soloDb, "soloCustomSessions")).id;
+        const now = Date.now();
+        const data = {
+          id,
+          soloUserId: uid,
+          name: session.name.trim(),
+          exercises: session.exercises,
+          createdAt: session.createdAt || now,
+          updatedAt: now,
+        };
+        await setDoc(doc(soloDb, "soloCustomSessions", id), data);
+        return data;
+      },
+      async deleteSoloCustomSession(id) {
+        await deleteDoc(doc(soloDb, "soloCustomSessions", id));
+      },
+
       // Self-service account deletion — same App Store/Play Data Safety
       // requirement Coaching's own deleteMyAccount exists for, but doable
       // entirely client-side here rather than through a Cloud Function:
@@ -649,14 +683,15 @@ export function SoloAppProvider({ children }) {
           // made this whole batch fail for every customer who'd bought a
           // program, so account deletion never worked for paying customers.
           // They hold no personal details beyond the (now deleted) uid.
-          const [logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap, waterSnap] = await Promise.all([
+          const [logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap, waterSnap, customSessionsSnap] = await Promise.all([
             getDocs(query(collection(soloDb, "soloWorkoutLogs"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWeighIns"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloProgressPhotos"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloBodyMetrics"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWaterLogs"), where("soloUserId", "==", user.uid))),
+            getDocs(query(collection(soloDb, "soloCustomSessions"), where("soloUserId", "==", user.uid))),
           ]);
-          const refs = [...logsSnap.docs, ...weighInsSnap.docs, ...photosSnap.docs, ...bodyMetricsSnap.docs, ...waterSnap.docs].map((d) => d.ref);
+          const refs = [...logsSnap.docs, ...weighInsSnap.docs, ...photosSnap.docs, ...bodyMetricsSnap.docs, ...waterSnap.docs, ...customSessionsSnap.docs].map((d) => d.ref);
           // Firestore caps a batch at 500 writes — a long-time customer's
           // history can exceed that, so delete in chunks. The profile doc
           // goes last, so a failure part-way leaves a still-usable account
@@ -701,6 +736,7 @@ export function SoloAppProvider({ children }) {
       soloProgressPhotos,
       soloBodyMetrics,
       soloWaterLogs,
+      soloCustomSessions,
       soloProgramContentByProgramId,
       ...actions,
     }),
@@ -720,6 +756,7 @@ export function SoloAppProvider({ children }) {
       soloProgressPhotos,
       soloBodyMetrics,
       soloWaterLogs,
+      soloCustomSessions,
       soloProgramContentByProgramId,
       actions,
     ]

@@ -2169,6 +2169,13 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: `npm test` (537 passed), `npm run lint` (oxlint: no errors), `npm run build`.
 - **Date added**: 2026-10-28
 
+### 95. Train Solo: exercise swap, set-by-set targets, and free sessions (features)
+- **Exercise swap**: each exercise in a Train Solo session has a Swap button (`SoloSwapSheet.jsx`). Alternatives come from `exerciseSwap.js`: same muscle group by default, optional same equipment and search, never the exercise itself or one already in the session. No reason is asked, since there's no coach. A swapped exercise shows "Swapped from …", can be swapped back, and keeps sets already logged on the original.
+- **Set targets**: `soloProgression.js` replaces the coached app's simple "Try" hint in Train Solo only, giving a target for every set with a one-line reason: hit reps → +2.5% (at least 2.5 kg, 2.5 kg plates); 1–2 short → same weight; 3+ short → −10%; same top set 3 sessions running → −10% reset; AMRAP and bodyweight → +1 rep. The coached app's `suggestNextSet` is unchanged. Deload weeks aren't included because programs have no deload field.
+- **Free sessions**: My Training has "Your Sessions" with Quick session (empty, log as you go), Build a session (`SoloSessionBuilderScreen.jsx`, saved to the new `soloCustomSessions` collection), and saved sessions to start or edit. Runs log to `soloWorkoutLogs` under `${uid}_custom` (`customSessions.js`), so Progress, PRs and history count them, the calendar shows them as done, and they never tick off a program day. A custom session needs at least one set to complete. Account deletion now also deletes custom sessions. Nothing free shows a price (Apple 3.1.1).
+- **Regression tests**: `soloProgression.test.js` (every number worked out by hand), `customSessions.test.js` (ids, validation, calendar, swap candidates), `soloSwapAndTargets.test.jsx` (target button fills the set, swap button, swapped label), and `firestoreRules.rules.test.js` → `soloCustomSessions` (owner only; verified that the save tests fail without the rule).
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing
