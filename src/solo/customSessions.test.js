@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { customSessionState, isCustomSessionLog, sessionProblem, newSessionExercise, customPurchaseId } from "./customSessions";
-import { swapCandidates } from "./exerciseSwap";
+import { swapCandidates, primaryMuscleOf } from "./exerciseSwap";
 import { buildSoloCalendar } from "./soloCalendar";
 
 describe("free Train Solo sessions", () => {
@@ -50,6 +50,23 @@ describe("Train Solo exercise swap", () => {
   it("offers the same muscle group by default, never the exercise itself", () => {
     expect(swapCandidates(bench, all).map((e) => e.id)).toEqual(["db", "incline"]);
   });
+  it("works out the muscle group of a Custom exercise from its name", () => {
+    const lib = [
+      { id: "spider", name: "Dumbbell Spider Curls (Incline Bench at 45d)", category: "Custom", equipment: "Dumbbell", primaryMuscles: [] },
+      { id: "hammer", name: "Hammer Curl", category: "Biceps", equipment: "Dumbbell" },
+      { id: "band", name: "Banded External Rotation", category: "Custom", equipment: "Band", primaryMuscles: [] },
+      { id: "legcurl", name: "Seated Leg Curl", category: "Custom", equipment: "Machine", primaryMuscles: [] },
+      { id: "stretch", name: "Bicep Wall Stretch", category: "Cool-down", equipment: "None" },
+    ];
+    expect(swapCandidates(lib[0], lib).map((e) => e.id)).toEqual(["hammer"]); // not the band rotation, leg curl or a stretch
+    expect(swapCandidates(lib[3], lib).map((e) => e.id)).toEqual([]);
+    expect(primaryMuscleOf({ name: "Machine Seated Reverse Fly", category: "Custom", primaryMuscles: [] })).toBe("Shoulders");
+    expect(primaryMuscleOf({ name: "T Bar Row", category: "Custom", primaryMuscles: ["Rhomboids"] })).toBe("Back");
+    expect(primaryMuscleOf({ name: "Barbell Rack pull", category: "Custom", primaryMuscles: [] })).toBe("Back");
+    expect(primaryMuscleOf({ name: "Suicides", category: "Custom", primaryMuscles: [] })).toBeNull();
+    expect(swapCandidates(lib[4], lib, { sameMuscle: false }).map((e) => e.id)).toEqual([]); // cool-downs only swap for cool-downs
+  });
+
   it("can also match equipment, search, skip exercises already in the session, or widen to everything", () => {
     expect(swapCandidates(bench, all, { sameEquipment: true }).map((e) => e.id)).toEqual(["incline"]);
     expect(swapCandidates(bench, all, { search: "dumbbell" }).map((e) => e.id)).toEqual(["db"]);
