@@ -787,6 +787,10 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         />
       </div>
 
+      <div className="mb-4">
+        <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
+      </div>
+
       <DarkPanel glow={false} className="flex flex-col mb-4">
         <div className="relative px-5 pt-5 pb-1 flex items-center gap-2.5">
           <div
@@ -922,10 +926,6 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
         </div>
       </DarkPanel>
-
-      <div className="mb-4">
-        <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <DarkPanel className="md:col-span-1 h-fit p-5">
