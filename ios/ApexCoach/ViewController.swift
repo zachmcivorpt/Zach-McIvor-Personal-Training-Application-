@@ -6,7 +6,7 @@ import WebKit
 // (progress photos, messages) both flow straight through WKWebView's native
 // getUserMedia/file-input support; the matching usage-description strings live
 // in Info.plist since iOS silently kills the process without them.
-final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler {
+final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler, WKUIDelegate {
     private var webView: WKWebView!
     private let spinner = UIActivityIndicatorView(style: .large)
     private let siteURL = URL(string: "https://apexcoachingplatform-appl.vercel.app")!
@@ -112,9 +112,11 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         config.mediaTypesRequiringUserActionForPlayback = []
         config.userContentController.add(self, name: "apexTheme")
         config.userContentController.add(self, name: "apexHealth")
+        config.userContentController.add(self, name: "apexRest")
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
+        webView.uiDelegate = self
         webView.translatesAutoresizingMaskIntoConstraints = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.isOpaque = false
@@ -223,6 +225,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             if let body = message.body as? [String: Any] { health.handle(body) }
             return
         }
+        if message.name == "apexRest" {
+            if let body = message.body as? [String: Any] { RestTimerBridge.handle(body) }
+            return
+        }
         guard message.name == "apexTheme",
               let body = message.body as? [String: Any],
               let dark = body["dark"] as? Bool
@@ -244,6 +250,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // WKWebView) would never deallocate.
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexTheme")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexHealth")
+        webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexRest")
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -283,6 +290,21 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             UIApplication.shared.open(url)
             decisionHandler(.cancel)
         }
+    }
+
+    // Voice notes record through the page's getUserMedia. iOS already asks
+    // once for microphone access (NSMicrophoneUsageDescription); without
+    // this, WKWebView would ask again on every visit. Only APEX's own pages
+    // are granted — anything else gets the normal prompt.
+    @available(iOS 15.0, *)
+    func webView(
+        _ webView: WKWebView,
+        requestMediaCapturePermissionFor origin: WKSecurityOrigin,
+        initiatedByFrame frame: WKFrameInfo,
+        type: WKMediaCaptureType,
+        decisionHandler: @escaping (WKPermissionDecision) -> Void
+    ) {
+        decisionHandler(origin.host == siteURL.host ? .grant : .prompt)
     }
 
     override var prefersStatusBarHidden: Bool { false }

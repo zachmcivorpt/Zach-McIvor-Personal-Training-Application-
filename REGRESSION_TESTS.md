@@ -2178,6 +2178,13 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Live check**: on the live site in iOS-app mode with the demo account: built a session, started it, swapped an exercise, logged a set and completed it. My Training showed it as done today and under Your Sessions. The test session and log were deleted afterwards.
 - **Date added**: 2026-10-28
 
+### 96. Voice notes, form-check videos linked to a set, and a lock-screen rest alert (features, iOS 1.0.3)
+- **Voice notes** (coached client chat and coach console): the mic takes the Send button's place while the box is empty. Recording uses `useVoiceRecorder` (`src/lib/voiceNote.js`): AAC/mp4 where supported (iPhone), else mp4/opus or webm, with a 2-minute cap. Uploads go to the new Storage path `messageAudio/{clientId}` (audio only, 20MB, same who-can-write as other attachments) and play in `VoiceNotePlayer`. Push previews say "Sent a voice note". iOS needs `NSMicrophoneUsageDescription` (added) and WKWebView's capture permission, granted for APEX's own pages only (`ViewController.swift`).
+- **Form checks**: a camera button on each exercise in a coached workout films or picks a video and sends it to the coach, tagged with the exercise and the last set with reps (`src/lib/formCheck.js`). The coach's thread labels it and offers "Reply with feedback", which links the reply (`message.replyTo`, the new optional `extra` argument on `sendMessage`). The client sees "COACH'S FORM FEEDBACK" above that exercise next time. Hidden while a coach is viewing as a client.
+- **Lock-screen rest alert** (coached and Train Solo, iPhone app only): starting rest asks the native app for one local notification at the end (`RestTimerBridge.swift` via `src/lib/restNotification.js`). +15s reschedules it; Skip, the timer ending or leaving the session cancels it. It's hidden while the app is open, where the in-app ding already plays. Elsewhere it does nothing.
+- **Regression tests**: `src/lib/coachedSessionExtras.test.jsx` (bridge messages, set tagging, labels, feedback lookup, audio format, recorder bar, player), `src/coach/coachFormCheckReply.test.jsx` (label, no duplicate text, reply carries replyTo), `src/client/coachedFormCheckAndRest.test.jsx` (form-check upload tagged and sent, feedback shown, rest alert scheduled and cancelled), and a voice-note case in `api/notify.test.js`. In Chromium with a simulated mic: recorded, sent, played back, and linked to a form check.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing
@@ -2204,6 +2211,7 @@ sandbox):
 - **WHOOP integration** (real OAuth round-trip against WHOOP's servers,
   real webhook delivery into Cloud Functions, real recovery/sleep/strain
   data sync).
+- **Voice notes, form-check videos and the lock-screen rest alert on a real iPhone** (1.0.3): the one-time microphone prompt, recording and playing back on iPhone, a coach's desktop-recorded note playing on the phone, filming a set from the workout, and "Rest's up" arriving on a locked phone (and not while the app is open).
 - **Apple Health on a real iPhone** (1.0.3): the HealthKit permission sheet, the numbers HealthBridge.swift reads (steps, sleep, resting heart rate, weight) against the Health app, and that they appear on the client's Progress, the coach's client Progress panel and Train Solo Progress. Only a TestFlight build on a device can exercise this.
 - **Apple App Store distribution path** (per `CLAUDE.md`'s product
   status: APEX is a published App Store app — the native WKWebView shell,

@@ -1664,11 +1664,13 @@ export function AppProvider({ children }) {
         }
       },
 
-      sendMessage(clientId, from, text, attachment) {
+      // `extra` carries optional links, e.g. a coach's reply to a client's
+      // form-check video: { replyTo: { messageId, exerciseId, exerciseName } }.
+      sendMessage(clientId, from, text, attachment, extra) {
         const trimmed = (text || "").trim();
         if (!trimmed && !attachment) return;
         const id = newDocId("messages");
-        const msg = { id, clientId, from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}) };
+        const msg = { id, clientId, from, text: trimmed, date: Date.now(), ...(attachment ? { attachment } : {}), ...(extra || {}) };
         setDoc(doc(firestore, "messages", id), msg)
           .then(() => pushNotify("message", { id }))
           .catch(console.error);

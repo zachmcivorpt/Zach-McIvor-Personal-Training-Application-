@@ -110,6 +110,11 @@ Do these together when the user is ready to submit a new App Store build
   profile in Codemagic before the build signs. Before submitting 1.0.3,
   add "Health" in App Store Connect → App Privacy (app functionality,
   linked to the user, not tracking).
+- **Also in 1.0.3**: voice notes (microphone permission string), form-check
+  videos linked to a set, and the lock-screen "Rest's up" alert
+  (RestTimerBridge.swift). Before submitting, also add "Audio Data" (voice
+  notes; app functionality, linked to the user, not tracking) in App
+  Privacy if it isn't there.
 
 ## iOS builds (Codemagic)
 

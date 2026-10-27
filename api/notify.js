@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         const snap = await db.collection("messages").doc(id).get();
         if (!snap.exists) break;
         const m = snap.data();
-        const preview = (m.text || "Sent an attachment").slice(0, 120);
+        const preview = (m.text || (m.attachment?.type === "audio" ? "Sent a voice note" : "Sent an attachment")).slice(0, 120);
         if (m.from === "client") {
           const coachId = await getCoachId(db);
           if (coachId) {

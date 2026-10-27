@@ -119,6 +119,18 @@ export async function uploadMessageVideo(clientId, file, onProgress) {
   );
 }
 
+// A recorded voice note (src/lib/voiceNote.js) — Safari records audio/mp4,
+// Chrome audio/webm. The attachment carries its length for the player.
+const MAX_AUDIO_BYTES = 20 * 1024 * 1024; // 20MB — a 2-minute note is well under 2MB
+export async function uploadMessageAudio(clientId, blob, durationSec, onProgress) {
+  const type = (blob?.type || "").split(";")[0];
+  if (!type.startsWith("audio/")) throw new Error("That recording couldn't be saved — please try again.");
+  if (blob.size > MAX_AUDIO_BYTES) throw new Error("That voice note is too long — please keep it under 2 minutes.");
+  const ext = type === "audio/webm" ? "webm" : "m4a";
+  const attachment = await uploadToPath(`messageAudio/${clientId}/${Date.now()}_voice.${ext}`, blob, "audio", "Voice note", onProgress, { contentType: type });
+  return { ...attachment, name: "Voice note", durationSec: Math.max(1, Math.round(durationSec || 0)) };
+}
+
 // A photo attached to a regular message (a meal, an injury, gym setup,
 // etc.) — same reasoning as video/PDF: a real Storage upload rather than
 // base64 so it isn't squeezed by Firestore's 1MB document cap.

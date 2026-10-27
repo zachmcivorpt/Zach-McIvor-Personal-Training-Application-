@@ -55,6 +55,17 @@ describe("POST /api/notify — kind: message, from a client", () => {
     expect(prefKey).toBe("messages");
   });
 
+  it("says 'Sent a voice note' for a voice note with no text", async () => {
+    const { default: handler } = await import("./notify.js");
+    notifyUser.mockClear();
+    fixtures = {
+      messages: { "msg-v": { from: "client", clientId: "client-a", text: "", attachment: { type: "audio", url: "u", durationSec: 9 } } },
+      users: { "client-a": { name: "Zach Test", role: "client" } },
+    };
+    await handler({ method: "POST", headers: { authorization: "Bearer x" }, body: { kind: "message", id: "msg-v" } }, mockRes());
+    expect(notifyUser.mock.calls[0][3].body).toBe("Sent a voice note");
+  });
+
   it("falls back to a generic label if the client's profile has no name on it", async () => {
     const { default: handler } = await import("./notify.js");
     notifyUser.mockClear();

@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useApp } from "../lib/AppContext";
 import { FullScreenOverlay, Avatar } from "../components/ui";
-import { Search, Send, ChevronLeft, MessageCircle, FileText, Video, Paperclip, Image as ImageIcon, X } from "lucide-react";
-import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
+import { Search, Send, ChevronLeft, MessageCircle, FileText, Video, Paperclip, Image as ImageIcon, X, Reply } from "lucide-react";
+import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage, uploadMessageAudio } from "../lib/storage";
+import { useVoiceRecorder, voiceNotesSupported } from "../lib/voiceNote";
+import { VoiceRecordingBar, MicButton, VoiceNotePlayer } from "../components/VoiceNote";
+import { formCheckLabel } from "../lib/formCheck";
 import { CLIENT_DARK_BG, CLIENT_DARK_BORDER, MEASURE_BLUE_SOFT } from "../theme";
 
 // A send-attachment button previously just showed its static icon the whole
@@ -22,6 +25,9 @@ function attachButtonContent(icon, uploadPct) {
 // tone="theirs" = the client's (dark/translucent) bubble, needs a light chip.
 function AttachmentPill({ attachment, tone = "theirs" }) {
   if (!attachment) return null;
+  if (attachment.type === "audio") {
+    return <VoiceNotePlayer attachment={attachment} mine={tone === "mine"} dark />;
+  }
   if (attachment.type === "video") {
     return <video src={attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />;
   }
@@ -61,6 +67,11 @@ export function ThreadMessages({ client }) {
   const [input, setInput] = useState("");
   const [uploadPct, setUploadPct] = useState(null);
   const [uploadError, setUploadError] = useState("");
+  // Replying to a client's form-check video — the reply is linked to that
+  // exercise so the client sees it next to it in their next workout.
+  const [replyTo, setReplyTo] = useState(null); // { messageId, exerciseId, exerciseName }
+  const recorder = useVoiceRecorder();
+  const canRecord = voiceNotesSupported();
   const videoInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -85,8 +96,25 @@ export function ThreadMessages({ client }) {
 
   function send() {
     if (!input.trim()) return;
-    sendMessage(client.id, "coach", input);
+    sendMessage(client.id, "coach", input, undefined, replyTo ? { replyTo } : undefined);
     setInput("");
+    setReplyTo(null);
+  }
+
+  async function sendVoiceNote() {
+    const recording = await recorder.stop();
+    if (!recording) return;
+    setUploadError("");
+    setUploadPct(0);
+    try {
+      const attachment = await uploadMessageAudio(client.id, recording.blob, recording.durationSec, setUploadPct);
+      sendMessage(client.id, "coach", "", attachment, replyTo ? { replyTo } : undefined);
+      setReplyTo(null);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadPct(null);
+    }
   }
 
   async function handleVideoFile(e) {
@@ -144,8 +172,27 @@ export function ThreadMessages({ client }) {
         {thread.map((m) => (
           <div key={m.id} className={`flex ${m.from === "coach" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 text-sm ${m.from === "coach" ? "bg-white text-black" : "bg-white/8 text-white"}`}>
-              {m.text && <p className="whitespace-pre-line">{m.text}</p>}
+              {m.attachment?.formCheck && (
+                <p className="text-[10px] font-bold tracking-wide uppercase mb-1" style={{ color: m.from === "coach" ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.6)" }}>
+                  Form check · {formCheckLabel(m.attachment.formCheck)}
+                </p>
+              )}
+              {m.replyTo && (
+                <p className="text-[10px] font-semibold mb-1" style={{ color: m.from === "coach" ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.6)" }}>
+                  Re: form check · {m.replyTo.exerciseName}
+                </p>
+              )}
+              {m.text && !m.attachment?.formCheck && <p className="whitespace-pre-line">{m.text}</p>}
               <AttachmentPill attachment={m.attachment} tone={m.from === "coach" ? "mine" : "theirs"} />
+              {m.from === "client" && m.attachment?.formCheck && (
+                <button
+                  type="button"
+                  onClick={() => setReplyTo({ messageId: m.id, exerciseId: m.attachment.formCheck.exerciseId, exerciseName: m.attachment.formCheck.exerciseName })}
+                  className="mt-2 flex items-center gap-1 text-xs font-semibold text-white/80 hover:text-white"
+                >
+                  <Reply size={13} /> Reply with feedback
+                </button>
+              )}
               <p className={`text-[10px] mt-1 ${m.from === "coach" ? "text-black/40" : "text-white"}`}>
                 {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
               </p>
@@ -155,14 +202,35 @@ export function ThreadMessages({ client }) {
         <div ref={endRef} />
       </div>
 
-      {uploadError && (
+      {(uploadError || recorder.error) && (
         <div className="mx-5 mb-2 flex items-center justify-between gap-2 bg-red-500/10 border border-red-500/25 text-red-400 text-xs px-3 py-2 rounded-lg">
-          <span>{uploadError}</span>
-          <button onClick={() => setUploadError("")} aria-label="Dismiss">
+          <span>{uploadError || recorder.error}</span>
+          <button
+            onClick={() => {
+              setUploadError("");
+              recorder.clearError();
+            }}
+            aria-label="Dismiss"
+          >
             <X size={13} />
           </button>
         </div>
       )}
+      {replyTo && (
+        <div className="mx-5 mb-2 flex items-center justify-between gap-2 text-xs text-white/80 border-l-2 pl-3 py-1" style={{ borderColor: "#2F8FFF" }}>
+          <span className="truncate">
+            Replying to form check · <span className="font-semibold text-white">{replyTo.exerciseName}</span>
+          </span>
+          <button onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="text-white/60 shrink-0">
+            <X size={13} />
+          </button>
+        </div>
+      )}
+      {recorder.state === "recording" ? (
+        <div className="px-5 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
+          <VoiceRecordingBar seconds={recorder.seconds} onCancel={recorder.cancel} onSend={sendVoiceNote} />
+        </div>
+      ) : (
       <div className="flex gap-2 px-5 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
         <button
@@ -195,13 +263,18 @@ export function ThreadMessages({ client }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder={`Message ${client.name?.split(" ")[0] || "your client"}...`}
+          placeholder={replyTo ? "Write your feedback..." : `Message ${client.name?.split(" ")[0] || "your client"}...`}
           className="flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white"
         />
+        {canRecord && !input.trim() ? (
+          <MicButton onClick={recorder.start} disabled={uploadPct !== null || recorder.state !== "idle"} />
+        ) : (
         <button onClick={send} className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0">
           <Send size={16} className="text-black" />
         </button>
+        )}
       </div>
+      )}
     </>
   );
 }

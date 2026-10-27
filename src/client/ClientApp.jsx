@@ -69,7 +69,7 @@ import {
   Minus,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported, isNativeApp } from "../lib/push";
-import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage } from "../lib/storage";
+import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage, uploadMessageAudio } from "../lib/storage";
 import {
   LineChart,
   Line,
@@ -92,6 +92,10 @@ import { localDateKey } from "../lib/dateKey";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
+import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
+import { useVoiceRecorder, voiceNotesSupported } from "../lib/voiceNote";
+import { VoiceRecordingBar, MicButton, VoiceNotePlayer } from "../components/VoiceNote";
+import { formCheckSet, formCheckMessageText, formCheckLabel, latestFormFeedback } from "../lib/formCheck";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth, useAppleHealthSync } from "../lib/appleHealth";
 import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "../lib/workoutStats";
 import {
@@ -2019,7 +2023,10 @@ export function ExerciseDetailSheet({ exercise, logsForClient, onClose }) {
   );
 }
 
-function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, onNoteSave, swapInfo, onSwap, onStartRest, onOpenDetail }) {
+// onFormCheck: film or pick a video of a set for the coach (formCheck.js);
+// formCheckStatus is that upload's progress/result; formFeedback is the
+// coach's latest reply about this exercise.
+function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, onBlurKg, onAddSet, note, noteOpen, onToggleNote, onNoteChange, onNoteSave, swapInfo, onSwap, onStartRest, onOpenDetail, onFormCheck, formCheckStatus, formFeedback }) {
   const dark = useClientDark();
   // Warm-up exercises are collapsed by default — a session can have a dozen
   // of them and they rarely need more than a glance, so only the name/set
@@ -2113,6 +2120,21 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
         >
           <ClipboardList size={17} />
         </button>
+        {onFormCheck && (
+          <button
+            type="button"
+            onClick={() => onFormCheck(rows)}
+            disabled={formCheckStatus?.state === "uploading"}
+            aria-label={`Send a form-check video of ${exercise.name}`}
+            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors disabled:opacity-60 ${dark ? "text-white/40" : "text-black/40"}`}
+          >
+            {formCheckStatus?.state === "uploading" ? (
+              <span className="text-[9px] font-bold tabular-nums">{Math.round((formCheckStatus.pct || 0) * 100)}%</span>
+            ) : (
+              <Video size={17} />
+            )}
+          </button>
+        )}
         {isWarmup && (
           <button
             type="button"
@@ -2123,6 +2145,23 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
           </button>
         )}
       </div>
+
+      {formCheckStatus?.state === "sent" && (
+        <p className="mt-2 text-[11px] font-semibold" style={{ color: MEASURE_BLUE }}>
+          Form check sent to your coach.
+        </p>
+      )}
+      {formCheckStatus?.state === "error" && <p className="mt-2 text-[11px] text-red-500">{formCheckStatus.message}</p>}
+
+      {expanded && formFeedback && (
+        <div className={dark ? "mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5" : "mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5"}>
+          <p className={dark ? "text-white/35 text-[10px] font-semibold tracking-wide mb-1" : "text-black/35 text-[10px] font-semibold tracking-wide mb-1"}>
+            COACH'S FORM FEEDBACK · {new Date(formFeedback.date).toLocaleDateString(undefined, { day: "numeric", month: "short" })}
+          </p>
+          {formFeedback.text && <p className={`${dark ? "text-white/80" : "text-black/80"} text-[14px] leading-snug whitespace-pre-line`}>{formFeedback.text}</p>}
+          {formFeedback.attachment?.type === "audio" && <VoiceNotePlayer attachment={formFeedback.attachment} dark={dark} />}
+        </div>
+      )}
 
       {expanded && swapInfo && (
         <div className={dark ? "mt-3 bg-white/[0.03] border border-white/10 rounded-xl px-3.5 py-2.5" : "mt-3 bg-black/[0.03] border border-black/10 rounded-xl px-3.5 py-2.5"}>
@@ -2503,9 +2542,37 @@ export function WorkoutSession({
   coachUser,
   unreadCount,
   onOpenMessages,
+  thread,
+  onSendFormCheck,
 }) {
   const dark = useClientDark();
   const [noteOpenFor, setNoteOpenFor] = useState(null);
+  // Form-check videos (formCheck.js): which exercise the picker is for, and
+  // each exercise's upload status ({ state: uploading|sent|error }).
+  const formCheckInputRef = useRef(null);
+  const formCheckTargetRef = useRef(null);
+  const [formCheckStatus, setFormCheckStatus] = useState({});
+
+  function startFormCheck(exMeta, exerciseName, rows) {
+    formCheckTargetRef.current = { exerciseId: exMeta.exerciseId, exerciseName, ...formCheckSet(rows) };
+    formCheckInputRef.current?.click();
+  }
+
+  async function handleFormCheckFile(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const target = formCheckTargetRef.current;
+    if (!file || !target) return;
+    const id = target.exerciseId;
+    setFormCheckStatus((s) => ({ ...s, [id]: { state: "uploading", pct: 0 } }));
+    try {
+      const attachment = await uploadMessageVideo(clientId, file, (pct) => setFormCheckStatus((s) => ({ ...s, [id]: { state: "uploading", pct } })));
+      onSendFormCheck?.(formCheckMessageText(target), { ...attachment, formCheck: target });
+      setFormCheckStatus((s) => ({ ...s, [id]: { state: "sent" } }));
+    } catch (err) {
+      setFormCheckStatus((s) => ({ ...s, [id]: { state: "error", message: err.message || "Couldn't send that video — please try again." } }));
+    }
+  }
   const [swapFor, setSwapFor] = useState(null); // the original exMeta currently being swapped
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null); // exercise object shown in the full-screen detail sheet
@@ -2544,6 +2611,13 @@ export function WorkoutSession({
   // is monotonic: immune to the system clock being adjusted, only ever
   // reflecting real elapsed time.
   const restEndAtRef = useRef(null);
+
+  // The lock-screen "Rest's up" alert (iPhone app) only stays pending while
+  // resting — Skip, the timer ending, or leaving the session cancels it.
+  useEffect(() => {
+    if (!resting) cancelRestNotification();
+  }, [resting]);
+  useEffect(() => () => cancelRestNotification(), []);
 
   useEffect(() => {
     if (!resting) return;
@@ -2770,6 +2844,7 @@ export function WorkoutSession({
     setRestTotal(rest);
     setRestLabel(exercisesById[exMeta.exerciseId]?.name || "");
     setResting(true);
+    scheduleRestNotification(rest, exercisesById[exMeta.exerciseId]?.name);
   }
 
   return (
@@ -2839,12 +2914,16 @@ export function WorkoutSession({
                       onSwap={() => setSwapFor({ exerciseId: exMeta.originalExerciseId || exMeta.exerciseId })}
                       onStartRest={handleStartRest}
                       onOpenDetail={(ex) => setDetailExercise(ex)}
+                      onFormCheck={onSendFormCheck ? (rows) => startFormCheck(exMeta, exercise.name, rows) : undefined}
+                      formCheckStatus={formCheckStatus[exMeta.exerciseId]}
+                      formFeedback={latestFormFeedback(thread, exMeta.exerciseId)}
                     />
                   );
                 })}
               </div>
             </div>
           ))}
+          <input ref={formCheckInputRef} type="file" accept="video/*" onChange={handleFormCheckFile} className="hidden" />
           <button
             type="button"
             onClick={() => setAddExerciseOpen(true)}
@@ -2886,6 +2965,7 @@ export function WorkoutSession({
               restEndAtRef.current += 15000;
               setRestTime((t) => t + 15);
               setRestTotal((t) => t + 15);
+              scheduleRestNotification((restEndAtRef.current - performance.now()) / 1000, restLabel);
             }}
             onSkip={() => setResting(false)}
           />
@@ -7539,6 +7619,24 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const [input, setInput] = useState("");
   const [uploadPct, setUploadPct] = useState(null);
   const [uploadError, setUploadError] = useState("");
+  // Voice notes: the mic takes the Send button's place while the box is empty.
+  const recorder = useVoiceRecorder();
+  const canRecord = voiceNotesSupported();
+
+  async function sendVoiceNote() {
+    const recording = await recorder.stop();
+    if (!recording) return;
+    setUploadError("");
+    setUploadPct(0);
+    try {
+      const attachment = await uploadMessageAudio(user.id, recording.blob, recording.durationSec, setUploadPct);
+      onSend("", attachment);
+    } catch (err) {
+      setUploadError(err.message);
+    } finally {
+      setUploadPct(null);
+    }
+  }
   const videoInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -7621,8 +7719,18 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
                 m.from === "client" ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/85" : "bg-black/8 text-black/85"
               }`}
             >
-              {m.text && <p className="whitespace-pre-line">{m.text}</p>}
-              {m.attachment && m.attachment.type === "video" ? (
+              {m.replyTo && (
+                <p className={`text-[10px] font-semibold mb-1 ${m.from === "client" ? (dark ? "text-black/50" : "text-white/50") : dark ? "text-white/50" : "text-black/50"}`}>
+                  Re: your form check · {m.replyTo.exerciseName}
+                </p>
+              )}
+              {m.text && !m.attachment?.formCheck && <p className="whitespace-pre-line">{m.text}</p>}
+              {m.attachment?.formCheck && (
+                <p className="text-[10px] font-bold tracking-wide uppercase">Form check · {formCheckLabel(m.attachment.formCheck)}</p>
+              )}
+              {m.attachment && m.attachment.type === "audio" ? (
+                <VoiceNotePlayer attachment={m.attachment} mine={m.from === "client"} dark={dark} />
+              ) : m.attachment && m.attachment.type === "video" ? (
                 <video src={m.attachment.url} controls playsInline className={dark ? "mt-2 w-full max-w-[220px] rounded-lg bg-white" : "mt-2 w-full max-w-[220px] rounded-lg bg-black"} />
               ) : m.attachment && m.attachment.type === "image" ? (
                 <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
@@ -7659,14 +7767,23 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         className="sticky bottom-0 -mx-5 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
         style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
       >
-        {uploadError && (
+        {(uploadError || recorder.error) && (
           <div className="mb-2 flex items-center justify-between gap-2 bg-red-50 border border-red-100 text-red-700 text-xs px-3 py-2 rounded-lg">
-            <span>{uploadError}</span>
-            <button onClick={() => setUploadError("")} aria-label="Dismiss">
+            <span>{uploadError || recorder.error}</span>
+            <button
+              onClick={() => {
+                setUploadError("");
+                recorder.clearError();
+              }}
+              aria-label="Dismiss"
+            >
               <X size={13} />
             </button>
           </div>
         )}
+        {recorder.state === "recording" ? (
+          <VoiceRecordingBar seconds={recorder.seconds} onCancel={recorder.cancel} onSend={sendVoiceNote} dark={dark} />
+        ) : (
         <div className="flex gap-2">
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
         <button
@@ -7702,10 +7819,15 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           placeholder="Message your coach..."
           className={dark ? "flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 min-w-0 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
         />
+        {canRecord && !input.trim() ? (
+          <MicButton onClick={recorder.start} disabled={uploadPct !== null || recorder.state !== "idle"} dark={dark} />
+        ) : (
         <button onClick={send} className={dark ? "w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0" : "w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0"}>
           <Send size={16} className={dark ? "text-black" : "text-white"} />
         </button>
+        )}
         </div>
+        )}
       </div>
     </BottomSheet>
   );
@@ -9904,6 +10026,8 @@ export default function ClientApp() {
             coachUser={coachUser}
             unreadCount={unreadCount}
             onOpenMessages={openMessages}
+            thread={thread}
+            onSendFormCheck={viewingAsClient ? undefined : (text, attachment) => sendMessage(currentUser.id, "client", text, attachment)}
           />
         )}
         {summaryOpen && summaryData && (

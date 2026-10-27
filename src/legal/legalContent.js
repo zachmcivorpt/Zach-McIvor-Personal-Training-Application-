@@ -41,7 +41,7 @@ export const LEGAL_DOCS = {
           { list: ["Account information — name, email address, telephone number, username, password credentials in protected form, profile information, account preferences, and authentication information."] },
           {
             list: [
-              "Client and coaching information — depending on the features used: coaching goals, progress information, measurements, activity information, exercise-related information, appointment information, communications, notes, forms, documents, photographs or videos, program information, and information supplied by coaches or clients.",
+              "Client and coaching information — depending on the features used: coaching goals, progress information, measurements, activity information, exercise-related information, appointment information, communications (including voice notes and form-check videos sent in messages, which use your device's microphone and camera only while you record), notes, forms, documents, photographs or videos, program information, and information supplied by coaches or clients.",
             ],
           },
           {

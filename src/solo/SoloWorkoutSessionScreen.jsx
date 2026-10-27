@@ -16,6 +16,7 @@ import SoloExerciseBlock from "./SoloExerciseBlock";
 import SoloSwapSheet from "./SoloSwapSheet";
 import { planExerciseTargets, isStalled, targetReasonText } from "./soloProgression";
 import { isCustomSessionLog } from "./customSessions";
+import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
 import { playTimerDing, armRestTimerAudio, unlockTimerAudio } from "./timerAudio";
 
 // Train Solo's own workout session — adapted from ClientApp.jsx's
@@ -70,6 +71,13 @@ export default function SoloWorkoutSessionScreen() {
         .map((exMeta) => (swaps[exMeta.exerciseId] ? { ...exMeta, exerciseId: swaps[exMeta.exerciseId], swappedFrom: exMeta.exerciseId } : exMeta)),
     [sessionInfo?.day, extraExercises, swaps]
   );
+
+  // The lock-screen "Rest's up" alert (iPhone app) only stays pending while
+  // resting — Skip, the timer ending, or leaving the session cancels it.
+  useEffect(() => {
+    if (!resting) cancelRestNotification();
+  }, [resting]);
+  useEffect(() => () => cancelRestNotification(), []);
 
   useEffect(() => {
     if (!resting) return;
@@ -154,6 +162,7 @@ export default function SoloWorkoutSessionScreen() {
     setRestTime(rest);
     setRestTotal(rest);
     setResting(true);
+    scheduleRestNotification(rest, exercisesById[exMeta.exerciseId]?.name);
   }
   function swapExercise(exMeta, exercise) {
     const original = exMeta.swappedFrom || exMeta.exerciseId;
@@ -295,6 +304,7 @@ export default function SoloWorkoutSessionScreen() {
                 restEndAtRef.current += 15000;
                 setRestTime((t) => t + 15);
                 setRestTotal((t) => t + 15);
+                scheduleRestNotification((restEndAtRef.current - Date.now()) / 1000);
               }}
               onSkip={() => setResting(false)}
             />

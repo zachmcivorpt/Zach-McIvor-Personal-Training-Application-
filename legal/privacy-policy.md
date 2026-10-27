@@ -44,7 +44,7 @@ Depending on the features used, this may include:
 * activity information;
 * exercise-related information;
 * appointment information;
-* communications;
+* communications, including voice notes and form-check videos sent in messages (your device's microphone and camera are used only while you record);
 * notes;
 * forms;
 * documents;

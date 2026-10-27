@@ -70,6 +70,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
+        // The rest timer's alert is for a locked phone — with the app open,
+        // the in-app timer already dings (RestTimerBridge.swift).
+        if notification.request.identifier == RestTimerBridge.identifier {
+            completionHandler([])
+            return
+        }
         completionHandler([.banner, .sound, .badge])
     }
 }
