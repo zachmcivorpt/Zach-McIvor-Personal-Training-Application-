@@ -2157,6 +2157,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Date added**: 2026-10-27
 - **Follow-up (same day)**: the Overview's Needs Attention and Recent Activity panels drop the top-right corner glow square (`DarkPanel glow={false}`). Every other panel is unchanged.
 
+### 93. Coach Library → Programs and Train Solo → Programs: program-dashboard layout (design change)
+- **What changed**: both coach screens share `src/coach/programDashboardUI.jsx`. The program list no longer repeats each program's phases under it, and the selected program has a thin blue rail instead of a solid blue block. The detail shows the name, then large figures (Phases / Weeks / Sessions, plus Workouts / Price on Train Solo), then dropdowns: About (description and categories) and Cover artwork (Train Solo). Each phase is now a dropdown that opens to its workouts (the selected phase opens by default). Train Solo's publish button and its publishing warnings stay in view. Every action is unchanged: new / import / delete-all programs, edit / delete program, add / edit / duplicate / move / delete phase, and new / import / select / copy / edit / delete workouts.
+- **Tests updated deliberately**: `CoachProgramsPhases.test.jsx` and `CoachTrainSoloPhases.test.jsx` looked for the old "PHASES (2) · 7 WEEKS" line and "Select …" buttons. They now check the same facts in the new layout: the 2 phases / 7 weeks figures, each phase's weeks and count, and that opening a phase's dropdown shows its workouts and hides the previous phase's. The duplicate / move tests are unchanged.
+- **Checked**: rendered both screens in Chromium with sample programs. The client app and Train Solo's customer screens are untouched.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing

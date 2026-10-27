@@ -5,7 +5,7 @@
 // (with fresh ids) and reordered.
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 
 vi.setConfig({ testTimeout: 20000 });
 
@@ -36,9 +36,11 @@ async function renderEditor() {
 describe("Library > Programs phase list", () => {
   it("lists every phase with its weeks and session count", async () => {
     await renderEditor();
-    expect(screen.getByText(/PHASES \(2\) · 7 WEEKS/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Select Foundation" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Select Build" })).toBeTruthy();
+    // Phases and total weeks now read as large figures above the phase dropdowns.
+    expect(within(screen.getByText("Phases").parentElement).getByText("2")).toBeTruthy();
+    expect(within(screen.getByText("Weeks").parentElement).getByText("7")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Collapse Foundation" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open Build" })).toBeTruthy();
     expect(screen.getByText("3 wks · 2 sessions")).toBeTruthy();
   });
 

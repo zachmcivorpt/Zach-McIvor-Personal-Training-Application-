@@ -44,17 +44,20 @@ async function openProgram() {
 describe("Train Solo program editor phases", () => {
   it("lists every phase with its weeks and workout count", async () => {
     await openProgram();
-    expect(screen.getByText(/PHASES \(2\) · 7 WEEKS/)).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Select Foundation" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Select Build" })).toBeTruthy();
+    // Phases and total weeks now read as large figures above the phase dropdowns.
+    expect(within(screen.getByText("Phases").parentElement).getByText("2")).toBeTruthy();
+    expect(within(screen.getByText("Weeks").parentElement).getByText("7")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Collapse Foundation" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open Build" })).toBeTruthy();
     expect(screen.getByText("3 wks · 2 workouts")).toBeTruthy();
   });
 
-  it("selecting a phase shows that phase's workouts", async () => {
+  it("opening a phase's dropdown shows that phase's workouts", async () => {
     await openProgram();
-    fireEvent.click(screen.getByRole("button", { name: "Select Build" }));
-    expect(screen.getByText(/Workouts in Build/)).toBeTruthy();
+    expect(screen.getByText("Upper A")).toBeTruthy(); // the first phase opens by default
+    fireEvent.click(screen.getByRole("button", { name: "Open Build" }));
     expect(screen.getByText("Lower B")).toBeTruthy();
+    expect(screen.queryByText("Upper A")).toBeNull();
   });
 
   it("duplicates a phase right after itself with fresh phase and workout ids", async () => {

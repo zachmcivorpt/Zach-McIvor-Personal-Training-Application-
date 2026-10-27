@@ -6,6 +6,7 @@ import { ClipboardList, Plus, Trash2, Download, Copy, Library, Search, MoreVerti
 import { STARTER_PROGRAMS } from "../lib/starterPrograms";
 import { countExercises, estimateWorkoutMinutes } from "../lib/workoutStats";
 import WorkoutEditor from "./WorkoutEditor";
+import { ProgramListItem, StatFigures, Disclosure, PhaseAccordionRow } from "./programDashboardUI";
 import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, OVER_RED } from "../theme";
 
 function NewProgramSheet({ open, onClose, onCreate }) {
@@ -516,6 +517,8 @@ export default function CoachPrograms({ showToast }) {
   // first (matching Library's other tabs) and only shows one program's
   // detail at a time, with a way back to the list.
   const [mobileView, setMobileView] = useState("list"); // "list" | "detail"
+  // Whether the selected phase's dropdown is open (it opens by default).
+  const [phaseOpen, setPhaseOpen] = useState(true);
 
   const exercises = db.exercises;
   const exercisesById = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
@@ -530,6 +533,7 @@ export default function CoachPrograms({ showToast }) {
   function selectProgram(id) {
     setSelectedId(id);
     setSelectedPhaseId(null);
+    setPhaseOpen(true);
     setConfirmDeletePhase(false);
   }
   function selectPhase(id) {
@@ -754,52 +758,16 @@ export default function CoachPrograms({ showToast }) {
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
             {programs.length === 0 && <p className="text-white text-xs px-2 py-4 text-center">No programs yet.</p>}
             {programs.map((p) => {
-              const active = p.id === selected?.id;
-              const progPhases = active ? phases : programPhases(p);
+              const progPhases = p.id === selected?.id ? phases : programPhases(p);
+              const weeks = progPhases.reduce((a, ph) => a + (ph.durationWeeks || 0), 0);
               return (
-                <div
+                <ProgramListItem
                   key={p.id}
-                  className={active ? "rounded-xl border overflow-hidden" : ""}
-                  style={active ? { backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER } : undefined}
-                >
-                  <button
-                    onClick={() => selectProgram(p.id)}
-                    className={`w-full text-left px-3 py-2.5 transition-colors ${active ? "text-white" : "rounded-xl hover:bg-white/10 text-white"}`}
-                    style={active ? { backgroundColor: MEASURE_BLUE } : undefined}
-                  >
-                    <p className="text-sm font-semibold truncate">{p.name}</p>
-                    <p className={`text-xs mt-0.5 ${active ? "text-white" : "text-white"}`}>
-                      {progPhases.length} phase{progPhases.length === 1 ? "" : "s"}
-                    </p>
-                  </button>
-                  {active && (
-                    <div className="p-2 space-y-0.5 border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
-                      <p className="text-white text-[10px] font-bold tracking-wide px-2 pt-0.5 pb-1">TRAINING PHASES</p>
-                      {phases.map((ph) => {
-                        const phActive = ph.id === selectedPhase?.id;
-                        return (
-                          <button
-                            key={ph.id}
-                            onClick={() => selectPhase(ph.id)}
-                            className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                              phActive ? "font-semibold" : "text-white hover:bg-white/10"
-                            }`}
-                            style={phActive ? { backgroundColor: "rgba(47,143,255,0.14)", color: MEASURE_BLUE } : undefined}
-                          >
-                            {ph.name} <span className="text-white">· {(ph.days || []).length}</span>
-                          </button>
-                        );
-                      })}
-                      <button
-                        onClick={addPhase}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-white/10"
-                        style={{ color: MEASURE_BLUE }}
-                      >
-                        + Add phase
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  active={p.id === selected?.id}
+                  onClick={() => selectProgram(p.id)}
+                  title={p.name}
+                  meta={`${progPhases.length} phase${progPhases.length === 1 ? "" : "s"} · ${weeks} wk${weeks === 1 ? "" : "s"}${p.level ? ` · ${p.level}` : ""}`}
+                />
               );
             })}
           </div>
@@ -875,14 +843,10 @@ export default function CoachPrograms({ showToast }) {
             </div>
           ) : (
             <>
-              <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <p className="text-white text-[11px] font-semibold tracking-wide mb-1">PROGRAM</p>
-                  <h2 className="text-white text-xl font-bold truncate">{selected.name}</h2>
-                  <p className="text-white text-xs mt-1">
-                    {selected.level} · {phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} weeks total
-                  </p>
-                  {selected.description && <p className="text-white text-sm mt-2.5 leading-relaxed">{selected.description}</p>}
+                  <p className="text-white/45 text-[11px] font-bold tracking-[0.14em] mb-1.5">PROGRAM{selected.level ? ` · ${selected.level.toUpperCase()}` : ""}</p>
+                  <h2 className="text-white text-2xl font-bold leading-tight line-clamp-2">{selected.name}</h2>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 pt-4">
                   <button
@@ -900,6 +864,22 @@ export default function CoachPrograms({ showToast }) {
                 </div>
               </div>
 
+              <StatFigures
+                items={[
+                  { label: "Phases", value: phases.length },
+                  { label: "Weeks", value: phases.reduce((a, p) => a + (p.durationWeeks || 0), 0) },
+                  { label: "Sessions", value: phases.reduce((a, p) => a + (p.days || []).length, 0) },
+                ]}
+              />
+
+              {selected.description && (
+                <div className="-mt-5 mb-5">
+                  <Disclosure key={selected.id} title="About" summary={selected.description}>
+                    <p className="text-white/80 text-sm leading-relaxed">{selected.description}</p>
+                  </Disclosure>
+                </div>
+              )}
+
               {!selectedPhase ? (
                 <div className="border border-dashed rounded-2xl py-10 text-center" style={{ borderColor: "rgba(255,255,255,0.14)" }}>
                   <p className="text-white text-sm">No phases in this program yet.</p>
@@ -912,36 +892,32 @@ export default function CoachPrograms({ showToast }) {
                 </div>
               ) : (
                 <>
-                  {/* Every phase, in order — tap one to edit its sessions below. */}
-                  <div className="border-t pt-4 mb-5" style={{ borderColor: CLIENT_DARK_BORDER }}>
-                    <div className="flex items-center justify-between gap-2 mb-2.5">
-                      <p className="text-white text-[11px] font-semibold tracking-wide">
-                        PHASES ({phases.length}) · {phases.reduce((a, p) => a + (p.durationWeeks || 0), 0)} WEEKS
-                      </p>
-                      <button onClick={addPhase} className="flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-white/10">
-                        <Plus size={13} /> Add phase
-                      </button>
-                    </div>
-                    <div className="space-y-1.5">
-                      {phases.map((ph, idx) => {
-                        const phActive = ph.id === selectedPhase.id;
-                        const count = (ph.days || []).length;
-                        return (
-                          <div
-                            key={ph.id}
-                            className="flex items-center gap-2 rounded-xl pl-3.5 pr-1.5 py-2 border transition-colors"
-                            style={{
-                              borderColor: phActive ? MEASURE_BLUE : CLIENT_DARK_BORDER,
-                              backgroundColor: phActive ? "rgba(47,143,255,0.12)" : "rgba(255,255,255,0.03)",
-                            }}
-                          >
-                            <button onClick={() => selectPhase(ph.id)} className="flex-1 min-w-0 text-left" aria-label={`Select ${ph.name}`}>
-                              <p className="text-white text-[10px] font-semibold tracking-wide opacity-70">PHASE {idx + 1}</p>
-                              <p className="text-white text-sm font-semibold truncate">{ph.name}</p>
-                              <p className="text-white text-xs opacity-70">
-                                {ph.durationWeeks} wk{ph.durationWeeks === 1 ? "" : "s"} · {count} session{count === 1 ? "" : "s"}
-                              </p>
-                            </button>
+                  {/* Every phase as a dropdown, in order — open one to see and edit its sessions. */}
+                  <div className="flex items-center justify-between gap-2 mb-2.5">
+                    <p className="text-white text-[11px] font-bold tracking-[0.14em]">PHASES</p>
+                    <button onClick={addPhase} className="flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1.5 rounded-lg hover:bg-white/10">
+                      <Plus size={13} /> Add phase
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {phases.map((ph, idx) => {
+                      const open = ph.id === selectedPhase.id && phaseOpen;
+                      const count = (ph.days || []).length;
+                      return (
+                        <PhaseAccordionRow
+                          key={ph.id}
+                          index={idx}
+                          name={ph.name}
+                          meta={`${ph.durationWeeks} wk${ph.durationWeeks === 1 ? "" : "s"} · ${count} session${count === 1 ? "" : "s"}`}
+                          open={open}
+                          onToggle={() => {
+                            if (ph.id === selectedPhase.id) setPhaseOpen((o) => !o);
+                            else {
+                              selectPhase(ph.id);
+                              setPhaseOpen(true);
+                            }
+                          }}
+                          menu={
                             <OverflowMenu
                               label={`${ph.name} actions`}
                               items={[
@@ -967,22 +943,24 @@ export default function CoachPrograms({ showToast }) {
                                 },
                               ]}
                             />
-                          </div>
-                        );
-                      })}
-                    </div>
+                          }
+                        >
+                          {open && (
+                            <PhaseWorkouts
+                              days={selectedPhase.days || []}
+                              exercisesById={exercisesById}
+                              onOpenNew={openNewWorkout}
+                              onOpenFromLibrary={() => setLibraryPickerOpen(true)}
+                              onEditDay={editDay}
+                              onDuplicateDay={duplicateDay}
+                              onDeleteDays={deleteDays}
+                              onCopyDays={(indices) => setCopyIndices(indices)}
+                            />
+                          )}
+                        </PhaseAccordionRow>
+                      );
+                    })}
                   </div>
-
-                  <PhaseWorkouts
-                    days={selectedPhase.days || []}
-                    exercisesById={exercisesById}
-                    onOpenNew={openNewWorkout}
-                    onOpenFromLibrary={() => setLibraryPickerOpen(true)}
-                    onEditDay={editDay}
-                    onDuplicateDay={duplicateDay}
-                    onDeleteDays={deleteDays}
-                    onCopyDays={(indices) => setCopyIndices(indices)}
-                  />
                 </>
               )}
             </>
