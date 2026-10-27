@@ -7,9 +7,10 @@ built until the owner approves the plan and the decisions at the end of it.
 
 STEP 1 — iOS 1.0.3 (NEXT)
 -------------------------
-Already built and on main. The Codemagic build failed at "Build .ipa"
-(2026-10-27), most likely because the signing profile doesn't include
-HealthKit yet. Paused by the owner until they're ready.
+BUILT 2026-10-28: Codemagic built and uploaded 1.0.3 to TestFlight after
+HealthKit was ticked on the App ID, the profile regenerated and uploaded to
+Codemagic, and NSHealthUpdateUsageDescription added (ITMS-90683).
+Steps 1-4 below are done; next is testing (5) and submitting (6).
 
 Owner to do, in order:
   1. developer.apple.com > Identifiers > com.apexcoaching.platform >

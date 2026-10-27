@@ -115,8 +115,8 @@ Do these together when the user is ready to submit a new App Store build
   (RestTimerBridge.swift). Before submitting, also add "Audio Data" (voice
   notes; app functionality, linked to the user, not tracking) in App
   Privacy if it isn't there.
-- **Order agreed**: 1.0.3 next (paused by the user until they enable
-  HealthKit signing — the Codemagic build failed on 2026-10-27), then
+- **Order agreed**: 1.0.3 next (built and uploaded to TestFlight
+  2026-10-28; HealthKit signing done; the user tests it, then submits), then
   monetisation: a Train Solo Pro subscription as 1.0.4. Both are written up
   in `ROADMAP.txt`; build nothing of the monetisation plan until the user
   approves it and answers its open decisions.
