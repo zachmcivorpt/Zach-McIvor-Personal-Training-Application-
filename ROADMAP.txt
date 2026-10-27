@@ -1,0 +1,124 @@
+APEX ROADMAP
+============
+Order agreed with the owner (2026-10-28): finish and submit 1.0.3 first, then
+monetisation (Train Solo Pro subscription, iOS 1.0.4). Nothing in step 2 is
+built until the owner approves the plan and the decisions at the end of it.
+
+
+STEP 1 — iOS 1.0.3 (NEXT)
+-------------------------
+Already built and on main. The Codemagic build failed at "Build .ipa"
+(2026-10-27), most likely because the signing profile doesn't include
+HealthKit yet. Paused by the owner until they're ready.
+
+Owner to do, in order:
+  1. developer.apple.com > Identifiers > com.apexcoaching.platform >
+     tick HealthKit > Save.
+  2. Profiles > the App Store profile (now "Invalid") > Edit > Save > Download.
+  3. Codemagic > Code signing identities > iOS provisioning profiles:
+     delete the old profile, upload the new one.
+  4. Codemagic > Start new build > branch main (not the ▶ on the failed row).
+     If it fails again, send the error lines from "Build .ipa for distribution".
+  5. Test on TestFlight 1.0.3: Apple Health, voice notes (mic prompt once),
+     form-check video from a workout + coach "Reply with feedback", a
+     2-minute form check uploading quickly, "Rest's up" on a locked phone
+     (coached and Train Solo).
+  6. App Store Connect: rename the unsent 1.0.2 version page to 1.0.3 (or
+     + Version 1.0.3); pick the 1.0.3 build; App Privacy: add Health and Audio
+     Data (app functionality, linked to the user, not tracking); upload the 10
+     prepared screenshots; submit. 1.0.2 is never submitted.
+
+
+STEP 2 — MONETISATION: TRAIN SOLO PRO (iOS 1.0.4)
+-------------------------------------------------
+Goal: earn from Train Solo the way Alpha Progression does — a free app with
+a paid Pro subscription bought inside the app, plus the website.
+
+Today: Train Solo sells single programs on the website only (Stripe, live).
+The iPhone app hides all buying (Apple 3.1.1, src/solo/appShell.js), so
+nobody who installs the app can pay from it.
+
+Coached clients are NOT part of this. Coaching is a one-to-one service
+with a real person, which Apple lets you charge for outside the app
+(3.1.3(d)); coaching billing stays exactly as it is.
+
+How it works
+  - One "Pro" entitlement, the same everywhere: bought in the iPhone app
+    through Apple, or on the website through Stripe, it unlocks Pro on both.
+  - RevenueCat sits in the middle (free until ~US$2.5k/month revenue, then
+    1%). It talks to Apple and Stripe, handles renewals, refunds, trials,
+    restore purchases and cancellations, and tells our server who is Pro.
+  - Apple keeps 15% on the Small Business Program (free to join, under
+    US$1M/year). AU prices include GST, so A$14.99 nets about A$11.58.
+
+Suggested prices (AUD, Apple price points) — owner to decide
+  - Monthly A$14.99
+  - Yearly  A$99.99 (about 45% off), 7-day free trial
+  - Weekly: not recommended. A$8.95/week is ~A$465/year; weekly plans
+    drive cancellations and bad reviews.
+
+Suggested Free / Pro split — owner to decide
+  Free:  account, workout logging, exercise library and swap, calendar,
+         weigh-ins and progress photos, 1 saved custom session, and the
+         first week of any program (a taster).
+  Pro:   every program in the catalogue, unlimited custom sessions,
+         set-by-set progression targets, Apple Health on Progress,
+         the recovery add-on, full stats/history.
+  Existing buyers keep every program they've already bought, forever.
+
+What gets built
+  Web (reaches all app versions on deploy):
+    - SoloAppContext: isPro from soloEntitlements/{uid} (server-written
+      only; Firestore rules: owner can read, nobody can write).
+    - Paywall sheet in Solo glass style: monthly/yearly, trial wording,
+      price per period, Restore purchases, Terms of Use and Privacy links,
+      "Manage subscription".
+    - Pro gates on the features above, each with a tap-to-upgrade path.
+    - Website: Pro checkout through RevenueCat Web Billing (Stripe account
+      already live) next to the existing program checkout.
+    - In the iPhone app the paywall uses Apple only — never a link or
+      mention of the website price (3.1.1 still applies).
+  Server (Cloud Functions):
+    - soloRevenueCatWebhook: verifies the RevenueCat signature and writes
+      soloEntitlements/{uid} {pro, expiresAt, store, productId}.
+    - Account deletion also clears the entitlement (subscription itself is
+      cancelled by the customer in Apple/Stripe; we show how).
+  Native (needs the 1.0.4 build + App Review):
+    - RevenueCat iOS SDK (Swift Package) and an "apexPurchases" bridge:
+      offerings, purchase, restore, customer info. App user ID = Firebase uid.
+    - Web shows the paywall only when the bridge exists, so older builds
+      never offer a purchase they can't make.
+  Tests and register: entitlement rules (emulator), gating, paywall
+  wording, webhook verification, old-build hiding — per REGRESSION_TESTS.md.
+
+Owner setup (before building the native part)
+  1. App Store Connect > Business: sign the Paid Apps Agreement; add bank
+     account and tax forms. Enrol in the App Store Small Business Program.
+  2. App Store Connect > the app > Subscriptions: group "Train Solo Pro",
+     products monthly + yearly at the chosen prices, 7-day free trial on
+     yearly (introductory offer), localised names/descriptions.
+  3. App Store Connect > Users and Access > Integrations: an In-App
+     Purchase key (.p8) for RevenueCat.
+  4. RevenueCat account: add the iOS app and the Stripe account; entitlement
+     "pro"; send me the public API keys (iOS + Web) and the webhook secret.
+  5. App Store Connect > App Information: App Store Server Notifications V2
+     URL = the one RevenueCat gives you.
+  6. App Store description: add Terms of Use (Apple's standard EULA is fine)
+     and subscription terms — Apple rejects subscription apps without them.
+
+Rough effort: 2–3 days of build work, then TestFlight (sandbox purchases
+are free), then one App Review as 1.0.4.
+
+Order of work
+  a. Owner decisions (below) + owner setup 1–5.
+  b. Web + server part, Pro gates switched off until launch.
+  c. Native bridge, 1.0.4 build, sandbox testing on TestFlight.
+  d. Turn gates on, submit 1.0.4.
+
+Decisions needed from the owner
+  1. Prices (monthly / yearly) and trial length.
+  2. The Free / Pro split.
+  3. Keep selling single programs on the website alongside Pro, or stop
+     selling them and make the catalogue Pro-only (buyers keep theirs either
+     way). Recommended: stop — one simple offer.
+  4. Should the coached app ever show Train Solo Pro? Recommended: no.
