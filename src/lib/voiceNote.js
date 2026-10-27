@@ -3,11 +3,20 @@
 // NSMicrophoneUsageDescription string and WKWebView's capture permission
 // (ViewController.swift). Safari records audio/mp4, Chrome audio/webm.
 import { useEffect, useRef, useState } from "react";
+import { inIosApp } from "../solo/appShell";
 
 export const MAX_VOICE_NOTE_SECONDS = 120;
 
+// iPhone app builds before 1.0.3 have no microphone usage string, and iOS
+// closes an app that records without one. The 1.0.3 build added that string
+// together with the "apexRest" handler, so the handler marks a build that
+// can record. Browsers are unaffected.
+export function nativeMicAllowed() {
+  return typeof window !== "undefined" && (!!window.webkit?.messageHandlers?.apexRest || !inIosApp());
+}
+
 export function voiceNotesSupported() {
-  return typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia && typeof window.MediaRecorder !== "undefined";
+  return typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia && typeof window.MediaRecorder !== "undefined" && nativeMicAllowed();
 }
 
 export function pickAudioMimeType(isSupported = (t) => window.MediaRecorder?.isTypeSupported?.(t)) {

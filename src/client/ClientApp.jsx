@@ -93,7 +93,7 @@ import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
 import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
-import { useVoiceRecorder, voiceNotesSupported } from "../lib/voiceNote";
+import { useVoiceRecorder, voiceNotesSupported, nativeMicAllowed } from "../lib/voiceNote";
 import { VoiceRecordingBar, MicButton, VoiceNotePlayer } from "../components/VoiceNote";
 import { formCheckSet, formCheckMessageText, formCheckLabel, latestFormFeedback } from "../lib/formCheck";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth, useAppleHealthSync } from "../lib/appleHealth";
@@ -2914,7 +2914,7 @@ export function WorkoutSession({
                       onSwap={() => setSwapFor({ exerciseId: exMeta.originalExerciseId || exMeta.exerciseId })}
                       onStartRest={handleStartRest}
                       onOpenDetail={(ex) => setDetailExercise(ex)}
-                      onFormCheck={onSendFormCheck ? (rows) => startFormCheck(exMeta, exercise.name, rows) : undefined}
+                      onFormCheck={onSendFormCheck && nativeMicAllowed() ? (rows) => startFormCheck(exMeta, exercise.name, rows) : undefined}
                       formCheckStatus={formCheckStatus[exMeta.exerciseId]}
                       formFeedback={latestFormFeedback(thread, exMeta.exerciseId)}
                     />

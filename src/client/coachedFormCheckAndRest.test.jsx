@@ -97,4 +97,16 @@ describe("coached workout: form checks and the lock-screen rest alert", () => {
     fireEvent.click(screen.getByText("SKIP"));
     expect(posted.at(-1)).toEqual({ action: "cancel" });
   });
+
+  // Register #98: iPhone builds before 1.0.3 have no microphone usage
+  // string; recording there would close the app.
+  it("hides the form-check button in an iPhone app build older than 1.0.3", () => {
+    window.webkit = { messageHandlers: { apexTheme: { postMessage() {} } } };
+    render(<LiveSessionHarness onSendFormCheck={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: "Send a form-check video of Bench Press" })).toBeNull();
+    cleanup();
+    window.webkit.messageHandlers.apexRest = { postMessage() {} };
+    render(<LiveSessionHarness onSendFormCheck={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Send a form-check video of Bench Press" })).toBeTruthy();
+  });
 });

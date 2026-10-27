@@ -2193,6 +2193,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/lib/videoUploadCompression.test.js`: fast path used, with the right size/codec/orientation; the 8MB threshold; fallback when it can't encode; a 400MB clip that compresses uploads; still refused if over 200MB after compression. The first three fail without the fix. In Chromium (software VP9, no hardware), 2:00 landscape and 2:10 portrait 1080p clips went 100MB→25MB and 109MB→27MB, full length, orientation and audio intact, in ~77s; iPhones encode H.264 in hardware.
 - **Date added**: 2026-10-28
 
+### 98. Voice notes and form checks could close older iPhone app builds
+- **Problem**: the mic button (chat, both sides) and the form-check button showed in iPhone app builds before 1.0.3 (the App Store build and 1.0.2 TestFlight). Those builds have no `NSMicrophoneUsageDescription`, and iOS closes an app that records audio without one.
+- **Fix**: `nativeMicAllowed()` in `src/lib/voiceNote.js`: inside the iPhone app (`inIosApp()`), recording is offered only when the `apexRest` handler is present, which shipped in the same 1.0.3 build as the microphone string. `voiceNotesSupported()` uses it, and so does the form-check button (`ClientApp.jsx`). Browsers and 1.0.3+ are unchanged.
+- **Regression tests**: `src/lib/coachedSessionExtras.test.jsx` ("voice notes by app build": desktop, pre-1.0.3 app with and without apexTheme, 1.0.3, iPhone Safari) and `src/client/coachedFormCheckAndRest.test.jsx` (form-check button hidden in an older build, shown in 1.0.3). Both fail without the fix.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing

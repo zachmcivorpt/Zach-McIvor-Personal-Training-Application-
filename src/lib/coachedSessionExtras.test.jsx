@@ -3,7 +3,7 @@
 // Coached app: the lock-screen rest alert bridge, form-check videos linked
 // to a set, and voice notes in chat.
 import React from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { scheduleRestNotification, cancelRestNotification, restNotificationAvailable } from "./restNotification";
 import { formCheckSet, formCheckLabel, formCheckMessageText, latestFormFeedback } from "./formCheck";
@@ -90,5 +90,36 @@ describe("voice notes", () => {
     const { container } = render(<VoiceNotePlayer attachment={{ type: "audio", url: "https://x/v.m4a", durationSec: 9 }} />);
     expect(container.querySelector("audio").getAttribute("src")).toBe("https://x/v.m4a");
     expect(screen.getByText(/Voice note · 0:09/)).toBeTruthy();
+  });
+});
+
+// Register #98: no voice notes inside an iPhone app build older than 1.0.3
+// (no microphone usage string — iOS would close the app).
+describe("voice notes by app build", () => {
+  const realUA = navigator.userAgent;
+  const setUA = (ua) => Object.defineProperty(window.navigator, "userAgent", { value: ua, configurable: true });
+  beforeEach(() => {
+    window.MediaRecorder = window.MediaRecorder || function () {};
+    Object.defineProperty(navigator, "mediaDevices", { value: { getUserMedia: () => {} }, configurable: true });
+  });
+  afterEach(() => {
+    delete window.webkit;
+    setUA(realUA);
+  });
+
+  it("hides recording in a pre-1.0.3 iPhone build and shows it in 1.0.3 and browsers", async () => {
+    const { voiceNotesSupported, nativeMicAllowed } = await import("./voiceNote");
+    expect(voiceNotesSupported()).toBe(true); // desktop browser
+    window.webkit = { messageHandlers: { apexTheme: { postMessage() {} } } };
+    expect(nativeMicAllowed()).toBe(false);
+    expect(voiceNotesSupported()).toBe(false);
+    delete window.webkit;
+    setUA("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"); // App Store build that predates apexTheme
+    expect(voiceNotesSupported()).toBe(false);
+    window.webkit = { messageHandlers: { apexTheme: { postMessage() {} }, apexRest: { postMessage() {} } } };
+    expect(voiceNotesSupported()).toBe(true);
+    delete window.webkit;
+    setUA("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1");
+    expect(voiceNotesSupported()).toBe(true); // iPhone Safari
   });
 });
