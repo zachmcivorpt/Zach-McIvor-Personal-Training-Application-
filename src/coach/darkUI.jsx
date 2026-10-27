@@ -36,7 +36,8 @@ export function DarkPage({ children, className = "", padded = true }) {
 // "atmospheric, not a giant photograph" — masked out toward the left so it
 // washes into the panel rather than reading as a hard-edged image. Used by
 // any dark page header that wants the same texture Overview's hero does.
-export function MountainTexture() {
+// mono: neutral black/charcoal shapes instead of the blue-grey ones.
+export function MountainTexture({ mono = false }) {
   return (
     <div
       className="absolute inset-0 overflow-hidden"
@@ -47,15 +48,15 @@ export function MountainTexture() {
     >
       <div
         className="absolute -bottom-6 -right-10 w-[320px] h-[150px] opacity-60"
-        style={{ background: "linear-gradient(160deg, #222a33, #121519)", clipPath: "polygon(30% 0%, 75% 40%, 100% 100%, 0% 100%)" }}
+        style={{ background: mono ? "linear-gradient(160deg, #262626, #111111)" : "linear-gradient(160deg, #222a33, #121519)", clipPath: "polygon(30% 0%, 75% 40%, 100% 100%, 0% 100%)" }}
       />
       <div
         className="absolute -bottom-6 right-[-5%] w-[260px] h-[220px] opacity-55"
-        style={{ background: "linear-gradient(160deg, #2a3442, #15191f)", clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" }}
+        style={{ background: mono ? "linear-gradient(160deg, #2e2e2e, #141414)" : "linear-gradient(160deg, #2a3442, #15191f)", clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" }}
       />
       <div
         className="absolute -bottom-6 right-[8%] w-[180px] h-[160px] opacity-50"
-        style={{ background: "linear-gradient(160deg, #3a4858, #1a1f26)", clipPath: "polygon(40% 0%, 100% 100%, 0% 100%)" }}
+        style={{ background: mono ? "linear-gradient(160deg, #383838, #191919)" : "linear-gradient(160deg, #3a4858, #1a1f26)", clipPath: "polygon(40% 0%, 100% 100%, 0% 100%)" }}
       />
     </div>
   );
@@ -67,7 +68,8 @@ export function MountainTexture() {
 // reflection, for the compact "instrument tile" cards (stat tiles, small
 // clickable summaries). Full-width sections (lists, panels) use the plain
 // (non-chamfer) form.
-export function DarkPanel({ children, className = "", chamfer = false, style }) {
+// beam=false drops the chamfer tile's diagonal light beam.
+export function DarkPanel({ children, className = "", chamfer = false, style, beam = true }) {
   return (
     <div
       className={`relative overflow-hidden border ${chamfer ? "" : "rounded-2xl"} ${className}`}
@@ -79,6 +81,7 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
       }}
     >
       {chamfer ? (
+        beam &&
         // A single subtle brushed-metal light beam passing across the
         // card's face, upper-left toward lower-right — low opacity,
         // elongated, never a bright line or a glow. The thin border
@@ -108,7 +111,7 @@ export function DarkPanel({ children, className = "", chamfer = false, style }) 
 export function StatCard({ icon: Icon, label, value, trend, trendKind = "neutral", onClick }) {
   const trendColor = trendKind === "up" ? GOAL_GREEN : trendKind === "alert" ? OVER_RED : trendKind === "link" ? MEASURE_BLUE : "#FFFFFF";
   return (
-    <DarkPanel chamfer className="active:scale-[0.98] transition-transform">
+    <DarkPanel chamfer beam={false} className="active:scale-[0.98] transition-transform">
       <button onClick={onClick} className="relative w-full text-left p-4 sm:p-[18px] transition-colors hover:bg-white/[0.03]" disabled={!onClick}>
         <Icon size={16} style={{ color: MEASURE_BLUE }} />
         <p className="text-white text-[32px] sm:text-4xl font-bold leading-none tabular-nums mt-3">{value}</p>

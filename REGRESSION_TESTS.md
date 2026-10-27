@@ -2151,6 +2151,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: `src/lib/mealPlanEnd.test.js`. End dates are checked by hand (1 Oct + 1 week → 7 Oct, 2 weeks → 14 Oct, 28 Oct → 3 Nov, 10 legacy days → 2 weeks), as are shown-on-last-day / hidden-the-day-after, the function's copy giving the same dates, and push only on −2/0/+1 days.
 - **Date added**: 2026-10-27
 
+### 92. Coach Overview: no light stripes on the stat tiles, black hero (design change)
+- **What changed**: the four Overview stat tiles (`StatCard`, `src/coach/darkUI.jsx`) no longer draw the diagonal light beam (`DarkPanel` takes `beam={false}`), and the Overview hero (`CoachDashboard.jsx`) drops its blue top line, its mountain shapes now neutral black/charcoal (`MountainTexture mono`). Other coach pages' chamfer cards and page headers keep their current look. The client app and Train Solo are untouched (`darkUI.jsx` is coach-only).
+- **Regression test**: `npm test`, `npm run build`; rendered in Chromium: tiles show no stripe, the hero has no blue.
+- **Date added**: 2026-10-27
+
 ---
 
 ## What still requires manual testing

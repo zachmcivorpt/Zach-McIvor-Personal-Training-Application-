@@ -716,8 +716,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           silhouette (plain CSS triangles, not a photo — "atmospheric, not
           a giant photograph") washed into the right edge. */}
       <div className="relative overflow-hidden rounded-2xl mb-4 border" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
-        <MountainTexture />
-        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${MEASURE_BLUE}, transparent)` }} />
+        <MountainTexture mono />
         <div className="relative flex items-center justify-between gap-3 px-5 py-6 sm:px-7 sm:py-7">
           <div className="flex items-center gap-4 min-w-0">
             <Logo variant="mark" tone="white" className="h-10 w-auto shrink-0 hidden sm:block" />
