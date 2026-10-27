@@ -65,7 +65,7 @@ export function PhaseAccordionRow({ index, name, meta, open, onToggle, menu, chi
         <button onClick={onToggle} aria-expanded={open} aria-label={`${open ? "Collapse" : "Open"} ${name}`} className="flex-1 min-w-0 flex items-center gap-3.5 pl-4 py-3 text-left">
           <span className="text-white/35 text-lg font-bold tabular-nums w-6 shrink-0">{String(index + 1).padStart(2, "0")}</span>
           <span className="min-w-0 flex-1">
-            <span className="block text-white text-sm font-semibold truncate">{name}</span>
+            <span className="block text-white text-sm font-semibold leading-snug break-words">{name}</span>
             <span className="block text-white/45 text-xs mt-0.5">{meta}</span>
           </span>
           <ChevronDown size={16} className={`text-white/50 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />

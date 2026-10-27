@@ -846,7 +846,7 @@ export default function CoachPrograms({ showToast }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="text-white/45 text-[11px] font-bold tracking-[0.14em] mb-1.5">PROGRAM{selected.level ? ` · ${selected.level.toUpperCase()}` : ""}</p>
-                  <h2 className="text-white text-2xl font-bold leading-tight line-clamp-2">{selected.name}</h2>
+                  <h2 className="text-white text-lg md:text-xl font-bold leading-snug break-words">{selected.name}</h2>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 pt-4">
                   <button

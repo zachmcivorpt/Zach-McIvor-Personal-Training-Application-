@@ -938,7 +938,7 @@ function CoachSoloPrograms({ showToast }) {
                       {selected.status === "published" ? "LIVE" : "DRAFT"}
                     </span>
                   </div>
-                  <h2 className="text-white text-2xl font-bold leading-tight line-clamp-2">{selected.name}</h2>
+                  <h2 className="text-white text-lg md:text-xl font-bold leading-snug break-words">{selected.name}</h2>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 pt-4">
                   <button
