@@ -6516,7 +6516,7 @@ export function BodyStatsCheckInSheet({ open, onClose, onSave, lastValues, busy 
   );
 }
 
-function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey }) {
+export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, onLogWeight, onDeleteWeighIn, logsForClient, exercisesById, bodyMetrics, onLogBodyMetric, onDeleteBodyMetric, scheduledWorkouts, autoOpenWeighInKey }) {
   const dark = useClientDark();
   const [uploading, setUploading] = useState(false);
   const [openMetric, setOpenMetric] = useState(null);
@@ -6619,16 +6619,28 @@ function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weighIns, o
     }
   }
 
+  // Every box on Progress is frosted glass (the app-wide Card surface): in
+  // light mode the tab sits on the off-white SURFACE so the glass reads,
+  // the way Train Solo's Progress does.
   return (
-    <div className="pb-28">
+    <div className="pb-28 min-h-screen" style={dark ? undefined : { backgroundColor: SURFACE }}>
       <TabHeader label="Progress" dark={dark} right={<BarChart3 size={20} className={dark ? "text-white/40" : "text-black/40"} />} />
 
-      <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
+      {/* The shared timeline paints its own solid band; here it sits in a
+          glass card instead (index.css's .solo-glass-inner clears the fill). */}
+      <div className="mx-2.5 mt-1 rounded-2xl overflow-hidden solo-glass-inner" style={clientGlass(dark)}>
+        <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
+      </div>
 
       <div className="px-2.5 space-y-4 mt-4">
-        <PrimaryButton dark={dark} className="w-full" onClick={() => setCheckInOpen(true)}>
-          <Scale size={16} /> LOG BODY STATS & PHOTOS
-        </PrimaryButton>
+        <button
+          type="button"
+          onClick={() => setCheckInOpen(true)}
+          className={`w-full flex items-center justify-center gap-2 rounded-2xl py-3 text-[13px] font-semibold active:scale-[0.98] transition-transform ${dark ? "text-white" : "text-black"}`}
+          style={clientGlass(dark)}
+        >
+          <Scale size={15} style={{ color: MEASURE_BLUE }} /> Log body stats & photos
+        </button>
 
         <WhoopCard bodyMetrics={bodyMetrics} dark={dark} />
 

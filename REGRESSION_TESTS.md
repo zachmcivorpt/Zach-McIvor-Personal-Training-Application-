@@ -2140,6 +2140,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression test**: `src/client/bodyStatsAndCardioEdit.test.jsx` (only filled fields saved on the chosen date; zero/negative blocked; tap edits with values pre-filled; swipe doesn't). Also exercised in Chromium with touch: tap opens the editor, a partial swipe doesn't, a saved edit updates the row, a photo picked in the check-in is passed on.
 - **Date added**: 2026-10-27
 
+### 90. Coached client Progress tab: frosted-glass look (design change)
+- **What changed**: in light mode the client Progress tab sits on the off-white `SURFACE` (instead of pure white, where the app's translucent glass Cards read as plain white boxes), the Performance Timeline sits in a glass card (its solid band cleared by `.solo-glass-inner`, the same way Train Solo shows it), and "Log body stats & photos" is a glass bar with smaller 13px text and a blue icon instead of a black button. Only `ProgressScreen` in `src/client/ClientApp.jsx` changed. The shared Card/MetricTile/PerformanceTimelineCard components, Train Solo and the coach console are untouched.
+- **Regression test**: `src/client/bodyStatsAndCardioEdit.test.jsx` still covers the check-in sheet; checked in Chromium in light and dark mode: every Progress box is glass, and the button opens the Log Body Stats sheet.
+- **Date added**: 2026-10-27
+
 ---
 
 ## What still requires manual testing
