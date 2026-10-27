@@ -23,6 +23,8 @@ Owner to do, in order:
      form-check video from a workout + coach "Reply with feedback", a
      2-minute form check uploading quickly, "Rest's up" on a locked phone
      (coached and Train Solo).
+     Also check the new full-bleed app icon (no box inside a box) on the
+     home screen.
   6. App Store Connect: rename the unsent 1.0.2 version page to 1.0.3 (or
      + Version 1.0.3); pick the 1.0.3 build; App Privacy: add Health and Audio
      Data (app functionality, linked to the user, not tracking); upload the 10
