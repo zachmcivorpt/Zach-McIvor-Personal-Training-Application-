@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { useApp, getCurrentPhase } from "../lib/AppContext";
+import { useApp } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { isMealPlanEnded, mealPlanEndDateKey } from "../lib/mealPlanEnd";
-import { Pill, Avatar, BottomSheet, Logo } from "../components/ui";
+import { Avatar, BottomSheet, Logo } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
 import WorkoutEditor from "./WorkoutEditor";
-import { clientStatusPill } from "./CoachClients";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { computeApexInsights } from "../lib/apexInsights";
 import { buildRecentActivity } from "../lib/recentActivity";
@@ -13,9 +12,6 @@ import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_B
 import { DarkPage, DarkPanel, StatCard, MountainTexture } from "./darkUI";
 import {
   Users,
-  UserPlus,
-  FilePlus,
-  Video,
   CalendarPlus,
   CalendarClock,
   Trophy,
@@ -25,7 +21,6 @@ import {
   Send,
   Check,
   StickyNote,
-  Flame,
   Utensils,
   AlertTriangle,
   TrendingUp,
@@ -926,73 +921,6 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
         </div>
       </DarkPanel>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <DarkPanel className="md:col-span-1 h-fit p-5">
-          <p className="relative text-white font-semibold mb-3">Quick Actions</p>
-          <div className="relative space-y-2">
-            <button
-              onClick={() => onNavigate("clients")}
-              className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
-              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
-            >
-              <UserPlus size={16} className="text-white" />
-              <span className="text-white text-sm font-medium flex-1 text-left">Add a new client</span>
-            </button>
-            <button
-              onClick={() => onOpenLibrary("programs")}
-              className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
-              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
-            >
-              <FilePlus size={16} className="text-white" />
-              <span className="text-white text-sm font-medium flex-1 text-left">Build a program template</span>
-            </button>
-            <button
-              onClick={() => onNavigate("library")}
-              className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06]"
-              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
-            >
-              <Video size={16} className="text-white" />
-              <span className="text-white text-sm font-medium flex-1 text-left">Add an exercise + video</span>
-            </button>
-            <button
-              onClick={() => setBroadcastOpen(true)}
-              disabled={active.length === 0}
-              title={active.length === 0 ? "No active clients to broadcast to yet" : undefined}
-              className="w-full flex items-center gap-3 border rounded-xl px-4 py-3 transition-colors hover:bg-white/[0.06] disabled:opacity-40 disabled:hover:bg-transparent"
-              style={{ backgroundColor: "rgba(255,255,255,0.03)", borderColor: CLIENT_DARK_BORDER }}
-            >
-              <Flame size={16} className="text-white" />
-              <span className="text-white text-sm font-medium flex-1 text-left">Broadcast today's workout</span>
-            </button>
-          </div>
-        </DarkPanel>
-
-        <DarkPanel className="md:col-span-2 h-fit p-5">
-          <p className="relative text-white font-semibold mb-3">Clients</p>
-          <div className="relative space-y-2.5">
-            {clients.length === 0 && <p className="text-white text-sm">No clients yet.</p>}
-            {clients.slice(0, 8).map((c) => {
-              const phases = (db.clientPhases || {})[c.id] || [];
-              const phase = getCurrentPhase(phases, todayKey);
-              return (
-                <div key={c.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar name={c.name} url={c.avatarUrl} size={32} dark />
-                    <div className="min-w-0">
-                      <p className="text-white text-sm font-medium leading-none truncate">{c.name}</p>
-                      <p className="text-white text-xs mt-1 truncate">{phase ? phase.name : "No phase scheduled"}</p>
-                    </div>
-                  </div>
-                  <Pill tone={clientStatusPill(c).tone} dark>
-                    {clientStatusPill(c).label}
-                  </Pill>
-                </div>
-              );
-            })}
-          </div>
-        </DarkPanel>
-      </div>
 
       <BottomSheet
         open={!!viewingActivity}

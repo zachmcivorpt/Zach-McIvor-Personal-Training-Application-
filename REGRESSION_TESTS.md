@@ -2164,6 +2164,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Follow-up (same day)**: the program title is smaller and shown in full, and phase names wrap. Inside an open phase, workouts are a hairline-divided list (no box inside a box) under a small "WORKOUTS · n" heading, and the toolbar wraps instead of squeezing. The large figures wrap on a narrow screen instead of cutting off (e.g. the price). The detail has no extra phone gutter. Checked at 390px and 1300px wide in Chromium.
 - **Date added**: 2026-10-28
 
+### 94. Coach Overview: Quick Actions and Clients boxes removed (design change)
+- **What changed**: the Quick Actions box (add client, build program template, add exercise + video, broadcast today's workout) and the Clients box at the bottom of the coach Overview (`CoachDashboard.jsx`) are removed, along with the imports only they used. Everything they linked to is still in the sidebar (Clients, Library). Broadcasting today's workout had no other button, so it can't be reached for now (its sheet code is still in the file).
+- **Regression test**: `npm test` (537 passed), `npm run lint` (oxlint: no errors), `npm run build`.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing
