@@ -787,7 +787,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         />
       </div>
 
-      <DarkPanel className="flex flex-col mb-4">
+      <DarkPanel glow={false} className="flex flex-col mb-4">
         <div className="relative px-5 pt-5 pb-1 flex items-center gap-2.5">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
@@ -887,7 +887,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         </DarkPanel>
       )}
 
-      <DarkPanel className="flex flex-col mb-4">
+      <DarkPanel glow={false} className="flex flex-col mb-4">
         <div className="relative px-5 pt-5 pb-3">
           <p className="text-white font-semibold">Recent Activity</p>
           <p className="text-white text-xs mt-0.5">Your latest client activity.</p>

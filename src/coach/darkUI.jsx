@@ -68,8 +68,9 @@ export function MountainTexture({ mono = false }) {
 // reflection, for the compact "instrument tile" cards (stat tiles, small
 // clickable summaries). Full-width sections (lists, panels) use the plain
 // (non-chamfer) form.
-// beam=false drops the chamfer tile's diagonal light beam.
-export function DarkPanel({ children, className = "", chamfer = false, style, beam = true }) {
+// beam=false drops the chamfer tile's diagonal light beam; glow=false the
+// plain panel's top-right corner glow.
+export function DarkPanel({ children, className = "", chamfer = false, style, beam = true, glow = true }) {
   return (
     <div
       className={`relative overflow-hidden border ${chamfer ? "" : "rounded-2xl"} ${className}`}
@@ -94,6 +95,7 @@ export function DarkPanel({ children, className = "", chamfer = false, style, be
           }}
         />
       ) : (
+        glow &&
         <div
           className="pointer-events-none absolute -top-10 -right-10 w-28 h-28"
           style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.08), transparent 60%)" }}

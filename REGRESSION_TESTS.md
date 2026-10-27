@@ -2155,6 +2155,7 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **What changed**: the four Overview stat tiles (`StatCard`, `src/coach/darkUI.jsx`) no longer draw the diagonal light beam (`DarkPanel` takes `beam={false}`), and the Overview hero (`CoachDashboard.jsx`) drops its blue top line, its mountain shapes now neutral black/charcoal (`MountainTexture mono`). Other coach pages' chamfer cards and page headers keep their current look. The client app and Train Solo are untouched (`darkUI.jsx` is coach-only).
 - **Regression test**: `npm test`, `npm run build`; rendered in Chromium: tiles show no stripe, the hero has no blue.
 - **Date added**: 2026-10-27
+- **Follow-up (same day)**: the Overview's Needs Attention and Recent Activity panels drop the top-right corner glow square (`DarkPanel glow={false}`). Every other panel is unchanged.
 
 ---
 
