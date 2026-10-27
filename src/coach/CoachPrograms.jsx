@@ -324,10 +324,7 @@ function WorkoutRow({ day, exercisesById, selectMode, selected, onToggleSelect, 
   const firstEx = firstReal ? exercisesById[firstReal.exerciseId] : null;
 
   return (
-    <div
-      className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border rounded-xl px-3.5 py-3 transition-colors"
-      style={{ borderColor: CLIENT_DARK_BORDER }}
-    >
+    <div className="flex items-center gap-3 py-3 transition-colors">
       {selectMode && (
         <input
           type="checkbox"
@@ -339,16 +336,14 @@ function WorkoutRow({ day, exercisesById, selectMode, selected, onToggleSelect, 
         />
       )}
       <button onClick={selectMode ? onToggleSelect : onOpen} className="shrink-0" aria-label={`Open ${day.label}`}>
-        <ExerciseThumb exercise={firstEx} size={44} rounded="rounded-lg" dark />
+        <ExerciseThumb exercise={firstEx} size={40} rounded="rounded-lg" dark />
       </button>
       <button onClick={selectMode ? onToggleSelect : onOpen} className="flex-1 min-w-0 text-left">
-        <p className="font-semibold text-sm truncate hover:underline" style={{ color: MEASURE_BLUE }}>
-          {day.label}
-        </p>
-        <p className="text-white text-xs truncate mt-0.5">
+        <p className="text-white font-semibold text-sm truncate hover:underline">{day.label}</p>
+        <p className="text-white/45 text-xs truncate mt-0.5">
           est. {estimateWorkoutMinutes(exs)} min · {countExercises(exs)} exercise{countExercises(exs) === 1 ? "" : "s"}
         </p>
-        {day.muscleGroups?.length > 0 && <p className="text-white text-[11px] truncate mt-0.5">{day.muscleGroups.join(", ")}</p>}
+        {day.muscleGroups?.length > 0 && <p className="text-white/35 text-[11px] truncate mt-0.5">{day.muscleGroups.join(", ")}</p>}
       </button>
       {!selectMode && (
         <OverflowMenu
@@ -395,10 +390,10 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3 gap-2">
-        <p className="text-white font-semibold text-sm">Workouts {days.length > 0 && `(${days.length})`}</p>
+      <div className="flex flex-wrap items-center justify-between mb-3 gap-x-2 gap-y-2.5">
+        <p className="text-white/45 text-[11px] font-bold tracking-[0.14em] uppercase">Workouts{days.length > 0 && ` · ${days.length}`}</p>
         {!selectMode ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button onClick={onOpenNew} className="flex items-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-90">
               <Plus size={13} /> New
             </button>
@@ -458,13 +453,13 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
       )}
 
       {days.length > 3 && (
-        <div className="flex items-center gap-2 bg-white/5 rounded-lg px-2.5 py-1.5 mb-3">
-          <Search size={13} className="text-white shrink-0" />
+        <div className="flex items-center gap-2 bg-white/[0.04] rounded-lg px-3 py-2 mb-1">
+          <Search size={13} className="text-white/50 shrink-0" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search workouts"
-            className="bg-transparent outline-none text-white text-xs flex-1 placeholder:text-white"
+            className="bg-transparent outline-none text-white text-xs flex-1 placeholder:text-white/40"
           />
         </div>
       )}
@@ -476,7 +471,7 @@ function PhaseWorkouts({ days, exercisesById, onOpenNew, onOpenFromLibrary, onEd
       ) : filtered.length === 0 ? (
         <p className="text-white text-sm text-center py-6">No workouts match "{search}".</p>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-white/[0.07]">
           {filtered.map(({ d, i }) => (
             <WorkoutRow
               key={d.id || i}
@@ -823,7 +818,7 @@ export default function CoachPrograms({ showToast }) {
         {/* right: selected phase's summary + workouts table — shared by
             desktop (always visible) and mobile (only once a program's
             been tapped from the list above) */}
-        <div className={`${mobileView === "detail" ? "block" : "hidden"} md:block flex-1 min-w-0 overflow-y-auto p-4 md:p-6`}>
+        <div className={`${mobileView === "detail" ? "block" : "hidden"} md:block flex-1 min-w-0 overflow-y-auto py-4 md:p-6`}>
           <button
             onClick={() => setMobileView("list")}
             className="md:hidden flex items-center gap-1 text-white hover:text-white text-sm font-semibold mb-4"

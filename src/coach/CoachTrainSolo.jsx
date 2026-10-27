@@ -615,18 +615,13 @@ function WorkoutRow({ day, exercisesById, onOpen, onDelete }) {
   const firstReal = exs.find((e) => !e.isRest);
   const firstEx = firstReal ? exercisesById[firstReal.exerciseId] : null;
   return (
-    <div
-      className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border rounded-xl px-3.5 py-3 transition-colors"
-      style={{ borderColor: CLIENT_DARK_BORDER }}
-    >
+    <div className="flex items-center gap-3 py-3 transition-colors">
       <button onClick={onOpen} className="shrink-0" aria-label={`Open ${day.label}`}>
-        <ExerciseThumb exercise={firstEx} size={44} rounded="rounded-lg" dark />
+        <ExerciseThumb exercise={firstEx} size={40} rounded="rounded-lg" dark />
       </button>
       <button onClick={onOpen} className="flex-1 min-w-0 text-left">
-        <p className="font-semibold text-sm truncate hover:underline" style={{ color: MEASURE_BLUE }}>
-          {day.label}
-        </p>
-        <p className="text-white text-xs truncate mt-0.5">
+        <p className="text-white font-semibold text-sm truncate hover:underline">{day.label}</p>
+        <p className="text-white/45 text-xs truncate mt-0.5">
           est. {estimateWorkoutMinutes(exs)} min · {countExercises(exs)} exercise{countExercises(exs) === 1 ? "" : "s"}
         </p>
       </button>
@@ -913,7 +908,7 @@ function CoachSoloPrograms({ showToast }) {
         </div>
 
         {/* right: detail */}
-        <div className={`${mobileView === "detail" ? "block" : "hidden"} md:block flex-1 min-w-0 overflow-y-auto p-4 md:p-6`}>
+        <div className={`${mobileView === "detail" ? "block" : "hidden"} md:block flex-1 min-w-0 overflow-y-auto py-4 md:p-6`}>
           <button onClick={() => setMobileView("list")} className="md:hidden flex items-center gap-1 text-white text-sm font-semibold mb-4">
             <ChevronLeft size={16} /> Programs
           </button>
@@ -1071,10 +1066,8 @@ function CoachSoloPrograms({ showToast }) {
                         >
                           {open && (
                             <>
-                              <div className="flex items-center justify-between mb-3">
-                                <p className="text-white font-semibold text-sm min-w-0 truncate">
-                                  Workouts {count > 0 && `(${count})`}
-                                </p>
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="text-white/45 text-[11px] font-bold tracking-[0.14em] uppercase">Workouts{count > 0 && ` · ${count}`}</p>
                                 <button onClick={openNewWorkout} className="flex items-center gap-1.5 bg-white text-black text-xs font-bold px-3 py-1.5 rounded-lg">
                                   <Plus size={13} /> New
                                 </button>
@@ -1084,7 +1077,7 @@ function CoachSoloPrograms({ showToast }) {
                                   <p className="text-white text-sm">No workouts in this phase yet.</p>
                                 </div>
                               ) : (
-                                <div className="space-y-2">
+                                <div className="divide-y divide-white/[0.07]">
                                   {(selectedPhase.days || []).map((d, i) => (
                                     <WorkoutRow key={d.id || i} day={d} exercisesById={exercisesById} onOpen={() => editDay(i)} onDelete={() => deleteDay(i)} />
                                   ))}

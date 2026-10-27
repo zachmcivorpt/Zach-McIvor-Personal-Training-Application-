@@ -26,14 +26,15 @@ export function ProgramListItem({ active, title, meta, badge, onClick }) {
   );
 }
 
-// A row of large figures (Phases 3 · Weeks 12 · Sessions 15), divided by
-// hairlines rather than boxed.
+// A row of large figures (Phases 3 · Weeks 12 · Sessions 15) between two
+// hairlines. They wrap onto a second line on a narrow screen rather than
+// being squeezed or cut off.
 export function StatFigures({ items }) {
   return (
-    <div className="grid border-y py-4 my-5" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`, borderColor: CLIENT_DARK_BORDER }}>
-      {items.map((it, i) => (
-        <div key={it.label} className={`min-w-0 ${i > 0 ? "pl-4 border-l" : ""}`} style={i > 0 ? { borderColor: CLIENT_DARK_BORDER } : undefined}>
-          <p className="text-white text-2xl md:text-3xl font-bold tabular-nums leading-none truncate">{it.value}</p>
+    <div className="flex flex-wrap gap-x-10 gap-y-4 border-y py-4 my-5" style={{ borderColor: CLIENT_DARK_BORDER }}>
+      {items.map((it) => (
+        <div key={it.label}>
+          <p className="text-white text-2xl md:text-3xl font-bold tabular-nums leading-none whitespace-nowrap">{it.value}</p>
           <p className="text-white/45 text-[10px] font-bold tracking-[0.14em] uppercase mt-2">{it.label}</p>
         </div>
       ))}
