@@ -64,6 +64,7 @@ function stripeSourceFromSubscriptions(subs, now = Date.now()) {
         status: sub.status,
         expiresAt: periodEndMs(sub),
         cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+        cancelAt: sub.cancel_at ? sub.cancel_at * 1000 : null,
         trialEnd: sub.trial_end ? sub.trial_end * 1000 : null,
         subscriptionId: sub.id,
         created: sub.created || 0,

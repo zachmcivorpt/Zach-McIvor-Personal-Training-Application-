@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tierFromEntitlement, activeStore, canUse, gatesLive, canSaveNewSession, savedSessionLimit, sourceActive, PLANS, formatPlanPrice } from "./soloAccess";
+import { tierFromEntitlement, activeStore, canUse, gatesLive, canSaveNewSession, savedSessionLimit, sourceActive, PLANS, formatPlanPrice, planRenewal, renewalText } from "./soloAccess";
 
 const NOW = 1_800_000_000_000;
 const DAY = 86_400_000;
@@ -42,6 +42,38 @@ describe("Train Solo tiers", () => {
 
   it("a made-up tier name never unlocks anything", () => {
     expect(tierFromEntitlement({ sources: { stripe: { tier: "vip", status: "active", expiresAt: NOW + DAY } } }, NOW)).toBe("free");
+  });
+});
+
+describe("renews / ends date after a cancel", () => {
+  const end = NOW + 20 * DAY;
+  it("Free has no renewal line", () => {
+    expect(planRenewal(null, NOW)).toBe(null);
+    expect(planRenewal({ sources: { stripe: { tier: "plus", status: "past_due", expiresAt: end } } }, NOW)).toBe(null);
+  });
+
+  it("website: renewing, cancelled at period end, or cancelled to a date", () => {
+    const src = { tier: "plus", status: "active", expiresAt: end, cancelAtPeriodEnd: false, cancelAt: null };
+    expect(planRenewal({ sources: { stripe: src } }, NOW)).toMatchObject({ date: end, willRenew: true, trial: false, store: "stripe" });
+    expect(planRenewal({ sources: { stripe: { ...src, cancelAtPeriodEnd: true } } }, NOW)).toMatchObject({ date: end, willRenew: false });
+    expect(planRenewal({ sources: { stripe: { ...src, cancelAt: NOW + 5 * DAY } } }, NOW)).toMatchObject({ date: NOW + 5 * DAY, willRenew: false });
+  });
+
+  it("App Store: willRenew false after unsubscribing; trials say so", () => {
+    const ent = { sources: { apple: { tier: "all_access", status: "trialing", expiresAt: end, willRenew: false } } };
+    expect(planRenewal(ent, NOW)).toMatchObject({ date: end, willRenew: false, trial: true, store: "apple" });
+    expect(renewalText(planRenewal(ent, NOW), NOW)).toMatch(/^Free trial · ends /);
+    ent.sources.apple.willRenew = true;
+    expect(renewalText(planRenewal(ent, NOW), NOW)).toMatch(/^Free trial · first payment /);
+  });
+
+  it("wording, with the year only when it isn't this year", () => {
+    const d = new Date(NOW);
+    const sameYear = new Date(d.getFullYear(), 11, 12).getTime();
+    expect(renewalText({ date: sameYear, willRenew: true, trial: false }, new Date(d.getFullYear(), 0, 2).getTime())).toBe("Renews 12 Dec");
+    expect(renewalText({ date: sameYear, willRenew: false, trial: false }, new Date(d.getFullYear(), 0, 2).getTime())).toBe("Won't renew · ends 12 Dec");
+    expect(renewalText({ date: sameYear, willRenew: true, trial: false }, new Date(d.getFullYear() - 1, 11, 1).getTime())).toMatch(/12 Dec \d{4}$/);
+    expect(renewalText(null)).toBe("");
   });
 });
 

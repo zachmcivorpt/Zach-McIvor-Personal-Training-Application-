@@ -65,6 +65,13 @@ describe("Stripe → entitlement", () => {
     expect(src.subscriptionId).toBe("sub_new");
   });
 
+  it("records a cancel from the portal (still paid up until the period ends)", () => {
+    const src = stripeSourceFromSubscriptions([sub("plus_monthly", "active", NOW + 9 * DAY, { cancel_at_period_end: true, cancel_at: sec(NOW + 9 * DAY) })], NOW);
+    expect(src).toMatchObject({ cancelAtPeriodEnd: true, cancelAt: sec(NOW + 9 * DAY) * 1000 });
+    expect(deriveEntitlement({ stripe: src }, NOW).tier).toBe("plus");
+    expect(stripeSourceFromSubscriptions([sub("plus_monthly", "active", NOW + 9 * DAY)], NOW).cancelAt).toBe(null);
+  });
+
   it("works with Stripe's newer API (period end on the item)", () => {
     const s = sub("plus_monthly", "active", NOW + DAY);
     delete s.current_period_end;

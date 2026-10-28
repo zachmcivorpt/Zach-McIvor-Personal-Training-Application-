@@ -79,6 +79,39 @@ export function activeStore(entitlement, now = Date.now()) {
   return hit ? hit[0] : null;
 }
 
+// When the current paid plan renews or ends, so Profile and the paywall can
+// say "Renews 12 Dec" or "Won't renew · ends 12 Dec" after a cancel.
+// Stripe: cancelAtPeriodEnd / cancelAt (a cancel set from the portal).
+// Apple: willRenew (RevenueCat's unsubscribe_detected_at). null when Free
+// or the plan has no end date.
+export function planRenewal(entitlement, now = Date.now()) {
+  const store = activeStore(entitlement, now);
+  if (!store) return null;
+  const s = entitlement.sources[store];
+  const expiresAt = s.expiresAt != null ? Number(s.expiresAt) : null;
+  const cancelAt = Number(s.cancelAt) > now ? Number(s.cancelAt) : null;
+  const date = cancelAt && (!expiresAt || cancelAt < expiresAt) ? cancelAt : expiresAt;
+  if (!date) return null;
+  const willRenew = store === "apple" ? s.willRenew !== false : !s.cancelAtPeriodEnd && !cancelAt;
+  return { date, willRenew, trial: s.status === "trialing", store };
+}
+
+export function formatRenewalDate(ms, now = Date.now()) {
+  const d = new Date(ms);
+  const opts = { day: "numeric", month: "short" };
+  if (d.getFullYear() !== new Date(now).getFullYear()) opts.year = "numeric";
+  return d.toLocaleDateString("en-AU", opts);
+}
+
+// "Renews 12 Dec", "Won't renew · ends 12 Dec", "Trial · first payment
+// 12 Dec", "Trial · ends 12 Dec". Never a price (3.1.1 inside the app).
+export function renewalText(renewal, now = Date.now()) {
+  if (!renewal) return "";
+  const when = formatRenewalDate(renewal.date, now);
+  if (renewal.trial) return renewal.willRenew ? `Free trial · first payment ${when}` : `Free trial · ends ${when}`;
+  return renewal.willRenew ? `Renews ${when}` : `Won't renew · ends ${when}`;
+}
+
 export function gatesLive(monetisation, uid) {
   if (monetisation?.live === true) return true;
   return !!uid && Array.isArray(monetisation?.testUids) && monetisation.testUids.includes(uid);

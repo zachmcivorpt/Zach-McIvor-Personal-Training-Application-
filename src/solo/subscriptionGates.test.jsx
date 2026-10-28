@@ -282,4 +282,35 @@ describe("paywall for subscribers", () => {
     expect(within(document.body).queryByRole("button", { name: /subscribe|trial/i })).toBe(null);
     void sheet;
   });
+
+  it("after cancelling, the plan says it won't renew and when it ends; Profile too", async () => {
+    const end = Date.now() + 9 * 86400000;
+    ctx = baseCtx({
+      soloGatesLive: true,
+      soloTier: "plus",
+      soloEntitlement: { sources: { stripe: { tier: "plus", status: "active", expiresAt: end, cancelAtPeriodEnd: true } } },
+      soloLogout: vi.fn(),
+      deleteMySoloAccount: vi.fn(),
+      setSoloReminderPref: vi.fn(),
+    });
+    const { default: SoloProfileScreen } = await import("./SoloProfileScreen");
+    await renderAt("/x", <SoloProfileScreen />, "/x");
+    const row = await screen.findByText(/^Won't renew · ends .+ · manage$/);
+    fireEvent.click(row);
+    expect(await screen.findByText(/you keep everything until then/)).toBeTruthy();
+  });
+
+  it("a renewing plan shows its renewal date", async () => {
+    ctx = baseCtx({
+      soloGatesLive: true,
+      soloTier: "all_access",
+      soloEntitlement: { sources: { apple: { tier: "all_access", status: "active", expiresAt: Date.now() + 20 * 86400000, willRenew: true } } },
+      soloLogout: vi.fn(),
+      deleteMySoloAccount: vi.fn(),
+      setSoloReminderPref: vi.fn(),
+    });
+    const { default: SoloProfileScreen } = await import("./SoloProfileScreen");
+    await renderAt("/x", <SoloProfileScreen />, "/x");
+    expect(await screen.findByText(/^Renews .+ · App Store$/)).toBeTruthy();
+  });
 });

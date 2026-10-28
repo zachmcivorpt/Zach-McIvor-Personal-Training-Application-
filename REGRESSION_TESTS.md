@@ -2240,6 +2240,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/staleCopyGuard.test.js` (missing main script / stylesheet / lazy chunk reloads exactly once; fonts, images and other sites ignored) — fails with the once-per-session check removed. In Chromium against a production build: a stale index.html pointing at a missing `/assets/index-OLD.js` reloaded once and the app rendered; a permanently stale page reloaded exactly once, no loop. The native part has no automated test here (no Xcode) — manual check below.
 - **Date added**: 2026-10-28
 
+### 106. Train Solo: a cancelled subscription still read as plain "You have Plus"
+- **Problem**: after cancelling (Stripe portal or iPhone Settings) the customer keeps their plan to the end of the period, but Profile and the paywall gave no sign it wouldn't renew or when it ends.
+- **Fix**: the server's Stripe section also records `cancelAt` (`functions/soloSubscriptions.js`); `planRenewal()` / `renewalText()` in `src/solo/soloAccess.js` read Stripe's `cancelAtPeriodEnd`/`cancelAt` and Apple's `willRenew`. Profile's Subscription row and the paywall now say "Renews 12 Dec", "Won't renew · ends 12 Dec" (+ "you keep everything until then"), or "Free trial · first payment / ends 12 Dec". No price anywhere in it (3.1.1).
+- **Regression tests**: `src/solo/soloAccess.test.js` (renewing, cancelled at period end, cancelled to a date, Apple unsubscribed, trial wording, year only when not this year), `src/solo/subscriptionGates.test.jsx` (rendered Profile row + paywall after a website cancel; Apple renewal line), `functions/soloSubscriptions.test.js` (portal cancel recorded, still paid up).
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing

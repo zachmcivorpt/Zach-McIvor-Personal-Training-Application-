@@ -5,7 +5,7 @@ import { MEASURE_BLUE } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { BottomSheet, PrimaryButton } from "../components/ui";
-import { PLANS, TIER_LABELS, formatPlanPrice, activeStore } from "./soloAccess";
+import { PLANS, TIER_LABELS, formatPlanPrice, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { inIosApp } from "./appShell";
 import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, restorePurchases, manageAppleSubscription } from "../lib/purchases";
 
@@ -67,6 +67,7 @@ function SoloPaywallSheet({ request, onClose }) {
 
   const plan = `${tier}_${interval === "year" ? "yearly" : "monthly"}`;
   const store = activeStore(soloEntitlement);
+  const renewal = planRenewal(soloEntitlement);
   const trialUsed = !!soloEntitlement?.trialUsed;
 
   // Price text for a plan: the App Store's in the app, ours on the website.
@@ -161,10 +162,18 @@ function SoloPaywallSheet({ request, onClose }) {
 
         {soloTier !== "free" && (
           <div className="flex items-center justify-between gap-3 mb-4">
-            <p className="text-sm">
-              You have <span className="font-bold">{TIER_LABELS[soloTier]}</span>
-              {store === "apple" ? " through the App Store" : store === "stripe" && !iosApp ? " through the website" : ""}.
-            </p>
+            <div className="min-w-0">
+              <p className="text-sm">
+                You have <span className="font-bold">{TIER_LABELS[soloTier]}</span>
+                {store === "apple" ? " through the App Store" : store === "stripe" && !iosApp ? " through the website" : ""}.
+              </p>
+              {renewal && (
+                <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                  {renewalText(renewal)}
+                  {!renewal.willRenew && " — you keep everything until then."}
+                </p>
+              )}
+            </div>
             {canManageHere && (
               <button type="button" onClick={manage} className="text-xs font-bold underline underline-offset-2 shrink-0">
                 Manage

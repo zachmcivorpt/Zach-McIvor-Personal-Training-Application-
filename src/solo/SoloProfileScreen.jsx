@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity } from "lucide-react";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth } from "../lib/appleHealth";
 import { enableSoloPush, hasSoloPushToken } from "../lib/push";
-import { canUse, TIER_LABELS, activeStore } from "./soloAccess";
+import { canUse, TIER_LABELS, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
 import { inIosApp } from "./appShell";
 import SoloGlassBox from "./SoloGlassBox";
@@ -31,6 +31,7 @@ export default function SoloProfileScreen() {
   // Apple Health on Progress is a Plus feature once subscriptions launch.
   const healthAllowed = canUse("appleHealthProgress", soloAccess);
   const subscriptionStore = activeStore(soloEntitlement);
+  const renewal = planRenewal(soloEntitlement);
   const { dark, accent, toggleSoloTheme } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const flagged = isFlaggedForMedicalReview(soloCurrentUser?.onboarding?.answers || {});
@@ -145,7 +146,15 @@ export default function SoloProfileScreen() {
             <span className="flex-1 min-w-0">
               <span className="block text-sm font-semibold">Train Solo {TIER_LABELS[soloTier]}</span>
               <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
-                {soloTier === "free" ? "See Plus and All Access" : subscriptionStore === "apple" ? "Through the App Store · manage" : iosApp ? "Your plan" : "Manage your subscription"}
+                {soloTier === "free"
+                  ? "See Plus and All Access"
+                  : renewal
+                  ? `${renewalText(renewal)}${subscriptionStore === "apple" ? " · App Store" : iosApp ? "" : " · manage"}`
+                  : subscriptionStore === "apple"
+                  ? "Through the App Store · manage"
+                  : iosApp
+                  ? "Your plan"
+                  : "Manage your subscription"}
               </span>
             </span>
             <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
