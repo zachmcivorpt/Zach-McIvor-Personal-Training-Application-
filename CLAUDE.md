@@ -127,6 +127,36 @@ Do these together when the user is ready to submit a new App Store build
   monetisation: a Train Solo Pro subscription as 1.0.4. Both are written up
   in `ROADMAP.txt`; build nothing of the monetisation plan until the user
   approves it and answers its open decisions.
+- **Cold open, native part (next build after 1.0.3, not 1.0.3 itself)**:
+  the user wants the app to open instantly. The web side is done
+  (REGRESSION_TESTS.md #103). What's left is the ~0.5s native spinner:
+  ViewController.swift loads the site with `.useProtocolCachePolicy`, so
+  every launch revalidates index.html over the network before anything
+  draws. Option: open from the saved copy and check for a new version in
+  the background (apply it next launch). Also add
+  `webViewWebContentProcessDidTerminate` → reload, so a webview iOS killed
+  in the background doesn't come back blank.
+
+## Launch speed (web)
+
+The user expects the app to open instantly (2026-10-28 TestFlight
+feedback). Keep the cold-open path short:
+
+- Nothing heavy on the launch path: the main bundle, `CoachShell`,
+  `ClientApp` and what they import statically. Big libraries used by one
+  action (the barcode scanner, video compression) load with `import()` when
+  that action starts — see `loadScannerLib()` in
+  `src/client/NutritionFeatures.jsx`. Check `npx vite build` chunk sizes
+  after adding a dependency.
+- `AppContext.jsx` keeps the signed-in profile on the phone
+  (`PROFILE_CACHE_KEY`, uid-checked); `App.jsx` uses its role to start
+  loading the right screen's code at startup, and `index.html` uses it to
+  paint a coach's page dark. Don't add a new wait between sign-in and the
+  first screen.
+- Still wait for Firebase Auth before showing signed-in screens (no writes
+  while signed out).
+- Show "–" or nothing while data loads, never a "0" that jumps to the
+  real number.
 
 ## iOS builds (Codemagic)
 
