@@ -98,6 +98,17 @@ with numbers clients and coaches can trust. How it's built now:
   foods first, plain foods before brands/supplements, typo fallback; the
   AFCD list stays a last resort. `matchesSearch` (search.js) remains the
   plain filter for exercises and the builders.
+- **Swipe-to-delete rows (`SwipeableRow`, `ClientApp.jsx`)** hold
+  tappable things (a logged food opens its editor, a saved meal's +).
+  Rules from two real iPhone bugs (REGRESSION_TESTS.md #107, #109):
+  never capture the pointer on pointerdown (it steals the tap's click);
+  capture only once a sideways swipe starts, and wrap capture/release in
+  try/catch (they can throw for iOS touch pointers); always end a swipe
+  from window-level pointerup/pointercancel/touchend/touchcancel, not
+  just the row's own events; decide delete-or-snap-back from the row's
+  real position (`dragXRef`), never a value closed over by a render.
+  jsdom can't show these — check with real touch events (CDP) and, when
+  possible, on a real iPhone.
 - Train Solo has no nutrition logging; none of this touches `src/solo/`.
 
 ## Deferred until the next App Store upload
@@ -179,6 +190,13 @@ Do these together when the user is ready to submit a new App Store build
   the latest code is "Start new build" → branch `main`.
 
 ## Working style
+
+- Every change that ships (a fix or a feature) updates
+  `REGRESSION_TESTS.md` (a numbered entry: problem/change, fix, the
+  regression tests and proof they fail without the fix, date) and
+  `CLAUDE.md` wherever it changes how that part of the app must be built
+  — in the same commit, without being asked (the user asked for this to
+  be remembered).
 
 - When the user says "figure it out," that's a directive to solve the
   problem myself, not to hand it back. Come back with a finished result —
