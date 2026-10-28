@@ -4,7 +4,8 @@
 // tests already cover each piece (FoodQuantitySheet's scaling, the
 // duplicate-add guards, etc.) in isolation; this exercises the full
 // client journeys end-to-end through NutritionScreen itself: search a
-// food, open the quantity sheet, change the serving, confirm, and check
+// food on the Add Food page, open the food page, change the serving,
+// confirm, and check
 // exactly what onAddFood/onRemoveFood were actually called with — the
 // meal, the date, and the scaled macros — for both today and a date
 // reached by navigating back with the date-nav control.
@@ -69,17 +70,17 @@ describe("Nutrition end-to-end: search -> quantity sheet -> log", () => {
     const onAddFood = vi.fn(() => Promise.resolve());
     render(<NutritionScreen {...baseProps({ onAddFood })} />);
 
-    // Open "Add to Breakfast" (the first meal tab's Log button).
+    // Open the Add Food page for Breakfast (the meal row's + button).
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
+    fireEvent.change(screen.getByPlaceholderText("Search foods, brands, meals"), { target: { value: "Chicken Breast" } });
 
     fireEvent.click(screen.getByText("Chicken Breast"));
 
-    // Quantity sheet opens on the food's own default unit/qty (g, 150 per
+    // The food page opens on the food's own default unit/qty (g, 150 per
     // the static database) — bump it to 300g and confirm.
     const qtyInput = document.querySelector('input[type="number"]');
     fireEvent.change(qtyInput, { target: { value: "300" } });
-    fireEvent.click(screen.getByText(/ADD/).closest("button"));
+    fireEvent.click(screen.getByRole("button", { name: "Log" }));
 
     expect(onAddFood).toHaveBeenCalledTimes(1);
     const [meal, scaled, dateKey] = onAddFood.mock.calls[0];
@@ -101,9 +102,9 @@ describe("Nutrition end-to-end: search -> quantity sheet -> log", () => {
     fireEvent.click(prevDayButton);
 
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
+    fireEvent.change(screen.getByPlaceholderText("Search foods, brands, meals"), { target: { value: "Chicken Breast" } });
     fireEvent.click(screen.getByText("Chicken Breast"));
-    fireEvent.click(screen.getByText(/ADD/).closest("button"));
+    fireEvent.click(screen.getByRole("button", { name: "Log" }));
 
     expect(onAddFood).toHaveBeenCalledTimes(1);
     const [, , dateKey] = onAddFood.mock.calls[0];

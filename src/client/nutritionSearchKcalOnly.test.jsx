@@ -56,7 +56,7 @@ describe("Nutrition search results — kcal only, no macro breakdown", () => {
   it("shows a searched food's name with only its kcal value underneath, no P/C/F text", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
+    fireEvent.change(screen.getByPlaceholderText("Search foods, brands, meals"), { target: { value: "Chicken Breast" } });
 
     const row = screen.getByText("Chicken Breast").closest("button");
     expect(row).toBeTruthy();
@@ -67,7 +67,7 @@ describe("Nutrition search results — kcal only, no macro breakdown", () => {
   it("shows a matched saved meal's name with 'My Meals · <kcal>', no P/C/F text", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Protein Shake" } });
+    fireEvent.change(screen.getByPlaceholderText("Search foods, brands, meals"), { target: { value: "Protein Shake" } });
 
     expect(screen.getByText("My Protein Shake")).toBeTruthy();
     expect(screen.getByText("My Meals · 220 kcal")).toBeTruthy();
@@ -90,7 +90,7 @@ describe("Nutrition search results — kcal only, no macro breakdown", () => {
   it("still filters as you type and still opens the quantity sheet when a result is tapped", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    const input = screen.getByPlaceholderText("Search foods or meals");
+    const input = screen.getByPlaceholderText("Search foods, brands, meals");
     fireEvent.change(input, { target: { value: "Chicken Breast" } });
     expect(screen.queryByText("Brown Rice (cooked)")).toBeNull();
 
