@@ -2200,8 +2200,8 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Date added**: 2026-10-28
 
 ### 99. Coached workout: "Form check" label under the video icon (design change)
-- **Change**: the form-check button on each exercise (`ExerciseBlock`, `src/client/ClientApp.jsx`) now shows a small "FORM CHECK" caption under the video icon, so clients know what it's for. The button's behaviour, aria-label and upload states are unchanged.
-- **Regression tests**: the existing `src/client/coachedFormCheckAndRest.test.jsx` cases (button found by its aria-label, upload sends a tagged form check, hidden in pre-1.0.3 iPhone builds) still pass. Screenshotted at 390px in dark and light with a long exercise name: no overlap.
+- **Change**: the form-check button on each exercise (`ExerciseBlock`, `src/client/ClientApp.jsx`) now shows a small "FORM / CHECK" caption stacked under the video icon, so clients know what it's for. The button keeps its original 32px width, so the exercise name and "3 sets × 10 Repetitions" sit exactly as before (a first, wider one-line caption squeezed them and was changed the same day). The button's behaviour, aria-label and upload states are unchanged.
+- **Regression tests**: the existing `src/client/coachedFormCheckAndRest.test.jsx` cases (button found by its aria-label, upload sends a tagged form check, hidden in pre-1.0.3 iPhone builds) still pass. Screenshotted at 390px in dark and light with a long exercise name, side by side with the original: name and sets/reps lines unchanged, no overlap.
 - **Date added**: 2026-10-28
 
 ---
