@@ -198,6 +198,8 @@ OWNER TO DO, in order
        Mode (still opens); after a web release, the first open shows the old
        version and the next one the new; leave it in the background a long
        time / open many other apps, then come back (no blank screen).
+       Coached app: scan a barcode on a client's Nutrition tab (the scanner
+       now loads when opened, REGRESSION_TESTS.md #103).
        Then subscriptions, with a Sandbox Apple ID (Settings > App Store >
        Sandbox Account): buy, trial, upgrade, cancel, Restore purchases on a
        second device, and a failed renewal (sandbox can simulate billing
