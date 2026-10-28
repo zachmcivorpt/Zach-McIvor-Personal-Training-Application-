@@ -518,6 +518,104 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
     });
   });
 
+  describe("Train Solo subscriptions (soloEntitlements, soloEnrolments, All Access content)", () => {
+    const SOLO_A = "solo-a";
+    const SOLO_B = "solo-b";
+    const NOW = Date.now();
+    async function seed({ allAccessUntil, status = "published" } = {}) {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        const db = ctx.firestore();
+        await setDoc(doc(db, "soloPrograms", "p1"), { name: "Strength", status });
+        await setDoc(doc(db, "soloProgramContent", "p1"), { phases: [] });
+        if (allAccessUntil !== undefined) await setDoc(doc(db, "soloEntitlements", SOLO_A), { allAccessUntil, sources: {} });
+      });
+    }
+
+    it("a customer reads their own entitlement but can never write one", async () => {
+      await seed({ allAccessUntil: NOW + 86400000 });
+      const db = dbAs(SOLO_A);
+      await assertSucceeds(getDoc(doc(db, "soloEntitlements", SOLO_A)));
+      await assertFails(setDoc(doc(db, "soloEntitlements", SOLO_A), { allAccessUntil: NOW + 999999999 }));
+      await assertFails(updateDoc(doc(db, "soloEntitlements", SOLO_A), { allAccessUntil: NOW + 999999999 }));
+      await assertFails(setDoc(doc(db, "soloEntitlements", SOLO_B), { allAccessUntil: NOW + 999999999 }));
+      await assertFails(getDoc(doc(dbAs(SOLO_B), "soloEntitlements", SOLO_A)));
+    });
+
+    it("paid-up All Access reads any published program's content", async () => {
+      await seed({ allAccessUntil: NOW + 86400000 });
+      await assertSucceeds(getDoc(doc(dbAs(SOLO_A), "soloProgramContent", "p1")));
+    });
+
+    it("no All Access, a lapsed/failed payment (0) or an expired one can't read content it hasn't bought", async () => {
+      await seed();
+      await assertFails(getDoc(doc(dbAs(SOLO_A), "soloProgramContent", "p1")));
+      await seed({ allAccessUntil: 0 });
+      await assertFails(getDoc(doc(dbAs(SOLO_A), "soloProgramContent", "p1")));
+      await seed({ allAccessUntil: NOW - 1000 });
+      await assertFails(getDoc(doc(dbAs(SOLO_A), "soloProgramContent", "p1")));
+      await assertFails(getDoc(doc(dbAs(SOLO_B), "soloProgramContent", "p1")));
+    });
+
+    it("All Access doesn't open a draft program", async () => {
+      await seed({ allAccessUntil: NOW + 86400000, status: "draft" });
+      await assertFails(getDoc(doc(dbAs(SOLO_A), "soloProgramContent", "p1")));
+    });
+
+    it("a bought program still opens without All Access", async () => {
+      await seed();
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloPurchases", `${SOLO_A}_p1`), { soloUserId: SOLO_A, programId: "p1", refunded: false });
+      });
+      await assertSucceeds(getDoc(doc(dbAs(SOLO_A), "soloProgramContent", "p1")));
+    });
+
+    it("a customer creates and updates their own enrolment, only at {uid}_{programId}", async () => {
+      const db = dbAs(SOLO_A);
+      const e = { id: `${SOLO_A}_p1`, soloUserId: SOLO_A, programId: "p1", status: "active", startDate: "2026-11-02" };
+      await assertSucceeds(setDoc(doc(db, "soloEnrolments", `${SOLO_A}_p1`), e));
+      await assertSucceeds(getDocs(query(collection(db, "soloEnrolments"), where("soloUserId", "==", SOLO_A))));
+      await assertSucceeds(updateDoc(doc(db, "soloEnrolments", `${SOLO_A}_p1`), { status: "paused", pausedAt: "2026-11-20", pausedAtWeek: 3 }));
+      await assertFails(updateDoc(doc(db, "soloEnrolments", `${SOLO_A}_p1`), { programId: "p2" }));
+      await assertFails(updateDoc(doc(db, "soloEnrolments", `${SOLO_A}_p1`), { soloUserId: SOLO_B }));
+      await assertFails(setDoc(doc(db, "soloEnrolments", "wrong-id"), { ...e, id: "wrong-id" }));
+      await assertFails(setDoc(doc(db, "soloEnrolments", `${SOLO_B}_p1`), { ...e, soloUserId: SOLO_B }));
+    });
+
+    it("another customer can't read or touch an enrolment", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await setDoc(doc(ctx.firestore(), "soloEnrolments", `${SOLO_A}_p1`), { soloUserId: SOLO_A, programId: "p1", status: "active" });
+      });
+      const db = dbAs(SOLO_B);
+      await assertFails(getDoc(doc(db, "soloEnrolments", `${SOLO_A}_p1`)));
+      await assertFails(updateDoc(doc(db, "soloEnrolments", `${SOLO_A}_p1`), { status: "paused" }));
+      await assertFails(deleteDoc(doc(db, "soloEnrolments", `${SOLO_A}_p1`)));
+      // the owner can (account deletion)
+      await assertSucceeds(deleteDoc(doc(dbAs(SOLO_A), "soloEnrolments", `${SOLO_A}_p1`)));
+    });
+
+    it("an enrolment alone never grants content", async () => {
+      await seed();
+      await setDoc(doc(dbAs(SOLO_A), "soloEnrolments", `${SOLO_A}_p1`), { soloUserId: SOLO_A, programId: "p1", status: "active" });
+      await assertFails(getDoc(doc(dbAs(SOLO_A), "soloProgramContent", "p1")));
+    });
+
+    it("the launch switch is public to read and only the coach can flip it", async () => {
+      await assertSucceeds(getDoc(doc(dbAs(null), "settings", "soloMonetisation")));
+      await assertFails(setDoc(doc(dbAs(SOLO_A), "settings", "soloMonetisation"), { live: true }));
+      await assertSucceeds(setDoc(doc(dbAs(COACH_UID), "settings", "soloMonetisation"), { live: true }));
+    });
+
+    it("own custom programs: only the owner", async () => {
+      const db = dbAs(SOLO_A);
+      const cp = { id: "cp1", soloUserId: SOLO_A, name: "Mine", weeks: 4, days: [] };
+      await assertSucceeds(setDoc(doc(db, "soloCustomPrograms", "cp1"), cp));
+      await assertSucceeds(getDoc(doc(db, "soloCustomPrograms", "cp1")));
+      await assertFails(getDoc(doc(dbAs(SOLO_B), "soloCustomPrograms", "cp1")));
+      await assertFails(updateDoc(doc(db, "soloCustomPrograms", "cp1"), { soloUserId: SOLO_B }));
+      await assertFails(setDoc(doc(dbAs(SOLO_B), "soloCustomPrograms", "cp2"), { ...cp, id: "cp2" }));
+    });
+  });
+
   describe("soloUsers", () => {
     const SOLO_A = "solo-a";
     const SOLO_B = "solo-b";

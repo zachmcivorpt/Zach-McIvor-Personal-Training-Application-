@@ -1128,6 +1128,13 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
   if (!programId || typeof programId !== "string") throw new HttpsError("invalid-argument", "programId is required.");
   if (!isAllowedReturnOrigin(returnOrigin)) throw new HttpsError("invalid-argument", "Invalid returnOrigin.");
 
+  // Once subscriptions launch, programs are All Access only — single
+  // programs aren't sold any more (owner decision 2026-10-28).
+  const monetisation = await db.collection("settings").doc("soloMonetisation").get();
+  if (monetisation.exists && monetisation.data().live === true) {
+    throw new HttpsError("failed-precondition", "Programs are now part of All Access.");
+  }
+
   const programSnap = await db.collection("soloPrograms").doc(programId).get();
   if (!programSnap.exists || programSnap.data().status !== "published") {
     throw new HttpsError("not-found", "That program isn't available.");
@@ -1186,6 +1193,16 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
 // Firestore rules entirely; everything it writes is trusted because the
 // signature check below already proved the request really came from
 // Stripe, not a browser pretending to be the webhook.
+const SUBSCRIPTION_EVENTS = new Set([
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+  "customer.subscription.paused",
+  "customer.subscription.resumed",
+  "invoice.paid",
+  "invoice.payment_failed",
+]);
+
 exports.soloStripeWebhook = onRequest(async (req, res) => {
   if (!stripeConfigured() || !process.env.STRIPE_WEBHOOK_SECRET || process.env.STRIPE_WEBHOOK_SECRET === "not-configured-yet") {
     res.status(503).send("Payments aren't configured yet.");
@@ -1207,11 +1224,22 @@ exports.soloStripeWebhook = onRequest(async (req, res) => {
   }
 
   try {
-    if (event.type === "checkout.session.completed") {
+    if (SUBSCRIPTION_EVENTS.has(event.type)) {
+      // Train Solo Plus / All Access (functions/soloSubscriptions.js): re-read
+      // the customer's subscriptions from Stripe and rewrite their
+      // entitlement — a failed payment (past_due) or a cancellation that's
+      // run out reads as Free straight away.
+      const obj = event.data.object;
+      const customerId = typeof obj.customer === "string" ? obj.customer : obj.customer?.id;
+      const uid = obj.metadata?.soloUserId || obj.subscription_details?.metadata?.soloUserId || obj.client_reference_id || null;
+      await solo.syncStripeCustomer(db, stripe, customerId, uid);
+    } else if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const soloUserId = session.metadata?.soloUserId;
       const programId = session.metadata?.programId;
-      if (soloUserId && programId) {
+      if (session.mode === "subscription") {
+        await solo.syncStripeCustomer(db, stripe, session.customer, session.client_reference_id || soloUserId || null);
+      } else if (soloUserId && programId) {
         const purchaseId = `${soloUserId}_${programId}`;
         // merge: true, keyed by the same deterministic {uid}_{programId}
         // id the old placeholder path used — a duplicate webhook delivery
@@ -1256,4 +1284,182 @@ exports.soloStripeWebhook = onRequest(async (req, res) => {
   }
 
   res.json({ received: true });
+});
+
+// ---------------------------------------------------------------------
+// Train Solo subscriptions: Free / Plus / All Access (ROADMAP.txt step 2,
+// logic in soloSubscriptions.js). Website purchases go through Stripe
+// (below); iPhone purchases through Apple + RevenueCat (1.0.4's native
+// bridge) and soloRevenueCatWebhook.
+// ---------------------------------------------------------------------
+const solo = require("./soloSubscriptions");
+
+async function soloEntitlementOf(uid) {
+  const snap = await db.collection("soloEntitlements").doc(uid).get();
+  return snap.exists ? snap.data() : {};
+}
+
+// Website subscription checkout. Returns { url } for a new Stripe Checkout,
+// or { changed: true } after moving an existing Stripe subscription to the
+// new plan (charged/credited pro rata), or { already: "stripe"|"apple" } /
+// { manageInApple: true } when there's nothing to buy here.
+exports.createSoloSubscriptionCheckout = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  if (!stripeConfigured()) throw new HttpsError("failed-precondition", "Payments aren't configured yet.");
+  const { plan, returnOrigin } = request.data || {};
+  if (!solo.PLANS[plan]) throw new HttpsError("invalid-argument", "Unknown plan.");
+  if (!isAllowedReturnOrigin(returnOrigin)) throw new HttpsError("invalid-argument", "Invalid returnOrigin.");
+  const profile = await db.collection("soloUsers").doc(uid).get();
+  if (!profile.exists) throw new HttpsError("failed-precondition", "Finish setting up your account first.");
+
+  const entitlement = await soloEntitlementOf(uid);
+  const decision = solo.checkoutDecision(entitlement, plan);
+  if (decision.action === "already") return { already: decision.store };
+  if (decision.action === "apple") return { manageInApple: true };
+
+  const stripe = getStripeClient();
+  try {
+    const priceId = await solo.ensurePrice(stripe, plan);
+    if (decision.action === "change") {
+      const sub = await stripe.subscriptions.retrieve(decision.subscriptionId);
+      await stripe.subscriptions.update(sub.id, {
+        items: [{ id: sub.items.data[0].id, price: priceId }],
+        proration_behavior: "always_invoice",
+        cancel_at_period_end: false,
+        metadata: { ...sub.metadata, soloUserId: uid, plan },
+      });
+      await solo.syncStripeCustomer(db, stripe, typeof sub.customer === "string" ? sub.customer : sub.customer.id, uid);
+      return { changed: true };
+    }
+    const user = await getAuth().getUser(uid);
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      line_items: [{ price: priceId, quantity: 1 }],
+      client_reference_id: uid,
+      ...(entitlement.stripeCustomerId ? { customer: entitlement.stripeCustomerId } : { customer_email: user.email || undefined }),
+      subscription_data: {
+        metadata: { soloUserId: uid, plan },
+        ...(decision.trialDays > 0 ? { trial_period_days: decision.trialDays } : {}),
+      },
+      metadata: { soloUserId: uid, plan },
+      allow_promotion_codes: true,
+      success_url: `${returnOrigin}/solo/home?subscribed=${encodeURIComponent(plan)}`,
+      cancel_url: `${returnOrigin}/solo/home?subscribe=cancelled`,
+    });
+    return { url: session.url };
+  } catch (err) {
+    console.error("createSoloSubscriptionCheckout failed:", err.message);
+    throw new HttpsError("internal", `Stripe error: ${err.message}`);
+  }
+});
+
+// Stripe's hosted page to update the card, see invoices or cancel (website
+// subscribers only; Apple subscribers manage theirs in iPhone Settings).
+exports.createSoloBillingPortal = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  if (!stripeConfigured()) throw new HttpsError("failed-precondition", "Payments aren't configured yet.");
+  const { returnOrigin } = request.data || {};
+  if (!isAllowedReturnOrigin(returnOrigin)) throw new HttpsError("invalid-argument", "Invalid returnOrigin.");
+  const { stripeCustomerId } = await soloEntitlementOf(uid);
+  if (!stripeCustomerId) throw new HttpsError("failed-precondition", "No website subscription on this account.");
+  try {
+    const session = await getStripeClient().billingPortal.sessions.create({ customer: stripeCustomerId, return_url: `${returnOrigin}/solo/home?soloTab=profile` });
+    return { url: session.url };
+  } catch (err) {
+    console.error("createSoloBillingPortal failed:", err.message);
+    throw new HttpsError("internal", `Stripe error: ${err.message}`);
+  }
+});
+
+// Re-reads the customer's subscriptions from both stores now — called by the
+// app right after an in-app purchase or restore (the webhook can lag), and
+// from Profile's "Restore purchases".
+exports.syncSoloEntitlement = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  try {
+    await solo.syncApple(db, uid);
+    const { stripeCustomerId } = await soloEntitlementOf(uid);
+    if (stripeCustomerId && stripeConfigured()) await solo.syncStripeCustomer(db, getStripeClient(), stripeCustomerId, uid);
+  } catch (err) {
+    console.error("syncSoloEntitlement failed:", uid, err.message);
+    throw new HttpsError("internal", "Couldn't check your subscription — try again.");
+  }
+  return { tier: (await soloEntitlementOf(uid)).tier || "free" };
+});
+
+// Account deletion: a website subscription is cancelled now (so a deleted
+// account is never charged again) and the entitlement removed. An Apple
+// subscription can only be cancelled by the customer in iPhone Settings —
+// the app tells them so before they delete.
+exports.cancelSoloSubscriptionsForDeletion = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  const { stripeCustomerId } = await soloEntitlementOf(uid);
+  if (stripeCustomerId && stripeConfigured()) {
+    const stripe = getStripeClient();
+    const subs = await stripe.subscriptions.list({ customer: stripeCustomerId, status: "all", limit: 20 });
+    for (const sub of subs.data) {
+      if (sub.metadata?.soloUserId === uid && !["canceled", "incomplete_expired"].includes(sub.status)) {
+        await stripe.subscriptions.cancel(sub.id);
+      }
+    }
+  }
+  await db.collection("soloEntitlements").doc(uid).delete();
+  return { ok: true };
+});
+
+// RevenueCat → us, for every Apple subscription event (purchase, renewal,
+// cancellation, billing issue, expiry, refund, transfer). RevenueCat sends
+// the Authorization header value set in its dashboard; anything else is
+// rejected. The event only says WHO changed — their current entitlements
+// are then read from RevenueCat's API (syncApple), so a replayed, reordered
+// or forged-looking event can never grant more than RevenueCat itself says.
+exports.soloRevenueCatWebhook = onRequest(async (req, res) => {
+  const expected = process.env.REVENUECAT_WEBHOOK_AUTH;
+  if (!solo.revenueCatConfigured() || !expected || expected === "not-configured-yet") {
+    res.status(503).send("Not configured.");
+    return;
+  }
+  if (req.method !== "POST" || req.headers.authorization !== expected) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+  const ev = req.body?.event || {};
+  const ids = new Set([ev.app_user_id, ev.original_app_user_id, ...(ev.transferred_from || []), ...(ev.transferred_to || [])]);
+  for (const id of ids) {
+    if (typeof id !== "string" || !id || id.startsWith("$RCAnonymousID")) continue;
+    try {
+      await solo.syncApple(db, id);
+    } catch (err) {
+      // 500 so RevenueCat retries later.
+      console.error("RevenueCat sync failed:", id, err.message);
+      res.status(500).send("Sync failed");
+      return;
+    }
+  }
+  res.json({ received: true });
+});
+
+// Coach console → Train Solo → Subscriptions: add or remove a test account
+// (by its Train Solo email) that sees the tiers before launch.
+exports.setSoloTestAccount = onCall(async (request) => {
+  await requireCoach(request.auth?.uid);
+  const email = String(request.data?.email || "").trim().toLowerCase();
+  const add = request.data?.add !== false;
+  if (!email) throw new HttpsError("invalid-argument", "Enter the account's email.");
+  let user;
+  try {
+    user = await adminAuth.getUserByEmail(email);
+  } catch {
+    throw new HttpsError("not-found", "No account with that email.");
+  }
+  const profile = await db.collection("soloUsers").doc(user.uid).get();
+  if (!profile.exists) throw new HttpsError("not-found", "That email isn't a Train Solo account.");
+  const { FieldValue } = require("firebase-admin/firestore");
+  const op = add ? FieldValue.arrayUnion : FieldValue.arrayRemove;
+  await db.collection("settings").doc("soloMonetisation").set({ testUids: op(user.uid), testEmails: op(email) }, { merge: true });
+  return { ok: true, uid: user.uid };
 });

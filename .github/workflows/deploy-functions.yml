@@ -47,6 +47,8 @@ jobs:
           WHOOP_CLIENT_SECRET=${{ secrets.WHOOP_CLIENT_SECRET }}
           STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          REVENUECAT_SECRET_KEY=${{ secrets.REVENUECAT_SECRET_KEY }}
+          REVENUECAT_WEBHOOK_AUTH="${{ secrets.REVENUECAT_WEBHOOK_AUTH }}"
           SMTP_HOST=${{ secrets.SMTP_HOST }}
           SMTP_PORT=${{ secrets.SMTP_PORT }}
           SMTP_USER=${{ secrets.SMTP_USER }}

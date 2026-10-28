@@ -418,7 +418,58 @@ service cloud.firestore {
       allow read: if isCoach() ||
         (isSignedIn() &&
           exists(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)) &&
-          get(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)).data.get("refunded", false) != true);
+          get(/databases/$(database)/documents/soloPurchases/$(request.auth.uid + '_' + id)).data.get("refunded", false) != true) ||
+        (hasAllAccess() &&
+          get(/databases/$(database)/documents/soloPrograms/$(id)).data.get("status", "") == "published");
+      allow write: if isCoach();
+    }
+
+    // An All Access subscription that's paid up right now. allAccessUntil
+    // is written only by the server (functions/soloSubscriptions.js) from
+    // Stripe and Apple: the end of the paid period while a subscription is
+    // active or in its free trial, and 0 the moment a payment fails, it's
+    // cancelled and has run out, or it's refunded. A customer can never
+    // write it (soloEntitlements below).
+    function hasAllAccess() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/soloEntitlements/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/soloEntitlements/$(request.auth.uid)).data.get("allAccessUntil", 0) > request.time.toMillis();
+    }
+
+    // --- soloEntitlements/{uid}: which Train Solo tier a customer has paid
+    //     for (Free / Plus / All Access), per store. Server-written only:
+    //     Stripe's and RevenueCat's webhooks (Admin SDK, bypassing these
+    //     rules) after verifying the request really came from them. The
+    //     customer can read their own; nobody can write it from an app. ---
+    match /soloEntitlements/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // --- soloEnrolments/{uid}_{programId}: a program a customer is running
+    //     through All Access, and its schedule (start date, paused or
+    //     active — src/solo/enrolments.js). The customer's own to write:
+    //     an enrolment schedules a program, it never grants access to one
+    //     (the content stays behind hasAllAccess() above). The id is pinned
+    //     to `{uid}_{programId}`, the same id a purchase of it would have,
+    //     so workout logs line up either way. The app never deletes one (it
+    //     keeps the program's place for when the customer comes back to
+    //     it); only the customer can, as part of deleting their account. ---
+    match /soloEnrolments/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid &&
+        id == request.auth.uid + '_' + request.resource.data.programId;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId &&
+        request.resource.data.programId == resource.data.programId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
+
+    // --- settings/soloMonetisation: the subscriptions launch switch
+    //     ({ live, testUids }) — public read so the app knows whether tier
+    //     gates apply; only the coach turns it on (coach console). ---
+    match /settings/soloMonetisation {
+      allow read: if true;
       allow write: if isCoach();
     }
 
@@ -522,6 +573,17 @@ service cloud.firestore {
     //     ownership shape as soloWorkoutLogs: only that customer reads or
     //     writes them, and one can never be handed to another account. ---
     match /soloCustomSessions/{id} {
+      allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
+        request.resource.data.soloUserId == resource.data.soloUserId;
+      allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
+    }
+
+    // --- soloCustomPrograms/{id}: multi-week programs a Plus customer
+    //     built from their own sessions (src/solo/customPrograms.js). Same
+    //     ownership shape as soloCustomSessions. ---
+    match /soloCustomPrograms/{id} {
       allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
       allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
