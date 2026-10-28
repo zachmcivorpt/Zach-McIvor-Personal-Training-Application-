@@ -46,6 +46,18 @@ rather than inventing new colors per screen:
   buried in small print.
 - Photography used sparingly, not as filler.
 
+### Coached client Home and Training (Concept A, approved 2026-10-28)
+
+- Black-and-white gym photography (`public/brand/gym-dark.jpg`,
+  `workout-1..4.jpg`): Home's workout card, and the Training tab's photo
+  header (`TrainingPhotoHero`) with today's workout or the current phase
+  in white on it. The photo fades into the page colour at the top (the
+  app's top bar is white) and the bottom; the page header and
+  Today/Program switch sit on the plain page above it.
+- Lists are open rows with thin dividers (a darker top rule), not cards.
+- Content placed after `TrainingPhotoHero` must be `relative`, or the
+  photo's bottom fade paints over it.
+
 ### Train Solo (self-guided app, `src/solo/`) design rules
 
 - **Every box/card is frosted glass**: translucent fill + hairline border +

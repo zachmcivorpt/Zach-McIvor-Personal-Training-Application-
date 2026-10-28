@@ -413,16 +413,16 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   return (
     <div className="flex items-center justify-between px-2.5 pt-0.5 pb-0">
       <div>
-        <p className={`text-lg font-bold ${dark ? "text-white" : "text-black"}`}>
+        <p className={`text-[22px] leading-tight font-semibold tracking-[-0.02em] ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
         </p>
-        <p className={`text-sm mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>{dateStr}</p>
+        <p className={`text-[13.5px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>{dateStr}</p>
       </div>
       <div className="flex items-center gap-2.5">
         <button
           onClick={onOpenNotifications}
-          className={`w-10 h-10 rounded-full flex items-center justify-center relative active:scale-95 transition-transform ${
-            dark ? "bg-white/8" : "bg-black/8"
+          className={`w-10 h-10 rounded-full flex items-center justify-center relative active:scale-95 transition-transform border ${
+            dark ? "border-white/15 bg-white/5" : "border-black/12 bg-white/70"
           }`}
         >
           <Bell size={17} className={dark ? "text-white/80" : "text-black/80"} />
@@ -461,7 +461,7 @@ function clientGlass(dark) {
   return dark ? CLIENT_GLASS_DARK : CLIENT_GLASS_LIGHT;
 }
 
-export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onDiscard, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
+export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onDiscard, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false, photo = false }) {
   const dark = useClientDark();
   // Always a rounded glass card with side margins now (`fullWidth` is kept
   // only so existing callers don't break).
@@ -473,6 +473,14 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   const muted70 = dark ? "text-white/70" : "text-black/70";
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
+  if (!todaySession && photo === "bare") {
+    return (
+      <div className="mx-2.5 px-2.5 pt-[76px]">
+        <p className="text-white text-xl font-semibold tracking-[-0.02em]">{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
+        {dbReady && <p className="text-white/70 text-[13px] mt-0.5">{isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}</p>}
+      </div>
+    );
+  }
   if (!todaySession) {
     return (
       <div className={`${outerMargin} ${outerRadius} p-8 text-center`} style={clientGlass(dark)}>
@@ -497,6 +505,99 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   const pillLabel = completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : todaySession.wod ? "WORKOUT OF THE DAY" : isToday ? "TODAY'S FOCUS" : "SCHEDULED";
 
   const primary = dark ? "text-white" : "text-black";
+  if (photo) {
+    // Home's version: the same session, actions and states on a black-and-
+    // white gym photo with the text in white over a dark fade.
+    const statusLabel = completedOnDate ? "Completed" : isPastDate ? "Missed" : todaySession.wod ? "Workout of the day" : isToday ? "Today's focus" : "Scheduled";
+    const done = completedOnDate && !started;
+    const bare = photo === "bare";
+    const body = (
+        <div className={bare ? "mx-2.5 px-1 pt-[76px] flex flex-col" : "relative flex flex-col min-h-[206px] p-3"}>
+          <span
+            className="self-start h-7 pl-1.5 pr-3 rounded-full flex items-center gap-1.5 text-xs font-semibold"
+            style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
+          >
+            <span className="w-[18px] h-[18px] rounded-full flex items-center justify-center" style={{ backgroundColor: done ? MEASURE_BLUE : "rgba(255,255,255,0.2)" }}>
+              {done ? <Check size={10} strokeWidth={3.4} /> : <Dumbbell size={10} strokeWidth={2.4} />}
+            </span>
+            {statusLabel}
+          </span>
+          <div className={bare ? "mt-4" : "mt-auto pt-16 px-1 pb-0.5"}>
+            <div className="flex items-end gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 className={`${bare ? "text-xl" : "text-lg"} font-semibold tracking-[-0.02em] truncate`}>{todaySession.label}</h2>
+                {(todaySession.muscleGroups || []).length > 0 && <p className="text-white/70 text-[13px] mt-0.5 truncate">{todaySession.muscleGroups.join(" & ")} Focus</p>}
+                <p className="text-white/70 text-[13px] mt-0.5">
+                  {exCount} exercise{exCount === 1 ? "" : "s"} · {estMin} minute{estMin === 1 ? "" : "s"}
+                </p>
+              </div>
+              {done && (
+                <button
+                  onClick={onView}
+                  className="h-[38px] pl-4 pr-3.5 rounded-xl bg-white/95 text-black text-[13px] font-semibold flex items-center gap-1 shrink-0 active:scale-[0.97] transition-transform"
+                >
+                  View <ChevronRight size={14} strokeWidth={2.4} />
+                </button>
+              )}
+            </div>
+            {started && (
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-white/70 mb-1.5">
+                  <span>Progress</span>
+                  <span>
+                    {completedSets}/{totalSets} sets
+                  </span>
+                </div>
+                <ProgressBar value={completedSets} max={totalSets} color={MEASURE_BLUE} trackClassName="bg-white/20" />
+              </div>
+            )}
+            {!done && (
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={onStart}
+                  className="flex-1 h-11 rounded-xl bg-white text-black text-[14px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                >
+                  <Play size={14} fill="currentColor" />
+                  {started ? "RESUME WORKOUT" : "START WORKOUT"}
+                </button>
+                <button
+                  onClick={onView}
+                  className="h-11 px-4 rounded-xl text-white text-sm font-semibold active:scale-[0.98] transition-transform"
+                  style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
+                >
+                  View
+                </button>
+              </div>
+            )}
+            {started && onDiscard && (
+              <button
+                onClick={() => {
+                  if (confirmDiscard) {
+                    onDiscard();
+                    setConfirmDiscard(false);
+                  } else {
+                    setConfirmDiscard(true);
+                  }
+                }}
+                className={`w-full text-center text-[11px] font-medium mt-2.5 ${confirmDiscard ? "text-white" : "text-white/60"}`}
+              >
+                {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+              </button>
+            )}
+          </div>
+        </div>
+    );
+    // "bare": just the text and buttons, for a screen that already has the
+    // photo behind it (Training > Today).
+    if (bare) return <div className="text-white">{body}</div>;
+    return (
+      <div className={`${outerMargin} relative overflow-hidden rounded-[22px] bg-[#0d0d0e] text-white`} style={{ boxShadow: "0 22px 40px -24px rgba(0,0,0,0.55)" }}>
+        <img src="/brand/gym-dark.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "50% 62%", filter: "brightness(0.85)" }} draggable={false} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.8) 100%)" }} />
+        {body}
+      </div>
+    );
+  }
   return (
     <div className={`${outerMargin} ${outerRadius} p-5`} style={clientGlass(dark)}>
       <div>
@@ -689,7 +790,7 @@ function DateStrip({ selectedOffset, onSelect }) {
 
   return (
     <div className="px-2.5">
-      <div ref={stripRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div ref={stripRef} className={`flex gap-2 overflow-x-auto no-scrollbar pb-2 border-b ${dark ? "border-white/10" : "border-black/8"}`}>
         {offsets.map((offset) => {
           const d = dateForOffset(offset);
           const isToday = offset === 0;
@@ -699,37 +800,23 @@ function DateStrip({ selectedOffset, onSelect }) {
               key={offset}
               data-offset={offset}
               onClick={() => onSelect(offset)}
-              className={`shrink-0 w-[calc((100%-48px)/7)] rounded-xl py-2 flex flex-col items-center gap-0.5 border transition-colors ${
-                isSelected
-                  ? dark
-                    ? "bg-white border-white"
-                    : "bg-black border-black"
-                  : dark
-                  ? "bg-white/[0.04] border-white/8"
-                  : "bg-black/[0.04] border-black/8"
-              }`}
+              className="shrink-0 w-[calc((100%-48px)/7)] py-1 flex flex-col items-center gap-1.5"
             >
               <span
-                className={`text-sm font-bold leading-none ${
-                  isSelected ? (dark ? "text-black" : "text-white") : dark ? "text-white" : "text-black"
-                }`}
-              >
-                {d.getDate()}
-              </span>
-              <span
-                className={`text-[9px] font-semibold tracking-wide ${
-                  isSelected ? (dark ? "text-black/50" : "text-white/50") : dark ? "text-white/35" : "text-black/35"
+                className={`text-[11px] font-medium ${
+                  isSelected ? (dark ? "text-white" : "text-black") : dark ? "text-white/40" : "text-black/40"
                 }`}
               >
                 {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
-              {isToday && (
-                <span
-                  className={`w-1 h-1 rounded-full ${
-                    isSelected ? (dark ? "bg-black/40" : "bg-white/40") : dark ? "bg-white/50" : "bg-black/50"
-                  }`}
-                />
-              )}
+              <span
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-semibold leading-none transition-colors ${
+                  isSelected ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white" : "text-black"
+                }`}
+              >
+                {d.getDate()}
+              </span>
+              <span className="w-3.5 h-0.5" style={{ backgroundColor: isToday ? MEASURE_BLUE : "transparent" }} />
             </button>
           );
         })}
@@ -779,37 +866,30 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
     }
   }
 
-  const doneRowBg = dark ? "bg-white/[0.06]" : "bg-black/[0.06]";
-  const notDoneRowBg = dark ? "bg-white/[0.03]" : "bg-black/[0.03]";
-  const doneIconBg = dark ? "bg-white" : "bg-black";
-  const notDoneIconBg = dark ? "bg-white/8" : "bg-black/8";
-  const doneIconColor = dark ? "text-black" : "text-white";
-  const notDoneIconColor = dark ? "text-white/45" : "text-black/45";
+  const muted = dark ? "text-white/55" : "text-black/55";
+  const faint = dark ? "text-white/35" : "text-black/35";
   const doneLabelColor = dark ? "text-white/35" : "text-black/35";
-  const notDoneLabelColor = dark ? "text-white/85" : "text-black/85";
+  const notDoneLabelColor = dark ? "text-white" : "text-black";
   const doneCheckBg = dark ? "bg-white border-white" : "bg-black border-black";
-  const notDoneCheckBorder = dark ? "border-white/20" : "border-black/20";
+  const notDoneCheckBorder = dark ? "border-white/25" : "border-black/22";
   const checkIconColor = dark ? "text-black" : "text-white";
+  const divider = dark ? "border-white/10" : "border-black/8";
   return (
-    <div className={`mx-2.5 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={clientGlass(dark)}>
-      <div className="flex items-center justify-between mb-0.5">
-        <h3 className={`font-semibold ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
-        <span className={`text-xs font-medium tracking-wide ${dark ? "text-white/35" : "text-black/35"}`}>
-          {doneCount}/{habits.length} COMPLETE
+    <div className="mx-2.5 px-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
+        <span className={`text-[13px] tabular-nums shrink-0 ${muted}`}>
+          <span className={`font-semibold ${dark ? "text-white" : "text-black"}`}>{doneCount}</span>/{habits.length} complete
         </span>
       </div>
-      <p className={`text-xs mb-3 ${dark ? "text-white/35" : "text-black/35"}`}>The small actions that drive your performance.</p>
-      <div className="mb-3">
-        <ProgressBar
-          value={doneCount}
-          max={habits.length}
-          height={6}
-          color={dark ? "#FFFFFF" : "#0A0A0B"}
-          trackClassName={dark ? "bg-white/10" : "bg-black/10"}
-        />
+      <p className={`text-[13px] mt-0.5 ${muted}`}>The small actions that drive your performance.</p>
+      <div className="flex gap-1 mt-3">
+        {habits.map((h) => (
+          <span key={h.id} className="flex-1 h-[3px] rounded-full transition-colors" style={{ backgroundColor: isDone(h) ? MEASURE_BLUE : dark ? "rgba(255,255,255,0.12)" : "rgba(10,10,11,0.09)" }} />
+        ))}
       </div>
-      <div className="space-y-1.5">
-        {habits.map((h) => {
+      <div className={`mt-3 border-t ${divider}`}>
+        {habits.map((h, i) => {
           const done = isDone(h);
           const Icon = habitIcon(h.label);
           return (
@@ -817,21 +897,14 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
               type="button"
               key={h.id}
               onClick={() => (interactive ? handleToggle(h) : showToast?.("Jump to today to update habits"))}
-              className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors ${
-                done ? doneRowBg : notDoneRowBg
-              } ${interactive ? "active:scale-[0.97]" : "opacity-60"} transition-transform duration-150`}
+              className={`w-full flex items-center gap-3 min-h-[54px] py-2.5 text-left border-b ${divider} ${interactive ? "active:opacity-70" : "opacity-60"} transition-opacity duration-150`}
             >
+              <span className={`w-5 text-[11px] font-semibold tabular-nums shrink-0 ${faint}`}>{String(i + 1).padStart(2, "0")}</span>
+              <Icon size={16} className={`shrink-0 ${muted}`} strokeWidth={1.8} />
+              <span className={`text-[14.5px] leading-snug flex-1 transition-colors ${done ? `${doneLabelColor} line-through` : notDoneLabelColor}`}>{h.label}</span>
               <span
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? `${doneIconBg} scale-100` : `${notDoneIconBg} scale-95`
-                }`}
-              >
-                <Icon size={16} className={done ? doneIconColor : notDoneIconColor} strokeWidth={2.2} />
-              </span>
-              <span className={`text-sm flex-1 transition-colors ${done ? `${doneLabelColor} line-through` : notDoneLabelColor}`}>{h.label}</span>
-              <span
-                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? `${doneCheckBg} scale-100` : `${notDoneCheckBorder} scale-90`
+                className={`w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all duration-200 ${
+                  done ? `${doneCheckBg} scale-100` : `${notDoneCheckBorder} scale-95`
                 }`}
               >
                 {done && <Check size={12} className={checkIconColor} strokeWidth={3.5} />}
@@ -1185,9 +1258,9 @@ export function CardioLogCard({ logs, onDelete, onUpdate }) {
   const downXRef = useRef(null);
   if (!logs || logs.length === 0) return null;
   return (
-    <div className="mx-2.5 space-y-2">
+    <div className="mx-2.5 px-1">
       {logs.map((log) => (
-        <SwipeableRow key={log.id} rounded="rounded-2xl" onDelete={() => onDelete?.(log)}>
+        <SwipeableRow key={log.id} rounded="rounded-none" onDelete={() => onDelete?.(log)}>
         <div
           role={onUpdate ? "button" : undefined}
           aria-label={onUpdate ? `Edit ${log.cardio.activityLabel}` : undefined}
@@ -1197,15 +1270,15 @@ export function CardioLogCard({ logs, onDelete, onUpdate }) {
             if (downXRef.current != null && Math.abs(e.clientX - downXRef.current) > 8) return;
             setEditing(log);
           }}
-          className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${onUpdate ? "cursor-pointer" : ""} ${dark ? "border-white/8" : "border-black/8"}`}
-          style={clientGlass(dark)}
+          className={`flex items-center gap-3.5 py-3 border-b ${onUpdate ? "cursor-pointer" : ""} ${dark ? "border-white/10" : "border-black/8"}`}
+          style={{ backgroundColor: dark ? CLIENT_DARK_BG : "#FFFFFF" }}
         >
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.15)" }}>
-            <Footprints size={17} style={{ color: MEASURE_BLUE }} />
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+            <Footprints size={18} style={{ color: MEASURE_BLUE }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className={`text-sm font-semibold truncate ${dark ? "text-white/85" : "text-black/85"}`}>{log.cardio.activityLabel}</p>
-            <p className={`text-xs mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>
+            <p className={`text-[15px] font-semibold truncate ${dark ? "text-white" : "text-black"}`}>{log.cardio.activityLabel}</p>
+            <p className={`text-[13px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>
               {[
                 log.cardio.durationMin ? `${log.cardio.durationMin} min` : null,
                 log.cardio.distanceKm ? `${log.cardio.distanceKm} km` : null,
@@ -1215,12 +1288,12 @@ export function CardioLogCard({ logs, onDelete, onUpdate }) {
                 .join(" · ")}
             </p>
           </div>
-          {onUpdate && <Edit3 size={14} className={`shrink-0 ${dark ? "text-white/30" : "text-black/30"}`} />}
+          {onUpdate && <Edit3 size={15} className={`shrink-0 mr-1 ${dark ? "text-white/35" : "text-black/35"}`} />}
         </div>
         </SwipeableRow>
       ))}
       {(onDelete || onUpdate) && (
-        <p className={`text-[10px] text-center ${dark ? "text-white/30" : "text-black/30"}`}>
+        <p className={`text-[11.5px] mt-2.5 ${dark ? "text-white/35" : "text-black/35"}`}>
           {onUpdate && onDelete ? "Tap a session to edit it · swipe left to remove it" : onUpdate ? "Tap a session to edit it" : "Swipe left on a session to remove it"}
         </p>
       )}
@@ -1310,6 +1383,7 @@ function HomeScreen({
         isPastDate={dayOffset < 0}
         dbReady={dbReady}
         fullWidth
+        photo
       />
       <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} onUpdate={onUpdateCardio} />
       <DailyHabitsCard
@@ -3328,7 +3402,7 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
 // Read-only mirror of the coach's own Training Program view — same phase
 // (name/dates/description) + workout-list structure, just without any
 // edit/add/schedule controls, which stay coach-only.
-function ClientProgramTab({ onPreviewDay, showToast }) {
+function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, viewingAsClient, updateClientPhase } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
@@ -3344,11 +3418,10 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   if (phases.length === 0) {
     return (
-      <div className="px-2.5">
-        <Card dark={dark}>
-          <p className={dark ? "text-white/40 text-sm text-center py-8" : "text-black/40 text-sm text-center py-8"}>No training program set up yet — your coach will assign one soon.</p>
-        </Card>
-      </div>
+      <TrainingPhotoHero>
+        {header}
+        <p className="mx-2.5 px-1 pt-[76px] text-white/80 text-sm">No training program set up yet — your coach will assign one soon.</p>
+      </TrainingPhotoHero>
     );
   }
 
@@ -3397,114 +3470,134 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
     }
   }
 
+  // The next few scheduled workouts after today, straight from the
+  // client's calendar.
+  const upNext = scheduledForPhase
+    .filter((w) => w.date > todayStr)
+    .sort((x, y) => x.date.localeCompare(y.date))
+    .slice(0, 3);
+
   return (
     <div className="space-y-4">
-      <div className="mx-2.5 rounded-2xl overflow-hidden" style={clientGlass(dark)}>
-        <div className="px-4 pt-4 md:px-5">
-          <div className="flex items-center justify-between gap-2 mb-2">
+      <TrainingPhotoHero>
+        {header}
+        <div className="mx-2.5 px-1 pt-[76px]">
+          <div className="flex items-center justify-between gap-2">
             {phase.id === current?.id ? (
-              <span className="bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">CURRENT</span>
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: MEASURE_BLUE }} />
+                Current
+              </span>
             ) : (
               <span />
             )}
             <button
               onClick={() => setHistoryOpen(true)}
-              className={`flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full border active:scale-[0.96] transition-transform ${
-                dark ? "text-white border-white/15 bg-white/5" : "text-black border-black/10 bg-black/[0.03]"
-              }`}
+              className="flex items-center gap-1.5 text-xs font-semibold h-[30px] px-2.5 rounded-[10px] text-white active:scale-[0.96] transition-transform"
+              style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
             >
-              <Calendar size={12} /> PHASES
+              <Calendar size={12} /> Phases
             </button>
           </div>
-          <div>
-            <h2 className={`${dark ? "text-white" : "text-black"} text-xl font-bold tracking-tight truncate`}>{phase.name}</h2>
-            <p className={`${dark ? "text-white/60" : "text-black/55"} text-xs mt-1`}>
-              {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-              {phase.endDate
-                ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-                : ""}
-            </p>
+          <h2 className="text-white text-xl font-semibold tracking-[-0.02em] truncate mt-2.5">{phase.name}</h2>
+          <p className="text-white/70 text-[13px] mt-0.5">
+            {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            {phase.endDate
+              ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+              : ""}
+          </p>
+          {phase.description && <p className="text-white/75 text-sm leading-relaxed whitespace-pre-line mt-3">{phase.description}</p>}
+          <div className="flex items-baseline justify-between mt-5 mb-2">
+            <p className="text-white/75 text-[13px]">Program phase completion</p>
+            <p className="text-white text-xl font-semibold tracking-[-0.02em] tabular-nums">{completion.pct != null ? `${completion.pct}%` : "—"}</p>
           </div>
-        </div>
-
-        <div className="p-4 md:p-5">
-          {phase.description && (
-            <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line" : "text-black/60 text-sm leading-relaxed whitespace-pre-line"}>
-              {phase.description}
-            </p>
-          )}
-
-          <div className={phase.description ? `mt-4 pt-4 border-t ${dark ? "border-white/10" : "border-black/8"}` : ""}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Target size={13} className="text-blue-500" />
-                <p className={dark ? "text-white/50 text-xs font-bold tracking-wide" : "text-black/50 text-xs font-bold tracking-wide"}>PROGRAM PHASE COMPLETION</p>
-              </div>
-              <p className={dark ? "text-white text-sm font-bold tabular-nums" : "text-black text-sm font-bold tabular-nums"}>
-                {completion.pct != null ? `${completion.pct}%` : "—"}
-              </p>
+          <div className="h-[3px] rounded-full overflow-hidden bg-white/20">
+            <div className="h-full rounded-full transition-all flex justify-end bg-white" style={{ width: `${completion.pct ?? 0}%` }}>
+              <span className="w-[3px] h-full" style={{ backgroundColor: MEASURE_BLUE }} />
             </div>
-            <div className={`h-2 rounded-full overflow-hidden ${dark ? "bg-white/10" : "bg-black/8"}`}>
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${completion.pct ?? 0}%`, backgroundColor: MEASURE_BLUE }}
-              />
-            </div>
-            <p className={dark ? "text-white/30 text-[11px] mt-1.5" : "text-black/30 text-[11px] mt-1.5"}>
-              {completion.expected > 0
-                ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
-                : "No workouts scheduled yet in this phase"}
-            </p>
           </div>
+          <p className="text-white/65 text-xs mt-2">
+            {completion.expected > 0
+              ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
+              : "No workouts scheduled yet in this phase"}
+          </p>
         </div>
-      </div>
+      </TrainingPhotoHero>
 
-      <div className="px-2.5">
-        <div className="flex items-center justify-between mb-2 px-1 flex-wrap gap-y-1">
-          <p className={dark ? "text-white/40 text-xs tracking-wide" : "text-black/40 text-xs tracking-wide"}>WORKOUTS IN THIS PHASE</p>
-          {viewingAsClient && (
-            <div className="flex items-center gap-4">
-              <button onClick={addWorkout} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
-                <Plus size={13} /> Add new workout
-              </button>
-              <button onClick={() => setLibraryPickerOpen(true)} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
-                <Upload size={13} /> Import
-              </button>
-            </div>
-          )}
-        </div>
+      <div className="relative mx-2.5 px-1 pt-10">
+        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] mb-2 ${dark ? "text-white" : "text-black"}`}>Workouts in this phase</h3>
         {days.length === 0 ? (
-          <Card dark={dark}>
-            <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No workouts added to this phase yet.</p>
-          </Card>
+          <p className={`text-sm py-6 border-t ${dark ? "text-white/40 border-white/20" : "text-black/40 border-black"}`}>No workouts added to this phase yet.</p>
         ) : (
-          <div className="space-y-2">
+          <div className={`border-t ${dark ? "border-white/20" : "border-black"}`}>
             {days.map((d, i) => (
-              <button key={d.id || i} onClick={() => onPreviewDay(d)} className="w-full text-left">
-                <Card dark={dark} className="!py-3.5 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    {d.photoUrl ? (
-                      <img src={d.photoUrl} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
-                    ) : (
-                      <div className={dark ? "w-14 h-14 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0" : "w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"}>
-                        <Dumbbell size={20} className="text-blue-500" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className={dark ? "text-white font-bold text-base truncate" : "text-black font-bold text-base truncate"}>{d.label}</p>
-                      <p className={dark ? "text-white/40 text-xs mt-0.5 truncate" : "text-black/40 text-xs mt-0.5 truncate"}>
-                        est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
-                        {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className={dark ? "text-white/25 shrink-0" : "text-black/25 shrink-0"} />
-                  </div>
-                </Card>
+              <button
+                key={d.id || i}
+                onClick={() => onPreviewDay(d)}
+                className={`w-full text-left flex items-center gap-3.5 min-h-[72px] py-2.5 border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+              >
+                {/* A workout without its own photo gets one of the stock
+                    gym photos, so the list reads as one set. */}
+                <img
+                  src={d.photoUrl || `/brand/workout-${(i % 4) + 1}.jpg`}
+                  alt=""
+                  className={`w-[52px] h-[52px] rounded-xl object-cover shrink-0 grayscale ${dark ? "bg-white/5" : "bg-black/5"}`}
+                  draggable={false}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className={`text-[15px] font-semibold tracking-[-0.01em] truncate ${dark ? "text-white" : "text-black"}`}>{d.label}</p>
+                  <p className={`text-[13px] mt-0.5 truncate ${dark ? "text-white/55" : "text-black/55"}`}>
+                    est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
+                    {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
+                  </p>
+                </div>
+                <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
               </button>
             ))}
           </div>
         )}
+        {viewingAsClient && (
+          <div className="flex items-center gap-5 mt-3">
+            <button onClick={addWorkout} className={`flex items-center gap-1.5 text-[13px] font-semibold ${dark ? "text-blue-400" : "text-blue-600"}`}>
+              <Plus size={14} /> Add new workout
+            </button>
+            <button onClick={() => setLibraryPickerOpen(true)} className={`flex items-center gap-1.5 text-[13px] font-semibold ${dark ? "text-blue-400" : "text-blue-600"}`}>
+              <Upload size={14} /> Import
+            </button>
+          </div>
+        )}
       </div>
+
+      {upNext.length > 0 && (
+        <div className="relative mx-2.5 px-1 pt-6">
+          <div className="flex items-baseline justify-between mb-2">
+            <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${dark ? "text-white" : "text-black"}`}>Up next</h3>
+            <span className={`text-xs ${dark ? "text-white/40" : "text-black/40"}`}>From your calendar</span>
+          </div>
+          <div className={`border-t ${dark ? "border-white/20" : "border-black"}`}>
+            {upNext.map((w) => {
+              const d = new Date(w.date + "T00:00:00");
+              return (
+                <button
+                  key={w.id || w.date}
+                  onClick={() => onPreviewDay(w)}
+                  className={`w-full text-left flex items-center gap-3.5 min-h-[62px] py-2 border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+                >
+                  <span className={`w-[52px] h-[46px] rounded-xl flex flex-col items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+                    <span className={`text-[10.5px] font-medium ${dark ? "text-white/55" : "text-black/55"}`}>{d.toLocaleDateString(undefined, { weekday: "short" })}</span>
+                    <span className={`text-base font-semibold leading-tight tabular-nums ${dark ? "text-white" : "text-black"}`}>{d.getDate()}</span>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-[15px] font-semibold tracking-[-0.01em] truncate ${dark ? "text-white" : "text-black"}`}>{w.label}</span>
+                    <span className={`block text-[13px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>est. {estimateWorkoutMinutes(w.exercises || [])} min</span>
+                  </span>
+                  <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <ClientPhaseHistorySheet
         open={historyOpen}
@@ -3559,6 +3652,50 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
         </>
       )}
     </div>
+  );
+}
+
+// Training tab's top section: a black-and-white gym photo behind the
+// header and whatever sits under it (today's workout or the current
+// phase), darkened behind the text and fading into the page at the bottom.
+function TrainingPhotoHero({ children }) {
+  const dark = useClientDark();
+  const pageBg = dark ? CLIENT_DARK_BG : "#FFFFFF";
+  return (
+    <div className="relative text-white">
+      <div className="absolute inset-x-0 top-0 -bottom-[70px] overflow-hidden pointer-events-none" aria-hidden="true">
+        <img src="/brand/gym-dark.jpg" alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 40%", filter: "brightness(0.78)" }} draggable={false} />
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 28%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.35) 72%, ${dark ? "rgba(9,9,9,0.4)" : "rgba(255,255,255,0.4)"} 86%, ${pageBg} 100%)` }}
+        />
+        {/* Fades the top into the page too, so the header and switch sit
+            on the plain page colour below the app's top bar. */}
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, ${pageBg} 0px, ${pageBg} 100px, ${dark ? "rgba(9,9,9,0)" : "rgba(255,255,255,0)"} 175px)` }}
+        />
+      </div>
+      <div className="relative pb-6">{children}</div>
+    </div>
+  );
+}
+
+// One tappable row in the Training tab's open lists (icon, label, chevron).
+function TrainingActionRow({ icon: Icon, label, onClick, accent = false }) {
+  const dark = useClientDark();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-3.5 min-h-[60px] py-2 text-left border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+    >
+      <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+        <Icon size={18} className={accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white/80" : "text-black/80"} />
+      </span>
+      <span className={`flex-1 text-[15px] font-semibold ${accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white" : "text-black"}`}>{label}</span>
+      <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+    </button>
   );
 }
 
@@ -3644,80 +3781,59 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   }
 
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
-  return (
-    <div className="pb-28">
+  // Page name + Today/Program switch at the top of both tabs, on the plain
+  // page colour above where the gym photo fades in.
+  const header = (
+    <>
       <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark={dark} />
-      <div className="flex gap-2 px-2.5 mb-4">
+      <div className={`grid grid-cols-2 p-[3px] mx-2.5 mt-1 rounded-xl ${dark ? "bg-white/8" : "bg-black/5"}`}>
         {["today", "program"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 px-4 py-2 rounded-full text-sm font-medium capitalize text-center ${
-              tab === t
-                ? dark
-                  ? "bg-white text-black"
-                  : "bg-black text-white"
-                : dark
-                ? "bg-white/8 text-white/60"
-                : "bg-black/8 text-black/60"
+            className={`py-2 rounded-[9px] text-[13.5px] capitalize text-center ${
+              tab === t ? "bg-white text-black font-semibold shadow-sm" : dark ? "text-white/60 font-medium" : "text-black/55 font-medium"
             }`}
           >
             {t}
           </button>
         ))}
       </div>
-
+    </>
+  );
+  return (
+    <div className="pb-28">
       {tab === "today" && (
-        <div className="space-y-4">
-          <TodayWorkoutCard
-            todaySession={todaySession}
-            activeLog={activeLog}
-            onStart={onStart}
-            onDiscard={onDiscardWorkout}
-            onView={onViewWorkout}
-            isToday
-            completedOnDate={completedOnDate}
-            dbReady={dbReady}
-            fullWidth
-          />
-          <div className="px-2.5 space-y-4">
-          {viewingAsClient && (
-            <div className="space-y-2">
-              {canEditToday && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => editScheduled(todayScheduledEntry)}
-                    className={dark ? "flex-1 flex items-center justify-center gap-1.5 bg-white/5 text-white/80 text-sm font-semibold py-3 rounded-2xl" : "flex-1 flex items-center justify-center gap-1.5 bg-black/5 text-black/80 text-sm font-semibold py-3 rounded-2xl"}
-                  >
-                    <Edit3 size={14} /> Edit / move
-                  </button>
-                  <button
-                    onClick={() => setWodRemoveOpen(true)}
-                    className={dark ? "px-4 flex items-center justify-center gap-1.5 bg-white/5 text-white/60 text-sm font-semibold py-3 rounded-2xl" : "px-4 flex items-center justify-center gap-1.5 bg-black/5 text-black/60 text-sm font-semibold py-3 rounded-2xl"}
-                  >
-                    <X size={14} /> Remove
-                  </button>
-                </div>
-              )}
-              <button
-                onClick={() => setWodPickerOpen(true)}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
-              >
-                <Plus size={16} /> Create workout of the day
-              </button>
-            </div>
-          )}
-          <button
-            onClick={() => setCardioOpen(true)}
-            className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform" : "w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"}
-          >
-            <Footprints size={16} /> + Log a cardio session
-          </button>
+        <div>
+          <TrainingPhotoHero>
+            {header}
+            <TodayWorkoutCard
+              todaySession={todaySession}
+              activeLog={activeLog}
+              onStart={onStart}
+              onDiscard={onDiscardWorkout}
+              onView={onViewWorkout}
+              isToday
+              completedOnDate={completedOnDate}
+              dbReady={dbReady}
+              fullWidth
+              photo="bare"
+            />
+          </TrainingPhotoHero>
+          <div className={`relative mx-2.5 px-1 mt-14 border-t ${dark ? "border-white/20" : "border-black"}`}>
+            {canEditToday && (
+              <>
+                <TrainingActionRow icon={Edit3} label="Edit / move" onClick={() => editScheduled(todayScheduledEntry)} />
+                <TrainingActionRow icon={X} label="Remove" onClick={() => setWodRemoveOpen(true)} />
+              </>
+            )}
+            {viewingAsClient && <TrainingActionRow icon={Plus} label="Create workout of the day" accent onClick={() => setWodPickerOpen(true)} />}
+            <TrainingActionRow icon={Footprints} label="Log a cardio session" onClick={() => setCardioOpen(true)} />
           </div>
         </div>
       )}
 
-      {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} showToast={showToast} />}
+      {tab === "program" && <ClientProgramTab header={header} onPreviewDay={onPreviewWorkout} showToast={showToast} />}
 
       {viewingAsClient && (
         <>
