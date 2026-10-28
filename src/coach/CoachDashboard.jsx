@@ -2,32 +2,27 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useApp } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { isMealPlanEnded, mealPlanEndDateKey } from "../lib/mealPlanEnd";
-import { Avatar, BottomSheet, Logo } from "../components/ui";
+import { Avatar, BottomSheet } from "../components/ui";
 import { WorkoutLogCard } from "./CoachClientDetail";
 import WorkoutEditor from "./WorkoutEditor";
 import { resolveNutritionTargets } from "../lib/nutritionTargets";
 import { computeApexInsights } from "../lib/apexInsights";
 import { buildRecentActivity } from "../lib/recentActivity";
-import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
-import { DarkPage, DarkPanel, StatCard, MountainTexture } from "./darkUI";
+import { MEASURE_BLUE, CLIENT_DARK_BG, CLIENT_DARK_SURFACE, CLIENT_DARK_BORDER, GOAL_GREEN, OVER_RED } from "../theme";
+import { DarkPage, DarkPanel } from "./darkUI";
 import {
-  Users,
   CalendarPlus,
   CalendarClock,
   Trophy,
   MessageCircleOff,
-  NotebookPen,
-  MessageCircle,
   Send,
   Check,
-  StickyNote,
   Utensils,
   AlertTriangle,
   TrendingUp,
   TrendingDown,
   Trash2,
   Sparkles,
-  Bell,
   CheckCircle2,
 } from "lucide-react";
 
@@ -216,7 +211,7 @@ function SwipeableRow({ onDelete, children }) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease", backgroundColor: CLIENT_DARK_SURFACE }}
+        style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease", backgroundColor: CLIENT_DARK_BG }}
         className="relative touch-pan-y select-none"
       >
         {children}
@@ -459,20 +454,16 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
   }
 
   return (
-    <DarkPanel className="p-5">
-      <div className="relative flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border" style={{ backgroundColor: "rgba(47,143,255,0.12)", borderColor: "rgba(47,143,255,0.25)" }}>
-            <StickyNote size={15} style={{ color: MEASURE_BLUE }} />
-          </div>
-          <p className="text-white font-semibold">Coach's Notes</p>
-        </div>
+    <div>
+      <div className="relative flex items-baseline justify-between mb-2.5">
+        <h2 className="text-white text-[17px] font-semibold tracking-[-0.01em]">Coach's notes</h2>
         <button
           onClick={save}
           disabled={saving || !dirty}
-          className="text-xs font-bold text-black bg-white px-3 py-1.5 rounded-lg disabled:opacity-30 transition-opacity"
+          className="text-[13px] font-semibold disabled:opacity-35 transition-opacity"
+          style={{ color: MEASURE_BLUE }}
         >
-          {saving ? "SAVING…" : "SAVE"}
+          {saving ? "Saving…" : "Save"}
         </button>
       </div>
       <textarea
@@ -483,10 +474,44 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
         }}
         placeholder="Anything to remember — plans, reminders, things to follow up on. Only you can see this."
         rows={4}
-        className="relative w-full border rounded-xl px-3.5 py-3 text-sm text-white outline-none placeholder:text-white resize-none"
-        style={{ backgroundColor: CLIENT_DARK_SURFACE_2, borderColor: CLIENT_DARK_BORDER }}
+        className="relative w-full border rounded-2xl px-4 py-3.5 text-sm leading-relaxed text-white outline-none placeholder:text-white/40 resize-none"
+        style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: "rgba(255,255,255,0.07)" }}
       />
-    </DarkPanel>
+    </div>
+  );
+}
+
+// Section title over a thin rule, for the Overview's open (unboxed) lists.
+function SectionHead({ title, meta }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 mb-2.5">
+      <h2 className="text-white text-[17px] font-semibold tracking-[-0.01em]">{title}</h2>
+      {meta && <span className="text-white/50 text-[13px] truncate">{meta}</span>}
+    </div>
+  );
+}
+
+// Frosted-glass number tile over the hero photo's fade.
+function GlassTile({ value, label, onClick, accent = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      // flex + justify-start: every tile's number sits at the same height
+      // whether its label takes one line or two (a button centres its
+      // content vertically by default).
+      className="flex flex-col justify-start items-start text-left rounded-2xl px-3.5 py-3 active:scale-[0.97] transition-transform"
+      style={{
+        backgroundColor: accent ? "rgba(47,143,255,0.10)" : "rgba(255,255,255,0.025)",
+        border: `1px solid ${accent ? "rgba(47,143,255,0.40)" : "rgba(255,255,255,0.16)"}`,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+      }}
+    >
+      <span className="block text-white text-[24px] font-semibold tracking-[-0.02em] leading-none tabular-nums">{value}</span>
+      <span className={`block text-[11.5px] leading-snug mt-1.5 ${accent ? "text-white/85" : "text-white/60"}`}>{label}</span>
+    </button>
   );
 }
 
@@ -496,11 +521,6 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
   const active = clients.filter((c) => c.status === "active");
   const todayKey = localDateKey();
   const newActiveThisWeek = active.filter((c) => c.createdAt && Date.now() - c.createdAt <= 7 * 86400000).length;
-  const unreadNotifCount = (db.notifications || []).filter((n) => !n.read).length;
-  const coachNameParts = (currentUser?.name || "").trim().split(/\s+/).filter(Boolean);
-  const coachInitials = coachNameParts.length > 1
-    ? `${coachNameParts[0][0]}${coachNameParts[coachNameParts.length - 1][0]}`.toUpperCase()
-    : (coachNameParts[0]?.[0] || "?").toUpperCase();
   const [viewingActivity, setViewingActivity] = useState(null); // the clicked Recent Activity item (workout or check-in) for the detail sheet
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [viewingApexAlert, setViewingApexAlert] = useState(null); // the tapped APEX Insight row, for its detail sheet
@@ -707,61 +727,41 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
 
   return (
     <DarkPage padded={false}>
-      {/* Hero header — a dark glass panel with a faint layered mountain
-          silhouette (plain CSS triangles, not a photo — "atmospheric, not
-          a giant photograph") washed into the right edge. */}
-      <div className="relative overflow-hidden rounded-2xl mb-4 border" style={{ backgroundColor: CLIENT_DARK_SURFACE, borderColor: CLIENT_DARK_BORDER }}>
-        <MountainTexture mono />
-        <div className="relative flex items-center justify-between gap-3 px-5 py-6 sm:px-7 sm:py-7">
-          <div className="flex items-center gap-4 min-w-0">
-            <Logo variant="mark" tone="white" className="h-10 w-auto shrink-0 hidden sm:block" />
-            <div className="w-px self-stretch shrink-0 hidden sm:block" style={{ backgroundColor: "rgba(255,255,255,0.14)" }} />
-            <div className="min-w-0">
-              <h1 className="text-white text-xl sm:text-[28px] font-bold leading-tight truncate">
-                {timeOfDayGreeting()}, {currentUser?.name?.split(" ")[0] || "Coach"}
-              </h1>
-              <p className="text-white text-[11px] sm:text-xs font-semibold tracking-[0.1em] uppercase mt-1.5">Your roster and what needs your attention.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3.5 shrink-0">
-            <span className="text-white text-xs font-medium tabular-nums hidden sm:inline">
-              {new Date().toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" })}
-            </span>
-            <div className="relative text-white">
-              <Bell size={18} />
-              {unreadNotifCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full border" style={{ backgroundColor: OVER_RED, borderColor: CLIENT_DARK_SURFACE }} />
-              )}
-            </div>
-            <div
-              className="rounded-full flex items-center justify-center text-white font-bold shrink-0"
-              style={{ width: 34, height: 34, fontSize: 12, backgroundColor: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}
-            >
-              {coachInitials}
+      {/* Hero: black-and-white gym photo (same as the client app) behind the
+          greeting and roster count, fading into the page. Every number is
+          a button to the same place its old stat tile went. */}
+      <div className="relative -mt-5 md:mt-0 md:rounded-2xl md:overflow-hidden">
+        <div className="absolute inset-x-0 top-0 -bottom-36 overflow-hidden pointer-events-none md:rounded-2xl" aria-hidden="true">
+          <img src="/brand/gym-dark.jpg" alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 35%", filter: "brightness(0.7)" }} draggable={false} />
+          <div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(180deg, rgba(10,10,11,0.55) 0%, rgba(10,10,11,0.2) 35%, rgba(10,10,11,0.35) 75%, ${CLIENT_DARK_BG} 100%)` }}
+          />
+        </div>
+        <div className="relative px-5 pt-3 pb-2 sm:px-7 sm:pt-6">
+          <h1 className="text-white text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] leading-tight truncate">
+            {timeOfDayGreeting()}, {currentUser?.name?.split(" ")[0] || "Coach"}
+          </h1>
+          <p className="text-white/70 text-[13.5px] mt-1">Your roster and what needs your attention.</p>
+          <div className="flex items-end gap-4 mt-4">
+            <button type="button" onClick={() => onNavigate("clients")} aria-label={`${active.length} active clients`} className="text-white text-[56px] font-semibold tracking-[-0.05em] leading-[0.9] tabular-nums">
+              {active.length}
+            </button>
+            <div className="pb-1.5 text-[13px] leading-snug">
+              <button type="button" onClick={() => onNavigate("clients")} className="block text-white/75 text-left">
+                active clients{newActiveThisWeek > 0 && <span style={{ color: MEASURE_BLUE }}> · +{newActiveThisWeek} this week</span>}
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Primary stats — four individually chamfered instrument tiles
-          instead of one divided panel, each with its own trend/status
-          line (see StatCard above). */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <StatCard
-          icon={Users}
-          label="Active Clients"
-          value={active.length}
-          trend={newActiveThisWeek > 0 ? `+${newActiveThisWeek}` : "—"}
-          trendKind={newActiveThisWeek > 0 ? "up" : "neutral"}
-          onClick={() => onNavigate("clients")}
-        />
-        <StatCard icon={Trophy} label="Challenges" value={(db.challenges || []).length} trend="—" trendKind="neutral" onClick={() => onNavigate("challenges")} />
-        <StatCard
-          icon={NotebookPen}
-          label="Check-ins to Review"
+      {/* Three frosted-glass tiles over the photo's fade. */}
+      <div className="relative grid grid-cols-3 gap-2 mx-3.5 md:mx-0 mt-4 mb-6">
+        <GlassTile value={(db.challenges || []).length} label="Challenges" onClick={() => onNavigate("challenges")} />
+        <GlassTile
           value={pendingCheckins}
-          trend={pendingCheckins > 0 ? "Review now" : "—"}
-          trendKind={pendingCheckins > 0 ? "link" : "neutral"}
+          label="Check-ins to review"
           onClick={() => {
             if (pendingCheckins === 1) {
               const { client, response } = pendingCheckinList[0];
@@ -772,44 +772,12 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
             }
           }}
         />
-        <StatCard
-          icon={MessageCircle}
-          label="Messages to Reply"
-          value={awaitingReply}
-          trend={awaitingReply > 0 ? `${awaitingReply} new` : "—"}
-          trendKind={awaitingReply > 0 ? "alert" : "neutral"}
-          onClick={() => onNavigate("messages")}
-        />
+        <GlassTile value={awaitingReply} label="Messages to reply" onClick={() => onNavigate("messages")} />
       </div>
 
-      <div className="mb-4">
-        <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
-      </div>
-
-      <DarkPanel glow={false} className="flex flex-col mb-4">
-        <div className="relative px-5 pt-5 pb-1 flex items-center gap-2.5">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
-            style={
-              visibleNeedsAttention.length > 0
-                ? { backgroundColor: "rgba(239,68,68,0.12)", borderColor: "rgba(239,68,68,0.3)" }
-                : { backgroundColor: "rgba(34,197,94,0.1)", borderColor: "rgba(34,197,94,0.25)" }
-            }
-          >
-            {visibleNeedsAttention.length > 0 ? (
-              <AlertTriangle size={15} style={{ color: OVER_RED }} />
-            ) : (
-              <CheckCircle2 size={15} style={{ color: GOAL_GREEN }} />
-            )}
-          </div>
-          <p className="text-white font-semibold">Needs Attention</p>
-          {visibleNeedsAttention.length > 0 && (
-            <span className="text-white text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: OVER_RED }}>
-              {visibleNeedsAttention.length}
-            </span>
-          )}
-        </div>
-        <div className="relative px-5 pb-2">
+      <section className="relative mx-4 md:mx-0 mb-7">
+        <SectionHead title="Needs attention" meta={visibleNeedsAttention.length > 0 ? String(visibleNeedsAttention.length) : null} />
+        <div className="border-t" style={{ borderColor: "rgba(255,255,255,0.22)" }}>
           {visibleNeedsAttention.length === 0 ? (
             // Calm system-status panel, not a boring grey alert box — a
             // quiet confirmation that everything's fine, same restrained
@@ -830,7 +798,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
             </>
           )}
         </div>
-      </DarkPanel>
+      </section>
 
       {/* A client's own save (nutrition, workout, weigh-in, habit, check-in)
           can fail silently on their end — the only way a coach used to find
@@ -841,7 +809,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           something to show — an empty state here would just be noise next
           to "All clients are on track" above. */}
       {db.errorLogs.length > 0 && (
-        <DarkPanel className="flex flex-col mb-4">
+        <DarkPanel className="relative flex flex-col mx-4 md:mx-0 mb-7">
           <div className="relative px-5 pt-5 pb-1 flex items-center gap-2.5">
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border"
@@ -886,12 +854,9 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         </DarkPanel>
       )}
 
-      <DarkPanel glow={false} className="flex flex-col mb-4">
-        <div className="relative px-5 pt-5 pb-3">
-          <p className="text-white font-semibold">Recent Activity</p>
-          <p className="text-white text-xs mt-0.5">Your latest client activity.</p>
-        </div>
-        <div className="relative px-5 pb-2 max-h-[420px] overflow-y-auto">
+      <section className="relative mx-4 md:mx-0 mb-7">
+        <SectionHead title="Recent activity" meta="Your latest client activity" />
+        <div className="border-t max-h-[420px] overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.22)" }}>
           {recentActivity.length === 0 ? (
             <p className="text-white text-sm text-center py-8">Nothing yet — activity from your clients will show up here.</p>
           ) : (
@@ -906,21 +871,22 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
             </div>
           )}
         </div>
-      </DarkPanel>
+      </section>
 
-      <DarkPanel className="flex flex-col mb-4">
-        <div className="relative px-5 pt-5 pb-1">
-          <p className="text-white font-semibold">Auto-Tagged Segments</p>
-          <p className="text-white text-xs mt-0.5">Clients grouped by what they need from you next.</p>
-        </div>
-        <div className="relative px-5 pb-2 mt-2">
+      <div className="relative mx-4 md:mx-0 mb-7">
+        <CoachNotesCard currentUser={currentUser} updateUser={updateUser} showToast={showToast} />
+      </div>
+
+      <section className="relative mx-4 md:mx-0 mb-7">
+        <SectionHead title="Segments" meta="What clients need next" />
+        <div className="border-t pt-1" style={{ borderColor: "rgba(255,255,255,0.22)" }}>
           <SegmentRow icon={CalendarPlus} label="Need a new training phase" clients={needsNewPhase} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={Trophy} label="New exercise personal bests" clients={newPRs} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={CalendarClock} label="Phase ending within a week" clients={phaseEndingSoon} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={Utensils} label="Meal guide ending in a couple of days" clients={mealPlanEndingSoon} onViewAll={() => onNavigate("clients")} />
           <SegmentRow icon={MessageCircleOff} label="Not messaged in 7+ days" clients={notMessagedLately} onViewAll={() => onNavigate("clients")} />
         </div>
-      </DarkPanel>
+      </section>
 
       <BottomSheet
         open={!!viewingActivity}
