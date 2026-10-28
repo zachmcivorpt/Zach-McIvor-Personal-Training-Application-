@@ -2126,13 +2126,16 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
             onClick={() => onFormCheck(rows)}
             disabled={formCheckStatus?.state === "uploading"}
             aria-label={`Send a form-check video of ${exercise.name}`}
-            className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors disabled:opacity-60 ${dark ? "text-white/40" : "text-black/40"}`}
+            className={`min-w-8 h-9 px-0.5 flex flex-col items-center justify-center gap-0.5 shrink-0 transition-colors disabled:opacity-60 ${dark ? "text-white/40" : "text-black/40"}`}
           >
             {formCheckStatus?.state === "uploading" ? (
               <span className="text-[9px] font-bold tabular-nums">{Math.round((formCheckStatus.pct || 0) * 100)}%</span>
             ) : (
-              <Video size={17} />
+              <Video size={16} />
             )}
+            <span className="text-[7.5px] font-bold tracking-wide uppercase leading-none whitespace-nowrap" aria-hidden="true">
+              Form check
+            </span>
           </button>
         )}
         {isWarmup && (
