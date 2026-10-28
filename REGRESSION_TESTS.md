@@ -2282,6 +2282,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Note**: the choice is per phone (as Train Solo's is), not synced between a client's devices.
 - **Date added**: 2026-10-28
 
+### 113. Home: Nutrition back in a box (product change)
+- **Change**: at the user's request the Home nutrition section from #111 is back inside a card, now a solid one (white with a hairline border and soft shadow; `CLIENT_DARK_SURFACE` in dark mode), not the old frosted glass. Same content and actions as #111; lighter dividers inside. Still no backdrop-filter and the title is still always "Nutrition", so the #111 half-drawn-title fix holds.
+- **Regression tests**: `src/client/nutritionSummaryOpen.test.jsx` (unchanged) still passes: same title on every day, no backdrop-filter, actions work. Screenshotted from the real Home component in light, dark and a past day.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing
