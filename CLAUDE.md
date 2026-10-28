@@ -66,7 +66,7 @@ rather than inventing new colors per screen:
 ### Coach Overview (approved 2026-10-28)
 
 - Gym photo header with the greeting and a large active-client count, then
-  frosted-glass tiles (Need attention, Check-ins, Messages) and open
+  frosted-glass tiles (Challenges, Check-ins, Messages) and open
   sections under thin rules. Every number keeps its old destination (#115).
 - The coach console is otherwise still dark-only.
 

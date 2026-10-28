@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 //
 // Coach Overview redesign (REGRESSION_TESTS.md #115): the stat tiles became
-// a photo header (big active-client count, challenges line) plus three
-// glass tiles, and Coach's notes moved below Recent activity. Every tap
+// a photo header (big active-client count) plus three glass tiles
+// (Challenges, Check-ins, Messages), and Coach's notes moved below Recent activity. Every tap
 // must still go exactly where the old tiles went, and notes still save
 // only after an edit.
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -38,7 +38,7 @@ describe("Coach Overview", () => {
     const onNavigate = vi.fn();
     render(<CoachDashboard onNavigate={onNavigate} onOpenClient={vi.fn()} showToast={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "3 active clients" }));
-    fireEvent.click(screen.getByText("2 challenges running"));
+    fireEvent.click(screen.getByText("Challenges"));
     fireEvent.click(screen.getByText("Messages to reply"));
     fireEvent.click(screen.getByText("Check-ins to review"));
     expect(onNavigate.mock.calls.map((c) => c[0])).toEqual(["clients", "challenges", "messages", "clients"]);

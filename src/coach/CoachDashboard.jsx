@@ -491,8 +491,7 @@ function SectionHead({ title, meta }) {
   );
 }
 
-// Frosted-glass number tile over the hero photo's fade. `accent` tints it
-// blue (used for Need attention when there's something to look at).
+// Frosted-glass number tile over the hero photo's fade.
 function GlassTile({ value, label, onClick, accent = false }) {
   return (
     <button
@@ -515,7 +514,6 @@ function GlassTile({ value, label, onClick, accent = false }) {
 
 export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary, showToast }) {
   const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout, phraseApexSuggestion, dismissErrorLog } = useApp();
-  const needsAttentionRef = useRef(null);
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = localDateKey();
@@ -750,9 +748,6 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
               <button type="button" onClick={() => onNavigate("clients")} className="block text-white/75 text-left">
                 active clients{newActiveThisWeek > 0 && <span style={{ color: MEASURE_BLUE }}> · +{newActiveThisWeek} this week</span>}
               </button>
-              <button type="button" onClick={() => onNavigate("challenges")} className="block text-white/75 text-left">
-                {(db.challenges || []).length} challenge{(db.challenges || []).length === 1 ? "" : "s"} running
-              </button>
             </div>
           </div>
         </div>
@@ -760,12 +755,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
 
       {/* Three frosted-glass tiles over the photo's fade. */}
       <div className="relative grid grid-cols-3 gap-2 mx-3.5 md:mx-0 mt-5 mb-6">
-        <GlassTile
-          value={visibleNeedsAttention.length}
-          label="Need attention"
-          accent={visibleNeedsAttention.length > 0}
-          onClick={() => needsAttentionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-        />
+        <GlassTile value={(db.challenges || []).length} label="Challenges" onClick={() => onNavigate("challenges")} />
         <GlassTile
           value={pendingCheckins}
           label="Check-ins to review"
@@ -782,7 +772,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         <GlassTile value={awaitingReply} label="Messages to reply" onClick={() => onNavigate("messages")} />
       </div>
 
-      <section ref={needsAttentionRef} className="relative mx-4 md:mx-0 mb-7 scroll-mt-20">
+      <section className="relative mx-4 md:mx-0 mb-7">
         <SectionHead title="Needs attention" meta={visibleNeedsAttention.length > 0 ? String(visibleNeedsAttention.length) : null} />
         <div className="border-t" style={{ borderColor: "rgba(255,255,255,0.22)" }}>
           {visibleNeedsAttention.length === 0 ? (
