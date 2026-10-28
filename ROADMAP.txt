@@ -15,7 +15,8 @@ STEP 1 — iOS 1.0.3 (SUBMIT TO THE APP STORE — owner decision 2026-10-28)
 BUILT 2026-10-28: Codemagic built and uploaded 1.0.3 to TestFlight after
 HealthKit was ticked on the App ID, the profile regenerated and uploaded to
 Codemagic, and NSHealthUpdateUsageDescription added (ITMS-90683).
-Steps 1-4 below are done. Next: test (5), then submit (6). Keep the
+Steps 1-6 below are done: 1.0.3 (build 94) was submitted and APPROVED on
+2026-10-28 (Apple: "eligible for distribution"). Keep the
 branch's 1.0.4 ios/ changes off main until 1.0.3 is submitted, so a
 rebuild of main is still 1.0.3.
 

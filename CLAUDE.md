@@ -125,8 +125,8 @@ Do these together when the user is ready to submit a new App Store build
   and sent later (`src/lib/offlineWrite.js`). App-Bound Domains + the
   service worker remains the fuller offline option if the cache fallback
   proves patchy on device.
-- **Order agreed** (changed again 2026-10-28, owner): 1.0.3 IS submitted
-  and released first (Apple Health, voice notes, form checks, lock-screen
+- **Order agreed** (changed again 2026-10-28, owner): 1.0.3 (build 94) was
+  submitted and APPROVED by Apple on 2026-10-28; it is released first (Apple Health, voice notes, form checks, lock-screen
   rest alert, offline) once it passes TestFlight testing; main's `ios/` is
   1.0.3, so don't merge the branch's 1.0.4 `ios/` changes until 1.0.3 is
   submitted. Then 1.0.4 (Train Solo subscriptions + instant open) is the
