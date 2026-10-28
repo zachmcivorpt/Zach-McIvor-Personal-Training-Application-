@@ -50,7 +50,9 @@ Why 1.0.4: buying inside the iPhone app needs new native code (RevenueCat's
 SDK), and the subscriptions must be approved by Apple together with an app
 version. 1.0.3 stays a test build; 1.0.4 is the launch release with all of
 1.0.3's features (Apple Health, voice notes, form checks, lock-screen rest
-alert, offline) plus subscriptions.
+alert, offline) plus subscriptions and the instant-open fix (the app opens
+straight from the copy saved on the phone; new releases apply on the next
+open).
 
 The plan
   FREE        create sessions and log workouts; up to 3 saved sessions;
@@ -191,7 +193,12 @@ OWNER TO DO, in order
        test account. On the website: subscribe (with the 100% code), upgrade
        Plus -> All Access, start/switch/resume a program, cancel in the
        portal.
-   19. TestFlight 1.0.4 with a Sandbox Apple ID (Settings > App Store >
+   19. TestFlight 1.0.4 — instant open: open the app twice (the second open
+       should show the app with no spinner); force-quit, reopen in Aeroplane
+       Mode (still opens); after a web release, the first open shows the old
+       version and the next one the new; leave it in the background a long
+       time / open many other apps, then come back (no blank screen).
+       Then subscriptions, with a Sandbox Apple ID (Settings > App Store >
        Sandbox Account): buy, trial, upgrade, cancel, Restore purchases on a
        second device, and a failed renewal (sandbox can simulate billing
        problems) -> Free.

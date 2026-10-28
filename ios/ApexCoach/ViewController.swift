@@ -42,6 +42,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private var webViewReady = false
     // Opening with no signal — see loadSite() and didFailProvisionalNavigation.
     private var triedSavedCopy = false
+    // Instant open (1.0.4): see loadSite().
+    private let hasSavedCopyKey = "apexHasSavedCopy"
+    private let savedCopyStaleKey = "apexSavedCopyStale"
+    private var openedFromSavedCopy = false
     private var offlineView: UIView?
 
     // Apple Health reads for the web app — see HealthBridge.swift.
@@ -172,9 +176,49 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // (Firestore's local cache) and sends anything logged once it's back
     // online. Only with no saved copy yet (never opened online) does the
     // native "You're offline" message show.
+    //
+    // Instant open: once the app has loaded the site once, every launch opens
+    // the copy already on the phone (.returnCacheDataElseLoad) instead of
+    // first asking the server whether the page changed — that round trip was
+    // most of the spinner. Right after it opens, checkForNewVersion() asks the
+    // server in the background; if a newer version is live, the NEXT launch
+    // loads it fresh. Never reloads under someone mid-workout. If the saved
+    // copy's code files are gone from the phone, index.html's stale-copy
+    // guard reloads the latest version once.
     private func loadSite() {
         triedSavedCopy = false
-        webView.load(URLRequest(url: siteURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 15))
+        let defaults = UserDefaults.standard
+        openedFromSavedCopy = defaults.bool(forKey: hasSavedCopyKey) && !defaults.bool(forKey: savedCopyStaleKey)
+        let policy: URLRequest.CachePolicy = openedFromSavedCopy ? .returnCacheDataElseLoad : .useProtocolCachePolicy
+        webView.load(URLRequest(url: siteURL, cachePolicy: policy, timeoutInterval: 15))
+    }
+
+    // Compares the main script the page is running with the one the live
+    // site serves now (Vite gives every release a new /assets/index-<hash>.js).
+    // Different → mark the saved copy stale so the next launch loads fresh.
+    private func checkForNewVersion() {
+        var request = URLRequest(url: siteURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
+            guard let self = self, let data = data, let html = String(data: data, encoding: .utf8),
+                  let live = Self.mainScriptPath(in: html) else { return }
+            DispatchQueue.main.async {
+                let js = "(function(){var s=document.querySelector('script[type=module][src*=\"/assets/index-\"]');return s?new URL(s.src).pathname:'';})()"
+                self.webView.evaluateJavaScript(js) { result, _ in
+                    guard let running = result as? String, !running.isEmpty else { return }
+                    if running != live {
+                        UserDefaults.standard.set(true, forKey: self.savedCopyStaleKey)
+                    }
+                }
+            }
+        }.resume()
+    }
+
+    static func mainScriptPath(in html: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: "/assets/index-[A-Za-z0-9_-]+\\.js"),
+              let match = regex.firstMatch(in: html, range: NSRange(html.startIndex..., in: html)),
+              let range = Range(match.range, in: html) else { return nil }
+        return String(html[range])
     }
 
     private func isNoConnection(_ error: Error) -> Bool {
@@ -234,6 +278,14 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         offlineView = nil
         triedSavedCopy = false
         webViewReady = true
+        let defaults = UserDefaults.standard
+        defaults.set(true, forKey: hasSavedCopyKey)
+        if openedFromSavedCopy {
+            checkForNewVersion()
+        } else {
+            // Just loaded the live version: the phone's copy is current again.
+            defaults.set(false, forKey: savedCopyStaleKey)
+        }
         if let token = pendingFCMToken {
             pendingFCMToken = nil
             sendTokenToWeb(token)
@@ -338,6 +390,15 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         spinner.stopAnimating()
+    }
+
+    // iOS can end the page's process while the app sits in the background
+    // (memory pressure); without this the app came back to a blank screen.
+    // Reload it — from the saved copy, so it's back straight away.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        view.bringSubviewToFront(spinner)
+        spinner.startAnimating()
+        loadSite()
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {

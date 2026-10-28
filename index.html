@@ -20,6 +20,50 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="APEX" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Stale-copy guard. The iPhone app opens the copy of this page saved on
+         the phone (instant open, ios/ApexCoach/ViewController.swift). If
+         that copy is from an older release whose code files are no longer
+         on the phone, they can't be fetched either (the live site only
+         serves the current release) — so instead of a blank screen, reload
+         the latest version, once per session. Covers the main script, CSS,
+         and code loaded later (Vite's vite:preloadError for lazy screens). -->
+    <script>
+      (function () {
+        var KEY = "apexStaleCopyReload";
+        function reloadOnce() {
+          try {
+            if (sessionStorage.getItem(KEY)) return false;
+            sessionStorage.setItem(KEY, String(Date.now()));
+          } catch (e) {
+            return false;
+          }
+          location.reload();
+          return true;
+        }
+        window.__apexReloadOnce = reloadOnce;
+        window.addEventListener(
+          "error",
+          function (e) {
+            var t = e && e.target;
+            if (!t || (t.tagName !== "SCRIPT" && t.tagName !== "LINK")) return;
+            if (String(t.src || t.href || "").indexOf("/assets/") === -1) return;
+            reloadOnce();
+          },
+          true
+        );
+        window.addEventListener("vite:preloadError", function (e) {
+          if (reloadOnce() && e && e.preventDefault) e.preventDefault();
+        });
+        // Loaded fine: allow a reload again later in this session.
+        window.addEventListener("load", function () {
+          setTimeout(function () {
+            try {
+              sessionStorage.removeItem(KEY);
+            } catch (e) {}
+          }, 15000);
+        });
+      })();
+    </script>
     <!-- A coach's app opens dark (src/App.jsx's splash and console): paint
          the page dark before any script loads so a cold open doesn't flash
          white first. Reads the profile AppContext keeps on the phone. -->

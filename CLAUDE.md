@@ -139,15 +139,14 @@ Do these together when the user is ready to submit a new App Store build
   RevenueCat, Stripe, 5 programs), then 1.0.4 (needs the RevenueCat public
   key in ios/ApexCoach/PurchasesBridge.swift). Merging `ios/` to main makes
   Codemagic build 1.0.4 — fine now, best once that key is in.
-- **Cold open, native part (candidate for 1.0.4)**:
-  the user wants the app to open instantly. The web side is done
-  (REGRESSION_TESTS.md #103). What's left is the ~0.5s native spinner:
-  ViewController.swift loads the site with `.useProtocolCachePolicy`, so
-  every launch revalidates index.html over the network before anything
-  draws. Option: open from the saved copy and check for a new version in
-  the background (apply it next launch). Also add
-  `webViewWebContentProcessDidTerminate` → reload, so a webview iOS killed
-  in the background doesn't come back blank.
+- **Instant open, native part — BUILT for 1.0.4 (2026-10-28)**
+  (REGRESSION_TESTS.md #105): ViewController.swift opens the saved copy
+  (`.returnCacheDataElseLoad`) once the site has loaded before, checks the
+  live `/assets/index-<hash>.js` in the background and loads fresh on the
+  NEXT launch when a release changed it (never reloads mid-session); a page
+  process iOS killed in the background reloads instead of staying blank.
+  index.html's stale-copy guard reloads once if a saved copy's code files
+  are gone. Verify on TestFlight 1.0.4 (ROADMAP.txt step 2, item 19).
 
 ## Launch speed (web)
 
@@ -160,6 +159,10 @@ feedback). Keep the cold-open path short:
   that action starts — see `loadScannerLib()` in
   `src/client/NutritionFeatures.jsx`. Check `npx vite build` chunk sizes
   after adding a dependency.
+- The iPhone app opens the saved copy of the site, so a web release reaches
+  App Store users on their NEXT open, not the current one. Keep index.html's
+  stale-copy guard (`apexStaleCopyReload`) — without it an old saved copy
+  whose code files are gone opens blank.
 - `AppContext.jsx` keeps the signed-in profile on the phone
   (`PROFILE_CACHE_KEY`, uid-checked); `App.jsx` uses its role to start
   loading the right screen's code at startup, and `index.html` uses it to
@@ -200,7 +203,8 @@ any Train Solo work from now on:
 ## iOS builds (Codemagic)
 
 - The iOS app is a WKWebView on the live web app, so web-only changes reach
-  App Store users the moment Vercel deploys — no build, no review. Only
+  App Store users without a build or review — from 1.0.4 on, on their next
+  open after Vercel deploys (instant open uses the saved copy first). Only
   native changes (`ios/`) need a new build + TestFlight + App Review.
 - `codemagic.yaml` builds iOS only when `ios/` or `codemagic.yaml` change
   (Android: `android/`). Builds are triggered by Codemagic's GitHub webhook;
