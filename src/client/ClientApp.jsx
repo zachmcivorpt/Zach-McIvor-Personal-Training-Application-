@@ -706,7 +706,7 @@ export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater
   // length on every day: iOS WebKit could leave a lengthened title
   // half-drawn over a backdrop-filter card (#111).
   const [cal, ...macros] = items;
-  const barColor = (it) => (it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE);
+  const calStatus = calorieStatus(cal.value, cal.target);
   const outlineBtn = dark ? "border border-white/20 text-white" : "border border-black/15 text-black";
   return (
     <div
@@ -727,12 +727,12 @@ export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater
             {cal.value.toLocaleString()}
             <span className={`text-[13px] font-normal tracking-normal ${muted50}`}> / {Number(cal.target).toLocaleString()} kcal</span>
           </p>
-          <p className={`text-[13px] tabular-nums shrink-0 ${muted50}`}>
-            <span className={`font-semibold ${primaryText}`}>{Math.max(0, Math.round(cal.target - cal.value)).toLocaleString()}</span> left
+          <p className={`text-[13px] tabular-nums shrink-0 ${calStatus.over ? "" : muted50}`} style={calStatus.over ? { color: OVER_RED } : undefined}>
+            <span className={`font-semibold ${calStatus.over ? "" : primaryText}`}>{calStatus.amount.toLocaleString()}</span> {calStatus.over ? "over" : "left"}
           </p>
         </div>
         <div className="mt-3">
-          <ProgressBar value={cal.value} max={cal.target} height={3} color={barColor(cal)} trackClassName={trackClass} />
+          <ProgressBar value={cal.value} max={cal.target} height={3} color={calStatus.color} trackClassName={trackClass} />
         </div>
         <div className="grid grid-cols-3 gap-4 mt-5">
           {macros.map((it) => (
@@ -744,7 +744,7 @@ export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater
                 <span className={`text-xs font-normal ${muted50}`}> / {it.target}{it.unit}</span>
               </p>
               <div className="mt-2">
-                <ProgressBar value={it.value} max={it.target} height={3} color={barColor(it)} trackClassName={trackClass} />
+                <ProgressBar value={it.value} max={it.target} height={3} color={targetBarColor(it.value, it.target, { capped: it.label !== "PROTEIN" })} trackClassName={trackClass} />
               </div>
             </div>
           ))}
@@ -4275,6 +4275,14 @@ const MACRO_COLORS = { protein: "#8B5CF6", carbs: "#22B8CF", fat: "#F97316" };
 // Blue while under target, green once the target's hit, red once it's
 // overshot by more than 10% — protein is exempt from red since going over
 // protein isn't a problem the way going over calories/carbs/fat is.
+// Calories: once the day goes over target at all, show how much over (not
+// "0 left") and turn it red (#114).
+export function calorieStatus(value, target) {
+  const diff = Math.round((Number(target) || 0) - (Number(value) || 0));
+  const over = target > 0 && diff < 0;
+  return { over, amount: Math.abs(diff), color: over ? OVER_RED : target > 0 && diff === 0 ? GOAL_GREEN : MEASURE_BLUE };
+}
+
 function targetBarColor(value, target, { capped = true } = {}) {
   if (!target || target <= 0) return MEASURE_BLUE;
   if (capped && value > target * 1.1) return OVER_RED;
@@ -5127,6 +5135,7 @@ export function NutritionScreen({
     return localDateKey(d);
   }, [navOffset]);
   const nutrition = nutritionByDateKey[viewDateKey] || DEFAULT_NUTRITION;
+  const calStatus = calorieStatus(nutrition.calories, targets.calories);
   // AI Nutrition Help always reasons about TODAY's actual progress, not
   // whichever day the date-nav above happens to be browsing — asking "what
   // should I eat" while looking back at yesterday's log must never get
@@ -5423,16 +5432,18 @@ export function NutritionScreen({
           style={clientGlass(dark)}
         >
             <div className="relative">
-            <p className={`${dark ? "text-white/50" : "text-black/45"} text-[11px] font-bold tracking-[0.12em] mb-2`}>CALORIES REMAINING</p>
+            <p className={`${dark ? "text-white/50" : "text-black/45"} text-[11px] font-bold tracking-[0.12em] mb-2`}>{calStatus.over ? "CALORIES OVER" : "CALORIES REMAINING"}</p>
             <div className="flex items-baseline gap-2">
-              <span className={`${dark ? "text-white" : "text-black"} text-[28px] leading-none font-bold`}>{Math.max(0, targets.calories - nutrition.calories).toLocaleString()}</span>
+              <span className={`${calStatus.over ? "" : dark ? "text-white" : "text-black"} text-[28px] leading-none font-bold`} style={calStatus.over ? { color: OVER_RED } : undefined}>
+                {calStatus.amount.toLocaleString()}
+              </span>
               <span className={`${dark ? "text-white/40" : "text-black/40"} text-sm`}>of {targets.calories.toLocaleString()} kcal</span>
             </div>
             <div className="mt-2.5">
               <ProgressBar trackClassName={dark ? "bg-white/15" : "bg-black/8"}
                 value={nutrition.calories}
                 max={targets.calories}
-                color={targetBarColor(nutrition.calories, targets.calories)}
+                color={calStatus.color}
               />
             </div>
             <div className={`grid grid-cols-3 divide-x ${dark ? "divide-white/10" : "divide-black/8"} mt-4`}>
