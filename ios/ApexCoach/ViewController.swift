@@ -46,6 +46,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
 
     // Apple Health reads for the web app — see HealthBridge.swift.
     private let health = HealthBridge()
+    // Train Solo in-app subscriptions — see PurchasesBridge.swift. Only
+    // offered to the page once RevenueCat is configured.
+    private let purchases = PurchasesBridge()
 
     // The strip above the webview (status bar + notch) is this view's own
     // background showing through — it doesn't track the page's background
@@ -116,6 +119,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         config.userContentController.add(self, name: "apexTheme")
         config.userContentController.add(self, name: "apexHealth")
         config.userContentController.add(self, name: "apexRest")
+        if PurchasesConfig.isConfigured {
+            config.userContentController.add(self, name: "apexPurchases")
+        }
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
@@ -125,6 +131,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         webView.isOpaque = false
         webView.backgroundColor = .white
         health.webView = webView
+        purchases.webView = webView
         view.addSubview(webView)
 
         // Pin below the status bar/notch — a bare WKWebView doesn't auto-inset
@@ -298,6 +305,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             if let body = message.body as? [String: Any] { RestTimerBridge.handle(body) }
             return
         }
+        if message.name == "apexPurchases" {
+            if let body = message.body as? [String: Any] { purchases.handle(body) }
+            return
+        }
         guard message.name == "apexTheme",
               let body = message.body as? [String: Any],
               let dark = body["dark"] as? Bool
@@ -320,6 +331,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexTheme")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexHealth")
         webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexRest")
+        if PurchasesConfig.isConfigured {
+            webView.configuration.userContentController.removeScriptMessageHandler(forName: "apexPurchases")
+        }
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {

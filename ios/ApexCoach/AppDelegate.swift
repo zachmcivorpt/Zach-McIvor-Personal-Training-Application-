@@ -13,6 +13,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // Train Solo in-app subscriptions (PurchasesBridge.swift) — a no-op
+        // until a RevenueCat key is set.
+        PurchasesConfig.configure()
+
         // Firebase needs GoogleService-Info.plist, which can't be generated
         // from here — it comes from the Firebase console and gets dropped
         // into this project by hand (see APNS_SETUP.txt). Guard on its
