@@ -106,11 +106,11 @@ Do these together when the user is ready to submit a new App Store build
   (1320 x 2868 portrait). Screenshots must not show prices or buy buttons
   for Train Solo (3.1.1).
 
-- **Apple Health (1.0.3)**: native HealthKit bridge + web sync are on
+- **Apple Health (built in 1.0.3, released in 1.0.4)**: native HealthKit bridge + web sync are on
   main (web side is hidden until a build with the native handler is
   installed). Needs the HealthKit capability ticked on the App ID
   `com.apexcoaching.platform` and a refreshed App Store provisioning
-  profile in Codemagic before the build signs. Before submitting 1.0.3,
+  profile in Codemagic before the build signs. Before submitting 1.0.4,
   add "Health" in App Store Connect → App Privacy (app functionality,
   linked to the user, not tracking).
 - **Also in 1.0.3**: voice notes (microphone permission string), form-check
@@ -125,9 +125,11 @@ Do these together when the user is ready to submit a new App Store build
   and sent later (`src/lib/offlineWrite.js`). App-Bound Domains + the
   service worker remains the fuller offline option if the cache fallback
   proves patchy on device.
-- **Order agreed**: 1.0.3 next (built and uploaded to TestFlight
-  2026-10-28; HealthKit signing done; the user tests it, then submits), then
-  monetisation as 1.0.4, then growing the catalogue to 10 solid programs.
+- **Order agreed** (updated 2026-10-28): 1.0.3 is TestFlight-only and is
+  never submitted; the user tests its features there. 1.0.4 is the next
+  App Store release and the public launch (1.0.3's features + Train Solo
+  subscriptions); marketing starts with it. Then growing the catalogue to 10
+  solid programs.
   All written up in `ROADMAP.txt`. The monetisation plan was APPROVED
   2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$79.99 yr /
   All Access A$24.99 mo, A$179.99 yr, 10-day trial on yearly; a failed
@@ -135,9 +137,9 @@ Do these together when the user is ready to submit a new App Store build
   launch day; launch with 5 programs. BUILT 2026-10-28 and switched off;
   what's left is the owner's setup list in ROADMAP.txt step 2 (Apple,
   RevenueCat, Stripe, 5 programs), then 1.0.4 (needs the RevenueCat public
-  key in ios/ApexCoach/PurchasesBridge.swift). Don't merge `ios/` changes
-  to main before 1.0.3 is submitted (Codemagic would build 1.0.4).
-- **Cold open, native part (next build after 1.0.3, not 1.0.3 itself)**:
+  key in ios/ApexCoach/PurchasesBridge.swift). Merging `ios/` to main makes
+  Codemagic build 1.0.4 — fine now, best once that key is in.
+- **Cold open, native part (candidate for 1.0.4)**:
   the user wants the app to open instantly. The web side is done
   (REGRESSION_TESTS.md #103). What's left is the ~0.5s native spinner:
   ViewController.swift loads the site with `.useProtocolCachePolicy`, so

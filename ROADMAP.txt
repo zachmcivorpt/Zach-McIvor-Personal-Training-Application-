@@ -1,19 +1,24 @@
 APEX ROADMAP
 ============
-Order agreed with the owner (2026-10-28): finish and submit 1.0.3 first, then
-monetisation (Train Solo Free / Plus / All Access subscriptions, iOS 1.0.4),
-launching with 5 programs, then grow the catalogue to 10 and keep customers
+Order agreed with the owner (2026-10-28, updated the same day): 1.0.3 is NOT
+released on its own — it stays a TestFlight test build. 1.0.4 is the next
+App Store release and the public launch: everything in 1.0.3 plus Train Solo
+Free / Plus / All Access subscriptions, launching with 5 programs; marketing
+starts with 1.0.4. Then then grow the catalogue to 10 and keep customers
 engaged with regular updates (step 4). Step 2's plan and prices were
 APPROVED by the owner on 2026-10-28 and its code is BUILT (2026-10-28,
 switched off until launch) — what's left is the owner's setup and testing.
 
 
-STEP 1 — iOS 1.0.3 (NEXT)
--------------------------
+STEP 1 — iOS 1.0.3 (TESTFLIGHT ONLY — never submitted)
+-----------------------------------------------------
 BUILT 2026-10-28: Codemagic built and uploaded 1.0.3 to TestFlight after
 HealthKit was ticked on the App ID, the profile regenerated and uploaded to
 Codemagic, and NSHealthUpdateUsageDescription added (ITMS-90683).
-Steps 1-4 below are done; next is testing (5) and submitting (6).
+Steps 1-4 below are done. Owner decision 2026-10-28: 1.0.3 is not submitted
+to the App Store; its features ship in 1.0.4 (step 2). Still test them on
+the 1.0.3 TestFlight build now (step 5) — anything found gets fixed before
+1.0.4. Step 6 moves to 1.0.4's submission (step 2, item 20).
 
 Owner to do, in order:
   1. developer.apple.com > Identifiers > com.apexcoaching.platform >
@@ -29,10 +34,10 @@ Owner to do, in order:
      (coached and Train Solo).
      Also check the new full-bleed app icon (no box inside a box) on the
      home screen.
-  6. App Store Connect: rename the unsent 1.0.2 version page to 1.0.3 (or
-     + Version 1.0.3); pick the 1.0.3 build; App Privacy: add Health and Audio
-     Data (app functionality, linked to the user, not tracking); upload the 10
-     prepared screenshots; submit. 1.0.2 is never submitted.
+  6. (Now part of 1.0.4, step 2 item 20.) App Store Connect: rename the
+     unsent version page to 1.0.4; App Privacy: add Health and Audio Data
+     (app functionality, linked to the user, not tracking); upload the
+     screenshots. 1.0.2 and 1.0.3 are never submitted.
 
 
 STEP 2 — MONETISATION: TRAIN SOLO FREE / PLUS / ALL ACCESS (iOS 1.0.4)
@@ -41,10 +46,11 @@ APPROVED 2026-10-28. BUILT 2026-10-28 (web, server, rules, iOS bridge), all
 switched OFF until launch: nothing changes for customers until the owner
 turns it on (coach console > Train Solo > Subscriptions > Go live).
 
-Why 1.0.4 and not 1.0.3: buying inside the iPhone app needs new native code
-(RevenueCat's SDK) and the subscriptions themselves must be approved by
-Apple together with an app version. 1.0.3 is already built and in testing,
-so it goes out as it is; subscriptions ride on 1.0.4.
+Why 1.0.4: buying inside the iPhone app needs new native code (RevenueCat's
+SDK), and the subscriptions must be approved by Apple together with an app
+version. 1.0.3 stays a test build; 1.0.4 is the launch release with all of
+1.0.3's features (Apple Health, voice notes, form checks, lock-screen rest
+alert, offline) plus subscriptions.
 
 The plan
   FREE        create sessions and log workouts; up to 3 saved sessions;
@@ -177,9 +183,10 @@ OWNER TO DO, in order
    16. Publish 5 solid programs for launch (step 3) — the coach console's
        Subscriptions tab counts them.
   E. Go-live sequence:
-   17. Tell me to merge to main. That deploys the web app, the server and the
-       rules with everything still OFF (customers see no change), and lets
-       Codemagic build 1.0.4 — so only after 1.0.3 is submitted.
+   17. Tell me to merge to main — best once the RevenueCat key (step 11) is
+       in, so the first 1.0.4 build can buy. That deploys the web app, the
+       server and the rules with everything still OFF (customers see no
+       change), and Codemagic builds 1.0.4 for TestFlight.
    18. Coach console > Train Solo > Subscriptions: add your own Train Solo
        test account. On the website: subscribe (with the 100% code), upgrade
        Plus -> All Access, start/switch/resume a program, cancel in the
@@ -189,11 +196,14 @@ OWNER TO DO, in order
        second device, and a failed renewal (sandbox can simulate billing
        problems) -> Free.
    20. App Store Connect: 1.0.4 version page > In-App Purchases and
-       Subscriptions > add all four; App Privacy: add "Purchases" (purchase
-       history; app functionality, linked to the user, not tracking);
+       Subscriptions > add all four; App Privacy: add Health, Audio Data and
+       "Purchases" (purchase history) — all app functionality, linked to the
+       user, not tracking; upload the screenshots (no prices or buy buttons
+       in them);
        description: add the Terms of Use link (Apple's standard EULA is
        fine) and that subscriptions renew automatically; submit.
-   21. Once 1.0.4 is approved and out: Subscriptions > Go live.
+   21. Once 1.0.4 is approved and out: Subscriptions > Go live, then start
+       marketing (the launch).
 
 Known limits (for later)
   - Resuming a paused All Access program re-lays its earlier weeks from the
