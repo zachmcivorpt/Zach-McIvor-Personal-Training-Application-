@@ -126,7 +126,7 @@ Do these together when the user is ready to submit a new App Store build
   2026-10-28; HealthKit signing done; the user tests it, then submits), then
   monetisation as 1.0.4, then growing the catalogue to 10 solid programs.
   All written up in `ROADMAP.txt`. The monetisation plan was APPROVED
-  2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$69.99 yr /
+  2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$79.99 yr /
   All Access A$24.99 mo, A$179.99 yr, 10-day trial on yearly; a failed
   payment drops to Free with data kept; single-program sales stop on
   launch day. Start building once 1.0.3 is submitted and the owner setup in

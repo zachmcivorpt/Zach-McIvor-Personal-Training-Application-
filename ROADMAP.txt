@@ -63,7 +63,7 @@ The tiers (AUD, GST included)
     - Exercise library and swaps, calendar, workout history, weigh-ins and
       progress photos, basic stats.
     - No suggested weights, no program builder, no catalogue programs.
-  PLUS — A$9.99/month or A$69.99/year (10-day free trial on yearly)
+  PLUS — A$9.99/month or A$79.99/year (10-day free trial on yearly)
     - Everything in Free, unlimited saved sessions.
     - Suggested weights for every set (src/solo/soloProgression.js).
     - Build your own multi-week program (NEW — today customers can only
@@ -106,7 +106,7 @@ Where to sell: Apple in the app first, the website too
   - Take-home per sale, after GST:
       All Access yearly A$179.99   Apple ~A$139   website ~A$158
       All Access monthly A$24.99   Apple ~A$19.31
-      Plus yearly A$69.99          Apple ~A$54    website ~A$61
+      Plus yearly A$79.99          Apple ~A$62    website ~A$70
       Plus monthly A$9.99          Apple ~A$7.72
   - Biggest levers: yearly shown first with the trial; the paywall shown
     after a free user's first logged workout; an "upgrade to one-to-one
@@ -163,7 +163,7 @@ Owner setup (before the native part is built)
   1. App Store Connect > Business: sign the Paid Apps Agreement; add bank
      account and tax forms. Enrol in the App Store Small Business Program.
   2. App Store Connect > the app > Subscriptions: one group "Train Solo"
-     with four products — Plus monthly A$9.99, Plus yearly A$69.99,
+     with four products — Plus monthly A$9.99, Plus yearly A$79.99,
      All Access monthly A$24.99, All Access yearly A$179.99. All Access
      ranked above Plus in the group (so switching is an upgrade).
      10-day free trial (introductory offer) on both yearly products.
