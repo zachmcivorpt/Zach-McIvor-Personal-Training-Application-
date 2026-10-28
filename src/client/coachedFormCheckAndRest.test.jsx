@@ -33,14 +33,14 @@ afterEach(() => {
 const BENCH_PRESS = { id: "ex-bench", name: "Bench Press", videoUrl: "" };
 const session = () => ({ id: "s1", date: "2026-10-28", label: "Push Day", exercises: [{ exerciseId: "ex-bench", section: "main", targetSets: 3, targetReps: 10, targetType: "reps", restSeconds: 90 }] });
 
-function LiveSessionHarness({ thread = [], onSendFormCheck }) {
+function LiveSessionHarness({ thread = [], onSendFormCheck, sessionOverride }) {
   const [activeLog, setActiveLog] = useState({});
   const [exerciseNotes, setExerciseNotes] = useState({});
   const [exerciseSwaps, setExerciseSwaps] = useState({});
   const [extraExercises, setExtraExercises] = useState([]);
   return (
     <WorkoutSession
-      session={session()}
+      session={sessionOverride || session()}
       activeLog={activeLog}
       setActiveLog={setActiveLog}
       logsForClient={[]}
@@ -96,6 +96,20 @@ describe("coached workout: form checks and the lock-screen rest alert", () => {
     expect(posted.at(-1)).toEqual({ action: "schedule", seconds: 90, title: "Rest's up", body: "Time for your next set of Bench Press." });
     fireEvent.click(screen.getByText("SKIP"));
     expect(posted.at(-1)).toEqual({ action: "cancel" });
+  });
+
+  // Register #100: a timed exercise shows only the timer, no Kg box.
+  it("shows only the timer on a timed exercise, and Kg on a reps exercise", () => {
+    const timed = { ...session(), exercises: [{ exerciseId: "ex-bench", section: "main", targetSets: 2, targetReps: 30, targetType: "time", restSeconds: 0 }] };
+    render(<LiveSessionHarness sessionOverride={timed} onSendFormCheck={vi.fn()} />);
+    expect(screen.getByText("Seconds")).toBeTruthy();
+    expect(screen.queryByText("Kg")).toBeNull();
+    expect(document.querySelectorAll('input[inputmode="decimal"]').length).toBe(0);
+    expect(screen.getAllByText("30s").length).toBe(2);
+    cleanup();
+    render(<LiveSessionHarness onSendFormCheck={vi.fn()} />);
+    expect(screen.getByText("Kg")).toBeTruthy();
+    expect(document.querySelectorAll('input[inputmode="decimal"]').length).toBe(3);
   });
 
   // Register #98: iPhone builds before 1.0.3 have no microphone usage

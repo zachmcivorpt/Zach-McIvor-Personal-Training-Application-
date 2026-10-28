@@ -2204,6 +2204,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: the existing `src/client/coachedFormCheckAndRest.test.jsx` cases (button found by its aria-label, upload sends a tagged form check, hidden in pre-1.0.3 iPhone builds) still pass. Screenshotted at 390px in dark and light with a long exercise name, side by side with the original: name and sets/reps lines unchanged, no overlap.
 - **Date added**: 2026-10-28
 
+### 100. Coached workout: timed exercises show only the timer (design change)
+- **Change**: an exercise programmed for time (`targetType: "time"`) now shows just the Seconds timer button across the row, like Train Solo; the Kg box and its header are gone for those rows only (`ExerciseBlock`, `src/client/ClientApp.jsx`). Reps exercises are unchanged. Saving is unaffected: a set is saved from its seconds, and a blank Kg was already saved as 0.
+- **Regression tests**: `src/client/coachedFormCheckAndRest.test.jsx` ("shows only the timer on a timed exercise, and Kg on a reps exercise"), which fails without the change. Screenshotted at 390px in light and dark with a timed and a reps exercise.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing

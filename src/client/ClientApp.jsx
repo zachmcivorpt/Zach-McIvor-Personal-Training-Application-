@@ -2049,6 +2049,8 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
   const [timerRemaining, setTimerRemaining] = useState(0);
   const timerTickRef = useRef(null);
   const targetSeconds = Number(exMeta.targetReps) || 30;
+  // Timed exercises show only the timer (no Kg box), like Train Solo.
+  const timedRows = exMeta.targetType === "time";
 
   useEffect(() => {
     if (timerRowIndex === null) return;
@@ -2250,19 +2252,19 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
 
       {expanded && (
       <div className="mt-3">
-        <div className="grid grid-cols-[22px_1fr_64px_64px] gap-2 px-1 mb-1">
+        <div className={`grid ${timedRows ? "grid-cols-[22px_1fr_136px]" : "grid-cols-[22px_1fr_64px_64px]"} gap-2 px-1 mb-1`}>
           <span className={dark ? "text-white/70 text-[9px] font-semibold" : "text-black/70 text-[9px] font-semibold"}>Set</span>
           <span className={dark ? "text-white/70 text-[9px] font-semibold" : "text-black/70 text-[9px] font-semibold"}>Previous</span>
           <span className={dark ? "text-white/70 text-[9px] font-semibold text-center leading-tight" : "text-black/70 text-[9px] font-semibold text-center leading-tight"}>
             {exMeta.targetType === "time" ? "Seconds" : "Reps"}
           </span>
-          <span className={dark ? "text-white/70 text-[9px] font-semibold text-center" : "text-black/70 text-[9px] font-semibold text-center"}>Kg</span>
+          {!timedRows && <span className={dark ? "text-white/70 text-[9px] font-semibold text-center" : "text-black/70 text-[9px] font-semibold text-center"}>Kg</span>}
         </div>
         {rows.map((row, i) => {
           const prev = previousSets[i];
           const suggestion = suggestNextSet(prev, exMeta.targetReps);
           return (
-            <div key={i} className="grid grid-cols-[22px_1fr_64px_64px] gap-2 items-center px-1 py-1">
+            <div key={i} className={`grid ${timedRows ? "grid-cols-[22px_1fr_136px]" : "grid-cols-[22px_1fr_64px_64px]"} gap-2 items-center px-1 py-1`}>
               <span className={dark ? "text-white text-[12px] font-semibold" : "text-black text-[12px] font-semibold"}>{i + 1}</span>
               <div className="min-w-0">
                 <button
@@ -2327,14 +2329,16 @@ function ExerciseBlock({ exMeta, exercise, rows, previousSets, onChangeField, on
                   className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[13px] font-semibold py-1.5 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[13px] font-semibold py-1.5 outline-none focus:border-black/40"}
                 />
               )}
-              <input
-                type="number"
-                inputMode="decimal"
-                value={row.weight}
-                onChange={(e) => onChangeField(i, "weight", e.target.value)}
-                onBlur={() => onBlurKg(i)}
-                className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[13px] font-semibold py-1.5 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[13px] font-semibold py-1.5 outline-none focus:border-black/40"}
-              />
+              {!timedRows && (
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={row.weight}
+                  onChange={(e) => onChangeField(i, "weight", e.target.value)}
+                  onBlur={() => onBlurKg(i)}
+                  className={dark ? "w-full bg-black border border-white/15 rounded-xl text-center text-white text-[13px] font-semibold py-1.5 outline-none focus:border-white/40" : "w-full bg-white border border-black/15 rounded-xl text-center text-black text-[13px] font-semibold py-1.5 outline-none focus:border-black/40"}
+                />
+              )}
             </div>
           );
         })}
