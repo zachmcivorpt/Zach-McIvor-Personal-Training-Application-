@@ -2249,6 +2249,7 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Problem**: `SwipeableRow` (`src/client/ClientApp.jsx`) called `setPointerCapture` on every pointerdown, so the browser delivered the tap's click to the row instead of the button under the finger. Found while adding tap-to-edit on logged foods (it did nothing in a real browser, though jsdom tests passed); it also affected the saved-meal rows' +.
 - **Fix**: the row captures the pointer only once a clear sideways drag starts (8px, more horizontal than vertical), and swallows the click that ends a swipe. Swipe-to-delete is unchanged.
 - **Regression tests**: `src/client/swipeableRowTap.test.jsx` (a tap doesn't capture and reaches the button; a wobble or vertical scroll isn't a swipe; a swipe captures and its closing click isn't a tap). Fails on the old row (3 of 3); `swipeDeleteFreeze.test.jsx` still passes. Real-touch check in Chromium (iPhone 13 emulation, CDP touch events): tap opens the entry editor, swipe deletes without opening it.
+- **Follow-up**: on a real iPhone this version could leave a swiped row stuck half-open — fixed in #109.
 - **Date added**: 2026-10-28
 
 ### 108. Nutrition: faster logging (product change)
