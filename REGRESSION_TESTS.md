@@ -2264,6 +2264,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/client/swipeableRowTap.test.jsx`: finger lifts off the row (deletes past the threshold); a short swipe ending as a touchend elsewhere snaps back; capture/release throwing still completes the delete; a move-and-release in one beat uses the real position. All four fail on the #107 version. Real-touch check in Chromium (iPhone 13 emulation): a short swipe snaps back, a fast flick deletes, a tap still opens the editor. Needs a check on a real iPhone (WebKit isn't available here).
 - **Date added**: 2026-10-28
 
+### 110. Client Home and Training: Concept A redesign (product change)
+- **Change**: visual-only restyle of the coached client app to the approved "Concept A" mock-ups (`src/client/ClientApp.jsx`). Home: smaller greeting, open date strip, today's workout on a black-and-white gym photo card (`TodayWorkoutCard photo`), cardio rows and Daily Execution as open lists with dividers. Training > Today and > Program: a gym photo (`TrainingPhotoHero`) that fades into the page at the top and bottom, with today's workout (`TodayWorkoutCard photo="bare"`) or the current phase written on it; Today's actions as rows (`TrainingActionRow`); workout list with black-and-white thumbnails (coach photo, else `public/brand/workout-1..4.jpg`); new "Up next" list (the next three scheduled workouts after today, tapping opens the preview). No data, navigation or behaviour changes; Train Solo, coach console, TabHeader and the bottom nav are untouched.
+- **Regression tests (new)**: `src/client/todayWorkoutCardPhoto.test.jsx`: both photo versions keep Start/View, View-only once completed, Resume with the two-tap discard confirm, and the empty-day message. The discard cases fail when the confirm is removed from the photo card (checked, then restored). Existing `discardWorkout` and `bodyStatsAndCardioEdit` tests still pass. Screenshotted from the real components with sample data at 430px in light and dark (Home incl. workout in progress; Program; Today completed / not started / nothing scheduled), no console errors; "Up next" tap opens the preview.
+- **Manual check still needed**: on a real iPhone, the photo header under the white top bar and swiping a cardio row on Home.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing
