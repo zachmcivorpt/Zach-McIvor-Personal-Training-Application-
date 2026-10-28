@@ -92,7 +92,10 @@ Do these together when the user is ready to submit a new App Store build
   (PinnedLoginBackdrop); if any bounce still shows on device, also stop
   the webview's bounce natively for those screens.
 - Train Solo purchasing stays hidden inside the iOS app (Apple 3.1.1 —
-  `src/solo/appShell.js`); buying happens on the website only.
+  `src/solo/appShell.js`); buying happens on the website only — until
+  1.0.4, which adds Apple In-App Purchase for the Plus / All Access
+  subscriptions (see "Train Solo subscriptions" below). Even then, never a
+  website price, link or mention inside the app.
 - Update the iPhone screenshots in App Store Connect for the 1.0.2
   submission (the user asked for this to be remembered). PREPARED
   2026-10-26: 10 framed 1320x2868 images (start screen, 4 coached-client
@@ -129,9 +132,11 @@ Do these together when the user is ready to submit a new App Store build
   2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$79.99 yr /
   All Access A$24.99 mo, A$179.99 yr, 10-day trial on yearly; a failed
   payment drops to Free with data kept; single-program sales stop on
-  launch day. Start building once 1.0.3 is submitted and the owner setup in
-  ROADMAP.txt is done. Until 1.0.4 ships, purchasing stays hidden in the
-  iOS app (bullet above).
+  launch day; launch with 5 programs. BUILT 2026-10-28 and switched off;
+  what's left is the owner's setup list in ROADMAP.txt step 2 (Apple,
+  RevenueCat, Stripe, 5 programs), then 1.0.4 (needs the RevenueCat public
+  key in ios/ApexCoach/PurchasesBridge.swift). Don't merge `ios/` changes
+  to main before 1.0.3 is submitted (Codemagic would build 1.0.4).
 - **Cold open, native part (next build after 1.0.3, not 1.0.3 itself)**:
   the user wants the app to open instantly. The web side is done
   (REGRESSION_TESTS.md #103). What's left is the ~0.5s native spinner:
@@ -162,6 +167,33 @@ feedback). Keep the cold-open path short:
   while signed out).
 - Show "–" or nothing while data loads, never a "0" that jumps to the
   real number.
+
+## Train Solo subscriptions (Free / Plus / All Access)
+
+Built 2026-10-28 (ROADMAP.txt step 2; REGRESSION_TESTS.md #104). Rules for
+any Train Solo work from now on:
+
+- Ask `canUse(feature, soloAccess)` (`src/solo/soloAccess.js`) before
+  showing a paid feature, and open `useSoloPaywall().openPaywall({ tier,
+  reason })` instead of a dead end. Add new paid features to
+  `FEATURE_TIER` there, not as one-off checks.
+- The tier comes only from `soloEntitlements/{uid}`, written only by the
+  server (`functions/soloSubscriptions.js`) from Stripe and RevenueCat. The
+  app never writes it and never grants access by itself. A failed payment,
+  expiry or refund is Free immediately (owner rule).
+- Paid content must stay gated on the server too (firestore.rules
+  `hasAllAccess()`), not just hidden in the UI.
+- Programs on the calendar come from `soloTrainingPrograms` (bought
+  purchases + All Access enrolments + own built programs), looked up in
+  `soloProgramsById` / `soloContentById` — not `soloPurchases` alone. One
+  active All Access program at a time; switching pauses, resuming keeps
+  the week numbers (logs are keyed on them).
+- Nothing is gated until `settings/soloMonetisation.live` (coach console >
+  Train Solo > Subscriptions) or the account is a test account; before
+  that, Train Solo must behave exactly as it did.
+- Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
+  keep both in step); in the iPhone app always Apple's own prices from the
+  store.
 
 ## iOS builds (Codemagic)
 
