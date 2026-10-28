@@ -357,8 +357,10 @@ export function sectionedExercises(list) {
 }
 
 /* ============================================================================
-   THEME — the coach can flip the client app between dark and light from
-   Design Settings (settings/appDesign.clientDarkMode). Every themed
+   THEME — the coach sets the client app's default (dark or light) in
+   Design Settings (settings/appDesign.clientDarkMode); each client can
+   override it for themselves in Profile > Appearance (saved on the phone,
+   see readClientThemePick). Every themed
    component below reads it via useClientDark() rather than a prop, since
    plumbing one boolean through this many nested components would mean
    touching every function signature; a context avoids that while still
@@ -366,6 +368,20 @@ export function sectionedExercises(list) {
 ============================================================================ */
 
 export const ClientThemeContext = createContext(true);
+// The client's own choice wins; with none, the coach's default.
+export function resolveClientDark(pick, coachDefaultDark) {
+  return pick ? pick === "dark" : coachDefaultDark === true;
+}
+// A client's own saved Light/Dark choice ("dark" | "light"), or null if
+// they haven't picked one on this phone.
+export function readClientThemePick(key) {
+  try {
+    const v = localStorage.getItem(key);
+    return v === "dark" || v === "light" ? v : null;
+  } catch {
+    return null;
+  }
+}
 export function useClientDark() {
   return useContext(ClientThemeContext);
 }
@@ -7489,6 +7505,7 @@ export function ProfileScreen({
   showToast,
   dueCheckInsCount,
   onOpenCheckIns,
+  onToggleTheme,
 }) {
   const dark = useClientDark();
   const { deleteMyAccount, viewingAsClient } = useApp();
@@ -7510,6 +7527,7 @@ export function ProfileScreen({
     { label: "Nutrition preferences", icon: Utensils, onClick: () => setPrefSection("nutrition") },
     { label: "Notifications", icon: Bell, onClick: onOpenNotifications },
     { label: "Push Notifications", icon: BellRing, onClick: () => setPushOpen(true) },
+    ...(onToggleTheme ? [{ label: "Appearance", value: dark ? "Dark" : "Light", icon: Moon, onClick: onToggleTheme }] : []),
     // Both of these act on the real signed-in Firebase Auth account, never
     // the client being impersonated — connecting WHOOP or deleting while
     // "viewing as" a client would silently hit the coach's own account
@@ -7619,6 +7637,7 @@ export function ProfileScreen({
             >
               <r.icon size={17} className={dark ? "text-white/40" : "text-black/40"} />
               <span className={dark ? "text-white/80 text-sm flex-1" : "text-black/80 text-sm flex-1"}>{r.label}</span>
+              {r.value && <span className={dark ? "text-white/45 text-sm" : "text-black/45 text-sm"}>{r.value}</span>}
               {r.label === "Notifications" && notifCount > 0 && (
                 <span className={dark ? "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
                   {notifCount}
@@ -8937,7 +8956,20 @@ export default function ClientApp() {
     clearLiveSession,
     dbReady,
   } = useApp();
-  const dark = db.appDesign?.clientDarkMode === true;
+  // Light/Dark: the client's own choice (Profile > Appearance), kept on
+  // this phone per person like Train Solo's; until they choose, the
+  // coach's default from Design Settings applies.
+  const themeKey = `clientTheme_${currentUser?.id}`;
+  const [themePick, setThemePick] = useState(null); // { key, value } once chosen this session
+  const storedPick = themePick?.key === themeKey ? themePick.value : readClientThemePick(themeKey);
+  const dark = resolveClientDark(storedPick, db.appDesign?.clientDarkMode);
+  function chooseClientTheme(nextDark) {
+    const value = nextDark ? "dark" : "light";
+    try {
+      localStorage.setItem(themeKey, value);
+    } catch {}
+    setThemePick({ key: themeKey, value });
+  }
   const navigate = useNavigate();
   // A session left open (backgrounded, or the tab/app closed before the
   // client explicitly finished or canceled it) persists across reloads so
@@ -10091,6 +10123,7 @@ export default function ClientApp() {
             showToast={showToast}
             dueCheckInsCount={dueCheckInsCount}
             onOpenCheckIns={() => setTab("checkins")}
+            onToggleTheme={() => chooseClientTheme(!dark)}
           />
         )}
         </TabFade>

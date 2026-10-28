@@ -15,8 +15,10 @@ browser-only "add to home screen" — that's no longer the primary path.
 
 Target look: dark, restrained, technical, premium. Applies identically in
 both of the app's existing modes — the client app's own light/dark toggle
-(`ClientThemeContext`/`useClientDark`) and the coach console's single light
-theme — by expressing it through the existing tokens in `src/theme.js`
+(`ClientThemeContext`/`useClientDark`; each client picks it in Profile >
+Appearance, saved per person on the phone, with the coach's Design
+Settings switch as the default until they do) and the coach console's
+single theme — by expressing it through the existing tokens in `src/theme.js`
 rather than inventing new colors per screen:
 
 - **Light surfaces**: `BG`/`SURFACE` (off-white, not stark white), `TEXT`
