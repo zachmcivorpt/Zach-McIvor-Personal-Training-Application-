@@ -106,11 +106,11 @@ Do these together when the user is ready to submit a new App Store build
   (1320 x 2868 portrait). Screenshots must not show prices or buy buttons
   for Train Solo (3.1.1).
 
-- **Apple Health (built in 1.0.3, released in 1.0.4)**: native HealthKit bridge + web sync are on
+- **Apple Health (built and released in 1.0.3)**: native HealthKit bridge + web sync are on
   main (web side is hidden until a build with the native handler is
   installed). Needs the HealthKit capability ticked on the App ID
   `com.apexcoaching.platform` and a refreshed App Store provisioning
-  profile in Codemagic before the build signs. Before submitting 1.0.4,
+  profile in Codemagic before the build signs. Before submitting 1.0.3,
   add "Health" in App Store Connect → App Privacy (app functionality,
   linked to the user, not tracking).
 - **Also in 1.0.3**: voice notes (microphone permission string), form-check
@@ -125,10 +125,12 @@ Do these together when the user is ready to submit a new App Store build
   and sent later (`src/lib/offlineWrite.js`). App-Bound Domains + the
   service worker remains the fuller offline option if the cache fallback
   proves patchy on device.
-- **Order agreed** (updated 2026-10-28): 1.0.3 is TestFlight-only and is
-  never submitted; the user tests its features there. 1.0.4 is the next
-  App Store release and the public launch (1.0.3's features + Train Solo
-  subscriptions); marketing starts with it. Then growing the catalogue to 10
+- **Order agreed** (changed again 2026-10-28, owner): 1.0.3 IS submitted
+  and released first (Apple Health, voice notes, form checks, lock-screen
+  rest alert, offline) once it passes TestFlight testing; main's `ios/` is
+  1.0.3, so don't merge the branch's 1.0.4 `ios/` changes until 1.0.3 is
+  submitted. Then 1.0.4 (Train Solo subscriptions + instant open) is the
+  public launch; marketing starts with it. Then growing the catalogue to 10
   solid programs.
   All written up in `ROADMAP.txt`. The monetisation plan was APPROVED
   2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$79.99 yr /
