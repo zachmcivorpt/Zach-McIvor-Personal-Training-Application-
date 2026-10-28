@@ -478,7 +478,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
 
   if (!todaySession && photo === "bare") {
     return (
-      <div className="mx-2.5 px-2.5 pt-7">
+      <div className="mx-2.5 px-2.5 pt-[76px]">
         <p className="text-white text-xl font-semibold tracking-[-0.02em]">{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
         {dbReady && <p className="text-white/70 text-[13px] mt-0.5">{isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}</p>}
       </div>
@@ -515,7 +515,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
     const done = completedOnDate && !started;
     const bare = photo === "bare";
     const body = (
-        <div className={bare ? "mx-2.5 px-1 pt-7 flex flex-col" : "relative flex flex-col min-h-[206px] p-3"}>
+        <div className={bare ? "mx-2.5 px-1 pt-[76px] flex flex-col" : "relative flex flex-col min-h-[206px] p-3"}>
           <span
             className="self-start h-7 pl-1.5 pr-3 rounded-full flex items-center gap-1.5 text-xs font-semibold"
             style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
@@ -3423,7 +3423,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
     return (
       <TrainingPhotoHero>
         {header}
-        <p className="mx-2.5 px-1 pt-7 text-white/80 text-sm">No training program set up yet — your coach will assign one soon.</p>
+        <p className="mx-2.5 px-1 pt-[76px] text-white/80 text-sm">No training program set up yet — your coach will assign one soon.</p>
       </TrainingPhotoHero>
     );
   }
@@ -3484,7 +3484,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
     <div className="space-y-4">
       <TrainingPhotoHero>
         {header}
-        <div className="mx-2.5 px-1 pt-7">
+        <div className="mx-2.5 px-1 pt-[76px]">
           <div className="flex items-center justify-between gap-2">
             {phase.id === current?.id ? (
               <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
@@ -3672,6 +3672,12 @@ function TrainingPhotoHero({ children }) {
           className="absolute inset-0"
           style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 28%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.35) 72%, ${dark ? "rgba(9,9,9,0.4)" : "rgba(255,255,255,0.4)"} 86%, ${pageBg} 100%)` }}
         />
+        {/* Fades the top into the page too, so the header and switch sit
+            on the plain page colour below the app's top bar. */}
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, ${pageBg} 0px, ${pageBg} 100px, ${dark ? "rgba(9,9,9,0)" : "rgba(255,255,255,0)"} 175px)` }}
+        />
       </div>
       <div className="relative pb-6">{children}</div>
     </div>
@@ -3778,20 +3784,19 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   }
 
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
-  // Page name + Today/Program switch, drawn in white over the gym photo at
-  // the top of both tabs.
+  // Page name + Today/Program switch at the top of both tabs, on the plain
+  // page colour above where the gym photo fades in.
   const header = (
     <>
-      <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark />
-      <div
-        className="grid grid-cols-2 p-[3px] mx-2.5 mt-1 rounded-xl"
-        style={{ backgroundColor: "rgba(255,255,255,0.16)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
-      >
+      <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark={dark} />
+      <div className={`grid grid-cols-2 p-[3px] mx-2.5 mt-1 rounded-xl ${dark ? "bg-white/8" : "bg-black/5"}`}>
         {["today", "program"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`py-2 rounded-[9px] text-[13.5px] capitalize text-center ${tab === t ? "bg-white text-black font-semibold shadow-sm" : "text-white/80 font-medium"}`}
+            className={`py-2 rounded-[9px] text-[13.5px] capitalize text-center ${
+              tab === t ? "bg-white text-black font-semibold shadow-sm" : dark ? "text-white/60 font-medium" : "text-black/55 font-medium"
+            }`}
           >
             {t}
           </button>
