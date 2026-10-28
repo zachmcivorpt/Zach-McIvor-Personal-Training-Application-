@@ -429,7 +429,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   return (
     <div className="flex items-center justify-between px-2.5 pt-0.5 pb-0">
       <div>
-        <p className={`text-[22px] leading-tight font-semibold tracking-[-0.02em] ${dark ? "text-white" : "text-black"}`}>
+        <p className={`text-[19px] leading-tight font-semibold tracking-[-0.015em] ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
         </p>
         <p className={`text-[13.5px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>{dateStr}</p>
@@ -723,7 +723,7 @@ export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater
       </div>
       <div className={`mt-3 pt-4 border-t ${border}`}>
         <div className="flex items-baseline justify-between gap-3">
-          <p className={`text-[28px] leading-none font-semibold tracking-[-0.03em] tabular-nums ${primaryText}`}>
+          <p className={`text-[22px] leading-none font-semibold tracking-[-0.02em] tabular-nums ${primaryText}`}>
             {cal.value.toLocaleString()}
             <span className={`text-[13px] font-normal tracking-normal ${muted50}`}> / {Number(cal.target).toLocaleString()} kcal</span>
           </p>
