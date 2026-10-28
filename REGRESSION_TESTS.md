@@ -2215,6 +2215,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/solo/setTimerClock.test.jsx`: 20 seconds pass while only one tick gets through; both apps must show 10s left, and Train Solo then finishes and logs 30s. Fails on both without the fix.
 - **Date added**: 2026-10-28
 
+### 102. Opening the app and finishing a workout with no signal
+- **Problem**: (1) Finishing a workout offline (coached `finishWorkout` → `logWorkout`/`updateWorkoutLogEntries` in `AppContext.jsx`; Train Solo `logSoloWorkout` in `SoloAppContext.jsx`) awaited Firestore's server acknowledgement, which never comes offline, so Finish / Complete Workout spun forever even though the write was already kept on the phone. (2) The iPhone app loaded the live site with no fallback, so opening it with no signal showed a blank screen.
+- **Fix**: (1) `src/lib/offlineWrite.js` `savedOrQueued()`: waits up to 4s (0.8s when the phone reports offline) for the server, then resolves "queued"; Firestore's persistent local cache (`firebase.js`) keeps the write and sends it by itself later, even across an app restart. Real errors that come back in time still show; later ones are logged (`logClientError`). The coached app shows a toast and Train Solo's summary a line: "No signal — saved on your phone…". (2) `ViewController.swift`: if the first load fails for lack of a connection, it reloads from the phone's saved copy (`.returnCacheDataDontLoad`; the site's HTML and hashed assets are cacheable per `vercel.json`); with no saved copy yet, a native "You're offline … Try again" screen. Native: needs the next iOS build.
+- **Regression tests**: `src/lib/offlineWrite.test.js` (queued when the server never answers, saved when it does, real failure still reported, late failure to onLateError, shorter wait when offline). Live check against production Firestore with the Train Solo demo account in Chromium: offline write resolved "queued" in 0.9s and reached the server after reconnecting (test doc deleted). The native fallback can only be checked on a device.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing
@@ -2242,6 +2248,7 @@ sandbox):
   real webhook delivery into Cloud Functions, real recovery/sleep/strain
   data sync).
 - **Voice notes, form-check videos and the lock-screen rest alert on a real iPhone** (1.0.3): the one-time microphone prompt, recording and playing back on iPhone, a coach's desktop-recorded note playing on the phone, filming a set from the workout (a 2-minute clip should compress and upload quickly), and "Rest's up" arriving on a locked phone (and not while the app is open).
+- **Offline on a real iPhone** (1.0.3): open the app once online, then in Aeroplane Mode force-quit and reopen it — it should open (not a blank screen) and a workout finished offline should show "saved on your phone" and appear for the coach after reconnecting. First-ever open in Aeroplane Mode should show "You're offline … Try again".
 - **Apple Health on a real iPhone** (1.0.3): the HealthKit permission sheet, the numbers HealthBridge.swift reads (steps, sleep, resting heart rate, weight) against the Health app, and that they appear on the client's Progress, the coach's client Progress panel and Train Solo Progress. Only a TestFlight build on a device can exercise this.
 - **Apple App Store distribution path** (per `CLAUDE.md`'s product
   status: APEX is a published App Store app — the native WKWebView shell,

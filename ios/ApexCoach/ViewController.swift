@@ -40,6 +40,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // flushed once the web app is actually ready to run JS against it.
     private var pendingFCMToken: String?
     private var webViewReady = false
+    // Opening with no signal — see loadSite() and didFailProvisionalNavigation.
+    private var triedSavedCopy = false
+    private var offlineView: UIView?
 
     // Apple Health reads for the web app — see HealthBridge.swift.
     private let health = HealthBridge()
@@ -152,11 +155,77 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         view.addSubview(spinner)
         spinner.startAnimating()
 
-        webView.load(URLRequest(url: siteURL))
+        loadSite()
+    }
+
+    // With no signal when the app opens, the first load fails; the app then
+    // opens the copy of APEX this phone already keeps from last time
+    // (WKWebView's own web cache: the page plus its scripts, which the site
+    // serves as cacheable). The web app runs on its on-phone data
+    // (Firestore's local cache) and sends anything logged once it's back
+    // online. Only with no saved copy yet (never opened online) does the
+    // native "You're offline" message show.
+    private func loadSite() {
+        triedSavedCopy = false
+        webView.load(URLRequest(url: siteURL, cachePolicy: .useProtocolCachePolicy, timeoutInterval: 15))
+    }
+
+    private func isNoConnection(_ error: Error) -> Bool {
+        let e = error as NSError
+        guard e.domain == NSURLErrorDomain else { return false }
+        return [
+            NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorTimedOut,
+            NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost, NSURLErrorDataNotAllowed,
+            NSURLErrorInternationalRoamingOff, NSURLErrorResourceUnavailable,
+        ].contains(e.code)
+    }
+
+    private func showOfflineMessage() {
+        guard offlineView == nil else { return }
+        let cover = UIView()
+        cover.backgroundColor = .white
+        cover.translatesAutoresizingMaskIntoConstraints = false
+        let label = UILabel()
+        label.text = "You're offline.\nConnect to the internet once to open APEX. After that it opens without a connection."
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.font = .systemFont(ofSize: 15)
+        label.textColor = .darkGray
+        let retry = UIButton(type: .system)
+        retry.setTitle("Try again", for: .normal)
+        retry.titleLabel?.font = .boldSystemFont(ofSize: 16)
+        retry.addTarget(self, action: #selector(retryLoad), for: .touchUpInside)
+        let stack = UIStackView(arrangedSubviews: [label, retry])
+        stack.axis = .vertical
+        stack.spacing = 16
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        cover.addSubview(stack)
+        view.addSubview(cover)
+        NSLayoutConstraint.activate([
+            cover.topAnchor.constraint(equalTo: view.topAnchor),
+            cover.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            cover.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            cover.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            stack.centerYAnchor.constraint(equalTo: cover.centerYAnchor),
+            stack.leadingAnchor.constraint(equalTo: cover.leadingAnchor, constant: 32),
+            stack.trailingAnchor.constraint(equalTo: cover.trailingAnchor, constant: -32),
+        ])
+        offlineView = cover
+    }
+
+    @objc private func retryLoad() {
+        offlineView?.removeFromSuperview()
+        offlineView = nil
+        view.bringSubviewToFront(spinner)
+        spinner.startAnimating()
+        loadSite()
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         spinner.stopAnimating()
+        offlineView?.removeFromSuperview()
+        offlineView = nil
+        triedSavedCopy = false
         webViewReady = true
         if let token = pendingFCMToken {
             pendingFCMToken = nil
@@ -258,6 +327,14 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        if isNoConnection(error) {
+            if !triedSavedCopy {
+                triedSavedCopy = true
+                webView.load(URLRequest(url: siteURL, cachePolicy: .returnCacheDataDontLoad, timeoutInterval: 15))
+                return
+            }
+            showOfflineMessage()
+        }
         spinner.stopAnimating()
     }
 

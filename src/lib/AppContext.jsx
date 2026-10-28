@@ -41,6 +41,7 @@ import { pickBestFoodForBarcode } from "./barcodeLookup";
 // this file (see importBuiltInFoods) to keep it out of the main bundle; a
 // static import from foodDatabase.js itself would defeat that.
 import { sanitizeFoodUnits } from "./foodUnits";
+import { savedOrQueued } from "./offlineWrite";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -1564,7 +1565,10 @@ export function AppProvider({ children }) {
         // legitimately repeat multiple times a day.
         const id = workoutLogDocId(clientId, entry, () => newDocId("workoutLogs"));
         try {
-          await setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry });
+          // "queued" = no signal: kept on the phone, sends itself later (offlineWrite.js).
+          return await savedOrQueued(setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }), {
+            onLateError: (err) => logClientError(clientId, "Log workout (sent later)", err.message || "unknown error"),
+          });
         } catch (err) {
           logClientError(clientId, "Log workout", err.message || "unknown error");
           throw new Error("Couldn't save your workout — " + (err.message || "check your connection and try again."));
@@ -1934,7 +1938,7 @@ export function AppProvider({ children }) {
       // when it was logged under the wrong workout.
       async updateWorkoutLogEntries(logId, entries, extra) {
         try {
-          await updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) });
+          return await savedOrQueued(updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) }));
         } catch (err) {
           throw new Error("Couldn't save your changes — " + (err.message || "check your connection and try again."));
         }

@@ -9497,20 +9497,21 @@ export default function ClientApp() {
     }));
 
     setFinishingWorkout(true);
+    let saveStatus;
     try {
       if (editingLogId) {
         // Re-opened an already-completed workout to fix a stat — the
         // original duration (the real time actually spent training) still
         // stands, so it's left untouched here rather than overwritten with
         // however long this quick edit took.
-        await updateWorkoutLogEntries(editingLogId, entries, { sessionNote: sessionNote.trim() });
+        saveStatus = await updateWorkoutLogEntries(editingLogId, entries, { sessionNote: sessionNote.trim() });
       } else {
         // session.date (present for anything started from a specific
         // scheduled day — today's own, or an overdue day picked up late from
         // the calendar) ties this log to the day it actually fulfills, so
         // finishing an overdue workout today still flips THAT day to
         // completed rather than only ever showing up under today's date.
-        await logWorkout(currentUser.id, {
+        saveStatus = await logWorkout(currentUser.id, {
           dayLabel: session.label,
           entries,
           durationMin,
@@ -9543,6 +9544,7 @@ export default function ClientApp() {
     setRunningSession(null);
     clearLiveSession(currentUser.id);
     setFinishingWorkout(false);
+    if (saveStatus === "queued") showToast("No signal — your workout is saved on your phone and will send when you're back online.");
   }
 
   // Lets a client (or a coach who finds a client stuck on this) clear an

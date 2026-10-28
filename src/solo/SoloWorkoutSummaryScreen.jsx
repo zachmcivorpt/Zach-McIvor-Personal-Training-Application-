@@ -15,7 +15,7 @@ export default function SoloWorkoutSummaryScreen() {
   const location = useLocation();
   const navigate = useNavigate();
   const { dark } = useSoloTheme();
-  const { daySession, activeLog, durationMin = 0 } = location.state || {};
+  const { daySession, activeLog, durationMin = 0, savedOffline = false } = location.state || {};
 
   // <Navigate> rather than navigate() during render (a side effect React
   // Router warns about) — e.g. reopening this page with no workout state.
@@ -39,6 +39,9 @@ export default function SoloWorkoutSummaryScreen() {
       </div>
       <p className={`text-xs tracking-widest font-semibold ${dark ? "text-white/40" : "text-black/40"}`}>WORKOUT COMPLETE</p>
       <h2 className={`text-3xl font-bold mt-1 ${dark ? "text-white" : "text-black"}`}>{daySession.label}</h2>
+      {savedOffline && (
+        <p className={`text-xs mt-2 max-w-xs ${dark ? "text-white/50" : "text-black/50"}`}>No signal — saved on your phone. It will send when you're back online.</p>
+      )}
       <p className={`text-4xl font-bold tabular-nums mt-6 ${dark ? "text-white" : "text-black"}`}>{durationMin} min</p>
 
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm mt-6">

@@ -205,8 +205,9 @@ export default function SoloWorkoutSessionScreen() {
     }
     setFinishing(true);
     setSaveError("");
+    let savedOffline = false;
     try {
-      await logSoloWorkout(soloCurrentUser.id, { purchaseId, dayId, weekNumber, dayLabel: day.label, entries, durationMin });
+      savedOffline = !!(await logSoloWorkout(soloCurrentUser.id, { purchaseId, dayId, weekNumber, dayLabel: day.label, entries, durationMin }))?.queued;
     } catch {
       // Previously silent — the button just reverted, so a failed save
       // looked like nothing happened and the customer could leave thinking
@@ -215,7 +216,7 @@ export default function SoloWorkoutSessionScreen() {
       setSaveError("Couldn't save this workout — check your connection and tap Complete Workout again.");
       return;
     }
-    navigate("/solo/workout-summary", { state: { daySession: day, activeLog, durationMin }, replace: true });
+    navigate("/solo/workout-summary", { state: { daySession: day, activeLog, durationMin, savedOffline }, replace: true });
   }
 
   return (

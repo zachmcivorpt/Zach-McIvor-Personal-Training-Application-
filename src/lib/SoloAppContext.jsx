@@ -28,6 +28,7 @@ import { soloAuth, soloDb, soloFunctions } from "./firebase";
 import { isComplete } from "../solo/onboarding/questionnaireConfig";
 import { localDateKey } from "./dateKey";
 import { removeSoloPushToken } from "./push";
+import { savedOrQueued, QUEUED } from "./offlineWrite";
 
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
 // Solo's session must never share a React context, a listener, or an
@@ -576,8 +577,9 @@ export function SoloAppProvider({ children }) {
       async logSoloWorkout(uid, { purchaseId, dayId, weekNumber, dayLabel, entries, durationMin }) {
         const id = `${purchaseId}_${dayId}_w${weekNumber}`;
         const log = { id, soloUserId: uid, purchaseId, dayId, weekNumber, dayLabel, entries, durationMin, date: Date.now() };
-        await setDoc(doc(soloDb, "soloWorkoutLogs", id), log);
-        return log;
+        // "queued" = no signal: kept on the phone, sends itself later (offlineWrite.js).
+        const status = await savedOrQueued(setDoc(doc(soloDb, "soloWorkoutLogs", id), log));
+        return { ...log, queued: status === QUEUED };
       },
 
       // Mirrors Coaching's own logWeight (AppContext.jsx) exactly — same

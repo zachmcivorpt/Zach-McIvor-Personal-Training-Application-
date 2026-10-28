@@ -115,6 +115,13 @@ Do these together when the user is ready to submit a new App Store build
   (RestTimerBridge.swift). Before submitting, also add "Audio Data" (voice
   notes; app functionality, linked to the user, not tracking) in App
   Privacy if it isn't there.
+- **Also in 1.0.3 (build after the first TestFlight one)**: opening with no
+  signal falls back to the phone's saved copy of the site
+  (ViewController.swift `.returnCacheDataDontLoad`), else a native
+  "You're offline" screen; finishing a workout offline is kept on the phone
+  and sent later (`src/lib/offlineWrite.js`). App-Bound Domains + the
+  service worker remains the fuller offline option if the cache fallback
+  proves patchy on device.
 - **Order agreed**: 1.0.3 next (built and uploaded to TestFlight
   2026-10-28; HealthKit signing done; the user tests it, then submits), then
   monetisation: a Train Solo Pro subscription as 1.0.4. Both are written up
