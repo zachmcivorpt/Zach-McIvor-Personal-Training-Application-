@@ -2293,6 +2293,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/client/caloriesOver.test.jsx`: `calorieStatus` for under, exactly on, 1 over and 129 over (and no target); Home shows "129 over" in red with no "left". Both fail with the over state removed (checked, then restored). Screenshotted from the real Home card and Nutrition tab at 2,379 / 2,250.
 - **Date added**: 2026-10-28
 
+### 115. Coach Overview redesign (product change)
+- **Change**: the coach Overview (`src/coach/CoachDashboard.jsx`) gets the approved photo-header look: the black-and-white gym photo (`public/brand/gym-dark.jpg`) behind the greeting, a large active-client count and a challenges line, then three frosted-glass tiles (Need attention, Check-ins to review, Messages to reply). Sections are open lists under a thin rule in the order Needs attention, Client-side errors (only when there are any), Recent activity, Coach's notes, Segments. The greeting box's own bell and initials (decorative, not tappable; the real ones are in the top bar) are gone.
+- **Same functionality**: active-client count → Clients; challenges line → Challenges; Check-ins → the single check-in sheet when exactly one is pending, else Clients; Messages → Messages (all as the old tiles did). Coach's notes keep the same save logic (Save only after an edit). Needs attention swipe/dismiss, Apex Insight sheet, Recent activity taps and Segments "View All" are unchanged. New only: tapping Need attention scrolls to that section; "+N this week" shows next to active clients when there are new clients.
+- **Regression tests**: `src/coach/coachOverviewLayout.test.jsx`: each number navigates to the same tab as before; notes Save is disabled until an edit and then saves. The navigation case fails when a link is pointed elsewhere (checked, then restored). Rendered the real component with sample data at 430px: no console errors, and clicking each number produced clients, challenges, messages, clients.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing

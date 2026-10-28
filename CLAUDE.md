@@ -63,6 +63,13 @@ rather than inventing new colors per screen:
 - Content placed after `TrainingPhotoHero` must be `relative`, or the
   photo's bottom fade paints over it.
 
+### Coach Overview (approved 2026-10-28)
+
+- Gym photo header with the greeting and a large active-client count, then
+  frosted-glass tiles (Need attention, Check-ins, Messages) and open
+  sections under thin rules. Every number keeps its old destination (#115).
+- The coach console is otherwise still dark-only.
+
 ### Train Solo (self-guided app, `src/solo/`) design rules
 
 - **Every box/card is frosted glass**: translucent fill + hairline border +
