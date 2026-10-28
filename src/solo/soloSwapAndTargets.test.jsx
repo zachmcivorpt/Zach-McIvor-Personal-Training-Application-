@@ -22,7 +22,7 @@ describe("Train Solo exercise block: swap and set targets", () => {
         onSwap={noop} onChangeField={onChangeField} onBlurKg={noop} onAddSet={noop} onStartRest={noop} onOpenDetail={noop} />
     );
     expect(screen.getByText("You hit your reps last time, so the weight goes up.")).toBeTruthy();
-    fireEvent.click(screen.getByText("Target 10 × 62.5kg"));
+    fireEvent.click(screen.getByText("Target 62.5 kg × 10"));
     expect(onChangeField).toHaveBeenCalledWith(0, "weight", "62.5");
     expect(onChangeField).toHaveBeenCalledWith(0, "reps", "10");
   });

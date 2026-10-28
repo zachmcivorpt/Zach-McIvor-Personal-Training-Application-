@@ -2301,6 +2301,13 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 
 ---
 
+### 116. Train Solo set row: kg first, reps second (product change)
+- **Change**: in a Train Solo workout (`src/solo/SoloExerciseBlock.jsx`) the entry boxes already sit KG on the left and REPS on the right, but the Previous text and the Target button in the same row read reps first ("10 × 60 kg", "Target 10 × 62.5kg"). They now read kg first, matching the boxes: "60 kg × 10", "Target 62.5 kg × 10". A bodyweight target still reads "Target 12 reps". Train Solo only; the coached client app is untouched.
+- **Regression tests**: `src/solo/soloSetOrder.test.jsx`: the KG header and input come before REPS; Previous and Target read kg first; a bodyweight target reads in reps. Fails without the change (found "10 × 60 kg"). `soloSwapAndTargets.test.jsx` updated to tap the new Target text (still fills weight 62.5 and reps 10).
+- **Date added**: 2026-10-28
+
+---
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

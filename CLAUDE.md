@@ -85,6 +85,8 @@ rather than inventing new colors per screen:
 - No drawn/stock artwork: a program shows only its coach-uploaded
   `artworkUrl`, otherwise the plain cover gradient + APEX mark.
 - Spelling is "Program", never "Programme".
+- Set rows read kg first, reps second: KG box left, REPS box right, and
+  the Previous / Target text in the same order ("60 kg × 10").
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 

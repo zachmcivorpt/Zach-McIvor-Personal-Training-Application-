@@ -188,7 +188,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
               <span className={`${dark ? "text-white/50" : "text-black/50"} text-sm font-semibold ${isTimeBased ? "" : "pt-2"}`}>{i + 1}</span>
               <div className={`min-w-0 ${isTimeBased ? "" : "pt-1"}`}>
                 <p className={dark ? "text-white/40 text-[11px] truncate" : "text-black/40 text-[11px] truncate"}>
-                  {prev ? (isTimeBased ? formatSeconds(prev.reps) : `${prev.reps} × ${prev.weight} kg`) : "–"}
+                  {prev ? (isTimeBased ? formatSeconds(prev.reps) : `${prev.weight} kg × ${prev.reps}`) : "–"}
                 </p>
                 {suggestion && !row.weight && !row.reps && (
                   <button
@@ -208,7 +208,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                     style={{ color: MEASURE_BLUE }}
                   >
                     <TrendingUp size={10} className="shrink-0" />
-                    <span className="truncate">Target {suggestion.reps}{suggestion.weight > 0 ? ` × ${suggestion.weight}kg` : " reps"}</span>
+                    <span className="truncate">Target {suggestion.weight > 0 ? `${suggestion.weight} kg × ${suggestion.reps}` : `${suggestion.reps} reps`}</span>
                   </button>
                 )}
               </div>
