@@ -80,7 +80,9 @@ function SoloPaywallSheet({ request, onClose }) {
   }
   function trialDaysOf(planKey) {
     if (iosApp) return (storeProducts || []).find((x) => x.plan === planKey)?.trialDays || 0;
-    return trialUsed ? 0 : PLANS[planKey].trialDays;
+    // A paid-up subscriber's upgrade changes their current subscription
+    // (charged pro rata, functions checkoutDecision "change") — no trial.
+    return trialUsed || store ? 0 : PLANS[planKey].trialDays;
   }
   const per = interval === "year" ? "year" : "month";
   const trialDays = trialDaysOf(plan);

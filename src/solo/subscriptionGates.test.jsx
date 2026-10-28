@@ -313,4 +313,21 @@ describe("paywall for subscribers", () => {
     await renderAt("/x", <SoloProfileScreen />, "/x");
     expect(await screen.findByText(/^Renews .+ · App Store$/)).toBeTruthy();
   });
+
+  it("a Plus subscriber upgrading on the website isn't promised a free trial (it's a pro-rata change)", async () => {
+    ctx = baseCtx({
+      soloGatesLive: true,
+      soloTier: "plus",
+      soloEntitlement: { trialUsed: false, sources: { stripe: { tier: "plus", status: "active", expiresAt: Date.now() + 86400000 } } },
+    });
+    const { useSoloPaywall } = await import("./SoloPaywall");
+    function Opener() {
+      const { openPaywall } = useSoloPaywall();
+      return <button onClick={() => openPaywall({})}>open</button>;
+    }
+    await renderAt("/x", <Opener />, "/x");
+    fireEvent.click(screen.getByText("open"));
+    expect(await screen.findByRole("button", { name: /subscribe to all access/i })).toBeTruthy();
+    expect(screen.queryByText(/days free/i)).toBe(null);
+  });
 });
