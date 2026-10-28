@@ -64,6 +64,42 @@ rather than inventing new colors per screen:
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 
+## APEX Nutrition (coached client app)
+
+Goal: logging an ordinary meal faster and more reliably than MyFitnessPal,
+with numbers clients and coaches can trust. How it's built now:
+
+- **Every food is logged from the full-screen Add Food page**
+  (`src/client/AddFoodPage.jsx`), which stays open between adds (running
+  tally, Done). Don't reintroduce a bottom sheet that closes after one
+  food, or a separate "which meal?" popup: the meal is chosen in the
+  page header / the food page's Meal picker.
+- **The food page is `FoodQuantitySheet layout="page"`**
+  (`NutritionFeatures.jsx`), also used to edit a logged entry (tap it).
+  The photo-meal and create-meal builders keep the sheet layout.
+  Full-screen nutrition pages use `NutritionPage` (body locked, scroll
+  contained, left-edge swipe back); stacking: Add Food page 100, sheets
+  110, food page 118, app toast 120, barcode scanner 135.
+- **Entries**: every new entry gets a fresh id (`newEntryId`); never
+  bucket ids by time again (it silently dropped deliberate repeats).
+  New entries carry `src` (the per-100g source food,
+  `sourceSnapshot`) so they can be re-opened at a new amount;
+  `entrySourceFood` handles older entries. Edits go through
+  `updateFood` (keeps the id), multi-item logging through `addFoods`
+  (one save).
+- **Writes must work offline**: everything goes through
+  `setNutritionForDate`, which falls back to the phone's cached copy +
+  `savedOrQueued` when there's no signal. Don't add a nutrition write
+  that only works online.
+- **"Logged" means food logged** (`hasFoodLogged` in
+  `src/lib/nutritionLog.js`), never "the day's doc exists" (water alone
+  creates it). Coach adherence scores completed days (ending yesterday).
+- **Search** uses `rankFoods` (`src/lib/foodSearch.js`): client's own
+  foods first, plain foods before brands/supplements, typo fallback; the
+  AFCD list stays a last resort. `matchesSearch` (search.js) remains the
+  plain filter for exercises and the builders.
+- Train Solo has no nutrition logging; none of this touches `src/solo/`.
+
 ## Deferred until the next App Store upload
 
 Do these together when the user is ready to submit a new App Store build
