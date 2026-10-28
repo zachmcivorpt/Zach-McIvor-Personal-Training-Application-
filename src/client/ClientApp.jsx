@@ -476,6 +476,14 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   const muted70 = dark ? "text-white/70" : "text-black/70";
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
+  if (!todaySession && photo === "bare") {
+    return (
+      <div className="mx-2.5 px-2.5 pt-7">
+        <p className="text-white text-xl font-semibold tracking-[-0.02em]">{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
+        {dbReady && <p className="text-white/70 text-[13px] mt-0.5">{isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}</p>}
+      </div>
+    );
+  }
   if (!todaySession) {
     return (
       <div className={`${outerMargin} ${outerRadius} p-8 text-center`} style={clientGlass(dark)}>
@@ -505,11 +513,9 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
     // white gym photo with the text in white over a dark fade.
     const statusLabel = completedOnDate ? "Completed" : isPastDate ? "Missed" : todaySession.wod ? "Workout of the day" : isToday ? "Today's focus" : "Scheduled";
     const done = completedOnDate && !started;
-    return (
-      <div className={`${outerMargin} relative overflow-hidden rounded-[22px] bg-[#0d0d0e] text-white`} style={{ boxShadow: "0 22px 40px -24px rgba(0,0,0,0.55)" }}>
-        <img src="/brand/gym-dark.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "50% 62%", filter: "brightness(0.85)" }} draggable={false} />
-        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.8) 100%)" }} />
-        <div className="relative flex flex-col min-h-[206px] p-3">
+    const bare = photo === "bare";
+    const body = (
+        <div className={bare ? "mx-2.5 px-1 pt-7 flex flex-col" : "relative flex flex-col min-h-[206px] p-3"}>
           <span
             className="self-start h-7 pl-1.5 pr-3 rounded-full flex items-center gap-1.5 text-xs font-semibold"
             style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
@@ -519,10 +525,10 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
             </span>
             {statusLabel}
           </span>
-          <div className="mt-auto pt-16 px-1 pb-0.5">
+          <div className={bare ? "mt-4" : "mt-auto pt-16 px-1 pb-0.5"}>
             <div className="flex items-end gap-3">
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-semibold tracking-[-0.02em] truncate">{todaySession.label}</h2>
+                <h2 className={`${bare ? "text-xl" : "text-lg"} font-semibold tracking-[-0.02em] truncate`}>{todaySession.label}</h2>
                 {(todaySession.muscleGroups || []).length > 0 && <p className="text-white/70 text-[13px] mt-0.5 truncate">{todaySession.muscleGroups.join(" & ")} Focus</p>}
                 <p className="text-white/70 text-[13px] mt-0.5">
                   {exCount} exercise{exCount === 1 ? "" : "s"} · {estMin} minute{estMin === 1 ? "" : "s"}
@@ -583,6 +589,15 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
             )}
           </div>
         </div>
+    );
+    // "bare": just the text and buttons, for a screen that already has the
+    // photo behind it (Training > Today).
+    if (bare) return <div className="text-white">{body}</div>;
+    return (
+      <div className={`${outerMargin} relative overflow-hidden rounded-[22px] bg-[#0d0d0e] text-white`} style={{ boxShadow: "0 22px 40px -24px rgba(0,0,0,0.55)" }}>
+        <img src="/brand/gym-dark.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "50% 62%", filter: "brightness(0.85)" }} draggable={false} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.8) 100%)" }} />
+        {body}
       </div>
     );
   }
@@ -3390,7 +3405,7 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
 // Read-only mirror of the coach's own Training Program view — same phase
 // (name/dates/description) + workout-list structure, just without any
 // edit/add/schedule controls, which stay coach-only.
-function ClientProgramTab({ onPreviewDay, showToast }) {
+function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, viewingAsClient, updateClientPhase } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
@@ -3406,11 +3421,10 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   if (phases.length === 0) {
     return (
-      <div className="px-2.5">
-        <Card dark={dark}>
-          <p className={dark ? "text-white/40 text-sm text-center py-8" : "text-black/40 text-sm text-center py-8"}>No training program set up yet — your coach will assign one soon.</p>
-        </Card>
-      </div>
+      <TrainingPhotoHero>
+        {header}
+        <p className="mx-2.5 px-1 pt-7 text-white/80 text-sm">No training program set up yet — your coach will assign one soon.</p>
+      </TrainingPhotoHero>
     );
   }
 
@@ -3459,22 +3473,21 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
     }
   }
 
+  // The next few scheduled workouts after today, straight from the
+  // client's calendar.
+  const upNext = scheduledForPhase
+    .filter((w) => w.date > todayStr)
+    .sort((x, y) => x.date.localeCompare(y.date))
+    .slice(0, 3);
+
   return (
     <div className="space-y-4">
-      <div
-        className="mx-2.5 rounded-[22px] overflow-hidden"
-        style={{
-          backgroundColor: dark ? "rgba(20,20,22,0.92)" : "rgba(255,255,255,0.95)",
-          border: dark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(10,10,11,0.06)",
-          boxShadow: dark ? "0 16px 36px -22px rgba(0,0,0,0.6)" : "inset 0 1px 0 #fff, 0 1px 2px rgba(10,10,11,0.04), 0 16px 36px -22px rgba(10,10,11,0.22)",
-          backdropFilter: "blur(22px)",
-          WebkitBackdropFilter: "blur(22px)",
-        }}
-      >
-        <div className="px-4 pt-4 md:px-5">
-          <div className="flex items-center justify-between gap-2 mb-2">
+      <TrainingPhotoHero>
+        {header}
+        <div className="mx-2.5 px-1 pt-7">
+          <div className="flex items-center justify-between gap-2">
             {phase.id === current?.id ? (
-              <span className={`flex items-center gap-1.5 text-xs font-semibold ${dark ? "text-blue-400" : "text-blue-600"}`}>
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: MEASURE_BLUE }} />
                 Current
               </span>
@@ -3483,56 +3496,38 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
             )}
             <button
               onClick={() => setHistoryOpen(true)}
-              className={`flex items-center gap-1.5 text-xs font-semibold h-[30px] px-2.5 rounded-[10px] border active:scale-[0.96] transition-transform ${
-                dark ? "text-white border-white/15 bg-white/5" : "text-black border-black/12 bg-white/80"
-              }`}
+              className="flex items-center gap-1.5 text-xs font-semibold h-[30px] px-2.5 rounded-[10px] text-white active:scale-[0.96] transition-transform"
+              style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
             >
               <Calendar size={12} /> Phases
             </button>
           </div>
-          <div>
-            <h2 className={`${dark ? "text-white" : "text-black"} text-xl font-semibold tracking-[-0.02em] truncate`}>{phase.name}</h2>
-            <p className={`${dark ? "text-white/55" : "text-black/55"} text-[13px] mt-0.5`}>
-              {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-              {phase.endDate
-                ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-                : ""}
-            </p>
+          <h2 className="text-white text-xl font-semibold tracking-[-0.02em] truncate mt-2.5">{phase.name}</h2>
+          <p className="text-white/70 text-[13px] mt-0.5">
+            {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            {phase.endDate
+              ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+              : ""}
+          </p>
+          {phase.description && <p className="text-white/75 text-sm leading-relaxed whitespace-pre-line mt-3">{phase.description}</p>}
+          <div className="flex items-baseline justify-between mt-5 mb-2">
+            <p className="text-white/75 text-[13px]">Program phase completion</p>
+            <p className="text-white text-xl font-semibold tracking-[-0.02em] tabular-nums">{completion.pct != null ? `${completion.pct}%` : "—"}</p>
           </div>
-        </div>
-
-        <div className="p-4 md:p-5">
-          {phase.description && (
-            <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line" : "text-black/60 text-sm leading-relaxed whitespace-pre-line"}>
-              {phase.description}
-            </p>
-          )}
-
-          <div className={phase.description ? `mt-4 pt-4 border-t ${dark ? "border-white/10" : "border-black/8"}` : ""}>
-            <div className="flex items-baseline justify-between mb-2">
-              <p className={dark ? "text-white/55 text-[13px]" : "text-black/55 text-[13px]"}>Program phase completion</p>
-              <p className={dark ? "text-white text-xl font-semibold tracking-[-0.02em] tabular-nums" : "text-black text-xl font-semibold tracking-[-0.02em] tabular-nums"}>
-                {completion.pct != null ? `${completion.pct}%` : "—"}
-              </p>
+          <div className="h-[3px] rounded-full overflow-hidden bg-white/20">
+            <div className="h-full rounded-full transition-all flex justify-end bg-white" style={{ width: `${completion.pct ?? 0}%` }}>
+              <span className="w-[3px] h-full" style={{ backgroundColor: MEASURE_BLUE }} />
             </div>
-            <div className={`h-[3px] rounded-full overflow-hidden ${dark ? "bg-white/10" : "bg-black/8"}`}>
-              <div
-                className="h-full rounded-full transition-all flex justify-end"
-                style={{ width: `${completion.pct ?? 0}%`, backgroundColor: dark ? "#FFFFFF" : "#0A0A0B" }}
-              >
-                <span className="w-[3px] h-full" style={{ backgroundColor: MEASURE_BLUE }} />
-              </div>
-            </div>
-            <p className={dark ? "text-white/40 text-xs mt-2" : "text-black/40 text-xs mt-2"}>
-              {completion.expected > 0
-                ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
-                : "No workouts scheduled yet in this phase"}
-            </p>
           </div>
+          <p className="text-white/65 text-xs mt-2">
+            {completion.expected > 0
+              ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
+              : "No workouts scheduled yet in this phase"}
+          </p>
         </div>
-      </div>
+      </TrainingPhotoHero>
 
-      <div className="mx-2.5 px-1 pt-3">
+      <div className="relative mx-2.5 px-1 pt-10">
         <h3 className={`text-[17px] font-semibold tracking-[-0.01em] mb-2 ${dark ? "text-white" : "text-black"}`}>Workouts in this phase</h3>
         {days.length === 0 ? (
           <p className={`text-sm py-6 border-t ${dark ? "text-white/40 border-white/20" : "text-black/40 border-black"}`}>No workouts added to this phase yet.</p>
@@ -3575,6 +3570,37 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
           </div>
         )}
       </div>
+
+      {upNext.length > 0 && (
+        <div className="relative mx-2.5 px-1 pt-6">
+          <div className="flex items-baseline justify-between mb-2">
+            <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${dark ? "text-white" : "text-black"}`}>Up next</h3>
+            <span className={`text-xs ${dark ? "text-white/40" : "text-black/40"}`}>From your calendar</span>
+          </div>
+          <div className={`border-t ${dark ? "border-white/20" : "border-black"}`}>
+            {upNext.map((w) => {
+              const d = new Date(w.date + "T00:00:00");
+              return (
+                <button
+                  key={w.id || w.date}
+                  onClick={() => onPreviewDay(w)}
+                  className={`w-full text-left flex items-center gap-3.5 min-h-[62px] py-2 border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+                >
+                  <span className={`w-[52px] h-[46px] rounded-xl flex flex-col items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+                    <span className={`text-[10.5px] font-medium ${dark ? "text-white/55" : "text-black/55"}`}>{d.toLocaleDateString(undefined, { weekday: "short" })}</span>
+                    <span className={`text-base font-semibold leading-tight tabular-nums ${dark ? "text-white" : "text-black"}`}>{d.getDate()}</span>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-[15px] font-semibold tracking-[-0.01em] truncate ${dark ? "text-white" : "text-black"}`}>{w.label}</span>
+                    <span className={`block text-[13px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>est. {estimateWorkoutMinutes(w.exercises || [])} min</span>
+                  </span>
+                  <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <ClientPhaseHistorySheet
         open={historyOpen}
@@ -3629,6 +3655,44 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
         </>
       )}
     </div>
+  );
+}
+
+// Training tab's top section: a black-and-white gym photo behind the
+// header and whatever sits under it (today's workout or the current
+// phase), darkened behind the text and fading into the page at the bottom.
+function TrainingPhotoHero({ children }) {
+  const dark = useClientDark();
+  const pageBg = dark ? CLIENT_DARK_BG : "#FFFFFF";
+  return (
+    <div className="relative text-white">
+      <div className="absolute inset-x-0 top-0 -bottom-[70px] overflow-hidden pointer-events-none" aria-hidden="true">
+        <img src="/brand/gym-dark.jpg" alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 40%", filter: "brightness(0.78)" }} draggable={false} />
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 28%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.35) 72%, ${dark ? "rgba(9,9,9,0.4)" : "rgba(255,255,255,0.4)"} 86%, ${pageBg} 100%)` }}
+        />
+      </div>
+      <div className="relative pb-6">{children}</div>
+    </div>
+  );
+}
+
+// One tappable row in the Training tab's open lists (icon, label, chevron).
+function TrainingActionRow({ icon: Icon, label, onClick, accent = false }) {
+  const dark = useClientDark();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-3.5 min-h-[60px] py-2 text-left border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+    >
+      <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+        <Icon size={18} className={accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white/80" : "text-black/80"} />
+      </span>
+      <span className={`flex-1 text-[15px] font-semibold ${accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white" : "text-black"}`}>{label}</span>
+      <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+    </button>
   );
 }
 
@@ -3714,120 +3778,60 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   }
 
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
-  return (
-    <div className="pb-28">
-      {tab === "program" ? (
-        // Program: a black-and-white gym photo behind the header and the
-        // Today/Program switch, fading into the page so the phase card
-        // below sits half over it.
-        <div className="relative">
-          <div className="absolute inset-x-0 top-0 h-[300px] overflow-hidden pointer-events-none" aria-hidden="true">
-            <img src="/brand/gym-dark.jpg" alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 42%", filter: "brightness(0.8)" }} draggable={false} />
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 42%, ${dark ? "rgba(9,9,9,0.15)" : "rgba(255,255,255,0.15)"} 64%, ${dark ? CLIENT_DARK_BG : "#FFFFFF"} 96%)`,
-              }}
-            />
-          </div>
-          <div className="relative">
-            <TabHeader label={`${currentUser.name}'s Program`} dark />
-            <div
-              className="grid grid-cols-2 p-[3px] mx-2.5 mt-1 mb-4 rounded-xl"
-              style={{ backgroundColor: "rgba(255,255,255,0.16)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
-            >
-              {["today", "program"].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`py-2 rounded-[9px] text-[13.5px] capitalize text-center ${tab === t ? "bg-white text-black font-semibold shadow-sm" : "text-white/80 font-medium"}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-      <>
-      <TabHeader label="Training" dark={dark} />
-      <div className="flex gap-2 px-2.5 mb-4">
+  // Page name + Today/Program switch, drawn in white over the gym photo at
+  // the top of both tabs.
+  const header = (
+    <>
+      <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark />
+      <div
+        className="grid grid-cols-2 p-[3px] mx-2.5 mt-1 rounded-xl"
+        style={{ backgroundColor: "rgba(255,255,255,0.16)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)" }}
+      >
         {["today", "program"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 px-4 py-2 rounded-full text-sm font-medium capitalize text-center ${
-              tab === t
-                ? dark
-                  ? "bg-white text-black"
-                  : "bg-black text-white"
-                : dark
-                ? "bg-white/8 text-white/60"
-                : "bg-black/8 text-black/60"
-            }`}
+            className={`py-2 rounded-[9px] text-[13.5px] capitalize text-center ${tab === t ? "bg-white text-black font-semibold shadow-sm" : "text-white/80 font-medium"}`}
           >
             {t}
           </button>
         ))}
       </div>
-      </>
-      )}
-
+    </>
+  );
+  return (
+    <div className="pb-28">
       {tab === "today" && (
-        <div className="space-y-4">
-          <TodayWorkoutCard
-            todaySession={todaySession}
-            activeLog={activeLog}
-            onStart={onStart}
-            onDiscard={onDiscardWorkout}
-            onView={onViewWorkout}
-            isToday
-            completedOnDate={completedOnDate}
-            dbReady={dbReady}
-            fullWidth
-          />
-          <div className="px-2.5 space-y-4">
-          {viewingAsClient && (
-            <div className="space-y-2">
-              {canEditToday && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => editScheduled(todayScheduledEntry)}
-                    className={dark ? "flex-1 flex items-center justify-center gap-1.5 bg-white/5 text-white/80 text-sm font-semibold py-3 rounded-2xl" : "flex-1 flex items-center justify-center gap-1.5 bg-black/5 text-black/80 text-sm font-semibold py-3 rounded-2xl"}
-                  >
-                    <Edit3 size={14} /> Edit / move
-                  </button>
-                  <button
-                    onClick={() => setWodRemoveOpen(true)}
-                    className={dark ? "px-4 flex items-center justify-center gap-1.5 bg-white/5 text-white/60 text-sm font-semibold py-3 rounded-2xl" : "px-4 flex items-center justify-center gap-1.5 bg-black/5 text-black/60 text-sm font-semibold py-3 rounded-2xl"}
-                  >
-                    <X size={14} /> Remove
-                  </button>
-                </div>
-              )}
-              <button
-                onClick={() => setWodPickerOpen(true)}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
-              >
-                <Plus size={16} /> Create workout of the day
-              </button>
-            </div>
-          )}
-          <button
-            onClick={() => setCardioOpen(true)}
-            className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform" : "w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"}
-          >
-            <Footprints size={16} /> + Log a cardio session
-          </button>
+        <div>
+          <TrainingPhotoHero>
+            {header}
+            <TodayWorkoutCard
+              todaySession={todaySession}
+              activeLog={activeLog}
+              onStart={onStart}
+              onDiscard={onDiscardWorkout}
+              onView={onViewWorkout}
+              isToday
+              completedOnDate={completedOnDate}
+              dbReady={dbReady}
+              fullWidth
+              photo="bare"
+            />
+          </TrainingPhotoHero>
+          <div className={`relative mx-2.5 px-1 mt-14 border-t ${dark ? "border-white/20" : "border-black"}`}>
+            {canEditToday && (
+              <>
+                <TrainingActionRow icon={Edit3} label="Edit / move" onClick={() => editScheduled(todayScheduledEntry)} />
+                <TrainingActionRow icon={X} label="Remove" onClick={() => setWodRemoveOpen(true)} />
+              </>
+            )}
+            {viewingAsClient && <TrainingActionRow icon={Plus} label="Create workout of the day" accent onClick={() => setWodPickerOpen(true)} />}
+            <TrainingActionRow icon={Footprints} label="Log a cardio session" onClick={() => setCardioOpen(true)} />
           </div>
         </div>
       )}
 
-      {tab === "program" && (
-        <div className="relative">
-          <ClientProgramTab onPreviewDay={onPreviewWorkout} showToast={showToast} />
-        </div>
-      )}
+      {tab === "program" && <ClientProgramTab header={header} onPreviewDay={onPreviewWorkout} showToast={showToast} />}
 
       {viewingAsClient && (
         <>
