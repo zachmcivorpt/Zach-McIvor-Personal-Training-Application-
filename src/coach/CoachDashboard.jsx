@@ -497,13 +497,16 @@ function GlassTile({ value, label, onClick, accent = false }) {
     <button
       type="button"
       onClick={onClick}
-      className="text-left rounded-2xl px-3.5 py-3 active:scale-[0.97] transition-transform"
+      // flex + justify-start: every tile's number sits at the same height
+      // whether its label takes one line or two (a button centres its
+      // content vertically by default).
+      className="flex flex-col justify-start items-start text-left rounded-2xl px-3.5 py-3 active:scale-[0.97] transition-transform"
       style={{
-        backgroundColor: accent ? "rgba(47,143,255,0.16)" : "rgba(255,255,255,0.06)",
-        border: `1px solid ${accent ? "rgba(47,143,255,0.45)" : "rgba(255,255,255,0.12)"}`,
-        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-        backdropFilter: "blur(18px) saturate(140%)",
-        WebkitBackdropFilter: "blur(18px) saturate(140%)",
+        backgroundColor: accent ? "rgba(47,143,255,0.10)" : "rgba(255,255,255,0.025)",
+        border: `1px solid ${accent ? "rgba(47,143,255,0.40)" : "rgba(255,255,255,0.16)"}`,
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
       }}
     >
       <span className="block text-white text-[24px] font-semibold tracking-[-0.02em] leading-none tabular-nums">{value}</span>
@@ -728,11 +731,11 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
           greeting and roster count, fading into the page. Every number is
           a button to the same place its old stat tile went. */}
       <div className="relative -mt-5 md:mt-0 md:rounded-2xl md:overflow-hidden">
-        <div className="absolute inset-x-0 top-0 -bottom-16 overflow-hidden pointer-events-none md:rounded-2xl" aria-hidden="true">
+        <div className="absolute inset-x-0 top-0 -bottom-36 overflow-hidden pointer-events-none md:rounded-2xl" aria-hidden="true">
           <img src="/brand/gym-dark.jpg" alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 35%", filter: "brightness(0.7)" }} draggable={false} />
           <div
             className="absolute inset-0"
-            style={{ background: `linear-gradient(180deg, rgba(10,10,11,0.55) 0%, rgba(10,10,11,0.25) 40%, rgba(10,10,11,0.6) 70%, ${CLIENT_DARK_BG} 100%)` }}
+            style={{ background: `linear-gradient(180deg, rgba(10,10,11,0.55) 0%, rgba(10,10,11,0.2) 35%, rgba(10,10,11,0.35) 75%, ${CLIENT_DARK_BG} 100%)` }}
           />
         </div>
         <div className="relative px-5 pt-3 pb-2 sm:px-7 sm:pt-6">
