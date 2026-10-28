@@ -124,9 +124,14 @@ Do these together when the user is ready to submit a new App Store build
   proves patchy on device.
 - **Order agreed**: 1.0.3 next (built and uploaded to TestFlight
   2026-10-28; HealthKit signing done; the user tests it, then submits), then
-  monetisation: a Train Solo Pro subscription as 1.0.4. Both are written up
-  in `ROADMAP.txt`; build nothing of the monetisation plan until the user
-  approves it and answers its open decisions.
+  monetisation as 1.0.4, then growing the catalogue to 10 solid programs.
+  All written up in `ROADMAP.txt`. The monetisation plan was APPROVED
+  2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$69.99 yr /
+  All Access A$24.99 mo, A$179.99 yr, 10-day trial on yearly; a failed
+  payment drops to Free with data kept; single-program sales stop on
+  launch day. Start building once 1.0.3 is submitted and the owner setup in
+  ROADMAP.txt is done. Until 1.0.4 ships, purchasing stays hidden in the
+  iOS app (bullet above).
 - **Cold open, native part (next build after 1.0.3, not 1.0.3 itself)**:
   the user wants the app to open instantly. The web side is done
   (REGRESSION_TESTS.md #103). What's left is the ~0.5s native spinner:

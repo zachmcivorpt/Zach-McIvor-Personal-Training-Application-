@@ -1,8 +1,10 @@
 APEX ROADMAP
 ============
 Order agreed with the owner (2026-10-28): finish and submit 1.0.3 first, then
-monetisation (Train Solo Pro subscription, iOS 1.0.4). Nothing in step 2 is
-built until the owner approves the plan and the decisions at the end of it.
+monetisation (Train Solo Free / Plus / All Access subscriptions, iOS 1.0.4),
+then grow the catalogue to 10 solid programs. Step 2's plan and prices were
+APPROVED by the owner on 2026-10-28; building starts once 1.0.3 is submitted
+and the owner setup in step 2 is done.
 
 
 STEP 1 — iOS 1.0.3 (NEXT)
@@ -32,96 +34,198 @@ Owner to do, in order:
      prepared screenshots; submit. 1.0.2 is never submitted.
 
 
-STEP 2 — MONETISATION: TRAIN SOLO PRO (iOS 1.0.4)
--------------------------------------------------
-Goal: earn from Train Solo the way Alpha Progression does — a free app with
-a paid Pro subscription bought inside the app, plus the website.
-
-Today: Train Solo sells single programs on the website only (Stripe, live).
-The iPhone app hides all buying (Apple 3.1.1, src/solo/appShell.js), so
-nobody who installs the app can pay from it.
+STEP 2 — MONETISATION: TRAIN SOLO FREE / PLUS / ALL ACCESS (iOS 1.0.4)
+-----------------------------------------------------------------------
+APPROVED 2026-10-28. Goal: the most money from Train Solo — a free app
+people download and use, two paid subscriptions bought inside the iPhone
+app (Apple) or on the website (Stripe), with the yearly All Access plan as
+the main earner.
 
 Coached clients are NOT part of this. Coaching is a one-to-one service
 with a real person, which Apple lets you charge for outside the app
 (3.1.3(d)); coaching billing stays exactly as it is.
 
+Competitor prices checked 2026-10-28 (US App Store, USD)
+  Hevy Pro            $2.99/mo   $23.99/yr   (logger)
+  Strong Pro          $4.99/mo   $29.99/yr   (logger)
+  Boostcamp Pro      $14.99/mo   $59.99/yr   (logger + programs)
+  JEFIT Elite        $12.99/mo   $69.99/yr
+  Alpha Progression  $12.99/mo   $79.99/yr   (closest match; 14-day trial)
+  Fitbod             $15.99/mo   $95.99/yr   (no free tier)
+  Ladder             $29.99/mo  $179.99/yr   (coach-written programs)
+  RP Hypertrophy     $34.99/mo  $299.99/yr   (branded expert programming)
+  Three bands: loggers $3-5/mo; logging + smart extras $13-16/mo;
+  coach-written programs $30-35/mo. Our tiers sit one in each band.
+
+The tiers (AUD, GST included)
+  FREE
+    - Create sessions and log workouts; up to 3 saved custom sessions.
+    - Exercise library and swaps, calendar, workout history, weigh-ins and
+      progress photos, basic stats.
+    - No suggested weights, no program builder, no catalogue programs.
+  PLUS — A$9.99/month or A$69.99/year (10-day free trial on yearly)
+    - Everything in Free, unlimited saved sessions.
+    - Suggested weights for every set (src/solo/soloProgression.js).
+    - Build your own multi-week program (NEW — today customers can only
+      build single sessions; this has to be built).
+    - Full stats and PRs, Apple Health on Progress, the recovery add-on.
+  ALL ACCESS — A$24.99/month or A$179.99/year (10-day free trial on yearly)
+    - Everything in Plus.
+    - Every coach-written program in the catalogue, and every new one as
+      it's released.
+  Plus is priced to make All Access the obvious pick; the paywall shows
+  yearly first, with the trial on it.
+
+Existing program buyers
+  - Keep every program they've already bought, forever, on any tier.
+  - Single programs STOP being sold on the website the day All Access
+    launches (one simple offer).
+
+When a payment fails (owner rule: no paid access without payment)
+  - The person drops straight back to Free. Their logs, history, progress
+    and saved sessions stay (sessions over the 3-session limit stay
+    visible and loggable but can't be added to until they upgrade or
+    delete some — nothing is deleted).
+  - Stripe (website): a failed renewal ends access immediately. Stripe's
+    automatic retries and failed-payment emails stay on; if the card goes
+    through later, access comes back by itself.
+  - Apple (in the app): Billing Grace Period stays OFF in App Store
+    Connect, so access ends the moment a renewal fails. Apple keeps
+    retrying for up to 60 days and access returns if it recovers.
+  - One source of truth: RevenueCat tells our server what each person is
+    entitled to; the app only unlocks a tier the server says is active.
+    Cancelling keeps access to the end of the paid period, then Free.
+
+Where to sell: Apple in the app first, the website too
+  - Most people find APEX on the App Store, and paying in the app is one
+    Face ID tap — far more people buy that way. Apple keeps 15% (Small
+    Business Program). Outside the US the app can't link to the website
+    price (3.1.1).
+  - The website (Stripe, already live) keeps more per sale; it's for
+    people coming from socials and links.
+  - Take-home per sale, after GST:
+      All Access yearly A$179.99   Apple ~A$139   website ~A$158
+      All Access monthly A$24.99   Apple ~A$19.31
+      Plus yearly A$69.99          Apple ~A$54    website ~A$61
+      Plus monthly A$9.99          Apple ~A$7.72
+  - Biggest levers: yearly shown first with the trial; the paywall shown
+    after a free user's first logged workout; an "upgrade to one-to-one
+    coaching" path from All Access (the existing consultation flow).
+
 How it works
-  - One "Pro" entitlement, the same everywhere: bought in the iPhone app
-    through Apple, or on the website through Stripe, it unlocks Pro on both.
+  - Two entitlements, "plus" and "all_access" (All Access includes
+    everything in Plus), the same everywhere: bought through Apple or
+    Stripe, it unlocks on both.
   - RevenueCat sits in the middle (free until ~US$2.5k/month revenue, then
-    1%). It talks to Apple and Stripe, handles renewals, refunds, trials,
-    restore purchases and cancellations, and tells our server who is Pro.
-  - Apple keeps 15% on the Small Business Program (free to join, under
-    US$1M/year). AU prices include GST, so A$14.99 nets about A$11.58.
-
-Suggested prices (AUD, Apple price points) — owner to decide
-  - Monthly A$14.99
-  - Yearly  A$99.99 (about 45% off), 7-day free trial
-  - Weekly: not recommended. A$8.95/week is ~A$465/year; weekly plans
-    drive cancellations and bad reviews.
-
-Suggested Free / Pro split — owner to decide
-  Free:  account, workout logging, exercise library and swap, calendar,
-         weigh-ins and progress photos, 1 saved custom session, and the
-         first week of any program (a taster).
-  Pro:   every program in the catalogue, unlimited custom sessions,
-         set-by-set progression targets, Apple Health on Progress,
-         the recovery add-on, full stats/history.
-  Existing buyers keep every program they've already bought, forever.
+    1%): talks to Apple and Stripe, handles renewals, failed payments,
+    refunds, trials, restore purchases and cancellations, and tells our
+    server who has which tier.
 
 What gets built
   Web (reaches all app versions on deploy):
-    - SoloAppContext: isPro from soloEntitlements/{uid} (server-written
-      only; Firestore rules: owner can read, nobody can write).
-    - Paywall sheet in Solo glass style: monthly/yearly, trial wording,
-      price per period, Restore purchases, Terms of Use and Privacy links,
-      "Manage subscription".
-    - Pro gates on the features above, each with a tap-to-upgrade path.
-    - Website: Pro checkout through RevenueCat Web Billing (Stripe account
-      already live) next to the existing program checkout.
-    - In the iPhone app the paywall uses Apple only — never a link or
-      mention of the website price (3.1.1 still applies).
+    - SoloAppContext: tier ("free" | "plus" | "all_access") from
+      soloEntitlements/{uid}, written by the server only (Firestore rules:
+      owner can read, nobody can write). Anything missing or expired reads
+      as Free.
+    - Gates: 3 saved sessions on Free; suggested weights, program builder,
+      full stats, Apple Health on Progress and recovery on Plus; the
+      catalogue on All Access (programs already bought stay unlocked).
+      Each gate has a tap-to-upgrade path.
+    - Program builder: multi-week programs from the customer's own
+      sessions, scheduled onto the calendar and logged like a catalogue
+      program.
+    - Paywall sheet in Solo glass style: Plus and All Access, monthly and
+      yearly, "10 days free, then A$179.99/year" wording, Restore
+      purchases, Terms of Use and Privacy links, Manage subscription.
+    - Website: Plus and All Access checkout through RevenueCat Web Billing
+      (Stripe), replacing single-program checkout on launch day.
+    - In the iPhone app the paywall uses Apple only — never a link to or
+      mention of the website price.
   Server (Cloud Functions):
-    - soloRevenueCatWebhook: verifies the RevenueCat signature and writes
-      soloEntitlements/{uid} {pro, expiresAt, store, productId}.
-    - Account deletion also clears the entitlement (subscription itself is
-      cancelled by the customer in Apple/Stripe; we show how).
+    - soloRevenueCatWebhook: verifies RevenueCat's signature and writes
+      soloEntitlements/{uid} {tier, expiresAt, store, productId,
+      willRenew}. Billing issue / expiration events set it back to Free
+      at once.
+    - Account deletion also clears the entitlement (the subscription
+      itself is cancelled by the customer in Apple/Stripe; we show how).
   Native (needs the 1.0.4 build + App Review):
     - RevenueCat iOS SDK (Swift Package) and an "apexPurchases" bridge:
-      offerings, purchase, restore, customer info. App user ID = Firebase uid.
-    - Web shows the paywall only when the bridge exists, so older builds
-      never offer a purchase they can't make.
-  Tests and register: entitlement rules (emulator), gating, paywall
-  wording, webhook verification, old-build hiding — per REGRESSION_TESTS.md.
+      offerings, purchase, restore, customer info. App user ID = Firebase
+      uid.
+    - The web shows the paywall only when the bridge exists, so older
+      builds never offer a purchase they can't make.
+  Tests and register: entitlement rules (emulator), every gate per tier,
+  failed payment → Free with data kept, the 3-session limit, paywall
+  wording, webhook signature checks, old-build hiding — per
+  REGRESSION_TESTS.md.
 
-Owner setup (before building the native part)
+Owner setup (before the native part is built)
   1. App Store Connect > Business: sign the Paid Apps Agreement; add bank
      account and tax forms. Enrol in the App Store Small Business Program.
-  2. App Store Connect > the app > Subscriptions: group "Train Solo Pro",
-     products monthly + yearly at the chosen prices, 7-day free trial on
-     yearly (introductory offer), localised names/descriptions.
-  3. App Store Connect > Users and Access > Integrations: an In-App
+  2. App Store Connect > the app > Subscriptions: one group "Train Solo"
+     with four products — Plus monthly A$9.99, Plus yearly A$69.99,
+     All Access monthly A$24.99, All Access yearly A$179.99. All Access
+     ranked above Plus in the group (so switching is an upgrade).
+     10-day free trial (introductory offer) on both yearly products.
+     Localised names and descriptions.
+  3. App Store Connect > the app > App Information: Billing Grace Period
+     OFF.
+  4. App Store Connect > Users and Access > Integrations: an In-App
      Purchase key (.p8) for RevenueCat.
-  4. RevenueCat account: add the iOS app and the Stripe account; entitlement
-     "pro"; send me the public API keys (iOS + Web) and the webhook secret.
-  5. App Store Connect > App Information: App Store Server Notifications V2
-     URL = the one RevenueCat gives you.
-  6. App Store description: add Terms of Use (Apple's standard EULA is fine)
-     and subscription terms — Apple rejects subscription apps without them.
+  5. RevenueCat account: add the iOS app and the Stripe account;
+     entitlements "plus" and "all_access" (All Access products grant
+     both); send me the public API keys (iOS + Web) and the webhook
+     secret.
+  6. App Store Server Notifications V2 URL = the one RevenueCat gives you.
+  7. App Store description: add Terms of Use (Apple's standard EULA is
+     fine) and subscription terms — Apple rejects subscription apps
+     without them.
+  8. Stripe: Smart Retries and failed-payment emails on (Billing >
+     Revenue recovery).
 
-Rough effort: 2–3 days of build work, then TestFlight (sandbox purchases
-are free), then one App Review as 1.0.4.
+Rough effort: 3–4 days of build work (the program builder is most of the
+extra over a single tier), then TestFlight (sandbox purchases are free),
+then one App Review as 1.0.4.
 
 Order of work
-  a. Owner decisions (below) + owner setup 1–5.
-  b. Web + server part, Pro gates switched off until launch.
-  c. Native bridge, 1.0.4 build, sandbox testing on TestFlight.
-  d. Turn gates on, submit 1.0.4.
+  a. Owner setup 1–8.
+  b. Web + server part, gates switched off until launch.
+  c. Native bridge, 1.0.4 build, sandbox testing on TestFlight (buy,
+     trial, upgrade Plus → All Access, cancel, failed renewal → Free,
+     restore on a second device).
+  d. Launch day: turn gates on, stop single-program sales on the website,
+     submit 1.0.4.
 
-Decisions needed from the owner
-  1. Prices (monthly / yearly) and trial length.
-  2. The Free / Pro split.
-  3. Keep selling single programs on the website alongside Pro, or stop
-     selling them and make the catalogue Pro-only (buyers keep theirs either
-     way). Recommended: stop — one simple offer.
-  4. Should the coached app ever show Train Solo Pro? Recommended: no.
+
+STEP 3 — CATALOGUE: REACH 10 SOLID PROGRAMS (after launch)
+----------------------------------------------------------
+All Access is only worth A$179.99/year if the catalogue is deep, so the
+goal after launch is 10 solid, finished programs, published in the coach
+console's Train Solo Program Builder (src/coach/CoachTrainSolo.jsx).
+
+What "solid" means for each program
+  - Full length (every week and day filled in), exercises with demo
+    videos, sets/reps/rest/RIR set, a progression plan across the weeks.
+  - Tagged with goals / style / environment / level so the consultation
+    recommends it (src/solo/recommendations.js).
+  - Cover artwork uploaded, a clear description, and the owner has run
+    through at least the first week in the app.
+
+Suggested spread (so most consultation answers have a match)
+  - Beginner: full-body gym, home / minimal equipment.
+  - Hypertrophy: upper/lower, push/pull/legs.
+  - Strength: powerbuilding.
+  - Fat loss / conditioning.
+  - Women's glute and lower-body focus.
+  - Athletic / performance.
+  - Short-session (30–40 minute) program for busy weeks.
+  - Bodyweight / travel.
+
+Pace and how it's marketed
+  - About one new program every 2–3 weeks after launch until there are
+    10 (sooner if the owner has drafts ready).
+  - Each new release is an "added to All Access" moment: a push
+    notification to Train Solo users and a post on socials; free and Plus
+    users see it locked in the catalogue with an upgrade path.
+  - I can help with the build side each time: checking a program is
+    complete, the tags, and that the recommendation picks it up.
