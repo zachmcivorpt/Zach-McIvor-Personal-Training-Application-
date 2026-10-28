@@ -429,7 +429,7 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   return (
     <div className="flex items-center justify-between px-2.5 pt-0.5 pb-0">
       <div>
-        <p className={`text-[22px] leading-tight font-semibold tracking-[-0.02em] ${dark ? "text-white" : "text-black"}`}>
+        <p className={`text-[19px] leading-tight font-semibold tracking-[-0.015em] ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
         </p>
         <p className={`text-[13.5px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>{dateStr}</p>
@@ -702,21 +702,28 @@ export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater
   const muted50 = dark ? "text-white/50" : "text-black/50";
   const muted70 = dark ? "text-white/70" : "text-black/70";
   const trackClass = dark ? "bg-white/8" : "bg-black/8";
-  // An open section on the page (no glass card), like Daily Execution. The
-  // title stays the same length on every day: iOS WebKit could leave a
-  // lengthened title half-drawn over a backdrop-filter card.
+  // A solid card (no glass/backdrop-filter) whose title stays the same
+  // length on every day: iOS WebKit could leave a lengthened title
+  // half-drawn over a backdrop-filter card (#111).
   const [cal, ...macros] = items;
   const barColor = (it) => (it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE);
   const outlineBtn = dark ? "border border-white/20 text-white" : "border border-black/15 text-black";
   return (
-    <div className="mx-2.5 px-1">
+    <div
+      className="mx-2.5 rounded-[20px] p-5"
+      style={
+        dark
+          ? { backgroundColor: CLIENT_DARK_SURFACE, border: "1px solid rgba(255,255,255,0.08)" }
+          : { backgroundColor: "#FFFFFF", border: "1px solid rgba(10,10,11,0.07)", boxShadow: "0 1px 2px rgba(10,10,11,0.04), 0 12px 28px -18px rgba(10,10,11,0.18)" }
+      }
+    >
       <div className="flex items-baseline justify-between gap-3">
         <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${primaryText}`}>Nutrition</h3>
         {isToday && <span className={`text-[13px] ${muted50}`}>Today</span>}
       </div>
-      <div className={`mt-3 pt-4 border-t ${dark ? "border-white/20" : "border-black"}`}>
+      <div className={`mt-3 pt-4 border-t ${border}`}>
         <div className="flex items-baseline justify-between gap-3">
-          <p className={`text-[28px] leading-none font-semibold tracking-[-0.03em] tabular-nums ${primaryText}`}>
+          <p className={`text-[22px] leading-none font-semibold tracking-[-0.02em] tabular-nums ${primaryText}`}>
             {cal.value.toLocaleString()}
             <span className={`text-[13px] font-normal tracking-normal ${muted50}`}> / {Number(cal.target).toLocaleString()} kcal</span>
           </p>
@@ -743,7 +750,7 @@ export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater
           ))}
         </div>
       </div>
-      <div className={`mt-5 py-3 border-t border-b ${border} flex items-center gap-3`}>
+      <div className={`mt-5 pt-4 border-t ${border} flex items-center gap-3`}>
         <WaterCup value={logged.water} max={targets.water} size={28} dark={dark} />
         <div className="flex-1 min-w-0">
           <p className={`${muted50} text-xs`}>Water</p>
