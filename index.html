@@ -20,6 +20,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="APEX" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <!-- A coach's app opens dark (src/App.jsx's splash and console): paint
+         the page dark before any script loads so a cold open doesn't flash
+         white first. Reads the profile AppContext keeps on the phone. -->
+    <script>
+      try {
+        if ((JSON.parse(localStorage.getItem("apexProfileCache") || "null") || {}).role === "coach") {
+          document.documentElement.style.backgroundColor = "#090909";
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

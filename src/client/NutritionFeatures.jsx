@@ -22,8 +22,24 @@ import React, { useEffect, useRef, useState } from "react";
 // already had — no change needed to the scanning logic itself. The one
 // trade-off: the ~2-3MB WASM binary loads from jsDelivr's CDN on first
 // real scan (not on app load), not bundled in this app's own build.
-import "barcode-detector/polyfill";
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
+//
+// Both are loaded only when the scanner opens (loadScannerLib below), not
+// imported up here: this file sits on the coach console's and client
+// app's launch path, and html5-qrcode alone was over a megabyte of the
+// JavaScript every cold open had to load and run before showing anything.
+let scannerLibPromise = null;
+function loadScannerLib() {
+  if (!scannerLibPromise) {
+    scannerLibPromise = import("barcode-detector/polyfill")
+      .then(() => import("html5-qrcode"))
+      .catch((err) => {
+        // Let the next open try again (e.g. it failed with no signal).
+        scannerLibPromise = null;
+        throw err;
+      });
+  }
+  return scannerLibPromise;
+}
 import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG, getAllFoods } from "../lib/foodDatabase";
@@ -382,7 +398,7 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
 // which speeds up recognition) and opts into the browser's native
 // BarcodeDetector API where available — much faster and more reliable
 // than the JS-only decoder html5-qrcode falls back to otherwise.
-const BARCODE_FORMATS = [
+const barcodeFormats = (Html5QrcodeSupportedFormats) => [
   Html5QrcodeSupportedFormats.EAN_13,
   Html5QrcodeSupportedFormats.EAN_8,
   Html5QrcodeSupportedFormats.UPC_A,
@@ -487,7 +503,9 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   // cosmetic overlay replaces it so the person still has a guide to line
   // the barcode up against, without that box being what actually limits
   // detection.
-  const hasNativeDetector = typeof window !== "undefined" && "BarcodeDetector" in window;
+  // The polyfill installs BarcodeDetector where it's missing, so this turns
+  // true once the scanner code has loaded (see the effect below).
+  const [hasNativeDetector, setHasNativeDetector] = useState(() => typeof window !== "undefined" && "BarcodeDetector" in window);
   // Set true the instant this sheet closes (or unmounts) — a scan's lookup
   // is a network round-trip that can easily still be in flight when the
   // client backs out, and without this, that lookup finishing late would
@@ -710,8 +728,8 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     if (debugEnabled) {
       setDebugInfo({
         camera: "not-ready",
-        decoder: hasNativeDetector ? "BarcodeDetector (native or polyfilled)" : "zxing-js fallback",
-        formats: BARCODE_FORMATS.map((f) => Object.keys(Html5QrcodeSupportedFormats).find((k) => Html5QrcodeSupportedFormats[k] === f)).join(", "),
+        decoder: "loading",
+        formats: "loading",
         framesProcessed: 0,
         lastDetection: null,
         lastFormatCheck: null,
@@ -791,10 +809,10 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     // full-frame there risks dropping fps on a low-end device; it gets a
     // generously larger box than before instead of true full-frame, a
     // real reliability/performance trade rather than a blind copy-paste.
-    const scanConfig = {
+    const scanConfigFor = (nativeDetector) => ({
       fps: 30,
       disableFlip: true,
-      ...(hasNativeDetector
+      ...(nativeDetector
         ? {}
         : {
             qrbox: (viewfinderWidth, viewfinderHeight) => {
@@ -803,7 +821,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
               return { width, height };
             },
           }),
-    };
+    });
     const noop = () => {
       // per-frame "no code found yet" callback — expected, just tallied
       // for the dev perf log so a slow/failing scan shows exactly how
@@ -854,12 +872,36 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     ];
 
     (async () => {
+      let lib;
+      try {
+        lib = await loadScannerLib();
+      } catch (err) {
+        if (cancelled) return;
+        logPerf("scanner-load-failed", { reason: String(err?.message || err) });
+        setError("Couldn't load the scanner. Check your connection and try again.");
+        setErrorDetail(String(err?.message || err));
+        setStatus("error");
+        return;
+      }
+      if (cancelled) return;
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = lib;
+      const formats = barcodeFormats(Html5QrcodeSupportedFormats);
+      const nativeDetector = "BarcodeDetector" in window;
+      setHasNativeDetector(nativeDetector);
+      if (debugEnabled) {
+        setDebugInfo((d) => ({
+          ...d,
+          decoder: nativeDetector ? "BarcodeDetector (native or polyfilled)" : "zxing-js fallback",
+          formats: formats.map((f) => Object.keys(Html5QrcodeSupportedFormats).find((k) => Html5QrcodeSupportedFormats[k] === f)).join(", "),
+        }));
+      }
+      const scanConfig = scanConfigFor(nativeDetector);
       let lastErr = null;
       for (const constraints of constraintAttempts) {
         if (cancelled) return;
         const instance = new Html5Qrcode(elId, {
           verbose: false,
-          formatsToSupport: BARCODE_FORMATS,
+          formatsToSupport: formats,
           useBarCodeDetectorIfSupported: true,
         });
         try {

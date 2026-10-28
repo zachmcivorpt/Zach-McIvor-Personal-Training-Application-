@@ -1,7 +1,8 @@
 import React, { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { AppProvider, useApp } from "./lib/AppContext";
+import { AppProvider, useApp, PROFILE_CACHE_KEY } from "./lib/AppContext";
 import { Logo } from "./components/ui";
+import { BG, CLIENT_DARK_BG } from "./theme";
 import LoginScreen from "./auth/LoginScreen";
 import ActivateScreen from "./auth/ActivateScreen";
 import LegalPage from "./legal/LegalPage";
@@ -16,9 +17,26 @@ import StartScreen from "./solo/StartScreen";
 // its own SoloAppProvider/Firebase session, see src/lib/SoloAppContext.jsx)
 // is lazy for the same reason, and additionally so a Coaching user's bundle
 // never even fetches Train Solo's code.
-const CoachShell = lazy(() => import("./coach/CoachShell"));
-const ClientApp = lazy(() => import("./client/ClientApp"));
+const loadCoachShell = () => import("./coach/CoachShell");
+const loadClientApp = () => import("./client/ClientApp");
+const CoachShell = lazy(loadCoachShell);
+const ClientApp = lazy(loadClientApp);
 const SoloRoutes = lazy(() => import("./solo/SoloRoutes"));
+
+// The role of whoever was last signed in on this phone (AppContext keeps
+// their profile on the phone). Their screen's code starts loading right
+// away, alongside Firebase restoring the session, instead of only once the
+// session and profile have both loaded — that wait-then-download chain was
+// most of a cold open's time on the splash.
+const lastRole = (() => {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || "null")?.role || null;
+  } catch {
+    return null;
+  }
+})();
+if (lastRole === "coach") loadCoachShell().catch(() => {});
+else if (lastRole === "client") loadClientApp().catch(() => {});
 
 // Firebase Auth restores a persisted session asynchronously — on a cold
 // launch (most visible tapping an installed PWA icon) there's a brief
@@ -27,10 +45,13 @@ const SoloRoutes = lazy(() => import("./solo/SoloRoutes"));
 // is what caused a flash of the login screen before immediately bouncing
 // back in — the session was never actually lost, the UI just guessed
 // wrong while still loading. This splash fills that gap instead.
+// A coach's splash is dark like the console it opens into, so a cold open
+// doesn't flash white between the dark launch screen and the console.
 function SessionLoadingScreen() {
+  const dark = lastRole === "coach";
   return (
-    <div className="w-full h-screen flex items-center justify-center bg-white">
-      <Logo variant="mark" tone="black" className="w-10 h-10 opacity-25 animate-pulse" />
+    <div className="w-full h-screen flex items-center justify-center" style={{ backgroundColor: dark ? CLIENT_DARK_BG : BG }}>
+      <Logo variant="mark" tone={dark ? "white" : "black"} className="w-10 h-10 opacity-25 animate-pulse" />
     </div>
   );
 }
@@ -78,6 +99,11 @@ function RootRedirect() {
 export function NativeStatusBarSync() {
   const location = useLocation();
   useEffect(() => {
+    // index.html paints a coach's page dark before the app loads; clear it
+    // once the app is anywhere else so nothing light shows dark behind it.
+    if (location.pathname !== "/" && !location.pathname.startsWith("/coach")) {
+      document.documentElement.style.backgroundColor = "";
+    }
     // Train Solo has its own light/dark toggle, so it posts its own theme
     // from SoloThemeProvider (src/solo/SoloThemeContext.jsx) instead.
     if (location.pathname.startsWith("/solo")) return;

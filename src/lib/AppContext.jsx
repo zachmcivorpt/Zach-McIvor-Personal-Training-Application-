@@ -247,6 +247,25 @@ async function migrateClientId(oldId, newId) {
 
 const AppCtx = createContext(null);
 
+// See the profile effect in AppProvider. The role is also read on its own
+// by src/App.jsx at startup to start loading the right screen's code early.
+export const PROFILE_CACHE_KEY = "apexProfileCache";
+function readCachedProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+function writeCachedProfile(profile) {
+  try {
+    if (profile) localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+    else localStorage.removeItem(PROFILE_CACHE_KEY);
+  } catch {
+    // Storage full or unavailable: the app just waits for the live read.
+  }
+}
+
 export function AppProvider({ children }) {
   const [authUser, setAuthUser] = useState(undefined); // undefined = still checking, null = signed out
   const [profile, setProfile] = useState(null); // users/{uid} doc for whoever is signed in
@@ -255,13 +274,26 @@ export function AppProvider({ children }) {
   useEffect(() => onAuthStateChanged(auth, (u) => setAuthUser(u)), []);
 
   // The signed-in user's own profile doc — this is also how we learn their role.
+  // The last copy is also kept on the phone (PROFILE_CACHE_KEY) and used the
+  // moment Firebase confirms the same account is still signed in, so a cold
+  // open goes straight to the app instead of waiting on this read first;
+  // the live snapshot then replaces it.
   useEffect(() => {
     if (!authUser) {
       setProfile(null);
+      // Only a confirmed sign-out clears it, not the initial "still checking".
+      if (authUser === null) writeCachedProfile(null);
       return;
     }
+    const cached = readCachedProfile();
+    if (cached?.id === authUser.uid) setProfile(cached);
     return onSnapshot(doc(firestore, "users", authUser.uid), (snap) => {
-      setProfile(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+      // "Not in the on-phone cache" (e.g. opened offline) isn't "deleted" —
+      // keep the saved copy until the server actually answers.
+      if (!snap.exists() && snap.metadata?.fromCache && cached?.id === authUser.uid) return;
+      const next = snap.exists() ? { id: snap.id, ...snap.data() } : null;
+      setProfile(next);
+      writeCachedProfile(next);
     });
   }, [authUser]);
 

@@ -491,7 +491,7 @@ function CoachNotesCard({ currentUser, updateUser, showToast }) {
 }
 
 export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary, showToast }) {
-  const { db, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout, phraseApexSuggestion, dismissErrorLog } = useApp();
+  const { db, dbReady, usersReady, sendMessage, markFormResponseRead, currentUser, updateUser, broadcastWorkout, phraseApexSuggestion, dismissErrorLog } = useApp();
   const clients = db.users.filter((u) => u.role === "client");
   const active = clients.filter((c) => c.status === "active");
   const todayKey = localDateKey();
@@ -745,21 +745,22 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
 
       {/* Primary stats — four individually chamfered instrument tiles
           instead of one divided panel, each with its own trend/status
-          line (see StatCard above). */}
+          line (see StatCard above). A dash until the data is in, so a
+          cold open doesn't show "0" and then jump to the real count. */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <StatCard
           icon={Users}
           label="Active Clients"
-          value={active.length}
+          value={usersReady ? active.length : "–"}
           trend={newActiveThisWeek > 0 ? `+${newActiveThisWeek}` : "—"}
           trendKind={newActiveThisWeek > 0 ? "up" : "neutral"}
           onClick={() => onNavigate("clients")}
         />
-        <StatCard icon={Trophy} label="Challenges" value={(db.challenges || []).length} trend="—" trendKind="neutral" onClick={() => onNavigate("challenges")} />
+        <StatCard icon={Trophy} label="Challenges" value={dbReady ? (db.challenges || []).length : "–"} trend="—" trendKind="neutral" onClick={() => onNavigate("challenges")} />
         <StatCard
           icon={NotebookPen}
           label="Check-ins to Review"
-          value={pendingCheckins}
+          value={dbReady ? pendingCheckins : "–"}
           trend={pendingCheckins > 0 ? "Review now" : "—"}
           trendKind={pendingCheckins > 0 ? "link" : "neutral"}
           onClick={() => {
@@ -775,7 +776,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
         <StatCard
           icon={MessageCircle}
           label="Messages to Reply"
-          value={awaitingReply}
+          value={dbReady ? awaitingReply : "–"}
           trend={awaitingReply > 0 ? `${awaitingReply} new` : "—"}
           trendKind={awaitingReply > 0 ? "alert" : "neutral"}
           onClick={() => onNavigate("messages")}
