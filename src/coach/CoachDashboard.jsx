@@ -727,7 +727,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
       {/* Hero: black-and-white gym photo (same as the client app) behind the
           greeting and roster count, fading into the page. Every number is
           a button to the same place its old stat tile went. */}
-      <div className="relative -mx-0 md:rounded-2xl md:overflow-hidden">
+      <div className="relative -mt-5 md:mt-0 md:rounded-2xl md:overflow-hidden">
         <div className="absolute inset-x-0 top-0 -bottom-16 overflow-hidden pointer-events-none md:rounded-2xl" aria-hidden="true">
           <img src="/brand/gym-dark.jpg" alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 35%", filter: "brightness(0.7)" }} draggable={false} />
           <div
@@ -735,12 +735,12 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
             style={{ background: `linear-gradient(180deg, rgba(10,10,11,0.55) 0%, rgba(10,10,11,0.25) 40%, rgba(10,10,11,0.6) 70%, ${CLIENT_DARK_BG} 100%)` }}
           />
         </div>
-        <div className="relative px-5 pt-10 pb-2 sm:px-7">
+        <div className="relative px-5 pt-3 pb-2 sm:px-7 sm:pt-6">
           <h1 className="text-white text-[24px] sm:text-[28px] font-semibold tracking-[-0.02em] leading-tight truncate">
             {timeOfDayGreeting()}, {currentUser?.name?.split(" ")[0] || "Coach"}
           </h1>
           <p className="text-white/70 text-[13.5px] mt-1">Your roster and what needs your attention.</p>
-          <div className="flex items-end gap-4 mt-5">
+          <div className="flex items-end gap-4 mt-4">
             <button type="button" onClick={() => onNavigate("clients")} aria-label={`${active.length} active clients`} className="text-white text-[56px] font-semibold tracking-[-0.05em] leading-[0.9] tabular-nums">
               {active.length}
             </button>
@@ -754,7 +754,7 @@ export default function CoachDashboard({ onNavigate, onOpenClient, onOpenLibrary
       </div>
 
       {/* Three frosted-glass tiles over the photo's fade. */}
-      <div className="relative grid grid-cols-3 gap-2 mx-3.5 md:mx-0 mt-5 mb-6">
+      <div className="relative grid grid-cols-3 gap-2 mx-3.5 md:mx-0 mt-4 mb-6">
         <GlassTile value={(db.challenges || []).length} label="Challenges" onClick={() => onNavigate("challenges")} />
         <GlassTile
           value={pendingCheckins}
