@@ -15,8 +15,10 @@ browser-only "add to home screen" — that's no longer the primary path.
 
 Target look: dark, restrained, technical, premium. Applies identically in
 both of the app's existing modes — the client app's own light/dark toggle
-(`ClientThemeContext`/`useClientDark`) and the coach console's single light
-theme — by expressing it through the existing tokens in `src/theme.js`
+(`ClientThemeContext`/`useClientDark`; each client picks it in Profile >
+Appearance, saved per person on the phone, with the coach's Design
+Settings switch as the default until they do) and the coach console's
+single theme — by expressing it through the existing tokens in `src/theme.js`
 rather than inventing new colors per screen:
 
 - **Light surfaces**: `BG`/`SURFACE` (off-white, not stark white), `TEXT`
@@ -55,6 +57,9 @@ rather than inventing new colors per screen:
   app's top bar is white) and the bottom; the page header and
   Today/Program switch sit on the plain page above it.
 - Lists are open rows with thin dividers (a darker top rule), not cards.
+- Home's sections (Daily Execution, Nutrition) are open on the page, not
+  glass cards. Avoid a title that changes length over a backdrop-filter
+  card: iOS WebKit can leave the new text half-drawn (#111).
 - Content placed after `TrainingPhotoHero` must be `relative`, or the
   photo's bottom fade paints over it.
 

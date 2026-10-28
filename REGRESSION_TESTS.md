@@ -2270,6 +2270,18 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Manual check still needed**: on a real iPhone, the photo header under the white top bar and swiping a cardio row on Home.
 - **Date added**: 2026-10-28
 
+### 111. Home: "Nutrition Today" title half-drawn on iPhone
+- **Problem**: reported from a real iPhone after #110: on Home the nutrition card's title showed "Nutrition" with "Today" only half drawn. The data was right. The card was a backdrop-filter glass card and its title changed length between days ("Nutrition" on other days, "Nutrition Today" today); iOS WebKit left the lengthened text part-painted over the blurred layer after switching back to today.
+- **Fix**: `NutritionSummaryCard` (`src/client/ClientApp.jsx`, Home only) restyled to match the Concept A Home: an open section on the page (no glass, no backdrop-filter), title always "Nutrition" with a separate small "Today" label, calories as a large figure with "left", macros in three columns with thin bars, water row between dividers, solid Log food button. Same data, same actions (Log food, water +250/+500/-250, "Log food & water for today" on other days).
+- **Regression tests**: `src/client/nutritionSummaryOpen.test.jsx`: same title on today and another day with no backdrop-filter; calories left plus Log food and water buttons call through with the right amounts; another day offers "Log food & water for today". The first case fails against the old card (glass + changing title), checked then restored. Screenshotted from the real Home component at 430px in light, dark and a past day, no console errors. The WebKit repaint itself can't be reproduced here (no WebKit); confirm on a real iPhone.
+- **Date added**: 2026-10-28
+
+### 112. Clients choose their own Light/Dark mode (product change)
+- **Change**: the coached client app's theme was one coach-wide switch (Design Settings, `settings/appDesign.clientDarkMode`) applied to every client. Each client can now pick Light or Dark for themselves in Profile > Appearance, like Train Solo's toggle. The choice is saved on the phone per person (`localStorage` key `clientTheme_<userId>`), so it only changes that person's app; until a client picks, the coach's setting is the default (`resolveClientDark`, `readClientThemePick` in `src/client/ClientApp.jsx`). The coach's switch now reads "The default for every client's app…". The coach console has no light version (it is a dark-only design), so nothing changed there; Train Solo is untouched.
+- **Regression tests**: `src/client/clientThemeChoice.test.jsx`: the coach default applies until the client picks and the pick then wins; picks are per person and invalid values are ignored; Profile shows Appearance with the current mode and calls the toggle. The first case fails when the pick is ignored (checked, then restored).
+- **Note**: the choice is per phone (as Train Solo's is), not synced between a client's devices.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing

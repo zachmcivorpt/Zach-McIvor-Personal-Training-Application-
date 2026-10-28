@@ -357,8 +357,10 @@ export function sectionedExercises(list) {
 }
 
 /* ============================================================================
-   THEME — the coach can flip the client app between dark and light from
-   Design Settings (settings/appDesign.clientDarkMode). Every themed
+   THEME — the coach sets the client app's default (dark or light) in
+   Design Settings (settings/appDesign.clientDarkMode); each client can
+   override it for themselves in Profile > Appearance (saved on the phone,
+   see readClientThemePick). Every themed
    component below reads it via useClientDark() rather than a prop, since
    plumbing one boolean through this many nested components would mean
    touching every function signature; a context avoids that while still
@@ -366,6 +368,20 @@ export function sectionedExercises(list) {
 ============================================================================ */
 
 export const ClientThemeContext = createContext(true);
+// The client's own choice wins; with none, the coach's default.
+export function resolveClientDark(pick, coachDefaultDark) {
+  return pick ? pick === "dark" : coachDefaultDark === true;
+}
+// A client's own saved Light/Dark choice ("dark" | "light"), or null if
+// they haven't picked one on this phone.
+export function readClientThemePick(key) {
+  try {
+    const v = localStorage.getItem(key);
+    return v === "dark" || v === "light" ? v : null;
+  } catch {
+    return null;
+  }
+}
 export function useClientDark() {
   return useContext(ClientThemeContext);
 }
@@ -672,7 +688,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   );
 }
 
-function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoToday, isToday = true }) {
+export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoToday, isToday = true }) {
   const dark = useClientDark();
   const logged = nutrition || DEFAULT_NUTRITION;
   const items = [
@@ -683,45 +699,56 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
   ];
   const border = dark ? "border-white/8" : "border-black/8";
   const primaryText = dark ? "text-white" : "text-black";
-  const muted25 = dark ? "text-white/25" : "text-black/25";
-  const muted30 = dark ? "text-white/30" : "text-black/30";
-  const muted35 = dark ? "text-white/35" : "text-black/35";
   const muted50 = dark ? "text-white/50" : "text-black/50";
   const muted70 = dark ? "text-white/70" : "text-black/70";
   const trackClass = dark ? "bg-white/8" : "bg-black/8";
-  const actionBtn = dark ? "bg-white/8 text-white" : "bg-black/8 text-black";
+  // An open section on the page (no glass card), like Daily Execution. The
+  // title stays the same length on every day: iOS WebKit could leave a
+  // lengthened title half-drawn over a backdrop-filter card.
+  const [cal, ...macros] = items;
+  const barColor = (it) => (it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE);
+  const outlineBtn = dark ? "border border-white/20 text-white" : "border border-black/15 text-black";
   return (
-    <div className={`mx-2.5 rounded-2xl p-5 ${border} border`} style={clientGlass(dark)}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`${primaryText} font-semibold`}>{isToday ? "Nutrition Today" : "Nutrition"}</h3>
-        <Utensils size={15} className={muted25} />
+    <div className="mx-2.5 px-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${primaryText}`}>Nutrition</h3>
+        {isToday && <span className={`text-[13px] ${muted50}`}>Today</span>}
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        {items.map((it) => (
-          <div key={it.label}>
-            <div className="flex justify-between text-xs mb-1">
-              <span className={`${muted35} tracking-wide`}>{it.label}</span>
+      <div className={`mt-3 pt-4 border-t ${dark ? "border-white/20" : "border-black"}`}>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className={`text-[28px] leading-none font-semibold tracking-[-0.03em] tabular-nums ${primaryText}`}>
+            {cal.value.toLocaleString()}
+            <span className={`text-[13px] font-normal tracking-normal ${muted50}`}> / {Number(cal.target).toLocaleString()} kcal</span>
+          </p>
+          <p className={`text-[13px] tabular-nums shrink-0 ${muted50}`}>
+            <span className={`font-semibold ${primaryText}`}>{Math.max(0, Math.round(cal.target - cal.value)).toLocaleString()}</span> left
+          </p>
+        </div>
+        <div className="mt-3">
+          <ProgressBar value={cal.value} max={cal.target} height={3} color={barColor(cal)} trackClassName={trackClass} />
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-5">
+          {macros.map((it) => (
+            <div key={it.label} className="min-w-0">
+              <p className={`text-xs ${muted50}`}>{it.label.charAt(0) + it.label.slice(1).toLowerCase()}</p>
+              <p className={`text-[17px] font-semibold tracking-[-0.01em] tabular-nums mt-0.5 truncate ${primaryText}`}>
+                {it.value}
+                {it.unit}
+                <span className={`text-xs font-normal ${muted50}`}> / {it.target}{it.unit}</span>
+              </p>
+              <div className="mt-2">
+                <ProgressBar value={it.value} max={it.target} height={3} color={barColor(it)} trackClassName={trackClass} />
+              </div>
             </div>
-            <p className={`${primaryText} text-sm font-semibold mb-1.5`}>
-              {it.value}
-              {it.unit} <span className={`${muted30} font-normal`}>/ {it.target}{it.unit}</span>
-            </p>
-            <ProgressBar
-              value={it.value}
-              max={it.target}
-              height={6}
-              color={it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE}
-              trackClassName={trackClass}
-            />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-      <div className={`mt-4 pt-4 border-t ${border} flex items-center gap-3`}>
-        <WaterCup value={logged.water} max={targets.water} size={30} dark={dark} />
+      <div className={`mt-5 py-3 border-t border-b ${border} flex items-center gap-3`}>
+        <WaterCup value={logged.water} max={targets.water} size={28} dark={dark} />
         <div className="flex-1 min-w-0">
-          <p className={`${muted50} text-[11px] font-semibold`}>Water</p>
-          <p className={`${muted70} text-sm`}>
-            <span className={`font-bold ${primaryText}`}>{logged.water}</span> / {targets.water} L
+          <p className={`${muted50} text-xs`}>Water</p>
+          <p className={`${muted70} text-sm tabular-nums`}>
+            <span className={`font-semibold ${primaryText}`}>{logged.water}</span> / {targets.water} L
           </p>
         </div>
         {isToday && (
@@ -731,17 +758,17 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
               aria-label="Remove 250 ml"
               onClick={() => onLogWater(-0.25)}
               disabled={!(logged.water > 0)}
-              className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 ${actionBtn}`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 ${outlineBtn}`}
             >
               <Minus size={14} />
             </button>
-            <button type="button" onClick={() => onLogWater(0.25)} className={`h-9 px-3 rounded-full text-xs font-bold active:scale-90 transition-transform ${actionBtn}`}>
+            <button type="button" onClick={() => onLogWater(0.25)} className={`h-9 px-3 rounded-full text-xs font-semibold active:scale-90 transition-transform ${outlineBtn}`}>
               +250ml
             </button>
             <button
               type="button"
               onClick={() => onLogWater(0.5)}
-              className={`h-9 px-3 rounded-full text-xs font-bold active:scale-90 transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
+              className={`h-9 px-3 rounded-full text-xs font-semibold active:scale-90 transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
             >
               +500ml
             </button>
@@ -749,18 +776,20 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
         )}
       </div>
       {isToday ? (
-        <div className="flex gap-2 mt-4">
-          <button onClick={onLogFood} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
-            + LOG FOOD
-          </button>
-        </div>
+        <button
+          onClick={onLogFood}
+          className={`w-full mt-4 h-12 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
+        >
+          + LOG FOOD
+        </button>
       ) : (
         onGoToday && (
-          <div className="flex gap-2 mt-4">
-            <button onClick={onGoToday} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
-              LOG FOOD &amp; WATER FOR TODAY
-            </button>
-          </div>
+          <button
+            onClick={onGoToday}
+            className={`w-full mt-4 h-12 rounded-xl text-sm font-semibold active:scale-[0.98] transition-transform ${outlineBtn}`}
+          >
+            LOG FOOD &amp; WATER FOR TODAY
+          </button>
         )
       )}
     </div>
@@ -7476,6 +7505,7 @@ export function ProfileScreen({
   showToast,
   dueCheckInsCount,
   onOpenCheckIns,
+  onToggleTheme,
 }) {
   const dark = useClientDark();
   const { deleteMyAccount, viewingAsClient } = useApp();
@@ -7497,6 +7527,7 @@ export function ProfileScreen({
     { label: "Nutrition preferences", icon: Utensils, onClick: () => setPrefSection("nutrition") },
     { label: "Notifications", icon: Bell, onClick: onOpenNotifications },
     { label: "Push Notifications", icon: BellRing, onClick: () => setPushOpen(true) },
+    ...(onToggleTheme ? [{ label: "Appearance", value: dark ? "Dark" : "Light", icon: Moon, onClick: onToggleTheme }] : []),
     // Both of these act on the real signed-in Firebase Auth account, never
     // the client being impersonated — connecting WHOOP or deleting while
     // "viewing as" a client would silently hit the coach's own account
@@ -7606,6 +7637,7 @@ export function ProfileScreen({
             >
               <r.icon size={17} className={dark ? "text-white/40" : "text-black/40"} />
               <span className={dark ? "text-white/80 text-sm flex-1" : "text-black/80 text-sm flex-1"}>{r.label}</span>
+              {r.value && <span className={dark ? "text-white/45 text-sm" : "text-black/45 text-sm"}>{r.value}</span>}
               {r.label === "Notifications" && notifCount > 0 && (
                 <span className={dark ? "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
                   {notifCount}
@@ -8924,7 +8956,20 @@ export default function ClientApp() {
     clearLiveSession,
     dbReady,
   } = useApp();
-  const dark = db.appDesign?.clientDarkMode === true;
+  // Light/Dark: the client's own choice (Profile > Appearance), kept on
+  // this phone per person like Train Solo's; until they choose, the
+  // coach's default from Design Settings applies.
+  const themeKey = `clientTheme_${currentUser?.id}`;
+  const [themePick, setThemePick] = useState(null); // { key, value } once chosen this session
+  const storedPick = themePick?.key === themeKey ? themePick.value : readClientThemePick(themeKey);
+  const dark = resolveClientDark(storedPick, db.appDesign?.clientDarkMode);
+  function chooseClientTheme(nextDark) {
+    const value = nextDark ? "dark" : "light";
+    try {
+      localStorage.setItem(themeKey, value);
+    } catch {}
+    setThemePick({ key: themeKey, value });
+  }
   const navigate = useNavigate();
   // A session left open (backgrounded, or the tab/app closed before the
   // client explicitly finished or canceled it) persists across reloads so
@@ -10078,6 +10123,7 @@ export default function ClientApp() {
             showToast={showToast}
             dueCheckInsCount={dueCheckInsCount}
             onOpenCheckIns={() => setTab("checkins")}
+            onToggleTheme={() => chooseClientTheme(!dark)}
           />
         )}
         </TabFade>
