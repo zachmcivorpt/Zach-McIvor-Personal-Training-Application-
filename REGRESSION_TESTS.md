@@ -2287,6 +2287,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/client/nutritionSummaryOpen.test.jsx` (unchanged) still passes: same title on every day, no backdrop-filter, actions work. Screenshotted from the real Home component in light, dark and a past day.
 - **Date added**: 2026-10-28
 
+### 114. Going over calories showed "0 left" in green
+- **Problem**: reported from a real phone: at 2,379 of 2,250 kcal, Home said "0 left" and the Nutrition tab "Calories remaining 0", both with a green bar. The remaining figure was clamped at zero (`Math.max(0, …)`), and the calorie bar only turned red past 10% over (`targetBarColor`), so 5.7% over read as on target.
+- **Fix**: new `calorieStatus(value, target)` (`src/client/ClientApp.jsx`): once calories go over the target at all, Home shows "129 over" in red and the Nutrition tab's card reads "CALORIES OVER 129" in red, both with a red bar; exactly on target stays green, under stays blue. Home's macro bars now use the same `targetBarColor` rule as the Nutrition tab (red past 10% over, protein exempt), so the two screens agree. Macro rules are otherwise unchanged.
+- **Regression tests**: `src/client/caloriesOver.test.jsx`: `calorieStatus` for under, exactly on, 1 over and 129 over (and no target); Home shows "129 over" in red with no "left". Both fail with the over state removed (checked, then restored). Screenshotted from the real Home card and Nutrition tab at 2,379 / 2,250.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing

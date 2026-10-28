@@ -115,6 +115,9 @@ with numbers clients and coaches can trust. How it's built now:
   foods first, plain foods before brands/supplements, typo fallback; the
   AFCD list stays a last resort. `matchesSearch` (search.js) remains the
   plain filter for exercises and the builders.
+- **Over the calorie target** shows how much over, in red (`calorieStatus`),
+  never "0 left"; macro bars use `targetBarColor` (red past 10% over,
+  protein exempt) on both Home and the Nutrition tab (#114).
 - **Swipe-to-delete rows (`SwipeableRow`, `ClientApp.jsx`)** hold
   tappable things (a logged food opens its editor, a saved meal's +).
   Rules from two real iPhone bugs (REGRESSION_TESTS.md #107, #109):
