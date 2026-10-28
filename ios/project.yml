@@ -40,7 +40,7 @@ targets:
             UIWindowSceneSessionRoleApplication:
               - UISceneConfigurationName: Default Configuration
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
-        NSCameraUsageDescription: "Used to scan food barcodes for nutrition tracking."
+        NSCameraUsageDescription: "Used to record form-check videos and take progress photos for your coach, and to scan food barcodes for nutrition tracking."
         NSMicrophoneUsageDescription: "Used to record voice notes and form-check videos for your coach."
         NSPhotoLibraryUsageDescription: "Used to attach and upload photos within the app (progress photos, messages)."
         NSPhotoLibraryAddUsageDescription: "Used to save photos from the app to your library."
