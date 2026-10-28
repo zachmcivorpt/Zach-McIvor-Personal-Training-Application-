@@ -352,15 +352,18 @@ F. App Review Information > Notes (replace with):
     Solo programs are not sold in the app: it shows no prices, purchase
     buttons or links to buy (3.1.1).
 
-    Apple Health (new): on the iPhone app, Profile > Apple Health >
-    Connect. APEX only reads steps, sleep, resting heart rate and body
+    Apple Health (new, iPhone only): in Train Solo, Profile > Apple
+    Health; as a coached client, Profile > Connected devices > Apple
+    Health. APEX only reads steps, sleep, resting heart rate and body
     weight to show on Progress; it never writes to Health and Health
     data is never used for advertising.
 
     Microphone: voice notes in Messages and form-check videos.
     Camera: form-check videos, progress photos, barcode scanning."
 
-    Sign-in: the coach demo login and the Train Solo demo login. Keep the
+    Sign-in: the coach demo login and the Train Solo demo login (Apple
+    Health and voice notes are client features, so the Train Solo login
+    is the easiest way in; a coached-client demo login is a bonus). Keep the
     credentials in App Store Connect only, never in this repository.
 
 G. Submit for Review. Release: "Manually release" is safest (you
