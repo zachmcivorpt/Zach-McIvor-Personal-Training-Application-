@@ -15,6 +15,8 @@ import { useSoloTheme, SOLO_THEMES, soloGlassVars } from "./SoloThemeContext";
 import SoloExerciseBlock from "./SoloExerciseBlock";
 import SoloSwapSheet from "./SoloSwapSheet";
 import { planExerciseTargets, isStalled, targetReasonText } from "./soloProgression";
+import { canUse } from "./soloAccess";
+import { useSoloPaywall } from "./SoloPaywall";
 import { isCustomSessionLog } from "./customSessions";
 import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
 import { playTimerDing, armRestTimerAudio, unlockTimerAudio } from "./timerAudio";
@@ -33,7 +35,10 @@ import { playTimerDing, armRestTimerAudio, unlockTimerAudio } from "./timerAudio
 export default function SoloWorkoutSessionScreen() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { soloCurrentUser, soloExercises, soloWorkoutLogs, logSoloWorkout } = useSoloApp();
+  const { soloCurrentUser, soloExercises, soloWorkoutLogs, logSoloWorkout, soloAccess } = useSoloApp();
+  const { openPaywall } = useSoloPaywall();
+  // Suggested weights are a Plus feature once subscriptions launch.
+  const showTargets = canUse("suggestedWeights", soloAccess);
   const { dark } = useSoloTheme();
 
   const sessionInfo = location.state; // { purchaseId, programId, phaseId, dayId, weekNumber, day }
@@ -232,6 +237,15 @@ export default function SoloWorkoutSessionScreen() {
           </div>
           <div className="flex-1 overflow-y-auto px-2.5 py-4 space-y-5 pb-28">
             <SessionIntelligenceCard exercises={exercisesForSession} exercisesById={exercisesById} logsForClient={soloWorkoutLogs} dark={dark} />
+            {!showTargets && soloWorkoutLogs.length > 0 && (
+              <button
+                type="button"
+                onClick={() => openPaywall({ tier: "plus", reason: "Plus works out what to lift next for every set, from what you did last time." })}
+                className={dark ? "w-full text-left text-xs text-white/60 px-1.5" : "w-full text-left text-xs text-black/60 px-1.5"}
+              >
+                Want a target weight for every set? <span className="font-bold underline underline-offset-2">Get suggested weights with Plus</span>
+              </button>
+            )}
             {sectionedExercises(exercisesForSession).map((group) => (
               <div key={group.key}>
                 {group.showHeader && (
@@ -242,7 +256,7 @@ export default function SoloWorkoutSessionScreen() {
                     const exercise = exercisesById[exMeta.exerciseId] || { id: exMeta.exerciseId, name: "Unknown exercise" };
                     const rows = rowsFor(exMeta);
                     const previousSets = getPreviousSets(soloWorkoutLogs, exMeta.exerciseId);
-                    const targets = planExerciseTargets(previousSets, exMeta.targetReps, rows.length, { stalled: isStalled(soloWorkoutLogs, exMeta.exerciseId) });
+                    const targets = showTargets ? planExerciseTargets(previousSets, exMeta.targetReps, rows.length, { stalled: isStalled(soloWorkoutLogs, exMeta.exerciseId) }) : [];
                     return (
                       <SoloExerciseBlock
                         key={(exMeta.swappedFrom || exMeta.exerciseId) + i}

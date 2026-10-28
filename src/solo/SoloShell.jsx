@@ -9,6 +9,7 @@ import SoloProfileScreen from "./SoloProfileScreen";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { soloDb } from "../lib/firebase";
 import { useAppleHealthSync } from "../lib/appleHealth";
+import { canUse } from "./soloAccess";
 
 const TABS = [
   { id: "training", label: "My Training", icon: CalendarDays },
@@ -52,11 +53,12 @@ export default function SoloShell() {
   const t = SOLO_THEMES[dark ? "dark" : "light"];
 
   // Apple Health (iPhone app only, connected from Profile).
-  const { soloCurrentUser } = useSoloApp();
+  // A Plus feature once subscriptions launch (soloAccess.js).
+  const { soloCurrentUser, soloAccess } = useSoloApp();
   useAppleHealthSync(
     "solo",
     { db: soloDb, metrics: "soloBodyMetrics", weighIns: "soloWeighIns", owner: "soloUserId", uid: soloCurrentUser?.id },
-    true
+    canUse("appleHealthProgress", soloAccess)
   );
 
   return (

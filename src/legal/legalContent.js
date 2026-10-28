@@ -305,6 +305,10 @@ export const LEGAL_DOCS = {
         heading: "17. Payments and subscriptions",
         body: [
           "Where paid services are offered, applicable pricing, billing cycles and cancellation terms will be disclosed at the point of purchase. Unless required by law, fees are non-refundable once the relevant service period has commenced.",
+          "Train Solo subscriptions (Plus and All Access) are billed monthly or yearly in advance and renew automatically at the end of each period at the then-current price until you cancel. You can cancel at any time: a subscription bought in the APEX iPhone app is managed and cancelled in your Apple ID's subscription settings; a subscription bought on the APEX website is managed and cancelled from Profile in Train Solo. To avoid the next charge, cancel at least 24 hours before the current period ends; you keep access until then.",
+          "Where a free trial is offered, it is available once per customer. Unless you cancel at least 24 hours before the trial ends, the subscription starts and the first period is charged when the trial ends.",
+          "Paid features are only available while your subscription is paid. If a renewal payment fails or a subscription ends, your account moves to the free tier straight away; your logged workouts, sessions, progress and history are kept, and paid features return once payment succeeds or you subscribe again. Programs you bought individually remain available to you.",
+          "Refunds for purchases made through Apple are handled by Apple under its own policies. For purchases made on the APEX website, nothing in these Terms excludes any right you have under the Australian Consumer Law. We will give you reasonable notice before changing the price of an existing subscription.",
         ],
       },
       {

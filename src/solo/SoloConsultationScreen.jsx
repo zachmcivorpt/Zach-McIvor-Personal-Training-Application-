@@ -23,7 +23,7 @@ import { SECTIONS, getVisibleQuestions, isAnswered, isComplete, isFlaggedForMedi
 // follow-up here as needing an answer, and saving waits for it.
 export default function SoloConsultationScreen() {
   const navigate = useNavigate();
-  const { soloAuthUser, soloCurrentUser, saveOnboardingAnswer, recordHealthConsent, soloPrograms, soloProgramCategories, soloPurchases } = useSoloApp();
+  const { soloAuthUser, soloCurrentUser, saveOnboardingAnswer, recordHealthConsent, soloPrograms, soloProgramCategories, soloPurchases, soloEnrolments } = useSoloApp();
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
 
@@ -91,7 +91,7 @@ export default function SoloConsultationScreen() {
           accent={accent}
           programs={soloPrograms}
           categories={soloProgramCategories}
-          ownedIds={(soloPurchases || []).map((p) => p.programId)}
+          ownedIds={[...(soloPurchases || []).map((p) => p.programId), ...(soloEnrolments || []).filter((e) => e.status === "active").map((e) => e.programId)]}
           onOpenProgram={(id) => navigate(`/solo/program/${id}`)}
           onCatalogue={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })}
           onProfile={leave}

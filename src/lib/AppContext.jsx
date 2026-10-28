@@ -465,6 +465,8 @@ export function AppProvider({ children }) {
     // firestore.rules' settings/soloBranding comment for why this is its
     // own doc rather than a field on appDesign above.
     watchDoc("settings", "soloBranding", "soloBranding", { accent: "blue" });
+    // Train Solo subscriptions launch switch (src/solo/soloAccess.js).
+    watchDoc("settings", "soloMonetisation", "soloMonetisation", { live: false, testUids: [], testEmails: [] });
 
     if (!authUser || !role) return () => unsubs.forEach((u) => u());
 
@@ -700,6 +702,7 @@ export function AppProvider({ children }) {
       coachProfile: raw.coachProfile || { name: "", avatarUrl: null },
       appDesign: raw.appDesign || { loginBackgroundUrl: null, loginBackgroundType: null, appLogoUrl: null },
       soloBranding: raw.soloBranding || { accent: "blue" },
+      soloMonetisation: raw.soloMonetisation || { live: false, testUids: [], testEmails: [] },
       bodyMetrics: bucket(raw.bodyMetrics, (a, b) => a.date.localeCompare(b.date)),
       // One doc per client (doc id === clientId), so bucket() always
       // produces at most a single-item array — same helper, just read as
@@ -1291,6 +1294,21 @@ export function AppProvider({ children }) {
 
       // Train Solo's one coach-configurable branding setting — see
       // firestore.rules' settings/soloBranding comment.
+      // The Train Solo subscriptions launch switch — turning it on applies
+      // Free / Plus / All Access to every customer and stops single-program
+      // sales (functions createSoloCheckoutSession refuses them).
+      setSoloMonetisationLive(live) {
+        const promise = setDoc(doc(firestore, "settings", "soloMonetisation"), { live: !!live, liveChangedAt: Date.now() }, { merge: true });
+        promise.catch(console.error);
+        return promise;
+      },
+      // Test accounts see the tiers before launch (by their Train Solo email —
+      // the server looks the account up; a coach can't read Train Solo accounts).
+      async setSoloTestAccount(email, add) {
+        const result = await httpsCallable(functions, "setSoloTestAccount")({ email, add });
+        return result.data;
+      },
+
       updateSoloBranding(data) {
         const promise = setDoc(doc(firestore, "settings", "soloBranding"), stripUndefined(data), { merge: true });
         promise.catch(console.error);

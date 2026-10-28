@@ -2,7 +2,9 @@
 // separate "scheduled" collection. Three kinds of entry:
 //
 //  - Program workouts: every owned program with a start date lays its
-//    weeks out from that date. A program day has no fixed weekday of its
+//    weeks out from that date. All Access programs come in the same way
+//    (src/solo/enrolments.js): a paused one stops at the day it was paused
+//    (`untilDate`), a locked one (no All Access) isn't laid out at all. A program day has no fixed weekday of its
 //    own, so a week's N sessions are spread evenly across its 7 days
 //    (3/week → days 1, 3, 5 of that week). A session is done when a
 //    soloWorkoutLogs doc exists for that purchase + week + day, the same
@@ -121,13 +123,15 @@ export function buildSoloCalendar({
   for (const purchase of purchases) {
     const program = programsById[purchase.programId];
     const phases = contentByProgramId[purchase.programId]?.phases;
-    if (!program || !purchase.startDate || !Array.isArray(phases)) continue;
+    if (!program || !purchase.startDate || !Array.isArray(phases) || purchase.locked) continue;
+    const until = purchase.untilDate || null;
     const totalWeeks = phases.reduce((sum, p) => sum + (p.durationWeeks || 0), 0);
-    if (totalWeeks > 0) programSpans.push({ start: purchase.startDate, totalWeeks });
+    if (totalWeeks > 0) programSpans.push({ start: purchase.startDate, totalWeeks, until });
     for (let week = 1; week <= totalWeeks; week++) {
       const days = phaseForWeekNumber(phases, week)?.phase?.days || [];
       const dates = sessionDateKeys(purchase.startDate, week, days.length, trainingDays);
       days.forEach((day, i) => {
+        if (until && dates[i] >= until) return;
         workoutDays.add(dates[i]);
         push(dates[i], {
           type: "workout",
@@ -136,6 +140,7 @@ export function buildSoloCalendar({
           subtitle: `${program.name} · Week ${week}`,
           done: doneSessions.has(`${purchase.id}:${week}:${day.id}`),
           purchase,
+          source: purchase.source || "owned",
           programId: program.id,
           day,
           weekNumber: week,
@@ -146,10 +151,10 @@ export function buildSoloCalendar({
 
   const addonPhases = Array.isArray(recoveryAddon?.recoveryPhases) ? recoveryAddon.recoveryPhases : null;
   const restFilled = new Set();
-  for (const { start, totalWeeks } of programSpans) {
+  for (const { start, totalWeeks, until } of programSpans) {
     for (let week = 1; week <= totalWeeks; week++) {
       const weekStart = addDays(start, (week - 1) * 7);
-      const restDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).filter((k) => !workoutDays.has(k) && !restFilled.has(k));
+      const restDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).filter((k) => !workoutDays.has(k) && !restFilled.has(k) && !(until && k >= until));
       const addonDays = addonPhases ? phaseForWeekNumber(addonPhases, week)?.phase?.days || [] : [];
       const placed = new Set();
       addonDays.slice(0, restDays.length).forEach((day, i) => {
@@ -209,6 +214,7 @@ export function calendarItemTarget(item, { todayKey, soloUid, contentByProgramId
   }
   if (item.type === "bodystats" || item.type === "photos") return { path: "/solo/home", state: { soloTab: "progress" } };
   if (item.type === "workout" && !item.done) {
+    if (item.purchase.status === "paused" || item.purchase.locked) return null; // history only until it's resumed
     const totalWeeks = (contentByProgramId[item.programId]?.phases || []).reduce((s, p) => s + (p.durationWeeks || 0), 0);
     const current = currentWeekNumber(item.purchase.startDate, totalWeeks);
     if (current == null || item.weekNumber > current) return null; // a future week — locked, same as My Training

@@ -29,6 +29,10 @@ import { isComplete } from "../solo/onboarding/questionnaireConfig";
 import { localDateKey } from "./dateKey";
 import { removeSoloPushToken } from "./push";
 import { savedOrQueued, QUEUED } from "./offlineWrite";
+import { tierFromEntitlement, gatesLive, canUse } from "../solo/soloAccess";
+import { trainingPrograms, planStart } from "../solo/enrolments";
+import { customProgramEntries } from "../solo/customPrograms";
+import { inAppPurchasesAvailable, identifyPurchaser, forgetPurchaser } from "./purchases";
 
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
 // Solo's session must never share a React context, a listener, or an
@@ -105,6 +109,20 @@ export function SoloAppProvider({ children }) {
   // Sessions a customer built themselves (free training — see
   // src/solo/customSessions.js). Newest edited first.
   const [soloCustomSessions, setSoloCustomSessions] = useState([]);
+  // Subscriptions (src/solo/soloAccess.js): the customer's server-written
+  // entitlement, the launch switch, their All Access enrolments
+  // (src/solo/enrolments.js) and the programs they built (Plus).
+  const [soloEntitlement, setSoloEntitlement] = useState(null);
+  const [soloMonetisation, setSoloMonetisation] = useState({});
+  const [soloEnrolments, setSoloEnrolments] = useState([]);
+  const [soloCustomPrograms, setSoloCustomPrograms] = useState([]);
+  // Re-checked every minute so a subscription that runs out while the app
+  // is open locks without a reload.
+  const [clock, setClock] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setClock(Date.now()), 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
   // The full phases/days/exercises for programs this customer actually
   // OWNS — keyed by programId. Deliberately fetched per owned program
   // (never a collection-wide listener): soloProgramContent/{id} is gated
@@ -217,18 +235,80 @@ export function SoloAppProvider({ children }) {
     });
   }, [soloAuthUser]);
 
+  useEffect(() => {
+    return onSnapshot(
+      doc(soloDb, "settings", "soloMonetisation"),
+      (snap) => setSoloMonetisation(snap.exists() ? snap.data() : {}),
+      () => setSoloMonetisation({})
+    );
+  }, []);
+  useEffect(() => {
+    if (!soloAuthUser) {
+      setSoloEntitlement(null);
+      setSoloEnrolments([]);
+      setSoloCustomPrograms([]);
+      return;
+    }
+    const uid = soloAuthUser.uid;
+    const unsubs = [
+      onSnapshot(doc(soloDb, "soloEntitlements", uid), (snap) => setSoloEntitlement(snap.exists() ? snap.data() : null), () => setSoloEntitlement(null)),
+      onSnapshot(query(collection(soloDb, "soloEnrolments"), where("soloUserId", "==", uid)), (snap) =>
+        setSoloEnrolments(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+      ),
+      onSnapshot(query(collection(soloDb, "soloCustomPrograms"), where("soloUserId", "==", uid)), (snap) =>
+        setSoloCustomPrograms(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)))
+      ),
+    ];
+    return () => unsubs.forEach((u) => u());
+  }, [soloAuthUser]);
+
+  // In the iPhone app (1.0.4+), purchases are made as the signed-in account.
+  useEffect(() => {
+    if (soloAuthUser && inAppPurchasesAvailable()) identifyPurchaser(soloAuthUser.uid).catch(() => {});
+  }, [soloAuthUser]);
+
+  const soloTier = tierFromEntitlement(soloEntitlement, clock);
+  const soloGatesLive = gatesLive(soloMonetisation, soloAuthUser?.uid);
+  const soloHasAllAccess = soloGatesLive && soloTier === "all_access";
+  // Before launch nobody runs All Access programs; after it, they're
+  // scheduled only while All Access is paid up (locked otherwise).
+  const builderLocked = !canUse("programBuilder", { tier: soloTier, live: soloGatesLive });
+  const soloCustomEntries = useMemo(
+    () => customProgramEntries(soloAuthUser?.uid || "", soloCustomPrograms, { locked: builderLocked }),
+    [soloAuthUser?.uid, soloCustomPrograms, builderLocked]
+  );
+  const soloTrainingPrograms = useMemo(
+    () => [
+      ...trainingPrograms({ purchases: soloPurchases, enrolments: soloGatesLive ? soloEnrolments : [], allAccess: soloHasAllAccess }),
+      ...soloCustomEntries.trainingRows,
+    ],
+    [soloPurchases, soloEnrolments, soloGatesLive, soloHasAllAccess, soloCustomEntries]
+  );
+
   // One content listener per distinct owned programId — re-subscribes
   // only when the actual set of owned programs changes (not on every
   // soloPurchases field edit, e.g. a start-date change), via the joined-
   // ids dependency string below. A program this customer doesn't (or no
   // longer) own is dropped from state entirely rather than left stale.
-  const ownedProgramIdsKey = soloPurchases.map((p) => p.programId).sort().join(",");
+  // All Access programs being run count too (their content is readable
+  // while All Access is paid up — firestore.rules' hasAllAccess()); a
+  // customer's own built programs carry their content themselves.
+  const ownedProgramIdsKey = [
+    ...new Set([...soloPurchases.map((p) => p.programId), ...(soloHasAllAccess ? soloEnrolments.map((e) => e.programId) : [])]),
+  ]
+    .sort()
+    .join(",");
   useEffect(() => {
     const programIds = ownedProgramIdsKey ? ownedProgramIdsKey.split(",") : [];
     const unsubs = programIds.map((programId) =>
-      onSnapshot(doc(soloDb, "soloProgramContent", programId), (snap) => {
-        setSoloProgramContentByProgramId((prev) => ({ ...prev, [programId]: snap.exists() ? snap.data() : null }));
-      })
+      onSnapshot(
+        doc(soloDb, "soloProgramContent", programId),
+        (snap) => {
+          setSoloProgramContentByProgramId((prev) => ({ ...prev, [programId]: snap.exists() ? snap.data() : null }));
+        },
+        // Access ended (All Access lapsed): drop it rather than keep a stale copy.
+        () => setSoloProgramContentByProgramId((prev) => ({ ...prev, [programId]: null }))
+      )
     );
     setSoloProgramContentByProgramId((prev) => {
       const keep = new Set(programIds);
@@ -316,6 +396,17 @@ export function SoloAppProvider({ children }) {
       setSoloCustomSessions(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)));
     });
   }, [soloAuthUser]);
+
+  // Catalogue programs and the customer's own built programs in one lookup,
+  // for the calendar and My Training.
+  const soloProgramsById = useMemo(
+    () => ({ ...Object.fromEntries(soloPrograms.map((p) => [p.id, p])), ...soloCustomEntries.programsById }),
+    [soloPrograms, soloCustomEntries]
+  );
+  const soloContentById = useMemo(
+    () => ({ ...soloProgramContentByProgramId, ...soloCustomEntries.contentByProgramId }),
+    [soloProgramContentByProgramId, soloCustomEntries]
+  );
 
   const soloSessionLoading = soloAuthUser === undefined || (!!soloAuthUser && soloProfile === null && !soloProfileMissing);
 
@@ -462,6 +553,7 @@ export function SoloAppProvider({ children }) {
         // signed in (the rules only let the owner edit soloUsers/{uid}).
         const uid = soloAuth.currentUser?.uid;
         if (uid) await removeSoloPushToken(uid);
+        if (inAppPurchasesAvailable()) await forgetPurchaser().catch(() => {});
         await signOut(soloAuth);
       },
 
@@ -559,6 +651,57 @@ export function SoloAppProvider({ children }) {
         const createCheckout = httpsCallable(soloFunctions, "createSoloCheckoutSession");
         const result = await createCheckout({ programId, returnOrigin: window.location.origin });
         return result.data;
+      },
+
+      // Website subscription checkout (functions createSoloSubscriptionCheckout):
+      // { url } to send them to Stripe, or { changed | already | manageInApple }.
+      async startSoloSubscription(plan) {
+        const call = httpsCallable(soloFunctions, "createSoloSubscriptionCheckout");
+        const result = await call({ plan, returnOrigin: window.location.origin });
+        return result.data;
+      },
+      async openSoloBillingPortal() {
+        const call = httpsCallable(soloFunctions, "createSoloBillingPortal");
+        const result = await call({ returnOrigin: window.location.origin });
+        return result.data;
+      },
+      // Asks the server to re-read both stores now (after an in-app purchase,
+      // or Restore purchases).
+      async refreshSoloEntitlement() {
+        const result = await httpsCallable(soloFunctions, "syncSoloEntitlement")();
+        return result.data;
+      },
+
+      // Start (or resume) a program through All Access — src/solo/enrolments.js
+      // planStart decides what pauses and where it starts. One batch, so the
+      // old program never pauses without the new one starting.
+      async startAllAccessProgram({ uid, programId, startDate, enrolments, totalWeeksByProgramId }) {
+        const plan = planStart({ uid, programId, startDate, enrolments, totalWeeksByProgramId, todayKey: localDateKey() });
+        const batch = writeBatch(soloDb);
+        if (plan.pause) batch.update(doc(soloDb, "soloEnrolments", plan.pause.id), plan.pause.fields);
+        const existing = enrolments.some((e) => e.id === plan.start.id);
+        if (existing) batch.update(doc(soloDb, "soloEnrolments", plan.start.id), plan.start.fields);
+        else batch.set(doc(soloDb, "soloEnrolments", plan.start.id), plan.start.fields);
+        await batch.commit();
+        return plan;
+      },
+      async setEnrolmentStartDate(enrolmentId, startDateKey) {
+        await updateDoc(doc(soloDb, "soloEnrolments", enrolmentId), { startDate: startDateKey });
+      },
+      async pauseEnrolment(enrolmentId, pausedAtWeek) {
+        await updateDoc(doc(soloDb, "soloEnrolments", enrolmentId), { status: "paused", pausedAt: localDateKey(), pausedAtWeek: pausedAtWeek || 1 });
+      },
+
+      // A multi-week program the customer built (Plus — customPrograms.js).
+      async saveSoloCustomProgram(uid, program) {
+        const id = program.id || doc(collection(soloDb, "soloCustomPrograms")).id;
+        const now = Date.now();
+        const data = { ...program, id, soloUserId: uid, name: program.name.trim(), createdAt: program.createdAt || now, updatedAt: now };
+        await setDoc(doc(soloDb, "soloCustomPrograms", id), data);
+        return data;
+      },
+      async deleteSoloCustomProgram(id) {
+        await deleteDoc(doc(soloDb, "soloCustomPrograms", id));
       },
 
       // A customer picks or changes which calendar date Week 1, Day 1
@@ -678,6 +821,14 @@ export function SoloAppProvider({ children }) {
         } catch (err) {
           throw new Error(friendlySoloAuthError(err));
         }
+        // A website subscription is cancelled first, so a deleted account is
+        // never charged again (an Apple one is cancelled in iPhone Settings;
+        // Profile says so before this point).
+        try {
+          await httpsCallable(soloFunctions, "cancelSoloSubscriptionsForDeletion")();
+        } catch (err) {
+          throw new Error("Couldn't cancel your subscription — please try again. " + (err?.message || ""));
+        }
         try {
           // soloPurchases are NOT deleted: firestore.rules never lets a
           // customer delete one (`allow delete: if false` — they're the
@@ -685,15 +836,26 @@ export function SoloAppProvider({ children }) {
           // made this whole batch fail for every customer who'd bought a
           // program, so account deletion never worked for paying customers.
           // They hold no personal details beyond the (now deleted) uid.
-          const [logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap, waterSnap, customSessionsSnap] = await Promise.all([
+          const [logsSnap, weighInsSnap, photosSnap, bodyMetricsSnap, waterSnap, customSessionsSnap, enrolmentsSnap, customProgramsSnap] = await Promise.all([
             getDocs(query(collection(soloDb, "soloWorkoutLogs"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWeighIns"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloProgressPhotos"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloBodyMetrics"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloWaterLogs"), where("soloUserId", "==", user.uid))),
             getDocs(query(collection(soloDb, "soloCustomSessions"), where("soloUserId", "==", user.uid))),
+            getDocs(query(collection(soloDb, "soloEnrolments"), where("soloUserId", "==", user.uid))),
+            getDocs(query(collection(soloDb, "soloCustomPrograms"), where("soloUserId", "==", user.uid))),
           ]);
-          const refs = [...logsSnap.docs, ...weighInsSnap.docs, ...photosSnap.docs, ...bodyMetricsSnap.docs, ...waterSnap.docs, ...customSessionsSnap.docs].map((d) => d.ref);
+          const refs = [
+            ...logsSnap.docs,
+            ...weighInsSnap.docs,
+            ...photosSnap.docs,
+            ...bodyMetricsSnap.docs,
+            ...waterSnap.docs,
+            ...customSessionsSnap.docs,
+            ...enrolmentsSnap.docs,
+            ...customProgramsSnap.docs,
+          ].map((d) => d.ref);
           // Firestore caps a batch at 500 writes — a long-time customer's
           // history can exceed that, so delete in chunks. The profile doc
           // goes last, so a failure part-way leaves a still-usable account
@@ -740,6 +902,16 @@ export function SoloAppProvider({ children }) {
       soloWaterLogs,
       soloCustomSessions,
       soloProgramContentByProgramId,
+      soloEntitlement,
+      soloTier,
+      soloGatesLive,
+      soloHasAllAccess,
+      soloAccess: { tier: soloTier, live: soloGatesLive },
+      soloEnrolments,
+      soloCustomPrograms,
+      soloTrainingPrograms,
+      soloProgramsById,
+      soloContentById,
       ...actions,
     }),
     [
@@ -760,6 +932,15 @@ export function SoloAppProvider({ children }) {
       soloWaterLogs,
       soloCustomSessions,
       soloProgramContentByProgramId,
+      soloEntitlement,
+      soloTier,
+      soloGatesLive,
+      soloHasAllAccess,
+      soloEnrolments,
+      soloCustomPrograms,
+      soloTrainingPrograms,
+      soloProgramsById,
+      soloContentById,
       actions,
     ]
   );

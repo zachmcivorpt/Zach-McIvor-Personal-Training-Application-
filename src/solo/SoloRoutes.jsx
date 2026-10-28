@@ -14,6 +14,8 @@ import SoloOnboarding from "./onboarding/SoloOnboarding";
 import SoloConsultationScreen from "./SoloConsultationScreen";
 import SoloFinishSetupScreen from "./SoloFinishSetupScreen";
 import SoloSessionBuilderScreen from "./SoloSessionBuilderScreen";
+import SoloProgramBuilderScreen from "./SoloProgramBuilderScreen";
+import { SoloPaywallProvider } from "./SoloPaywall";
 
 function SoloSessionLoadingScreen() {
   return <div className="w-full h-screen flex items-center justify-center bg-[#0A0A0B]" />;
@@ -101,6 +103,7 @@ export default function SoloRoutes() {
   return (
     <SoloAppProvider>
       <SoloThemeProvider>
+        <SoloPaywallProvider>
         <Routes>
           <Route path="register" element={<SoloRegisterScreen />} />
           <Route path="login" element={<SoloLoginScreen />} />
@@ -163,6 +166,16 @@ export default function SoloRoutes() {
             }
           />
           <Route
+            path="program-builder"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloProgramBuilderScreen />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
             path="calendar"
             element={
               <RequireSoloAuth>
@@ -194,6 +207,7 @@ export default function SoloRoutes() {
           />
           <Route path="*" element={<Navigate to="register" replace />} />
         </Routes>
+        </SoloPaywallProvider>
       </SoloThemeProvider>
     </SoloAppProvider>
   );

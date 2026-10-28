@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity } from "lucide-react";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth } from "../lib/appleHealth";
 import { enableSoloPush, hasSoloPushToken } from "../lib/push";
+import { canUse, TIER_LABELS, activeStore } from "./soloAccess";
+import { useSoloPaywall } from "./SoloPaywall";
 import { inIosApp } from "./appShell";
 import SoloGlassBox from "./SoloGlassBox";
 import { useSoloApp } from "../lib/SoloAppContext";
@@ -24,7 +26,11 @@ import { DeleteAccountSheet } from "../components/ui";
 // Train Solo's one notification: a weekly push to log body stats and take
 // progress photos (soloWeeklyCheckInReminder in functions/index.js).
 export default function SoloProfileScreen() {
-  const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount, setSoloReminderPref } = useSoloApp();
+  const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount, setSoloReminderPref, soloAccess, soloTier, soloGatesLive, soloEntitlement } = useSoloApp();
+  const { openPaywall } = useSoloPaywall();
+  // Apple Health on Progress is a Plus feature once subscriptions launch.
+  const healthAllowed = canUse("appleHealthProgress", soloAccess);
+  const subscriptionStore = activeStore(soloEntitlement);
   const { dark, accent, toggleSoloTheme } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const flagged = isFlaggedForMedicalReview(soloCurrentUser?.onboarding?.answers || {});
@@ -54,6 +60,10 @@ export default function SoloProfileScreen() {
     if (healthOn) {
       disconnectAppleHealth("solo", uid);
       setHealthOn(false);
+      return;
+    }
+    if (!healthAllowed) {
+      openPaywall({ tier: "plus", reason: "Sync steps, sleep, resting heart rate and weight from Apple Health to Progress — part of Plus." });
       return;
     }
     setHealthBusy(true);
@@ -124,6 +134,23 @@ export default function SoloProfileScreen() {
             diagnosis or medical clearance — just a standard first-pass safety flag.
           </p>
         </div>
+      )}
+
+      {soloGatesLive && (
+        <>
+          <p className="text-[11px] font-bold tracking-wide uppercase mb-2.5" style={{ color: t.textFaint }}>
+            Subscription
+          </p>
+          <button type="button" onClick={() => openPaywall({})} className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-5 text-left" style={soloGlass(t)}>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold">Train Solo {TIER_LABELS[soloTier]}</span>
+              <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
+                {soloTier === "free" ? "See Plus and All Access" : subscriptionStore === "apple" ? "Through the App Store · manage" : iosApp ? "Your plan" : "Manage your subscription"}
+              </span>
+            </span>
+            <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+          </button>
+        </>
       )}
 
       <p className="text-[11px] font-bold tracking-wide uppercase mb-2.5" style={{ color: t.textFaint }}>
@@ -239,7 +266,12 @@ export default function SoloProfileScreen() {
         dark={dark}
         open={deleteOpen}
         onClose={() => setDeleteOpen(false)}
-        warning="This permanently deletes your Train Solo account, every program you own, and your workout history. This can't be undone."
+        warning={
+          subscriptionStore === "apple"
+            ? "This permanently deletes your Train Solo account, every program you own, and your workout history. This can't be undone. Your App Store subscription isn't cancelled by this — cancel it first in iPhone Settings → your name → Subscriptions."
+            : "This permanently deletes your Train Solo account, every program you own, and your workout history. This can't be undone." +
+              (subscriptionStore === "stripe" ? " Your subscription is cancelled straight away." : "")
+        }
         onConfirm={async (password) => {
           await deleteMySoloAccount(password);
           setDeleteOpen(false);

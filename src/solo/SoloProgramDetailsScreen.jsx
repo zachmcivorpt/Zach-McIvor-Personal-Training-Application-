@@ -10,6 +10,11 @@ import { visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, formatAudPrice
 import { GOAL_OPTIONS, ENVIRONMENT_OPTIONS } from "./programAttributes";
 import { BottomSheet, PrimaryButton } from "../components/ui";
 import { ClientThemeContext, ExerciseDetailSheet } from "../client/ClientApp";
+import { canUse } from "./soloAccess";
+import { activeEnrolment } from "./enrolments";
+import { useSoloPaywall } from "./SoloPaywall";
+import { localDateKey } from "../lib/dateKey";
+import { currentWeekNumber } from "./weekProgress";
 
 const GOAL_LABELS = Object.fromEntries(GOAL_OPTIONS.map((g) => [g.value, g.label]));
 const ENVIRONMENT_LABELS = Object.fromEntries(ENVIRONMENT_OPTIONS.map((e) => [e.value, e.label]));
@@ -24,7 +29,25 @@ function formatSetsReps(row) {
 export default function SoloProgramDetailsScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { soloPrograms, soloProgramCategories, soloExercises, soloCurrentUser, soloPurchases, startSoloCheckout, setRecoveryAddon } = useSoloApp();
+  const {
+    soloPrograms,
+    soloProgramCategories,
+    soloExercises,
+    soloCurrentUser,
+    soloPurchases,
+    startSoloCheckout,
+    setRecoveryAddon,
+    soloAccess,
+    soloGatesLive,
+    soloHasAllAccess,
+    soloEnrolments,
+    startAllAccessProgram,
+  } = useSoloApp();
+  const { openPaywall } = useSoloPaywall();
+  const [startOpen, setStartOpen] = useState(false);
+  const [startDate, setStartDate] = useState(() => localDateKey());
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState("");
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -56,7 +79,30 @@ export default function SoloProgramDetailsScreen() {
   // Inside the iOS app a paid program can't be bought (see appShell.js):
   // no price, no checkout — owned programs and free add-ons work as normal.
   const iosApp = inIosApp();
-  const purchasable = !isAddon && !owned && !iosApp;
+  // After launch single programs aren't sold any more: the catalogue is All
+  // Access (owner decision 2026-10-28). Programs already bought stay owned.
+  const purchasable = !isAddon && !owned && !iosApp && !soloGatesLive;
+  const viaAllAccess = soloGatesLive && !isAddon && !owned;
+  const enrolment = (soloEnrolments || []).find((e) => e.programId === id) || null;
+  const current = activeEnrolment(soloEnrolments || []);
+  const switchingFrom = current && current.programId !== id ? soloPrograms.find((p) => p.id === current.programId) : null;
+  const switchingWeek = switchingFrom ? currentWeekNumber(current.startDate, switchingFrom.weekOnePreview?.totalWeeks || 0) || 1 : null;
+  const addonLocked = isAddon && !canUse("recoveryAddons", soloAccess);
+
+  async function startViaAllAccess() {
+    setStarting(true);
+    setStartError("");
+    try {
+      const totalWeeksByProgramId = Object.fromEntries(soloPrograms.map((p) => [p.id, p.weekOnePreview?.totalWeeks || 0]));
+      const plan = await startAllAccessProgram({ uid: soloCurrentUser.id, programId: id, startDate, enrolments: soloEnrolments || [], totalWeeksByProgramId });
+      setStartOpen(false);
+      navigate("/solo/home", { state: { soloTab: "training", openPurchaseId: plan.start.id } });
+    } catch {
+      setStartError("Couldn't start this program — check your connection and try again.");
+    } finally {
+      setStarting(false);
+    }
+  }
 
   async function applyAddon(programId) {
     setAddonSaving(true);
@@ -160,7 +206,13 @@ export default function SoloProgramDetailsScreen() {
       <div className="relative -mt-10 px-3 pb-32 max-w-md mx-auto">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-[26px] font-extrabold leading-tight">{program.name}</h1>
-          {(isAddon || !iosApp) && <p className="text-lg font-extrabold whitespace-nowrap mt-1">{isAddon ? "Free" : formatAudPrice(program.priceCents)}</p>}
+          {isAddon && !soloGatesLive && <p className="text-lg font-extrabold whitespace-nowrap mt-1">Free</p>}
+          {!isAddon && !iosApp && !soloGatesLive && <p className="text-lg font-extrabold whitespace-nowrap mt-1">{formatAudPrice(program.priceCents)}</p>}
+          {!isAddon && viaAllAccess && (
+            <p className="text-[10px] font-bold tracking-wider uppercase mt-2.5 whitespace-nowrap" style={{ color: t.textMuted }}>
+              All Access
+            </p>
+          )}
         </div>
         <p className="text-sm mt-1.5" style={{ color: t.textMuted }}>
           {program.level} · {totalWeeks} week{totalWeeks === 1 ? "" : "s"}
@@ -270,11 +322,13 @@ export default function SoloProgramDetailsScreen() {
             </p>
           )}
 
-          {!owned && !isAddon && (
+          {!owned && !isAddon && !soloHasAllAccess && (
             <div className="mt-2.5 flex items-center gap-2.5 px-1">
               <Lock size={13} color={t.textFaint} className="shrink-0" />
               <p className="text-xs" style={{ color: t.textFaint }}>
-                {iosApp
+                {viaAllAccess
+                  ? `The rest of ${day1Label || "Week 1"}, and every other week, is included with All Access.`
+                  : iosApp
                   ? `The rest of ${day1Label || "Week 1"}, and every other week, is part of the full program.`
                   : `The rest of ${day1Label || "Week 1"}, and every other week, unlocks once you own this program.`}
               </p>
@@ -285,7 +339,45 @@ export default function SoloProgramDetailsScreen() {
 
       <div className="fixed bottom-0 left-0 right-0 px-3 pt-3" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom,0px))", background: `linear-gradient(to bottom, rgba(0,0,0,0), ${t.bg} 35%)` }}>
         <div className="max-w-md mx-auto">
-          {isAddon ? (
+          {isAddon && addonLocked && !addonActive ? (
+            <button
+              onClick={() => openPaywall({ tier: "plus", reason: "Recovery add-ons fill your rest days with mobility and recovery sessions — part of Plus." })}
+              className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full"
+              style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
+            >
+              <Lock size={16} /> Add with Plus
+            </button>
+          ) : viaAllAccess ? (
+            soloHasAllAccess ? (
+              enrolment?.status === "active" ? (
+                <button
+                  onClick={() => navigate("/solo/home", { state: { soloTab: "training", openPurchaseId: enrolment.id } })}
+                  className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full"
+                  style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
+                >
+                  <PlayCircle size={18} /> Go to My Training
+                </button>
+              ) : (
+                <button
+                  onClick={() => (enrolment?.status === "paused" && !switchingFrom ? startViaAllAccess() : setStartOpen(true))}
+                  disabled={starting}
+                  className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full disabled:opacity-50"
+                  style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
+                >
+                  <PlayCircle size={18} />
+                  {enrolment?.status === "paused" ? `Resume at Week ${enrolment.pausedAtWeek || 1}` : "Start program"}
+                </button>
+              )
+            ) : (
+              <button
+                onClick={() => openPaywall({ tier: "all_access", reason: `${program.name} is included with All Access — along with every other program in the catalogue.` })}
+                className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full"
+                style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
+              >
+                <Lock size={16} /> Unlock with All Access
+              </button>
+            )
+          ) : isAddon ? (
             addonActive ? (
               <button
                 onClick={() => applyAddon(null)}
@@ -341,6 +433,38 @@ export default function SoloProgramDetailsScreen() {
         {purchaseError && <p className="text-red-500 text-sm mb-4">{purchaseError}</p>}
         <PrimaryButton dark={dark} className="w-full" onClick={confirmPurchase} disabled={purchasing}>
           {purchasing ? "STARTING CHECKOUT…" : `PAY ${formatAudPrice(program.priceCents)}`}
+        </PrimaryButton>
+      </BottomSheet>
+
+      <BottomSheet open={startOpen} onClose={() => setStartOpen(false)} title={enrolment?.status === "paused" ? "Resume program" : "Start program"} dark={dark}>
+        {switchingFrom && (
+          <p className="text-sm mb-4 leading-relaxed" style={{ color: t.textMuted }}>
+            You're running "{switchingFrom.name}" (Week {switchingWeek}). Starting "{program.name}" pauses it at Week {switchingWeek} — everything you've
+            logged stays, and you can pick it back up from there any time from My Training.
+          </p>
+        )}
+        {enrolment?.status === "paused" ? (
+          <p className="text-sm mb-5 leading-relaxed" style={{ color: t.textMuted }}>
+            You'll pick up at Week {enrolment.pausedAtWeek || 1}, starting this week.
+          </p>
+        ) : (
+          <>
+            <p className="text-sm mb-3" style={{ color: t.textMuted }}>
+              Pick the date Week 1, Day 1 starts.
+            </p>
+            <input
+              type="date"
+              value={startDate}
+              min={localDateKey()}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4"
+              style={{ backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" }}
+            />
+          </>
+        )}
+        {startError && <p className="text-red-500 text-sm mb-4">{startError}</p>}
+        <PrimaryButton dark={dark} className="w-full" onClick={startViaAllAccess} disabled={starting || !startDate}>
+          {starting ? "STARTING…" : switchingFrom ? "SWITCH PROGRAM" : enrolment?.status === "paused" ? "RESUME" : "START"}
         </PrimaryButton>
       </BottomSheet>
 

@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { Trophy } from "lucide-react";
+import { Trophy, Lock } from "lucide-react";
+import { canUse } from "./soloAccess";
+import { useSoloPaywall } from "./SoloPaywall";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { Card } from "../components/ui";
@@ -93,7 +95,13 @@ export default function SoloProgressScreen() {
     deleteSoloProgressPhoto,
     logSoloBodyMetric,
     deleteSoloBodyMetric,
+    soloAccess,
   } = useSoloApp();
+  const { openPaywall } = useSoloPaywall();
+  // Strength PRs, volume and the performance timeline are Plus's "full
+  // stats" once subscriptions launch; weigh-ins, photos, body metrics,
+  // consistency and achievements stay free.
+  const fullStats = canUse("fullStats", soloAccess);
   const { dark } = useSoloTheme();
   const [openMetric, setOpenMetric] = useState(null);
   const [weightHistoryOpen, setWeightHistoryOpen] = useState(false);
@@ -177,9 +185,23 @@ export default function SoloProgressScreen() {
 
         {/* The shared timeline paints its own solid band; inside Train Solo it
             sits in a glass card instead (index.css clears the inner fill). */}
-        <div className="mx-3 rounded-2xl overflow-hidden solo-glass-inner" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>
-          <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
-        </div>
+        {fullStats ? (
+          <div className="mx-3 rounded-2xl overflow-hidden solo-glass-inner" style={soloGlass(SOLO_THEMES[dark ? "dark" : "light"])}>
+            <PerformanceTimelineCard timeline={timeline} monthlyVolume={monthlyVolume} prevMonthlyVolume={prevMonthlyVolume} />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => openPaywall({ tier: "plus", reason: "Plus shows your strength PRs, training volume and performance trends from everything you log." })}
+            className="mx-3 block text-left rounded-2xl px-4 py-4"
+            style={{ ...soloGlass(SOLO_THEMES[dark ? "dark" : "light"]), width: "calc(100% - 24px)" }}
+          >
+            <p className={dark ? "text-white font-semibold flex items-center gap-2" : "text-black font-semibold flex items-center gap-2"}>
+              <Lock size={14} /> Full stats with Plus
+            </p>
+            <p className={dark ? "text-white/50 text-xs mt-1" : "text-black/50 text-xs mt-1"}>Strength personal bests, weekly volume and your performance timeline.</p>
+          </button>
+        )}
 
         <div className="px-3 space-y-4 mt-4 max-w-md mx-auto">
           <div>
@@ -199,6 +221,7 @@ export default function SoloProgressScreen() {
             </div>
           </div>
 
+          {fullStats && (
           <Card dark={dark}>
             <p className={dark ? "text-white font-semibold mb-3" : "text-black font-semibold mb-3"}>Strength Personal Bests</p>
             <div className="space-y-2.5">
@@ -214,6 +237,7 @@ export default function SoloProgressScreen() {
               ))}
             </div>
           </Card>
+          )}
 
           <ConsistencyHeatmap logs={soloWorkoutLogs} scheduledWorkouts={[]} dark={dark} />
 
@@ -292,7 +316,7 @@ export default function SoloProgressScreen() {
             <BodyMetricCard dark={dark} key={cfg.key} config={cfg} entries={bodyMetricEntries[cfg.key]} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
           ))}
 
-          {weeklyVolume.length >= 2 ? (
+          {!fullStats ? null : weeklyVolume.length >= 2 ? (
             <ChartCard title="Weekly Training Volume" subtitle={`${weeklyVolume[weeklyVolume.length - 1].volume.toLocaleString()} kg this week`}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyVolume}>

@@ -5,6 +5,7 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { localDateKey } from "../lib/dateKey";
 import { buildSoloCalendar, rangeKeys, addDays, calendarItemTarget } from "./soloCalendar";
+import { canUse } from "./soloAccess";
 import { isRecoveryAddon } from "./recommendations";
 
 // Train Solo's calendar (Profile → My Calendar) — the same scrolling
@@ -14,7 +15,7 @@ import { isRecoveryAddon } from "./recommendations";
 // since a Solo program's days are laid out from its start date.
 export default function SoloCalendarScreen() {
   const navigate = useNavigate();
-  const { soloCurrentUser, soloPurchases, soloPrograms, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos } =
+  const { soloCurrentUser, soloTrainingPrograms, soloProgramsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, soloAccess } =
     useSoloApp();
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
@@ -26,16 +27,17 @@ export default function SoloCalendarScreen() {
   const prependAdjustRef = useRef(null);
   const todayKey = localDateKey();
 
-  const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
+  const programsById = soloProgramsById;
   const addonProgram = programsById[soloCurrentUser?.recoveryAddon?.programId];
-  const recoveryAddon = addonProgram && addonProgram.status === "published" && isRecoveryAddon(addonProgram) ? addonProgram : null;
+  // Recovery add-ons are a Plus feature once subscriptions launch.
+  const recoveryAddon = addonProgram && addonProgram.status === "published" && isRecoveryAddon(addonProgram) && canUse("recoveryAddons", soloAccess) ? addonProgram : null;
   const { fromKey, toKey } = rangeKeys(daysBack, daysForward, todayKey);
   const byDate = useMemo(
     () =>
       buildSoloCalendar({
-        purchases: soloPurchases,
+        purchases: soloTrainingPrograms,
         programsById,
-        contentByProgramId: soloProgramContentByProgramId,
+        contentByProgramId: soloContentById,
         workoutLogs: soloWorkoutLogs,
         weighIns: soloWeighIns,
         bodyMetrics: soloBodyMetrics,
@@ -46,7 +48,7 @@ export default function SoloCalendarScreen() {
         fromKey,
         toKey,
       }),
-    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, soloCurrentUser?.onboarding?.answers?.trainingDays, fromKey, toKey]
+    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, soloCurrentUser?.onboarding?.answers?.trainingDays, fromKey, toKey]
   );
 
   // Only days with something on them, plus today so the list always has
@@ -87,7 +89,7 @@ export default function SoloCalendarScreen() {
   }
 
   function actionFor(item) {
-    const target = calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser.id, contentByProgramId: soloProgramContentByProgramId });
+    const target = calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser.id, contentByProgramId: soloContentById });
     return target ? () => navigate(target.path, target.state ? { state: target.state } : undefined) : null;
   }
 

@@ -6,6 +6,8 @@ import { ExerciseThumb, PrimaryButton, SecondaryButton } from "../components/ui"
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { newSessionExercise, sessionProblem, customSessionState, REST_OPTIONS, MAX_SESSION_EXERCISES } from "./customSessions";
+import { canSaveNewSession, FREE_SAVED_SESSIONS } from "./soloAccess";
+import { useSoloPaywall } from "./SoloPaywall";
 
 // Free training: build a session from the exercise library — sets, reps and
 // rest for each exercise — save it to reuse, and start it any time
@@ -14,10 +16,15 @@ import { newSessionExercise, sessionProblem, customSessionState, REST_OPTIONS, M
 export default function SoloSessionBuilderScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { soloCurrentUser, soloExercises, soloCustomSessions, saveSoloCustomSession, deleteSoloCustomSession } = useSoloApp();
+  const { soloCurrentUser, soloExercises, soloCustomSessions, saveSoloCustomSession, deleteSoloCustomSession, soloAccess } = useSoloApp();
+  const { openPaywall } = useSoloPaywall();
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const existing = soloCustomSessions.find((s) => s.id === location.state?.sessionId) || null;
+  // Free keeps up to 3 saved sessions (soloAccess.js); editing one that's
+  // already saved is always fine, and a new one can still be done now
+  // without saving it.
+  const atLimit = !existing && !canSaveNewSession(soloCustomSessions.length, soloAccess);
 
   const [name, setName] = useState(existing?.name || "");
   const [exercises, setExercises] = useState(existing?.exercises || []);
@@ -45,6 +52,13 @@ export default function SoloSessionBuilderScreen() {
     const problem = sessionProblem(session);
     if (problem) return setError(problem);
     setError("");
+    if (atLimit) {
+      openPaywall({
+        tier: "plus",
+        reason: `Free keeps up to ${FREE_SAVED_SESSIONS} saved sessions. Plus saves as many as you like — or delete one of yours to make room, or start this one without saving.`,
+      });
+      return;
+    }
     setSaving(true);
     try {
       const saved = await saveSoloCustomSession(soloCurrentUser.id, session);
@@ -172,6 +186,16 @@ export default function SoloSessionBuilderScreen() {
             <SecondaryButton dark={dark} className="w-full" onClick={() => save(false)} disabled={saving}>
               Save for later
             </SecondaryButton>
+            {atLimit && (
+              <SecondaryButton
+                dark={dark}
+                className="w-full"
+                disabled={saving || !!sessionProblem({ name: name || "Session", exercises })}
+                onClick={() => navigate("/solo/workout", { state: customSessionState(soloCurrentUser.id, { name: name || "Session", exercises }), replace: true })}
+              >
+                Start without saving
+              </SecondaryButton>
+            )}
             {existing &&
               (confirmDelete ? (
                 <div className="flex gap-2.5">

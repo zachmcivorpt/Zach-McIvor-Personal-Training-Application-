@@ -7,8 +7,17 @@ import { visibleCategories, visiblePrograms, visibleRecoveryAddons, isRecoveryAd
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { SoloArtwork } from "./SoloArtwork";
 import { inIosApp, APP_STORE_URL } from "./appShell";
+import { useSoloPaywall } from "./SoloPaywall";
 
-function ProgramCard({ program, t, onClick }) {
+// After launch there are no single-program prices: programs are All Access
+// and recovery add-ons come with Plus (soloAccess.js).
+function priceLabel(program, live) {
+  if (isRecoveryAddon(program)) return live ? "Plus" : "Free";
+  if (live) return null;
+  return inIosApp() ? null : formatAudPrice(program.priceCents);
+}
+
+function ProgramCard({ program, t, onClick, live = false }) {
   return (
     <button
       onClick={onClick}
@@ -26,11 +35,7 @@ function ProgramCard({ program, t, onClick }) {
         <div className="flex items-start justify-between gap-2.5">
           <p className="text-[15px] font-bold leading-tight">{program.name}</p>
           {/* No price for paid programs inside the iOS app — see appShell.js. */}
-          {isRecoveryAddon(program) ? (
-            <p className="text-sm font-extrabold whitespace-nowrap">Free</p>
-          ) : (
-            !inIosApp() && <p className="text-sm font-extrabold whitespace-nowrap">{formatAudPrice(program.priceCents)}</p>
-          )}
+          {priceLabel(program, live) && <p className="text-sm font-extrabold whitespace-nowrap">{priceLabel(program, live)}</p>}
         </div>
         {program.description && (
           <p className="text-xs mt-1 line-clamp-2" style={{ color: t.textMuted }}>
@@ -49,7 +54,9 @@ function ProgramCard({ program, t, onClick }) {
 
 export default function SoloCatalogueScreen() {
   const navigate = useNavigate();
-  const { soloProgramCategories, soloPrograms, soloCurrentUser, soloPurchases } = useSoloApp();
+  const { soloProgramCategories, soloPrograms, soloCurrentUser, soloPurchases, soloGatesLive, soloHasAllAccess, soloEnrolments } = useSoloApp();
+  const { openPaywall } = useSoloPaywall();
+  const live = soloGatesLive;
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [activeCategoryId, setActiveCategoryId] = useState(null);
@@ -62,7 +69,11 @@ export default function SoloCatalogueScreen() {
   const answers = soloCurrentUser?.onboarding?.answers || {};
   // The two best fits for this customer's consultation answers, leaving
   // out anything they already own.
-  const ownedIds = useMemo(() => (soloPurchases || []).map((p) => p.programId), [soloPurchases]);
+  // (and the All Access program they're already running)
+  const ownedIds = useMemo(
+    () => [...(soloPurchases || []).map((p) => p.programId), ...(soloEnrolments || []).filter((e) => e.status === "active").map((e) => e.programId)],
+    [soloPurchases, soloEnrolments]
+  );
   const picks = useMemo(
     () => recommendForAnswers(soloPrograms, soloProgramCategories, answers, { limit: 2, excludeIds: ownedIds }),
     [soloPrograms, soloProgramCategories, answers, ownedIds]
@@ -99,9 +110,20 @@ export default function SoloCatalogueScreen() {
         {/* Website only: how buying works. The iOS app shows no prices and
             never points to the website (guideline 3.1.1), so this never
             renders there. */}
+        {live && !soloHasAllAccess && (
+          <button type="button" onClick={() => openPaywall({ tier: "all_access" })} className="w-full text-left rounded-2xl px-4 py-3 mb-4" style={soloGlass(t)}>
+            <p className="text-sm font-bold">Every program, one subscription</p>
+            <p className="text-xs leading-relaxed mt-0.5" style={{ color: t.textMuted }}>
+              All Access unlocks the whole catalogue and every new program as it's released.{" "}
+              <span className="font-semibold underline" style={{ color: t.text }}>
+                See plans
+              </span>
+            </p>
+          </button>
+        )}
         {!inIosApp() && (
           <div className="rounded-2xl px-4 py-3 mb-4" style={soloGlass(t)}>
-            <p className="text-sm font-bold">Buy your program here</p>
+            <p className="text-sm font-bold">{live ? "Subscribe here" : "Buy your program here"}</p>
             <p className="text-xs leading-relaxed mt-0.5" style={{ color: t.textMuted }}>
               It unlocks instantly in the APEX app — log in with this same account to train.{" "}
               <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline" style={{ color: t.text }}>
@@ -153,7 +175,7 @@ export default function SoloCatalogueScreen() {
                         {weeks > 0 ? ` · ${weeks} weeks` : ""}
                       </p>
                     </div>
-                    {!inIosApp() && <p className="text-sm font-bold whitespace-nowrap">{formatAudPrice(p.priceCents)}</p>}
+                    {priceLabel(p, live) && <p className="text-sm font-bold whitespace-nowrap">{priceLabel(p, live)}</p>}
                     <ChevronRight size={16} color={t.textFaint} className="shrink-0 -ml-1" />
                   </button>
                 );
@@ -209,7 +231,7 @@ export default function SoloCatalogueScreen() {
                 {g.category.name}
               </p>
               {g.programs.map((p) => (
-                <ProgramCard key={p.id} program={p} t={t} onClick={() => openProgram(p.id)} />
+                <ProgramCard key={p.id} program={p} t={t} live={live} onClick={() => openProgram(p.id)} />
               ))}
             </div>
           ))
@@ -221,12 +243,12 @@ export default function SoloCatalogueScreen() {
         {recoveryAddons.length > 0 && (
           <section className="mb-7">
             <p className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: accent }}>
-              Free · add one to your program
+              {live ? "With Plus · add one to your program" : "Free · add one to your program"}
             </p>
             <h2 className="text-lg font-bold mt-1 mb-3">Recovery add-ons</h2>
             {recoveryAddons.map((p) => (
               <div key={p.id} className="relative">
-                <ProgramCard program={p} t={t} onClick={() => openProgram(p.id)} />
+                <ProgramCard program={p} t={t} live={live} onClick={() => openProgram(p.id)} />
                 {activeAddonId === p.id && (
                   <span className="absolute top-3 right-3 text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: accent, color: "#fff" }}>
                     Active

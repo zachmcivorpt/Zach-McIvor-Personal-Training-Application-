@@ -15,6 +15,8 @@ import { CompletedSessionSheet, ProgramOverviewSheet } from "./SoloTrainingSheet
 import { APP_STORE_URL } from "./appShell";
 import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 import { customSessionState } from "./customSessions";
+import { canUse, savedSessionLimit } from "./soloAccess";
+import { useSoloPaywall } from "./SoloPaywall";
 
 // A purchased program's own overview — which week the customer is in, that
 // week's workouts, and a Start button for each that opens
@@ -28,7 +30,7 @@ import { customSessionState } from "./customSessions";
 // because this customer owns a purchase for it — see SoloAppContext.jsx's
 // soloProgramContentByProgramId and firestore.rules' soloProgramContent
 // block. `program` itself (the public catalogue doc) never has this data.
-function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay, onViewLog, trainingDays, dark, t }) {
+function ProgramProgressSheet({ open, onClose, program, content, purchase, onSetStartDate, soloWorkoutLogs, onStartDay, onViewLog, onEdit, trainingDays, dark, t }) {
   const rowStyle = { backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` };
   const inputStyle = { backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" };
   const [draftDate, setDraftDate] = useState("");
@@ -58,6 +60,11 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
   return (
     <BottomSheet open={open} onClose={onClose} title={program?.name} wide dark={dark}>
       <div style={{ color: t.text }}>
+      {onEdit && (
+        <button type="button" onClick={onEdit} className="flex items-center gap-1.5 text-xs font-bold mb-4" style={{ color: t.textMuted }}>
+          <Pencil size={13} /> Edit program
+        </button>
+      )}
       {!purchase?.startDate ? (
         <div>
           <p className="text-sm mb-4" style={{ color: t.textMuted }}>Pick the date Week 1, Day 1 starts — everything else is tracked from there.</p>
@@ -196,7 +203,6 @@ export default function SoloMyTrainingScreen() {
     soloPrograms,
     soloPurchases,
     soloWorkoutLogs,
-    soloProgramContentByProgramId,
     soloExercises,
     setPurchaseStartDate,
     soloCurrentUser,
@@ -207,8 +213,21 @@ export default function SoloMyTrainingScreen() {
     addSoloWater,
     setSoloWaterGoal,
     soloCustomSessions,
+    soloTrainingPrograms,
+    soloProgramsById,
+    soloContentById,
+    soloAccess,
+    soloEnrolments,
+    soloHasAllAccess,
+    startAllAccessProgram,
+    setEnrolmentStartDate,
+    saveSoloCustomProgram,
+    soloCustomPrograms,
   } = useSoloApp();
-  const activeAddon = soloPrograms.find((p) => p.id === soloCurrentUser?.recoveryAddon?.programId && p.status === "published" && isRecoveryAddon(p)) || null;
+  const { openPaywall } = useSoloPaywall();
+  // Recovery add-ons are a Plus feature once subscriptions launch.
+  const addonsAllowed = canUse("recoveryAddons", soloAccess);
+  const activeAddon = (addonsAllowed && soloPrograms.find((p) => p.id === soloCurrentUser?.recoveryAddon?.programId && p.status === "published" && isRecoveryAddon(p))) || null;
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [openPurchaseId, setOpenPurchaseId] = useState(null);
@@ -227,13 +246,14 @@ export default function SoloMyTrainingScreen() {
   // instead of just the tab with nothing else happening.
   useEffect(() => {
     const requestedId = location.state?.openPurchaseId;
-    if (requestedId && soloPurchases.some((p) => p.id === requestedId)) {
+    if (requestedId && soloTrainingPrograms.some((p) => p.id === requestedId)) {
       setOpenPurchaseId(requestedId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state, soloPurchases]);
+  }, [location.state, soloTrainingPrograms]);
 
-  const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
+  // Catalogue programs and the customer's own built ones (SoloAppContext).
+  const programsById = soloProgramsById;
 
   // Back from a website Stripe checkout (success_url in functions/index.js:
   // /solo/home?checkout=success&programId=…). Only the website ever gets
@@ -254,10 +274,10 @@ export default function SoloMyTrainingScreen() {
   }, [boughtPurchase, checkoutSheetOpened]);
   // The weekdays chosen in the consultation — sessions are scheduled on them.
   const trainingDays = soloCurrentUser?.onboarding?.answers?.trainingDays;
-  const openPurchase = soloPurchases.find((p) => p.id === openPurchaseId) || null;
+  const openPurchase = soloTrainingPrograms.find((p) => p.id === openPurchaseId && !p.locked) || null;
   const openProgram = openPurchase ? programsById[openPurchase.programId] : null;
-  const openContent = openPurchase ? soloProgramContentByProgramId[openPurchase.programId] : null;
-  const overviewPurchase = soloPurchases.find((p) => p.id === overviewPurchaseId) || null;
+  const openContent = openPurchase ? soloContentById[openPurchase.programId] : null;
+  const overviewPurchase = soloTrainingPrograms.find((p) => p.id === overviewPurchaseId && !p.locked) || null;
 
   function startDay(purchase, program, day, weekNumber) {
     navigate("/solo/workout", {
@@ -266,19 +286,40 @@ export default function SoloMyTrainingScreen() {
   }
 
   // Everything shown per program is derived from real data: the purchase's
-  // start date, the owned soloProgramContent (sessions per week, total
-  // sessions, next day), and this customer's own soloWorkoutLogs.
-  const ownedRows = useMemo(
-    () =>
-      soloPurchases
-        .map((purchase) => {
-          const program = programsById[purchase.programId];
-          if (!program) return null;
-          return { purchase, program, ...summarizeProgress(purchase, program, soloProgramContentByProgramId[purchase.programId], soloWorkoutLogs, trainingDays) };
-        })
-        .filter(Boolean),
-    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, trainingDays]
-  );
+  // (or All Access enrolment's, or own program's) start date, its content
+  // (sessions per week, total sessions, next day), and this customer's own
+  // soloWorkoutLogs. Bought programs first, then the active All Access one,
+  // the customer's own, then paused and locked ones.
+  const ownedRows = useMemo(() => {
+    const order = (p) => (p.locked ? 4 : p.status === "paused" ? 3 : p.source === "custom" ? 2 : p.source === "all_access" ? 1 : 0);
+    return [...soloTrainingPrograms]
+      .sort((a, b) => order(a) - order(b))
+      .map((purchase) => {
+        const program = programsById[purchase.programId];
+        if (!program) return null;
+        return { purchase, program, ...summarizeProgress(purchase, program, soloContentById[purchase.programId], soloWorkoutLogs, trainingDays) };
+      })
+      .filter(Boolean);
+  }, [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, trainingDays]);
+
+  // Resuming a paused All Access program (it becomes the active one; the
+  // current one pauses — enrolments.js).
+  const [resuming, setResuming] = useState(null);
+  async function resumeProgram(row) {
+    if (!soloHasAllAccess) {
+      openPaywall({ tier: "all_access", reason: `${row.program.name} is included with All Access.` });
+      return;
+    }
+    setResuming(row.purchase.id);
+    try {
+      const totalWeeksByProgramId = Object.fromEntries(
+        soloEnrolments.map((e) => [e.programId, programsById[e.programId]?.weekOnePreview?.totalWeeks || totalWeeksForProgram(programPhases(soloContentById[e.programId]))])
+      );
+      await startAllAccessProgram({ uid: soloCurrentUser.id, programId: row.purchase.programId, startDate: todayKey, enrolments: soloEnrolments, totalWeeksByProgramId });
+    } finally {
+      setResuming(null);
+    }
+  }
   const glass = soloGlass(t);
   const todayKey = localDateKey();
 
@@ -289,13 +330,13 @@ export default function SoloMyTrainingScreen() {
   const weekStart = mondayOf(selectedKey);
   const weekKeys = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
   const addonProgram = programsById[soloCurrentUser?.recoveryAddon?.programId];
-  const recoveryAddon = addonProgram && addonProgram.status === "published" && isRecoveryAddon(addonProgram) ? addonProgram : null;
+  const recoveryAddon = addonsAllowed && addonProgram && addonProgram.status === "published" && isRecoveryAddon(addonProgram) ? addonProgram : null;
   const byDate = useMemo(
     () =>
       buildSoloCalendar({
-        purchases: soloPurchases,
+        purchases: soloTrainingPrograms,
         programsById,
-        contentByProgramId: soloProgramContentByProgramId,
+        contentByProgramId: soloContentById,
         workoutLogs: soloWorkoutLogs,
         weighIns: soloWeighIns,
         bodyMetrics: soloBodyMetrics,
@@ -306,7 +347,7 @@ export default function SoloMyTrainingScreen() {
         fromKey: weekStart,
         toKey: addDays(weekStart, 6),
       }),
-    [soloPurchases, programsById, soloProgramContentByProgramId, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, trainingDays, weekStart]
+    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, trainingDays, weekStart]
   );
   const dayItems = [...(byDate[selectedKey] || [])].sort((a, b) => ITEM_ORDER[a.type] - ITEM_ORDER[b.type]);
 
@@ -329,14 +370,14 @@ export default function SoloMyTrainingScreen() {
   }
 
   function logProgramName(log) {
-    const purchase = soloPurchases.find((p) => p.id === log?.purchaseId);
+    const purchase = soloTrainingPrograms.find((p) => p.id === log?.purchaseId);
     return (purchase && programsById[purchase.programId]?.name) || null;
   }
 
   function openItem(item) {
     const log = logForItem(item);
     if (log) return setViewLog(log);
-    const target = calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloProgramContentByProgramId });
+    const target = calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloContentById });
     if (target) navigate(target.path, target.state ? { state: target.state } : undefined);
   }
 
@@ -387,9 +428,9 @@ export default function SoloMyTrainingScreen() {
           dateKey={selectedKey}
           todayKey={todayKey}
           items={dayItems}
-          ownsPrograms={ownedRows.length > 0}
+          ownsPrograms={ownedRows.some((r) => !r.purchase.locked && r.purchase.status !== "paused")}
           onOpen={openItem}
-          target={(item) => !!logForItem(item) || calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloProgramContentByProgramId })}
+          target={(item) => !!logForItem(item) || calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloContentById })}
           onBrowse={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })}
           t={t}
         />
@@ -407,8 +448,14 @@ export default function SoloMyTrainingScreen() {
 
         <YourSessions
           sessions={soloCustomSessions}
+          limit={savedSessionLimit(soloAccess)}
           onQuickStart={() => startCustomSession(null)}
           onBuild={() => navigate("/solo/session-builder")}
+          onBuildProgram={() =>
+            canUse("programBuilder", soloAccess)
+              ? navigate("/solo/program-builder")
+              : openPaywall({ tier: "plus", reason: "Turn your sessions into a multi-week program on your calendar, with suggested weights every week — part of Plus." })
+          }
           onStart={startCustomSession}
           onEdit={(session) => navigate("/solo/session-builder", { state: { sessionId: session.id } })}
           t={t}
@@ -418,24 +465,44 @@ export default function SoloMyTrainingScreen() {
           <>
             <h2 className="text-lg font-bold mt-8 mb-3">Your Programs</h2>
             <div className="space-y-2.5">
-              {ownedRows.map((row) => (
-                <button
-                  key={row.purchase.id}
-                  onClick={() => setOverviewPurchaseId(row.purchase.id)}
-                  className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
-                  style={glass}
-                >
-                  <SoloArtwork program={row.program} t={t} className="w-14 h-14 rounded-xl shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold leading-snug">{row.program.name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
-                      {weekLine(row)}
-                    </p>
-                    {row.purchase.startDate && row.pct > 0 && <ProgressBar pct={row.pct} t={t} className="mt-2" />}
-                  </div>
-                  <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
-                </button>
-              ))}
+              {ownedRows.map((row) => {
+                const { locked, status, source } = row.purchase;
+                const onTap = locked
+                  ? () => openPaywall({ tier: source === "custom" ? "plus" : "all_access", reason: source === "custom" ? "Your own programs run with Plus. Everything you've logged is kept." : `${row.program.name} is included with All Access. Your progress is kept — pick up where you left off.` })
+                  : status === "paused"
+                    ? () => resumeProgram(row)
+                    : () => (source === "custom" ? setOpenPurchaseId(row.purchase.id) : setOverviewPurchaseId(row.purchase.id));
+                return (
+                  <button
+                    key={row.purchase.id}
+                    onClick={onTap}
+                    disabled={resuming === row.purchase.id}
+                    className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
+                    style={{ ...glass, opacity: locked || status === "paused" ? 0.75 : 1 }}
+                  >
+                    <SoloArtwork program={row.program} t={t} className="w-14 h-14 rounded-xl shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold leading-snug truncate">{row.program.name}</p>
+                        <SourceTag source={source} t={t} />
+                      </div>
+                      <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                        {locked
+                          ? source === "custom"
+                            ? "Runs with Plus"
+                            : "Included with All Access"
+                          : status === "paused"
+                            ? resuming === row.purchase.id
+                              ? "Resuming…"
+                              : `Paused at Week ${row.purchase.pausedAtWeek || 1} · tap to resume`
+                            : weekLine(row)}
+                      </p>
+                      {!locked && status !== "paused" && row.purchase.startDate && row.pct > 0 && <ProgressBar pct={row.pct} t={t} className="mt-2" />}
+                    </div>
+                    {locked ? <Lock size={14} color={t.textFaint} className="shrink-0" /> : <ChevronRight size={16} color={t.textFaint} className="shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
@@ -452,7 +519,7 @@ export default function SoloMyTrainingScreen() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold leading-snug">{activeAddon.name}</p>
                 <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
-                  Free · on your rest days — see your calendar
+                  On your rest days — see your calendar
                 </p>
               </div>
               <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
@@ -494,12 +561,17 @@ export default function SoloMyTrainingScreen() {
         dark={dark}
         t={t}
         onStartDay={(day, weekNumber) => startDay(openPurchase, openProgram, day, weekNumber)}
+        onEdit={openPurchase?.source === "custom" ? () => navigate("/solo/program-builder", { state: { programId: openPurchase.customProgramId } }) : null}
         onViewLog={(log) => {
           setOpenPurchaseId(null);
           setViewLog(log);
         }}
         onSetStartDate={async (date) => {
-          await setPurchaseStartDate(openPurchase.id, date);
+          if (openPurchase.source === "all_access") await setEnrolmentStartDate(openPurchase.id, date);
+          else if (openPurchase.source === "custom") {
+            const cp = soloCustomPrograms.find((c) => c.id === openPurchase.customProgramId);
+            if (cp) await saveSoloCustomProgram(soloCurrentUser.id, { ...cp, startDate: date });
+          } else await setPurchaseStartDate(openPurchase.id, date);
         }}
       />
 
@@ -507,7 +579,7 @@ export default function SoloMyTrainingScreen() {
         open={!!overviewPurchase}
         onClose={() => setOverviewPurchaseId(null)}
         program={overviewPurchase ? programsById[overviewPurchase.programId] : null}
-        content={overviewPurchase ? soloProgramContentByProgramId[overviewPurchase.programId] : null}
+        content={overviewPurchase ? soloContentById[overviewPurchase.programId] : null}
         purchase={overviewPurchase}
         exercisesById={exercisesById}
         onOpenSchedule={() => {
@@ -530,14 +602,16 @@ const ITEM_ICON = { workout: Dumbbell, custom: Dumbbell, addon: HeartPulse, reco
 const isSessionItem = (i) => i.type === "workout" || i.type === "addon" || i.type === "custom";
 
 // Free training: start an empty session, build one, or run a saved one.
-function YourSessions({ sessions, onQuickStart, onBuild, onStart, onEdit, t }) {
+function YourSessions({ sessions, limit = Infinity, onQuickStart, onBuild, onBuildProgram, onStart, onEdit, t }) {
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between gap-3 mb-3">
         <h2 className="text-lg font-bold">Your Sessions</h2>
-        <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: t.textFaint }}>
-          Free
-        </span>
+        {Number.isFinite(limit) && (
+          <span className="text-[11px] font-bold tracking-wide uppercase" style={{ color: t.textFaint }}>
+            {Math.min(sessions.length, limit)} of {limit} saved
+          </span>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2.5">
         <button type="button" onClick={onQuickStart} className="flex items-center gap-2.5 rounded-2xl px-3.5 py-3.5 text-left" style={soloGlass(t)}>
@@ -559,6 +633,18 @@ function YourSessions({ sessions, onQuickStart, onBuild, onStart, onEdit, t }) {
           </span>
         </button>
       </div>
+      {onBuildProgram && sessions.length > 0 && (
+        <button type="button" onClick={onBuildProgram} className="w-full flex items-center gap-2.5 rounded-2xl px-3.5 py-3.5 text-left mt-2.5" style={soloGlass(t)}>
+          <CalendarDays size={17} color={MEASURE_BLUE} className="shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold">Build a program</span>
+            <span className="block text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+              Your sessions, every week, on your calendar
+            </span>
+          </span>
+          <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+        </button>
+      )}
       {sessions.length > 0 && (
         <SoloGlassBox t={t} className="rounded-2xl mt-2.5">
           {sessions.map((session, i) => (
@@ -588,6 +674,17 @@ function YourSessions({ sessions, onQuickStart, onBuild, onStart, onEdit, t }) {
     </div>
   );
 }
+// Where a program on "Your Programs" comes from: bought on its own (no
+// tag — it's simply theirs), All Access, or built by the customer.
+function SourceTag({ source, t }) {
+  if (source !== "all_access" && source !== "custom") return null;
+  return (
+    <span className="text-[9px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded shrink-0" style={{ color: source === "all_access" ? MEASURE_BLUE : t.textMuted, border: `1px solid ${source === "all_access" ? MEASURE_BLUE : t.panelBorder}` }}>
+      {source === "all_access" ? "All Access" : "Yours"}
+    </span>
+  );
+}
+
 const DEFAULT_WATER_GOAL_ML = 2500;
 const WATER_GOALS_ML = [2000, 2500, 3000, 3500, 4000];
 

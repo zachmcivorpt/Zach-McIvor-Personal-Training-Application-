@@ -27,6 +27,8 @@ import { MEASURE_BLUE, CLIENT_DARK_SURFACE, CLIENT_DARK_SURFACE_2, CLIENT_DARK_B
 import { GOAL_OPTIONS, STYLE_OPTIONS, ENVIRONMENT_OPTIONS, LEVEL_OPTIONS, AUDIENCE_OPTIONS } from "../solo/programAttributes";
 import { formatAudPrice } from "../solo/recommendations";
 import { SOLO_ACCENT_PALETTE } from "../solo/SoloThemeContext";
+import { PLANS, TIER_LABELS, formatPlanPrice } from "../solo/soloAccess";
+import { visiblePrograms } from "../solo/recommendations";
 
 // Same "⋯" overflow pattern as CoachPrograms.jsx — kept local rather than
 // shared since the two files' action sets differ and it's a small component.
@@ -1180,6 +1182,132 @@ function CoachSoloBranding({ showToast }) {
   );
 }
 
+// Subscriptions (ROADMAP.txt step 2): the launch switch and test accounts.
+// Until it's on, Train Solo works exactly as before (programs bought one at
+// a time, everything else free). Test accounts see the tiers early — for
+// trying it on TestFlight with sandbox purchases.
+const LAUNCH_TARGET_PROGRAMS = 5;
+function CoachSoloSubscriptions({ showToast }) {
+  const { db, setSoloMonetisationLive, setSoloTestAccount } = useApp();
+  const settings = db.soloMonetisation || {};
+  const live = settings.live === true;
+  const published = visiblePrograms(db.soloPrograms || [], db.soloProgramCategories || []).length;
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function changeTester(addr, add) {
+    setBusy(true);
+    setError("");
+    try {
+      await setSoloTestAccount(addr, add);
+      if (add) setEmail("");
+      showToast(add ? "Test account added" : "Test account removed");
+    } catch (err) {
+      setError(err?.message || "Couldn't update test accounts.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setLive(next) {
+    setBusy(true);
+    try {
+      await setSoloMonetisationLive(next);
+      setConfirmOpen(false);
+      showToast(next ? "Subscriptions are live" : "Subscriptions turned off");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const row = "flex items-center justify-between gap-3 py-3 border-t";
+  return (
+    <div className="max-w-xl">
+      <p className="text-white text-[11px] font-bold tracking-wide uppercase mb-1">Status</p>
+      <div className="flex items-center justify-between gap-4 mb-1">
+        <p className="text-white text-2xl font-bold">{live ? "Live" : "Not live"}</p>
+        <button
+          type="button"
+          onClick={() => (live ? setLive(false) : setConfirmOpen(true))}
+          disabled={busy}
+          className="text-sm font-semibold px-4 py-2 rounded-full disabled:opacity-50"
+          style={live ? { border: `1px solid ${CLIENT_DARK_BORDER}`, color: "#fff" } : { backgroundColor: MEASURE_BLUE, color: "#fff" }}
+        >
+          {live ? "Turn off" : "Go live"}
+        </button>
+      </div>
+      <p className="text-white/60 text-xs leading-relaxed mb-6">
+        {live
+          ? "Free / Plus / All Access apply to every Train Solo customer. Single programs are no longer sold; programs customers already bought stay theirs."
+          : "Train Solo works as before: programs are bought one at a time and everything else is free. Test accounts below already see the tiers."}
+      </p>
+
+      <p className="text-white text-[11px] font-bold tracking-wide uppercase mb-1">Catalogue</p>
+      <p className="text-white text-2xl font-bold">
+        {published} <span className="text-sm font-semibold text-white/55">of {LAUNCH_TARGET_PROGRAMS} programs for launch</span>
+      </p>
+      <p className="text-white/60 text-xs mb-6">Published programs in a visible category. Goal after launch: 10.</p>
+
+      <p className="text-white text-[11px] font-bold tracking-wide uppercase mb-2">Prices</p>
+      <div className="mb-6">
+        {Object.entries(PLANS).map(([key, plan]) => (
+          <div key={key} className={row} style={{ borderColor: CLIENT_DARK_BORDER }}>
+            <span className="text-white text-sm">
+              {TIER_LABELS[plan.tier]} · {plan.interval === "year" ? "yearly" : "monthly"}
+            </span>
+            <span className="text-white text-sm font-semibold tabular-nums">
+              {formatPlanPrice(plan)}
+              {plan.trialDays ? <span className="text-white/55 font-normal"> · {plan.trialDays}-day trial</span> : null}
+            </span>
+          </div>
+        ))}
+        <p className="text-white/50 text-[11px] mt-2">Website prices. In the iPhone app Apple charges the matching App Store prices set in App Store Connect.</p>
+      </div>
+
+      <p className="text-white text-[11px] font-bold tracking-wide uppercase mb-1">Test accounts</p>
+      <p className="text-white/60 text-xs mb-3">Train Solo accounts that see the tiers before launch. Use them with TestFlight (sandbox purchases are free).</p>
+      <div className="flex gap-2 mb-2">
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="customer@example.com"
+          className="flex-1 min-w-0 rounded-lg px-3 py-2 text-sm text-white bg-transparent outline-none"
+          style={{ border: `1px solid ${CLIENT_DARK_BORDER}` }}
+        />
+        <button type="button" disabled={busy || !email.trim()} onClick={() => changeTester(email, true)} className="text-sm font-semibold px-4 rounded-lg text-white disabled:opacity-40" style={{ backgroundColor: MEASURE_BLUE }}>
+          Add
+        </button>
+      </div>
+      {error && <p className="text-xs mb-2" style={{ color: OVER_RED }}>{error}</p>}
+      {(settings.testEmails || []).map((addr) => (
+        <div key={addr} className={row} style={{ borderColor: CLIENT_DARK_BORDER }}>
+          <span className="text-white text-sm truncate">{addr}</span>
+          <button type="button" disabled={busy} onClick={() => changeTester(addr, false)} className="text-xs font-semibold text-white/60">
+            Remove
+          </button>
+        </div>
+      ))}
+
+      <BottomSheet open={confirmOpen} onClose={() => setConfirmOpen(false)} title="Go live with subscriptions?" dark>
+        <div className="text-white text-sm space-y-2 mb-5">
+          <p>Every Train Solo customer moves to Free / Plus / All Access, and single programs stop being sold. Before you do this:</p>
+          <ul className="list-disc pl-5 space-y-1 text-white/70">
+            <li>APEX 1.0.4 (in-app purchases) is approved and out on the App Store.</li>
+            <li>Plus and All Access buy, renew and cancel correctly on a test account (TestFlight and the website).</li>
+            <li>At least {LAUNCH_TARGET_PROGRAMS} programs are published ({published} now).</li>
+          </ul>
+        </div>
+        <PrimaryButton dark className="w-full" onClick={() => setLive(true)} disabled={busy}>
+          {busy ? "TURNING ON…" : "GO LIVE"}
+        </PrimaryButton>
+      </BottomSheet>
+    </div>
+  );
+}
+
 export default function CoachTrainSolo({ showToast }) {
   const [tab, setTab] = useState("programs");
 
@@ -1196,6 +1324,7 @@ export default function CoachTrainSolo({ showToast }) {
           { id: "programs", label: "Programs" },
           { id: "categories", label: "Categories" },
           { id: "branding", label: "Branding" },
+          { id: "subscriptions", label: "Subscriptions" },
         ].map((t) => (
           <button
             key={t.id}
@@ -1214,6 +1343,7 @@ export default function CoachTrainSolo({ showToast }) {
       {tab === "programs" && <CoachSoloPrograms showToast={showToast} />}
       {tab === "categories" && <CoachSoloCategories showToast={showToast} />}
       {tab === "branding" && <CoachSoloBranding showToast={showToast} />}
+      {tab === "subscriptions" && <CoachSoloSubscriptions showToast={showToast} />}
     </div>
   );
 }
