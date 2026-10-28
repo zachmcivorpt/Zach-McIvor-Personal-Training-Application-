@@ -40,27 +40,44 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
   const timerTickRef = useRef(null);
   const targetSeconds = Number(exMeta.targetReps) || 30;
 
+  // Remaining time is read from the phone's own clock (when the set ends),
+  // not counted one tick at a time: ticks get delayed or dropped whenever
+  // the phone is busy (a dropping/reconnecting connection, the app being
+  // backgrounded), which made the countdown stall and lose seconds. Same
+  // approach as the rest timer (restEndAtRef in WorkoutSession).
+  const timerEndAtRef = useRef(0);
   useEffect(() => {
     if (timerRowIndex === null) return;
-    if (timerRemaining <= 0) {
-      playTimerDing();
-      onChangeField(timerRowIndex, "reps", String(targetSeconds));
-      setTimeout(() => onBlurKg(timerRowIndex), 0);
-      setTimerRowIndex(null);
-      return;
-    }
-    timerTickRef.current = setTimeout(() => setTimerRemaining((t) => t - 1), 1000);
-    return () => clearTimeout(timerTickRef.current);
+    const tick = () => setTimerRemaining(Math.max(0, Math.ceil((timerEndAtRef.current - performance.now()) / 1000)));
+    const onVisible = () => document.visibilityState === "visible" && tick();
+    timerTickRef.current = setInterval(tick, 250);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", tick);
+    return () => {
+      clearInterval(timerTickRef.current);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", tick);
+    };
+  }, [timerRowIndex]);
+
+  useEffect(() => {
+    if (timerRowIndex === null || timerRemaining > 0) return;
+    playTimerDing();
+    onChangeField(timerRowIndex, "reps", String(targetSeconds));
+    setTimeout(() => onBlurKg(timerRowIndex), 0);
+    setTimerRowIndex(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timerRowIndex, timerRemaining]);
 
   function startRowTimer(i) {
     unlockTimerAudio();
+    timerEndAtRef.current = performance.now() + targetSeconds * 1000;
     setTimerRowIndex(i);
     setTimerRemaining(targetSeconds);
   }
   function stopRowTimer(i) {
-    const elapsed = targetSeconds - timerRemaining;
+    const left = Math.max(0, (timerEndAtRef.current - performance.now()) / 1000);
+    const elapsed = Math.min(targetSeconds, Math.round(targetSeconds - left));
     setTimerRowIndex(null);
     onChangeField(i, "reps", String(Math.max(elapsed, 0)));
     setTimeout(() => onBlurKg(i), 0);

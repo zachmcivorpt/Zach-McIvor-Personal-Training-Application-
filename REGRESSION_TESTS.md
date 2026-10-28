@@ -2209,6 +2209,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/client/coachedFormCheckAndRest.test.jsx` ("shows only the timer on a timed exercise, and Kg on a reps exercise"), which fails without the change. Screenshotted at 390px in light and dark with a timed and a reps exercise.
 - **Date added**: 2026-10-28
 
+### 101. Set timer on timed exercises lost time when the connection dropped in and out
+- **Problem**: the countdown on timed sets (coached `ExerciseBlock` in `src/client/ClientApp.jsx`, and Train Solo's `src/solo/SoloExerciseBlock.jsx`) subtracted one second per timer tick. Ticks get delayed or dropped whenever the phone is busy or the app is briefly backgrounded (a flaky connection reconnecting, a notification), so the countdown stalled, jumped and ran long.
+- **Fix**: the timer stores when the set ends (`timerEndAtRef`, from `performance.now()`) and every tick, and every return to the app, reads the time left from the clock, the same way the rest timer already did (`restEndAtRef`). Stopping early logs the real elapsed seconds; finishing logs the programmed time. Fully local: nothing about the timer touches the network.
+- **Regression tests**: `src/solo/setTimerClock.test.jsx`: 20 seconds pass while only one tick gets through; both apps must show 10s left, and Train Solo then finishes and logs 30s. Fails on both without the fix.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing
