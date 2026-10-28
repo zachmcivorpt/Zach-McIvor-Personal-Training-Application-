@@ -17,6 +17,7 @@ import {
   deleteDoc,
   getDoc,
   getDocs,
+  getDocsFromCache,
   query,
   where,
   documentId,
@@ -41,7 +42,7 @@ import { pickBestFoodForBarcode } from "./barcodeLookup";
 // this file (see importBuiltInFoods) to keep it out of the main bundle; a
 // static import from foodDatabase.js itself would defeat that.
 import { sanitizeFoodUnits } from "./foodUnits";
-import { savedOrQueued } from "./offlineWrite";
+import { savedOrQueued, SAVED } from "./offlineWrite";
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -1652,16 +1653,44 @@ export function AppProvider({ children }) {
       // values instead of accumulating them. Passing the full saved
       // document through (minus its own id/clientId/date, which get
       // re-set below) fixes that for every field, not just macros.
+      //
+      // No signal: a transaction can't run at all offline (it has to read
+      // the server's copy first), so every food/water log in a gym with no
+      // reception used to fail with "Couldn't save". Offline (or when the
+      // transaction itself reports the server unreachable) this instead
+      // applies the same updater to the phone's own copy of the day — the
+      // cache already holds every one of this client's days via the
+      // nutritionLogs listener, pending local writes included, so several
+      // offline logs in a row still build on each other — and writes it
+      // with a plain setDoc, which the cache keeps and sends once there's a
+      // connection again (offlineWrite.js, same as finishing a workout
+      // offline). Resolves "saved" or "queued".
       async setNutritionForDate(clientId, date, updater) {
         const id = `${clientId}__${date}`;
         const ref = doc(firestore, "nutritionLogs", id);
-        try {
-          await runTransaction(firestore, async (tx) => {
-            const snap = await tx.get(ref);
-            const base = snap.exists() ? (({ id: _id, clientId: _cid, date: _d, ...rest }) => rest)(snap.data()) : null;
-            const next = updater(base);
-            tx.set(ref, { id, clientId, date, ...next });
+        const strip = (data) => (({ id: _id, clientId: _cid, date: _d, ...rest }) => rest)(data);
+        async function writeFromPhoneCopy() {
+          const cached = await getDocsFromCache(query(collection(firestore, "nutritionLogs"), where("clientId", "==", clientId)));
+          const hit = cached.docs.find((d) => d.id === id);
+          const next = updater(hit ? strip(hit.data()) : null);
+          return savedOrQueued(setDoc(ref, { id, clientId, date, ...next }), {
+            onLateError: (err) => logClientError(clientId, "Log nutrition/water (sent later)", err.message || "unknown error"),
           });
+        }
+        try {
+          if (typeof navigator !== "undefined" && navigator.onLine === false) return await writeFromPhoneCopy();
+          try {
+            await runTransaction(firestore, async (tx) => {
+              const snap = await tx.get(ref);
+              const base = snap.exists() ? strip(snap.data()) : null;
+              const next = updater(base);
+              tx.set(ref, { id, clientId, date, ...next });
+            });
+            return SAVED;
+          } catch (err) {
+            if (err?.code === "unavailable" || /offline/i.test(err?.message || "")) return await writeFromPhoneCopy();
+            throw err;
+          }
         } catch (err) {
           logClientError(clientId, "Log nutrition/water", err.message || "unknown error");
           throw new Error("Couldn't save — " + (err.message || "check your connection and try again."));
@@ -2163,6 +2192,13 @@ export function AppProvider({ children }) {
         const savedMeal = { id, clientId, createdAt: Date.now(), ...meal };
         setDoc(doc(firestore, "savedMeals", id), savedMeal).catch(console.error);
         return savedMeal;
+      },
+
+      // Editing a saved meal in place (name, ingredients, totals) — before
+      // this the only way to change one was to delete and rebuild it.
+      updateSavedMeal(clientId, mealId, meal) {
+        const { id: _id, clientId: _cid, createdAt: _c, ...fields } = meal || {};
+        updateDoc(doc(firestore, "savedMeals", mealId), { ...stripUndefined(fields), updatedAt: Date.now() }).catch(console.error);
       },
 
       deleteSavedMeal(clientId, mealId) {

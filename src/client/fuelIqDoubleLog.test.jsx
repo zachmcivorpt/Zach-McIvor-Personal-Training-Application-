@@ -62,4 +62,20 @@ describe("Fuel IQ detail sheet ADD TO LOG", () => {
 
     expect(onAddFood).toHaveBeenCalledTimes(1);
   });
+
+  it("doesn't announce 'Added' itself — the only confirmation is the save's own, once it lands", async () => {
+    // It used to toast "Added to today's food log." the moment it was
+    // tapped, before the save finished — so a failed save showed "Added"
+    // followed by an error.
+    const showToast = vi.fn();
+    const onAddFood = vi.fn(() => new Promise(() => {})); // save still in flight
+    render(
+      <AiNutritionHelpCard targets={targets} todayNutrition={todayNutrition} nutritionProfile={{}} onAddFood={onAddFood} showToast={showToast} dark={false} />
+    );
+    fireEvent.click(screen.getByText("Not sure what to eat"));
+    fireEvent.click(await waitFor(() => screen.getByText("Large Big Mac Meal")));
+    fireEvent.click(await waitFor(() => screen.getByRole("button", { name: "ADD TO LOG" })));
+    expect(onAddFood).toHaveBeenCalledTimes(1);
+    expect(showToast).not.toHaveBeenCalled();
+  });
 });

@@ -24,13 +24,15 @@ import React, { useEffect, useRef, useState } from "react";
 // real scan (not on app load), not bundled in this app's own build.
 import "barcode-detector/polyfill";
 import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
-import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff } from "lucide-react";
+import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flashlight, FlashlightOff, ArrowLeft, ShieldCheck } from "lucide-react";
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG, getAllFoods } from "../lib/foodDatabase";
 import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey, detectBarcodeFormat, pickBestFoodForBarcode, buildCorrectedFood } from "../lib/barcodeLookup";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { matchesSearch } from "../lib/search";
+import { scaleServings } from "../lib/nutritionLog";
+import { MEASURE_BLUE, BG, BORDER, CLIENT_DARK_BG, CLIENT_DARK_BORDER } from "../theme";
 
 // Ingredient macros already carry their own rounding, but summing several
 // of them (each already rounded to 1dp) drifts into floating-point noise
@@ -40,10 +42,134 @@ function round1(n) {
   return Math.round(n * 10) / 10;
 }
 
-// Must match ClientApp.jsx's addFood RETRY_DEDUPE_WINDOW_MS — both bucket
-// a log-entry id to the same width so a retried/reopened save of the same
-// food reconciles to one entry (see FoodQuantitySheet's logIdRef comment).
-const RETRY_DEDUPE_WINDOW_MS = 60_000;
+// A servings-only food (a saved meal, a Fuel IQ pick, an older entry with
+// no gram weight — see nutritionLog.js entrySourceFood) can only be scaled
+// as a whole, so it gets this one unit instead of grams.
+const SERVING_UNIT = { id: "serving", label: "serving", pluralLabel: "servings", grams: 1 };
+
+/* ============================================================================
+   FULL-SCREEN NUTRITION PAGES — the Add Food page and the food detail page
+   share this shell: a fixed page over the app (body scroll locked by
+   FullScreenOverlay, its own list scroll contained so a drag never moves
+   the screen behind it), a back arrow / title / action header, and a
+   swipe-right-from-the-left-edge to go back like a native page.
+============================================================================ */
+
+function useEdgeSwipeBack(onBack, disabled) {
+  const [dx, setDx] = useState(0);
+  const start = useRef(null);
+  function onTouchStart(e) {
+    const t = e.touches[0];
+    start.current = !disabled && t && t.clientX <= 28 ? { x: t.clientX, y: t.clientY, horizontal: null } : null;
+  }
+  function onTouchMove(e) {
+    const s0 = start.current;
+    const t = e.touches[0];
+    if (!s0 || !t) return;
+    const ddx = t.clientX - s0.x;
+    const ddy = t.clientY - s0.y;
+    if (s0.horizontal === null && (Math.abs(ddx) > 8 || Math.abs(ddy) > 8)) s0.horizontal = Math.abs(ddx) > Math.abs(ddy);
+    if (s0.horizontal) setDx(Math.max(0, ddx));
+  }
+  function onTouchEnd() {
+    const s0 = start.current;
+    start.current = null;
+    if (s0?.horizontal && dx > 90) onBack();
+    setDx(0);
+  }
+  return { dx, handlers: { onTouchStart, onTouchMove, onTouchEnd, onTouchCancel: onTouchEnd } };
+}
+
+export function NutritionPage({ title, onBack, action, footer, children, dark = false, z = 100, backDisabled = false, scrollRef }) {
+  const { dx, handlers } = useEdgeSwipeBack(onBack, backDisabled);
+  return (
+    <FullScreenOverlay>
+      <div
+        className="fixed inset-0 flex flex-col overscroll-none"
+        style={{
+          zIndex: z,
+          backgroundColor: dark ? CLIENT_DARK_BG : BG,
+          transform: dx ? `translateX(${dx}px)` : undefined,
+          transition: dx ? "none" : "transform 0.22s ease-out",
+        }}
+        {...handlers}
+      >
+        <div
+          className="shrink-0 flex items-center justify-between gap-2 px-2 pt-[max(1.25rem,env(safe-area-inset-top))] pb-2 border-b"
+          style={{ borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
+        >
+          <button
+            onClick={onBack}
+            disabled={backDisabled}
+            aria-label="Back"
+            className={`w-10 h-10 rounded-full flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 ${dark ? "text-white" : "text-black"}`}
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <div className="flex-1 min-w-0 flex justify-center">{typeof title === "string" ? <span className={`font-semibold text-[17px] truncate ${dark ? "text-white" : "text-black"}`}>{title}</span> : title}</div>
+          <div className="min-w-10 flex justify-end">{action || <span className="w-10" />}</div>
+        </div>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+          {children}
+        </div>
+        {footer}
+      </div>
+    </FullScreenOverlay>
+  );
+}
+
+// Calories with the protein/carbs/fat split as one ring — the share of
+// calories each macro supplies, in shades of the single accent.
+const MACRO_SHADES = [1, 0.55, 0.25];
+export function MacroRing({ cals, protein, carbs, fat, dark = false, size = 92 }) {
+  const parts = [(Number(protein) || 0) * 4, (Number(carbs) || 0) * 4, (Number(fat) || 0) * 9];
+  const total = parts.reduce((a, b) => a + b, 0);
+  const r = size / 2 - 7;
+  const c = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={7} stroke={dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"} />
+        {total > 0 &&
+          parts.map((p, i) => {
+            const len = (p / total) * c;
+            const el = (
+              <circle
+                key={i}
+                cx={size / 2}
+                cy={size / 2}
+                r={r}
+                fill="none"
+                strokeWidth={7}
+                stroke={MEASURE_BLUE}
+                strokeOpacity={MACRO_SHADES[i]}
+                strokeDasharray={`${Math.max(0, len - 1.5)} ${c}`}
+                strokeDashoffset={-offset}
+              />
+            );
+            offset += len;
+            return el;
+          })}
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className={`text-[24px] leading-none font-bold tabular-nums ${dark ? "text-white" : "text-black"}`}>{Math.round(Number(cals) || 0)}</span>
+        <span className={`text-[11px] mt-0.5 ${dark ? "text-white/45" : "text-black/45"}`}>kcal</span>
+      </div>
+    </div>
+  );
+}
+
+export function macroSplit({ protein, carbs, fat }) {
+  const p = (Number(protein) || 0) * 4;
+  const c = (Number(carbs) || 0) * 4;
+  const f = (Number(fat) || 0) * 9;
+  const t = p + c + f;
+  if (!t) return { protein: 0, carbs: 0, fat: 0 };
+  const pp = Math.round((p / t) * 100);
+  const cp = Math.round((c / t) * 100);
+  return { protein: pp, carbs: cp, fat: Math.max(0, 100 - pp - cp) };
+}
 
 /* ============================================================================
    FOOD QUANTITY PICKER — pick how many grams of a food-database item was
@@ -67,7 +193,28 @@ function presetsFor(food, unit) {
   return [1, 2, 3, 4];
 }
 
-export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, dark = false }) {
+// `layout="page"` renders it as the full-screen food page (the main food
+// log and editing a logged entry) instead of a bottom sheet; the builders
+// (photo meal, create meal) keep the sheet. `meal`/`meals`/`onMealChange`
+// add a Meal picker, `initialUnitId`/`initialQty` open it at an amount
+// already chosen (editing an entry, re-logging a recent food), and
+// `onDelete` adds a Delete entry button.
+export function FoodQuantitySheet({
+  food,
+  onClose,
+  onConfirm,
+  onSaveCorrection,
+  dark = false,
+  layout = "sheet",
+  meal,
+  meals,
+  onMealChange,
+  initialUnitId,
+  initialQty,
+  confirmLabel,
+  pageTitle = "Add Food",
+  onDelete,
+}) {
   const [unitId, setUnitId] = useState("g");
   const [qty, setQty] = useState(100);
   // onConfirm can be a real Firestore write (barcode scan / quick add /
@@ -87,21 +234,15 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
   // synchronously, independent of any commit, so the second dispatch in
   // the same beat is dropped even before React re-renders.
   const confirmingRef = useRef(false);
-  // Bucketed by time (not a fresh random id per sheet-open) so a genuinely
-  // separate retry — the sheet closed and reopened for the same food
-  // because a slow or offline-queued save gave no visible confirmation in
-  // time, not just a double-tap on the same open sheet (confirmingRef
-  // above already covers that) — still reconciles to the same entry via
-  // addFood's own id check (ClientApp.jsx), instead of both eventually
-  // syncing as two separate, genuine log entries. Mirrors
-  // RETRY_DEDUPE_WINDOW_MS there: wide enough to absorb a reasonable
-  // retry/reopen, narrow enough that a deliberately separate logging of
-  // the same food shortly after still gets its own entry. Meal and date
-  // don't need to be in this id — addFood's own uniqueness check is
-  // already scoped to one meal's array within one date's own Firestore
-  // document, so collisions across either are structurally impossible
-  // regardless of what this id contains.
+  // One id per opening of this sheet, reused by every retry of ADD while
+  // it stays open (a failed save keeps it open), so a retry reconciles to
+  // the same entry via addFood's id check (ClientApp.jsx). It used to be
+  // bucketed to the minute so a close-and-reopen also reconciled — but
+  // that silently dropped a deliberate second add of the same food within
+  // the minute. Closing mid-save is blocked below, and an offline save now
+  // resolves at once ("saved on your phone"), so a reopen is a new add.
   const logIdRef = useRef(null);
+  const [deleting, setDeleting] = useState(false);
   // Only ever shown for a scanned product whose data failed validation —
   // lets the client type in the real numbers off the pack instead of
   // closing this sheet and starting over in search/manual entry, which was
@@ -109,10 +250,12 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
   const [correcting, setCorrecting] = useState(false);
   const [draft, setDraft] = useState({ cals: "", protein: "", carbs: "", fat: "" });
 
-  const units = food ? unitsFor(food) : [];
+  const units = food ? (food.servingOnly ? [SERVING_UNIT] : unitsFor(food)) : [];
 
   useEffect(() => {
     if (food) {
+      const list = food.servingOnly ? [SERVING_UNIT] : unitsFor(food);
+      const startUnit = list.find((u) => u.id === initialUnitId) || list[0];
       // unitsFor()'s own first entry IS this food's correct base unit —
       // "ml" for a liquid, "g" otherwise — never hardcoded. Defaulting
       // to a bare "g" regardless of food type (the actual production
@@ -125,14 +268,18 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
       // was nothing anchoring the fallback to the food's own base unit
       // instead of whatever button a stale state value happened to
       // still reference.
-      setUnitId(unitsFor(food)[0].id);
-      setQty(food.defaultQty || 100);
+      setUnitId(startUnit.id);
+      const isBase = startUnit.id === "g" || startUnit.id === "ml";
+      setQty(initialQty != null && initialQty > 0 && (startUnit.id === initialUnitId || (isBase && !initialUnitId)) ? initialQty : food.servingOnly ? 1 : isBase ? food.defaultQty || 100 : 1);
       setSaving(false);
+      setDeleting(false);
       confirmingRef.current = false;
-      logIdRef.current = `${food.id}-${Math.floor(Date.now() / RETRY_DEDUPE_WINDOW_MS)}`;
+      logIdRef.current = `${food.id}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
       setCorrecting(false);
       setDraft({ cals: String(food.cals ?? ""), protein: String(food.protein ?? ""), carbs: String(food.carbs ?? ""), fat: String(food.fat ?? "") });
     }
+    // initialUnitId/initialQty always arrive together with a new `food`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [food]);
 
   if (!food) return null;
@@ -170,25 +317,27 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
   // liquid, "g" otherwise), never a hardcoded UNIT_DEFS.g, so a stale
   // unitId can't silently mislabel a liquid's quantity as grams.
   const unit = units.find((u) => u.id === unitId) || units[0] || UNIT_DEFS.g;
-  const step = unit.id === "g" || unit.id === "ml" ? 10 : unit.id === "cup" ? 0.25 : 1;
-  const presets = presetsFor(food, unit);
-  const scaled = scaleFoodByUnit(food, unitId, qty);
+  const step = unit.id === "g" || unit.id === "ml" ? 10 : unit.id === "cup" || unit.id === "serving" ? 0.25 : 1;
+  const presets = food.servingOnly ? [0.5, 1, 1.5, 2] : presetsFor(food, unit);
+  const scaled = food.servingOnly ? scaleServings(food, qty) : scaleFoodByUnit(food, unitId, qty);
+
+  async function remove() {
+    if (deleting || saving) return;
+    setDeleting(true);
+    try {
+      await onDelete();
+    } catch {
+      setDeleting(false);
+    }
+  }
 
   function selectUnit(id) {
     setUnitId(id);
     setQty(id === "g" || id === "ml" ? food.defaultQty || 100 : 1);
   }
 
-  return (
-    // While a save is in flight, both the X button and the backdrop tap
-    // normally call onClose straight through — that's how a client could
-    // dismiss this sheet a beat after tapping ADD (before anything visibly
-    // happened) and go rescan, while the save that was already running
-    // kept going in the background and landed a second, genuine entry a
-    // moment later. Swallowing onClose while saving forces them to wait
-    // for the ADD button's own outcome instead of being able to bail out
-    // from under it.
-    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name} keyboardSafeScroll>
+  const noticesBlock = (
+    <>
       {(food.fromBarcode || food.fromAFCD) && (
         <div className={dark ? "flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-2xl p-3 mb-4" : "flex items-center gap-3 bg-black/[0.03] border border-black/8 rounded-2xl p-3 mb-4"}>
           {/* Information-first: a scanned product's own catalog photo is
@@ -295,6 +444,170 @@ export function FoodQuantitySheet({ food, onClose, onConfirm, onSaveCorrection, 
           </p>
         </div>
       )}
+    </>
+  );
+
+  if (layout === "page") {
+    const split = macroSplit(scaled);
+    const busy = saving || deleting;
+    const label = confirmLabel || "Log";
+    const rowLabel = dark ? "text-white text-[15px]" : "text-black text-[15px]";
+    const divider = { borderColor: dark ? CLIENT_DARK_BORDER : BORDER };
+    const chip = (active) =>
+      `shrink-0 px-3.5 py-2 rounded-full text-[13px] font-semibold transition-colors active:scale-95 ${
+        active ? "text-white" : dark ? "bg-white/8 text-white/60" : "bg-black/[0.05] text-black/60"
+      }`;
+    return (
+      <NutritionPage
+        dark={dark}
+        // Above bottom sheets (110), below the app toast (120) so a save
+        // error is still visible over it.
+        z={118}
+        title={pageTitle}
+        // Same reasoning as the sheet's swallowed onClose below: no backing
+        // out from under a save that's still running.
+        onBack={busy ? () => {} : onClose}
+        backDisabled={busy}
+        action={
+          <button
+            onClick={confirm}
+            disabled={qty <= 0 || busy}
+            className="px-3 h-10 text-[17px] font-semibold disabled:opacity-40"
+            style={{ color: MEASURE_BLUE }}
+          >
+            {saving ? "Saving…" : label}
+          </button>
+        }
+        footer={
+          <div className="shrink-0 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <PrimaryButton dark={dark} className="w-full" disabled={qty <= 0 || busy} onClick={confirm}>
+              <Check size={16} /> {saving ? "SAVING…" : label.toUpperCase()}
+            </PrimaryButton>
+          </div>
+        }
+      >
+        <div className="px-4 pt-5 pb-4">
+          <div className="flex items-start gap-2">
+            <h1 className={`text-[26px] leading-tight font-bold tracking-tight ${dark ? "text-white" : "text-black"}`}>{food.name}</h1>
+            {(food.verificationLevel === "VERIFIED" || food.verificationLevel === "LIKELY" || food.correctedByUser) && (
+              <ShieldCheck size={22} className="shrink-0 mt-1" style={{ color: MEASURE_BLUE }} aria-label="Verified" />
+            )}
+          </div>
+          {food.brand && <p className={dark ? "text-white/45 text-sm mt-1" : "text-black/45 text-sm mt-1"}>{food.brand}</p>}
+        </div>
+        <div className="px-3">{noticesBlock}</div>
+        <div className="border-t" style={divider}>
+          {units.length > 1 && (
+            <div className="px-4 py-3.5 border-b" style={divider}>
+              <p className={rowLabel}>Serving size</p>
+              <div className="flex gap-1.5 mt-2.5 overflow-x-auto -mx-4 px-4 no-scrollbar">
+                {units.map((u) => (
+                  <button key={u.id} onClick={() => selectUnit(u.id)} className={chip(unitId === u.id)} style={unitId === u.id ? { backgroundColor: MEASURE_BLUE } : undefined}>
+                    {u.id === "piece" ? `1 ${u.label}` : unitLabel(u, 2)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="px-4 py-3.5 border-b" style={divider}>
+            <div className="flex items-center justify-between gap-3">
+              <p className={rowLabel}>{food.servingOnly ? "Number of servings" : "Amount"}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  aria-label="Less"
+                  onClick={() => setQty((q) => Math.max(0, Math.round((q - step) * 100) / 100))}
+                  className={dark ? "w-9 h-9 rounded-full bg-white/8 flex items-center justify-center text-white active:scale-90 transition-transform" : "w-9 h-9 rounded-full bg-black/[0.05] flex items-center justify-center text-black active:scale-90 transition-transform"}
+                >
+                  <Minus size={15} />
+                </button>
+                <div className="text-center w-20">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step={step}
+                    value={qty}
+                    aria-label="Amount"
+                    onChange={(e) => setQty(Math.max(0, +e.target.value))}
+                    className={`w-full text-center text-[22px] font-bold outline-none bg-transparent tabular-nums ${dark ? "text-white" : "text-black"}`}
+                  />
+                  <p className={dark ? "text-white/40 text-[11px] -mt-0.5" : "text-black/40 text-[11px] -mt-0.5"}>{unitLabel(unit, qty)}</p>
+                </div>
+                <button
+                  aria-label="More"
+                  onClick={() => setQty((q) => Math.round((q + step) * 100) / 100)}
+                  className={dark ? "w-9 h-9 rounded-full bg-white/8 flex items-center justify-center text-white active:scale-90 transition-transform" : "w-9 h-9 rounded-full bg-black/[0.05] flex items-center justify-center text-black active:scale-90 transition-transform"}
+                >
+                  <Plus size={15} />
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-1.5 mt-3 overflow-x-auto -mx-4 px-4 no-scrollbar">
+              {presets.map((v) => (
+                <button key={v} onClick={() => setQty(v)} className={chip(qty === v)} style={qty === v ? { backgroundColor: MEASURE_BLUE } : undefined}>
+                  {v}
+                  {unit.id === "g" || unit.id === "ml" ? unit.label : ` ${unitLabel(unit, v)}`}
+                </button>
+              ))}
+            </div>
+          </div>
+          {meals && onMealChange && (
+            <div className="px-4 py-3.5 border-b" style={divider}>
+              <p className={rowLabel}>Meal</p>
+              <div className="flex gap-1.5 mt-2.5 overflow-x-auto -mx-4 px-4 no-scrollbar">
+                {meals.map((m) => (
+                  <button key={m} onClick={() => onMealChange(m)} className={chip(meal === m)} style={meal === m ? { backgroundColor: MEASURE_BLUE } : undefined}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-4 px-4 py-6">
+          <MacroRing cals={scaled.cals} protein={scaled.protein} carbs={scaled.carbs} fat={scaled.fat} dark={dark} />
+          <div className="flex-1 grid grid-cols-3 gap-1">
+            {[
+              ["Protein", scaled.protein, split.protein, MACRO_SHADES[0]],
+              ["Carbs", scaled.carbs, split.carbs, MACRO_SHADES[1]],
+              ["Fat", scaled.fat, split.fat, MACRO_SHADES[2]],
+            ].map(([l, v, pct, shade]) => (
+              <div key={l} className="text-center">
+                <p className="text-[11px] font-semibold tabular-nums" style={{ color: MEASURE_BLUE, opacity: Math.max(0.55, shade) }}>
+                  {pct}%
+                </p>
+                <p className={`text-[19px] font-bold tabular-nums leading-tight mt-0.5 ${dark ? "text-white" : "text-black"}`}>{v}g</p>
+                <p className={dark ? "text-white/45 text-[11px]" : "text-black/45 text-[11px]"}>{l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        {onDelete && (
+          <div className="px-4 pb-8">
+            <button
+              onClick={remove}
+              disabled={busy}
+              className="w-full py-3 text-[15px] font-semibold text-[#EF4444] disabled:opacity-40 border-t"
+              style={divider}
+            >
+              {deleting ? "Removing…" : "Delete entry"}
+            </button>
+          </div>
+        )}
+      </NutritionPage>
+    );
+  }
+
+  return (
+    // While a save is in flight, both the X button and the backdrop tap
+    // normally call onClose straight through — that's how a client could
+    // dismiss this sheet a beat after tapping ADD (before anything visibly
+    // happened) and go rescan, while the save that was already running
+    // kept going in the background and landed a second, genuine entry a
+    // moment later. Swallowing onClose while saving forces them to wait
+    // for the ADD button's own outcome instead of being able to bail out
+    // from under it.
+    <BottomSheet dark={dark} open={!!food} onClose={saving ? () => {} : onClose} title={food.name} keyboardSafeScroll>
+      {noticesBlock}
       <p className={dark ? "text-white/40 text-xs text-center mb-4" : "text-black/40 text-xs text-center mb-4"}>How much did you have?</p>
 
       {units.length > 1 && (
@@ -1423,7 +1736,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Log a Meal Photo" keyboardSafeScroll>
+    <BottomSheet dark={dark} open={open} onClose={onClose} title="Photo Meal" keyboardSafeScroll>
       {status === "pick" && (
         <div>
           <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
@@ -1437,7 +1750,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
           <div className={dark ? "flex items-start gap-2 mt-4 bg-white/[0.03] rounded-xl p-3" : "flex items-start gap-2 mt-4 bg-black/[0.03] rounded-xl p-3"}>
             <UtensilsCrossed size={14} className={dark ? "text-white/30 shrink-0 mt-0.5" : "text-black/30 shrink-0 mt-0.5"} />
             <p className={dark ? "text-white/30 text-[11px] leading-relaxed" : "text-black/30 text-[11px] leading-relaxed"}>
-              We'll keep the photo as a reference — add the ingredients yourself below and we'll total up the macros.
+              This doesn't read the photo — it's kept with the meal as a reference. Add what's in it below (search, scan or type it in) and APEX totals the macros.
             </p>
           </div>
         </div>
@@ -1604,7 +1917,7 @@ export function PhotoEstimateSheet({ open, onClose, onAdd, onSaveAsMeal, dark = 
 
 const MEAL_TYPE_OPTIONS = ["Breakfast", "Lunch", "Dinner", "Snacks"];
 
-export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes = false, dark = false }) {
+export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes = false, dark = false, title = "Create Meal" }) {
   const { db, createFood } = useApp();
   const [name, setName] = useState("");
   const [ingredients, setIngredients] = useState([]);
@@ -1686,7 +1999,7 @@ export function CreateMealSheet({ open, onClose, onSave, prefill, showMealTypes 
   const dividerBorder = dark ? "border-white/8" : "border-black/5";
 
   return (
-    <BottomSheet open={open} onClose={onClose} title="Create Meal" dark={dark} keyboardSafeScroll>
+    <BottomSheet open={open} onClose={onClose} title={title} dark={dark} keyboardSafeScroll>
       <Field label="MEAL NAME" dark={dark}>
         <TextInput dark={dark} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. My go-to breakfast" />
       </Field>

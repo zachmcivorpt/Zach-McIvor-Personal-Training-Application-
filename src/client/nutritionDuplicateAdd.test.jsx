@@ -9,11 +9,12 @@
 // called onAddFood straight through with nothing stopping a second,
 // near-simultaneous tap (the common real-world cause: a touchstart/click
 // double-fire, or just an impatient second tap before any visual feedback
-// appears) from firing it twice. Fixed by routing all of them through a
-// single ref-based guard (NutritionScreen's `guardedAdd`) that drops a
+// appears) from firing it twice. Fixed with ref-based guards that drop a
 // second call while the first is still in flight — a ref rather than
 // state because two taps in the same tick can both run before a state
-// update's re-render ever lands.
+// update's re-render ever lands. On the Add Food page each row's + has its
+// own guard (AddFoodPage's busyKeys) and a saved meal also goes through
+// NutritionScreen's `guardedAdd`.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NutritionScreen } from "./ClientApp";
@@ -80,9 +81,9 @@ describe("NutritionScreen duplicate-add guard", () => {
     );
 
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    const row = screen.getByText("Pea Protein Shake").closest("button");
-    fireEvent.click(row);
-    fireEvent.click(row); // a second, near-simultaneous tap before the first add has settled
+    const plus = screen.getByLabelText("Log Pea Protein Shake");
+    fireEvent.click(plus);
+    fireEvent.click(plus); // a second, near-simultaneous tap before the first add has settled
 
     expect(onAddFood).toHaveBeenCalledTimes(1);
     resolve();
@@ -103,11 +104,7 @@ describe("NutritionScreen duplicate-add guard", () => {
 
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
     fireEvent.click(screen.getByText("My Meals"));
-    const plusButtons = screen.getAllByRole("button").filter((b) => b.querySelector(".lucide-plus"));
-    // w-9 distinguishes this saved-meal row's own Plus button from the
-    // w-8 per-meal "add food" buttons on the Today's Meals card underneath
-    // (both are round with a Plus icon, but at different sizes).
-    const mealPlusButton = plusButtons.find((b) => b.className.includes("w-9") && b.className.includes("rounded-full"));
+    const mealPlusButton = screen.getByLabelText("Log Pea Protein Shake");
     fireEvent.click(mealPlusButton);
     fireEvent.click(mealPlusButton);
 

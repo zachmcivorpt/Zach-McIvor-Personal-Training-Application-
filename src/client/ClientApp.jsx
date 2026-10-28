@@ -67,6 +67,8 @@ import {
   ArrowRight,
   StickyNote,
   Minus,
+  Copy,
+  BookmarkPlus,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported, isNativeApp } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage, uploadMessageAudio } from "../lib/storage";
@@ -89,9 +91,11 @@ import {
 } from "recharts";
 import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
+import { QUEUED } from "../lib/offlineWrite";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
+import { hasFoodLogged, buildFrequentFoods, baseFoodName, entryAmountLabel, entrySourceFood, sourceSnapshot } from "../lib/nutritionLog";
 import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
 import { useVoiceRecorder, voiceNotesSupported, nativeMicAllowed } from "../lib/voiceNote";
 import { VoiceRecordingBar, MicButton, VoiceNotePlayer } from "../components/VoiceNote";
@@ -146,14 +150,15 @@ import { isPersistedSessionStale } from "../lib/sessionStaleness";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
-import { MICRO_FIELDS, getAllFoods } from "../lib/foodDatabase";
+import { MICRO_FIELDS, getAllFoods, unitsFor, scaleFoodByUnit } from "../lib/foodDatabase";
 import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
 import { NutritionTargetsCard } from "../coach/CoachClientDetail";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
-import { buildCorrectedFood, validateNutrition } from "../lib/barcodeLookup";
+import { AddFoodPage } from "./AddFoodPage";
+import { buildCorrectedFood } from "../lib/barcodeLookup";
 import { AFCD_FOODS } from "../lib/afcdFoods";
 import {
   BODY_FAT_CONFIG,
@@ -241,14 +246,6 @@ function armRestTimerAudio() {
 function round1(n) {
   return Math.round((n + Number.EPSILON) * 10) / 10;
 }
-
-// addFood's own fallback dedup id (see its comment) buckets the timestamp
-// to this width so a retry of the same food/meal/day within the window
-// reconciles to one entry instead of logging it twice — wide enough to
-// cover a slow or offline-queued save followed by a manual retry or app
-// reopen, narrow enough that a deliberately separate logging of the same
-// food shortly after is still kept as its own entry.
-const RETRY_DEDUPE_WINDOW_MS = 60_000;
 
 const DEFAULT_NUTRITION = {
   calories: 0,
@@ -3834,27 +3831,51 @@ export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
   // rejection, the row snaps back into view instead of staying stuck.
   const [deleting, setDeleting] = useState(false);
   const startXRef = useRef(0);
+  const startYRef = useRef(0);
   const widthRef = useRef(0);
   const rowRef = useRef(null);
+  // "pending" between pointerdown and the first real movement: only a
+  // clear sideways drag becomes a swipe. Capturing the pointer straight on
+  // pointerdown (as this used to) retargets the tap's click to this row,
+  // so a button inside it — a logged food to edit, a saved meal's + —
+  // never received a plain tap.
+  const gestureRef = useRef(null); // null | "pending" | "swipe" | "scroll"
+  const suppressClickRef = useRef(false);
 
   function onPointerDown(e) {
     if (deleting) return;
     startXRef.current = e.clientX;
+    startYRef.current = e.clientY;
     widthRef.current = rowRef.current?.offsetWidth || 300;
-    setDragging(true);
-    // Without capture, a translating row can slide out from under a touch
-    // that hasn't moved on screen, firing a premature pointerleave that
-    // cancels the drag — capture keeps this element getting the events
-    // regardless of where the row itself has moved to.
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+    gestureRef.current = "pending";
+    suppressClickRef.current = false;
   }
   function onPointerMove(e) {
-    if (!dragging) return;
     const dx = e.clientX - startXRef.current;
+    if (gestureRef.current === "pending") {
+      const dy = (e.clientY ?? startYRef.current) - startYRef.current;
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dx) <= Math.abs(dy)) {
+        gestureRef.current = "scroll";
+        return;
+      }
+      gestureRef.current = "swipe";
+      setDragging(true);
+      // Without capture, a translating row can slide out from under a
+      // touch that hasn't moved on screen, firing a premature pointerleave
+      // that cancels the drag — capture keeps this element getting the
+      // events regardless of where the row itself has moved to.
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+    }
+    if (gestureRef.current !== "swipe") return;
     setDragX(Math.min(0, Math.max(dx, -widthRef.current)));
   }
   function onPointerUp(e) {
-    if (!dragging) return;
+    const wasSwipe = gestureRef.current === "swipe";
+    gestureRef.current = null;
+    if (!wasSwipe) return;
+    // The click that follows the end of a swipe isn't a tap on the row.
+    suppressClickRef.current = true;
     setDragging(false);
     e.currentTarget.releasePointerCapture?.(e.pointerId);
     if (dragX < -(widthRef.current * 0.35)) {
@@ -3886,6 +3907,13 @@ export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onClickCapture={(e) => {
+          if (suppressClickRef.current) {
+            suppressClickRef.current = false;
+            e.stopPropagation();
+            e.preventDefault();
+          }
+        }}
         style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
         className={dark ? "relative bg-black touch-pan-y select-none" : "relative bg-white touch-pan-y select-none"}
       >
@@ -4348,7 +4376,7 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets, show
     series.push({
       date: d.toLocaleDateString(undefined, { weekday: "narrow" }),
       value: entry ? Math.round(entry[metricKey] || 0) : 0,
-      logged: !!entry,
+      logged: hasFoodLogged(entry),
     });
   }
   const loggedValues = series.filter((d) => d.logged).map((d) => d.value);
@@ -4473,7 +4501,7 @@ function guessMealForNow() {
 // here. Backed entirely by src/lib/restaurantNutrition.js — a local,
 // deterministic matcher (restaurant menu database + this app's own meal
 // library), not an external AI call, so it works instantly with no setup.
-export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, showToast, dark }) {
+export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, dark }) {
   const { nutritionAiHelp } = useApp();
   // One entry per question asked — not a flat chat log — so each answer
   // can be dismissed or refreshed (different suggestions for the same
@@ -4596,12 +4624,16 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
     // retried/duplicate submission of the *same* logical action and no-op
     // on it, rather than relying solely on this one guard.
     const logId = key ? `ai-${key}` : `ai-${Date.now()}`;
+    // No toast of its own here: addFood confirms once the save actually
+    // lands ("… added to Lunch", naming the meal it went to — which can be
+    // changed by tapping the entry), or shows the error if it didn't. This
+    // used to announce "Added" before the save had finished, so a failed
+    // save showed "Added" and then an error.
     Promise.resolve(onAddFood(guessMealForNow(), { id: logId, name: s.name, cals: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat }, logId)).finally(
       () => {
         addSuggestionBusyRef.current = false;
       }
     );
-    showToast("Added to today's food log.");
   }
 
   return (
@@ -4869,7 +4901,21 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
   );
 }
 
-export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
+export function NutritionScreen({
+  nutritionByDateKey,
+  targets,
+  onAddFood,
+  onAddFoods,
+  onUpdateFood,
+  onRemoveFood,
+  onAddWater,
+  savedMeals,
+  onCreateSavedMeal,
+  onUpdateSavedMeal,
+  onDeleteSavedMeal,
+  recentFoods,
+  showToast,
+}) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
   const [navOffset, setNavOffset] = useState(0); // 0 = today, 1 = yesterday, 2 = day before, ...
@@ -4892,76 +4938,128 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
     d.setDate(d.getDate() - navOffset);
     return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
   }, [navOffset, viewDateKey]);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  // The full-screen Add Food page (AddFoodPage.jsx) — every food is logged
+  // from there, into `activeMeal`, and it stays open between adds.
+  const [addPageOpen, setAddPageOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
+  // What's been logged since the Add Food page opened — its running tally.
+  const [sessionAdds, setSessionAdds] = useState([]);
   const [detailMeal, setDetailMeal] = useState(null);
   const [waterSheetOpen, setWaterSheetOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  // iOS doesn't dismiss the on-screen keyboard just because the search
-  // results list it was typed into scrolls or a result gets tapped — the
-  // input stays focused (and the keyboard stays up, often covering the
-  // very result list the client is trying to see) until something
-  // explicitly blurs it. Every path that logically "finishes" this search
-  // — picking a food/meal, or closing the sheet — blurs it directly.
-  const searchInputRef = useRef(null);
-  function dismissKeyboard() {
-    searchInputRef.current?.blur();
-  }
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [createMealOpen, setCreateMealOpen] = useState(false);
   const [mealPrefill, setMealPrefill] = useState(null);
+  // A saved meal being edited in CreateMealSheet (null = creating a new one).
+  const [editingSavedMealId, setEditingSavedMealId] = useState(null);
+  // The food page: `{ food, initialUnitId, initialQty, edit?: { meal, entry } }`.
   const [pendingFood, setPendingFood] = useState(null);
-  const [logTab, setLogTab] = useState("history"); // "history" | "mymeals"
+  // The meal the food page logs to (its own Meal picker) — starts as the
+  // Add Food page's meal, or the entry's own meal when editing.
+  const [pendingMeal, setPendingMeal] = useState("Breakfast");
   const [nutritionDetailOpen, setNutritionDetailOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [tab, setTab] = useState("today"); // "today" | "plan"
-  // Set by the dashboard-level Scan/Search tiles (no meal preselected) so a
-  // food can be picked first and the destination meal chosen right after,
-  // vs. the per-meal "Log" buttons which set activeMeal immediately.
-  const [mealChoice, setMealChoice] = useState(null); // scaled food awaiting a meal pick, or null
   const aiHelpRef = useRef(null);
 
   const mealCategories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
   // Coach-added and barcode-discovered foods (db.customFoods) are searched
   // alongside the static built-in database — they're what "save to food
   // library" from a barcode scan/manual entry is actually for.
-  const allFoods = getAllFoods(db.customFoods);
-  const filteredFoods = allFoods.filter((f) => matchesSearch(f.name, search));
+  const allFoods = useMemo(() => getAllFoods(db.customFoods), [db.customFoods]);
+  const libraryById = useMemo(() => Object.fromEntries([...AFCD_FOODS, ...allFoods].map((f) => [f.id, f])), [allFoods]);
+  // ClientApp passes buildFrequentFoods rows; plain entries are accepted too.
+  const frequentFoods = useMemo(
+    () => (recentFoods || []).map((r) => (r && r.entry ? r : { key: (r.baseFoodId || baseFoodName(r) || r.id || "").toString().toLowerCase(), name: baseFoodName(r), entry: r, count: 1 })),
+    [recentFoods]
+  );
+  const historyCounts = useMemo(() => new Map(frequentFoods.map((r) => [r.key, r.count])), [frequentFoods]);
 
-  // A plain ref, not state: these direct-add paths (recent foods, saved
-  // meals, photo estimates) fire onAddFood straight through with no
-  // quantity sheet in between, so there's no "ADDING…" disabled-button
-  // render to rely on for a double-tap guard — by the time React commits a
-  // state update, a second quick tap has often already fired. A ref flips
-  // synchronously, so the second tap in the same beat is dropped even
-  // before any re-render happens. This is what was actually producing
-  // doubled meal entries (e.g. a saved meal's own Plus button, which had
-  // no guard at all) despite FoodQuantitySheet's ADD already being safe.
+  // Every meal logged in the two weeks before the day being viewed — what
+  // "Copy meal" offers, newest first.
+  const previousMeals = useMemo(() => {
+    const out = [];
+    const [y, m, d] = viewDateKey.split("-").map(Number);
+    for (let i = 1; i <= 14; i++) {
+      const day = new Date(y, m - 1, d - i);
+      const key = localDateKey(day);
+      const log = nutritionByDateKey[key];
+      if (!log?.meals) continue;
+      const label = navOffset + i === 1 ? "Yesterday" : day.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+      mealCategories.forEach((mealName) => {
+        const items = log.meals[mealName] || [];
+        if (items.length) out.push({ dateKey: key, label, meal: mealName, items, cals: items.reduce((a, f) => a + (Number(f.cals) || 0), 0) });
+      });
+    }
+    return out;
+    // mealCategories is a fixed list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nutritionByDateKey, viewDateKey, navOffset]);
+
+  // A plain ref, not state: these direct-add paths (saved meals, photo
+  // meals, copied meals) fire straight through with no food page in
+  // between, so there's no disabled-button render to rely on for a
+  // double-tap guard — a ref flips synchronously, so a second tap in the
+  // same beat is dropped before any re-render. (The Add Food page's own +
+  // buttons also guard per row.)
   const addBusyRef = useRef(false);
   function guardedAdd(food, meal = activeMeal, dateKey = viewDateKey) {
-    if (addBusyRef.current) return;
+    if (addBusyRef.current) return Promise.resolve();
     addBusyRef.current = true;
-    Promise.resolve(onAddFood(meal, food, dateKey))
+    return Promise.resolve(onAddFood(meal, food, dateKey))
+      .then(() => noteAdded(food))
       .catch(() => {})
       .finally(() => {
         addBusyRef.current = false;
       });
   }
 
-  function addAndClose(food) {
-    dismissKeyboard();
-    setBarcodeOpen(false);
-    setPhotoOpen(false);
-    setSheetOpen(false);
-    // No meal preselected (reached via a dashboard-level tile) — ask which
-    // meal this goes to instead of logging it to an undefined destination.
-    if (!activeMeal) {
-      setMealChoice(food);
+  function noteAdded(...foods) {
+    if (addPageOpen) setSessionAdds((list) => [...list, ...foods.map((f) => ({ name: f.name, cals: Number(f.cals) || 0 }))]);
+  }
+
+  function openAddPage(meal) {
+    setActiveMeal(meal);
+    setSessionAdds([]);
+    setAddPageOpen(true);
+  }
+
+  // Logs straight from a row's + on the Add Food page: a recent food at the
+  // amount it was last logged, or a search result at its default serving.
+  // Rejects on failure so the row shows it didn't go through.
+  function quickLog(food, { asDefault } = {}) {
+    let entry;
+    if (asDefault) {
+      const unit = unitsFor(food)[0];
+      entry = { ...scaleFoodByUnit(food, unit.id, food.defaultQty || 100), src: sourceSnapshot(food) };
+    } else {
+      // Strip the old entry's id — addFood gives every new entry its own.
+      const { id: _oldId, ...rest } = food;
+      entry = rest;
+    }
+    return Promise.resolve(onAddFood(activeMeal, entry, viewDateKey)).then(() => noteAdded(entry));
+  }
+
+  // Opens the food page for a database food, or (`entry`) for a food the
+  // client has logged before, at the amount they last had.
+  function openFood(food, { entry } = {}) {
+    if (entry) {
+      const resolved = entrySourceFood(entry, libraryById);
+      setPendingMeal(activeMeal);
+      setPendingFood({ food: resolved.food, initialUnitId: resolved.unitId, initialQty: resolved.qty });
       return;
     }
-    guardedAdd(food);
+    setPendingMeal(activeMeal);
+    setPendingFood({ food });
+  }
+
+  // Tapping an entry already in the log opens the same food page to change
+  // its amount or meal (or delete it) — no more delete-and-log-again.
+  function openEntryEditor(meal, entry) {
+    const resolved = entrySourceFood(entry, libraryById);
+    setPendingMeal(meal);
+    setPendingFood({ food: resolved.food, initialUnitId: resolved.unitId, initialQty: resolved.qty, edit: { meal, entry } });
   }
 
   function saveMealFromEstimate(estimate) {
@@ -4976,22 +5074,37 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
     });
     showToast(`Saved "${estimate.name}" to My Meals`);
     setPhotoOpen(false);
-    setSheetOpen(false);
   }
 
   function scrollToAiHelp() {
     aiHelpRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function savedMealEntry(meal) {
+    return { id: meal.id, baseFoodId: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, ...(meal.photoUrl ? { photoUrl: meal.photoUrl } : {}) };
+  }
+
   function logSavedMeal(meal, category) {
-    const food = { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat };
-    // No meal preselected (reached via a dashboard-level tile) — ask which
-    // meal this goes to instead of logging it to an undefined destination.
-    if (!category) {
-      setMealChoice(food);
-      return;
-    }
-    guardedAdd(food, category);
+    return guardedAdd(savedMealEntry(meal), category || activeMeal);
+  }
+
+  // Copies a previously logged meal's foods into a meal on the day being
+  // viewed, in one save.
+  function copyMeal(items, toMeal, dateKey = viewDateKey) {
+    if (addBusyRef.current) return Promise.resolve();
+    addBusyRef.current = true;
+    const foods = items.map(({ id: _oldId, ...rest }) => rest);
+    return Promise.resolve(onAddFoods(toMeal, foods, dateKey, { toast: `Copied ${foods.length} item${foods.length === 1 ? "" : "s"} into ${toMeal}` }))
+      .then(() => noteAdded(...foods))
+      .finally(() => {
+        addBusyRef.current = false;
+      });
+  }
+
+  function yesterdayItemsFor(meal) {
+    const [y, m, d] = viewDateKey.split("-").map(Number);
+    const log = nutritionByDateKey[localDateKey(new Date(y, m - 1, d - 1))];
+    return log?.meals?.[meal] || [];
   }
 
   // A guide whose last week is over is no longer shown (mealPlanEnd.js).
@@ -5156,7 +5269,9 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           icon={ScanLine}
           label="Scan Food"
           onClick={() => {
-            setActiveMeal(null);
+            // Straight to the camera; the food page that follows has a Meal
+            // picker, preset to the meal for this time of day.
+            setActiveMeal(guessMealForNow());
             setBarcodeOpen(true);
           }}
         />
@@ -5164,11 +5279,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           dark={dark}
           icon={Search}
           label="Search Food"
-          onClick={() => {
-            setActiveMeal(null);
-            setSearch("");
-            setSheetOpen(true);
-          }}
+          onClick={() => openAddPage(guessMealForNow())}
         />
         {/* Fuel IQ and the AiNutritionHelpCard below are the same feature —
             this tile just jumps to it. The dashboard no longer shows a
@@ -5352,22 +5463,31 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         >
           {mealCategories.map((meal) => {
             const items = nutrition.meals[meal] || [];
-            const totalCals = items.reduce((a, f) => a + f.cals, 0);
+            const totalCals = Math.round(items.reduce((a, f) => a + (Number(f.cals) || 0), 0));
+            // An empty meal that was logged the day before offers that
+            // same meal back in one tap — the commonest repeat there is.
+            const yesterdayItems = items.length === 0 ? yesterdayItemsFor(meal) : [];
             return (
               <div key={meal} className="flex items-center gap-3 px-4 py-3.5">
-                <button onClick={() => setDetailMeal(meal)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
-                  <div className="min-w-0">
+                <div className="flex-1 min-w-0">
+                  <button onClick={() => setDetailMeal(meal)} className="w-full min-w-0 text-left">
                     <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{meal}</p>
                     <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
                       {items.length === 0 ? "No items logged" : `${totalCals} kcal · ${items.length} item${items.length === 1 ? "" : "s"}`}
                     </p>
-                  </div>
-                </button>
+                  </button>
+                  {yesterdayItems.length > 0 && (
+                    <button
+                      onClick={() => copyMeal(yesterdayItems, meal).catch(() => {})}
+                      className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold active:opacity-60"
+                      style={{ color: MEASURE_BLUE }}
+                    >
+                      <Copy size={12} /> Same as {navOffset === 0 ? "yesterday" : "the day before"} · {Math.round(yesterdayItems.reduce((a, f) => a + (Number(f.cals) || 0), 0))} kcal
+                    </button>
+                  )}
+                </div>
                 <button
-                  onClick={() => {
-                    setActiveMeal(meal);
-                    setSheetOpen(true);
-                  }}
+                  onClick={() => openAddPage(meal)}
                   aria-label={`Add food to ${meal}`}
                   className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
                   style={{ backgroundColor: MEASURE_BLUE, color: "#fff" }}
@@ -5486,379 +5606,172 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                   <p className={dark ? "text-white/30 text-sm text-center py-4" : "text-black/30 text-sm text-center py-4"}>No items logged yet</p>
                 ) : (
                   <div className="space-y-2 mb-2">
-                    {items.map((f) => (
-                      <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id, viewDateKey)}>
-                        <div className={dark ? "flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5" : "flex items-center gap-3 bg-black/[0.02] border border-black/5 rounded-xl px-3 py-2.5"}>
-                          {f.photoUrl ? (
-                            <img src={f.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                          ) : (
-                            <div className={dark ? "w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-10 h-10 rounded-lg bg-black/8 flex items-center justify-center shrink-0"}>
-                              <UtensilsCrossed size={16} className={dark ? "text-white/30" : "text-black/30"} />
+                    {items.map((f) => {
+                      const amount = entryAmountLabel(f);
+                      return (
+                        <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id, viewDateKey)}>
+                          <button
+                            onClick={() => openEntryEditor(detailMeal, f)}
+                            aria-label={`Edit ${f.name}`}
+                            className={dark ? "w-full text-left flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 active:opacity-70" : "w-full text-left flex items-center gap-3 bg-black/[0.02] border border-black/5 rounded-xl px-3 py-2.5 active:opacity-70"}
+                          >
+                            {f.photoUrl ? (
+                              <img src={f.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                            ) : (
+                              <div className={dark ? "w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-10 h-10 rounded-lg bg-black/8 flex items-center justify-center shrink-0"}>
+                                <UtensilsCrossed size={16} className={dark ? "text-white/30" : "text-black/30"} />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className={dark ? "text-white text-sm font-semibold truncate" : "text-black text-sm font-semibold truncate"}>{baseFoodName(f)}</p>
+                              <p className={dark ? "text-white/40 text-[11px] mt-0.5 truncate" : "text-black/40 text-[11px] mt-0.5 truncate"}>
+                                {amount ? `${amount} · ` : ""}
+                                {round1(f.protein)}g P · {round1(f.carbs)}g C · {round1(f.fat)}g F
+                              </p>
                             </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className={dark ? "text-white text-sm font-semibold truncate" : "text-black text-sm font-semibold truncate"}>{f.name}</p>
-                            <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
-                              {round1(f.protein)}g P · {round1(f.carbs)}g C · {round1(f.fat)}g F
-                            </p>
-                          </div>
-                          <span className={dark ? "text-white font-semibold text-sm shrink-0" : "text-black font-semibold text-sm shrink-0"}>{f.cals}</span>
-                        </div>
-                      </SwipeableRow>
-                    ))}
-                    <p className={dark ? "text-white/25 text-[10px] text-center pt-0.5" : "text-black/25 text-[10px] text-center pt-0.5"}>Swipe an item left to remove it</p>
+                            <span className={dark ? "text-white font-semibold text-sm shrink-0" : "text-black font-semibold text-sm shrink-0"}>{f.cals}</span>
+                          </button>
+                        </SwipeableRow>
+                      );
+                    })}
+                    <p className={dark ? "text-white/25 text-[10px] text-center pt-0.5" : "text-black/25 text-[10px] text-center pt-0.5"}>Tap an item to change it · swipe left to remove it</p>
                   </div>
                 )}
 
-                <button
-                  onClick={() => {
-                    setActiveMeal(detailMeal);
-                    setDetailMeal(null);
-                    setSheetOpen(true);
-                  }}
-                  className={dark ? "w-full mt-3 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5" : "w-full mt-3 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"}
-                >
-                  <Plus size={14} /> Add food
-                </button>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      const meal = detailMeal;
+                      setDetailMeal(null);
+                      openAddPage(meal);
+                    }}
+                    className={dark ? "flex-1 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5" : "flex-1 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"}
+                  >
+                    <Plus size={14} /> Add food
+                  </button>
+                  {items.length > 0 && (
+                    <button
+                      onClick={() => {
+                        // Turns a meal logged once into a reusable My Meal,
+                        // instead of rebuilding it ingredient by ingredient.
+                        setEditingSavedMealId(null);
+                        setMealPrefill({ name: detailMeal, ingredients: items.map((f) => ({ ...f })) });
+                        setDetailMeal(null);
+                        setCreateMealOpen(true);
+                      }}
+                      className={dark ? "flex-1 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5" : "flex-1 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"}
+                    >
+                      <BookmarkPlus size={14} /> Save as meal
+                    </button>
+                  )}
+                </div>
+                {items.length > 0 && navOffset > 0 && (
+                  <button
+                    onClick={() => {
+                      const meal = detailMeal;
+                      copyMeal(items, meal, localDateKey())
+                        .then(() => setDetailMeal(null))
+                        .catch(() => {});
+                    }}
+                    className="w-full mt-2 text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-white active:scale-[0.98] transition-transform"
+                    style={{ backgroundColor: MEASURE_BLUE }}
+                  >
+                    <Copy size={14} /> Copy to today's {detailMeal}
+                  </button>
+                )}
               </div>
             );
           })()}
       </BottomSheet>
 
-      <BottomSheet
+      <AddFoodPage
+        open={addPageOpen}
+        onClose={() => setAddPageOpen(false)}
         dark={dark}
-        open={sheetOpen}
-        onClose={() => {
-          dismissKeyboard();
-          setSheetOpen(false);
-          setSearch("");
+        meal={activeMeal}
+        meals={mealCategories}
+        onMealChange={setActiveMeal}
+        dateLabel={navOffset === 0 ? null : navLabel}
+        foods={allFoods}
+        afcdFoods={AFCD_FOODS}
+        frequentFoods={frequentFoods}
+        historyCounts={historyCounts}
+        savedMeals={savedMeals}
+        previousMeals={previousMeals}
+        addedItems={sessionAdds}
+        onQuickLog={quickLog}
+        onOpenFood={openFood}
+        onLogSavedMeal={(m) => logSavedMeal(m)}
+        onEditSavedMeal={(m) => {
+          setEditingSavedMealId(m.id);
+          setMealPrefill(m);
+          setCreateMealOpen(true);
         }}
-        title={activeMeal ? `Add to ${activeMeal}` : "Add Food"}
-        keyboardSafeScroll
-      >
-        <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
-          <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
-          <input
-            ref={searchInputRef}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search foods or meals"
-            type="search"
-            enterKeyHint="search"
-            autoCorrect="off"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") dismissKeyboard();
-            }}
-            className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
-          />
-        </div>
-        {!search.trim() && (
-          // Hidden once there's an active search query — on iOS, WKWebView
-          // (unlike Safari) never resizes the page for the on-screen
-          // keyboard, so every bit of vertical space these three buttons
-          // hold onto is space the search results list doesn't get while
-          // the keyboard is up, pushing real results further down behind
-          // it. Standard search UX anyway: once you're typing, you're
-          // searching, not reaching for an alternate way to add a food.
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => {
-                setSheetOpen(false);
-                setBarcodeOpen(true);
-              }}
-              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-            >
-              <ScanLine size={18} />
-              Scan barcode
-            </button>
-            <button
-              onClick={() => {
-                setSheetOpen(false);
-                setPhotoOpen(true);
-              }}
-              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-            >
-              <Camera size={18} />
-              Photo
-            </button>
-            <button
-              onClick={() => {
-                setSheetOpen(false);
-                setQuickAddOpen(true);
-              }}
-              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-            >
-              <Zap size={18} />
-              Quick add
-            </button>
-          </div>
-        )}
-
-        {search.trim() ? (
-          (() => {
-            // matchesSearch() null-guards its `text` argument — a raw
-            // `.name.toLowerCase()` here would throw on any malformed
-            // entry (a custom/saved food or meal with a missing/null
-            // name), and since this recomputes on every keystroke while
-            // the sheet is open, a single bad entry would crash the whole
-            // sheet mid-search rather than just failing to match.
-            const matchedMeals = (savedMeals || []).filter((m) => matchesSearch(m?.name, search));
-            const matchedFoods = allFoods.filter((f) => matchesSearch(f?.name, search));
-            // Falls back to the Australian Food Composition Database (a
-            // free, government-published dataset — see afcdFoods.js) only
-            // when APEX's own already-verified sources (customFoods +
-            // FOOD_DATABASE, searched above) have nothing — "check APEX's
-            // existing verified food database first" means AFCD is a
-            // last resort, never a competing/duplicate result shown
-            // alongside a food the client has already confirmed is right.
-            // A client's own saved correction for an AFCD food becomes a
-            // customFoods doc (see FoodQuantitySheet's onSaveCorrection),
-            // so it's matchedFoods (above) that finds it on a later
-            // search, not this block, the next time the same name is
-            // searched.
-            const matchedAfcd =
-              matchedMeals.length === 0 && matchedFoods.length === 0 ? AFCD_FOODS.filter((f) => matchesSearch(f?.name, search)) : [];
-            return (
-              <div className="space-y-1">
-                {matchedMeals.length === 0 && matchedFoods.length === 0 && matchedAfcd.length === 0 && (
-                  <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No matches for "{search.trim()}"</p>
-                )}
-                {matchedMeals.map((m) => (
-                  <button
-                    key={`meal_${m.id}`}
-                    onClick={() => {
-                      dismissKeyboard();
-                      logSavedMeal(m, activeMeal);
-                      if (activeMeal) showToast(`Logged "${m.name}" to ${activeMeal}`);
-                      setSheetOpen(false);
-                      setSearch("");
-                    }}
-                    className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                  >
-                    {m.photoUrl ? (
-                      <img src={m.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-                    ) : (
-                      <div className={dark ? "w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-9 h-9 rounded-lg bg-black/8 flex items-center justify-center shrink-0"}>
-                        <UtensilsCrossed size={14} className={dark ? "text-white/30" : "text-black/30"} />
-                      </div>
-                    )}
-                    <div className="text-left flex-1 min-w-0">
-                      <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
-                      {/* Search results show kcal only, matching MyFitnessPal's
-                          compact mobile list — the full macro breakdown is
-                          still shown everywhere a food is actually being
-                          logged/reviewed (the quantity sheet, meal detail,
-                          recent foods, My Meals tab), just not in this list. */}
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>My Meals · {m.cals} kcal</p>
-                    </div>
-                  </button>
-                ))}
-                {matchedFoods.map((f) => (
-                  <button
-                    key={`food_${f.id}`}
-                    onClick={() => {
-                      dismissKeyboard();
-                      setPendingFood(f);
-                    }}
-                    className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                  >
-                    <div className="text-left flex-1 min-w-0">
-                      <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{f.cals} kcal</p>
-                    </div>
-                  </button>
-                ))}
-                {matchedAfcd.length > 0 && (
-                  <p className={dark ? "text-white/25 text-[10px] tracking-wide pt-2" : "text-black/25 text-[10px] tracking-wide pt-2"}>
-                    FROM THE AUSTRALIAN FOOD COMPOSITION DATABASE
-                  </p>
-                )}
-                {matchedAfcd.map((f) => {
-                  // Same Atwater/range check a live barcode scan gets
-                  // (validateNutrition, barcodeLookup.js) — belt and
-                  // braces on top of this file's own build-time filtering,
-                  // so a future edit to afcdFoods.js can't slip bad data
-                  // past validation just because it's bundled, not scanned.
-                  const validation = validateNutrition({ cals: f.cals, protein: f.protein, carbs: f.carbs, fat: f.fat });
-                  const shaped = { ...f, fromAFCD: true, ...(validation.plausible ? {} : { nutritionSuspect: true, nutritionSuspectReason: validation.reason }) };
-                  return (
-                    <button
-                      key={`afcd_${f.id}`}
-                      onClick={() => {
-                        dismissKeyboard();
-                        setPendingFood(shaped);
-                      }}
-                      className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                    >
-                      <div className="text-left flex-1 min-w-0">
-                        <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
-                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{f.cals} kcal</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()
-        ) : (
-          <>
-            <div className={dark ? "flex gap-1 bg-white/5 rounded-xl p-1 mb-4" : "flex gap-1 bg-black/5 rounded-xl p-1 mb-4"}>
-              {[
-                ["history", "History"],
-                ["mymeals", "My Meals"],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setLogTab(key)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${
-                    logTab === key ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white/50" : "text-black/50"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+        onCreateMeal={() => {
+          setEditingSavedMealId(null);
+          setMealPrefill(null);
+          setCreateMealOpen(true);
+        }}
+        onCopyMeal={(p) => copyMeal(p.items, activeMeal)}
+        onScan={() => setBarcodeOpen(true)}
+        onPhotoMeal={() => setPhotoOpen(true)}
+        onQuickAdd={() => setQuickAddOpen(true)}
+        renderSavedMealRow={(meal, children) => (
+          <SwipeableRow key={meal.id} onDelete={() => onDeleteSavedMeal(meal.id)} rounded="rounded-2xl">
+            <div className="rounded-2xl" style={clientGlass(dark)}>
+              {children}
             </div>
-
-            {logTab === "history" ? (
-              recentFoods.length === 0 ? (
-                <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>Foods you log will show up here</p>
-              ) : (
-                <div className="space-y-1">
-                  {recentFoods.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => addAndClose({ ...f, id: `recent_${Date.now()}` })}
-                      className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                    >
-                      {f.photoUrl && <img src={f.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
-                      <div className="text-left flex-1 min-w-0">
-                        <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
-                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                          P{round1(f.protein)} · C{round1(f.carbs)} · F{round1(f.fat)}
-                        </p>
-                      </div>
-                      <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{f.cals} kcal</span>
-                    </button>
-                  ))}
-                </div>
-              )
-            ) : (
-              <div>
-                <button
-                  onClick={() => {
-                    setSheetOpen(false);
-                    setMealPrefill(null);
-                    setCreateMealOpen(true);
-                  }}
-                  className={dark ? "w-full flex items-center justify-center gap-2 border border-dashed border-white/15 rounded-xl py-3 mb-3 text-sm font-bold" : "w-full flex items-center justify-center gap-2 border border-dashed border-black/15 rounded-xl py-3 mb-3 text-sm font-bold"}
-                  style={{ color: MEASURE_BLUE }}
-                >
-                  <Plus size={16} /> Create meal
-                </button>
-
-                {(savedMeals || []).length === 0 ? (
-                  <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No saved meals yet</p>
-                ) : (
-                  <div className="space-y-2">
-                    {savedMeals.map((m) => (
-                      <SwipeableRow key={m.id} onDelete={() => onDeleteSavedMeal(m.id)}>
-                        <div
-                          className="rounded-xl border flex items-center gap-3 px-3 py-2.5"
-                          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
-                        >
-                          {m.photoUrl ? (
-                            <img src={m.photoUrl} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                          ) : (
-                            <div className={dark ? "w-12 h-12 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-12 h-12 rounded-lg bg-black/[0.04] flex items-center justify-center shrink-0"}>
-                              <UtensilsCrossed size={18} className={dark ? "text-white/30" : "text-black/30"} />
-                            </div>
-                          )}
-                          <div className="text-left flex-1 min-w-0">
-                            <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
-                            <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{m.cals} cal · P{round1(m.protein)} C{round1(m.carbs)} F{round1(m.fat)}</p>
-                          </div>
-                          <button
-                            onClick={() => {
-                              logSavedMeal(m, activeMeal);
-                              if (activeMeal) showToast(`Logged "${m.name}" to ${activeMeal}`);
-                              setSheetOpen(false);
-                            }}
-                            className={dark ? "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-white/8" : "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-black/[0.05]"}
-                            style={{ color: MEASURE_BLUE }}
-                          >
-                            <Plus size={18} />
-                          </button>
-                        </div>
-                      </SwipeableRow>
-                    ))}
-                    <p className={dark ? "text-white/25 text-[10px] text-center pt-1" : "text-black/25 text-[10px] text-center pt-1"}>Swipe a meal left to remove it from My Meals</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
+          </SwipeableRow>
         )}
-      </BottomSheet>
+      />
 
       <FoodQuantitySheet
         dark={dark}
-        food={pendingFood}
+        layout="page"
+        food={pendingFood?.food || null}
+        initialUnitId={pendingFood?.initialUnitId}
+        initialQty={pendingFood?.initialQty}
+        meal={pendingMeal}
+        meals={mealCategories}
+        onMealChange={setPendingMeal}
+        pageTitle={pendingFood?.edit ? "Edit Entry" : "Add Food"}
+        confirmLabel={pendingFood?.edit ? "Save" : "Log"}
         onClose={() => setPendingFood(null)}
+        onDelete={
+          pendingFood?.edit
+            ? async () => {
+                const { meal, entry } = pendingFood.edit;
+                await onRemoveFood(meal, entry.id, viewDateKey);
+                setPendingFood(null);
+              }
+            : undefined
+        }
         onConfirm={async (scaled, logId) => {
-          // Opened from a dashboard-level tile (no meal preselected) —
-          // ask which meal this goes to before saving anything, instead
-          // of guessing. Opened from a meal's own Log button, activeMeal
-          // is already set and this saves straight through as before.
-          if (!activeMeal) {
+          const food = pendingFood?.food;
+          const entry = food && !food.servingOnly ? { ...scaled, src: sourceSnapshot(food) } : scaled;
+          if (pendingFood?.edit) {
+            const { meal, entry: old } = pendingFood.edit;
+            // Keeps what the old entry was (a saved meal's photo, etc.).
+            const merged = old.photoUrl && !entry.photoUrl ? { ...entry, photoUrl: old.photoUrl } : entry;
+            await onUpdateFood(meal, old.id, pendingMeal, merged, viewDateKey);
             setPendingFood(null);
-            setSheetOpen(false);
-            setMealChoice(scaled);
             return;
           }
-          // Only closes on a confirmed successful save — closing first
-          // (the old behaviour) made a slow save look identical to one
-          // that silently did nothing, which is exactly what sent a
-          // client back to scan the same item again and log it twice. On
-          // failure this stays open (the error toast from addFood already
-          // says why) so retrying doesn't need a second scan.
-          await onAddFood(activeMeal, scaled, viewDateKey, logId);
+          // Only closes on a confirmed save — closing first made a slow save
+          // look identical to one that silently did nothing, which is what
+          // sent a client back to scan the same item again and log it
+          // twice. On failure this stays open (addFood's own toast says
+          // why) so retrying doesn't need a second scan.
+          await onAddFood(pendingMeal, entry, viewDateKey, logId);
+          noteAdded(entry);
           setPendingFood(null);
-          setSheetOpen(false);
         }}
         onSaveCorrection={
           createFood
-            ? (corrected) => setPendingFood((f) => (f ? createFood(buildCorrectedFood(f, corrected)) : f))
+            ? (corrected) => setPendingFood((p) => (p ? { ...p, food: createFood(buildCorrectedFood(p.food, corrected)) } : p))
             : undefined
         }
       />
-
-      <BottomSheet dark={dark} open={!!mealChoice} onClose={() => setMealChoice(null)} title={mealChoice ? `Add "${mealChoice.name}" to…` : ""}>
-        <div className="grid grid-cols-2 gap-2">
-          {mealCategories.map((meal) => (
-            <button
-              key={meal}
-              onClick={async () => {
-                if (addBusyRef.current) return;
-                const food = mealChoice;
-                if (!food) return;
-                addBusyRef.current = true;
-                setMealChoice(null);
-                try {
-                  await onAddFood(meal, food, viewDateKey);
-                  showToast(`Logged "${food.name}" to ${meal}`);
-                } catch (err) {
-                  showToast(err?.message || "Couldn't log that food", true);
-                } finally {
-                  addBusyRef.current = false;
-                }
-              }}
-              className={dark ? "bg-white/8 text-white text-sm font-semibold py-3.5 rounded-xl active:scale-95 transition-transform" : "bg-black/8 text-black text-sm font-semibold py-3.5 rounded-xl active:scale-95 transition-transform"}
-            >
-              {meal}
-            </button>
-          ))}
-        </div>
-      </BottomSheet>
 
       <BottomSheet dark={dark} open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
         <div className="grid grid-cols-3 gap-2">
@@ -5883,7 +5796,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         onClose={() => setBarcodeOpen(false)}
         onAdd={(food) => {
           setBarcodeOpen(false);
-          setPendingFood(food);
+          setPendingMeal(activeMeal);
+          setPendingFood({ food });
         }}
       />
       <QuickAddFoodSheet
@@ -5895,15 +5809,17 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           // Same next step as picking a food from search or a barcode scan
           // — the quantity sheet opens defaulted to the serving size just
           // entered, and lets it be scaled up or down before logging.
-          setPendingFood(food);
+          setPendingMeal(activeMeal);
+          setPendingFood({ food });
         }}
       />
       <PhotoEstimateSheet
         dark={dark}
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
-        onAdd={(estimate) =>
-          addAndClose({
+        onAdd={(estimate) => {
+          setPhotoOpen(false);
+          guardedAdd({
             id: `photo_${Date.now()}`,
             name: estimate.name,
             cals: estimate.cals,
@@ -5911,8 +5827,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             carbs: estimate.carbs,
             fat: estimate.fat,
             photoUrl: estimate.photoUrl,
-          })
-        }
+          });
+        }}
         onSaveAsMeal={saveMealFromEstimate}
       />
       <CreateMealSheet
@@ -5920,9 +5836,16 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         open={createMealOpen}
         onClose={() => setCreateMealOpen(false)}
         prefill={mealPrefill}
+        title={editingSavedMealId ? "Edit Meal" : "Create Meal"}
         onSave={(meal) => {
-          onCreateSavedMeal(meal);
-          showToast(`Saved "${meal.name}" to My Meals`);
+          if (editingSavedMealId) {
+            onUpdateSavedMeal(editingSavedMealId, meal);
+            showToast(`Updated "${meal.name}"`);
+          } else {
+            onCreateSavedMeal(meal);
+            showToast(`Saved "${meal.name}" to My Meals`);
+          }
+          setEditingSavedMealId(null);
           setCreateMealOpen(false);
         }}
       />
@@ -8809,6 +8732,7 @@ export default function ClientApp() {
     addProgressPhoto,
     deleteProgressPhoto,
     createSavedMeal,
+    updateSavedMeal,
     deleteSavedMeal,
     toggleHabitToday,
     updateUser,
@@ -9184,24 +9108,10 @@ export default function ClientApp() {
     [nutritionLogsForClient]
   );
   const nutrition = nutritionByDateKey[todayDateKey] || DEFAULT_NUTRITION;
-  // Distinct foods this client has actually logged before, most recent
-  // first — surfaced in the food-add sheet the same way "My Meals" offers
-  // one-tap re-logging, so a food they eat often (but never saved as a
-  // meal) doesn't mean re-searching or re-typing it from scratch every time.
-  const recentFoods = useMemo(() => {
-    const seen = new Map();
-    const sortedDays = [...nutritionLogsForClient].sort((a, b) => b.date.localeCompare(a.date));
-    for (const day of sortedDays) {
-      for (const items of Object.values(day.meals || {})) {
-        for (const item of items) {
-          const key = (item.name || "").toLowerCase();
-          if (key && !seen.has(key)) seen.set(key, item);
-        }
-      }
-      if (seen.size >= 10) break;
-    }
-    return [...seen.values()].slice(0, 10);
-  }, [nutritionLogsForClient]);
+  // The foods this client actually eats, most-logged first (grouped by
+  // the food itself, not its amount — see nutritionLog.js), surfaced on the
+  // Add Food page for one-tap re-logging.
+  const recentFoods = useMemo(() => buildFrequentFoods(nutritionLogsForClient), [nutritionLogsForClient]);
   const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
   // Each client's own personal "My Meals" list — not shared with other
   // clients, so a meal one client builds doesn't show up in anyone else's.
@@ -9576,89 +9486,106 @@ export default function ClientApp() {
     setPreviewIsTodayLog(isTodayLog);
   }
 
-  function addFood(meal, food, dateKey = todayDateKey, logId) {
-    // Generated once per call, outside the transaction updater below —
-    // the updater can run more than once (Firestore retries it internally
-    // on write contention; see setNutritionForDate's own comment), and a
-    // stable id computed here means every retry of *this* call proposes
-    // the exact same entry rather than a fresh one. A caller can also pass
-    // its own logId (AiNutritionHelpCard's addSuggestion does, derived
-    // from the suggestion's own stable key) to make a genuine retry of the
-    // same logical action — not just a Firestore-internal one — equally
-    // idempotent.
-    //
-    // Every other caller here (FoodQuantitySheet's ADD — the shared path
-    // for search, barcode scan, quick add, and the meal-choice flow — and
-    // guardedAdd's recent-foods/saved-meals/photo-estimate buttons) never
-    // supplies its own logId, so this fallback used to be
-    // `${food.id}-${Date.now()}-${random}` — unique to the millisecond,
-    // every single call. That only guarded a double-DISPATCH of one tap
-    // (two click events landing before a ref/state commit); it did
-    // nothing for a genuinely separate retry of the same action a few
-    // seconds or minutes later — which is exactly what a client does when
-    // a slow or offline-queued save (this app's Firestore client persists
-    // writes locally and syncs once reconnected, surviving an app close)
-    // gives no visible confirmation in time: they assume the tap didn't
-    // register and tap ADD again, or close and reopen the app and log it
-    // again. The original (still-queued) write and the retry then both
-    // eventually reach Firestore with different ids, landing as two
-    // separate, fully genuine entries once both sync — a real production
-    // duplicate this fallback never actually closed.
-    //
-    // Bucketing the timestamp to the nearest RETRY_DEDUPE_WINDOW_MS
-    // (rather than using the exact millisecond) means a retry of the
-    // *same* food into the *same* meal within that window reconciles to
-    // the same id — closing that gap — while a deliberately separate
-    // logging of the same food later (a second coffee an hour later, say)
-    // still falls in a different bucket and is kept as its own entry, per
-    // existing.some(f => f.id === id) below being scoped to this one
-    // meal's own array. A retry landing right on a bucket boundary can
-    // still slip into the next bucket and be treated as separate — an
-    // accepted, rare edge of any coarse time-bucketed key, not worth a
-    // sliding-window scheme for this.
-    const id = logId || `${food.id}-${meal}-${dateKey}-${Math.floor(Date.now() / RETRY_DEDUPE_WINDOW_MS)}`;
+  // A fresh id for every logged entry. It used to be bucketed to the
+  // minute (food + meal + day + minute) so a retried save reconciled to
+  // one entry — but that also silently dropped a deliberate second add of
+  // the same food to the same meal within that minute while still saying
+  // "added". Retries are covered without it: each tap/sheet carries its
+  // own id through its own retries (FoodQuantitySheet's logIdRef,
+  // Fuel IQ's suggestion key), the add buttons ignore a second tap while
+  // a save is running, and an offline save now resolves straight away
+  // ("saved on your phone") instead of leaving the client to tap again.
+  function newEntryId(food) {
+    return `${food?.baseFoodId || food?.id || "food"}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  // One entry's macros (and any micronutrients it carries) added to, or
+  // taken off (sign -1), a day's running totals — never below zero, the
+  // same clamping removeFood has always applied.
+  function applyEntryTotals(day, entry, sign) {
+    const micros = {};
+    MICRO_FIELDS.forEach((key) => {
+      micros[key] = Math.max(0, round1((day[key] || 0) + sign * (Number(entry[key]) || 0)));
+    });
+    return {
+      calories: Math.max(0, Math.round((day.calories || 0) + sign * (Number(entry.cals) || 0))),
+      protein: Math.max(0, round1((day.protein || 0) + sign * (Number(entry.protein) || 0))),
+      carbs: Math.max(0, round1((day.carbs || 0) + sign * (Number(entry.carbs) || 0))),
+      fat: Math.max(0, round1((day.fat || 0) + sign * (Number(entry.fat) || 0))),
+      ...micros,
+    };
+  }
+
+  function savedToast(result, text) {
+    showToast(result === QUEUED ? `${text} — saved on your phone, it'll sync when you're back online` : text);
+  }
+
+  // Logs several foods into one meal in a single save (copying a previous
+  // meal, or a saved meal's foods) — one write, so a copied breakfast
+  // can't half-land. `logIds` lets a caller reuse its own ids so a retry
+  // of the same action reconciles instead of adding twice.
+  function addFoods(meal, foods, dateKey = todayDateKey, { logIds, toast } = {}) {
+    const entries = foods.map((food, i) => ({ ...food, id: logIds?.[i] || newEntryId(food) }));
     return setNutritionForDate(currentUser.id, dateKey, (n) => {
-      const base = n || DEFAULT_NUTRITION;
-      const existing = base.meals?.[meal] || [];
-      // Reconcile by id instead of blindly appending: if this exact entry
-      // is already saved (this same logical add reaching here a second
-      // time), the day's totals and meal list already reflect it — return
-      // the day unchanged rather than double-counting its macros and
-      // logging it twice.
-      if (existing.some((f) => f.id === id)) return base;
-      const micros = {};
-      // Most foods don't carry micronutrient data (only a barcode scan or a
-      // manually-entered figure does) — a missing field just contributes 0
-      // rather than blocking the whole add.
-      MICRO_FIELDS.forEach((key) => {
-        micros[key] = round1((base[key] || 0) + (Number(food[key]) || 0));
+      let day = n || DEFAULT_NUTRITION;
+      // base.meals[meal] can be missing on an older doc saved before this
+      // category existed (e.g. Pre-workout/Post-workout added later).
+      const existing = day.meals?.[meal] || [];
+      // Reconcile by id instead of blindly appending: an entry already
+      // saved (the same logical add reaching here a second time) is
+      // already reflected in the day's totals — never count it twice.
+      const fresh = entries.filter((e) => !existing.some((f) => f.id === e.id));
+      if (fresh.length === 0) return day;
+      fresh.forEach((e) => {
+        day = { ...day, ...applyEntryTotals(day, e, 1) };
       });
-      return {
-        ...base,
-        // Clamped the same way removeFood below already clamps its
-        // subtraction — a food with a bad (e.g. negative) macro value,
-        // however it got into the library, can push a day's total below
-        // zero otherwise.
-        calories: Math.max(0, Math.round((base.calories || 0) + (Number(food.cals) || 0))),
-        protein: Math.max(0, round1((base.protein || 0) + (Number(food.protein) || 0))),
-        carbs: Math.max(0, round1((base.carbs || 0) + (Number(food.carbs) || 0))),
-        fat: Math.max(0, round1((base.fat || 0) + (Number(food.fat) || 0))),
-        ...micros,
-        // base.meals[meal] can be missing on an older doc saved before this
-        // category existed (e.g. Pre-workout/Post-workout added later) —
-        // spreading undefined there threw, silently dropping the whole add.
-        meals: { ...base.meals, [meal]: [...existing, { ...food, id }] },
-      };
+      return { ...day, meals: { ...day.meals, [meal]: [...existing, ...fresh] } };
     })
-      .then(() => showToast(`${food.name} added to ${meal}`))
+      .then((result) => {
+        savedToast(result, toast || (entries.length === 1 ? `${entries[0].name} added to ${meal}` : `${entries.length} foods added to ${meal}`));
+        return result;
+      })
       .catch((err) => {
         showToast(err.message || "Couldn't save — check your connection and try again", true);
-        // Re-thrown so a caller that actually waits on this (the quantity
-        // sheet's Add button) can tell the save failed and let the client
-        // retry instead of assuming it worked. Every other call site here
-        // fires this and moves on without awaiting it — the toast above is
-        // already their only feedback — so each one swallows this re-throw
-        // itself rather than leaving it an unhandled rejection.
+        // Re-thrown so a caller that waits on this (the food page's Log
+        // button, a row's + button) can tell the save failed and let the
+        // client retry instead of assuming it worked; fire-and-forget
+        // callers swallow it themselves.
+        throw err;
+      });
+  }
+
+  function addFood(meal, food, dateKey = todayDateKey, logId) {
+    return addFoods(meal, [food], dateKey, { logIds: logId ? [logId] : undefined });
+  }
+
+  // Changes a logged entry in place — a new amount, and/or moved to a
+  // different meal — instead of deleting it and logging it again. Keeps
+  // the entry's id, so a retried save just re-applies the same change.
+  function updateFood(fromMeal, entryId, toMeal, food, dateKey = todayDateKey) {
+    return setNutritionForDate(currentUser.id, dateKey, (n) => {
+      const base = n || DEFAULT_NUTRITION;
+      const items = base.meals?.[fromMeal] || [];
+      const old = items.find((f) => f.id === entryId);
+      if (!old) throw new Error("That entry is no longer in your log");
+      const entry = { ...food, id: entryId };
+      let day = { ...base, ...applyEntryTotals(base, old, -1) };
+      day = { ...day, ...applyEntryTotals(day, entry, 1) };
+      const meals = { ...base.meals };
+      if (toMeal === fromMeal) {
+        meals[fromMeal] = items.map((f) => (f.id === entryId ? entry : f));
+      } else {
+        meals[fromMeal] = items.filter((f) => f.id !== entryId);
+        meals[toMeal] = [...(meals[toMeal] || []), entry];
+      }
+      return { ...day, meals };
+    })
+      .then((result) => {
+        savedToast(result, toMeal === fromMeal ? "Entry updated" : `Moved to ${toMeal}`);
+        return result;
+      })
+      .catch((err) => {
+        showToast(err.message || "Couldn't save — check your connection and try again", true);
         throw err;
       });
   }
@@ -9889,10 +9816,13 @@ export default function ClientApp() {
             nutritionByDateKey={nutritionByDateKey}
             targets={targets}
             onAddFood={addFood}
+            onAddFoods={addFoods}
+            onUpdateFood={updateFood}
             onRemoveFood={removeFood}
             onAddWater={addWater}
             savedMeals={savedMeals}
             onCreateSavedMeal={(meal) => createSavedMeal(currentUser.id, meal)}
+            onUpdateSavedMeal={(mealId, meal) => updateSavedMeal(currentUser.id, mealId, meal)}
             onDeleteSavedMeal={(mealId) => deleteSavedMeal(currentUser.id, mealId)}
             recentFoods={recentFoods}
             showToast={showToast}
