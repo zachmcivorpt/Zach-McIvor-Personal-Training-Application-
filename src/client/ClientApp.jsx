@@ -3957,6 +3957,68 @@ export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
   // never received a plain tap.
   const gestureRef = useRef(null); // null | "pending" | "swipe" | "scroll"
   const suppressClickRef = useRef(false);
+  // The row's live position, readable synchronously — the end of a swipe
+  // must decide delete-or-snap-back from where the row actually is, not
+  // from whatever `dragX` the last render happened to close over.
+  const dragXRef = useRef(0);
+  const endCleanupRef = useRef(null);
+
+  function moveTo(x) {
+    dragXRef.current = x;
+    setDragX(x);
+  }
+
+  // Pointer capture can throw on iOS for a touch pointer (and isn't
+  // needed for correctness — the window listeners below are what
+  // guarantee the swipe ends). A throw mid-handler is what could leave a
+  // row stuck half-swiped, red showing, neither deleted nor snapped back.
+  function safeCapture(el, id, on) {
+    try {
+      if (on) el?.setPointerCapture?.(id);
+      else if (el?.hasPointerCapture?.(id)) el.releasePointerCapture(id);
+    } catch {
+      // ignore
+    }
+  }
+
+  function finishSwipe() {
+    if (gestureRef.current !== "swipe") return;
+    gestureRef.current = null;
+    endCleanupRef.current?.();
+    endCleanupRef.current = null;
+    // The click that follows the end of a swipe isn't a tap on the row.
+    suppressClickRef.current = true;
+    setDragging(false);
+    if (dragXRef.current < -(widthRef.current * 0.35)) {
+      moveTo(-widthRef.current);
+      setDeleting(true);
+      setTimeout(() => {
+        Promise.resolve(onDelete())
+          .catch(() => {
+            moveTo(0);
+            setDeleting(false);
+          });
+        // No `finally` resetting `deleting` on success: the row's parent
+        // list shrinking (the real data updating) is what removes this
+        // component from the DOM entirely in that case — there's nothing
+        // left to re-enable.
+      }, 150);
+    } else {
+      moveTo(0);
+    }
+  }
+
+  // However the finger lifts — over this row, over the sheet, after iOS
+  // takes the gesture over (pointercancel) or only as a touch event — the
+  // swipe always ends. Listening on the row alone missed some of those on
+  // iOS, leaving the row stuck where the finger left it.
+  function listenForEnd() {
+    const end = () => finishSwipe();
+    const events = ["pointerup", "pointercancel", "touchend", "touchcancel"];
+    events.forEach((t) => window.addEventListener(t, end, true));
+    endCleanupRef.current = () => events.forEach((t) => window.removeEventListener(t, end, true));
+  }
+  useEffect(() => () => endCleanupRef.current?.(), []);
 
   function onPointerDown(e) {
     if (deleting) return;
@@ -3977,40 +4039,23 @@ export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
       }
       gestureRef.current = "swipe";
       setDragging(true);
+      listenForEnd();
       // Without capture, a translating row can slide out from under a
       // touch that hasn't moved on screen, firing a premature pointerleave
       // that cancels the drag — capture keeps this element getting the
       // events regardless of where the row itself has moved to.
-      e.currentTarget.setPointerCapture?.(e.pointerId);
+      safeCapture(e.currentTarget, e.pointerId, true);
     }
     if (gestureRef.current !== "swipe") return;
-    setDragX(Math.min(0, Math.max(dx, -widthRef.current)));
+    moveTo(Math.min(0, Math.max(dx, -widthRef.current)));
   }
   function onPointerUp(e) {
-    const wasSwipe = gestureRef.current === "swipe";
-    gestureRef.current = null;
-    if (!wasSwipe) return;
-    // The click that follows the end of a swipe isn't a tap on the row.
-    suppressClickRef.current = true;
-    setDragging(false);
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-    if (dragX < -(widthRef.current * 0.35)) {
-      setDragX(-widthRef.current);
-      setDeleting(true);
-      setTimeout(() => {
-        Promise.resolve(onDelete())
-          .catch(() => {
-            setDragX(0);
-            setDeleting(false);
-          });
-        // No `finally` resetting `deleting` on success: the row's parent
-        // list shrinking (the real data updating) is what removes this
-        // component from the DOM entirely in that case — there's nothing
-        // left to re-enable.
-      }, 150);
-    } else {
-      setDragX(0);
+    safeCapture(e.currentTarget, e.pointerId, false);
+    if (gestureRef.current !== "swipe") {
+      gestureRef.current = null;
+      return;
     }
+    finishSwipe();
   }
 
   return (
@@ -4024,10 +4069,14 @@ export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onClickCapture={(e) => {
-          if (suppressClickRef.current) {
+          // Swallows the click that ends a swipe, and — belt and braces —
+          // a tap on a row that's somehow been left part-way open just
+          // closes it, rather than acting on what's underneath.
+          if (suppressClickRef.current || (!deleting && dragXRef.current !== 0)) {
             suppressClickRef.current = false;
             e.stopPropagation();
             e.preventDefault();
+            if (!deleting && dragXRef.current !== 0) moveTo(0);
           }
         }}
         style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
