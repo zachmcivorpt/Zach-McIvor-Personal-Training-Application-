@@ -672,7 +672,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   );
 }
 
-function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoToday, isToday = true }) {
+export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoToday, isToday = true }) {
   const dark = useClientDark();
   const logged = nutrition || DEFAULT_NUTRITION;
   const items = [
@@ -683,45 +683,56 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
   ];
   const border = dark ? "border-white/8" : "border-black/8";
   const primaryText = dark ? "text-white" : "text-black";
-  const muted25 = dark ? "text-white/25" : "text-black/25";
-  const muted30 = dark ? "text-white/30" : "text-black/30";
-  const muted35 = dark ? "text-white/35" : "text-black/35";
   const muted50 = dark ? "text-white/50" : "text-black/50";
   const muted70 = dark ? "text-white/70" : "text-black/70";
   const trackClass = dark ? "bg-white/8" : "bg-black/8";
-  const actionBtn = dark ? "bg-white/8 text-white" : "bg-black/8 text-black";
+  // An open section on the page (no glass card), like Daily Execution. The
+  // title stays the same length on every day: iOS WebKit could leave a
+  // lengthened title half-drawn over a backdrop-filter card.
+  const [cal, ...macros] = items;
+  const barColor = (it) => (it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE);
+  const outlineBtn = dark ? "border border-white/20 text-white" : "border border-black/15 text-black";
   return (
-    <div className={`mx-2.5 rounded-2xl p-5 ${border} border`} style={clientGlass(dark)}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`${primaryText} font-semibold`}>{isToday ? "Nutrition Today" : "Nutrition"}</h3>
-        <Utensils size={15} className={muted25} />
+    <div className="mx-2.5 px-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${primaryText}`}>Nutrition</h3>
+        {isToday && <span className={`text-[13px] ${muted50}`}>Today</span>}
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        {items.map((it) => (
-          <div key={it.label}>
-            <div className="flex justify-between text-xs mb-1">
-              <span className={`${muted35} tracking-wide`}>{it.label}</span>
+      <div className={`mt-3 pt-4 border-t ${dark ? "border-white/20" : "border-black"}`}>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className={`text-[28px] leading-none font-semibold tracking-[-0.03em] tabular-nums ${primaryText}`}>
+            {cal.value.toLocaleString()}
+            <span className={`text-[13px] font-normal tracking-normal ${muted50}`}> / {Number(cal.target).toLocaleString()} kcal</span>
+          </p>
+          <p className={`text-[13px] tabular-nums shrink-0 ${muted50}`}>
+            <span className={`font-semibold ${primaryText}`}>{Math.max(0, Math.round(cal.target - cal.value)).toLocaleString()}</span> left
+          </p>
+        </div>
+        <div className="mt-3">
+          <ProgressBar value={cal.value} max={cal.target} height={3} color={barColor(cal)} trackClassName={trackClass} />
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-5">
+          {macros.map((it) => (
+            <div key={it.label} className="min-w-0">
+              <p className={`text-xs ${muted50}`}>{it.label.charAt(0) + it.label.slice(1).toLowerCase()}</p>
+              <p className={`text-[17px] font-semibold tracking-[-0.01em] tabular-nums mt-0.5 truncate ${primaryText}`}>
+                {it.value}
+                {it.unit}
+                <span className={`text-xs font-normal ${muted50}`}> / {it.target}{it.unit}</span>
+              </p>
+              <div className="mt-2">
+                <ProgressBar value={it.value} max={it.target} height={3} color={barColor(it)} trackClassName={trackClass} />
+              </div>
             </div>
-            <p className={`${primaryText} text-sm font-semibold mb-1.5`}>
-              {it.value}
-              {it.unit} <span className={`${muted30} font-normal`}>/ {it.target}{it.unit}</span>
-            </p>
-            <ProgressBar
-              value={it.value}
-              max={it.target}
-              height={6}
-              color={it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE}
-              trackClassName={trackClass}
-            />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-      <div className={`mt-4 pt-4 border-t ${border} flex items-center gap-3`}>
-        <WaterCup value={logged.water} max={targets.water} size={30} dark={dark} />
+      <div className={`mt-5 py-3 border-t border-b ${border} flex items-center gap-3`}>
+        <WaterCup value={logged.water} max={targets.water} size={28} dark={dark} />
         <div className="flex-1 min-w-0">
-          <p className={`${muted50} text-[11px] font-semibold`}>Water</p>
-          <p className={`${muted70} text-sm`}>
-            <span className={`font-bold ${primaryText}`}>{logged.water}</span> / {targets.water} L
+          <p className={`${muted50} text-xs`}>Water</p>
+          <p className={`${muted70} text-sm tabular-nums`}>
+            <span className={`font-semibold ${primaryText}`}>{logged.water}</span> / {targets.water} L
           </p>
         </div>
         {isToday && (
@@ -731,17 +742,17 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
               aria-label="Remove 250 ml"
               onClick={() => onLogWater(-0.25)}
               disabled={!(logged.water > 0)}
-              className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 ${actionBtn}`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 ${outlineBtn}`}
             >
               <Minus size={14} />
             </button>
-            <button type="button" onClick={() => onLogWater(0.25)} className={`h-9 px-3 rounded-full text-xs font-bold active:scale-90 transition-transform ${actionBtn}`}>
+            <button type="button" onClick={() => onLogWater(0.25)} className={`h-9 px-3 rounded-full text-xs font-semibold active:scale-90 transition-transform ${outlineBtn}`}>
               +250ml
             </button>
             <button
               type="button"
               onClick={() => onLogWater(0.5)}
-              className={`h-9 px-3 rounded-full text-xs font-bold active:scale-90 transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
+              className={`h-9 px-3 rounded-full text-xs font-semibold active:scale-90 transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
             >
               +500ml
             </button>
@@ -749,18 +760,20 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
         )}
       </div>
       {isToday ? (
-        <div className="flex gap-2 mt-4">
-          <button onClick={onLogFood} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
-            + LOG FOOD
-          </button>
-        </div>
+        <button
+          onClick={onLogFood}
+          className={`w-full mt-4 h-12 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
+        >
+          + LOG FOOD
+        </button>
       ) : (
         onGoToday && (
-          <div className="flex gap-2 mt-4">
-            <button onClick={onGoToday} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
-              LOG FOOD &amp; WATER FOR TODAY
-            </button>
-          </div>
+          <button
+            onClick={onGoToday}
+            className={`w-full mt-4 h-12 rounded-xl text-sm font-semibold active:scale-[0.98] transition-transform ${outlineBtn}`}
+          >
+            LOG FOOD &amp; WATER FOR TODAY
+          </button>
         )
       )}
     </div>

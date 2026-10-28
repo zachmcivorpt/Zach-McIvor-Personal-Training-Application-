@@ -55,6 +55,9 @@ rather than inventing new colors per screen:
   app's top bar is white) and the bottom; the page header and
   Today/Program switch sit on the plain page above it.
 - Lists are open rows with thin dividers (a darker top rule), not cards.
+- Home's sections (Daily Execution, Nutrition) are open on the page, not
+  glass cards. Avoid a title that changes length over a backdrop-filter
+  card: iOS WebKit can leave the new text half-drawn (#111).
 - Content placed after `TrainingPhotoHero` must be `relative`, or the
   photo's bottom fade paints over it.
 

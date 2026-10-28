@@ -2270,6 +2270,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Manual check still needed**: on a real iPhone, the photo header under the white top bar and swiping a cardio row on Home.
 - **Date added**: 2026-10-28
 
+### 111. Home: "Nutrition Today" title half-drawn on iPhone
+- **Problem**: reported from a real iPhone after #110: on Home the nutrition card's title showed "Nutrition" with "Today" only half drawn. The data was right. The card was a backdrop-filter glass card and its title changed length between days ("Nutrition" on other days, "Nutrition Today" today); iOS WebKit left the lengthened text part-painted over the blurred layer after switching back to today.
+- **Fix**: `NutritionSummaryCard` (`src/client/ClientApp.jsx`, Home only) restyled to match the Concept A Home: an open section on the page (no glass, no backdrop-filter), title always "Nutrition" with a separate small "Today" label, calories as a large figure with "left", macros in three columns with thin bars, water row between dividers, solid Log food button. Same data, same actions (Log food, water +250/+500/-250, "Log food & water for today" on other days).
+- **Regression tests**: `src/client/nutritionSummaryOpen.test.jsx`: same title on today and another day with no backdrop-filter; calories left plus Log food and water buttons call through with the right amounts; another day offers "Log food & water for today". The first case fails against the old card (glass + changing title), checked then restored. Screenshotted from the real Home component at 430px in light, dark and a past day, no console errors. The WebKit repaint itself can't be reproduced here (no WebKit); confirm on a real iPhone.
+- **Date added**: 2026-10-28
+
 ---
 
 ## What still requires manual testing
