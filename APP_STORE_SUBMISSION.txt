@@ -286,3 +286,84 @@ support iPad's default listing size) directly from the installed
 TestFlight build — Settings gear icon isn't needed; on iPad, press
 the top button + volume up together for a screenshot, or use the
 Screenshot toolbar if using Apple Pencil.
+
+
+===========================================================================
+10. VERSION 1.0.3 — SUBMISSION SHEET (owner decision 2026-10-28)
+===========================================================================
+
+1.0.2 was never submitted, so 1.0.3 is the first update since the live
+version: its notes cover both.
+
+Build: the 1.0.3 build Codemagic made from main commit fdabf13 (camera
+permission text now covers form-check videos and photos — Apple rejects
+permission text that doesn't match what the app does, 5.1.1). Use that
+build, not the earlier 1.0.3 one.
+
+A. Version page
+  - Rename the unsent version page to 1.0.3 (or "+ Version" > 1.0.3).
+  - Build: pick the newest 1.0.3 build.
+
+B. What's New in This Version (paste):
+
+    Train Solo is here: self-guided programs built by your coach,
+    scheduled on the days you choose to train. Preview every session,
+    review the lifts from any workout, and track your water.
+
+    Apple Health: connect it to see your steps, sleep, resting heart rate
+    and weight on your progress.
+
+    Voice notes in messages, form-check videos you can record on any set
+    for your coach's feedback, and a "Rest's up" alert on your lock
+    screen between sets.
+
+    The app now opens and saves your workout even with no signal. Plus
+    full-screen login, a refreshed look, and general fixes and speed
+    improvements.
+
+C. Description — add these lines (KEY FEATURES list), then save:
+    - Apple Health: see your steps, sleep, resting heart rate and
+      weight alongside your training (read-only)
+    - Train Solo: self-guided programs for training without a coach
+    - Voice notes and form-check videos for your coach
+  (Apps using HealthKit should say so in their description.)
+
+D. App Privacy — Edit, add:
+    - Health & Fitness > Health: already declared; make sure it's there.
+    - Audio Data (voice notes): App Functionality, linked to the user,
+      not used for tracking.
+    - Photos or Videos: already declared (form-check videos fall under it).
+  Publish the privacy changes.
+
+E. Screenshots: the 10 framed 1320x2868 images prepared 2026-10-26
+   (6.9" iPhone). No Train Solo prices or buy buttons in them (3.1.1).
+   iPad screenshots: keep the existing ones.
+
+F. App Review Information > Notes (replace with):
+
+    "APEX has two parts from one start screen: Coaching (coach and
+    client accounts) and Train Solo (self-guided training).
+
+    Coaching: sign in with the coach demo account below; tap any client
+    to see their program, nutrition and progress.
+
+    Train Solo: on the start screen tap Train Solo > Log in with the
+    Train Solo demo account below (it already owns programs). Train
+    Solo programs are not sold in the app: it shows no prices, purchase
+    buttons or links to buy (3.1.1).
+
+    Apple Health (new): on the iPhone app, Profile > Apple Health >
+    Connect. APEX only reads steps, sleep, resting heart rate and body
+    weight to show on Progress; it never writes to Health and Health
+    data is never used for advertising.
+
+    Microphone: voice notes in Messages and form-check videos.
+    Camera: form-check videos, progress photos, barcode scanning."
+
+    Sign-in: the coach demo login and the Train Solo demo login. Keep the
+    credentials in App Store Connect only, never in this repository.
+
+G. Submit for Review. Release: "Manually release" is safest (you
+   choose the moment after approval); "Automatically" is fine too.
+
+If Apple rejects it: send me the exact message from Resolution Center.
