@@ -42,9 +42,9 @@ the script that made them from the full-size downloads. Unsplash image IDs:
 
 | Recipe | Unsplash image |
 |---|---|
-| Crispy Chicken Burger | photo-1692737348416-0a4fa4cf1523 |
-| The Big SMAC (also cover) | photo-1607013251379-e6eecfffe234 |
-| Loaded Beef Nachos (also cover) | photo-1734769975334-e42a3be8714d |
+| Crispy Chicken Burger (also cover) | photo-1692737348416-0a4fa4cf1523 |
+| The Big SMAC | photo-1607013251379-e6eecfffe234 |
+| Loaded Beef Nachos | photo-1734769975334-e42a3be8714d |
 | Chipotle Quesadillas | photo-1719957770167-bb66133ba808 |
 | Pepperoni Pizza | photo-1541745537411-b8046dc6d66c |
 | Beef Doner Kebab | photo-1529006557810-274b9b2fc783 |
@@ -57,7 +57,7 @@ the script that made them from the full-size downloads. Unsplash image IDs:
 | Prawn Fried Rice | photo-1551326844-4df70f78d0e9 |
 | Prawn Pad Thai | photo-1559314809-0d155014e29e |
 | Fish & Chips | photo-1611599538235-128e54f1250f |
-| Choc Lava Cakes | photo-1617305855058-336d24456869 |
+| Choc Lava Cakes (also cover) | photo-1617305855058-336d24456869 |
 | Caramel Thickshake (also cover) | photo-1546470427-0d4db154ceb7 |
 
 Full URL: `https://images.unsplash.com/<id>`.
