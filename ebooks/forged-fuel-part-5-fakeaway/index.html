@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en-AU"><head><meta charset="utf-8">
+<title>Forged Fuel Part V – The Fakeaway Files</title>
+<style>/* FORGED FUEL - page system matched to Parts I-III (Canva originals, 419.25 x 595.5 pt) */
+@font-face { font-family: "Black Ops One"; src: url(fonts/BlackOpsOne.ttf); }
+@font-face { font-family: "Shrikhand"; src: url(fonts/Shrikhand.ttf); }
+@font-face { font-family: "Fraunces"; src: url(fonts/Fraunces-Regular.ttf); font-weight: 400; }
+@font-face { font-family: "Fraunces"; src: url(fonts/Fraunces-SemiBold.ttf); font-weight: 600; }
+@font-face { font-family: "Fraunces"; src: url(fonts/Fraunces-Bold.ttf); font-weight: 700; }
+@font-face { font-family: "Fraunces"; src: url(fonts/Fraunces-BoldItalic.ttf); font-weight: 700; font-style: italic; }
+@font-face { font-family: "Fraunces"; src: url(fonts/Fraunces-BlackItalic.ttf); font-weight: 900; font-style: italic; }
+@font-face { font-family: "Archivo Black"; src: url(fonts/ArchivoBlack.ttf); }
+@font-face { font-family: "Archivo Narrow"; src: url(fonts/ArchivoNarrow-SemiBoldItalic.ttf); font-weight: 600; font-style: italic; }
+@font-face { font-family: "Noto Sans"; src: url(fonts/NotoSans-Bold.ttf); font-weight: 700; }
+@font-face { font-family: "Noto Sans"; src: url(fonts/NotoSans-ExtraBold.ttf); font-weight: 800; }
+
+@page { size: 419.25pt 595.5pt; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #fff; }
+body { font-family: "Fraunces", serif; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media screen {
+  body { background: #8a8a8a; padding: 24px 0; }
+  .page { margin: 0 auto 24px; box-shadow: 0 2px 14px rgba(0,0,0,.35); }
+}
+.page { position: relative; width: 419.25pt; height: 595.5pt; overflow: hidden; background: #fff; page-break-after: always; break-after: page; }
+
+/* ---------- shared recipe-page furniture ---------- */
+.frame { position: absolute; left: 6.5pt; top: 6.5pt; width: 406.2pt; height: 565pt; border: 3.6pt solid #000; z-index: 1; }
+.title { position: absolute; left: 24pt; top: 33pt; width: 330pt; height: 30pt; font: 400 23pt/30pt "Black Ops One"; white-space: nowrap; z-index: 3; }
+.title span { display: inline-block; }
+.underline { position: absolute; left: 27pt; top: 66pt; width: 295pt; height: 5.3pt; z-index: 3; }
+.logo { position: absolute; left: 364pt; top: 27pt; width: 38pt; z-index: 3; }
+.cal { position: absolute; left: 24pt; top: 86pt; font: 400 14.5pt/18pt "Shrikhand"; white-space: nowrap; z-index: 3; }
+.cal .ps { font: 600 6pt/1 "Fraunces"; letter-spacing: .08em; text-transform: uppercase; color: #6b6b6b; margin-left: 6pt; vertical-align: 2pt; }
+.mac { position: absolute; left: 24pt; top: 117pt; font: 400 10.8pt/14pt "Shrikhand"; white-space: nowrap; z-index: 3; }
+.meta { position: absolute; left: 24.5pt; top: 138pt; font: 600 6.2pt/8pt "Fraunces"; letter-spacing: .06em; color: #555; white-space: nowrap; z-index: 3; }
+.hframe { position: absolute; width: 136pt; height: 24pt; z-index: 3; }
+.hframe img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hframe span { position: absolute; left: 5pt; top: 1pt; font: italic 900 16.5pt/23pt "Fraunces"; letter-spacing: .01em; }
+.ing-h { left: 18.5pt; top: 158pt; }
+.ins-h { left: 22pt; width: 146pt; }
+.ing { position: absolute; left: 22pt; top: 190pt; width: 199pt; z-index: 3; font-size: 8.6pt; line-height: 1.34; }
+.ing .grp { font-weight: 700; font-size: .92em; margin: 5pt 0 1.5pt; }
+.ing .grp:first-child { margin-top: 0; }
+.ing ul { list-style: none; }
+.ing li { position: relative; padding-left: 12pt; }
+.ing li::before { content: ""; position: absolute; left: 3pt; top: .55em; width: 3.2pt; height: 3.2pt; border-radius: 50%; background: #000; }
+.ing .side { margin-top: 5pt; font-size: .88em; font-style: italic; font-weight: 700; color: #333; }
+.ins { position: absolute; left: 19pt; width: 388pt; z-index: 3; font-size: 8.3pt; line-height: 1.32; text-align: left; }
+.ins p { margin-bottom: 4.2pt; }
+.ins p:last-child { margin-bottom: 0; }
+.ins .tip { margin-top: 5pt; }
+.photo { position: absolute; z-index: 2; }
+.photo.rect { left: 228pt; width: 172pt; top: 104pt; }
+.photo img { display: block; width: 100%; height: 100%; }
+.photo.rect img { object-fit: cover; }
+.photo.cut img { object-fit: contain; object-position: center center; }
+.pnum { position: absolute; left: 201.6pt; top: 573pt; width: 16pt; height: 16pt; border: .9pt solid #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 700 6.4pt/1 "Noto Sans"; }
+
+/* ---------- cover (positions measured from the Part I-III covers) ---------- */
+.c-base { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 0; }
+.c-img { position: absolute; z-index: 4; }
+.c-tl { left: -36pt; top: -62pt; width: 200pt; transform: rotate(-4deg); }
+.c-bl { left: -14pt; top: 350pt; width: 178pt; transform: rotate(-3deg); }
+.c-br { left: 160pt; top: 404pt; width: 290pt; }
+.c-logo { position: absolute; left: 349pt; top: 30pt; width: 40pt; z-index: 3; text-align: center; }
+.clogo { width: 40pt; display: block; }
+.c-logo .pt { font: 700 2.5pt/1 "Noto Sans"; letter-spacing: .1em; margin-top: -1pt; }
+.c-part { position: absolute; left: 112pt; top: 238pt; width: 196pt; z-index: 3; overflow: visible; }
+.c-sub { position: absolute; left: 0; right: 0; top: 298pt; text-align: center; font: 400 16.5pt/1 "Black Ops One"; letter-spacing: .01em; -webkit-text-stroke: .35pt #000; z-index: 3; }
+.c-sub-brush { position: absolute; left: 92pt; top: 317pt; width: 250pt; height: 4.6pt; z-index: 3; }
+.c-plus { position: absolute; right: 24pt; top: 339pt; font: 400 13pt/1 "Black Ops One"; color: #141a33; text-shadow: .7pt .7pt 0 #9ea3b5; z-index: 3; white-space: nowrap; }
+.c-plus-sub { position: absolute; right: 30pt; top: 357pt; font: italic 600 5.8pt/1 "Archivo Narrow"; letter-spacing: .02em; z-index: 3; }
+
+/* ---------- menu / contents ---------- */
+.m-intro { position: absolute; left: 24pt; top: 88pt; width: 370pt; font-size: 8.6pt; line-height: 1.4; z-index: 3; }
+.m-list { position: absolute; left: 24pt; top: 128pt; width: 370pt; z-index: 3; }
+.m-sec { font: 400 10pt/1 "Shrikhand"; margin: 7pt 0 2.5pt; }
+.m-sec:first-child { margin-top: 0; }
+.m-row { display: flex; align-items: baseline; color: #000; text-decoration: none; font-size: 8.4pt; line-height: 1.5; }
+.m-n { width: 17pt; font: 700 6.6pt/1 "Noto Sans"; color: #777; }
+.m-t { font-weight: 600; }
+.m-dots { flex: 1; border-bottom: .6pt dotted #9a9a9a; margin: 0 6pt; transform: translateY(-2pt); }
+.m-k { font-size: 7.6pt; color: #333; white-space: nowrap; }
+.m-h { left: 18.5pt; width: 190pt; }
+.hframe span { white-space: nowrap; }
+.m-notes { position: absolute; left: 24pt; width: 370pt; list-style: none; font-size: 7.6pt; line-height: 1.38; z-index: 3; }
+.m-notes li { position: relative; padding-left: 11pt; margin-bottom: 2.6pt; }
+.m-notes li::before { content: ""; position: absolute; left: 2.5pt; top: .55em; width: 3pt; height: 3pt; border-radius: 50%; background: #000; }
+.m-credit { position: absolute; left: 24pt; width: 370pt; bottom: 30pt; font-size: 6pt; line-height: 1.35; color: #6b6b6b; z-index: 3; }
+
+/* ---------- closing (afterword) ---------- */
+.closing { background: #000; color: #fff; }
+.kframe { position: absolute; left: 4.5pt; top: 4.5pt; right: 4.5pt; bottom: 4.5pt; border: .8pt solid #fff; }
+.kframe::after { content: ""; position: absolute; inset: 1.6pt; border: .8pt solid #fff; }
+.klogo { position: absolute; left: 359pt; top: 26pt; width: 36pt; }
+.k-forge { position: absolute; left: 16pt; top: 58pt; width: 236pt; }
+.k-under { position: absolute; left: 14pt; top: 86pt; width: 295pt; height: 5.4pt; }
+.k-h { position: absolute; left: 16pt; top: 104pt; font: 600 15.5pt/1 "Fraunces"; }
+.k-body { position: absolute; left: 15pt; width: 390pt; top: 125pt; font-size: 7.9pt; line-height: 1.32; }
+.k-body p { margin-bottom: 9pt; }
+.k-body ul { list-style: none; margin-left: 10pt; }
+.k-body li { position: relative; padding-left: 9pt; }
+.k-body li::before { content: ""; position: absolute; left: 0; top: .55em; width: 2.6pt; height: 2.6pt; border-radius: 50%; background: #fff; }
+.k-ready { position: absolute; left: 12pt; top: 300pt; width: 182pt; height: 31pt; }
+.k-ready img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.k-ready span { position: absolute; left: 9pt; top: 9pt; font: 700 13.5pt/1 "Fraunces"; }
+.k-body2 { top: 342pt; }
+.k-body2 .tight { margin-bottom: 9pt; }
+.k-body2 a { color: #fff; font-weight: 700; text-decoration: underline; text-underline-offset: 1.5pt; }
+.k-fan { position: absolute; left: 0; right: 0; top: 418pt; height: 150pt; }
+.k-fan img { position: absolute; width: 84pt; height: 119pt; top: 12pt; box-shadow: 0 1pt 4pt rgba(0,0,0,.6); border: .6pt solid #fff; }
+.k-fan img:nth-child(1) { left: 22pt; transform: rotate(-9deg); top: 22pt; }
+.k-fan img:nth-child(2) { left: 95pt; transform: rotate(-4deg); top: 14pt; }
+.k-fan img:nth-child(3) { left: 168pt; top: 10pt; }
+.k-fan img:nth-child(4) { left: 241pt; transform: rotate(4deg); top: 14pt; }
+.k-fan img:nth-child(5) { left: 313pt; transform: rotate(9deg); top: 22pt; }
+</style></head>
+<body>
+<section class="page cover" id="cover">
+  <img class="c-base" src="assets/cover-base.png" alt="">
+  <div class="c-logo"><svg class="clogo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg><div class="pt">PERSONAL TRAINING</div></div>
+  <svg class="c-part" viewBox="-3 -2 244 68">
+    <defs><linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe46b"/><stop offset=".5" stop-color="#f7a516"/><stop offset="1" stop-color="#c25e00"/>
+    </linearGradient></defs>
+    <g font-family="Black Ops One" font-size="54" letter-spacing="1">
+      <text x="3" y="60" fill="#000" stroke="#000" stroke-width="7" stroke-linejoin="round" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
+      <text x="1" y="58" fill="url(#pv)" stroke="#000" stroke-width="5.5" stroke-linejoin="round" paint-order="stroke" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
+    </g>
+  </svg>
+  <div class="c-sub">THE FAKEAWAY FILES</div>
+  <img class="c-sub-brush" src="assets/brush-underline.png" alt="">
+  <div class="c-plus">+ OUR DOUBLE SMASH 'BIG SMAC'</div>
+  <div class="c-plus-sub">TAKEAWAY TASTE, BUILT TO FIT YOUR MACROS</div>
+  <img class="c-img c-tl" src="photos/butter-chicken.png" alt="">
+  <img class="c-img c-bl" src="photos/shake.png" alt="">
+  <img class="c-img c-br" src="photos/smash-burger.png" alt="">
+</section>
+<section class="page menu" id="menu">
+  <div class="frame"></div>
+  <h1 class="title"><span>THE MENU</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <p class="m-intro">Seventeen takeaway favourites, rebuilt at home with high-protein ingredients and the
+  techniques that make them taste like the real thing. Everything comes from an ordinary Coles or
+  Woolworths shop and works on a weeknight.</p>
+  <div class="m-list"><div class="m-sec">Burgers &amp; Handhelds</div><a class="m-row" href="#chicken-burger"><span class="m-n">01</span><span class="m-t">Crispy Chicken Burger</span><span class="m-dots"></span><span class="m-k">545 cal · 52g protein</span></a><a class="m-row" href="#smash-burger"><span class="m-n">02</span><span class="m-t">The Big SMAC</span><span class="m-dots"></span><span class="m-k">540 cal · 49g protein</span></a><div class="m-sec">Pizza, Mexican &amp; Greek</div><a class="m-row" href="#nachos"><span class="m-n">03</span><span class="m-t">Loaded Beef Nachos</span><span class="m-dots"></span><span class="m-k">615 cal · 52g protein</span></a><a class="m-row" href="#quesadilla"><span class="m-n">04</span><span class="m-t">Chipotle Quesadillas</span><span class="m-dots"></span><span class="m-k">555 cal · 55g protein</span></a><a class="m-row" href="#pizza"><span class="m-n">05</span><span class="m-t">Pepperoni Pizza</span><span class="m-dots"></span><span class="m-k">600 cal · 38g protein</span></a><a class="m-row" href="#doner"><span class="m-n">06</span><span class="m-t">Beef Doner Kebab</span><span class="m-dots"></span><span class="m-k">530 cal · 46g protein</span></a><a class="m-row" href="#souvlaki"><span class="m-n">07</span><span class="m-t">Pork Souvlaki Plate</span><span class="m-dots"></span><span class="m-k">640 cal · 57g protein</span></a><div class="m-sec">Asian &amp; Curry House</div><a class="m-row" href="#butter-chicken"><span class="m-n">08</span><span class="m-t">Chicken Tikka Masala</span><span class="m-dots"></span><span class="m-k">575 cal · 54g protein</span></a><a class="m-row" href="#honey-soy"><span class="m-n">09</span><span class="m-t">Honey Soy Chicken</span><span class="m-dots"></span><span class="m-k">600 cal · 51g protein</span></a><a class="m-row" href="#korean"><span class="m-n">10</span><span class="m-t">Korean Fried Chicken</span><span class="m-dots"></span><span class="m-k">445 cal · 51g protein</span></a><a class="m-row" href="#mongolian"><span class="m-n">11</span><span class="m-t">Mongolian Beef</span><span class="m-dots"></span><span class="m-k">595 cal · 49g protein</span></a><a class="m-row" href="#sweet-sour"><span class="m-n">12</span><span class="m-t">Sweet &amp; Sour Pork</span><span class="m-dots"></span><span class="m-k">475 cal · 44g protein</span></a><a class="m-row" href="#fried-rice"><span class="m-n">13</span><span class="m-t">Prawn Fried Rice</span><span class="m-dots"></span><span class="m-k">535 cal · 47g protein</span></a><a class="m-row" href="#pad-thai"><span class="m-n">14</span><span class="m-t">Prawn Pad Thai</span><span class="m-dots"></span><span class="m-k">615 cal · 45g protein</span></a><div class="m-sec">Chippy &amp; Sweet Treats</div><a class="m-row" href="#fish-chips"><span class="m-n">15</span><span class="m-t">Fish &amp; Chips</span><span class="m-dots"></span><span class="m-k">550 cal · 51g protein</span></a><a class="m-row" href="#lava"><span class="m-n">16</span><span class="m-t">Choc Lava Cakes</span><span class="m-dots"></span><span class="m-k">345 cal · 27g protein</span></a><a class="m-row" href="#shake"><span class="m-n">17</span><span class="m-t">Caramel Thickshake</span><span class="m-dots"></span><span class="m-k">375 cal · 46g protein</span></a></div>
+  <div class="hframe m-h"><img src="assets/brush-frame-a.png" alt=""><span>BEFORE YOU COOK</span></div>
+  <ul class="m-notes">
+    <li><b>Nutrition is per serve,</b> calculated from the exact quantities listed: meat and seafood weighed raw, rice and noodles weighed dry. Brands differ, so check your own labels if you track closely.</li>
+    <li><b>“High-protein Greek yoghurt”</b> means a plain, 0%-fat style with about 10 g protein per 100 g (e.g. Chobani Fit or a supermarket high-protein tub).</li>
+    <li><b>Oven temperatures are fan-forced.</b> Air fryers vary, so check food a few minutes early.</li>
+    <li><b>Cook chicken to 74°C</b> in the centre, or until the juices run clear with no pink.</li>
+  </ul>
+  <p class="m-credit">Food photography: Unsplash contributors, used under the Unsplash Licence. Dishes are styled for the camera, so yours may look a little different.</p>
+</section>
+<section class="page recipe" id="chicken-burger" data-mode="cut">
+  <div class="frame"></div>
+  <h1 class="title"><span>CRISPY CHICKEN BURGER</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;545cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;52g (P) 60g (C) 10g (F)</div>
+  <div class="meta">SERVES 2 · PREP 15 MIN · COOK 16 MIN · FIBRE 3g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Chicken</div><ul><li>320 g chicken breast (2 fillets)</li><li>80 g high-protein Greek yoghurt</li><li>20 ml lite milk + 1 tsp lemon juice</li><li>40 g cornflakes, lightly crushed</li><li>20 g panko breadcrumbs</li><li>1 tsp smoked paprika, ½ tsp garlic powder, ½ tsp onion powder, ¼ tsp cayenne, 1 tsp chicken salt</li><li>Olive oil spray (about 3 g)</li></ul><div class="grp">Burger</div><ul><li>2 soft white burger buns (approx. 70 g each)</li><li>40 g iceberg lettuce, shredded</li><li>20 g light mayonnaise</li><li>20 g Greek yoghurt + ½ small garlic clove, grated</li></ul></div>
+  <div class="photo cut" style="left:224pt;width:222pt;"><img src="photos/chicken-burger.png" alt="Crispy Chicken Burger"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Flatten &amp; marinate:</b> Pound each fillet between baking paper to an even 1.5 cm thick so it cooks before it dries out. Mix the yoghurt, milk, lemon juice, half the paprika and a pinch of salt, coat the chicken and refrigerate for 30 minutes (or overnight).</p><p><b>2. Crumb:</b> Mix the crushed cornflakes, panko and remaining spices. Lift the chicken from the marinade, let the excess drip off, then press firmly into the crumb on both sides.</p><p><b>3. Cook:</b> Spray all over with oil. Air fry at 190°C for 14–16 minutes, turning halfway, until golden and cooked through (74°C in the centre). Oven: 200°C fan-forced on a rack over a tray, 20–22 minutes. Rest 3 minutes on the rack.</p><p><b>4. Build:</b> Stir the mayo, yoghurt and garlic together. Toast the buns cut-side down in a dry pan, then layer sauce, lettuce, chicken and a final spoon of sauce.</p><p class="tip"><b><i>Takeaway secret:</i></b> Every patch of crumb you miss with the oil spray stays pale, so coat it properly. Resting on a rack, not a plate, keeps the base crunchy.</p></div>
+  <div class="pnum"><span>1</span></div>
+</section>
+<section class="page recipe" id="smash-burger" data-mode="cut">
+  <div class="frame"></div>
+  <h1 class="title"><span>THE BIG SMAC</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;540cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;49g (P) 37g (C) 21g (F)</div>
+  <div class="meta">SERVES 2 · PREP 10 MIN · COOK 10 MIN · FIBRE 2g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Patties</div><ul><li>300 g 5-star beef mince (5% fat), rolled into 4 loose balls</li><li>4 light burger cheese slices (80 g)</li><li>Olive oil spray (about 3 g)</li><li>Salt &amp; cracked black pepper</li></ul><div class="grp">Special sauce</div><ul><li>40 g high-protein Greek yoghurt</li><li>20 g light mayonnaise</li><li>10 g tomato sauce + 5 g American mustard</li><li>15 g dill pickles, finely diced, + 1 tsp pickle juice</li><li>¼ tsp each smoked paprika, garlic powder &amp; onion powder</li></ul><div class="grp">To serve</div><ul><li>2 soft burger buns (approx. 70 g each)</li><li>30 g dill pickle slices</li></ul></div>
+  <div class="photo cut" style="left:224pt;width:208pt;"><img src="photos/smash-burger.png" alt="The Big Smac"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Sauce first:</b> Stir all the special sauce ingredients together and chill while you cook – it tastes better after 10 minutes.</p><p><b>2. Roll, don&#x27;t knead:</b> Shape the mince into 4 loose balls and keep them cold. Overworking makes the patties tight and dry.</p><p><b>3. Smash:</b> Heat a heavy frying pan over high heat for 3 minutes, then spray lightly with oil. Add 2 balls and immediately smash each to 1 cm thick with a sturdy spatula (baking paper on top stops sticking). Season and cook untouched for 2 minutes until deeply browned.</p><p><b>4. Flip &amp; stack:</b> Scrape under the crust, flip, top each patty with a cheese slice and cook 45–60 seconds. Repeat with the remaining balls.</p><p><b>5. Build:</b> Toast the buns. Spread sauce on both halves, add pickles, then stack two cheesy patties per burger.</p><p class="tip"><b><i>Takeaway secret:</i></b> Smash once, in the first 30 seconds, and never press again. Lean mince gets its flavour from that crust, so the pan must be properly hot.</p></div>
+  <div class="pnum"><span>2</span></div>
+</section>
+<section class="page recipe" id="nachos" data-mode="cut">
+  <div class="frame"></div>
+  <h1 class="title"><span>LOADED BEEF NACHOS</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;615cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;52g (P) 44g (C) 23g (F)</div>
+  <div class="meta">SERVES 2 · PREP 15 MIN · COOK 25 MIN · FIBRE 14g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Chips &amp; beef</div><ul><li>6 small corn tortillas (150 g), each cut into 6 wedges</li><li>Olive oil spray (about 4 g)</li><li>300 g 5-star beef mince (5% fat)</li><li>½ brown onion (60 g), finely diced + 1 garlic clove, crushed</li><li>1 tsp each ground cumin &amp; smoked paprika; ½ tsp each chilli powder &amp; oregano</li><li>20 g tomato paste</li><li>120 g canned black beans, rinsed (about ½ can)</li><li>50 g light tasty cheese, grated</li></ul><div class="grp">Toppings</div><ul><li>60 g high-protein Greek yoghurt (your &#x27;sour cream&#x27;)</li><li>70 g avocado, mashed with lime juice &amp; salt</li><li>100 g tomato + 20 g red onion, diced, with coriander</li><li>20 g pickled jalapeños + 20 g radish, sliced; lime wedges</li></ul></div>
+  <div class="photo cut" style="left:224pt;width:228pt;"><img src="photos/nachos.png" alt="Loaded Beef Nachos"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Bake the chips:</b> Spread the wedges over two lined trays, spray with oil and salt lightly. Bake at 200°C fan-forced for 8–10 minutes until crisp and lightly golden.</p><p><b>2. Cook the beef:</b> Brown the mince well in a hot non-stick pan – the browning is the flavour. Add onion and garlic for 2 minutes, then the spices for 30 seconds. Stir in tomato paste, beans and 60 ml water; simmer until thick, not wet.</p><p><b>3. Layer:</b> On an ovenproof platter, layer half the chips, half the beef and half the cheese, then repeat. Bake 5 minutes until the cheese melts.</p><p><b>4. Load up:</b> Loosen the yoghurt with lime and drizzle over, then add the avocado, tomato salsa, jalapeños, radish and coriander. Serve straight away.</p><p class="tip"><b><i>Takeaway secret:</i></b> Two thin layers beat one big pile – every chip gets beef and cheese, not just the top ones. Keep the beef thick so the chips stay crunchy.</p></div>
+  <div class="pnum"><span>3</span></div>
+</section>
+<section class="page recipe" id="quesadilla" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>CHIPOTLE QUESADILLAS</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;555cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;55g (P) 41g (C) 18g (F)</div>
+  <div class="meta">SERVES 2 · PREP 10 MIN · COOK 16 MIN · FIBRE 6g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Filling</div><ul><li>300 g chicken breast, diced into 1.5 cm pieces</li><li>1 chipotle chilli in adobo, chopped (15 g) – or 1 tsp smoked paprika for mild</li><li>1 tsp ground cumin, ½ tsp garlic powder, salt &amp; pepper</li><li>½ red capsicum (75 g), diced</li><li>60 g corn kernels, drained</li><li>2 spring onions (30 g), sliced</li><li>70 g light shredded mozzarella</li><li>2 large wholemeal wraps (approx. 60 g each)</li><li>Olive oil spray (about 3 g)</li></ul><div class="grp">Avocado crema &amp; salsa</div><ul><li>60 g high-protein Greek yoghurt</li><li>40 g avocado + juice of ½ lime</li><li>80 g tomato salsa (jarred, e.g. thick &amp; chunky)</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/quesadilla.jpg" alt="Chipotle Quesadillas" style="object-position:45% 50%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Cook the chicken:</b> Toss the chicken with the chipotle, spices and a little salt. Cook in a hot pan sprayed with oil for 6–7 minutes until golden and cooked through. Add capsicum and corn for the last 2 minutes, then stir through the spring onion and let it cool for a few minutes.</p><p><b>2. Make the crema:</b> Blend or mash the yoghurt, avocado, lime and a pinch of salt until smooth and pale green.</p><p><b>3. Fill &amp; fold:</b> Over half of each wrap, scatter a little cheese, then the filling, then the rest of the cheese – cheese on both sides glues it together. Fold over and press flat.</p><p><b>4. Toast:</b> Cook in a dry non-stick pan over medium heat for 2–3 minutes a side, pressing with a spatula, until golden and spotted. Rest 1 minute, cut each into 2 wedges and serve with crema and salsa.</p><p class="tip"><b><i>Takeaway secret:</i></b> Medium heat, not high. The wrap needs a few minutes for the cheese inside to melt before the outside scorches.</p></div>
+  <div class="pnum"><span>4</span></div>
+</section>
+<section class="page recipe" id="pizza" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>PEPPERONI PIZZA</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;600cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;38g (P) 64g (C) 21g (F)</div>
+  <div class="meta">SERVES 2 · PREP 15 MIN · COOK 17 MIN · FIBRE 3g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Protein dough</div><ul><li>150 g self-raising flour (+ 10 g for dusting)</li><li>150 g high-protein Greek yoghurt</li><li>Pinch of salt</li></ul><div class="grp">Sauce &amp; topping</div><ul><li>60 g tomato passata</li><li>½ garlic clove, grated + ½ tsp dried oregano</li><li>120 g light shredded mozzarella</li><li>40 g sliced pepperoni</li><li>10 g parmesan, finely grated</li><li>Fresh basil &amp; chilli flakes, to finish</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/pizza.jpg" alt="Pepperoni Pizza" style="object-position:40% 55%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Heat the tray:</b> Put a pizza tray or large baking tray in the oven and heat to 220°C fan-forced. A hot tray is what gives you a crisp base.</p><p><b>2. Make the dough:</b> Stir the flour, yoghurt and salt into a shaggy dough, then knead on a floured bench for 1–2 minutes until smooth and only slightly tacky. Roll out to a 30 cm round on baking paper.</p><p><b>3. Par-bake:</b> Slide the base (on its paper) onto the hot tray and bake 5 minutes, until set and lightly puffed.</p><p><b>4. Top &amp; bake:</b> Mix the passata, garlic and oregano and spread thinly, leaving a 2 cm border. Add mozzarella, pepperoni and parmesan. Bake another 10–12 minutes until the cheese is bubbling and the pepperoni edges curl and crisp.</p><p><b>5. Rest:</b> Rest 2 minutes before slicing so the cheese sets. Finish with basil and chilli flakes.</p><p class="tip"><b><i>Takeaway secret:</i></b> Go easy on the sauce – a thin layer keeps the base crisp. Too much passata is the number one cause of a soggy homemade pizza.</p></div>
+  <div class="pnum"><span>5</span></div>
+</section>
+<section class="page recipe" id="doner" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>BEEF DONER KEBAB</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;530cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;46g (P) 59g (C) 11g (F)</div>
+  <div class="meta">SERVES 2 · PREP 20 MIN · COOK 30 MIN · FIBRE 6g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Doner meat</div><ul><li>300 g 5-star beef mince (5% fat)</li><li>30 g brown onion, finely grated</li><li>1 tsp each ground cumin, smoked paprika &amp; dried oregano; ½ tsp each ground coriander, garlic powder &amp; salt</li></ul><div class="grp">Chips</div><ul><li>250 g washed potatoes, cut into thin chips</li><li>1 tsp olive oil (4 g) + salt</li></ul><div class="grp">Garlic sauce &amp; wrap</div><ul><li>80 g high-protein Greek yoghurt</li><li>1 garlic clove, grated + 1 tsp lemon juice</li><li>2 Lebanese breads or large pitas (approx. 70 g each)</li><li>½ red onion (60 g), thinly sliced</li><li>Flat-leaf parsley + 1 long green chilli, sliced (optional)</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/doner.jpg" alt="Beef Doner Kebab" style="object-position:72% 50%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Make the doner:</b> Knead the mince with the onion and spices for 2 minutes until sticky and paste-like. That gives doner its dense, sliceable texture. Press into a 15 x 8 cm loaf on a lined tray.</p><p><b>2. Bake:</b> Bake at 180°C fan-forced for 25 minutes. Rest 5 minutes, then slice as thinly as you can.</p><p><b>3. Chips:</b> Toss the potatoes with oil and salt. Air fry at 200°C for 18–20 minutes, shaking twice, until golden (oven: 220°C on a lined tray, 30 minutes).</p><p><b>4. Crisp the meat:</b> Fry the doner slices in a very hot dry pan for 1–2 minutes until the edges char and crisp.</p><p><b>5. Wrap:</b> Stir the yoghurt, garlic, lemon and a pinch of salt together. Warm the bread, spread with garlic sauce, then pile on meat, chips, onion, parsley and chilli. Roll tightly in baking paper.</p><p class="tip"><b><i>Takeaway secret:</i></b> Searing the thin slices just before serving is what makes it taste like it came off the spit, with crisp edges and a tender centre.</p></div>
+  <div class="pnum"><span>6</span></div>
+</section>
+<section class="page recipe" id="souvlaki" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>PORK SOUVLAKI PLATE</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;640cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;57g (P) 67g (C) 15g (F)</div>
+  <div class="meta">SERVES 2 · PREP 20 MIN · COOK 25 MIN · FIBRE 7g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Skewers</div><ul><li>350 g pork loin steaks, fat trimmed, cut into 2.5 cm cubes</li><li>2 tsp olive oil (8 g) + juice of ½ lemon (20 ml)</li><li>2 garlic cloves, crushed + 1 tsp oregano + ½ tsp smoked paprika</li></ul><div class="grp">Plate</div><ul><li>300 g washed potatoes, cut into chips + 1 tsp oil (5 g)</li><li>2 pita breads (approx. 70 g each), cut into wedges</li><li>150 g tomatoes + 60 g red onion, sliced; lemon &amp; parsley</li></ul><div class="grp">Tzatziki</div><ul><li>120 g high-protein Greek yoghurt</li><li>80 g cucumber, grated &amp; squeezed dry</li><li>1 garlic clove, grated + squeeze of lemon + dill</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/souvlaki.jpg" alt="Pork Souvlaki Plate" style="object-position:50% 45%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Marinate:</b> Toss the pork with the oil, lemon, garlic, oregano, paprika, salt and pepper. Refrigerate 30 minutes to 4 hours. Soak 4 bamboo skewers in water.</p><p><b>2. Chips:</b> Toss the potatoes with oil and salt and air fry at 200°C for 20 minutes, shaking twice (oven: 220°C, 30 minutes).</p><p><b>3. Tzatziki:</b> Squeeze the cucumber hard in a clean tea towel so the tzatziki stays thick. Mix with the yoghurt, garlic, lemon, dill and salt.</p><p><b>4. Grill:</b> Thread the pork onto the skewers. Cook on a very hot grill pan or BBQ for 8–10 minutes, turning every 2 minutes, until charred and just cooked through. Rest 3 minutes.</p><p><b>5. Plate up:</b> Warm the pita on the grill, then serve with the chips, tomato, onion, tzatziki and lemon.</p><p class="tip"><b><i>Takeaway secret:</i></b> Cut every cube the same size and leave gaps on the skewer. Heat reaches every side, so the edges char before the centre dries out.</p></div>
+  <div class="pnum"><span>7</span></div>
+</section>
+<section class="page recipe" id="butter-chicken" data-mode="cut">
+  <div class="frame"></div>
+  <h1 class="title"><span>CHICKEN TIKKA MASALA</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;575cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;54g (P) 68g (C) 9g (F)</div>
+  <div class="meta">SERVES 3 · PREP 15 MIN · COOK 35 MIN · FIBRE 4g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Chicken tikka</div><ul><li>500 g chicken breast, cut into 3 cm pieces</li><li>100 g high-protein Greek yoghurt</li><li>2 garlic cloves (10 g) + 10 g ginger, grated</li><li>1 tsp each garam masala, ground cumin &amp; Kashmiri chilli; ½ tsp turmeric; 1 tsp salt; juice of ½ lemon</li></ul><div class="grp">Masala sauce</div><ul><li>10 g butter + 1 tsp olive oil (5 g)</li><li>1 brown onion (150 g), diced + 1 green chilli (10 g), sliced</li><li>2 garlic cloves (10 g) + 10 g ginger, grated</li><li>2 tsp garam masala, 1 tsp each ground coriander &amp; smoked paprika, ½ tsp turmeric</li><li>400 g can crushed tomatoes + 20 g tomato paste</li><li>1 tsp honey (7 g)</li><li>150 ml light &amp; creamy evaporated milk</li><li>180 g basmati rice (dry), to serve</li></ul></div>
+  <div class="photo cut" style="left:224pt;width:206pt;"><img src="photos/butter-chicken.png" alt="Chicken Tikka Masala"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Marinate:</b> Mix the chicken with the yoghurt, garlic, ginger, spices, salt and lemon. Marinate 20 minutes, or overnight for the best flavour.</p><p><b>2. Char the tikka:</b> Air fry in a single layer at 220°C for 10–12 minutes, shaking once, until charred at the edges and cooked through (or under a hot grill, 12–15 minutes, turning once). Those dark spots are the tikka flavour.</p><p><b>3. Build the masala:</b> Cook the onion and chilli in the butter and oil over medium-low heat for 8–10 minutes until golden. Add garlic and ginger for 1 minute, the spices for 30 seconds, then the tomatoes, paste and honey. Simmer 12–15 minutes, stirring often.</p><p><b>4. Finish:</b> On low heat, stir in the evaporated milk – a hard boil can split it. Add the chicken and its juices and simmer 3–4 minutes.</p><p><b>5. Serve:</b> Serve over the rice with fresh coriander and a squeeze of lemon.</p><p class="tip"><b><i>Takeaway secret:</i></b> Simmer the tomato until it&#x27;s jammy and a little oil pools at the edges. By then the raw tang is gone and the spices taste toasted, not dusty.</p></div>
+  <div class="pnum"><span>8</span></div>
+</section>
+<section class="page recipe" id="honey-soy" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>HONEY SOY CHICKEN</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;600cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;51g (P) 77g (C) 9g (F)</div>
+  <div class="meta">SERVES 2 · PREP 10 MIN · COOK 15 MIN · FIBRE 4g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Chicken</div><ul><li>350 g chicken breast, cut into 3 cm pieces</li><li>1 egg white (30 g) + 20 g cornflour + pinch of salt</li><li>2 tsp vegetable or olive oil (8 g)</li></ul><div class="grp">Honey soy garlic sauce</div><ul><li>30 g honey</li><li>30 ml reduced-salt soy sauce</li><li>3 garlic cloves (15 g) + 10 g ginger, finely grated</li><li>2 tsp rice vinegar + 60 ml water</li><li>1 tsp cornflour (4 g) mixed with 1 tbsp water</li></ul><div class="grp">To serve</div><ul><li>120 g jasmine rice (dry)</li><li>150 g broccoli or Asian greens</li><li>5 g sesame seeds + 2 spring onions (30 g), sliced</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/honey-soy.jpg" alt="Honey Soy Chicken" style="object-position:38% 60%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Coat:</b> Toss the chicken with the egg white, cornflour and salt until every piece is coated. This thin coat keeps the chicken juicy and gives the sauce something to cling to.</p><p><b>2. Rice &amp; greens:</b> Get the rice on. Steam or microwave the greens for 2–3 minutes just before serving.</p><p><b>3. Fry:</b> Heat the oil in a large non-stick pan over medium-high heat. Cook the chicken in a single layer, turning, for 6–8 minutes until golden all over and cooked through. Remove to a plate.</p><p><b>4. Glaze:</b> Add the honey, soy, garlic, ginger, vinegar and water to the pan and bubble for 1 minute. Stir in the cornflour slurry and simmer until syrupy and glossy, about 1 minute. Return the chicken and toss to coat.</p><p><b>5. Serve:</b> Spoon over rice with the greens, then scatter with sesame seeds and spring onion.</p><p class="tip"><b><i>Takeaway secret:</i></b> Take the sauce off the heat once it coats the back of a spoon. Honey keeps thickening as it cools, and if it goes too far it turns sticky and burns.</p></div>
+  <div class="pnum"><span>9</span></div>
+</section>
+<section class="page recipe" id="korean" data-mode="cut">
+  <div class="frame"></div>
+  <h1 class="title"><span>KOREAN FRIED CHICKEN</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;445cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;51g (P) 36g (C) 11g (F)</div>
+  <div class="meta">SERVES 2 · PREP 15 MIN · COOK 18 MIN · FIBRE 2g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Chicken</div><ul><li>400 g chicken breast, cut into 3 cm pieces</li><li>1 egg white (30 g)</li><li>40 g cornflour + ½ tsp each garlic powder &amp; ground ginger, salt &amp; pepper</li><li>Olive oil spray (about 4 g)</li></ul><div class="grp">Gochujang glaze</div><ul><li>30 g gochujang (Korean chilli paste)</li><li>20 g honey</li><li>20 ml reduced-salt soy sauce</li><li>2 garlic cloves (10 g) + 5 g ginger, grated</li><li>1 tsp sesame oil (5 g)</li><li>2 tsp rice vinegar + 30 ml water</li></ul><div class="grp">To finish</div><ul><li>10 g sesame seeds</li><li>2 spring onions (25 g), finely sliced</li></ul><p class="side">Serve with 60 g (dry) jasmine rice per person: add 210 cal, 4g P, 47g C, 0g F.</p></div>
+  <div class="photo cut" style="left:224pt;width:204pt;"><img src="photos/korean.png" alt="Korean Fried Chicken"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Coat:</b> Toss the chicken with the egg white, then with the cornflour and seasonings until each piece is dry and dusty. Shake off the excess.</p><p><b>2. Air fry:</b> Spray the basket and chicken well with oil. Air fry at 200°C for 12–14 minutes, shaking halfway, until crisp and cooked through (oven: 220°C fan-forced, 18–20 minutes, turning once).</p><p><b>3. Make the glaze:</b> While the chicken cooks, simmer all the glaze ingredients in a large pan for 2–3 minutes until thick and glossy.</p><p><b>4. Toss:</b> Take the pan off the heat, add the hot chicken and toss quickly until coated. Tip into a bowl and shower with sesame seeds and spring onion.</p><p class="tip"><b><i>Takeaway secret:</i></b> Glaze at the last second. Toss hot, crisp chicken in thick sauce off the heat and eat it straight away, while the coating still crunches through the glaze.</p></div>
+  <div class="pnum"><span>10</span></div>
+</section>
+<section class="page recipe" id="mongolian" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>MONGOLIAN BEEF</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;595cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;49g (P) 71g (C) 12g (F)</div>
+  <div class="meta">SERVES 2 · PREP 15 MIN · COOK 12 MIN · FIBRE 4g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Beef</div><ul><li>350 g lean rump steak, fat trimmed</li><li>15 g cornflour + 1 tsp soy sauce</li><li>2 tsp vegetable or olive oil (8 g)</li></ul><div class="grp">Sauce</div><ul><li>30 ml reduced-salt soy sauce</li><li>15 g brown sugar</li><li>15 g oyster sauce</li><li>2 garlic cloves (10 g) + 10 g ginger, grated</li><li>60 ml water + 1 tsp cornflour (4 g)</li></ul><div class="grp">To serve</div><ul><li>250 g broccoli florets</li><li>120 g jasmine rice (dry)</li><li>1 spring onion (15 g), sliced</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/mongolian.jpg" alt="Mongolian Beef" style="object-position:50% 45%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Slice thin:</b> Freeze the steak for 20 minutes so it firms up, then slice across the grain into 5 mm strips. Cutting across the grain is what makes it tender. Toss with the cornflour and soy.</p><p><b>2. Rice &amp; broccoli:</b> Cook the rice. Blanch the broccoli in boiling water for 2 minutes, then drain well.</p><p><b>3. Sear:</b> Heat half the oil in a wok or large pan until smoking. Sear half the beef in a single layer for 1 minute a side until browned, then remove. Repeat with the remaining oil and beef.</p><p><b>4. Sauce:</b> Mix the soy, sugar, oyster sauce, garlic, ginger, water and cornflour. Pour into the hot wok and bubble for 1–2 minutes until thick and glossy.</p><p><b>5. Toss:</b> Return the beef and broccoli and toss for 30 seconds to coat. Serve over rice with spring onion.</p><p class="tip"><b><i>Takeaway secret:</i></b> Cook the beef in two batches, in a smoking-hot pan. Fill the pan in one go and the beef stews grey instead of searing brown.</p></div>
+  <div class="pnum"><span>11</span></div>
+</section>
+<section class="page recipe" id="sweet-sour" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>SWEET &amp; SOUR PORK</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;475cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;44g (P) 45g (C) 12g (F)</div>
+  <div class="meta">SERVES 2 · PREP 15 MIN · COOK 18 MIN · FIBRE 3g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Crispy pork</div><ul><li>350 g pork fillet, trimmed, cut into 2.5 cm pieces</li><li>1 egg (50 g), beaten</li><li>40 g cornflour + pinch of salt &amp; white pepper</li><li>Olive oil spray (about 4 g)</li></ul><div class="grp">Sauce &amp; vegetables</div><ul><li>210 g mixed red, yellow &amp; green capsicum, in 2 cm pieces</li><li>½ brown onion (75 g), cut into wedges</li><li>1 tsp oil (4 g)</li><li>80 ml pineapple juice</li><li>40 g tomato sauce</li><li>15 g brown sugar + 20 ml white or rice vinegar</li><li>10 ml reduced-salt soy sauce</li><li>1 tsp cornflour (5 g) mixed with 30 ml water</li><li>5 g sesame seeds, to finish</li></ul><p class="side">Serve with 60 g (dry) jasmine rice per person: add 210 cal, 4g P, 47g C, 0g F.</p></div>
+  <div class="photo rect" style=""><img src="photos/sweet-sour.jpg" alt="Sweet &amp; Sour Pork" style="object-position:55% 50%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Coat:</b> Dip the pork in beaten egg, then roll in the seasoned cornflour, pressing so it sticks. Rest 5 minutes so the coating hydrates – it fries up crisper.</p><p><b>2. Air fry:</b> Spray well with oil and air fry at 200°C for 12–14 minutes, shaking halfway, until golden and cooked through. Oven: 220°C fan-forced, 18–20 minutes.</p><p><b>3. Stir-fry the veg:</b> Heat the oil in a wok over high heat and stir-fry the onion and capsicum for 2–3 minutes. They should still have some crunch.</p><p><b>4. Sauce:</b> Add the pineapple juice, tomato sauce, sugar, vinegar and soy and bring to the boil. Stir in the cornflour slurry and simmer 1 minute until glossy.</p><p><b>5. Toss &amp; serve:</b> Add the crispy pork, toss quickly to coat and scatter with sesame seeds.</p><p class="tip"><b><i>Takeaway secret:</i></b> The sauce should be sharp as well as sweet. Taste it before the pork goes in and add a splash more vinegar if it&#x27;s flat.</p></div>
+  <div class="pnum"><span>12</span></div>
+</section>
+<section class="page recipe" id="fried-rice" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>PRAWN FRIED RICE</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;535cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;47g (P) 58g (C) 12g (F)</div>
+  <div class="meta">SERVES 2 · PREP 10 MIN · COOK 12 MIN · FIBRE 4g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Fried rice</div><ul><li>120 g jasmine rice (dry), cooked the day before and chilled</li><li>300 g raw peeled prawns, deveined</li><li>2 eggs (100 g) + 2 egg whites (60 g), lightly beaten</li><li>120 g frozen peas, corn &amp; carrot</li><li>2 garlic cloves (10 g), finely chopped</li><li>2 spring onions (30 g), sliced</li><li>2 tsp vegetable oil (8 g) + 1 tsp sesame oil (3 g)</li></ul><div class="grp">Seasoning</div><ul><li>25 ml reduced-salt soy sauce</li><li>10 g oyster sauce</li><li>Pinch of white pepper</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/fried-rice.jpg" alt="Prawn Fried Rice" style="object-position:38% 50%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Use cold rice:</b> Day-old rice is drier and firmer, so it fries instead of turning to mush. In a hurry, spread freshly cooked rice on a tray and refrigerate it uncovered for an hour.</p><p><b>2. Prawns:</b> Heat half the oil in a wok or large pan until smoking. Cook the prawns for 1–2 minutes until just pink, then remove.</p><p><b>3. Eggs:</b> Pour in the eggs and scramble softly for 30–40 seconds until just set. Remove.</p><p><b>4. Fry:</b> Add the remaining oil, garlic and frozen veg and toss 1 minute. Add the rice, break up any clumps, then press it against the pan and toss for 3–4 minutes until hot and lightly toasted.</p><p><b>5. Finish:</b> Pour the soy and oyster sauce around the edge of the wok so they sizzle. Return the eggs and prawns, add spring onion, sesame oil and white pepper, and toss to combine.</p><p class="tip"><b><i>Takeaway secret:</i></b> Pour the sauces around the hot edge of the wok, not over the rice. They caramelise as they hit the metal, which gives you that smoky takeaway &#x27;wok hei&#x27; flavour.</p></div>
+  <div class="pnum"><span>13</span></div>
+</section>
+<section class="page recipe" id="pad-thai" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>PRAWN PAD THAI</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;615cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;45g (P) 75g (C) 14g (F)</div>
+  <div class="meta">SERVES 2 · PREP 25 MIN · COOK 10 MIN · FIBRE 4g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Noodles</div><ul><li>140 g dried flat rice noodles (5 mm)</li><li>300 g raw peeled prawns, tails on</li><li>2 eggs (100 g), beaten</li><li>2 tsp vegetable oil (8 g)</li><li>1 small brown onion or 2 shallots (40 g) + 2 garlic cloves (10 g), sliced</li><li>100 g bean sprouts</li><li>3 spring onions or garlic chives (30 g), cut into 4 cm lengths</li><li>15 g roasted peanuts, chopped + lime wedges</li></ul><div class="grp">Pad Thai sauce</div><ul><li>30 g tamarind puree</li><li>20 ml fish sauce</li><li>15 g brown sugar</li><li>1 tsp sriracha (5 g), or to taste</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/pad-thai.jpg" alt="Prawn Pad Thai" style="object-position:42% 50%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Soak, don&#x27;t boil:</b> Soak the noodles in warm (not boiling) water for 20–25 minutes until bendy but still firm in the centre. They finish cooking in the pan. Boiled noodles turn to mush. Drain.</p><p><b>2. Sauce:</b> Stir the tamarind, fish sauce, sugar and sriracha until the sugar dissolves. Taste it: it should be sour, salty and sweet in equal measure.</p><p><b>3. Prawns:</b> Heat the oil in a wok over high heat. Cook the prawns for 1–2 minutes until pink, then remove. Add the onion and garlic and stir-fry for 1 minute.</p><p><b>4. Egg &amp; noodles:</b> Push everything to one side, pour in the egg and scramble until just set. Add the noodles and sauce and toss for 2–3 minutes until the sauce is absorbed and the noodles are tender. Add a splash of water if they stick.</p><p><b>5. Finish:</b> Return the prawns with the sprouts and spring onion and toss for 30 seconds. Top with peanuts, with lime wedges on the side.</p><p class="tip"><b><i>Takeaway secret:</i></b> Keep the noodles moving and the pan hot. If they start to clump, add a tablespoon of water rather than more oil.</p></div>
+  <div class="pnum"><span>14</span></div>
+</section>
+<section class="page recipe" id="fish-chips" data-mode="rect">
+  <div class="frame"></div>
+  <h1 class="title"><span>FISH &amp; CHIPS</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;550cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;51g (P) 55g (C) 13g (F)</div>
+  <div class="meta">SERVES 2 · PREP 15 MIN · COOK 25 MIN · FIBRE 5g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Crumbed fish</div><ul><li>2 flathead or barramundi fillets, skinless (360 g)</li><li>20 g plain flour + ½ tsp lemon pepper</li><li>1 egg (50 g) beaten with 1 tbsp lite milk</li><li>50 g panko breadcrumbs + ½ tsp garlic powder</li><li>Olive oil spray (about 4 g)</li></ul><div class="grp">Chips</div><ul><li>400 g washed potatoes, cut into 1 cm chips</li><li>1½ tsp olive oil (6 g) + salt or chicken salt</li></ul><div class="grp">Tartare</div><ul><li>60 g high-protein Greek yoghurt + 15 g light mayonnaise</li><li>15 g gherkins, finely diced + 5 g capers, chopped</li><li>1 tsp lemon juice + chopped dill or parsley</li><li>Lemon wedges, to serve</li></ul></div>
+  <div class="photo rect" style=""><img src="photos/fish-chips.jpg" alt="Fish &amp; Chips" style="object-position:62% 50%"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Start the chips:</b> Soak the cut chips in cold water for 10 minutes, then dry very well. Toss with oil and salt. Air fry at 200°C for 20–22 minutes, shaking twice (oven: 220°C, 30–35 minutes).</p><p><b>2. Toast the crumbs:</b> Stir the panko in a dry frying pan over medium heat for 2–3 minutes until light golden, then mix in the garlic powder. Pre-toasting means the crumb comes out golden, not pale.</p><p><b>3. Crumb:</b> Pat the fish dry. Dust in the seasoned flour, dip in egg, then press into the toasted panko.</p><p><b>4. Cook:</b> Spray both sides with oil. Air fry at 200°C for 8–10 minutes, until the fish flakes easily (oven: 220°C, 12–14 minutes). Cook it while the chips have 10 minutes left.</p><p><b>5. Tartare:</b> Mix the yoghurt, mayo, gherkins, capers, lemon and herbs. Serve with the fish, chips and lemon wedges.</p><p class="tip"><b><i>Takeaway secret:</i></b> Dry the chips properly after soaking. Surface water steams them instead of crisping them.</p></div>
+  <div class="pnum"><span>15</span></div>
+</section>
+<section class="page recipe" id="lava" data-mode="cut">
+  <div class="frame"></div>
+  <h1 class="title"><span>CHOC LAVA CAKES</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;345cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;27g (P) 27g (C) 14g (F)</div>
+  <div class="meta">SERVES 2 · PREP 10 MIN · COOK 12 MIN · FIBRE 4g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Makes 2 (150 ml ramekins)</div><ul><li>2 eggs (100 g)</li><li>40 g chocolate whey protein</li><li>15 g cocoa powder (+ a little for the ramekins)</li><li>15 g self-raising flour</li><li>20 g brown sugar</li><li>40 g high-protein Greek yoghurt</li><li>30 g dark chocolate (70%): 10 g melted, 2 x 10 g squares for the centres</li><li>Oil spray for greasing (about 1 g)</li><li>4 g icing sugar, to dust</li></ul></div>
+  <div class="photo cut" style="left:224pt;width:188pt;"><img src="photos/lava.png" alt="Choc Lava Cakes"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Prep:</b> Heat the oven to 180°C fan-forced. Spray two 150 ml ramekins with oil and dust the inside with cocoa, tapping out the excess. This is what lets them turn out cleanly.</p><p><b>2. Batter:</b> Whisk the eggs and sugar for 1 minute until frothy. Whisk in the yoghurt and the 10 g of melted chocolate, then sift in the protein, cocoa and flour and fold until just smooth.</p><p><b>3. Fill:</b> Half-fill each ramekin, press a square of chocolate into the centre, then cover with the remaining batter.</p><p><b>4. Bake:</b> Bake 10–12 minutes, until the edges are set and the centre still wobbles when you nudge the tray.</p><p><b>5. Turn out:</b> Rest 1 minute, run a knife around the edge and invert onto a plate. Dust with icing sugar and serve immediately.</p><p class="tip"><b><i>Takeaway secret:</i></b> Take them out while the middle still wobbles. Whey protein sets fast and keeps firming as it rests, and a minute too long costs you the lava.</p></div>
+  <div class="pnum"><span>16</span></div>
+</section>
+<section class="page recipe" id="shake" data-mode="cut">
+  <div class="frame"></div>
+  <h1 class="title"><span>CARAMEL THICKSHAKE</span></h1>
+  <img class="underline" src="assets/brush-underline.png" alt="">
+  <svg class="logo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#000"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <div class="cal">CALORIES&nbsp;-&nbsp;375cal<span class="ps">per serve</span></div>
+  <div class="mac">MACROS&nbsp;&nbsp;46g (P) 36g (C) 6g (F)</div>
+  <div class="meta">SERVES 1 · PREP 5 MIN · FIBRE 0g</div>
+  <div class="hframe ing-h"><img src="assets/brush-frame-a.png" alt=""><span>INGREDIENTS</span></div>
+  <div class="ing"><div class="grp">Thickshake</div><ul><li>150 g vanilla high-protein yoghurt, frozen in an ice-cube tray</li><li>250 ml skim milk</li><li>30 g vanilla whey protein (1 scoop)</li><li>1 cup ice (about 150 g)</li><li>2 tsp sugar-free salted caramel syrup + a pinch of sea salt</li></ul><div class="grp">Topping</div><ul><li>15 g caramel topping, drizzled inside the jar</li><li>15 g aerosol whipped cream</li></ul></div>
+  <div class="photo cut" style="left:232pt;width:170pt;"><img src="photos/shake.png" alt="Caramel Thickshake"></div>
+  <div class="hframe ins-h"><img src="assets/brush-frame-b.png" alt=""><span>INSTRUCTIONS</span></div>
+  <div class="ins"><p><b>1. Freeze ahead:</b> Spoon the yoghurt into an ice-cube tray and freeze for at least 4 hours. This is what makes it thick like a real shake instead of a protein drink.</p><p><b>2. Drip the jar:</b> Drizzle the caramel topping around the inside rim of a chilled jar and let it run down the sides.</p><p><b>3. Blend:</b> Blend the frozen yoghurt, milk, protein, ice, syrup and salt on high for 45–60 seconds until thick and smooth. Add a splash more milk only if the blender stalls.</p><p><b>4. Serve:</b> Pour into the jar, top with whipped cream and a last thread of caramel. Serve with a wide straw and a spoon.</p><p class="tip"><b><i>Takeaway secret:</i></b> Add the liquid first and the frozen cubes last, then start the blender on low. It blends faster and needs less extra milk, so it stays thick.</p></div>
+  <div class="pnum"><span>17</span></div>
+</section>
+<section class="page closing" id="afterword">
+  <div class="kframe"></div>
+  <svg class="klogo" viewBox="150 518 298 248" aria-label="M Personal Training"><g fill="#fff"><polygon points="154,545 224,637 224,711 175,762 154,762"/><polygon points="155,522 208,522 299,630 363,549 363,636 299,723"/><polygon points="374,522 413,522 444,554 444,762 422,762 374,711"/></g></svg>
+  <img class="k-forge" src="assets/forge-your-path.png" alt="Forge your path">
+  <img class="k-under" src="assets/brush-underline-white.png" alt="">
+  <h2 class="k-h">Afterword</h2>
+  <div class="k-body">
+    <p>The fitness industry is full of conflicting advice, fad diets, and people trying to sell you the next “secret.” Most of it is bullshit.<br>
+    I’ve worked with enough people to know that the biggest problem isn’t motivation – it’s having meals that are actually realistic. You don’t need to survive on chicken and broccoli or spend hours cooking meals you’ll hate to perform well or get your dream physique.</p>
+    <p>That’s exactly why I created these recipe eBooks.</p>
+    <p>Every recipe is designed to be:</p>
+    <ul><li>High in protein</li><li>Easy to make</li><li>Full of flavour</li><li>Made with everyday ingredients</li><li>Built to help you stay on track without feeling like you’re dieting</li></ul>
+  </div>
+  <div class="k-ready"><img src="assets/brush-frame-white.png" alt=""><span>Ready for Real Results?</span></div>
+  <div class="k-body k-body2">
+    <p>The recipe books will show you what to eat.</p>
+    <p class="tight">My coaching makes sure you actually do it.<br>If you’re sick of wasting time on random workouts and conflicting advice, let’s keep it simple.</p>
+    <p><a href="https://forms.gle/Ana9NaMA2RReS3QAA">Click here to Express your Interest in Online Coaching and let’s build the strongest, leanest version of you.</a></p>
+  </div>
+  <div class="k-fan">
+    <img src="assets/cover-part1.png" alt="Part I"><img src="assets/cover-part2.png" alt="Part II">
+    <img src="assets/cover-part3.png" alt="Part III"><img src="assets/cover-part4.png" alt="Part IV">
+    <img src="assets/cover-part5.jpg" alt="Part V">
+  </div>
+</section>
+<script>// Fits each recipe page: title to one line, ingredients + instructions inside
+// the frame, and the photo into the space left between them.
+(function () {
+  const PT = 96 / 72;                    // CSS px per pt
+  const LIMIT = 563;                     // last usable line inside the frame (pt)
+  const pt = (px) => px / PT;
+  const report = [];
+
+  function fitTitle(page) {
+    const t = page.querySelector('.title'), s = t.querySelector('span');
+    let size = 23;
+    while (pt(s.offsetWidth) > 328 && size > 15) { size -= 0.25; t.style.fontSize = size + 'pt'; }
+    return size;
+  }
+
+  function fitRecipe(page) {
+    const ing = page.querySelector('.ing'), ins = page.querySelector('.ins');
+    const insH = page.querySelector('.ins-h'), photo = page.querySelector('.photo');
+    const mode = page.dataset.mode;
+    let fi = 7.6, fs = 7.6, ok = false, frameTop = 0;
+    const tryFit = (a, b) => {
+      ing.style.fontSize = a + 'pt'; ins.style.fontSize = b + 'pt';
+      const ingBottom = pt(ing.offsetTop + ing.offsetHeight);
+      frameTop = LIMIT - pt(ins.offsetHeight) - 31;
+      return frameTop >= ingBottom + 9;
+    };
+    // One size for both blocks: the largest that fits (ingredients a touch larger when room allows).
+    for (let s = 8.6; s >= 7.6 - 1e-9; s = +(s - 0.1).toFixed(2)) {
+      if (tryFit(s, s)) { fi = s; fs = s; ok = true; break; }
+    }
+    if (ok) { for (const a of [fs + 0.3, fs + 0.2, fs + 0.1]) { if (a <= 8.8 && tryFit(a, fs)) { fi = +a.toFixed(2); break; } } }
+    if (!ok) tryFit(7.6, 7.6); else tryFit(fi, fs);
+    insH.style.top = frameTop + 'pt';
+    ins.style.top = (frameTop + 31) + 'pt';
+    let ph;
+    if (mode === 'rect') {
+      ph = Math.min(frameTop - 9 - 104, 395);
+      photo.style.height = ph + 'pt';
+    } else {
+      photo.style.top = '96pt';
+      ph = frameTop - 6 - 96;
+      photo.style.height = ph + 'pt';
+    }
+    report.push({ id: page.id, ok, fi, fs, frameTop: Math.round(frameTop), photoH: Math.round(ph),
+                  ingBottom: Math.round(pt(ing.offsetTop + ing.offsetHeight)) });
+  }
+
+  function fitMenu(page) {
+    const intro = page.querySelector('.m-intro');
+    const list = page.querySelector('.m-list');
+    list.style.top = (pt(intro.offsetTop + intro.offsetHeight) + 11) + 'pt';
+    const h = page.querySelector('.m-h'), notes = page.querySelector('.m-notes');
+    const top = pt(list.offsetTop + list.offsetHeight) + 12;
+    h.style.top = top + 'pt'; notes.style.top = (top + 31) + 'pt';
+    const credit = page.querySelector('.m-credit');
+    report.push({ id: 'menu', notesBottom: Math.round(pt(notes.offsetTop + notes.offsetHeight)),
+                  creditTop: Math.round(pt(credit.offsetTop)) });
+  }
+
+  document.fonts.ready.then(() => {
+    document.querySelectorAll('.page.recipe').forEach((p) => { fitTitle(p); fitRecipe(p); });
+    document.querySelectorAll('.page.menu').forEach((p) => { fitTitle(p); fitMenu(p); });
+    window.__layout = report;
+    document.documentElement.dataset.ready = '1';
+  });
+})();
+</script></body></html>
