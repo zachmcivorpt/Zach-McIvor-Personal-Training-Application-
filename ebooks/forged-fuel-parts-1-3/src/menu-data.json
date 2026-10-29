@@ -1,0 +1,278 @@
+{
+ "b1": [
+  {
+   "name": "Big Mac Salad",
+   "page": 1,
+   "old": 520,
+   "kcal": 520,
+   "p": 50,
+   "c": 35,
+   "f": 20
+  },
+  {
+   "name": "Chicken Parm Bowl",
+   "page": 2,
+   "old": 550,
+   "kcal": 555,
+   "p": 60,
+   "c": 45,
+   "f": 15
+  },
+  {
+   "name": "Dumpling Bowl",
+   "page": 3,
+   "old": 520,
+   "kcal": 580,
+   "p": 45,
+   "c": 55,
+   "f": 20
+  },
+  {
+   "name": "Juicy Chicken Wrap",
+   "page": 4,
+   "old": 550,
+   "kcal": 555,
+   "p": 60,
+   "c": 45,
+   "f": 15
+  },
+  {
+   "name": "Tuna Salad",
+   "page": 5,
+   "old": 550,
+   "kcal": 510,
+   "p": 55,
+   "c": 45,
+   "f": 12
+  },
+  {
+   "name": "Beefy Taco Bowls",
+   "page": 6,
+   "old": 620,
+   "kcal": 555,
+   "p": 60,
+   "c": 45,
+   "f": 15
+  },
+  {
+   "name": "Loaded Animal Fries",
+   "page": 7,
+   "old": 470,
+   "kcal": 455,
+   "p": 45,
+   "c": 30,
+   "f": 17
+  },
+  {
+   "name": "Burrito Bowl",
+   "page": 8,
+   "old": 510,
+   "kcal": 580,
+   "p": 55,
+   "c": 45,
+   "f": 20
+  },
+  {
+   "name": "Chicken Wrap",
+   "page": 9,
+   "old": 660,
+   "kcal": 645,
+   "p": 75,
+   "c": 30,
+   "f": 25
+  },
+  {
+   "name": "Chicken Alfredo",
+   "page": 10,
+   "old": 600,
+   "kcal": 560,
+   "p": 60,
+   "c": 40,
+   "f": 18
+  }
+ ],
+ "b2": [
+  {
+   "name": "Raspberry Cheesecake Overnight Weetbix",
+   "page": 1,
+   "old": 495,
+   "kcal": 480,
+   "p": 51,
+   "c": 46,
+   "f": 10
+  },
+  {
+   "name": "Bacon & Egg McMuffin",
+   "page": 2,
+   "old": 485,
+   "kcal": 480,
+   "p": 40,
+   "c": 31,
+   "f": 22
+  },
+  {
+   "name": "Malteser Weetbix",
+   "page": 3,
+   "old": 430,
+   "kcal": 450,
+   "p": 45,
+   "c": 40,
+   "f": 12
+  },
+  {
+   "name": "Power Bowl",
+   "page": 4,
+   "old": 420,
+   "kcal": 410,
+   "p": 45,
+   "c": 40,
+   "f": 8
+  },
+  {
+   "name": "Crunchy Choc PB Oats",
+   "page": 5,
+   "old": 520,
+   "kcal": 495,
+   "p": 45,
+   "c": 45,
+   "f": 15
+  },
+  {
+   "name": "Biscoff Pancake Bowl",
+   "page": 6,
+   "old": 450,
+   "kcal": 430,
+   "p": 35,
+   "c": 45,
+   "f": 12
+  },
+  {
+   "name": "Aero Mint Weetbix",
+   "page": 7,
+   "old": 445,
+   "kcal": 405,
+   "p": 36,
+   "c": 40,
+   "f": 11
+  },
+  {
+   "name": "Cookies N' Cream Weetbix",
+   "page": 8,
+   "old": 500,
+   "kcal": 535,
+   "p": 50,
+   "c": 50,
+   "f": 15
+  },
+  {
+   "name": "Nutella Crunch Bowl",
+   "page": 9,
+   "old": 420,
+   "kcal": 410,
+   "p": 45,
+   "c": 40,
+   "f": 8
+  },
+  {
+   "name": "Brekkie Wrap",
+   "page": 10,
+   "old": 400,
+   "kcal": 340,
+   "p": 36,
+   "c": 22,
+   "f": 12
+  },
+  {
+   "name": "Berry Fuel Smoothie",
+   "page": 11,
+   "old": 340,
+   "kcal": 375,
+   "p": 25,
+   "c": 55,
+   "f": 6
+  },
+  {
+   "name": "Egg & Avo Toast",
+   "page": 12,
+   "old": 350,
+   "kcal": 420,
+   "p": 30,
+   "c": 30,
+   "f": 20
+  }
+ ],
+ "b3": [
+  {
+   "name": "Zingaa Chicken Burga",
+   "page": 1,
+   "old": 470,
+   "kcal": 565,
+   "p": 59,
+   "c": 49,
+   "f": 15
+  },
+  {
+   "name": "Tuna Melt",
+   "page": 2,
+   "old": 760,
+   "kcal": 690,
+   "p": 66,
+   "c": 44,
+   "f": 28
+  },
+  {
+   "name": "Potato Gem Cups",
+   "page": 3,
+   "old": 120,
+   "kcal": 125,
+   "p": 10,
+   "c": 8,
+   "f": 6
+  },
+  {
+   "name": "Forged Brekkie Wrap",
+   "page": 4,
+   "old": 650,
+   "kcal": 605,
+   "p": 50,
+   "c": 22,
+   "f": 35
+  },
+  {
+   "name": "Popcorn Chicken N' Chips",
+   "page": 5,
+   "old": 680,
+   "kcal": 660,
+   "p": 50,
+   "c": 70,
+   "f": 20
+  },
+  {
+   "name": "Greek Gyros",
+   "page": 6,
+   "old": 660,
+   "kcal": 620,
+   "p": 52,
+   "c": 62,
+   "f": 18
+  },
+  {
+   "name": "Berry Fuel Smoothie",
+   "page": 7,
+   "old": 340,
+   "kcal": 455,
+   "p": 25,
+   "c": 55,
+   "f": 15
+  },
+  {
+   "name": "Egg & Avo Toast",
+   "page": 8,
+   "old": 350,
+   "kcal": 465,
+   "p": 30,
+   "c": 30,
+   "f": 25
+  }
+ ]
+}
