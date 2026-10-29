@@ -44,12 +44,12 @@ the script that made them from the full-size downloads. Unsplash image IDs:
 |---|---|
 | Crispy Chicken Burger | photo-1692737348416-0a4fa4cf1523 |
 | The Big SMAC (also cover) | photo-1607013251379-e6eecfffe234 |
-| Loaded Beef Nachos | photo-1734769975334-e42a3be8714d |
+| Loaded Beef Nachos (also cover) | photo-1734769975334-e42a3be8714d |
 | Chipotle Quesadillas | photo-1719957770167-bb66133ba808 |
 | Pepperoni Pizza | photo-1541745537411-b8046dc6d66c |
 | Beef Doner Kebab | photo-1529006557810-274b9b2fc783 |
 | Pork Souvlaki Plate | photo-1603360946369-dc9bb6258143 |
-| Chicken Tikka Masala (also cover) | photo-1742599361539-f096753d1100 |
+| Chicken Tikka Masala | photo-1742599361539-f096753d1100 |
 | Honey Soy Chicken | photo-1636401870585-a8852371e84a |
 | Korean Fried Chicken | photo-1687966699414-095ca9c35593 |
 | Mongolian Beef | photo-1783375175952-705a0600e05c |

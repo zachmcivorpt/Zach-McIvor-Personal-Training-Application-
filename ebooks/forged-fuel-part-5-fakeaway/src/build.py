@@ -98,7 +98,7 @@ def cover():
   <div class="c-logo">{logo("clogo", shadow=False)}<div class="pt">PERSONAL TRAINING</div></div>
   <svg class="c-part" viewBox="-3 -2 244 68">
     <defs><linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffe46b"/><stop offset=".5" stop-color="#f7a516"/><stop offset="1" stop-color="#c25e00"/>
+      <stop offset="0" stop-color="#ff8ad8"/><stop offset=".5" stop-color="#e6208f"/><stop offset="1" stop-color="#8c0b57"/>
     </linearGradient></defs>
     <g font-family="Black Ops One" font-size="54" letter-spacing="1">
       <text x="3" y="60" fill="#000" stroke="#000" stroke-width="7" stroke-linejoin="round" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
@@ -109,7 +109,7 @@ def cover():
   <img class="c-sub-brush" src="assets/brush-underline.png" alt="">
   <div class="c-plus">+ OUR DOUBLE SMASH 'BIG SMAC'</div>
   <div class="c-plus-sub">TAKEAWAY TASTE, BUILT TO FIT YOUR MACROS</div>
-  <img class="c-img c-tl" src="photos/butter-chicken.png" alt="">
+  <img class="c-img c-tl" src="photos/nachos.png" alt="">
   <img class="c-img c-bl" src="photos/shake.png" alt="">
   <img class="c-img c-br" src="photos/smash-burger.png" alt="">
 </section>'''
