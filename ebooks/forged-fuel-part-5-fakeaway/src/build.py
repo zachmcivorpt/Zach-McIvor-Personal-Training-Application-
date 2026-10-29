@@ -96,13 +96,13 @@ def cover():
 <section class="page cover" id="cover">
   <img class="c-base" src="assets/cover-base.png" alt="">
   <div class="c-logo">{logo("clogo", shadow=False)}<div class="pt">PERSONAL TRAINING</div></div>
-  <svg class="c-part" viewBox="-3 -2 244 68">
+  <svg class="c-part" viewBox="-5 -4 248 72">
     <defs><linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#b8743a"/><stop offset=".5" stop-color="#7a4019"/><stop offset="1" stop-color="#3b1a08"/>
     </linearGradient></defs>
     <g font-family="Black Ops One" font-size="54" letter-spacing="1">
-      <text x="3" y="60" fill="#000" stroke="#000" stroke-width="7" stroke-linejoin="round" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
-      <text x="1" y="58" fill="url(#pv)" stroke="#000" stroke-width="5.5" stroke-linejoin="round" paint-order="stroke" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
+      <text x="3" y="60" fill="#000" stroke="#000" stroke-width="11" stroke-linejoin="round" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
+      <text x="1" y="58" fill="url(#pv)" stroke="#000" stroke-width="9" stroke-linejoin="round" paint-order="stroke" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
     </g>
   </svg>
   <div class="c-sub">THE FAKEAWAY FILES</div>
