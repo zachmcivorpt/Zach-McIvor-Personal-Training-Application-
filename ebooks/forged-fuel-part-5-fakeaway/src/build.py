@@ -98,7 +98,7 @@ def cover():
   <div class="c-logo">{logo("clogo", shadow=False)}<div class="pt">PERSONAL TRAINING</div></div>
   <svg class="c-part" viewBox="-3 -2 244 68">
     <defs><linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#f7c77e"/><stop offset=".48" stop-color="#d98a2e"/><stop offset="1" stop-color="#5c2a12"/>
+      <stop offset="0" stop-color="#b8743a"/><stop offset=".5" stop-color="#7a4019"/><stop offset="1" stop-color="#3b1a08"/>
     </linearGradient></defs>
     <g font-family="Black Ops One" font-size="54" letter-spacing="1">
       <text x="3" y="60" fill="#000" stroke="#000" stroke-width="7" stroke-linejoin="round" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
@@ -110,7 +110,7 @@ def cover():
   <div class="c-plus">+ OUR CRISPY CHICKEN BURGER</div>
   <div class="c-plus-sub">CRUNCHY, JUICY &amp; BUILT TO FIT YOUR MACROS</div>
   <img class="c-img c-tl" src="photos/lava.png" alt="">
-  <img class="c-img c-bl" src="photos/shake.png" alt="">
+  <img class="c-img c-bl" src="photos/shake-cover.png" alt="">
   <img class="c-img c-br" src="photos/chicken-burger.png" alt="">
 </section>'''
 
