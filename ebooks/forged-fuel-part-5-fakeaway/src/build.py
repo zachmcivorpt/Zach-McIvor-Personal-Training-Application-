@@ -17,9 +17,7 @@ E = html.escape
 PHOTO = {
     "chicken-burger": dict(mode="cut", left=224, right=446),
     "smash-burger":   dict(mode="cut", left=224, right=432),
-    "nachos":         dict(mode="cut", left=224, right=452),
     "quesadilla":     dict(mode="rect", pos="45% 50%"),
-    "pizza":          dict(mode="rect", pos="40% 55%"),
     "doner":          dict(mode="rect", pos="72% 50%"),
     "souvlaki":       dict(mode="rect", pos="50% 45%"),
     "butter-chicken": dict(mode="cut", left=224, right=430),
@@ -27,7 +25,6 @@ PHOTO = {
     "korean":         dict(mode="cut", left=224, right=428),
     "mongolian":      dict(mode="rect", pos="50% 45%"),
     "sweet-sour":     dict(mode="rect", pos="55% 50%"),
-    "fried-rice":     dict(mode="rect", pos="38% 50%"),
     "pad-thai":       dict(mode="rect", pos="42% 50%"),
     "fish-chips":     dict(mode="rect", pos="62% 50%"),
     "lava":           dict(mode="cut", left=224, right=412),
@@ -98,18 +95,18 @@ def cover():
   <div class="c-logo">{logo("clogo", shadow=False)}<div class="pt">PERSONAL TRAINING</div></div>
   <svg class="c-part" viewBox="-5 -4 248 72">
     <defs><linearGradient id="pv" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#b8743a"/><stop offset=".5" stop-color="#7a4019"/><stop offset="1" stop-color="#3b1a08"/>
+      <stop offset="0" stop-color="#ffb347"/><stop offset=".5" stop-color="#ff7a00"/><stop offset="1" stop-color="#c94a00"/>
     </linearGradient></defs>
     <g font-family="Black Ops One" font-size="54" letter-spacing="1">
-      <text x="3" y="60" fill="#000" stroke="#000" stroke-width="11" stroke-linejoin="round" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
-      <text x="1" y="58" fill="url(#pv)" stroke="#000" stroke-width="9" stroke-linejoin="round" paint-order="stroke" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
+      <text x="3" y="60" fill="#0d1b45" stroke="#0d1b45" stroke-width="11" stroke-linejoin="round" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
+      <text x="1" y="58" fill="url(#pv)" stroke="#0d1b45" stroke-width="9" stroke-linejoin="round" paint-order="stroke" textLength="232" lengthAdjust="spacingAndGlyphs">PART V</text>
     </g>
   </svg>
   <div class="c-sub">THE FAKEAWAY FILES</div>
   <img class="c-sub-brush" src="assets/brush-underline.png" alt="">
   <div class="c-plus">+ OUR CRISPY CHICKEN BURGER</div>
   <div class="c-plus-sub">CRUNCHY, JUICY &amp; BUILT TO FIT YOUR MACROS</div>
-  <img class="c-img c-tl" src="photos/lava.png" alt="">
+  <img class="c-img c-tl" src="photos/souvlaki-cover.png" alt="">
   <img class="c-img c-bl" src="photos/shake-cover.png" alt="">
   <img class="c-img c-br" src="photos/chicken-burger.png" alt="">
 </section>'''
@@ -134,7 +131,7 @@ def contents(pages):
   <h1 class="title"><span>THE MENU</span></h1>
   <img class="underline" src="assets/brush-underline.png" alt="">
   {logo("logo")}
-  <p class="m-intro">Seventeen takeaway favourites, rebuilt at home with high-protein ingredients and the
+  <p class="m-intro">Fourteen takeaway favourites, rebuilt at home with high-protein ingredients and the
   techniques that make them taste like the real thing. Everything comes from an ordinary Coles or
   Woolworths shop and works on a weeknight.</p>
   <div class="m-list">{"".join(rows)}</div>

@@ -57,7 +57,7 @@ body { font-family: "Fraunces", serif; color: #000; -webkit-print-color-adjust: 
 /* ---------- cover (positions measured from the Part I-III covers) ---------- */
 .c-base { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 0; }
 .c-img { position: absolute; z-index: 4; }
-.c-tl { left: -6pt; top: -34pt; width: 132pt; transform: rotate(-6deg); }
+.c-tl { left: -10pt; top: -44pt; width: 160pt; transform: rotate(-3deg); }
 .c-bl { left: -22pt; top: 352pt; width: 172pt; transform: rotate(-4deg); }
 .c-br { left: 134pt; top: 404pt; width: 318pt; transform: rotate(-10deg); }
 .c-logo { position: absolute; left: 349pt; top: 41pt; width: 40pt; z-index: 3; text-align: center; }

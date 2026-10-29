@@ -67,41 +67,10 @@ dict(
   ],
   tip="Smash once, in the first 30 seconds, and never press again. Lean mince gets its flavour from that crust, so the pan must be properly hot.",
 ),
-# ---------------------------------------------------------------- 3
-dict(
-  slug="nachos", title="LOADED BEEF NACHOS", serves=2, prep=15, cook=25,
-  section="Pizza, Mexican & Greek",
-  ingredients=[
-    ("Chips & beef", [
-      ("6 small corn tortillas (150 g), each cut into 6 wedges", "corn_tortilla", 150),
-      ("Olive oil spray (about 4 g)", "olive_oil", 4),
-      ("300 g 5-star beef mince (5% fat)", "beef_mince_5", 300),
-      ("½ brown onion (60 g), finely diced + 1 garlic clove, crushed", "onion", 60),
-      ("1 tsp each ground cumin & smoked paprika; ½ tsp each chilli powder & oregano", None, 0),
-      ("20 g tomato paste", "tomato_paste", 20),
-      ("120 g canned black beans, rinsed (about ½ can)", "black_beans", 120),
-      ("50 g light tasty cheese, grated", "tasty_light", 50),
-    ]),
-    ("Toppings", [
-      ("60 g high-protein Greek yoghurt (your 'sour cream')", "greek_yog", 60),
-      ("70 g avocado, mashed with lime juice & salt", "avocado", 70),
-      ("100 g tomato + 20 g red onion, diced, with coriander", "tomato", 100),
-      ("20 g pickled jalapeños + 20 g radish, sliced; lime wedges", "jalapenos", 20),
-    ]),
-  ],
-  _extra=[("garlic", 5), ("onion", 20), ("radish", 20), ("lemon_juice", 10), ("herbs", 5)],
-  steps=[
-    ("Bake the chips", "Spread the wedges over two lined trays, spray with oil and salt lightly. Bake at 200°C fan-forced for 8–10 minutes until crisp and lightly golden."),
-    ("Cook the beef", "Brown the mince well in a hot non-stick pan – the browning is the flavour. Add onion and garlic for 2 minutes, then the spices for 30 seconds. Stir in tomato paste, beans and 60 ml water; simmer until thick, not wet."),
-    ("Layer", "On an ovenproof platter, layer half the chips, half the beef and half the cheese, then repeat. Bake 5 minutes until the cheese melts."),
-    ("Load up", "Loosen the yoghurt with lime and drizzle over, then add the avocado, tomato salsa, jalapeños, radish and coriander. Serve straight away."),
-  ],
-  tip="Two thin layers beat one big pile – every chip gets beef and cheese, not just the top ones. Keep the beef thick so the chips stay crunchy.",
-),
 # ---------------------------------------------------------------- 4
 dict(
   slug="quesadilla", title="CHIPOTLE QUESADILLAS", serves=2, prep=10, cook=16,
-  section="Pizza, Mexican & Greek",
+  section="Mexican, Greek & Kebabs",
   ingredients=[
     ("Filling", [
       ("300 g chicken breast, diced into 1.5 cm pieces", "chicken_breast", 300),
@@ -129,38 +98,10 @@ dict(
   ],
   tip="Medium heat, not high. The wrap needs a few minutes for the cheese inside to melt before the outside scorches.",
 ),
-# ---------------------------------------------------------------- 5
-dict(
-  slug="pizza", title="PEPPERONI PIZZA", serves=2, prep=15, cook=17,
-  section="Pizza, Mexican & Greek",
-  ingredients=[
-    ("Protein dough", [
-      ("150 g self-raising flour (+ 10 g for dusting)", "sr_flour", 160),
-      ("150 g high-protein Greek yoghurt", "greek_yog", 150),
-      ("Pinch of salt", None, 0),
-    ]),
-    ("Sauce & topping", [
-      ("60 g tomato passata", "passata", 60),
-      ("½ garlic clove, grated + ½ tsp dried oregano", "garlic", 3),
-      ("120 g light shredded mozzarella", "mozz_light", 120),
-      ("40 g sliced pepperoni", "pepperoni", 40),
-      ("10 g parmesan, finely grated", "parmesan", 10),
-      ("Fresh basil & chilli flakes, to finish", None, 0),
-    ]),
-  ],
-  steps=[
-    ("Heat the tray", "Put a pizza tray or large baking tray in the oven and heat to 220°C fan-forced. A hot tray is what gives you a crisp base."),
-    ("Make the dough", "Stir the flour, yoghurt and salt into a shaggy dough, then knead on a floured bench for 1–2 minutes until smooth and only slightly tacky. Roll out to a 30 cm round on baking paper."),
-    ("Par-bake", "Slide the base (on its paper) onto the hot tray and bake 5 minutes, until set and lightly puffed."),
-    ("Top & bake", "Mix the passata, garlic and oregano and spread thinly, leaving a 2 cm border. Add mozzarella, pepperoni and parmesan. Bake another 10–12 minutes until the cheese is bubbling and the pepperoni edges curl and crisp."),
-    ("Rest", "Rest 2 minutes before slicing so the cheese sets. Finish with basil and chilli flakes."),
-  ],
-  tip="Go easy on the sauce – a thin layer keeps the base crisp. Too much passata is the number one cause of a soggy homemade pizza.",
-),
 # ---------------------------------------------------------------- 6
 dict(
   slug="doner", title="BEEF DONER KEBAB", serves=2, prep=20, cook=30,
-  section="Pizza, Mexican & Greek",
+  section="Mexican, Greek & Kebabs",
   ingredients=[
     ("Doner meat", [
       ("300 g 5-star beef mince (5% fat)", "beef_mince_5", 300),
@@ -192,7 +133,7 @@ dict(
 # ---------------------------------------------------------------- 7
 dict(
   slug="souvlaki", title="PORK SOUVLAKI PLATE", serves=2, prep=20, cook=25,
-  section="Pizza, Mexican & Greek",
+  section="Mexican, Greek & Kebabs",
   ingredients=[
     ("Skewers", [
       ("350 g pork loin steaks, fat trimmed, cut into 2.5 cm cubes", "pork_loin", 350),
@@ -384,36 +325,6 @@ dict(
     ("Toss & serve", "Add the crispy pork, toss quickly to coat and scatter with sesame seeds."),
   ],
   tip="The sauce should be sharp as well as sweet. Taste it before the pork goes in and add a splash more vinegar if it's flat.",
-),
-# ---------------------------------------------------------------- 13
-dict(
-  slug="fried-rice", title="PRAWN FRIED RICE", serves=2, prep=10, cook=12,
-  section="Asian & Curry House",
-  ingredients=[
-    ("Fried rice", [
-      ("120 g jasmine rice (dry), cooked the day before and chilled", "jasmine_rice", 120),
-      ("300 g raw peeled prawns, deveined", "prawns_raw", 300),
-      ("2 eggs (100 g) + 2 egg whites (60 g), lightly beaten", "egg", 100),
-      ("120 g frozen peas, corn & carrot", "frozen_mixed_veg", 120),
-      ("2 garlic cloves (10 g), finely chopped", "garlic", 10),
-      ("2 spring onions (30 g), sliced", "spring_onion", 30),
-      ("2 tsp vegetable oil (8 g) + 1 tsp sesame oil (3 g)", "olive_oil", 8),
-    ]),
-    ("Seasoning", [
-      ("25 ml reduced-salt soy sauce", "soy_sauce", 25),
-      ("10 g oyster sauce", "oyster_sauce", 10),
-      ("Pinch of white pepper", None, 0),
-    ]),
-  ],
-  _extra=[("egg_white", 60), ("sesame_oil", 3)],
-  steps=[
-    ("Use cold rice", "Day-old rice is drier and firmer, so it fries instead of turning to mush. In a hurry, spread freshly cooked rice on a tray and refrigerate it uncovered for an hour."),
-    ("Prawns", "Heat half the oil in a wok or large pan until smoking. Cook the prawns for 1–2 minutes until just pink, then remove."),
-    ("Eggs", "Pour in the eggs and scramble softly for 30–40 seconds until just set. Remove."),
-    ("Fry", "Add the remaining oil, garlic and frozen veg and toss 1 minute. Add the rice, break up any clumps, then press it against the pan and toss for 3–4 minutes until hot and lightly toasted."),
-    ("Finish", "Pour the soy and oyster sauce around the edge of the wok so they sizzle. Return the eggs and prawns, add spring onion, sesame oil and white pepper, and toss to combine."),
-  ],
-  tip="Pour the sauces around the hot edge of the wok, not over the rice. They caramelise as they hit the metal, which gives you that smoky takeaway 'wok hei' flavour.",
 ),
 # ---------------------------------------------------------------- 14
 dict(
