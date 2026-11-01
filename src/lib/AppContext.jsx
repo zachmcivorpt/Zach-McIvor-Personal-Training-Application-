@@ -446,11 +446,6 @@ export function AppProvider({ children }) {
     // stays exclusively Coaching's.
     watch("soloProgramCategories", "soloProgramCategories");
     watch("soloPrograms", "soloPrograms");
-    // The full phases/days/exercises for every Solo program — coach-only
-    // read (see firestore.rules' soloProgramContent block), kept separate
-    // from the public soloPrograms doc above so a customer can never read
-    // a program's full content without a matching purchase.
-    watch("soloProgramContent", "soloProgramContent");
     watch("masterWorkouts", "masterWorkouts");
     watch("masterMeals", "masterMeals");
     watch("customFoods", "customFoods");
@@ -458,6 +453,13 @@ export function AppProvider({ children }) {
     watch("forms", "forms");
 
     if (role === "coach") {
+      // The full phases/days/exercises for every Solo program — coach-only
+      // read (see firestore.rules' soloProgramContent block), kept separate
+      // from the public soloPrograms doc so a customer can never read a
+      // program's full content without a matching purchase. Only the coach
+      // console uses it; a client's listener was refused and retried
+      // forever (AppContext.coachOnlyListeners.test.jsx).
+      watch("soloProgramContent", "soloProgramContent");
       watch("users", "users");
       watch("invites", "invites");
       watch("workoutLogs", "workoutLogs");

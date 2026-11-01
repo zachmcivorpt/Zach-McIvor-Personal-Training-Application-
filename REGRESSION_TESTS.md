@@ -2299,6 +2299,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/coach/coachOverviewLayout.test.jsx`: each number navigates to the same tab as before; notes Save is disabled until an edit and then saves. The navigation case fails when a link is pointed elsewhere (checked, then restored). Rendered the real component with sample data at 430px: no console errors, and clicking each number produced clients, challenges, messages, clients.
 - **Date added**: 2026-10-28
 
+### 116. Coached clients' app retried a refused listener forever
+- **Problem**: found in the 2026-11-01 weekly audit. `AppContext.jsx` subscribed to `soloProgramContent` (every Train Solo program's full sessions) for every signed-in user, but firestore.rules only lets the coach read that collection. On every coached client's phone the listener was refused, logged "listener soloProgramContent failed, retrying: Missing or insufficient permissions", and `subscribeWithRetry` re-subscribed with backoff up to every 16 seconds for as long as the app was open. Wasted requests and battery and filled the console; no data was wrong (only the coach console reads it). Introduced 2026-10-19 (purchase-gated content).
+- **Fix**: the `soloProgramContent` watch moved into the `role === "coach"` branch. Clients get `db.soloProgramContent` as `[]`, which nothing on the client side reads.
+- **Regression tests**: `src/lib/AppContext.coachOnlyListeners.test.jsx`: a client never subscribes to `soloProgramContent`; the coach still does. The client case fails on the pre-fix code (checked). Live check: walking every client tab against production logged the error 10 times on the live build and 0 times on the fixed build.
+- **Date added**: 2026-11-01
+
 ---
 
 ## What still requires manual testing
