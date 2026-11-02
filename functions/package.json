@@ -2,7 +2,7 @@
   "name": "functions",
   "description": "Cloud Functions for Zach McIvor Personal Training — sends push notifications for new messages and check-ins",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "dependencies": {

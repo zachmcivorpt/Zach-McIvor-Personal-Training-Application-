@@ -288,6 +288,13 @@ any Train Solo work from now on:
   keep both in step); in the iPhone app always Apple's own prices from the
   store.
 
+## Cloud Functions runtime
+
+- Functions run on Node.js 22 (`functions/package.json` engines + the
+  deploy workflow). Google decommissioned Node 20 on 2026-10-30 and
+  deploys were refused until this was raised (REGRESSION_TESTS.md #123).
+  Keep both in step when the runtime moves again.
+
 ## iOS builds (Codemagic)
 
 - The iOS app is a WKWebView on the live web app, so web-only changes reach

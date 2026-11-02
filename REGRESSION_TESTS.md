@@ -2343,6 +2343,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 
 ---
 
+### 123. Server deploys and CI on main were failing (2026-11-02)
+- **Problem**: (1) Google decommissioned the Node.js 20 Cloud Functions runtime on 2026-10-30, so "Deploy Cloud Functions" refused to deploy anything (Train Solo subscription functions included). (2) CI's lint step failed on main since #117: oxlint's rules-of-hooks read the gs1.js helper `useByDate()` as a React hook call.
+- **Fix**: `functions/package.json` (and its lockfile) `engines.node` 20 → 22, deploy workflow `node-version: 22`. gs1.js helper renamed `expiryDateOf`; no behaviour change.
+- **Regression check**: functions tests (39) and full web suite pass; `npm run lint` exits 0; watch the next "Deploy Cloud Functions" run on main go green.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
