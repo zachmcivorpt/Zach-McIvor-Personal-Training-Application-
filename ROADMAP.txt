@@ -174,7 +174,9 @@ OWNER TO DO, in order
     DONE  E17 merge: main merged into the branch and the branch into main
              (2026-11-02); Codemagic builds 1.0.4 from it.
     DONE  D16 five programs published (owner, earlier).
-    TODO  GST registration + ABN Lookup page to Apple; TestFlight 1.0.4
+    DONE  GST registered 2026-11-02 (ATO online services; voluntary,
+             under $75k, annual Simpler BAS, cash basis).
+    TODO  ABN Lookup page (showing GST) uploaded to Apple; TestFlight 1.0.4
              testing (APEXTEST on the website); submit.
   A. Apple (App Store Connect) — start now, the agreements take days:
     1. Business: sign the Paid Apps Agreement; add bank account and tax
