@@ -518,7 +518,7 @@ export const SheetSurfaceContext = createContext(undefined);
 
 // `surface` (optional) overrides the fill for one sheet; otherwise the
 // nearest SheetSurfaceContext value (if any) applies.
-export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", keyboardSafeScroll = false, surface: surfaceProp }) {
+export function BottomSheet({ open, onClose, title, children, dark = false, wide = false, bodyClassName = "p-5", keyboardSafeScroll = false, surface: surfaceProp, backdropClassName = "bg-black/50" }) {
   const contextSurface = useContext(SheetSurfaceContext);
   const surface = surfaceProp || contextSurface;
   // Opening already slid up smoothly, but closing just vanished the instant
@@ -554,7 +554,7 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
           // touch-none: nothing here scrolls anyway (it's a backdrop), but
           // without this a drag starting on it can still move the page
           // behind it on iOS — the actual production report this fixes.
-          className={`absolute inset-0 bg-black/50 touch-none transition-opacity duration-300 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
+          className={`absolute inset-0 ${backdropClassName} touch-none transition-opacity duration-300 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
           onClick={onClose}
         />
         <div

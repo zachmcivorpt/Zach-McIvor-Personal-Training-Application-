@@ -31,21 +31,21 @@ export const useSoloPaywall = () => useContext(PaywallCtx);
 // blur and saturation so text stays readable.
 function paywallSurface(dark) {
   return {
-    backgroundColor: dark ? "rgba(18,18,20,0.58)" : "rgba(246,245,242,0.6)",
-    backdropFilter: "blur(40px) saturate(180%)",
-    WebkitBackdropFilter: "blur(40px) saturate(180%)",
-    boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.7)",
+    backgroundColor: dark ? "rgba(16,16,18,0.42)" : "rgba(255,255,255,0.3)",
+    backdropFilter: dark ? "blur(30px) saturate(170%)" : "blur(30px) saturate(190%) brightness(1.1)",
+    WebkitBackdropFilter: dark ? "blur(30px) saturate(170%)" : "blur(30px) saturate(190%) brightness(1.1)",
+    boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.1)" : "inset 0 1px 0 rgba(255,255,255,0.85)",
   };
 }
 
 // A plan tile: a thinner pane of glass on the sheet's glass.
 function planGlass(dark, selected) {
   return {
-    backgroundColor: dark ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.4)",
-    border: `${selected ? 1.5 : 1}px solid ${selected ? MEASURE_BLUE : dark ? "rgba(255,255,255,0.1)" : "rgba(20,19,15,0.08)"}`,
-    boxShadow: selected ? `0 0 0 4px ${MEASURE_BLUE_SOFT}` : "none",
-    backdropFilter: "blur(24px)",
-    WebkitBackdropFilter: "blur(24px)",
+    backgroundColor: dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.26)",
+    border: `${selected ? 1.5 : 1}px solid ${selected ? MEASURE_BLUE : dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.7)"}`,
+    boxShadow: selected ? `0 0 0 4px ${MEASURE_BLUE_SOFT}` : dark ? "none" : "0 1px 0 rgba(20,19,15,0.04)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
   };
 }
 
@@ -194,7 +194,7 @@ function SoloPaywallSheet({ request, onClose }) {
   const canManageHere = store === "stripe" ? !iosApp : store === "apple";
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={soloTier === "free" ? "Train Solo Membership" : "Your membership"} dark={dark} surface={paywallSurface(dark)}>
+    <BottomSheet open={open} onClose={onClose} title={soloTier === "free" ? "Train Solo Membership" : "Your membership"} dark={dark} surface={paywallSurface(dark)} backdropClassName="bg-black/15">
       <div style={{ color: t.text }}>
         {request?.reason && (
           <p className="text-sm mb-4 leading-relaxed" style={{ color: t.textMuted }}>
