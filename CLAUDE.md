@@ -212,9 +212,9 @@ Do these together when the user is ready to submit a new App Store build
   proves patchy on device.
 - **Order agreed** (changed again 2026-10-28, owner): 1.0.3 (build 94) was
   submitted and APPROVED by Apple on 2026-10-28; it is released first (Apple Health, voice notes, form checks, lock-screen
-  rest alert, offline) once it passes TestFlight testing; main's `ios/` is
-  1.0.3, so don't merge the branch's 1.0.4 `ios/` changes until 1.0.3 is
-  submitted. Then 1.0.4 (Train Solo subscriptions + instant open) is the
+  rest alert, offline) once it passes TestFlight testing. The 1.0.4 branch
+  (with its `ios/` changes and the RevenueCat `appl_` key) was MERGED to
+  main on 2026-11-02, so main's `ios/` is now 1.0.4. Then 1.0.4 (Train Solo subscriptions + instant open) is the
   public launch; marketing starts with it. Then growing the catalogue to 10
   solid programs.
   All written up in `ROADMAP.txt`. The monetisation plan was APPROVED
@@ -225,8 +225,8 @@ Do these together when the user is ready to submit a new App Store build
   launch day; launch with 5 programs. BUILT 2026-10-28 and switched off;
   what's left is the owner's setup list in ROADMAP.txt step 2 (Apple,
   RevenueCat, Stripe, 5 programs), then 1.0.4 (needs the RevenueCat public
-  key in ios/ApexCoach/PurchasesBridge.swift). Merging `ios/` to main makes
-  Codemagic build 1.0.4 — fine now, best once that key is in.
+  key in ios/ApexCoach/PurchasesBridge.swift — in). Merged to main
+  2026-11-02, which starts Codemagic's 1.0.4 build.
 - **Instant open, native part — BUILT for 1.0.4 (2026-10-28)**
   (REGRESSION_TESTS.md #121): ViewController.swift opens the saved copy
   (`.returnCacheDataElseLoad`) once the site has loaded before, checks the

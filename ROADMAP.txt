@@ -171,8 +171,10 @@ OWNER TO DO, in order
     DONE  Stripe test coupon "APEX test": 100% off, once, max 5 uses,
              promotion code APEXTEST (checkout allows promotion codes).
              Cancel any monthly test subscription afterwards.
+    DONE  E17 merge: main merged into the branch and the branch into main
+             (2026-11-02); Codemagic builds 1.0.4 from it.
     TODO  GST registration + ABN Lookup page to Apple; D16 five programs;
-             then E17 merge (me).
+             TestFlight 1.0.4 testing (APEXTEST on the website); submit.
   A. Apple (App Store Connect) — start now, the agreements take days:
     1. Business: sign the Paid Apps Agreement; add bank account and tax
        forms. Enrol in the App Store Small Business Program (15%).
