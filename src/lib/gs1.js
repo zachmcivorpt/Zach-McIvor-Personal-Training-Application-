@@ -139,7 +139,7 @@ function netWeightGrams(ais) {
 
 // AI 17 (use by / expiry) or 15 (best before), YYMMDD → "YYYY-MM-DD". A
 // day of 00 means the end of that month.
-function useByDate(ais) {
+function expiryDateOf(ais) {
   const v = ais["17"] || ais["15"];
   if (!/^\d{6}$/.test(v || "")) return null;
   const y = 2000 + Number(v.slice(0, 2));
@@ -156,7 +156,7 @@ export function parseScannedCode(text) {
   if (/^\d{6,14}$/.test(trimmed)) return { kind: "barcode", gtin: trimmed, netWeightGrams: null, useBy: null, raw };
   const ais = parseDigitalLink(trimmed) || parseElementString(trimmed);
   if (ais && ais["01"] && checkDigitOk(ais["01"])) {
-    return { kind: "gs1", gtin: normaliseGtin(ais["01"]), variableMeasure: isVariableMeasureGtin(ais["01"]), netWeightGrams: netWeightGrams(ais), useBy: useByDate(ais), raw };
+    return { kind: "gs1", gtin: normaliseGtin(ais["01"]), variableMeasure: isVariableMeasureGtin(ais["01"]), netWeightGrams: netWeightGrams(ais), useBy: expiryDateOf(ais), raw };
   }
   if (/^https?:\/\//i.test(trimmed) || /^www\./i.test(trimmed)) return { kind: "url", gtin: null, netWeightGrams: null, useBy: null, raw };
   return { kind: "unknown", gtin: null, netWeightGrams: null, useBy: null, raw };
