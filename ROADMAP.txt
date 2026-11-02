@@ -158,7 +158,13 @@ OWNER TO DO, in order
              monthly), webhook, Apple server notifications (prod + sandbox),
              GitHub secrets REVENUECAT_SECRET_KEY (V1) and
              REVENUECAT_WEBHOOK_AUTH, appl_ key in PurchasesBridge.swift.
-    TODO  C12-C15 Stripe; D16 five programs; then E17 merge (me).
+    DONE  Stripe webhook "APEX Train Solo Purchases" now listens to 7 events
+             (+ customer.subscription.created/updated/deleted, invoice.paid,
+             invoice.payment_failed); signing secret unchanged.
+    DONE  Stripe customer portal: cancel at end of billing period, update
+             card, invoices; switch plans OFF (the app changes plans itself).
+    TODO  Stripe Smart Retries + failed-payment emails; 100%-off test
+             coupon; D16 five programs; then E17 merge (me).
   A. Apple (App Store Connect) — start now, the agreements take days:
     1. Business: sign the Paid Apps Agreement; add bank account and tax
        forms. Enrol in the App Store Small Business Program (15%).
