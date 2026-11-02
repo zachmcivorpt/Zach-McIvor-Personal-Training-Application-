@@ -224,7 +224,11 @@ describe("inside the iPhone app", () => {
     ctx = baseCtx({ soloGatesLive: true });
     await renderProgram("p1");
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
-    await screen.findByText(/Subscriptions aren't available right now.*could be fetched from App Store Connect/);
+    await screen.findByText(/Subscriptions aren't available right now/);
+    // The technical reason stays behind "Details".
+    expect(screen.queryByText(/could be fetched from App Store Connect/)).toBe(null);
+    fireEvent.click(screen.getByRole("button", { name: "Details" }));
+    expect(screen.getByText(/could be fetched from App Store Connect/)).toBeTruthy();
     expect(screen.queryByText(/website/i)).toBe(null);
     // The sheet's ✕ (an icon-only button next to the title).
     const closeX = screen.getByText("Train Solo Membership").parentElement.querySelector("button");

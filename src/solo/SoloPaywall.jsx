@@ -82,6 +82,7 @@ function SoloPaywallSheet({ request, onClose }) {
   // Agreement isn't active yet), shown under the disabled button instead of
   // leaving a silent grey button. Cleared on each open so it retries.
   const [storeError, setStoreError] = useState("");
+  const [showStoreError, setShowStoreError] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -90,6 +91,7 @@ function SoloPaywallSheet({ request, onClose }) {
     setMessage("");
     if (nativeIap && !(storeProducts && storeProducts.length)) {
       setStoreError("");
+      setShowStoreError(false);
       loadStoreProducts()
         .then((list) => {
           const products = Array.isArray(list) ? list : [];
@@ -271,6 +273,7 @@ function SoloPaywallSheet({ request, onClose }) {
                         {selected && <Check size={11} strokeWidth={3} color="#FFFFFF" />}
                       </span>
                     </div>
+                    {(p || (iosApp && storeProducts === null)) && (
                     <div className="flex items-baseline gap-1.5 mt-1.5 min-h-[34px]">
                       {p ? (
                         <>
@@ -280,9 +283,10 @@ function SoloPaywallSheet({ request, onClose }) {
                           </p>
                         </>
                       ) : (
-                        iosApp && storeProducts === null && <p className="text-[30px] leading-none font-semibold" style={{ color: t.textFaint }}>–</p>
+                        <p className="text-[30px] leading-none font-semibold" style={{ color: t.textFaint }}>–</p>
                       )}
                     </div>
+                    )}
                     {days > 0 && (
                       <p className="text-xs font-semibold mt-1.5" style={{ color: MEASURE_BLUE }}>
                         {days} days free
@@ -314,9 +318,15 @@ function SoloPaywallSheet({ request, onClose }) {
                 </PrimaryButton>
               )}
               {nativeIap && !price && storeError && !alreadyThis && (
-                <p className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
-                  Subscriptions aren't available right now. Please try again later. ({storeError})
-                </p>
+                <div className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
+                  <p>
+                    Subscriptions aren't available right now. Please try again later.{" "}
+                    <button type="button" onClick={() => setShowStoreError((v) => !v)} className="underline underline-offset-2 font-semibold">
+                      {showStoreError ? "Hide details" : "Details"}
+                    </button>
+                  </p>
+                  {showStoreError && <p className="mt-1.5 break-words" style={{ color: t.textFaint }}>{storeError}</p>}
+                </div>
               )}
               {price && (
                 <p className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
