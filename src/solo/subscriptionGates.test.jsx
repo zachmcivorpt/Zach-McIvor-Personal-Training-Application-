@@ -203,6 +203,38 @@ describe("inside the iPhone app", () => {
     await waitFor(() => expect(ctx.refreshSoloEntitlement).toHaveBeenCalled());
     expect(ctx.startSoloSubscription).not.toHaveBeenCalled();
   });
+
+  it("1.0.4+: when the App Store returns nothing, the paywall says why (no silent grey button) and retries on reopen", async () => {
+    let calls = 0;
+    window.webkit = {
+      messageHandlers: {
+        apexTheme: { postMessage() {} },
+        apexPurchases: {
+          postMessage(msg) {
+            if (msg.action !== "offerings") return;
+            calls += 1;
+            const reply = calls === 1
+              ? { id: msg.id, error: "None of the products registered in the RevenueCat dashboard could be fetched from App Store Connect." }
+              : { id: msg.id, result: [{ plan: "all_access_yearly", price: "$179.99", trialDays: 7 }] };
+            setTimeout(() => window.__apexNativePurchases.receive(reply), 0);
+          },
+        },
+      },
+    };
+    ctx = baseCtx({ soloGatesLive: true });
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    await screen.findByText(/Subscriptions aren't available right now.*could be fetched from App Store Connect/);
+    expect(screen.queryByText(/website/i)).toBe(null);
+    // The sheet's ✕ (an icon-only button next to the title).
+    const closeX = screen.getByText("Go further with Train Solo").parentElement.querySelector("button");
+    fireEvent.click(closeX);
+    await waitFor(() => expect(screen.queryByText("Go further with Train Solo")).toBe(null));
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    await screen.findByText("$179.99");
+    expect(calls).toBe(2);
+    expect(screen.queryByText(/aren't available right now/)).toBe(null);
+  });
 });
 
 describe("Free: 3 saved sessions", () => {

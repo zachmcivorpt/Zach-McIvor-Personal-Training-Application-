@@ -2348,6 +2348,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Fix**: `functions/package.json` (and its lockfile) `engines.node` 20 → 22, deploy workflow `node-version: 22`. gs1.js helper renamed `expiryDateOf`; no behaviour change.
 - **Regression check**: functions tests (39) and full web suite pass; `npm run lint` exits 0; watch the next "Deploy Cloud Functions" run on main go green.
 
+### 124. iPhone paywall: no prices and a silent grey button when the App Store returned nothing
+- **Problem**: on TestFlight 1.0.4 the paywall showed the plans with no prices and a greyed Subscribe button, with no reason. If RevenueCat/StoreKit returned an error or no products (e.g. the Paid Apps Agreement not yet active, products not ready), `SoloPaywall` swallowed it, cached the empty list and never asked again that session.
+- **Fix**: `SoloPaywall.jsx` keeps the error and shows "Subscriptions aren't available right now. Please try again later. (reason)" under the button (no website mention, 3.1.1), and asks the App Store again on each open until it has products.
+- **Test**: `subscriptionGates.test.jsx` — an App Store error shows the reason; reopening retries and then shows Apple's price.
+- **Regression check**: existing paywall tests (Apple prices, purchase to the App Store, update-the-app on old builds, website prices) pass; full suite, lint, build.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

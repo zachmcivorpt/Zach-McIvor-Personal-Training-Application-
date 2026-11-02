@@ -284,6 +284,9 @@ any Train Solo work from now on:
 - Nothing is gated until `settings/soloMonetisation.live` (coach console >
   Train Solo > Subscriptions) or the account is a test account; before
   that, Train Solo must behave exactly as it did.
+- In the iPhone app, if the App Store returns no subscriptions the paywall
+  shows why (REGRESSION_TESTS.md #124) and retries on the next open — never
+  a silent disabled button, never a pointer to the website.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.

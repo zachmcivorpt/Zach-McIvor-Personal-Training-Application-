@@ -55,13 +55,29 @@ function SoloPaywallSheet({ request, onClose }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [storeProducts, setStoreProducts] = useState(null);
+  // Why the App Store returned no subscriptions (e.g. the Paid Apps
+  // Agreement isn't active yet), shown under the disabled button instead of
+  // leaving a silent grey button. Cleared on each open so it retries.
+  const [storeError, setStoreError] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setTier(request.tier === "plus" ? "plus" : "all_access");
     setInterval_("year");
     setMessage("");
-    if (nativeIap && !storeProducts) loadStoreProducts().then(setStoreProducts).catch(() => setStoreProducts([]));
+    if (nativeIap && !(storeProducts && storeProducts.length)) {
+      setStoreError("");
+      loadStoreProducts()
+        .then((list) => {
+          const products = Array.isArray(list) ? list : [];
+          setStoreProducts(products);
+          if (!products.length) setStoreError("The App Store didn't return any subscriptions.");
+        })
+        .catch((err) => {
+          setStoreProducts([]);
+          setStoreError(err?.message || "Couldn't reach the App Store.");
+        });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -262,6 +278,11 @@ function SoloPaywallSheet({ request, onClose }) {
                 <PrimaryButton dark={dark} className="w-full" onClick={buy} disabled={busy || (iosApp && !price)}>
                   {busy ? "ONE MOMENT…" : trialDays > 0 ? `START ${trialDays}-DAY FREE TRIAL` : `SUBSCRIBE TO ${TIER_LABELS[tier].toUpperCase()}`}
                 </PrimaryButton>
+              )}
+              {nativeIap && !price && storeError && !alreadyThis && (
+                <p className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
+                  Subscriptions aren't available right now. Please try again later. ({storeError})
+                </p>
               )}
               {price && (
                 <p className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
