@@ -172,7 +172,8 @@ OWNER TO DO, in order
    10. GitHub > Settings > Secrets > Actions: REVENUECAT_SECRET_KEY (RevenueCat
        > API keys > secret key, "sk_...") and REVENUECAT_WEBHOOK_AUTH (the
        header value from step 8).
-   11. Send me the App Store PUBLIC key from RevenueCat (starts "appl_") — I
+   11. DONE 2026-11-02: RevenueCat public key in PurchasesBridge.swift. (Was: send
+       me the App Store PUBLIC key from RevenueCat (starts "appl_") — I
        put it into PurchasesBridge.swift; without it 1.0.4 offers no in-app
        purchase.
   C. Stripe (already live):

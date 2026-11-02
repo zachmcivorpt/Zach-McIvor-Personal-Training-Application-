@@ -28,7 +28,7 @@ import WebKit
 enum PurchasesConfig {
     // RevenueCat → Project → API keys → App Store public key (starts "appl_").
     // A public key, safe to ship in the app.
-    static let revenueCatAPIKey = "appl_REPLACE_WITH_REVENUECAT_PUBLIC_KEY"
+    static let revenueCatAPIKey = "appl_fUjrmJnNYhdXtCKLNHcctznlgLi"
 
     static var isConfigured: Bool {
         revenueCatAPIKey.hasPrefix("appl_") && !revenueCatAPIKey.contains("REPLACE")
