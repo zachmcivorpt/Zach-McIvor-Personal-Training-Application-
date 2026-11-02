@@ -136,6 +136,17 @@ with numbers clients and coaches can trust. How it's built now:
   real position (`dragXRef`), never a value closed over by a render.
   jsdom can't show these — check with real touch events (CDP) and, when
   possible, on a real iPhone.
+- **Barcode scanner reads QR and Data Matrix too** (#117): fresh meat
+  increasingly has only a GS1 2D code. `parseScannedCode`
+  (`src/lib/gs1.js`) runs first on every scan or typed code: a GS1
+  Digital Link / element string becomes its product number (normalised
+  to EAN-13 when it starts with 0) and goes through the normal lookup; a
+  weighed pack (GTIN-14 starting 9) is entered once from the label and
+  remembered, like scale labels; its net weight (AI 310n/320n) only sets
+  the amount the food page opens at for that scan (`withPackWeight`),
+  never the library food. A plain website QR shows a hint and keeps
+  scanning; never strip a URL down to digits and look that up. Keep
+  QR_CODE and DATA_MATRIX in `BARCODE_FORMATS`.
 - Train Solo has no nutrition logging; none of this touches `src/solo/`.
 
 ## Deferred until the next App Store upload
@@ -215,6 +226,15 @@ Do these together when the user is ready to submit a new App Store build
   deliveries before assuming a failed build.
 - Codemagic's ▶ on an old build row rebuilds that old commit; a build of
   the latest code is "Start new build" → branch `main`.
+
+## Data listeners (`src/lib/AppContext.jsx`)
+
+- Subscribe a collection only for the roles firestore.rules lets read
+  it. A refused listener isn't harmless: `subscribeWithRetry` retries it
+  forever (backing off to every 16s) on every phone with the app open.
+  Coach-only collections (e.g. `soloProgramContent`) go in the
+  `role === "coach"` branch (#116,
+  `AppContext.coachOnlyListeners.test.jsx`).
 
 ## Working style
 
