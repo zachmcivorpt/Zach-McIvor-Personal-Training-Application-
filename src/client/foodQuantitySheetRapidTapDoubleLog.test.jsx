@@ -114,7 +114,12 @@ describe("FoodQuantitySheet — rapid double-tap does not double-log", () => {
   // landed as two separate, genuine entries. The id is now bucketed by
   // time instead, so a remount for the same food within that window
   // still reconciles to the same id.
-  it("remounting for the same food shortly after (simulating a reopened sheet/app) reuses the same id", async () => {
+  it("reopening the sheet for the same food straight away gets a new id, so a deliberate second add isn't dropped", async () => {
+    // The id used to be bucketed to the minute so a reopened sheet reused
+    // it — which also meant logging the same food to the same meal twice
+    // within a minute silently kept only one, while still saying "added".
+    // A retry of a failed save happens on the same open sheet (it stays
+    // open on failure — covered above), so a reopen is a new add.
     const onConfirm = vi.fn(() => Promise.resolve());
     const { unmount } = render(<FoodQuantitySheet food={FOOD} onClose={() => {}} onConfirm={onConfirm} />);
     await act(async () => {
@@ -122,18 +127,16 @@ describe("FoodQuantitySheet — rapid double-tap does not double-log", () => {
     });
     unmount();
 
-    // A brand-new mount — the exact scenario a closed-then-reopened sheet
-    // (or app) produces, with no surviving in-memory state at all.
     render(<FoodQuantitySheet food={FOOD} onClose={() => {}} onConfirm={onConfirm} />);
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: /ADD/ }));
     });
 
     expect(onConfirm).toHaveBeenCalledTimes(2);
-    expect(onConfirm.mock.calls[0][1]).toBe(onConfirm.mock.calls[1][1]);
+    expect(onConfirm.mock.calls[0][1]).not.toBe(onConfirm.mock.calls[1][1]);
   });
 
-  it("remounting for the same food well after the retry window gets a genuinely new id (a deliberate separate entry)", async () => {
+  it("reopening the sheet for the same food later also gets a new id (a deliberate separate entry)", async () => {
     vi.useFakeTimers();
     try {
       const onConfirm = vi.fn(() => Promise.resolve());

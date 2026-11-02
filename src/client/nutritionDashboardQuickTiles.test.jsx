@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 //
 // Nutrition dashboard redesign — the three quick-action tiles (Scan Food,
-// Search Food, Fuel IQ) above Today's Meals. Scan/Search open with no meal
-// preselected, unlike the per-meal add buttons, so a food picked this way
-// needs an explicit "which meal?" step before it's actually saved — these
-// tests lock that behaviour in, and confirm the existing per-meal add flow
-// (meal already known) still saves straight through with no extra step.
+// Search Food, Fuel IQ) above Today's Meals. Scan/Search aren't reached from
+// a meal, so they start on the meal for this time of day; the food page's
+// own Meal picker changes it before saving (this replaced a separate
+// "which meal?" popup that cost an extra tap every time). These tests lock
+// that in, and confirm the per-meal add flow (meal already known) still
+// saves straight through to that meal.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NutritionScreen } from "./ClientApp";
@@ -64,24 +65,21 @@ describe("Nutrition dashboard quick-action tiles", () => {
     expect(screen.queryByText("AI Food Help")).toBeNull();
   });
 
-  it("Search Food (no meal preselected) asks which meal before saving, then logs to the chosen meal", async () => {
+  it("Search Food opens the Add Food page, and the food page's Meal picker chooses where it's logged", async () => {
     const onAddFood = vi.fn(() => Promise.resolve());
     render(<NutritionScreen {...baseProps({ onAddFood })} />);
 
     fireEvent.click(screen.getByText("Search Food"));
-    expect(screen.getByPlaceholderText("Search foods or meals")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Search foods, brands, meals")).toBeTruthy();
 
-    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
+    fireEvent.change(screen.getByPlaceholderText("Search foods, brands, meals"), { target: { value: "Chicken Breast" } });
     fireEvent.click(screen.getByText("Chicken Breast"));
 
-    // Quantity sheet confirm — should NOT save yet, since no meal was ever
-    // chosen for this dashboard-level entry.
-    fireEvent.click(screen.getByText(/ADD/).closest("button"));
+    // Nothing is saved until the client confirms on the food page.
     expect(onAddFood).not.toHaveBeenCalled();
-
-    // The meal-choice step should now be showing all six meal slots.
-    expect(screen.getByText(/Add .*Chicken Breast.* to/)).toBeTruthy();
+    // The food page's Meal row lists all six meal slots — pick Lunch.
     fireEvent.click(screen.getByRole("button", { name: "Lunch" }));
+    fireEvent.click(screen.getByRole("button", { name: "Log" }));
 
     expect(onAddFood).toHaveBeenCalledTimes(1);
     const [meal, , dateKey] = onAddFood.mock.calls[0];
@@ -89,7 +87,7 @@ describe("Nutrition dashboard quick-action tiles", () => {
     expect(dateKey).toBe(todayKey());
   });
 
-  it("Scan Food opens the barcode scanner directly, with no meal preselected", () => {
+  it("Scan Food opens the barcode scanner directly", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByText("Scan Food"));
     expect(document.getElementById("barcode-scanner-region")).toBeTruthy();
@@ -106,19 +104,19 @@ describe("Nutrition dashboard quick-action tiles", () => {
     expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledTimes(1);
   });
 
-  it("the per-meal add button still saves straight through with no meal-choice step (regression)", async () => {
+  it("the per-meal add button logs to that meal with no extra step (regression)", async () => {
     const onAddFood = vi.fn(() => Promise.resolve());
     render(<NutritionScreen {...baseProps({ onAddFood })} />);
 
     fireEvent.click(screen.getByLabelText("Add food to Breakfast")); // first meal row = Breakfast
-    fireEvent.change(screen.getByPlaceholderText("Search foods or meals"), { target: { value: "Chicken Breast" } });
+    fireEvent.change(screen.getByPlaceholderText("Search foods, brands, meals"), { target: { value: "Chicken Breast" } });
     fireEvent.click(screen.getByText("Chicken Breast"));
-    fireEvent.click(screen.getByText(/ADD/).closest("button"));
+    fireEvent.click(screen.getByRole("button", { name: "Log" }));
 
     expect(onAddFood).toHaveBeenCalledTimes(1);
     const [meal] = onAddFood.mock.calls[0];
     expect(meal).toBe("Breakfast");
-    // No meal-choice sheet should have appeared.
+    // No separate meal-choice popup exists any more.
     expect(screen.queryByText(/Add .*Chicken Breast.* to/)).toBeNull();
   });
 });

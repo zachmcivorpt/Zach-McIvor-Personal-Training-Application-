@@ -607,7 +607,7 @@ function DesignSettingsCard() {
           >
             <div>
               <p className="text-white text-sm font-medium">{clientDark ? "Dark" : "Light"}</p>
-              <p className="text-white text-xs mt-0.5">Switches every client's app instantly — no update needed</p>
+              <p className="text-white text-xs mt-0.5">The default for every client's app. Each client can change their own in Profile › Appearance</p>
             </div>
             <button
               onClick={toggleClientTheme}

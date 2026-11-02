@@ -66,7 +66,7 @@ describe("NutritionScreen keyboard-safe scroll spacer", () => {
   it("reserves extra scroll room once the search box gains focus", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    const input = screen.getByPlaceholderText("Search foods or meals");
+    const input = screen.getByPlaceholderText("Search foods, brands, meals");
     fireEvent.focus(input);
     expect(document.querySelector('[data-testid="keyboard-safe-spacer"]')).toBeTruthy();
   });
@@ -74,7 +74,7 @@ describe("NutritionScreen keyboard-safe scroll spacer", () => {
   it("removes the spacer once the search box loses focus", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    const input = screen.getByPlaceholderText("Search foods or meals");
+    const input = screen.getByPlaceholderText("Search foods, brands, meals");
     fireEvent.focus(input);
     fireEvent.blur(input);
     expect(document.querySelector('[data-testid="keyboard-safe-spacer"]')).toBeNull();

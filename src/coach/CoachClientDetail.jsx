@@ -6,6 +6,7 @@ import { localDateKey } from "../lib/dateKey";
 import { isMealPlanEnded, mealPlanEndDateKey } from "../lib/mealPlanEnd";
 import { Pill, TextInput, TextArea, Select, PrimaryButton, SecondaryButton, DangerButton, Avatar, BottomSheet, FullScreenOverlay, ExerciseThumb, Field } from "../components/ui";
 import { DEFAULT_NUTRITION_TARGETS, macroGramsSet, adjustMacroPct, resolveNutritionTargets } from "../lib/nutritionTargets";
+import { hasFoodLogged } from "../lib/nutritionLog";
 import {
   computePerformanceTimeline,
   computePRsInLastNDays,
@@ -1336,7 +1337,8 @@ function CalendarPanel({ client, showToast }) {
   const nutritionByDate = useMemo(() => {
     const map = {};
     nutritionLogs.forEach((log) => {
-      if (log.calories > 0 || log.protein > 0 || log.carbs > 0 || log.fat > 0 || log.water > 0) map[log.date] = log;
+      // Food actually logged — a water-only day isn't "kcal logged".
+      if (hasFoodLogged(log)) map[log.date] = log;
     });
     return map;
   }, [nutritionLogs]);
@@ -1438,6 +1440,9 @@ function CalendarPanel({ client, showToast }) {
       habitExpected += activeHabits.length;
       habitCompleted += activeHabits.filter((h) => doneIds.includes(h.id)).length;
 
+      // Today is still in progress — it counts once food is logged, but
+      // an empty morning isn't a missed day yet.
+      if (dateStr === todayStr && !nutritionByDate[dateStr]) continue;
       nutritionExpected += 1;
       if (nutritionByDate[dateStr]) nutritionCompleted += 1;
     }
@@ -3650,7 +3655,8 @@ function computeNutritionAdherence(logs, targets, days, endOffset = 0) {
     const d = new Date();
     d.setDate(d.getDate() - i - endOffset);
     const entry = byDate[localDateKey(d)];
-    const logged = !!entry;
+    // Food logged, not just the day's doc existing (water alone creates it).
+    const logged = hasFoodLogged(entry);
     const proteinHit = logged && targets.protein > 0 && (entry.protein || 0) >= targets.protein * 0.9;
     const calorieHit = logged && targets.calories > 0 && Math.abs((entry.calories || 0) - targets.calories) <= targets.calories * 0.12;
     const mealFrac = logged
@@ -3670,6 +3676,13 @@ function computeNutritionAdherence(logs, targets, days, endOffset = 0) {
   const score = Math.round(loggingConsistency * 0.3 + proteinConsistency * 0.25 + calorieConsistency * 0.25 + mealStructure * 0.2);
 
   return { days, loggedCount, loggingConsistency, proteinConsistency, calorieConsistency, mealStructure, avgCoreMealsPerDay, score, dayDetails };
+}
+
+// The card's current period and the equal period before it, both over
+// completed days only (ending yesterday): today's half-logged day would
+// otherwise count as a missed calorie/protein target every morning.
+export function adherenceWindows(logs, targets, days) {
+  return { current: computeNutritionAdherence(logs, targets, days, 1), previous: computeNutritionAdherence(logs, targets, days, days + 1) };
 }
 
 // Only ever states what the data shows — never a guess dressed as an insight.
@@ -3723,8 +3736,7 @@ function NutritionAdherenceCard({ client }) {
   const period = NUTRITION_ADHERENCE_PERIODS.find((p) => p.key === periodKey);
   const { days } = period;
 
-  const current = useMemo(() => computeNutritionAdherence(logs, targets, days, 0), [logs, targets, days]);
-  const previous = useMemo(() => computeNutritionAdherence(logs, targets, days, days), [logs, targets, days]);
+  const { current, previous } = useMemo(() => adherenceWindows(logs, targets, days), [logs, targets, days]);
   const insights = useMemo(() => buildNutritionInsights(current, previous, days), [current, previous, days]);
   const status = adherenceStatus(current.score);
   const ringData = [
@@ -3798,7 +3810,7 @@ function NutritionAdherenceCard({ client }) {
               >
                 {status.label}
               </span>
-              <p className="text-white text-sm">Based on the last {days} days of logged nutrition.</p>
+              <p className="text-white text-sm">Based on the last {days} full days of logged food (today is still in progress).</p>
               {current.loggedCount < 3 && (
                 <p className="text-white text-xs mt-1">
                   Limited data — only {current.loggedCount} of {days} days logged so far.
@@ -3946,7 +3958,7 @@ function NutritionGraphCard({ client, showToast }) {
       out.push({
         date: d.toLocaleDateString(undefined, { weekday: "narrow" }),
         value: entry ? Math.round(entry[metricKey] || 0) : 0,
-        logged: !!entry,
+        logged: hasFoodLogged(entry),
       });
     }
     return out;

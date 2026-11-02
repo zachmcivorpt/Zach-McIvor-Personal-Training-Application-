@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Register #105: the iPhone app opens the copy of index.html saved on the
+// Register #121: the iPhone app opens the copy of index.html saved on the
 // phone (instant open). If that copy is from an older release and its code
 // files are gone, the inline guard in index.html must reload the latest
 // version — once, never in a loop.

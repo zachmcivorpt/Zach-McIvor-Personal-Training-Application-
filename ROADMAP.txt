@@ -137,7 +137,7 @@ What was built (2026-10-28)
   iOS: ios/ApexCoach/PurchasesBridge.swift (RevenueCat), version 1.0.4.
   Terms of Service section 17: renewal, cancelling, trial, failed payments,
     refunds.
-  Tests: REGRESSION_TESTS.md #104.
+  Tests: REGRESSION_TESTS.md #120.
 
 OWNER TO DO, in order
   PROGRESS 2026-11-02 (evening, with the owner):
@@ -236,7 +236,7 @@ OWNER TO DO, in order
        version and the next one the new; leave it in the background a long
        time / open many other apps, then come back (no blank screen).
        Coached app: scan a barcode on a client's Nutrition tab (the scanner
-       now loads when opened, REGRESSION_TESTS.md #103).
+       now loads when opened, REGRESSION_TESTS.md #119).
        Then subscriptions, with a Sandbox Apple ID (Settings > App Store >
        Sandbox Account): buy, trial, upgrade, cancel, Restore purchases on a
        second device, and a failed renewal (sandbox can simulate billing

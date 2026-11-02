@@ -67,6 +67,8 @@ import {
   ArrowRight,
   StickyNote,
   Minus,
+  Copy,
+  BookmarkPlus,
 } from "lucide-react";
 import { enablePush, disablePush, pushSupported, isNativeApp } from "../lib/push";
 import { uploadMessageVideo, uploadMessagePdf, uploadMessageImage, uploadMessageAudio } from "../lib/storage";
@@ -89,9 +91,11 @@ import {
 } from "recharts";
 import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
+import { QUEUED } from "../lib/offlineWrite";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
+import { hasFoodLogged, buildFrequentFoods, baseFoodName, entryAmountLabel, entrySourceFood, sourceSnapshot } from "../lib/nutritionLog";
 import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
 import { useVoiceRecorder, voiceNotesSupported, nativeMicAllowed } from "../lib/voiceNote";
 import { VoiceRecordingBar, MicButton, VoiceNotePlayer } from "../components/VoiceNote";
@@ -146,14 +150,15 @@ import { isPersistedSessionStale } from "../lib/sessionStaleness";
 import { challengeStatus } from "../lib/challengeMetrics";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { parseVideoUrl } from "../lib/video";
-import { MICRO_FIELDS, getAllFoods } from "../lib/foodDatabase";
+import { MICRO_FIELDS, getAllFoods, unitsFor, scaleFoodByUnit } from "../lib/foodDatabase";
 import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
 import WorkoutEditor from "../coach/WorkoutEditor";
 import { NutritionTargetsCard } from "../coach/CoachClientDetail";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
-import { buildCorrectedFood, validateNutrition } from "../lib/barcodeLookup";
+import { AddFoodPage } from "./AddFoodPage";
+import { buildCorrectedFood } from "../lib/barcodeLookup";
 import { AFCD_FOODS } from "../lib/afcdFoods";
 import {
   BODY_FAT_CONFIG,
@@ -241,14 +246,6 @@ function armRestTimerAudio() {
 function round1(n) {
   return Math.round((n + Number.EPSILON) * 10) / 10;
 }
-
-// addFood's own fallback dedup id (see its comment) buckets the timestamp
-// to this width so a retry of the same food/meal/day within the window
-// reconciles to one entry instead of logging it twice — wide enough to
-// cover a slow or offline-queued save followed by a manual retry or app
-// reopen, narrow enough that a deliberately separate logging of the same
-// food shortly after is still kept as its own entry.
-const RETRY_DEDUPE_WINDOW_MS = 60_000;
 
 const DEFAULT_NUTRITION = {
   calories: 0,
@@ -360,8 +357,10 @@ export function sectionedExercises(list) {
 }
 
 /* ============================================================================
-   THEME — the coach can flip the client app between dark and light from
-   Design Settings (settings/appDesign.clientDarkMode). Every themed
+   THEME — the coach sets the client app's default (dark or light) in
+   Design Settings (settings/appDesign.clientDarkMode); each client can
+   override it for themselves in Profile > Appearance (saved on the phone,
+   see readClientThemePick). Every themed
    component below reads it via useClientDark() rather than a prop, since
    plumbing one boolean through this many nested components would mean
    touching every function signature; a context avoids that while still
@@ -369,6 +368,20 @@ export function sectionedExercises(list) {
 ============================================================================ */
 
 export const ClientThemeContext = createContext(true);
+// The client's own choice wins; with none, the coach's default.
+export function resolveClientDark(pick, coachDefaultDark) {
+  return pick ? pick === "dark" : coachDefaultDark === true;
+}
+// A client's own saved Light/Dark choice ("dark" | "light"), or null if
+// they haven't picked one on this phone.
+export function readClientThemePick(key) {
+  try {
+    const v = localStorage.getItem(key);
+    return v === "dark" || v === "light" ? v : null;
+  } catch {
+    return null;
+  }
+}
 export function useClientDark() {
   return useContext(ClientThemeContext);
 }
@@ -416,16 +429,16 @@ function Header({ user, onAvatarClick, notifCount = 0, onOpenNotifications }) {
   return (
     <div className="flex items-center justify-between px-2.5 pt-0.5 pb-0">
       <div>
-        <p className={`text-lg font-bold ${dark ? "text-white" : "text-black"}`}>
+        <p className={`text-[19px] leading-tight font-semibold tracking-[-0.015em] ${dark ? "text-white" : "text-black"}`}>
           {greeting}, {user.name.split(" ")[0]}
         </p>
-        <p className={`text-sm mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>{dateStr}</p>
+        <p className={`text-[13.5px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>{dateStr}</p>
       </div>
       <div className="flex items-center gap-2.5">
         <button
           onClick={onOpenNotifications}
-          className={`w-10 h-10 rounded-full flex items-center justify-center relative active:scale-95 transition-transform ${
-            dark ? "bg-white/8" : "bg-black/8"
+          className={`w-10 h-10 rounded-full flex items-center justify-center relative active:scale-95 transition-transform border ${
+            dark ? "border-white/15 bg-white/5" : "border-black/12 bg-white/70"
           }`}
         >
           <Bell size={17} className={dark ? "text-white/80" : "text-black/80"} />
@@ -464,7 +477,7 @@ function clientGlass(dark) {
   return dark ? CLIENT_GLASS_DARK : CLIENT_GLASS_LIGHT;
 }
 
-export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onDiscard, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false }) {
+export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onDiscard, isToday = true, completedOnDate = false, isPastDate = false, dbReady = true, fullWidth = false, photo = false }) {
   const dark = useClientDark();
   // Always a rounded glass card with side margins now (`fullWidth` is kept
   // only so existing callers don't break).
@@ -476,6 +489,14 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   const muted70 = dark ? "text-white/70" : "text-black/70";
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
+  if (!todaySession && photo === "bare") {
+    return (
+      <div className="mx-2.5 px-2.5 pt-[76px]">
+        <p className="text-white text-xl font-semibold tracking-[-0.02em]">{dbReady ? "No workout scheduled" : "Loading your schedule…"}</p>
+        {dbReady && <p className="text-white/70 text-[13px] mt-0.5">{isToday ? "Nothing's scheduled for today." : "Nothing's scheduled for this day."}</p>}
+      </div>
+    );
+  }
   if (!todaySession) {
     return (
       <div className={`${outerMargin} ${outerRadius} p-8 text-center`} style={clientGlass(dark)}>
@@ -500,6 +521,99 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   const pillLabel = completedOnDate ? "COMPLETED" : isPastDate ? "MISSED" : todaySession.wod ? "WORKOUT OF THE DAY" : isToday ? "TODAY'S FOCUS" : "SCHEDULED";
 
   const primary = dark ? "text-white" : "text-black";
+  if (photo) {
+    // Home's version: the same session, actions and states on a black-and-
+    // white gym photo with the text in white over a dark fade.
+    const statusLabel = completedOnDate ? "Completed" : isPastDate ? "Missed" : todaySession.wod ? "Workout of the day" : isToday ? "Today's focus" : "Scheduled";
+    const done = completedOnDate && !started;
+    const bare = photo === "bare";
+    const body = (
+        <div className={bare ? "mx-2.5 px-1 pt-[76px] flex flex-col" : "relative flex flex-col min-h-[206px] p-3"}>
+          <span
+            className="self-start h-7 pl-1.5 pr-3 rounded-full flex items-center gap-1.5 text-xs font-semibold"
+            style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
+          >
+            <span className="w-[18px] h-[18px] rounded-full flex items-center justify-center" style={{ backgroundColor: done ? MEASURE_BLUE : "rgba(255,255,255,0.2)" }}>
+              {done ? <Check size={10} strokeWidth={3.4} /> : <Dumbbell size={10} strokeWidth={2.4} />}
+            </span>
+            {statusLabel}
+          </span>
+          <div className={bare ? "mt-4" : "mt-auto pt-16 px-1 pb-0.5"}>
+            <div className="flex items-end gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 className={`${bare ? "text-xl" : "text-lg"} font-semibold tracking-[-0.02em] truncate`}>{todaySession.label}</h2>
+                {(todaySession.muscleGroups || []).length > 0 && <p className="text-white/70 text-[13px] mt-0.5 truncate">{todaySession.muscleGroups.join(" & ")} Focus</p>}
+                <p className="text-white/70 text-[13px] mt-0.5">
+                  {exCount} exercise{exCount === 1 ? "" : "s"} · {estMin} minute{estMin === 1 ? "" : "s"}
+                </p>
+              </div>
+              {done && (
+                <button
+                  onClick={onView}
+                  className="h-[38px] pl-4 pr-3.5 rounded-xl bg-white/95 text-black text-[13px] font-semibold flex items-center gap-1 shrink-0 active:scale-[0.97] transition-transform"
+                >
+                  View <ChevronRight size={14} strokeWidth={2.4} />
+                </button>
+              )}
+            </div>
+            {started && (
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-white/70 mb-1.5">
+                  <span>Progress</span>
+                  <span>
+                    {completedSets}/{totalSets} sets
+                  </span>
+                </div>
+                <ProgressBar value={completedSets} max={totalSets} color={MEASURE_BLUE} trackClassName="bg-white/20" />
+              </div>
+            )}
+            {!done && (
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={onStart}
+                  className="flex-1 h-11 rounded-xl bg-white text-black text-[14px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                >
+                  <Play size={14} fill="currentColor" />
+                  {started ? "RESUME WORKOUT" : "START WORKOUT"}
+                </button>
+                <button
+                  onClick={onView}
+                  className="h-11 px-4 rounded-xl text-white text-sm font-semibold active:scale-[0.98] transition-transform"
+                  style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
+                >
+                  View
+                </button>
+              </div>
+            )}
+            {started && onDiscard && (
+              <button
+                onClick={() => {
+                  if (confirmDiscard) {
+                    onDiscard();
+                    setConfirmDiscard(false);
+                  } else {
+                    setConfirmDiscard(true);
+                  }
+                }}
+                className={`w-full text-center text-[11px] font-medium mt-2.5 ${confirmDiscard ? "text-white" : "text-white/60"}`}
+              >
+                {confirmDiscard ? "Tap again to discard these sets" : "Not started this — discard progress"}
+              </button>
+            )}
+          </div>
+        </div>
+    );
+    // "bare": just the text and buttons, for a screen that already has the
+    // photo behind it (Training > Today).
+    if (bare) return <div className="text-white">{body}</div>;
+    return (
+      <div className={`${outerMargin} relative overflow-hidden rounded-[22px] bg-[#0d0d0e] text-white`} style={{ boxShadow: "0 22px 40px -24px rgba(0,0,0,0.55)" }}>
+        <img src="/brand/gym-dark.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "50% 62%", filter: "brightness(0.85)" }} draggable={false} />
+        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0) 30%, rgba(0,0,0,0.15) 50%, rgba(0,0,0,0.8) 100%)" }} />
+        {body}
+      </div>
+    );
+  }
   return (
     <div className={`${outerMargin} ${outerRadius} p-5`} style={clientGlass(dark)}>
       <div>
@@ -574,7 +688,7 @@ export function TodayWorkoutCard({ todaySession, activeLog, onStart, onView, onD
   );
 }
 
-function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoToday, isToday = true }) {
+export function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoToday, isToday = true }) {
   const dark = useClientDark();
   const logged = nutrition || DEFAULT_NUTRITION;
   const items = [
@@ -585,45 +699,63 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
   ];
   const border = dark ? "border-white/8" : "border-black/8";
   const primaryText = dark ? "text-white" : "text-black";
-  const muted25 = dark ? "text-white/25" : "text-black/25";
-  const muted30 = dark ? "text-white/30" : "text-black/30";
-  const muted35 = dark ? "text-white/35" : "text-black/35";
   const muted50 = dark ? "text-white/50" : "text-black/50";
   const muted70 = dark ? "text-white/70" : "text-black/70";
   const trackClass = dark ? "bg-white/8" : "bg-black/8";
-  const actionBtn = dark ? "bg-white/8 text-white" : "bg-black/8 text-black";
+  // A solid card (no glass/backdrop-filter) whose title stays the same
+  // length on every day: iOS WebKit could leave a lengthened title
+  // half-drawn over a backdrop-filter card (#111).
+  const [cal, ...macros] = items;
+  const calStatus = calorieStatus(cal.value, cal.target);
+  const outlineBtn = dark ? "border border-white/20 text-white" : "border border-black/15 text-black";
   return (
-    <div className={`mx-2.5 rounded-2xl p-5 ${border} border`} style={clientGlass(dark)}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`${primaryText} font-semibold`}>{isToday ? "Nutrition Today" : "Nutrition"}</h3>
-        <Utensils size={15} className={muted25} />
+    <div
+      className="mx-2.5 rounded-[20px] p-5"
+      style={
+        dark
+          ? { backgroundColor: CLIENT_DARK_SURFACE, border: "1px solid rgba(255,255,255,0.08)" }
+          : { backgroundColor: "#FFFFFF", border: "1px solid rgba(10,10,11,0.07)", boxShadow: "0 1px 2px rgba(10,10,11,0.04), 0 12px 28px -18px rgba(10,10,11,0.18)" }
+      }
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${primaryText}`}>Nutrition</h3>
+        {isToday && <span className={`text-[13px] ${muted50}`}>Today</span>}
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        {items.map((it) => (
-          <div key={it.label}>
-            <div className="flex justify-between text-xs mb-1">
-              <span className={`${muted35} tracking-wide`}>{it.label}</span>
+      <div className={`mt-3 pt-4 border-t ${border}`}>
+        <div className="flex items-baseline justify-between gap-3">
+          <p className={`text-[22px] leading-none font-semibold tracking-[-0.02em] tabular-nums ${primaryText}`}>
+            {cal.value.toLocaleString()}
+            <span className={`text-[13px] font-normal tracking-normal ${muted50}`}> / {Number(cal.target).toLocaleString()} kcal</span>
+          </p>
+          <p className={`text-[13px] tabular-nums shrink-0 ${calStatus.over ? "" : muted50}`} style={calStatus.over ? { color: OVER_RED } : undefined}>
+            <span className={`font-semibold ${calStatus.over ? "" : primaryText}`}>{calStatus.amount.toLocaleString()}</span> {calStatus.over ? "over" : "left"}
+          </p>
+        </div>
+        <div className="mt-3">
+          <ProgressBar value={cal.value} max={cal.target} height={3} color={calStatus.color} trackClassName={trackClass} />
+        </div>
+        <div className="grid grid-cols-3 gap-4 mt-5">
+          {macros.map((it) => (
+            <div key={it.label} className="min-w-0">
+              <p className={`text-xs ${muted50}`}>{it.label.charAt(0) + it.label.slice(1).toLowerCase()}</p>
+              <p className={`text-[17px] font-semibold tracking-[-0.01em] tabular-nums mt-0.5 truncate ${primaryText}`}>
+                {it.value}
+                {it.unit}
+                <span className={`text-xs font-normal ${muted50}`}> / {it.target}{it.unit}</span>
+              </p>
+              <div className="mt-2">
+                <ProgressBar value={it.value} max={it.target} height={3} color={targetBarColor(it.value, it.target, { capped: it.label !== "PROTEIN" })} trackClassName={trackClass} />
+              </div>
             </div>
-            <p className={`${primaryText} text-sm font-semibold mb-1.5`}>
-              {it.value}
-              {it.unit} <span className={`${muted30} font-normal`}>/ {it.target}{it.unit}</span>
-            </p>
-            <ProgressBar
-              value={it.value}
-              max={it.target}
-              height={6}
-              color={it.value >= it.target ? GOAL_GREEN : MEASURE_BLUE}
-              trackClassName={trackClass}
-            />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-      <div className={`mt-4 pt-4 border-t ${border} flex items-center gap-3`}>
-        <WaterCup value={logged.water} max={targets.water} size={30} dark={dark} />
+      <div className={`mt-5 pt-4 border-t ${border} flex items-center gap-3`}>
+        <WaterCup value={logged.water} max={targets.water} size={28} dark={dark} />
         <div className="flex-1 min-w-0">
-          <p className={`${muted50} text-[11px] font-semibold`}>Water</p>
-          <p className={`${muted70} text-sm`}>
-            <span className={`font-bold ${primaryText}`}>{logged.water}</span> / {targets.water} L
+          <p className={`${muted50} text-xs`}>Water</p>
+          <p className={`${muted70} text-sm tabular-nums`}>
+            <span className={`font-semibold ${primaryText}`}>{logged.water}</span> / {targets.water} L
           </p>
         </div>
         {isToday && (
@@ -633,17 +765,17 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
               aria-label="Remove 250 ml"
               onClick={() => onLogWater(-0.25)}
               disabled={!(logged.water > 0)}
-              className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 ${actionBtn}`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 ${outlineBtn}`}
             >
               <Minus size={14} />
             </button>
-            <button type="button" onClick={() => onLogWater(0.25)} className={`h-9 px-3 rounded-full text-xs font-bold active:scale-90 transition-transform ${actionBtn}`}>
+            <button type="button" onClick={() => onLogWater(0.25)} className={`h-9 px-3 rounded-full text-xs font-semibold active:scale-90 transition-transform ${outlineBtn}`}>
               +250ml
             </button>
             <button
               type="button"
               onClick={() => onLogWater(0.5)}
-              className={`h-9 px-3 rounded-full text-xs font-bold active:scale-90 transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
+              className={`h-9 px-3 rounded-full text-xs font-semibold active:scale-90 transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
             >
               +500ml
             </button>
@@ -651,18 +783,20 @@ function NutritionSummaryCard({ nutrition, targets, onLogFood, onLogWater, onGoT
         )}
       </div>
       {isToday ? (
-        <div className="flex gap-2 mt-4">
-          <button onClick={onLogFood} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
-            + LOG FOOD
-          </button>
-        </div>
+        <button
+          onClick={onLogFood}
+          className={`w-full mt-4 h-12 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform ${dark ? "bg-white text-black" : "bg-black text-white"}`}
+        >
+          + LOG FOOD
+        </button>
       ) : (
         onGoToday && (
-          <div className="flex gap-2 mt-4">
-            <button onClick={onGoToday} className={`flex-1 text-sm font-semibold py-3 rounded-xl active:scale-[0.97] transition-transform ${actionBtn}`}>
-              LOG FOOD &amp; WATER FOR TODAY
-            </button>
-          </div>
+          <button
+            onClick={onGoToday}
+            className={`w-full mt-4 h-12 rounded-xl text-sm font-semibold active:scale-[0.98] transition-transform ${outlineBtn}`}
+          >
+            LOG FOOD &amp; WATER FOR TODAY
+          </button>
         )
       )}
     </div>
@@ -692,7 +826,7 @@ function DateStrip({ selectedOffset, onSelect }) {
 
   return (
     <div className="px-2.5">
-      <div ref={stripRef} className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div ref={stripRef} className={`flex gap-2 overflow-x-auto no-scrollbar pb-2 border-b ${dark ? "border-white/10" : "border-black/8"}`}>
         {offsets.map((offset) => {
           const d = dateForOffset(offset);
           const isToday = offset === 0;
@@ -702,37 +836,23 @@ function DateStrip({ selectedOffset, onSelect }) {
               key={offset}
               data-offset={offset}
               onClick={() => onSelect(offset)}
-              className={`shrink-0 w-[calc((100%-48px)/7)] rounded-xl py-2 flex flex-col items-center gap-0.5 border transition-colors ${
-                isSelected
-                  ? dark
-                    ? "bg-white border-white"
-                    : "bg-black border-black"
-                  : dark
-                  ? "bg-white/[0.04] border-white/8"
-                  : "bg-black/[0.04] border-black/8"
-              }`}
+              className="shrink-0 w-[calc((100%-48px)/7)] py-1 flex flex-col items-center gap-1.5"
             >
               <span
-                className={`text-sm font-bold leading-none ${
-                  isSelected ? (dark ? "text-black" : "text-white") : dark ? "text-white" : "text-black"
-                }`}
-              >
-                {d.getDate()}
-              </span>
-              <span
-                className={`text-[9px] font-semibold tracking-wide ${
-                  isSelected ? (dark ? "text-black/50" : "text-white/50") : dark ? "text-white/35" : "text-black/35"
+                className={`text-[11px] font-medium ${
+                  isSelected ? (dark ? "text-white" : "text-black") : dark ? "text-white/40" : "text-black/40"
                 }`}
               >
                 {d.toLocaleDateString(undefined, { weekday: "short" })}
               </span>
-              {isToday && (
-                <span
-                  className={`w-1 h-1 rounded-full ${
-                    isSelected ? (dark ? "bg-black/40" : "bg-white/40") : dark ? "bg-white/50" : "bg-black/50"
-                  }`}
-                />
-              )}
+              <span
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-[15px] font-semibold leading-none transition-colors ${
+                  isSelected ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white" : "text-black"
+                }`}
+              >
+                {d.getDate()}
+              </span>
+              <span className="w-3.5 h-0.5" style={{ backgroundColor: isToday ? MEASURE_BLUE : "transparent" }} />
             </button>
           );
         })}
@@ -782,37 +902,30 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
     }
   }
 
-  const doneRowBg = dark ? "bg-white/[0.06]" : "bg-black/[0.06]";
-  const notDoneRowBg = dark ? "bg-white/[0.03]" : "bg-black/[0.03]";
-  const doneIconBg = dark ? "bg-white" : "bg-black";
-  const notDoneIconBg = dark ? "bg-white/8" : "bg-black/8";
-  const doneIconColor = dark ? "text-black" : "text-white";
-  const notDoneIconColor = dark ? "text-white/45" : "text-black/45";
+  const muted = dark ? "text-white/55" : "text-black/55";
+  const faint = dark ? "text-white/35" : "text-black/35";
   const doneLabelColor = dark ? "text-white/35" : "text-black/35";
-  const notDoneLabelColor = dark ? "text-white/85" : "text-black/85";
+  const notDoneLabelColor = dark ? "text-white" : "text-black";
   const doneCheckBg = dark ? "bg-white border-white" : "bg-black border-black";
-  const notDoneCheckBorder = dark ? "border-white/20" : "border-black/20";
+  const notDoneCheckBorder = dark ? "border-white/25" : "border-black/22";
   const checkIconColor = dark ? "text-black" : "text-white";
+  const divider = dark ? "border-white/10" : "border-black/8";
   return (
-    <div className={`mx-2.5 rounded-2xl p-5 border ${dark ? "border-white/8" : "border-black/8"}`} style={clientGlass(dark)}>
-      <div className="flex items-center justify-between mb-0.5">
-        <h3 className={`font-semibold ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
-        <span className={`text-xs font-medium tracking-wide ${dark ? "text-white/35" : "text-black/35"}`}>
-          {doneCount}/{habits.length} COMPLETE
+    <div className="mx-2.5 px-1">
+      <div className="flex items-baseline justify-between gap-3">
+        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${dark ? "text-white" : "text-black"}`}>Daily Execution</h3>
+        <span className={`text-[13px] tabular-nums shrink-0 ${muted}`}>
+          <span className={`font-semibold ${dark ? "text-white" : "text-black"}`}>{doneCount}</span>/{habits.length} complete
         </span>
       </div>
-      <p className={`text-xs mb-3 ${dark ? "text-white/35" : "text-black/35"}`}>The small actions that drive your performance.</p>
-      <div className="mb-3">
-        <ProgressBar
-          value={doneCount}
-          max={habits.length}
-          height={6}
-          color={dark ? "#FFFFFF" : "#0A0A0B"}
-          trackClassName={dark ? "bg-white/10" : "bg-black/10"}
-        />
+      <p className={`text-[13px] mt-0.5 ${muted}`}>The small actions that drive your performance.</p>
+      <div className="flex gap-1 mt-3">
+        {habits.map((h) => (
+          <span key={h.id} className="flex-1 h-[3px] rounded-full transition-colors" style={{ backgroundColor: isDone(h) ? MEASURE_BLUE : dark ? "rgba(255,255,255,0.12)" : "rgba(10,10,11,0.09)" }} />
+        ))}
       </div>
-      <div className="space-y-1.5">
-        {habits.map((h) => {
+      <div className={`mt-3 border-t ${divider}`}>
+        {habits.map((h, i) => {
           const done = isDone(h);
           const Icon = habitIcon(h.label);
           return (
@@ -820,21 +933,14 @@ function DailyHabitsCard({ habits, completedIds, onToggle, interactive = true, s
               type="button"
               key={h.id}
               onClick={() => (interactive ? handleToggle(h) : showToast?.("Jump to today to update habits"))}
-              className={`w-full flex items-center gap-3 rounded-xl px-3.5 py-3 text-left transition-colors ${
-                done ? doneRowBg : notDoneRowBg
-              } ${interactive ? "active:scale-[0.97]" : "opacity-60"} transition-transform duration-150`}
+              className={`w-full flex items-center gap-3 min-h-[54px] py-2.5 text-left border-b ${divider} ${interactive ? "active:opacity-70" : "opacity-60"} transition-opacity duration-150`}
             >
+              <span className={`w-5 text-[11px] font-semibold tabular-nums shrink-0 ${faint}`}>{String(i + 1).padStart(2, "0")}</span>
+              <Icon size={16} className={`shrink-0 ${muted}`} strokeWidth={1.8} />
+              <span className={`text-[14.5px] leading-snug flex-1 transition-colors ${done ? `${doneLabelColor} line-through` : notDoneLabelColor}`}>{h.label}</span>
               <span
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? `${doneIconBg} scale-100` : `${notDoneIconBg} scale-95`
-                }`}
-              >
-                <Icon size={16} className={done ? doneIconColor : notDoneIconColor} strokeWidth={2.2} />
-              </span>
-              <span className={`text-sm flex-1 transition-colors ${done ? `${doneLabelColor} line-through` : notDoneLabelColor}`}>{h.label}</span>
-              <span
-                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all duration-200 ${
-                  done ? `${doneCheckBg} scale-100` : `${notDoneCheckBorder} scale-90`
+                className={`w-[22px] h-[22px] rounded-full border-[1.5px] flex items-center justify-center shrink-0 transition-all duration-200 ${
+                  done ? `${doneCheckBg} scale-100` : `${notDoneCheckBorder} scale-95`
                 }`}
               >
                 {done && <Check size={12} className={checkIconColor} strokeWidth={3.5} />}
@@ -1188,9 +1294,9 @@ export function CardioLogCard({ logs, onDelete, onUpdate }) {
   const downXRef = useRef(null);
   if (!logs || logs.length === 0) return null;
   return (
-    <div className="mx-2.5 space-y-2">
+    <div className="mx-2.5 px-1">
       {logs.map((log) => (
-        <SwipeableRow key={log.id} rounded="rounded-2xl" onDelete={() => onDelete?.(log)}>
+        <SwipeableRow key={log.id} rounded="rounded-none" onDelete={() => onDelete?.(log)}>
         <div
           role={onUpdate ? "button" : undefined}
           aria-label={onUpdate ? `Edit ${log.cardio.activityLabel}` : undefined}
@@ -1200,15 +1306,15 @@ export function CardioLogCard({ logs, onDelete, onUpdate }) {
             if (downXRef.current != null && Math.abs(e.clientX - downXRef.current) > 8) return;
             setEditing(log);
           }}
-          className={`flex items-center gap-3 rounded-2xl px-4 py-3 border ${onUpdate ? "cursor-pointer" : ""} ${dark ? "border-white/8" : "border-black/8"}`}
-          style={clientGlass(dark)}
+          className={`flex items-center gap-3.5 py-3 border-b ${onUpdate ? "cursor-pointer" : ""} ${dark ? "border-white/10" : "border-black/8"}`}
+          style={{ backgroundColor: dark ? CLIENT_DARK_BG : "#FFFFFF" }}
         >
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: "rgba(47,143,255,0.15)" }}>
-            <Footprints size={17} style={{ color: MEASURE_BLUE }} />
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+            <Footprints size={18} style={{ color: MEASURE_BLUE }} />
           </div>
           <div className="flex-1 min-w-0">
-            <p className={`text-sm font-semibold truncate ${dark ? "text-white/85" : "text-black/85"}`}>{log.cardio.activityLabel}</p>
-            <p className={`text-xs mt-0.5 ${dark ? "text-white/40" : "text-black/40"}`}>
+            <p className={`text-[15px] font-semibold truncate ${dark ? "text-white" : "text-black"}`}>{log.cardio.activityLabel}</p>
+            <p className={`text-[13px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>
               {[
                 log.cardio.durationMin ? `${log.cardio.durationMin} min` : null,
                 log.cardio.distanceKm ? `${log.cardio.distanceKm} km` : null,
@@ -1218,12 +1324,12 @@ export function CardioLogCard({ logs, onDelete, onUpdate }) {
                 .join(" · ")}
             </p>
           </div>
-          {onUpdate && <Edit3 size={14} className={`shrink-0 ${dark ? "text-white/30" : "text-black/30"}`} />}
+          {onUpdate && <Edit3 size={15} className={`shrink-0 mr-1 ${dark ? "text-white/35" : "text-black/35"}`} />}
         </div>
         </SwipeableRow>
       ))}
       {(onDelete || onUpdate) && (
-        <p className={`text-[10px] text-center ${dark ? "text-white/30" : "text-black/30"}`}>
+        <p className={`text-[11.5px] mt-2.5 ${dark ? "text-white/35" : "text-black/35"}`}>
           {onUpdate && onDelete ? "Tap a session to edit it · swipe left to remove it" : onUpdate ? "Tap a session to edit it" : "Swipe left on a session to remove it"}
         </p>
       )}
@@ -1313,6 +1419,7 @@ function HomeScreen({
         isPastDate={dayOffset < 0}
         dbReady={dbReady}
         fullWidth
+        photo
       />
       <CardioLogCard logs={cardioLogs} onDelete={onDeleteCardio} onUpdate={onUpdateCardio} />
       <DailyHabitsCard
@@ -3331,7 +3438,7 @@ function ClientPhaseHistorySheet({ open, onClose, phases, currentId, selectedId,
 // Read-only mirror of the coach's own Training Program view — same phase
 // (name/dates/description) + workout-list structure, just without any
 // edit/add/schedule controls, which stay coach-only.
-function ClientProgramTab({ onPreviewDay, showToast }) {
+function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
   const dark = useClientDark();
   const { db, currentUser, viewingAsClient, updateClientPhase } = useApp();
   const phases = (db.clientPhases || {})[currentUser.id] || [];
@@ -3347,11 +3454,10 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
 
   if (phases.length === 0) {
     return (
-      <div className="px-2.5">
-        <Card dark={dark}>
-          <p className={dark ? "text-white/40 text-sm text-center py-8" : "text-black/40 text-sm text-center py-8"}>No training program set up yet — your coach will assign one soon.</p>
-        </Card>
-      </div>
+      <TrainingPhotoHero>
+        {header}
+        <p className="mx-2.5 px-1 pt-[76px] text-white/80 text-sm">No training program set up yet — your coach will assign one soon.</p>
+      </TrainingPhotoHero>
     );
   }
 
@@ -3400,114 +3506,134 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
     }
   }
 
+  // The next few scheduled workouts after today, straight from the
+  // client's calendar.
+  const upNext = scheduledForPhase
+    .filter((w) => w.date > todayStr)
+    .sort((x, y) => x.date.localeCompare(y.date))
+    .slice(0, 3);
+
   return (
     <div className="space-y-4">
-      <div className="mx-2.5 rounded-2xl overflow-hidden" style={clientGlass(dark)}>
-        <div className="px-4 pt-4 md:px-5">
-          <div className="flex items-center justify-between gap-2 mb-2">
+      <TrainingPhotoHero>
+        {header}
+        <div className="mx-2.5 px-1 pt-[76px]">
+          <div className="flex items-center justify-between gap-2">
             {phase.id === current?.id ? (
-              <span className="bg-blue-500 text-white text-[10px] font-bold tracking-wide px-2 py-0.5 rounded-full">CURRENT</span>
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: MEASURE_BLUE }} />
+                Current
+              </span>
             ) : (
               <span />
             )}
             <button
               onClick={() => setHistoryOpen(true)}
-              className={`flex items-center gap-1.5 text-[11px] font-bold tracking-wide px-2.5 py-1.5 rounded-full border active:scale-[0.96] transition-transform ${
-                dark ? "text-white border-white/15 bg-white/5" : "text-black border-black/10 bg-black/[0.03]"
-              }`}
+              className="flex items-center gap-1.5 text-xs font-semibold h-[30px] px-2.5 rounded-[10px] text-white active:scale-[0.96] transition-transform"
+              style={{ backgroundColor: "rgba(255,255,255,0.14)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.22)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
             >
-              <Calendar size={12} /> PHASES
+              <Calendar size={12} /> Phases
             </button>
           </div>
-          <div>
-            <h2 className={`${dark ? "text-white" : "text-black"} text-xl font-bold tracking-tight truncate`}>{phase.name}</h2>
-            <p className={`${dark ? "text-white/60" : "text-black/55"} text-xs mt-1`}>
-              {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-              {phase.endDate
-                ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
-                : ""}
-            </p>
+          <h2 className="text-white text-xl font-semibold tracking-[-0.02em] truncate mt-2.5">{phase.name}</h2>
+          <p className="text-white/70 text-[13px] mt-0.5">
+            {new Date(phase.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            {phase.endDate
+              ? ` – ${new Date(phase.endDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+              : ""}
+          </p>
+          {phase.description && <p className="text-white/75 text-sm leading-relaxed whitespace-pre-line mt-3">{phase.description}</p>}
+          <div className="flex items-baseline justify-between mt-5 mb-2">
+            <p className="text-white/75 text-[13px]">Program phase completion</p>
+            <p className="text-white text-xl font-semibold tracking-[-0.02em] tabular-nums">{completion.pct != null ? `${completion.pct}%` : "—"}</p>
           </div>
-        </div>
-
-        <div className="p-4 md:p-5">
-          {phase.description && (
-            <p className={dark ? "text-white/60 text-sm leading-relaxed whitespace-pre-line" : "text-black/60 text-sm leading-relaxed whitespace-pre-line"}>
-              {phase.description}
-            </p>
-          )}
-
-          <div className={phase.description ? `mt-4 pt-4 border-t ${dark ? "border-white/10" : "border-black/8"}` : ""}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Target size={13} className="text-blue-500" />
-                <p className={dark ? "text-white/50 text-xs font-bold tracking-wide" : "text-black/50 text-xs font-bold tracking-wide"}>PROGRAM PHASE COMPLETION</p>
-              </div>
-              <p className={dark ? "text-white text-sm font-bold tabular-nums" : "text-black text-sm font-bold tabular-nums"}>
-                {completion.pct != null ? `${completion.pct}%` : "—"}
-              </p>
+          <div className="h-[3px] rounded-full overflow-hidden bg-white/20">
+            <div className="h-full rounded-full transition-all flex justify-end bg-white" style={{ width: `${completion.pct ?? 0}%` }}>
+              <span className="w-[3px] h-full" style={{ backgroundColor: MEASURE_BLUE }} />
             </div>
-            <div className={`h-2 rounded-full overflow-hidden ${dark ? "bg-white/10" : "bg-black/8"}`}>
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${completion.pct ?? 0}%`, backgroundColor: MEASURE_BLUE }}
-              />
-            </div>
-            <p className={dark ? "text-white/30 text-[11px] mt-1.5" : "text-black/30 text-[11px] mt-1.5"}>
-              {completion.expected > 0
-                ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
-                : "No workouts scheduled yet in this phase"}
-            </p>
           </div>
+          <p className="text-white/65 text-xs mt-2">
+            {completion.expected > 0
+              ? `${completion.completed} of ${completion.expected} scheduled workouts completed`
+              : "No workouts scheduled yet in this phase"}
+          </p>
         </div>
-      </div>
+      </TrainingPhotoHero>
 
-      <div className="px-2.5">
-        <div className="flex items-center justify-between mb-2 px-1 flex-wrap gap-y-1">
-          <p className={dark ? "text-white/40 text-xs tracking-wide" : "text-black/40 text-xs tracking-wide"}>WORKOUTS IN THIS PHASE</p>
-          {viewingAsClient && (
-            <div className="flex items-center gap-4">
-              <button onClick={addWorkout} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
-                <Plus size={13} /> Add new workout
-              </button>
-              <button onClick={() => setLibraryPickerOpen(true)} className="flex items-center gap-1.5 text-blue-600 text-xs font-semibold">
-                <Upload size={13} /> Import
-              </button>
-            </div>
-          )}
-        </div>
+      <div className="relative mx-2.5 px-1 pt-10">
+        <h3 className={`text-[17px] font-semibold tracking-[-0.01em] mb-2 ${dark ? "text-white" : "text-black"}`}>Workouts in this phase</h3>
         {days.length === 0 ? (
-          <Card dark={dark}>
-            <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No workouts added to this phase yet.</p>
-          </Card>
+          <p className={`text-sm py-6 border-t ${dark ? "text-white/40 border-white/20" : "text-black/40 border-black"}`}>No workouts added to this phase yet.</p>
         ) : (
-          <div className="space-y-2">
+          <div className={`border-t ${dark ? "border-white/20" : "border-black"}`}>
             {days.map((d, i) => (
-              <button key={d.id || i} onClick={() => onPreviewDay(d)} className="w-full text-left">
-                <Card dark={dark} className="!py-3.5 shadow-sm">
-                  <div className="flex items-center gap-3">
-                    {d.photoUrl ? (
-                      <img src={d.photoUrl} alt="" className="w-14 h-14 rounded-xl object-cover shrink-0" />
-                    ) : (
-                      <div className={dark ? "w-14 h-14 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0" : "w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center shrink-0"}>
-                        <Dumbbell size={20} className="text-blue-500" />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className={dark ? "text-white font-bold text-base truncate" : "text-black font-bold text-base truncate"}>{d.label}</p>
-                      <p className={dark ? "text-white/40 text-xs mt-0.5 truncate" : "text-black/40 text-xs mt-0.5 truncate"}>
-                        est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
-                        {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className={dark ? "text-white/25 shrink-0" : "text-black/25 shrink-0"} />
-                  </div>
-                </Card>
+              <button
+                key={d.id || i}
+                onClick={() => onPreviewDay(d)}
+                className={`w-full text-left flex items-center gap-3.5 min-h-[72px] py-2.5 border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+              >
+                {/* A workout without its own photo gets one of the stock
+                    gym photos, so the list reads as one set. */}
+                <img
+                  src={d.photoUrl || `/brand/workout-${(i % 4) + 1}.jpg`}
+                  alt=""
+                  className={`w-[52px] h-[52px] rounded-xl object-cover shrink-0 grayscale ${dark ? "bg-white/5" : "bg-black/5"}`}
+                  draggable={false}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className={`text-[15px] font-semibold tracking-[-0.01em] truncate ${dark ? "text-white" : "text-black"}`}>{d.label}</p>
+                  <p className={`text-[13px] mt-0.5 truncate ${dark ? "text-white/55" : "text-black/55"}`}>
+                    est. {estimateWorkoutMinutes(d.exercises)} min · {countExercises(d.exercises)} exercise{countExercises(d.exercises) === 1 ? "" : "s"}
+                    {d.muscleGroups?.length ? ` · ${d.muscleGroups.join(", ")}` : ""}
+                  </p>
+                </div>
+                <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
               </button>
             ))}
           </div>
         )}
+        {viewingAsClient && (
+          <div className="flex items-center gap-5 mt-3">
+            <button onClick={addWorkout} className={`flex items-center gap-1.5 text-[13px] font-semibold ${dark ? "text-blue-400" : "text-blue-600"}`}>
+              <Plus size={14} /> Add new workout
+            </button>
+            <button onClick={() => setLibraryPickerOpen(true)} className={`flex items-center gap-1.5 text-[13px] font-semibold ${dark ? "text-blue-400" : "text-blue-600"}`}>
+              <Upload size={14} /> Import
+            </button>
+          </div>
+        )}
       </div>
+
+      {upNext.length > 0 && (
+        <div className="relative mx-2.5 px-1 pt-6">
+          <div className="flex items-baseline justify-between mb-2">
+            <h3 className={`text-[17px] font-semibold tracking-[-0.01em] ${dark ? "text-white" : "text-black"}`}>Up next</h3>
+            <span className={`text-xs ${dark ? "text-white/40" : "text-black/40"}`}>From your calendar</span>
+          </div>
+          <div className={`border-t ${dark ? "border-white/20" : "border-black"}`}>
+            {upNext.map((w) => {
+              const d = new Date(w.date + "T00:00:00");
+              return (
+                <button
+                  key={w.id || w.date}
+                  onClick={() => onPreviewDay(w)}
+                  className={`w-full text-left flex items-center gap-3.5 min-h-[62px] py-2 border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+                >
+                  <span className={`w-[52px] h-[46px] rounded-xl flex flex-col items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+                    <span className={`text-[10.5px] font-medium ${dark ? "text-white/55" : "text-black/55"}`}>{d.toLocaleDateString(undefined, { weekday: "short" })}</span>
+                    <span className={`text-base font-semibold leading-tight tabular-nums ${dark ? "text-white" : "text-black"}`}>{d.getDate()}</span>
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-[15px] font-semibold tracking-[-0.01em] truncate ${dark ? "text-white" : "text-black"}`}>{w.label}</span>
+                    <span className={`block text-[13px] mt-0.5 ${dark ? "text-white/55" : "text-black/55"}`}>est. {estimateWorkoutMinutes(w.exercises || [])} min</span>
+                  </span>
+                  <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <ClientPhaseHistorySheet
         open={historyOpen}
@@ -3562,6 +3688,50 @@ function ClientProgramTab({ onPreviewDay, showToast }) {
         </>
       )}
     </div>
+  );
+}
+
+// Training tab's top section: a black-and-white gym photo behind the
+// header and whatever sits under it (today's workout or the current
+// phase), darkened behind the text and fading into the page at the bottom.
+function TrainingPhotoHero({ children }) {
+  const dark = useClientDark();
+  const pageBg = dark ? CLIENT_DARK_BG : "#FFFFFF";
+  return (
+    <div className="relative text-white">
+      <div className="absolute inset-x-0 top-0 -bottom-[70px] overflow-hidden pointer-events-none" aria-hidden="true">
+        <img src="/brand/gym-dark.jpg" alt="" className="w-full h-full object-cover" style={{ objectPosition: "50% 40%", filter: "brightness(0.78)" }} draggable={false} />
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 28%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.35) 72%, ${dark ? "rgba(9,9,9,0.4)" : "rgba(255,255,255,0.4)"} 86%, ${pageBg} 100%)` }}
+        />
+        {/* Fades the top into the page too, so the header and switch sit
+            on the plain page colour below the app's top bar. */}
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, ${pageBg} 0px, ${pageBg} 100px, ${dark ? "rgba(9,9,9,0)" : "rgba(255,255,255,0)"} 175px)` }}
+        />
+      </div>
+      <div className="relative pb-6">{children}</div>
+    </div>
+  );
+}
+
+// One tappable row in the Training tab's open lists (icon, label, chevron).
+function TrainingActionRow({ icon: Icon, label, onClick, accent = false }) {
+  const dark = useClientDark();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-3.5 min-h-[60px] py-2 text-left border-b active:opacity-70 transition-opacity ${dark ? "border-white/10" : "border-black/8"}`}
+    >
+      <span className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${dark ? "bg-white/[0.06]" : "bg-black/[0.04]"}`}>
+        <Icon size={18} className={accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white/80" : "text-black/80"} />
+      </span>
+      <span className={`flex-1 text-[15px] font-semibold ${accent ? (dark ? "text-blue-400" : "text-blue-600") : dark ? "text-white" : "text-black"}`}>{label}</span>
+      <ChevronRight size={16} className={dark ? "text-white/30 shrink-0" : "text-black/30 shrink-0"} />
+    </button>
   );
 }
 
@@ -3647,80 +3817,59 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
   }
 
   const canEditToday = viewingAsClient && todayScheduledEntry && !completedOnDate;
-  return (
-    <div className="pb-28">
+  // Page name + Today/Program switch at the top of both tabs, on the plain
+  // page colour above where the gym photo fades in.
+  const header = (
+    <>
       <TabHeader label={tab === "program" ? `${currentUser.name}'s Program` : "Training"} dark={dark} />
-      <div className="flex gap-2 px-2.5 mb-4">
+      <div className={`grid grid-cols-2 p-[3px] mx-2.5 mt-1 rounded-xl ${dark ? "bg-white/8" : "bg-black/5"}`}>
         {["today", "program"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`flex-1 px-4 py-2 rounded-full text-sm font-medium capitalize text-center ${
-              tab === t
-                ? dark
-                  ? "bg-white text-black"
-                  : "bg-black text-white"
-                : dark
-                ? "bg-white/8 text-white/60"
-                : "bg-black/8 text-black/60"
+            className={`py-2 rounded-[9px] text-[13.5px] capitalize text-center ${
+              tab === t ? "bg-white text-black font-semibold shadow-sm" : dark ? "text-white/60 font-medium" : "text-black/55 font-medium"
             }`}
           >
             {t}
           </button>
         ))}
       </div>
-
+    </>
+  );
+  return (
+    <div className="pb-28">
       {tab === "today" && (
-        <div className="space-y-4">
-          <TodayWorkoutCard
-            todaySession={todaySession}
-            activeLog={activeLog}
-            onStart={onStart}
-            onDiscard={onDiscardWorkout}
-            onView={onViewWorkout}
-            isToday
-            completedOnDate={completedOnDate}
-            dbReady={dbReady}
-            fullWidth
-          />
-          <div className="px-2.5 space-y-4">
-          {viewingAsClient && (
-            <div className="space-y-2">
-              {canEditToday && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => editScheduled(todayScheduledEntry)}
-                    className={dark ? "flex-1 flex items-center justify-center gap-1.5 bg-white/5 text-white/80 text-sm font-semibold py-3 rounded-2xl" : "flex-1 flex items-center justify-center gap-1.5 bg-black/5 text-black/80 text-sm font-semibold py-3 rounded-2xl"}
-                  >
-                    <Edit3 size={14} /> Edit / move
-                  </button>
-                  <button
-                    onClick={() => setWodRemoveOpen(true)}
-                    className={dark ? "px-4 flex items-center justify-center gap-1.5 bg-white/5 text-white/60 text-sm font-semibold py-3 rounded-2xl" : "px-4 flex items-center justify-center gap-1.5 bg-black/5 text-black/60 text-sm font-semibold py-3 rounded-2xl"}
-                  >
-                    <X size={14} /> Remove
-                  </button>
-                </div>
-              )}
-              <button
-                onClick={() => setWodPickerOpen(true)}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"
-              >
-                <Plus size={16} /> Create workout of the day
-              </button>
-            </div>
-          )}
-          <button
-            onClick={() => setCardioOpen(true)}
-            className={dark ? "w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/8 text-white/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform" : "w-full flex items-center justify-center gap-2 bg-black/5 hover:bg-black/8 text-black/70 text-sm font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform"}
-          >
-            <Footprints size={16} /> + Log a cardio session
-          </button>
+        <div>
+          <TrainingPhotoHero>
+            {header}
+            <TodayWorkoutCard
+              todaySession={todaySession}
+              activeLog={activeLog}
+              onStart={onStart}
+              onDiscard={onDiscardWorkout}
+              onView={onViewWorkout}
+              isToday
+              completedOnDate={completedOnDate}
+              dbReady={dbReady}
+              fullWidth
+              photo="bare"
+            />
+          </TrainingPhotoHero>
+          <div className={`relative mx-2.5 px-1 mt-14 border-t ${dark ? "border-white/20" : "border-black"}`}>
+            {canEditToday && (
+              <>
+                <TrainingActionRow icon={Edit3} label="Edit / move" onClick={() => editScheduled(todayScheduledEntry)} />
+                <TrainingActionRow icon={X} label="Remove" onClick={() => setWodRemoveOpen(true)} />
+              </>
+            )}
+            {viewingAsClient && <TrainingActionRow icon={Plus} label="Create workout of the day" accent onClick={() => setWodPickerOpen(true)} />}
+            <TrainingActionRow icon={Footprints} label="Log a cardio session" onClick={() => setCardioOpen(true)} />
           </div>
         </div>
       )}
 
-      {tab === "program" && <ClientProgramTab onPreviewDay={onPreviewWorkout} showToast={showToast} />}
+      {tab === "program" && <ClientProgramTab header={header} onPreviewDay={onPreviewWorkout} showToast={showToast} />}
 
       {viewingAsClient && (
         <>
@@ -3834,36 +3983,55 @@ export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
   // rejection, the row snaps back into view instead of staying stuck.
   const [deleting, setDeleting] = useState(false);
   const startXRef = useRef(0);
+  const startYRef = useRef(0);
   const widthRef = useRef(0);
   const rowRef = useRef(null);
+  // "pending" between pointerdown and the first real movement: only a
+  // clear sideways drag becomes a swipe. Capturing the pointer straight on
+  // pointerdown (as this used to) retargets the tap's click to this row,
+  // so a button inside it — a logged food to edit, a saved meal's + —
+  // never received a plain tap.
+  const gestureRef = useRef(null); // null | "pending" | "swipe" | "scroll"
+  const suppressClickRef = useRef(false);
+  // The row's live position, readable synchronously — the end of a swipe
+  // must decide delete-or-snap-back from where the row actually is, not
+  // from whatever `dragX` the last render happened to close over.
+  const dragXRef = useRef(0);
+  const endCleanupRef = useRef(null);
 
-  function onPointerDown(e) {
-    if (deleting) return;
-    startXRef.current = e.clientX;
-    widthRef.current = rowRef.current?.offsetWidth || 300;
-    setDragging(true);
-    // Without capture, a translating row can slide out from under a touch
-    // that hasn't moved on screen, firing a premature pointerleave that
-    // cancels the drag — capture keeps this element getting the events
-    // regardless of where the row itself has moved to.
-    e.currentTarget.setPointerCapture?.(e.pointerId);
+  function moveTo(x) {
+    dragXRef.current = x;
+    setDragX(x);
   }
-  function onPointerMove(e) {
-    if (!dragging) return;
-    const dx = e.clientX - startXRef.current;
-    setDragX(Math.min(0, Math.max(dx, -widthRef.current)));
+
+  // Pointer capture can throw on iOS for a touch pointer (and isn't
+  // needed for correctness — the window listeners below are what
+  // guarantee the swipe ends). A throw mid-handler is what could leave a
+  // row stuck half-swiped, red showing, neither deleted nor snapped back.
+  function safeCapture(el, id, on) {
+    try {
+      if (on) el?.setPointerCapture?.(id);
+      else if (el?.hasPointerCapture?.(id)) el.releasePointerCapture(id);
+    } catch {
+      // ignore
+    }
   }
-  function onPointerUp(e) {
-    if (!dragging) return;
+
+  function finishSwipe() {
+    if (gestureRef.current !== "swipe") return;
+    gestureRef.current = null;
+    endCleanupRef.current?.();
+    endCleanupRef.current = null;
+    // The click that follows the end of a swipe isn't a tap on the row.
+    suppressClickRef.current = true;
     setDragging(false);
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-    if (dragX < -(widthRef.current * 0.35)) {
-      setDragX(-widthRef.current);
+    if (dragXRef.current < -(widthRef.current * 0.35)) {
+      moveTo(-widthRef.current);
       setDeleting(true);
       setTimeout(() => {
         Promise.resolve(onDelete())
           .catch(() => {
-            setDragX(0);
+            moveTo(0);
             setDeleting(false);
           });
         // No `finally` resetting `deleting` on success: the row's parent
@@ -3872,8 +4040,58 @@ export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
         // left to re-enable.
       }, 150);
     } else {
-      setDragX(0);
+      moveTo(0);
     }
+  }
+
+  // However the finger lifts — over this row, over the sheet, after iOS
+  // takes the gesture over (pointercancel) or only as a touch event — the
+  // swipe always ends. Listening on the row alone missed some of those on
+  // iOS, leaving the row stuck where the finger left it.
+  function listenForEnd() {
+    const end = () => finishSwipe();
+    const events = ["pointerup", "pointercancel", "touchend", "touchcancel"];
+    events.forEach((t) => window.addEventListener(t, end, true));
+    endCleanupRef.current = () => events.forEach((t) => window.removeEventListener(t, end, true));
+  }
+  useEffect(() => () => endCleanupRef.current?.(), []);
+
+  function onPointerDown(e) {
+    if (deleting) return;
+    startXRef.current = e.clientX;
+    startYRef.current = e.clientY;
+    widthRef.current = rowRef.current?.offsetWidth || 300;
+    gestureRef.current = "pending";
+    suppressClickRef.current = false;
+  }
+  function onPointerMove(e) {
+    const dx = e.clientX - startXRef.current;
+    if (gestureRef.current === "pending") {
+      const dy = (e.clientY ?? startYRef.current) - startYRef.current;
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dx) <= Math.abs(dy)) {
+        gestureRef.current = "scroll";
+        return;
+      }
+      gestureRef.current = "swipe";
+      setDragging(true);
+      listenForEnd();
+      // Without capture, a translating row can slide out from under a
+      // touch that hasn't moved on screen, firing a premature pointerleave
+      // that cancels the drag — capture keeps this element getting the
+      // events regardless of where the row itself has moved to.
+      safeCapture(e.currentTarget, e.pointerId, true);
+    }
+    if (gestureRef.current !== "swipe") return;
+    moveTo(Math.min(0, Math.max(dx, -widthRef.current)));
+  }
+  function onPointerUp(e) {
+    safeCapture(e.currentTarget, e.pointerId, false);
+    if (gestureRef.current !== "swipe") {
+      gestureRef.current = null;
+      return;
+    }
+    finishSwipe();
   }
 
   return (
@@ -3886,6 +4104,17 @@ export function SwipeableRow({ onDelete, children, rounded = "rounded-lg" }) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
+        onClickCapture={(e) => {
+          // Swallows the click that ends a swipe, and — belt and braces —
+          // a tap on a row that's somehow been left part-way open just
+          // closes it, rather than acting on what's underneath.
+          if (suppressClickRef.current || (!deleting && dragXRef.current !== 0)) {
+            suppressClickRef.current = false;
+            e.stopPropagation();
+            e.preventDefault();
+            if (!deleting && dragXRef.current !== 0) moveTo(0);
+          }
+        }}
         style={{ transform: `translateX(${dragX}px)`, transition: dragging ? "none" : "transform 200ms ease" }}
         className={dark ? "relative bg-black touch-pan-y select-none" : "relative bg-white touch-pan-y select-none"}
       >
@@ -4046,6 +4275,14 @@ const MACRO_COLORS = { protein: "#8B5CF6", carbs: "#22B8CF", fat: "#F97316" };
 // Blue while under target, green once the target's hit, red once it's
 // overshot by more than 10% — protein is exempt from red since going over
 // protein isn't a problem the way going over calories/carbs/fat is.
+// Calories: once the day goes over target at all, show how much over (not
+// "0 left") and turn it red (#114).
+export function calorieStatus(value, target) {
+  const diff = Math.round((Number(target) || 0) - (Number(value) || 0));
+  const over = target > 0 && diff < 0;
+  return { over, amount: Math.abs(diff), color: over ? OVER_RED : target > 0 && diff === 0 ? GOAL_GREEN : MEASURE_BLUE };
+}
+
 function targetBarColor(value, target, { capped = true } = {}) {
   if (!target || target <= 0) return MEASURE_BLUE;
   if (capped && value > target * 1.1) return OVER_RED;
@@ -4348,7 +4585,7 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets, show
     series.push({
       date: d.toLocaleDateString(undefined, { weekday: "narrow" }),
       value: entry ? Math.round(entry[metricKey] || 0) : 0,
-      logged: !!entry,
+      logged: hasFoodLogged(entry),
     });
   }
   const loggedValues = series.filter((d) => d.logged).map((d) => d.value);
@@ -4473,7 +4710,7 @@ function guessMealForNow() {
 // here. Backed entirely by src/lib/restaurantNutrition.js — a local,
 // deterministic matcher (restaurant menu database + this app's own meal
 // library), not an external AI call, so it works instantly with no setup.
-export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, showToast, dark }) {
+export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile, onAddFood, dark }) {
   const { nutritionAiHelp } = useApp();
   // One entry per question asked — not a flat chat log — so each answer
   // can be dismissed or refreshed (different suggestions for the same
@@ -4596,12 +4833,16 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
     // retried/duplicate submission of the *same* logical action and no-op
     // on it, rather than relying solely on this one guard.
     const logId = key ? `ai-${key}` : `ai-${Date.now()}`;
+    // No toast of its own here: addFood confirms once the save actually
+    // lands ("… added to Lunch", naming the meal it went to — which can be
+    // changed by tapping the entry), or shows the error if it didn't. This
+    // used to announce "Added" before the save had finished, so a failed
+    // save showed "Added" and then an error.
     Promise.resolve(onAddFood(guessMealForNow(), { id: logId, name: s.name, cals: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat }, logId)).finally(
       () => {
         addSuggestionBusyRef.current = false;
       }
     );
-    showToast("Added to today's food log.");
   }
 
   return (
@@ -4869,7 +5110,21 @@ export function AiNutritionHelpCard({ targets, todayNutrition, nutritionProfile,
   );
 }
 
-export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemoveFood, onAddWater, savedMeals, onCreateSavedMeal, onDeleteSavedMeal, recentFoods, showToast }) {
+export function NutritionScreen({
+  nutritionByDateKey,
+  targets,
+  onAddFood,
+  onAddFoods,
+  onUpdateFood,
+  onRemoveFood,
+  onAddWater,
+  savedMeals,
+  onCreateSavedMeal,
+  onUpdateSavedMeal,
+  onDeleteSavedMeal,
+  recentFoods,
+  showToast,
+}) {
   const dark = useClientDark();
   const { db, currentUser, swapMealPlanMeal, createFood } = useApp();
   const [navOffset, setNavOffset] = useState(0); // 0 = today, 1 = yesterday, 2 = day before, ...
@@ -4880,6 +5135,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
     return localDateKey(d);
   }, [navOffset]);
   const nutrition = nutritionByDateKey[viewDateKey] || DEFAULT_NUTRITION;
+  const calStatus = calorieStatus(nutrition.calories, targets.calories);
   // AI Nutrition Help always reasons about TODAY's actual progress, not
   // whichever day the date-nav above happens to be browsing — asking "what
   // should I eat" while looking back at yesterday's log must never get
@@ -4892,76 +5148,128 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
     d.setDate(d.getDate() - navOffset);
     return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
   }, [navOffset, viewDateKey]);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  // The full-screen Add Food page (AddFoodPage.jsx) — every food is logged
+  // from there, into `activeMeal`, and it stays open between adds.
+  const [addPageOpen, setAddPageOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState("Breakfast");
+  // What's been logged since the Add Food page opened — its running tally.
+  const [sessionAdds, setSessionAdds] = useState([]);
   const [detailMeal, setDetailMeal] = useState(null);
   const [waterSheetOpen, setWaterSheetOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  // iOS doesn't dismiss the on-screen keyboard just because the search
-  // results list it was typed into scrolls or a result gets tapped — the
-  // input stays focused (and the keyboard stays up, often covering the
-  // very result list the client is trying to see) until something
-  // explicitly blurs it. Every path that logically "finishes" this search
-  // — picking a food/meal, or closing the sheet — blurs it directly.
-  const searchInputRef = useRef(null);
-  function dismissKeyboard() {
-    searchInputRef.current?.blur();
-  }
   const [barcodeOpen, setBarcodeOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [createMealOpen, setCreateMealOpen] = useState(false);
   const [mealPrefill, setMealPrefill] = useState(null);
+  // A saved meal being edited in CreateMealSheet (null = creating a new one).
+  const [editingSavedMealId, setEditingSavedMealId] = useState(null);
+  // The food page: `{ food, initialUnitId, initialQty, edit?: { meal, entry } }`.
   const [pendingFood, setPendingFood] = useState(null);
-  const [logTab, setLogTab] = useState("history"); // "history" | "mymeals"
+  // The meal the food page logs to (its own Meal picker) — starts as the
+  // Add Food page's meal, or the entry's own meal when editing.
+  const [pendingMeal, setPendingMeal] = useState("Breakfast");
   const [nutritionDetailOpen, setNutritionDetailOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [tab, setTab] = useState("today"); // "today" | "plan"
-  // Set by the dashboard-level Scan/Search tiles (no meal preselected) so a
-  // food can be picked first and the destination meal chosen right after,
-  // vs. the per-meal "Log" buttons which set activeMeal immediately.
-  const [mealChoice, setMealChoice] = useState(null); // scaled food awaiting a meal pick, or null
   const aiHelpRef = useRef(null);
 
   const mealCategories = ["Breakfast", "Lunch", "Dinner", "Snacks", "Pre-workout", "Post-workout"];
   // Coach-added and barcode-discovered foods (db.customFoods) are searched
   // alongside the static built-in database — they're what "save to food
   // library" from a barcode scan/manual entry is actually for.
-  const allFoods = getAllFoods(db.customFoods);
-  const filteredFoods = allFoods.filter((f) => matchesSearch(f.name, search));
+  const allFoods = useMemo(() => getAllFoods(db.customFoods), [db.customFoods]);
+  const libraryById = useMemo(() => Object.fromEntries([...AFCD_FOODS, ...allFoods].map((f) => [f.id, f])), [allFoods]);
+  // ClientApp passes buildFrequentFoods rows; plain entries are accepted too.
+  const frequentFoods = useMemo(
+    () => (recentFoods || []).map((r) => (r && r.entry ? r : { key: (r.baseFoodId || baseFoodName(r) || r.id || "").toString().toLowerCase(), name: baseFoodName(r), entry: r, count: 1 })),
+    [recentFoods]
+  );
+  const historyCounts = useMemo(() => new Map(frequentFoods.map((r) => [r.key, r.count])), [frequentFoods]);
 
-  // A plain ref, not state: these direct-add paths (recent foods, saved
-  // meals, photo estimates) fire onAddFood straight through with no
-  // quantity sheet in between, so there's no "ADDING…" disabled-button
-  // render to rely on for a double-tap guard — by the time React commits a
-  // state update, a second quick tap has often already fired. A ref flips
-  // synchronously, so the second tap in the same beat is dropped even
-  // before any re-render happens. This is what was actually producing
-  // doubled meal entries (e.g. a saved meal's own Plus button, which had
-  // no guard at all) despite FoodQuantitySheet's ADD already being safe.
+  // Every meal logged in the two weeks before the day being viewed — what
+  // "Copy meal" offers, newest first.
+  const previousMeals = useMemo(() => {
+    const out = [];
+    const [y, m, d] = viewDateKey.split("-").map(Number);
+    for (let i = 1; i <= 14; i++) {
+      const day = new Date(y, m - 1, d - i);
+      const key = localDateKey(day);
+      const log = nutritionByDateKey[key];
+      if (!log?.meals) continue;
+      const label = navOffset + i === 1 ? "Yesterday" : day.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+      mealCategories.forEach((mealName) => {
+        const items = log.meals[mealName] || [];
+        if (items.length) out.push({ dateKey: key, label, meal: mealName, items, cals: items.reduce((a, f) => a + (Number(f.cals) || 0), 0) });
+      });
+    }
+    return out;
+    // mealCategories is a fixed list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nutritionByDateKey, viewDateKey, navOffset]);
+
+  // A plain ref, not state: these direct-add paths (saved meals, photo
+  // meals, copied meals) fire straight through with no food page in
+  // between, so there's no disabled-button render to rely on for a
+  // double-tap guard — a ref flips synchronously, so a second tap in the
+  // same beat is dropped before any re-render. (The Add Food page's own +
+  // buttons also guard per row.)
   const addBusyRef = useRef(false);
   function guardedAdd(food, meal = activeMeal, dateKey = viewDateKey) {
-    if (addBusyRef.current) return;
+    if (addBusyRef.current) return Promise.resolve();
     addBusyRef.current = true;
-    Promise.resolve(onAddFood(meal, food, dateKey))
+    return Promise.resolve(onAddFood(meal, food, dateKey))
+      .then(() => noteAdded(food))
       .catch(() => {})
       .finally(() => {
         addBusyRef.current = false;
       });
   }
 
-  function addAndClose(food) {
-    dismissKeyboard();
-    setBarcodeOpen(false);
-    setPhotoOpen(false);
-    setSheetOpen(false);
-    // No meal preselected (reached via a dashboard-level tile) — ask which
-    // meal this goes to instead of logging it to an undefined destination.
-    if (!activeMeal) {
-      setMealChoice(food);
+  function noteAdded(...foods) {
+    if (addPageOpen) setSessionAdds((list) => [...list, ...foods.map((f) => ({ name: f.name, cals: Number(f.cals) || 0 }))]);
+  }
+
+  function openAddPage(meal) {
+    setActiveMeal(meal);
+    setSessionAdds([]);
+    setAddPageOpen(true);
+  }
+
+  // Logs straight from a row's + on the Add Food page: a recent food at the
+  // amount it was last logged, or a search result at its default serving.
+  // Rejects on failure so the row shows it didn't go through.
+  function quickLog(food, { asDefault } = {}) {
+    let entry;
+    if (asDefault) {
+      const unit = unitsFor(food)[0];
+      entry = { ...scaleFoodByUnit(food, unit.id, food.defaultQty || 100), src: sourceSnapshot(food) };
+    } else {
+      // Strip the old entry's id — addFood gives every new entry its own.
+      const { id: _oldId, ...rest } = food;
+      entry = rest;
+    }
+    return Promise.resolve(onAddFood(activeMeal, entry, viewDateKey)).then(() => noteAdded(entry));
+  }
+
+  // Opens the food page for a database food, or (`entry`) for a food the
+  // client has logged before, at the amount they last had.
+  function openFood(food, { entry } = {}) {
+    if (entry) {
+      const resolved = entrySourceFood(entry, libraryById);
+      setPendingMeal(activeMeal);
+      setPendingFood({ food: resolved.food, initialUnitId: resolved.unitId, initialQty: resolved.qty });
       return;
     }
-    guardedAdd(food);
+    setPendingMeal(activeMeal);
+    setPendingFood({ food });
+  }
+
+  // Tapping an entry already in the log opens the same food page to change
+  // its amount or meal (or delete it) — no more delete-and-log-again.
+  function openEntryEditor(meal, entry) {
+    const resolved = entrySourceFood(entry, libraryById);
+    setPendingMeal(meal);
+    setPendingFood({ food: resolved.food, initialUnitId: resolved.unitId, initialQty: resolved.qty, edit: { meal, entry } });
   }
 
   function saveMealFromEstimate(estimate) {
@@ -4976,22 +5284,37 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
     });
     showToast(`Saved "${estimate.name}" to My Meals`);
     setPhotoOpen(false);
-    setSheetOpen(false);
   }
 
   function scrollToAiHelp() {
     aiHelpRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function savedMealEntry(meal) {
+    return { id: meal.id, baseFoodId: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat, ...(meal.photoUrl ? { photoUrl: meal.photoUrl } : {}) };
+  }
+
   function logSavedMeal(meal, category) {
-    const food = { id: meal.id, name: meal.name, cals: meal.cals, protein: meal.protein, carbs: meal.carbs, fat: meal.fat };
-    // No meal preselected (reached via a dashboard-level tile) — ask which
-    // meal this goes to instead of logging it to an undefined destination.
-    if (!category) {
-      setMealChoice(food);
-      return;
-    }
-    guardedAdd(food, category);
+    return guardedAdd(savedMealEntry(meal), category || activeMeal);
+  }
+
+  // Copies a previously logged meal's foods into a meal on the day being
+  // viewed, in one save.
+  function copyMeal(items, toMeal, dateKey = viewDateKey) {
+    if (addBusyRef.current) return Promise.resolve();
+    addBusyRef.current = true;
+    const foods = items.map(({ id: _oldId, ...rest }) => rest);
+    return Promise.resolve(onAddFoods(toMeal, foods, dateKey, { toast: `Copied ${foods.length} item${foods.length === 1 ? "" : "s"} into ${toMeal}` }))
+      .then(() => noteAdded(...foods))
+      .finally(() => {
+        addBusyRef.current = false;
+      });
+  }
+
+  function yesterdayItemsFor(meal) {
+    const [y, m, d] = viewDateKey.split("-").map(Number);
+    const log = nutritionByDateKey[localDateKey(new Date(y, m - 1, d - 1))];
+    return log?.meals?.[meal] || [];
   }
 
   // A guide whose last week is over is no longer shown (mealPlanEnd.js).
@@ -5109,16 +5432,18 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           style={clientGlass(dark)}
         >
             <div className="relative">
-            <p className={`${dark ? "text-white/50" : "text-black/45"} text-[11px] font-bold tracking-[0.12em] mb-2`}>CALORIES REMAINING</p>
+            <p className={`${dark ? "text-white/50" : "text-black/45"} text-[11px] font-bold tracking-[0.12em] mb-2`}>{calStatus.over ? "CALORIES OVER" : "CALORIES REMAINING"}</p>
             <div className="flex items-baseline gap-2">
-              <span className={`${dark ? "text-white" : "text-black"} text-[28px] leading-none font-bold`}>{Math.max(0, targets.calories - nutrition.calories).toLocaleString()}</span>
+              <span className={`${calStatus.over ? "" : dark ? "text-white" : "text-black"} text-[28px] leading-none font-bold`} style={calStatus.over ? { color: OVER_RED } : undefined}>
+                {calStatus.amount.toLocaleString()}
+              </span>
               <span className={`${dark ? "text-white/40" : "text-black/40"} text-sm`}>of {targets.calories.toLocaleString()} kcal</span>
             </div>
             <div className="mt-2.5">
               <ProgressBar trackClassName={dark ? "bg-white/15" : "bg-black/8"}
                 value={nutrition.calories}
                 max={targets.calories}
-                color={targetBarColor(nutrition.calories, targets.calories)}
+                color={calStatus.color}
               />
             </div>
             <div className={`grid grid-cols-3 divide-x ${dark ? "divide-white/10" : "divide-black/8"} mt-4`}>
@@ -5156,7 +5481,9 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           icon={ScanLine}
           label="Scan Food"
           onClick={() => {
-            setActiveMeal(null);
+            // Straight to the camera; the food page that follows has a Meal
+            // picker, preset to the meal for this time of day.
+            setActiveMeal(guessMealForNow());
             setBarcodeOpen(true);
           }}
         />
@@ -5164,11 +5491,7 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           dark={dark}
           icon={Search}
           label="Search Food"
-          onClick={() => {
-            setActiveMeal(null);
-            setSearch("");
-            setSheetOpen(true);
-          }}
+          onClick={() => openAddPage(guessMealForNow())}
         />
         {/* Fuel IQ and the AiNutritionHelpCard below are the same feature —
             this tile just jumps to it. The dashboard no longer shows a
@@ -5352,22 +5675,31 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         >
           {mealCategories.map((meal) => {
             const items = nutrition.meals[meal] || [];
-            const totalCals = items.reduce((a, f) => a + f.cals, 0);
+            const totalCals = Math.round(items.reduce((a, f) => a + (Number(f.cals) || 0), 0));
+            // An empty meal that was logged the day before offers that
+            // same meal back in one tap — the commonest repeat there is.
+            const yesterdayItems = items.length === 0 ? yesterdayItemsFor(meal) : [];
             return (
               <div key={meal} className="flex items-center gap-3 px-4 py-3.5">
-                <button onClick={() => setDetailMeal(meal)} className="flex-1 min-w-0 flex items-center gap-3 text-left">
-                  <div className="min-w-0">
+                <div className="flex-1 min-w-0">
+                  <button onClick={() => setDetailMeal(meal)} className="w-full min-w-0 text-left">
                     <p className={dark ? "text-white font-semibold" : "text-black font-semibold"}>{meal}</p>
                     <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>
                       {items.length === 0 ? "No items logged" : `${totalCals} kcal · ${items.length} item${items.length === 1 ? "" : "s"}`}
                     </p>
-                  </div>
-                </button>
+                  </button>
+                  {yesterdayItems.length > 0 && (
+                    <button
+                      onClick={() => copyMeal(yesterdayItems, meal).catch(() => {})}
+                      className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold active:opacity-60"
+                      style={{ color: MEASURE_BLUE }}
+                    >
+                      <Copy size={12} /> Same as {navOffset === 0 ? "yesterday" : "the day before"} · {Math.round(yesterdayItems.reduce((a, f) => a + (Number(f.cals) || 0), 0))} kcal
+                    </button>
+                  )}
+                </div>
                 <button
-                  onClick={() => {
-                    setActiveMeal(meal);
-                    setSheetOpen(true);
-                  }}
+                  onClick={() => openAddPage(meal)}
                   aria-label={`Add food to ${meal}`}
                   className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform"
                   style={{ backgroundColor: MEASURE_BLUE, color: "#fff" }}
@@ -5486,379 +5818,172 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
                   <p className={dark ? "text-white/30 text-sm text-center py-4" : "text-black/30 text-sm text-center py-4"}>No items logged yet</p>
                 ) : (
                   <div className="space-y-2 mb-2">
-                    {items.map((f) => (
-                      <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id, viewDateKey)}>
-                        <div className={dark ? "flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5" : "flex items-center gap-3 bg-black/[0.02] border border-black/5 rounded-xl px-3 py-2.5"}>
-                          {f.photoUrl ? (
-                            <img src={f.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                          ) : (
-                            <div className={dark ? "w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-10 h-10 rounded-lg bg-black/8 flex items-center justify-center shrink-0"}>
-                              <UtensilsCrossed size={16} className={dark ? "text-white/30" : "text-black/30"} />
+                    {items.map((f) => {
+                      const amount = entryAmountLabel(f);
+                      return (
+                        <SwipeableRow key={f.id} onDelete={() => onRemoveFood(detailMeal, f.id, viewDateKey)}>
+                          <button
+                            onClick={() => openEntryEditor(detailMeal, f)}
+                            aria-label={`Edit ${f.name}`}
+                            className={dark ? "w-full text-left flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5 active:opacity-70" : "w-full text-left flex items-center gap-3 bg-black/[0.02] border border-black/5 rounded-xl px-3 py-2.5 active:opacity-70"}
+                          >
+                            {f.photoUrl ? (
+                              <img src={f.photoUrl} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                            ) : (
+                              <div className={dark ? "w-10 h-10 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-10 h-10 rounded-lg bg-black/8 flex items-center justify-center shrink-0"}>
+                                <UtensilsCrossed size={16} className={dark ? "text-white/30" : "text-black/30"} />
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className={dark ? "text-white text-sm font-semibold truncate" : "text-black text-sm font-semibold truncate"}>{baseFoodName(f)}</p>
+                              <p className={dark ? "text-white/40 text-[11px] mt-0.5 truncate" : "text-black/40 text-[11px] mt-0.5 truncate"}>
+                                {amount ? `${amount} · ` : ""}
+                                {round1(f.protein)}g P · {round1(f.carbs)}g C · {round1(f.fat)}g F
+                              </p>
                             </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <p className={dark ? "text-white text-sm font-semibold truncate" : "text-black text-sm font-semibold truncate"}>{f.name}</p>
-                            <p className={dark ? "text-white/40 text-[11px] mt-0.5" : "text-black/40 text-[11px] mt-0.5"}>
-                              {round1(f.protein)}g P · {round1(f.carbs)}g C · {round1(f.fat)}g F
-                            </p>
-                          </div>
-                          <span className={dark ? "text-white font-semibold text-sm shrink-0" : "text-black font-semibold text-sm shrink-0"}>{f.cals}</span>
-                        </div>
-                      </SwipeableRow>
-                    ))}
-                    <p className={dark ? "text-white/25 text-[10px] text-center pt-0.5" : "text-black/25 text-[10px] text-center pt-0.5"}>Swipe an item left to remove it</p>
+                            <span className={dark ? "text-white font-semibold text-sm shrink-0" : "text-black font-semibold text-sm shrink-0"}>{f.cals}</span>
+                          </button>
+                        </SwipeableRow>
+                      );
+                    })}
+                    <p className={dark ? "text-white/25 text-[10px] text-center pt-0.5" : "text-black/25 text-[10px] text-center pt-0.5"}>Tap an item to change it · swipe left to remove it</p>
                   </div>
                 )}
 
-                <button
-                  onClick={() => {
-                    setActiveMeal(detailMeal);
-                    setDetailMeal(null);
-                    setSheetOpen(true);
-                  }}
-                  className={dark ? "w-full mt-3 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5" : "w-full mt-3 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"}
-                >
-                  <Plus size={14} /> Add food
-                </button>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      const meal = detailMeal;
+                      setDetailMeal(null);
+                      openAddPage(meal);
+                    }}
+                    className={dark ? "flex-1 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5" : "flex-1 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"}
+                  >
+                    <Plus size={14} /> Add food
+                  </button>
+                  {items.length > 0 && (
+                    <button
+                      onClick={() => {
+                        // Turns a meal logged once into a reusable My Meal,
+                        // instead of rebuilding it ingredient by ingredient.
+                        setEditingSavedMealId(null);
+                        setMealPrefill({ name: detailMeal, ingredients: items.map((f) => ({ ...f })) });
+                        setDetailMeal(null);
+                        setCreateMealOpen(true);
+                      }}
+                      className={dark ? "flex-1 bg-white/5 text-white/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5" : "flex-1 bg-black/5 text-black/70 text-sm font-medium py-2.5 rounded-xl flex items-center justify-center gap-1.5"}
+                    >
+                      <BookmarkPlus size={14} /> Save as meal
+                    </button>
+                  )}
+                </div>
+                {items.length > 0 && navOffset > 0 && (
+                  <button
+                    onClick={() => {
+                      const meal = detailMeal;
+                      copyMeal(items, meal, localDateKey())
+                        .then(() => setDetailMeal(null))
+                        .catch(() => {});
+                    }}
+                    className="w-full mt-2 text-sm font-semibold py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-white active:scale-[0.98] transition-transform"
+                    style={{ backgroundColor: MEASURE_BLUE }}
+                  >
+                    <Copy size={14} /> Copy to today's {detailMeal}
+                  </button>
+                )}
               </div>
             );
           })()}
       </BottomSheet>
 
-      <BottomSheet
+      <AddFoodPage
+        open={addPageOpen}
+        onClose={() => setAddPageOpen(false)}
         dark={dark}
-        open={sheetOpen}
-        onClose={() => {
-          dismissKeyboard();
-          setSheetOpen(false);
-          setSearch("");
+        meal={activeMeal}
+        meals={mealCategories}
+        onMealChange={setActiveMeal}
+        dateLabel={navOffset === 0 ? null : navLabel}
+        foods={allFoods}
+        afcdFoods={AFCD_FOODS}
+        frequentFoods={frequentFoods}
+        historyCounts={historyCounts}
+        savedMeals={savedMeals}
+        previousMeals={previousMeals}
+        addedItems={sessionAdds}
+        onQuickLog={quickLog}
+        onOpenFood={openFood}
+        onLogSavedMeal={(m) => logSavedMeal(m)}
+        onEditSavedMeal={(m) => {
+          setEditingSavedMealId(m.id);
+          setMealPrefill(m);
+          setCreateMealOpen(true);
         }}
-        title={activeMeal ? `Add to ${activeMeal}` : "Add Food"}
-        keyboardSafeScroll
-      >
-        <div className={dark ? "flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2.5 mb-3" : "flex items-center gap-2 bg-black/8 rounded-xl px-3 py-2.5 mb-3"}>
-          <Search size={16} className={dark ? "text-white/40" : "text-black/40"} />
-          <input
-            ref={searchInputRef}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search foods or meals"
-            type="search"
-            enterKeyHint="search"
-            autoCorrect="off"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") dismissKeyboard();
-            }}
-            className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
-          />
-        </div>
-        {!search.trim() && (
-          // Hidden once there's an active search query — on iOS, WKWebView
-          // (unlike Safari) never resizes the page for the on-screen
-          // keyboard, so every bit of vertical space these three buttons
-          // hold onto is space the search results list doesn't get while
-          // the keyboard is up, pushing real results further down behind
-          // it. Standard search UX anyway: once you're typing, you're
-          // searching, not reaching for an alternate way to add a food.
-          <div className="flex gap-2 mb-4">
-            <button
-              onClick={() => {
-                setSheetOpen(false);
-                setBarcodeOpen(true);
-              }}
-              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-            >
-              <ScanLine size={18} />
-              Scan barcode
-            </button>
-            <button
-              onClick={() => {
-                setSheetOpen(false);
-                setPhotoOpen(true);
-              }}
-              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-            >
-              <Camera size={18} />
-              Photo
-            </button>
-            <button
-              onClick={() => {
-                setSheetOpen(false);
-                setQuickAddOpen(true);
-              }}
-              className={dark ? "flex-1 flex flex-col items-center gap-1 bg-white/5 rounded-xl py-3 text-white/50 text-xs" : "flex-1 flex flex-col items-center gap-1 bg-black/5 rounded-xl py-3 text-black/50 text-xs"}
-            >
-              <Zap size={18} />
-              Quick add
-            </button>
-          </div>
-        )}
-
-        {search.trim() ? (
-          (() => {
-            // matchesSearch() null-guards its `text` argument — a raw
-            // `.name.toLowerCase()` here would throw on any malformed
-            // entry (a custom/saved food or meal with a missing/null
-            // name), and since this recomputes on every keystroke while
-            // the sheet is open, a single bad entry would crash the whole
-            // sheet mid-search rather than just failing to match.
-            const matchedMeals = (savedMeals || []).filter((m) => matchesSearch(m?.name, search));
-            const matchedFoods = allFoods.filter((f) => matchesSearch(f?.name, search));
-            // Falls back to the Australian Food Composition Database (a
-            // free, government-published dataset — see afcdFoods.js) only
-            // when APEX's own already-verified sources (customFoods +
-            // FOOD_DATABASE, searched above) have nothing — "check APEX's
-            // existing verified food database first" means AFCD is a
-            // last resort, never a competing/duplicate result shown
-            // alongside a food the client has already confirmed is right.
-            // A client's own saved correction for an AFCD food becomes a
-            // customFoods doc (see FoodQuantitySheet's onSaveCorrection),
-            // so it's matchedFoods (above) that finds it on a later
-            // search, not this block, the next time the same name is
-            // searched.
-            const matchedAfcd =
-              matchedMeals.length === 0 && matchedFoods.length === 0 ? AFCD_FOODS.filter((f) => matchesSearch(f?.name, search)) : [];
-            return (
-              <div className="space-y-1">
-                {matchedMeals.length === 0 && matchedFoods.length === 0 && matchedAfcd.length === 0 && (
-                  <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No matches for "{search.trim()}"</p>
-                )}
-                {matchedMeals.map((m) => (
-                  <button
-                    key={`meal_${m.id}`}
-                    onClick={() => {
-                      dismissKeyboard();
-                      logSavedMeal(m, activeMeal);
-                      if (activeMeal) showToast(`Logged "${m.name}" to ${activeMeal}`);
-                      setSheetOpen(false);
-                      setSearch("");
-                    }}
-                    className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                  >
-                    {m.photoUrl ? (
-                      <img src={m.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-                    ) : (
-                      <div className={dark ? "w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-9 h-9 rounded-lg bg-black/8 flex items-center justify-center shrink-0"}>
-                        <UtensilsCrossed size={14} className={dark ? "text-white/30" : "text-black/30"} />
-                      </div>
-                    )}
-                    <div className="text-left flex-1 min-w-0">
-                      <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
-                      {/* Search results show kcal only, matching MyFitnessPal's
-                          compact mobile list — the full macro breakdown is
-                          still shown everywhere a food is actually being
-                          logged/reviewed (the quantity sheet, meal detail,
-                          recent foods, My Meals tab), just not in this list. */}
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>My Meals · {m.cals} kcal</p>
-                    </div>
-                  </button>
-                ))}
-                {matchedFoods.map((f) => (
-                  <button
-                    key={`food_${f.id}`}
-                    onClick={() => {
-                      dismissKeyboard();
-                      setPendingFood(f);
-                    }}
-                    className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                  >
-                    <div className="text-left flex-1 min-w-0">
-                      <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
-                      <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{f.cals} kcal</p>
-                    </div>
-                  </button>
-                ))}
-                {matchedAfcd.length > 0 && (
-                  <p className={dark ? "text-white/25 text-[10px] tracking-wide pt-2" : "text-black/25 text-[10px] tracking-wide pt-2"}>
-                    FROM THE AUSTRALIAN FOOD COMPOSITION DATABASE
-                  </p>
-                )}
-                {matchedAfcd.map((f) => {
-                  // Same Atwater/range check a live barcode scan gets
-                  // (validateNutrition, barcodeLookup.js) — belt and
-                  // braces on top of this file's own build-time filtering,
-                  // so a future edit to afcdFoods.js can't slip bad data
-                  // past validation just because it's bundled, not scanned.
-                  const validation = validateNutrition({ cals: f.cals, protein: f.protein, carbs: f.carbs, fat: f.fat });
-                  const shaped = { ...f, fromAFCD: true, ...(validation.plausible ? {} : { nutritionSuspect: true, nutritionSuspectReason: validation.reason }) };
-                  return (
-                    <button
-                      key={`afcd_${f.id}`}
-                      onClick={() => {
-                        dismissKeyboard();
-                        setPendingFood(shaped);
-                      }}
-                      className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                    >
-                      <div className="text-left flex-1 min-w-0">
-                        <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
-                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>{f.cals} kcal</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            );
-          })()
-        ) : (
-          <>
-            <div className={dark ? "flex gap-1 bg-white/5 rounded-xl p-1 mb-4" : "flex gap-1 bg-black/5 rounded-xl p-1 mb-4"}>
-              {[
-                ["history", "History"],
-                ["mymeals", "My Meals"],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setLogTab(key)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${
-                    logTab === key ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "text-white/50" : "text-black/50"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
+        onCreateMeal={() => {
+          setEditingSavedMealId(null);
+          setMealPrefill(null);
+          setCreateMealOpen(true);
+        }}
+        onCopyMeal={(p) => copyMeal(p.items, activeMeal)}
+        onScan={() => setBarcodeOpen(true)}
+        onPhotoMeal={() => setPhotoOpen(true)}
+        onQuickAdd={() => setQuickAddOpen(true)}
+        renderSavedMealRow={(meal, children) => (
+          <SwipeableRow key={meal.id} onDelete={() => onDeleteSavedMeal(meal.id)} rounded="rounded-2xl">
+            <div className="rounded-2xl" style={clientGlass(dark)}>
+              {children}
             </div>
-
-            {logTab === "history" ? (
-              recentFoods.length === 0 ? (
-                <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>Foods you log will show up here</p>
-              ) : (
-                <div className="space-y-1">
-                  {recentFoods.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => addAndClose({ ...f, id: `recent_${Date.now()}` })}
-                      className={dark ? "w-full flex items-center gap-3 py-3 border-b border-white/5 last:border-0" : "w-full flex items-center gap-3 py-3 border-b border-black/5 last:border-0"}
-                    >
-                      {f.photoUrl && <img src={f.photoUrl} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />}
-                      <div className="text-left flex-1 min-w-0">
-                        <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{f.name}</p>
-                        <p className={dark ? "text-white/40 text-xs" : "text-black/40 text-xs"}>
-                          P{round1(f.protein)} · C{round1(f.carbs)} · F{round1(f.fat)}
-                        </p>
-                      </div>
-                      <span className={dark ? "text-white/50 text-sm shrink-0" : "text-black/50 text-sm shrink-0"}>{f.cals} kcal</span>
-                    </button>
-                  ))}
-                </div>
-              )
-            ) : (
-              <div>
-                <button
-                  onClick={() => {
-                    setSheetOpen(false);
-                    setMealPrefill(null);
-                    setCreateMealOpen(true);
-                  }}
-                  className={dark ? "w-full flex items-center justify-center gap-2 border border-dashed border-white/15 rounded-xl py-3 mb-3 text-sm font-bold" : "w-full flex items-center justify-center gap-2 border border-dashed border-black/15 rounded-xl py-3 mb-3 text-sm font-bold"}
-                  style={{ color: MEASURE_BLUE }}
-                >
-                  <Plus size={16} /> Create meal
-                </button>
-
-                {(savedMeals || []).length === 0 ? (
-                  <p className={dark ? "text-white/30 text-sm text-center py-6" : "text-black/30 text-sm text-center py-6"}>No saved meals yet</p>
-                ) : (
-                  <div className="space-y-2">
-                    {savedMeals.map((m) => (
-                      <SwipeableRow key={m.id} onDelete={() => onDeleteSavedMeal(m.id)}>
-                        <div
-                          className="rounded-xl border flex items-center gap-3 px-3 py-2.5"
-                          style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
-                        >
-                          {m.photoUrl ? (
-                            <img src={m.photoUrl} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                          ) : (
-                            <div className={dark ? "w-12 h-12 rounded-lg bg-white/8 flex items-center justify-center shrink-0" : "w-12 h-12 rounded-lg bg-black/[0.04] flex items-center justify-center shrink-0"}>
-                              <UtensilsCrossed size={18} className={dark ? "text-white/30" : "text-black/30"} />
-                            </div>
-                          )}
-                          <div className="text-left flex-1 min-w-0">
-                            <p className={dark ? "text-white text-sm font-medium truncate" : "text-black text-sm font-medium truncate"}>{m.name}</p>
-                            <p className={dark ? "text-white/40 text-xs mt-0.5" : "text-black/40 text-xs mt-0.5"}>{m.cals} cal · P{round1(m.protein)} C{round1(m.carbs)} F{round1(m.fat)}</p>
-                          </div>
-                          <button
-                            onClick={() => {
-                              logSavedMeal(m, activeMeal);
-                              if (activeMeal) showToast(`Logged "${m.name}" to ${activeMeal}`);
-                              setSheetOpen(false);
-                            }}
-                            className={dark ? "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-white/8" : "w-9 h-9 rounded-full flex items-center justify-center shrink-0 bg-black/[0.05]"}
-                            style={{ color: MEASURE_BLUE }}
-                          >
-                            <Plus size={18} />
-                          </button>
-                        </div>
-                      </SwipeableRow>
-                    ))}
-                    <p className={dark ? "text-white/25 text-[10px] text-center pt-1" : "text-black/25 text-[10px] text-center pt-1"}>Swipe a meal left to remove it from My Meals</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
+          </SwipeableRow>
         )}
-      </BottomSheet>
+      />
 
       <FoodQuantitySheet
         dark={dark}
-        food={pendingFood}
+        layout="page"
+        food={pendingFood?.food || null}
+        initialUnitId={pendingFood?.initialUnitId}
+        initialQty={pendingFood?.initialQty}
+        meal={pendingMeal}
+        meals={mealCategories}
+        onMealChange={setPendingMeal}
+        pageTitle={pendingFood?.edit ? "Edit Entry" : "Add Food"}
+        confirmLabel={pendingFood?.edit ? "Save" : "Log"}
         onClose={() => setPendingFood(null)}
+        onDelete={
+          pendingFood?.edit
+            ? async () => {
+                const { meal, entry } = pendingFood.edit;
+                await onRemoveFood(meal, entry.id, viewDateKey);
+                setPendingFood(null);
+              }
+            : undefined
+        }
         onConfirm={async (scaled, logId) => {
-          // Opened from a dashboard-level tile (no meal preselected) —
-          // ask which meal this goes to before saving anything, instead
-          // of guessing. Opened from a meal's own Log button, activeMeal
-          // is already set and this saves straight through as before.
-          if (!activeMeal) {
+          const food = pendingFood?.food;
+          const entry = food && !food.servingOnly ? { ...scaled, src: sourceSnapshot(food) } : scaled;
+          if (pendingFood?.edit) {
+            const { meal, entry: old } = pendingFood.edit;
+            // Keeps what the old entry was (a saved meal's photo, etc.).
+            const merged = old.photoUrl && !entry.photoUrl ? { ...entry, photoUrl: old.photoUrl } : entry;
+            await onUpdateFood(meal, old.id, pendingMeal, merged, viewDateKey);
             setPendingFood(null);
-            setSheetOpen(false);
-            setMealChoice(scaled);
             return;
           }
-          // Only closes on a confirmed successful save — closing first
-          // (the old behaviour) made a slow save look identical to one
-          // that silently did nothing, which is exactly what sent a
-          // client back to scan the same item again and log it twice. On
-          // failure this stays open (the error toast from addFood already
-          // says why) so retrying doesn't need a second scan.
-          await onAddFood(activeMeal, scaled, viewDateKey, logId);
+          // Only closes on a confirmed save — closing first made a slow save
+          // look identical to one that silently did nothing, which is what
+          // sent a client back to scan the same item again and log it
+          // twice. On failure this stays open (addFood's own toast says
+          // why) so retrying doesn't need a second scan.
+          await onAddFood(pendingMeal, entry, viewDateKey, logId);
+          noteAdded(entry);
           setPendingFood(null);
-          setSheetOpen(false);
         }}
         onSaveCorrection={
           createFood
-            ? (corrected) => setPendingFood((f) => (f ? createFood(buildCorrectedFood(f, corrected)) : f))
+            ? (corrected) => setPendingFood((p) => (p ? { ...p, food: createFood(buildCorrectedFood(p.food, corrected)) } : p))
             : undefined
         }
       />
-
-      <BottomSheet dark={dark} open={!!mealChoice} onClose={() => setMealChoice(null)} title={mealChoice ? `Add "${mealChoice.name}" to…` : ""}>
-        <div className="grid grid-cols-2 gap-2">
-          {mealCategories.map((meal) => (
-            <button
-              key={meal}
-              onClick={async () => {
-                if (addBusyRef.current) return;
-                const food = mealChoice;
-                if (!food) return;
-                addBusyRef.current = true;
-                setMealChoice(null);
-                try {
-                  await onAddFood(meal, food, viewDateKey);
-                  showToast(`Logged "${food.name}" to ${meal}`);
-                } catch (err) {
-                  showToast(err?.message || "Couldn't log that food", true);
-                } finally {
-                  addBusyRef.current = false;
-                }
-              }}
-              className={dark ? "bg-white/8 text-white text-sm font-semibold py-3.5 rounded-xl active:scale-95 transition-transform" : "bg-black/8 text-black text-sm font-semibold py-3.5 rounded-xl active:scale-95 transition-transform"}
-            >
-              {meal}
-            </button>
-          ))}
-        </div>
-      </BottomSheet>
 
       <BottomSheet dark={dark} open={waterSheetOpen} onClose={() => setWaterSheetOpen(false)} title="Log Water">
         <div className="grid grid-cols-3 gap-2">
@@ -5883,7 +6008,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         onClose={() => setBarcodeOpen(false)}
         onAdd={(food) => {
           setBarcodeOpen(false);
-          setPendingFood(food);
+          setPendingMeal(activeMeal);
+          setPendingFood({ food });
         }}
       />
       <QuickAddFoodSheet
@@ -5895,15 +6021,17 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
           // Same next step as picking a food from search or a barcode scan
           // — the quantity sheet opens defaulted to the serving size just
           // entered, and lets it be scaled up or down before logging.
-          setPendingFood(food);
+          setPendingMeal(activeMeal);
+          setPendingFood({ food });
         }}
       />
       <PhotoEstimateSheet
         dark={dark}
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
-        onAdd={(estimate) =>
-          addAndClose({
+        onAdd={(estimate) => {
+          setPhotoOpen(false);
+          guardedAdd({
             id: `photo_${Date.now()}`,
             name: estimate.name,
             cals: estimate.cals,
@@ -5911,8 +6039,8 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
             carbs: estimate.carbs,
             fat: estimate.fat,
             photoUrl: estimate.photoUrl,
-          })
-        }
+          });
+        }}
         onSaveAsMeal={saveMealFromEstimate}
       />
       <CreateMealSheet
@@ -5920,9 +6048,16 @@ export function NutritionScreen({ nutritionByDateKey, targets, onAddFood, onRemo
         open={createMealOpen}
         onClose={() => setCreateMealOpen(false)}
         prefill={mealPrefill}
+        title={editingSavedMealId ? "Edit Meal" : "Create Meal"}
         onSave={(meal) => {
-          onCreateSavedMeal(meal);
-          showToast(`Saved "${meal.name}" to My Meals`);
+          if (editingSavedMealId) {
+            onUpdateSavedMeal(editingSavedMealId, meal);
+            showToast(`Updated "${meal.name}"`);
+          } else {
+            onCreateSavedMeal(meal);
+            showToast(`Saved "${meal.name}" to My Meals`);
+          }
+          setEditingSavedMealId(null);
           setCreateMealOpen(false);
         }}
       />
@@ -7388,6 +7523,7 @@ export function ProfileScreen({
   showToast,
   dueCheckInsCount,
   onOpenCheckIns,
+  onToggleTheme,
 }) {
   const dark = useClientDark();
   const { deleteMyAccount, viewingAsClient } = useApp();
@@ -7409,6 +7545,7 @@ export function ProfileScreen({
     { label: "Nutrition preferences", icon: Utensils, onClick: () => setPrefSection("nutrition") },
     { label: "Notifications", icon: Bell, onClick: onOpenNotifications },
     { label: "Push Notifications", icon: BellRing, onClick: () => setPushOpen(true) },
+    ...(onToggleTheme ? [{ label: "Appearance", value: dark ? "Dark" : "Light", icon: Moon, onClick: onToggleTheme }] : []),
     // Both of these act on the real signed-in Firebase Auth account, never
     // the client being impersonated — connecting WHOOP or deleting while
     // "viewing as" a client would silently hit the coach's own account
@@ -7518,6 +7655,7 @@ export function ProfileScreen({
             >
               <r.icon size={17} className={dark ? "text-white/40" : "text-black/40"} />
               <span className={dark ? "text-white/80 text-sm flex-1" : "text-black/80 text-sm flex-1"}>{r.label}</span>
+              {r.value && <span className={dark ? "text-white/45 text-sm" : "text-black/45 text-sm"}>{r.value}</span>}
               {r.label === "Notifications" && notifCount > 0 && (
                 <span className={dark ? "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-white text-black text-[10px] font-bold flex items-center justify-center" : "w-4.5 h-4.5 min-w-[18px] px-1 rounded-full bg-black text-white text-[10px] font-bold flex items-center justify-center"}>
                   {notifCount}
@@ -8809,6 +8947,7 @@ export default function ClientApp() {
     addProgressPhoto,
     deleteProgressPhoto,
     createSavedMeal,
+    updateSavedMeal,
     deleteSavedMeal,
     toggleHabitToday,
     updateUser,
@@ -8835,7 +8974,20 @@ export default function ClientApp() {
     clearLiveSession,
     dbReady,
   } = useApp();
-  const dark = db.appDesign?.clientDarkMode === true;
+  // Light/Dark: the client's own choice (Profile > Appearance), kept on
+  // this phone per person like Train Solo's; until they choose, the
+  // coach's default from Design Settings applies.
+  const themeKey = `clientTheme_${currentUser?.id}`;
+  const [themePick, setThemePick] = useState(null); // { key, value } once chosen this session
+  const storedPick = themePick?.key === themeKey ? themePick.value : readClientThemePick(themeKey);
+  const dark = resolveClientDark(storedPick, db.appDesign?.clientDarkMode);
+  function chooseClientTheme(nextDark) {
+    const value = nextDark ? "dark" : "light";
+    try {
+      localStorage.setItem(themeKey, value);
+    } catch {}
+    setThemePick({ key: themeKey, value });
+  }
   const navigate = useNavigate();
   // A session left open (backgrounded, or the tab/app closed before the
   // client explicitly finished or canceled it) persists across reloads so
@@ -9184,24 +9336,10 @@ export default function ClientApp() {
     [nutritionLogsForClient]
   );
   const nutrition = nutritionByDateKey[todayDateKey] || DEFAULT_NUTRITION;
-  // Distinct foods this client has actually logged before, most recent
-  // first — surfaced in the food-add sheet the same way "My Meals" offers
-  // one-tap re-logging, so a food they eat often (but never saved as a
-  // meal) doesn't mean re-searching or re-typing it from scratch every time.
-  const recentFoods = useMemo(() => {
-    const seen = new Map();
-    const sortedDays = [...nutritionLogsForClient].sort((a, b) => b.date.localeCompare(a.date));
-    for (const day of sortedDays) {
-      for (const items of Object.values(day.meals || {})) {
-        for (const item of items) {
-          const key = (item.name || "").toLowerCase();
-          if (key && !seen.has(key)) seen.set(key, item);
-        }
-      }
-      if (seen.size >= 10) break;
-    }
-    return [...seen.values()].slice(0, 10);
-  }, [nutritionLogsForClient]);
+  // The foods this client actually eats, most-logged first (grouped by
+  // the food itself, not its amount — see nutritionLog.js), surfaced on the
+  // Add Food page for one-tap re-logging.
+  const recentFoods = useMemo(() => buildFrequentFoods(nutritionLogsForClient), [nutritionLogsForClient]);
   const targets = useMemo(() => resolveNutritionTargets(currentUser.nutritionTargets), [currentUser.nutritionTargets]);
   // Each client's own personal "My Meals" list — not shared with other
   // clients, so a meal one client builds doesn't show up in anyone else's.
@@ -9576,89 +9714,106 @@ export default function ClientApp() {
     setPreviewIsTodayLog(isTodayLog);
   }
 
-  function addFood(meal, food, dateKey = todayDateKey, logId) {
-    // Generated once per call, outside the transaction updater below —
-    // the updater can run more than once (Firestore retries it internally
-    // on write contention; see setNutritionForDate's own comment), and a
-    // stable id computed here means every retry of *this* call proposes
-    // the exact same entry rather than a fresh one. A caller can also pass
-    // its own logId (AiNutritionHelpCard's addSuggestion does, derived
-    // from the suggestion's own stable key) to make a genuine retry of the
-    // same logical action — not just a Firestore-internal one — equally
-    // idempotent.
-    //
-    // Every other caller here (FoodQuantitySheet's ADD — the shared path
-    // for search, barcode scan, quick add, and the meal-choice flow — and
-    // guardedAdd's recent-foods/saved-meals/photo-estimate buttons) never
-    // supplies its own logId, so this fallback used to be
-    // `${food.id}-${Date.now()}-${random}` — unique to the millisecond,
-    // every single call. That only guarded a double-DISPATCH of one tap
-    // (two click events landing before a ref/state commit); it did
-    // nothing for a genuinely separate retry of the same action a few
-    // seconds or minutes later — which is exactly what a client does when
-    // a slow or offline-queued save (this app's Firestore client persists
-    // writes locally and syncs once reconnected, surviving an app close)
-    // gives no visible confirmation in time: they assume the tap didn't
-    // register and tap ADD again, or close and reopen the app and log it
-    // again. The original (still-queued) write and the retry then both
-    // eventually reach Firestore with different ids, landing as two
-    // separate, fully genuine entries once both sync — a real production
-    // duplicate this fallback never actually closed.
-    //
-    // Bucketing the timestamp to the nearest RETRY_DEDUPE_WINDOW_MS
-    // (rather than using the exact millisecond) means a retry of the
-    // *same* food into the *same* meal within that window reconciles to
-    // the same id — closing that gap — while a deliberately separate
-    // logging of the same food later (a second coffee an hour later, say)
-    // still falls in a different bucket and is kept as its own entry, per
-    // existing.some(f => f.id === id) below being scoped to this one
-    // meal's own array. A retry landing right on a bucket boundary can
-    // still slip into the next bucket and be treated as separate — an
-    // accepted, rare edge of any coarse time-bucketed key, not worth a
-    // sliding-window scheme for this.
-    const id = logId || `${food.id}-${meal}-${dateKey}-${Math.floor(Date.now() / RETRY_DEDUPE_WINDOW_MS)}`;
+  // A fresh id for every logged entry. It used to be bucketed to the
+  // minute (food + meal + day + minute) so a retried save reconciled to
+  // one entry — but that also silently dropped a deliberate second add of
+  // the same food to the same meal within that minute while still saying
+  // "added". Retries are covered without it: each tap/sheet carries its
+  // own id through its own retries (FoodQuantitySheet's logIdRef,
+  // Fuel IQ's suggestion key), the add buttons ignore a second tap while
+  // a save is running, and an offline save now resolves straight away
+  // ("saved on your phone") instead of leaving the client to tap again.
+  function newEntryId(food) {
+    return `${food?.baseFoodId || food?.id || "food"}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+  }
+
+  // One entry's macros (and any micronutrients it carries) added to, or
+  // taken off (sign -1), a day's running totals — never below zero, the
+  // same clamping removeFood has always applied.
+  function applyEntryTotals(day, entry, sign) {
+    const micros = {};
+    MICRO_FIELDS.forEach((key) => {
+      micros[key] = Math.max(0, round1((day[key] || 0) + sign * (Number(entry[key]) || 0)));
+    });
+    return {
+      calories: Math.max(0, Math.round((day.calories || 0) + sign * (Number(entry.cals) || 0))),
+      protein: Math.max(0, round1((day.protein || 0) + sign * (Number(entry.protein) || 0))),
+      carbs: Math.max(0, round1((day.carbs || 0) + sign * (Number(entry.carbs) || 0))),
+      fat: Math.max(0, round1((day.fat || 0) + sign * (Number(entry.fat) || 0))),
+      ...micros,
+    };
+  }
+
+  function savedToast(result, text) {
+    showToast(result === QUEUED ? `${text} — saved on your phone, it'll sync when you're back online` : text);
+  }
+
+  // Logs several foods into one meal in a single save (copying a previous
+  // meal, or a saved meal's foods) — one write, so a copied breakfast
+  // can't half-land. `logIds` lets a caller reuse its own ids so a retry
+  // of the same action reconciles instead of adding twice.
+  function addFoods(meal, foods, dateKey = todayDateKey, { logIds, toast } = {}) {
+    const entries = foods.map((food, i) => ({ ...food, id: logIds?.[i] || newEntryId(food) }));
     return setNutritionForDate(currentUser.id, dateKey, (n) => {
-      const base = n || DEFAULT_NUTRITION;
-      const existing = base.meals?.[meal] || [];
-      // Reconcile by id instead of blindly appending: if this exact entry
-      // is already saved (this same logical add reaching here a second
-      // time), the day's totals and meal list already reflect it — return
-      // the day unchanged rather than double-counting its macros and
-      // logging it twice.
-      if (existing.some((f) => f.id === id)) return base;
-      const micros = {};
-      // Most foods don't carry micronutrient data (only a barcode scan or a
-      // manually-entered figure does) — a missing field just contributes 0
-      // rather than blocking the whole add.
-      MICRO_FIELDS.forEach((key) => {
-        micros[key] = round1((base[key] || 0) + (Number(food[key]) || 0));
+      let day = n || DEFAULT_NUTRITION;
+      // base.meals[meal] can be missing on an older doc saved before this
+      // category existed (e.g. Pre-workout/Post-workout added later).
+      const existing = day.meals?.[meal] || [];
+      // Reconcile by id instead of blindly appending: an entry already
+      // saved (the same logical add reaching here a second time) is
+      // already reflected in the day's totals — never count it twice.
+      const fresh = entries.filter((e) => !existing.some((f) => f.id === e.id));
+      if (fresh.length === 0) return day;
+      fresh.forEach((e) => {
+        day = { ...day, ...applyEntryTotals(day, e, 1) };
       });
-      return {
-        ...base,
-        // Clamped the same way removeFood below already clamps its
-        // subtraction — a food with a bad (e.g. negative) macro value,
-        // however it got into the library, can push a day's total below
-        // zero otherwise.
-        calories: Math.max(0, Math.round((base.calories || 0) + (Number(food.cals) || 0))),
-        protein: Math.max(0, round1((base.protein || 0) + (Number(food.protein) || 0))),
-        carbs: Math.max(0, round1((base.carbs || 0) + (Number(food.carbs) || 0))),
-        fat: Math.max(0, round1((base.fat || 0) + (Number(food.fat) || 0))),
-        ...micros,
-        // base.meals[meal] can be missing on an older doc saved before this
-        // category existed (e.g. Pre-workout/Post-workout added later) —
-        // spreading undefined there threw, silently dropping the whole add.
-        meals: { ...base.meals, [meal]: [...existing, { ...food, id }] },
-      };
+      return { ...day, meals: { ...day.meals, [meal]: [...existing, ...fresh] } };
     })
-      .then(() => showToast(`${food.name} added to ${meal}`))
+      .then((result) => {
+        savedToast(result, toast || (entries.length === 1 ? `${entries[0].name} added to ${meal}` : `${entries.length} foods added to ${meal}`));
+        return result;
+      })
       .catch((err) => {
         showToast(err.message || "Couldn't save — check your connection and try again", true);
-        // Re-thrown so a caller that actually waits on this (the quantity
-        // sheet's Add button) can tell the save failed and let the client
-        // retry instead of assuming it worked. Every other call site here
-        // fires this and moves on without awaiting it — the toast above is
-        // already their only feedback — so each one swallows this re-throw
-        // itself rather than leaving it an unhandled rejection.
+        // Re-thrown so a caller that waits on this (the food page's Log
+        // button, a row's + button) can tell the save failed and let the
+        // client retry instead of assuming it worked; fire-and-forget
+        // callers swallow it themselves.
+        throw err;
+      });
+  }
+
+  function addFood(meal, food, dateKey = todayDateKey, logId) {
+    return addFoods(meal, [food], dateKey, { logIds: logId ? [logId] : undefined });
+  }
+
+  // Changes a logged entry in place — a new amount, and/or moved to a
+  // different meal — instead of deleting it and logging it again. Keeps
+  // the entry's id, so a retried save just re-applies the same change.
+  function updateFood(fromMeal, entryId, toMeal, food, dateKey = todayDateKey) {
+    return setNutritionForDate(currentUser.id, dateKey, (n) => {
+      const base = n || DEFAULT_NUTRITION;
+      const items = base.meals?.[fromMeal] || [];
+      const old = items.find((f) => f.id === entryId);
+      if (!old) throw new Error("That entry is no longer in your log");
+      const entry = { ...food, id: entryId };
+      let day = { ...base, ...applyEntryTotals(base, old, -1) };
+      day = { ...day, ...applyEntryTotals(day, entry, 1) };
+      const meals = { ...base.meals };
+      if (toMeal === fromMeal) {
+        meals[fromMeal] = items.map((f) => (f.id === entryId ? entry : f));
+      } else {
+        meals[fromMeal] = items.filter((f) => f.id !== entryId);
+        meals[toMeal] = [...(meals[toMeal] || []), entry];
+      }
+      return { ...day, meals };
+    })
+      .then((result) => {
+        savedToast(result, toMeal === fromMeal ? "Entry updated" : `Moved to ${toMeal}`);
+        return result;
+      })
+      .catch((err) => {
+        showToast(err.message || "Couldn't save — check your connection and try again", true);
         throw err;
       });
   }
@@ -9889,10 +10044,13 @@ export default function ClientApp() {
             nutritionByDateKey={nutritionByDateKey}
             targets={targets}
             onAddFood={addFood}
+            onAddFoods={addFoods}
+            onUpdateFood={updateFood}
             onRemoveFood={removeFood}
             onAddWater={addWater}
             savedMeals={savedMeals}
             onCreateSavedMeal={(meal) => createSavedMeal(currentUser.id, meal)}
+            onUpdateSavedMeal={(mealId, meal) => updateSavedMeal(currentUser.id, mealId, meal)}
             onDeleteSavedMeal={(mealId) => deleteSavedMeal(currentUser.id, mealId)}
             recentFoods={recentFoods}
             showToast={showToast}
@@ -9983,6 +10141,7 @@ export default function ClientApp() {
             showToast={showToast}
             dueCheckInsCount={dueCheckInsCount}
             onOpenCheckIns={() => setTab("checkins")}
+            onToggleTheme={() => chooseClientTheme(!dark)}
           />
         )}
         </TabFade>

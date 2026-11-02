@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Register #103: a cold open sat on the grey "M" splash until the signed-in
+// Register #119: a cold open sat on the grey "M" splash until the signed-in
 // user's users/{uid} doc had loaded, on top of Firebase restoring the
 // session. The last profile is now kept on the phone and used the moment
 // Firebase confirms the same account, so the app opens without that wait.

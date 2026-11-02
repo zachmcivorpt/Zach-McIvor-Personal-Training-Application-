@@ -241,13 +241,24 @@ export default function CoachShell() {
         <div className="flex items-center justify-between px-4 py-3">
           <Logo variant="mark" tone="white" className="h-8 w-auto" />
           <div className="flex items-center gap-2">
-            <button onClick={() => setNotifOpen(true)} className="w-9 h-9 rounded-lg bg-white/8 flex items-center justify-center text-white relative">
-              <Bell size={16} />
+            <button
+              onClick={() => setNotifOpen(true)}
+              aria-label="Notifications"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white relative active:scale-95 transition-transform"
+              style={{ backgroundColor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.14)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}
+            >
+              <Bell size={16} strokeWidth={1.8} />
               {unreadNotifCount > 0 && (
-                <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full bg-blue-400" />
+                <span className="absolute top-[7px] right-[8px] w-[7px] h-[7px] rounded-full bg-[#2F8FFF]" style={{ boxShadow: "0 0 0 1.5px #0A0A0C" }} />
               )}
             </button>
-            <Avatar name={currentUser?.name} url={currentUser?.avatarUrl} size={34} onClick={() => setTab("more")} />
+            <Avatar
+              name={currentUser?.name}
+              url={currentUser?.avatarUrl}
+              size={34}
+              onClick={() => setTab("more")}
+              className="ring-1 ring-white/20 ring-offset-2 ring-offset-[#0A0A0C]"
+            />
           </div>
         </div>
       </div>

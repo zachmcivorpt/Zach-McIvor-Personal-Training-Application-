@@ -15,8 +15,10 @@ browser-only "add to home screen" — that's no longer the primary path.
 
 Target look: dark, restrained, technical, premium. Applies identically in
 both of the app's existing modes — the client app's own light/dark toggle
-(`ClientThemeContext`/`useClientDark`) and the coach console's single light
-theme — by expressing it through the existing tokens in `src/theme.js`
+(`ClientThemeContext`/`useClientDark`; each client picks it in Profile >
+Appearance, saved per person on the phone, with the coach's Design
+Settings switch as the default until they do) and the coach console's
+single theme — by expressing it through the existing tokens in `src/theme.js`
 rather than inventing new colors per screen:
 
 - **Light surfaces**: `BG`/`SURFACE` (off-white, not stark white), `TEXT`
@@ -46,6 +48,28 @@ rather than inventing new colors per screen:
   buried in small print.
 - Photography used sparingly, not as filler.
 
+### Coached client Home and Training (Concept A, approved 2026-10-28)
+
+- Black-and-white gym photography (`public/brand/gym-dark.jpg`,
+  `workout-1..4.jpg`): Home's workout card, and the Training tab's photo
+  header (`TrainingPhotoHero`) with today's workout or the current phase
+  in white on it. The photo fades into the page colour at the top (the
+  app's top bar is white) and the bottom; the page header and
+  Today/Program switch sit on the plain page above it.
+- Lists are open rows with thin dividers (a darker top rule), not cards.
+- Daily Execution is open on the page; Nutrition is a solid card (no
+  glass). Avoid a title that changes length over a backdrop-filter
+  card: iOS WebKit can leave the new text half-drawn (#111).
+- Content placed after `TrainingPhotoHero` must be `relative`, or the
+  photo's bottom fade paints over it.
+
+### Coach Overview (approved 2026-10-28)
+
+- Gym photo header with the greeting and a large active-client count, then
+  frosted-glass tiles (Challenges, Check-ins, Messages) and open
+  sections under thin rules. Every number keeps its old destination (#115).
+- The coach console is otherwise still dark-only.
+
 ### Train Solo (self-guided app, `src/solo/`) design rules
 
 - **Every box/card is frosted glass**: translucent fill + hairline border +
@@ -63,6 +87,67 @@ rather than inventing new colors per screen:
 - Spelling is "Program", never "Programme".
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
+
+## APEX Nutrition (coached client app)
+
+Goal: logging an ordinary meal faster and more reliably than MyFitnessPal,
+with numbers clients and coaches can trust. How it's built now:
+
+- **Every food is logged from the full-screen Add Food page**
+  (`src/client/AddFoodPage.jsx`), which stays open between adds (running
+  tally, Done). Don't reintroduce a bottom sheet that closes after one
+  food, or a separate "which meal?" popup: the meal is chosen in the
+  page header / the food page's Meal picker.
+- **The food page is `FoodQuantitySheet layout="page"`**
+  (`NutritionFeatures.jsx`), also used to edit a logged entry (tap it).
+  The photo-meal and create-meal builders keep the sheet layout.
+  Full-screen nutrition pages use `NutritionPage` (body locked, scroll
+  contained, left-edge swipe back); stacking: Add Food page 100, sheets
+  110, food page 118, app toast 120, barcode scanner 135.
+- **Entries**: every new entry gets a fresh id (`newEntryId`); never
+  bucket ids by time again (it silently dropped deliberate repeats).
+  New entries carry `src` (the per-100g source food,
+  `sourceSnapshot`) so they can be re-opened at a new amount;
+  `entrySourceFood` handles older entries. Edits go through
+  `updateFood` (keeps the id), multi-item logging through `addFoods`
+  (one save).
+- **Writes must work offline**: everything goes through
+  `setNutritionForDate`, which falls back to the phone's cached copy +
+  `savedOrQueued` when there's no signal. Don't add a nutrition write
+  that only works online.
+- **"Logged" means food logged** (`hasFoodLogged` in
+  `src/lib/nutritionLog.js`), never "the day's doc exists" (water alone
+  creates it). Coach adherence scores completed days (ending yesterday).
+- **Search** uses `rankFoods` (`src/lib/foodSearch.js`): client's own
+  foods first, plain foods before brands/supplements, typo fallback; the
+  AFCD list stays a last resort. `matchesSearch` (search.js) remains the
+  plain filter for exercises and the builders.
+- **Over the calorie target** shows how much over, in red (`calorieStatus`),
+  never "0 left"; macro bars use `targetBarColor` (red past 10% over,
+  protein exempt) on both Home and the Nutrition tab (#114).
+- **Swipe-to-delete rows (`SwipeableRow`, `ClientApp.jsx`)** hold
+  tappable things (a logged food opens its editor, a saved meal's +).
+  Rules from two real iPhone bugs (REGRESSION_TESTS.md #107, #109):
+  never capture the pointer on pointerdown (it steals the tap's click);
+  capture only once a sideways swipe starts, and wrap capture/release in
+  try/catch (they can throw for iOS touch pointers); always end a swipe
+  from window-level pointerup/pointercancel/touchend/touchcancel, not
+  just the row's own events; decide delete-or-snap-back from the row's
+  real position (`dragXRef`), never a value closed over by a render.
+  jsdom can't show these — check with real touch events (CDP) and, when
+  possible, on a real iPhone.
+- **Barcode scanner reads QR and Data Matrix too** (#117): fresh meat
+  increasingly has only a GS1 2D code. `parseScannedCode`
+  (`src/lib/gs1.js`) runs first on every scan or typed code: a GS1
+  Digital Link / element string becomes its product number (normalised
+  to EAN-13 when it starts with 0) and goes through the normal lookup; a
+  weighed pack (GTIN-14 starting 9) is entered once from the label and
+  remembered, like scale labels; its net weight (AI 310n/320n) only sets
+  the amount the food page opens at for that scan (`withPackWeight`),
+  never the library food. A plain website QR shows a hint and keeps
+  scanning; never strip a URL down to digits and look that up. Keep
+  QR_CODE and DATA_MATRIX in `BARCODE_FORMATS`.
+- Train Solo has no nutrition logging; none of this touches `src/solo/`.
 
 ## Deferred until the next App Store upload
 
@@ -143,7 +228,7 @@ Do these together when the user is ready to submit a new App Store build
   key in ios/ApexCoach/PurchasesBridge.swift). Merging `ios/` to main makes
   Codemagic build 1.0.4 — fine now, best once that key is in.
 - **Instant open, native part — BUILT for 1.0.4 (2026-10-28)**
-  (REGRESSION_TESTS.md #105): ViewController.swift opens the saved copy
+  (REGRESSION_TESTS.md #121): ViewController.swift opens the saved copy
   (`.returnCacheDataElseLoad`) once the site has loaded before, checks the
   live `/assets/index-<hash>.js` in the background and loads fresh on the
   NEXT launch when a release changed it (never reloads mid-session); a page
@@ -178,7 +263,7 @@ feedback). Keep the cold-open path short:
 
 ## Train Solo subscriptions (Free / Plus / All Access)
 
-Built 2026-10-28 (ROADMAP.txt step 2; REGRESSION_TESTS.md #104). Rules for
+Built 2026-10-28 (ROADMAP.txt step 2; REGRESSION_TESTS.md #120). Rules for
 any Train Solo work from now on:
 
 - Ask `canUse(feature, soloAccess)` (`src/solo/soloAccess.js`) before
@@ -218,7 +303,23 @@ any Train Solo work from now on:
 - Codemagic's ▶ on an old build row rebuilds that old commit; a build of
   the latest code is "Start new build" → branch `main`.
 
+## Data listeners (`src/lib/AppContext.jsx`)
+
+- Subscribe a collection only for the roles firestore.rules lets read
+  it. A refused listener isn't harmless: `subscribeWithRetry` retries it
+  forever (backing off to every 16s) on every phone with the app open.
+  Coach-only collections (e.g. `soloProgramContent`) go in the
+  `role === "coach"` branch (#116,
+  `AppContext.coachOnlyListeners.test.jsx`).
+
 ## Working style
+
+- Every change that ships (a fix or a feature) updates
+  `REGRESSION_TESTS.md` (a numbered entry: problem/change, fix, the
+  regression tests and proof they fail without the fix, date) and
+  `CLAUDE.md` wherever it changes how that part of the app must be built
+  — in the same commit, without being asked (the user asked for this to
+  be remembered).
 
 - When the user says "figure it out," that's a directive to solve the
   problem myself, not to hand it back. Come back with a finished result —

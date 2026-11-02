@@ -60,17 +60,17 @@ describe("NutritionScreen search results — malformed-data crash guard", () => 
   it("does not throw and keeps the sheet open when a saved meal has a missing/null name", () => {
     render(<NutritionScreen {...baseProps({ savedMeals: [{ id: "bad-1", name: null, cals: 100, protein: 1, carbs: 1, fat: 1 }] })} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    const input = screen.getByPlaceholderText("Search foods or meals");
+    const input = screen.getByPlaceholderText("Search foods, brands, meals");
 
     expect(() => fireEvent.change(input, { target: { value: "anything" } })).not.toThrow();
     // The sheet (and its search box) must still be on screen afterwards.
-    expect(screen.getByPlaceholderText("Search foods or meals")).toBeTruthy();
+    expect(screen.getByPlaceholderText("Search foods, brands, meals")).toBeTruthy();
   });
 
   it("still correctly matches well-formed saved meals and foods by name", () => {
     render(<NutritionScreen {...baseProps({ savedMeals: [{ id: "m1", name: "Pea Protein Shake", cals: 200, protein: 30, carbs: 10, fat: 5 }] })} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    const input = screen.getByPlaceholderText("Search foods or meals");
+    const input = screen.getByPlaceholderText("Search foods, brands, meals");
     fireEvent.change(input, { target: { value: "pea protein" } });
     expect(screen.getByText("Pea Protein Shake")).toBeTruthy();
   });

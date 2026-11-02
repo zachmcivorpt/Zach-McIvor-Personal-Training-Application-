@@ -54,32 +54,35 @@ function baseProps(overrides = {}) {
 afterEach(() => cleanup());
 
 describe("NutritionScreen 'Add to [meal]' search buttons collapse", () => {
-  it("shows Scan barcode / Photo / Quick add before any search text is entered", () => {
+  it("shows Barcode scan / Photo meal / Quick add / Copy meal before any search text is entered", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    expect(screen.getByText("Scan barcode")).toBeTruthy();
-    expect(screen.getByText("Photo")).toBeTruthy();
+    expect(screen.getByText("Barcode scan")).toBeTruthy();
+    // "Photo meal", not "Photo": it attaches a photo to a meal you build —
+    // it doesn't recognise food in the picture, and the label says so.
+    expect(screen.getByText("Photo meal")).toBeTruthy();
     expect(screen.getByText("Quick add")).toBeTruthy();
+    expect(screen.getByText("Copy meal")).toBeTruthy();
   });
 
   it("hides them once a search query is typed, freeing space for results", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    const input = screen.getByPlaceholderText("Search foods or meals");
+    const input = screen.getByPlaceholderText("Search foods, brands, meals");
     fireEvent.change(input, { target: { value: "chicken" } });
 
-    expect(screen.queryByText("Scan barcode")).toBeNull();
-    expect(screen.queryByText("Photo")).toBeNull();
+    expect(screen.queryByText("Barcode scan")).toBeNull();
+    expect(screen.queryByText("Photo meal")).toBeNull();
     expect(screen.queryByText("Quick add")).toBeNull();
   });
 
   it("shows them again once the search is cleared", () => {
     render(<NutritionScreen {...baseProps()} />);
     fireEvent.click(screen.getByLabelText("Add food to Breakfast"));
-    const input = screen.getByPlaceholderText("Search foods or meals");
+    const input = screen.getByPlaceholderText("Search foods, brands, meals");
     fireEvent.change(input, { target: { value: "chicken" } });
     fireEvent.change(input, { target: { value: "" } });
 
-    expect(screen.getByText("Scan barcode")).toBeTruthy();
+    expect(screen.getByText("Barcode scan")).toBeTruthy();
   });
 });
