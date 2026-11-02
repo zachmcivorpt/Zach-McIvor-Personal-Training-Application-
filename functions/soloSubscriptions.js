@@ -27,9 +27,9 @@
 
 const PLANS = {
   plus_monthly: { tier: "plus", interval: "month", priceCents: 999, trialDays: 0, name: "Train Solo Plus" },
-  plus_yearly: { tier: "plus", interval: "year", priceCents: 7999, trialDays: 10, name: "Train Solo Plus" },
+  plus_yearly: { tier: "plus", interval: "year", priceCents: 7999, trialDays: 7, name: "Train Solo Plus" },
   all_access_monthly: { tier: "all_access", interval: "month", priceCents: 2499, trialDays: 0, name: "Train Solo All Access" },
-  all_access_yearly: { tier: "all_access", interval: "year", priceCents: 17999, trialDays: 10, name: "Train Solo All Access" },
+  all_access_yearly: { tier: "all_access", interval: "year", priceCents: 17999, trialDays: 7, name: "Train Solo All Access" },
 };
 const RANK = { free: 0, plus: 1, all_access: 2 };
 const ACTIVE_STRIPE = new Set(["active", "trialing"]);

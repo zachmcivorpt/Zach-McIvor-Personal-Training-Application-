@@ -93,21 +93,21 @@ describe("after launch, Free", () => {
     ctx = baseCtx({ soloGatesLive: true });
   });
 
-  it("no single-program price; unlocking opens the paywall with the approved prices and 10-day trial", async () => {
+  it("no single-program price; unlocking opens the paywall with the approved prices and 7-day trial", async () => {
     await renderProgram("p1");
     expect(screen.queryByText("A$79.99")).toBe(null);
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
     await screen.findByText("Go further with Train Solo");
     expect(screen.getByText("A$179.99")).toBeTruthy();
     expect(screen.getByText("A$79.99")).toBeTruthy(); // Plus yearly
-    expect(screen.getAllByText("10 days free").length).toBe(2);
-    expect(screen.getByText(/10 days free, then A\$179\.99 a year/)).toBeTruthy();
+    expect(screen.getAllByText("7 days free").length).toBe(2);
+    expect(screen.getByText(/7 days free, then A\$179\.99 a year/)).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
     expect(screen.getByText("A$24.99")).toBeTruthy();
     expect(screen.getByText("A$9.99")).toBeTruthy();
-    expect(screen.queryByText("10 days free")).toBe(null);
+    expect(screen.queryByText("7 days free")).toBe(null);
     fireEvent.click(screen.getByRole("tab", { name: "Yearly" }));
-    fireEvent.click(screen.getByRole("button", { name: /start 10-day free trial/i }));
+    fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
     await waitFor(() => expect(ctx.startSoloSubscription).toHaveBeenCalledWith("all_access_yearly"));
   });
 
@@ -116,7 +116,7 @@ describe("after launch, Free", () => {
     await renderProgram("p1");
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
     await screen.findByText("Go further with Train Solo");
-    expect(screen.queryByText("10 days free")).toBe(null);
+    expect(screen.queryByText("7 days free")).toBe(null);
     expect(screen.getByRole("button", { name: /subscribe to all access/i })).toBeTruthy();
   });
 
@@ -125,7 +125,7 @@ describe("after launch, Free", () => {
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
     await screen.findByText("Go further with Train Solo");
     fireEvent.click(screen.getByRole("button", { name: /^Plus/ }));
-    fireEvent.click(screen.getByRole("button", { name: /start 10-day free trial/i }));
+    fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
     await waitFor(() => expect(ctx.startSoloSubscription).toHaveBeenCalledWith("plus_yearly"));
   });
 
@@ -187,7 +187,7 @@ describe("inside the iPhone app", () => {
         apexPurchases: {
           postMessage(msg) {
             posted.push(msg);
-            const answer = msg.action === "offerings" ? [{ plan: "all_access_yearly", price: "$179.99", trialDays: 10 }, { plan: "plus_yearly", price: "$79.99", trialDays: 10 }] : { ok: true };
+            const answer = msg.action === "offerings" ? [{ plan: "all_access_yearly", price: "$179.99", trialDays: 7 }, { plan: "plus_yearly", price: "$79.99", trialDays: 7 }] : { ok: true };
             setTimeout(() => window.__apexNativePurchases.receive({ id: msg.id, result: answer }), 0);
           },
         },
@@ -198,7 +198,7 @@ describe("inside the iPhone app", () => {
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
     await screen.findByText("$179.99");
     expect(screen.getByRole("button", { name: /restore purchases/i })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /start 10-day free trial/i }));
+    fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
     await waitFor(() => expect(posted.some((m) => m.action === "purchase" && m.plan === "all_access_yearly" && m.uid === "u1")).toBe(true));
     await waitFor(() => expect(ctx.refreshSoloEntitlement).toHaveBeenCalled());
     expect(ctx.startSoloSubscription).not.toHaveBeenCalled();

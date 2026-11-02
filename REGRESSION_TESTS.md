@@ -2246,6 +2246,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/solo/soloAccess.test.js` (renewing, cancelled at period end, cancelled to a date, Apple unsubscribed, trial wording, year only when not this year), `src/solo/subscriptionGates.test.jsx` (rendered Profile row + paywall after a website cancel; Apple renewal line), `functions/soloSubscriptions.test.js` (portal cancel recorded, still paid up).
 - **Date added**: 2026-10-28
 
+### 118. Train Solo free trial: 10 days → 7 days (owner decision 2026-11-02)
+- **Change**: Apple's introductory offers only come in fixed lengths (3 days, 1 week, 2 weeks, 1 month…), so the approved 10-day trial can't exist in the App Store. Owner chose 1 week on both stores. `PLANS` in `src/solo/soloAccess.js` and `functions/soloSubscriptions.js`: `trialDays: 7` on both yearly plans (monthly stay 0). The iPhone paywall already shows Apple's own trial length (PurchasesBridge.swift turns "1 week" into 7). ROADMAP.txt step 2 and CLAUDE.md updated. (Numbered 118 to follow main's #116–#117.)
+- **Regression tests**: `src/solo/soloAccess.test.js` and `functions/soloSubscriptions.test.js` (7-day trial on yearly only, server and app agree), `src/solo/subscriptionGates.test.jsx` (paywall shows "7 days free" and "Start 7-day free trial"; App Store trial from the store). 194 Train Solo tests pass.
+- **Date added**: 2026-11-02
+
 ---
 
 ## What still requires manual testing

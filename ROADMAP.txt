@@ -60,12 +60,12 @@ The plan
   FREE        create sessions and log workouts; up to 3 saved sessions;
               exercise library, swaps, calendar, history, weigh-ins,
               photos, body metrics, consistency, achievements.
-  PLUS        A$9.99/month or A$79.99/year (10-day free trial on yearly).
+  PLUS        A$9.99/month or A$79.99/year (7-day free trial on yearly).
               + suggested weights every set, build your own multi-week
               programs, full stats (strength PRs, weekly volume, performance
               timeline), Apple Health on Progress, recovery add-ons,
               unlimited saved sessions.
-  ALL ACCESS  A$24.99/month or A$179.99/year (10-day free trial on yearly).
+  ALL ACCESS  A$24.99/month or A$179.99/year (7-day free trial on yearly).
               + every program in the catalogue, and every new one.
   One free trial per customer. Programs bought before launch stay theirs on
   any tier. Single programs stop being sold the day it goes live (the server
@@ -151,7 +151,8 @@ OWNER TO DO, in order
          apex_solo_plus_monthly        A$9.99   / 1 month
        Rank them in the group in that order (All Access above Plus, so
        moving up is an upgrade). On both yearly products: Introductory
-       Offer > Free > 10 days, all territories. Add a display name,
+       Offer > Free > 1 week, all territories (Apple has no
+       10-day option; owner chose 7 days on both stores, 2026-11-02). Add a display name,
        description and a review screenshot (the paywall) for each.
     3. App Information: Billing Grace Period OFF.
     4. Users and Access > Integrations > In-App Purchase: generate a key

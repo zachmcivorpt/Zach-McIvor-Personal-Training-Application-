@@ -134,7 +134,8 @@ Do these together when the user is ready to submit a new App Store build
   solid programs.
   All written up in `ROADMAP.txt`. The monetisation plan was APPROVED
   2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$79.99 yr /
-  All Access A$24.99 mo, A$179.99 yr, 10-day trial on yearly; a failed
+  All Access A$24.99 mo, A$179.99 yr, 7-day trial on yearly (was 10; Apple only offers
+  fixed lengths, owner chose 1 week on both stores 2026-11-02); a failed
   payment drops to Free with data kept; single-program sales stop on
   launch day; launch with 5 programs. BUILT 2026-10-28 and switched off;
   what's left is the owner's setup list in ROADMAP.txt step 2 (Apple,

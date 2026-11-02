@@ -44,9 +44,9 @@ export const FREE_SAVED_SESSIONS = 3;
 // (src/lib/purchases.js), never these.
 export const PLANS = {
   plus_monthly: { tier: "plus", interval: "month", priceCents: 999, label: "Plus", trialDays: 0 },
-  plus_yearly: { tier: "plus", interval: "year", priceCents: 7999, label: "Plus", trialDays: 10 },
+  plus_yearly: { tier: "plus", interval: "year", priceCents: 7999, label: "Plus", trialDays: 7 },
   all_access_monthly: { tier: "all_access", interval: "month", priceCents: 2499, label: "All Access", trialDays: 0 },
-  all_access_yearly: { tier: "all_access", interval: "year", priceCents: 17999, label: "All Access", trialDays: 10 },
+  all_access_yearly: { tier: "all_access", interval: "year", priceCents: 17999, label: "All Access", trialDays: 7 },
 };
 
 export function tierAtLeast(tier, needed) {

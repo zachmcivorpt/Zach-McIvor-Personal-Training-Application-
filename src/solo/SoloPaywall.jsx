@@ -10,7 +10,7 @@ import { inIosApp } from "./appShell";
 import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, restorePurchases, manageAppleSubscription } from "../lib/purchases";
 
 // The Train Solo paywall (ROADMAP.txt step 2): Plus and All Access, yearly
-// first with its 10-day free trial. Any screen opens it with
+// first with its 7-day free trial (Apple: 1 week). Any screen opens it with
 // useSoloPaywall().openPaywall({ reason, tier }).
 //
 // Where it buys:

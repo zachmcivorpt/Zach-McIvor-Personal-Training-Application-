@@ -116,13 +116,13 @@ describe("gates", () => {
 });
 
 describe("plans", () => {
-  it("matches the approved prices and the 10-day trial on yearly only", () => {
+  it("matches the approved prices and the 7-day trial on yearly only", () => {
     expect(formatPlanPrice(PLANS.plus_monthly)).toBe("A$9.99");
     expect(formatPlanPrice(PLANS.plus_yearly)).toBe("A$79.99");
     expect(formatPlanPrice(PLANS.all_access_monthly)).toBe("A$24.99");
     expect(formatPlanPrice(PLANS.all_access_yearly)).toBe("A$179.99");
-    expect(PLANS.plus_yearly.trialDays).toBe(10);
-    expect(PLANS.all_access_yearly.trialDays).toBe(10);
+    expect(PLANS.plus_yearly.trialDays).toBe(7);
+    expect(PLANS.all_access_yearly.trialDays).toBe(7);
     expect(PLANS.plus_monthly.trialDays).toBe(0);
     expect(PLANS.all_access_monthly.trialDays).toBe(0);
   });

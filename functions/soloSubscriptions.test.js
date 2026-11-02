@@ -19,13 +19,13 @@ const sub = (plan, status, endMs, extra = {}) => ({
 });
 
 describe("Train Solo subscriptions: prices", () => {
-  it("are the approved AUD prices, 10-day trial on yearly only", () => {
+  it("are the approved AUD prices, 7-day trial on yearly only", () => {
     expect(PLANS.plus_monthly.priceCents).toBe(999);
     expect(PLANS.plus_yearly.priceCents).toBe(7999);
     expect(PLANS.all_access_monthly.priceCents).toBe(2499);
     expect(PLANS.all_access_yearly.priceCents).toBe(17999);
-    expect(PLANS.plus_yearly.trialDays).toBe(10);
-    expect(PLANS.all_access_yearly.trialDays).toBe(10);
+    expect(PLANS.plus_yearly.trialDays).toBe(7);
+    expect(PLANS.all_access_yearly.trialDays).toBe(7);
     expect(PLANS.plus_monthly.trialDays).toBe(0);
   });
   it("lookup keys round-trip, junk doesn't", () => {
@@ -152,8 +152,8 @@ describe("both stores", () => {
 
 describe("website checkout decision", () => {
   const paid = (tier, plan, store = "stripe") => ({ sources: { [store]: { tier, plan, status: "active", expiresAt: NOW + DAY, subscriptionId: "sub_1" } } });
-  it("new customer: checkout with the 10-day trial on yearly, none on monthly", () => {
-    expect(checkoutDecision({}, "all_access_yearly", NOW)).toEqual({ action: "checkout", trialDays: 10 });
+  it("new customer: checkout with the 7-day trial on yearly, none on monthly", () => {
+    expect(checkoutDecision({}, "all_access_yearly", NOW)).toEqual({ action: "checkout", trialDays: 7 });
     expect(checkoutDecision({}, "all_access_monthly", NOW)).toEqual({ action: "checkout", trialDays: 0 });
   });
   it("no second trial", () => {
