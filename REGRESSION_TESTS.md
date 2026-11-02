@@ -2354,6 +2354,10 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Test**: `subscriptionGates.test.jsx` — an App Store error shows the reason; reopening retries and then shows Apple's price.
 - **Regression check**: existing paywall tests (Apple prices, purchase to the App Store, update-the-app on old builds, website prices) pass; full suite, lint, build.
 
+### 125. Train Solo membership sheet: clearer glass, premium layout (design change, owner request 2026-11-02)
+- **Change**: the paywall's title is "Train Solo Membership" (free) / "Your membership" (paid), was "Go further with Train Solo" / "Your plan". The sheet uses its own clearer glass (`paywallSurface` in `SoloPaywall.jsx`: 58–60% fill, 40px blur, saturate 180%) instead of the denser standard Solo sheet glass; plan tiles are thinner glass panes with the plan name in small spaced capitals, the price as a large figure ("–" while the App Store prices load), a check-circle selector, a blue hairline + soft blue ring when selected, and a divider above the features. Solo only; shared BottomSheet untouched (passes `surface`).
+- **Regression check**: `subscriptionGates.test.jsx` (titles updated) and all Solo tests pass; light and dark rendered at 390px wide with Playwright: no overflow, text readable over the page, CTA and legal text unchanged.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

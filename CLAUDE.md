@@ -81,6 +81,9 @@ rather than inventing new colors per screen:
   `soloSheetGlass` through `SheetSurfaceContext`, so every `BottomSheet`
   opened inside Train Solo is frosted; pass `dark={dark}` and use theme
   text colours inside Solo sheets.
+- The membership/paywall sheet (`SoloPaywall.jsx`) uses its own clearer
+  glass (`paywallSurface`) and thinner plan tiles, title "Train Solo
+  Membership" (REGRESSION_TESTS.md #125).
 - Cards run near full screen width: 12px (`px-3`) page gutters.
 - No drawn/stock artwork: a program shows only its coach-uploaded
   `artworkUrl`, otherwise the plain cover gradient + APEX mark.

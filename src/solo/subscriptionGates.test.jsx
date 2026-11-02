@@ -97,7 +97,7 @@ describe("after launch, Free", () => {
     await renderProgram("p1");
     expect(screen.queryByText("A$79.99")).toBe(null);
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
-    await screen.findByText("Go further with Train Solo");
+    await screen.findByText("Train Solo Membership");
     expect(screen.getByText("A$179.99")).toBeTruthy();
     expect(screen.getByText("A$79.99")).toBeTruthy(); // Plus yearly
     expect(screen.getAllByText("7 days free").length).toBe(2);
@@ -115,7 +115,7 @@ describe("after launch, Free", () => {
     ctx = baseCtx({ soloGatesLive: true, soloEntitlement: { trialUsed: true } });
     await renderProgram("p1");
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
-    await screen.findByText("Go further with Train Solo");
+    await screen.findByText("Train Solo Membership");
     expect(screen.queryByText("7 days free")).toBe(null);
     expect(screen.getByRole("button", { name: /subscribe to all access/i })).toBeTruthy();
   });
@@ -123,7 +123,7 @@ describe("after launch, Free", () => {
   it("choosing Plus buys Plus", async () => {
     await renderProgram("p1");
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
-    await screen.findByText("Go further with Train Solo");
+    await screen.findByText("Train Solo Membership");
     fireEvent.click(screen.getByRole("button", { name: /^Plus/ }));
     fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
     await waitFor(() => expect(ctx.startSoloSubscription).toHaveBeenCalledWith("plus_yearly"));
@@ -132,7 +132,7 @@ describe("after launch, Free", () => {
   it("recovery add-ons need Plus", async () => {
     await renderProgram("r1");
     fireEvent.click(screen.getByRole("button", { name: /add with plus/i }));
-    await screen.findByText("Go further with Train Solo");
+    await screen.findByText("Train Solo Membership");
     expect(ctx.setRecoveryAddon).not.toHaveBeenCalled();
   });
 
@@ -172,7 +172,7 @@ describe("inside the iPhone app", () => {
     ctx = baseCtx({ soloGatesLive: true });
     await renderProgram("p1");
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
-    await screen.findByText("Go further with Train Solo");
+    await screen.findByText("Train Solo Membership");
     expect(screen.getByText("Update the APEX app to subscribe")).toBeTruthy();
     expect(screen.queryByText(/A\$/)).toBe(null);
     expect(screen.queryByText(/website/i)).toBe(null);
@@ -227,9 +227,9 @@ describe("inside the iPhone app", () => {
     await screen.findByText(/Subscriptions aren't available right now.*could be fetched from App Store Connect/);
     expect(screen.queryByText(/website/i)).toBe(null);
     // The sheet's ✕ (an icon-only button next to the title).
-    const closeX = screen.getByText("Go further with Train Solo").parentElement.querySelector("button");
+    const closeX = screen.getByText("Train Solo Membership").parentElement.querySelector("button");
     fireEvent.click(closeX);
-    await waitFor(() => expect(screen.queryByText("Go further with Train Solo")).toBe(null));
+    await waitFor(() => expect(screen.queryByText("Train Solo Membership")).toBe(null));
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
     await screen.findByText("$179.99");
     expect(calls).toBe(2);
@@ -307,7 +307,7 @@ describe("paywall for subscribers", () => {
     }
     await renderAt("/x", <Opener />, "/x");
     fireEvent.click(screen.getByText("open"));
-    const title = await screen.findByText("Your plan");
+    const title = await screen.findByText("Your membership");
     const sheet = title.closest("div").parentElement;
     expect(within(document.body).getByText(/through the website/)).toBeTruthy();
     expect(within(document.body).getByRole("button", { name: "Manage" })).toBeTruthy();

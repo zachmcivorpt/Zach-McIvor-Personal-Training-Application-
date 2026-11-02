@@ -1,9 +1,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
-import { MEASURE_BLUE } from "../theme";
+import { MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { BottomSheet, PrimaryButton } from "../components/ui";
 import { PLANS, TIER_LABELS, formatPlanPrice, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { inIosApp } from "./appShell";
@@ -25,6 +25,29 @@ import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, restorePurcha
 
 const PaywallCtx = createContext({ openPaywall: () => {} });
 export const useSoloPaywall = () => useContext(PaywallCtx);
+
+// The membership sheet's own glass: lighter and clearer than the standard
+// Solo sheet (soloSheetGlass) so the page shows through, with a stronger
+// blur and saturation so text stays readable.
+function paywallSurface(dark) {
+  return {
+    backgroundColor: dark ? "rgba(18,18,20,0.58)" : "rgba(246,245,242,0.6)",
+    backdropFilter: "blur(40px) saturate(180%)",
+    WebkitBackdropFilter: "blur(40px) saturate(180%)",
+    boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.08)" : "inset 0 1px 0 rgba(255,255,255,0.7)",
+  };
+}
+
+// A plan tile: a thinner pane of glass on the sheet's glass.
+function planGlass(dark, selected) {
+  return {
+    backgroundColor: dark ? "rgba(255,255,255,0.045)" : "rgba(255,255,255,0.4)",
+    border: `${selected ? 1.5 : 1}px solid ${selected ? MEASURE_BLUE : dark ? "rgba(255,255,255,0.1)" : "rgba(20,19,15,0.08)"}`,
+    boxShadow: selected ? `0 0 0 4px ${MEASURE_BLUE_SOFT}` : "none",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
+  };
+}
 
 const TIER_FEATURES = {
   all_access: ["Every program in the catalogue", "New programs as they're released", "Everything in Plus"],
@@ -163,14 +186,13 @@ function SoloPaywallSheet({ request, onClose }) {
     }
   }
 
-  const glass = soloGlass(t);
   const alreadyThis = soloTier === "all_access" || (soloTier === "plus" && tier === "plus");
   // Inside the app, a website subscriber manages it on the website — said
   // without a link or price (3.1.1).
   const canManageHere = store === "stripe" ? !iosApp : store === "apple";
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={soloTier === "free" ? "Go further with Train Solo" : "Your plan"} dark={dark}>
+    <BottomSheet open={open} onClose={onClose} title={soloTier === "free" ? "Train Solo Membership" : "Your membership"} dark={dark} surface={paywallSurface(dark)}>
       <div style={{ color: t.text }}>
         {request?.reason && (
           <p className="text-sm mb-4 leading-relaxed" style={{ color: t.textMuted }}>
@@ -202,7 +224,7 @@ function SoloPaywallSheet({ request, onClose }) {
 
         {soloTier !== "all_access" && (
           <>
-            <div className="grid grid-cols-2 gap-1 p-1 rounded-full mb-4" style={{ backgroundColor: t.chipBg, border: `1px solid ${t.panelBorder}` }} role="tablist">
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-full mb-5" style={{ ...planGlass(dark, false), boxShadow: "none" }} role="tablist">
               {[
                 ["year", "Yearly"],
                 ["month", "Monthly"],
@@ -213,7 +235,7 @@ function SoloPaywallSheet({ request, onClose }) {
                   role="tab"
                   aria-selected={interval === value}
                   onClick={() => setInterval_(value)}
-                  className="text-xs font-bold py-2 rounded-full"
+                  className="text-[11px] font-bold tracking-[0.08em] uppercase py-2 rounded-full transition-colors"
                   style={interval === value ? { backgroundColor: t.text, color: t.bg } : { color: t.textMuted }}
                 >
                   {label}
@@ -221,7 +243,7 @@ function SoloPaywallSheet({ request, onClose }) {
               ))}
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {["all_access", "plus"].map((key) => {
                 if (soloTier === "plus" && key === "plus") return null;
                 const planKey = `${key}_${interval === "year" ? "yearly" : "monthly"}`;
@@ -234,30 +256,42 @@ function SoloPaywallSheet({ request, onClose }) {
                     type="button"
                     onClick={() => setTier(key)}
                     aria-pressed={selected}
-                    className="w-full text-left rounded-2xl px-4 py-3.5"
-                    style={{ ...glass, borderColor: selected ? MEASURE_BLUE : glass.borderColor, borderWidth: selected ? 2 : 1 }}
+                    className="w-full text-left rounded-[20px] px-5 pt-4 pb-4 transition-shadow"
+                    style={planGlass(dark, selected)}
                   >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <p className="text-base font-extrabold">{TIER_LABELS[key]}</p>
-                      {p && (
-                        <p className="text-sm font-bold whitespace-nowrap">
-                          {p}
-                          <span className="text-xs font-semibold" style={{ color: t.textMuted }}>
-                            {" "}
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] font-bold tracking-[0.14em] uppercase" style={{ color: selected ? MEASURE_BLUE : t.textMuted }}>
+                        {TIER_LABELS[key]}
+                      </p>
+                      <span
+                        aria-hidden="true"
+                        className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0"
+                        style={selected ? { backgroundColor: MEASURE_BLUE } : { border: `1.5px solid ${t.textFaint}` }}
+                      >
+                        {selected && <Check size={11} strokeWidth={3} color="#FFFFFF" />}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-1.5 mt-1.5 min-h-[34px]">
+                      {p ? (
+                        <>
+                          <p className="text-[30px] leading-none font-semibold tracking-[-0.03em] tabular-nums">{p}</p>
+                          <p className="text-xs font-medium" style={{ color: t.textMuted }}>
                             / {per}
-                          </span>
-                        </p>
+                          </p>
+                        </>
+                      ) : (
+                        iosApp && storeProducts === null && <p className="text-[30px] leading-none font-semibold" style={{ color: t.textFaint }}>–</p>
                       )}
                     </div>
                     {days > 0 && (
-                      <p className="text-xs font-semibold mt-0.5" style={{ color: MEASURE_BLUE }}>
+                      <p className="text-xs font-semibold mt-1.5" style={{ color: MEASURE_BLUE }}>
                         {days} days free
                       </p>
                     )}
-                    <ul className="mt-2 space-y-1">
+                    <ul className="mt-3 pt-3 space-y-1.5 border-t" style={{ borderColor: dark ? "rgba(255,255,255,0.08)" : "rgba(20,19,15,0.07)" }}>
                       {TIER_FEATURES[key].map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-xs" style={{ color: t.textMuted }}>
-                          <Check size={13} className="shrink-0 mt-px" color={MEASURE_BLUE} />
+                        <li key={f} className="flex items-start gap-2.5 text-[13px] leading-snug" style={{ color: t.textMuted }}>
+                          <Check size={14} className="shrink-0 mt-[2px]" color={MEASURE_BLUE} />
                           {f}
                         </li>
                       ))}
@@ -271,7 +305,7 @@ function SoloPaywallSheet({ request, onClose }) {
 
             <div className="mt-5">
               {iosApp && !nativeIap ? (
-                <p className="text-sm text-center font-semibold py-3 rounded-full" style={glass}>
+                <p className="text-sm text-center font-semibold py-3 rounded-full" style={planGlass(dark, false)}>
                   Update the APEX app to subscribe
                 </p>
               ) : alreadyThis ? null : (
