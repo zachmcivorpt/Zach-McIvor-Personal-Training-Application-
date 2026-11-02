@@ -2305,6 +2305,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Regression tests**: `src/lib/AppContext.coachOnlyListeners.test.jsx`: a client never subscribes to `soloProgramContent`; the coach still does. The client case fails on the pre-fix code (checked). Live check: walking every client tab against production logged the error 10 times on the live build and 0 times on the fixed build.
 - **Date added**: 2026-11-01
 
+### 117. Food scanner reads QR and Data Matrix codes (meat packs with no barcode)
+- **Change** (owner request 2026-11-02): fresh meat increasingly carries only a GS1 2D code, no barcode, and the scanner only read 1D barcodes. `src/lib/gs1.js` decodes GS1 Digital Link QR codes (any domain, `/01/` or `/gtin/`, AIs in the path or query) and GS1 element strings (Data Matrix with FNC1, `]d2`/`]Q3` prefixes, or the printed `(01)…` form): product number (check digit verified), net weight from AI 310n (kg) / 320n (lb), use-by from AI 17/15. `BarcodeScanSheet` (`src/client/NutritionFeatures.jsx`) now also asks for QR_CODE and DATA_MATRIX. A GS1 code resolves exactly like a barcode; a weighed pack (GTIN-14 indicator 9) skips Open Food Facts, is entered once from the label and remembered for everyone, and the food page opens at the pack's weight for that scan only (the library food is unchanged). A plain website QR shows "That QR code is a website link, not the product…" and keeps scanning. A pasted GS1 link in "type the code" works too.
+- **Regression tests**: `src/lib/gs1.test.js` (Digital Link, brand domain, Data Matrix with FNC1, printed form, lb, end-of-month use-by, bad check digit, website QR, normalisation); `src/client/barcodeQrScan.test.jsx` (formats requested; remembered meat pack opens at 512 g; first-time weighed pack asks for its label once; packaged product's QR uses its EAN; website QR logs nothing) — all 5 fail on the pre-change scanner (checked). Live check: a generated GS1 QR fed to Chromium as a fake camera was read by the app's real decoder in 0.4 s, recognised as a weighed pack with "pack weight 512g", no console errors.
+- **Not yet checked**: real Woolworths/Coles meat-pack codes (a retailer could use its own URL format) — confirm with a few real packs.
+- **Date added**: 2026-11-02
+
 ---
 
 ## What still requires manual testing

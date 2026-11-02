@@ -28,6 +28,7 @@ import { Camera, X, Check, Plus, Minus, Trash2, UtensilsCrossed, ScanLine, Flash
 import { Card, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, PrimaryButton, SecondaryButton, DangerButton } from "../components/ui";
 import { scaleFoodByUnit, unitsFor, UNIT_DEFS, MICRO_FIELDS_G, MICRO_FIELDS_MG, getAllFoods } from "../lib/foodDatabase";
 import { lookupBarcode, isVariableWeightBarcode, stableBarcodeKey, detectBarcodeFormat, pickBestFoodForBarcode, buildCorrectedFood } from "../lib/barcodeLookup";
+import { parseScannedCode, isVariableMeasureGtin } from "../lib/gs1";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { useApp } from "../lib/AppContext";
 import { matchesSearch } from "../lib/search";
@@ -703,6 +704,11 @@ const BARCODE_FORMATS = [
   Html5QrcodeSupportedFormats.CODE_128,
   Html5QrcodeSupportedFormats.CODE_39,
   Html5QrcodeSupportedFormats.ITF,
+  // GS1 2D codes, which are replacing barcodes on fresh meat first: a QR
+  // ("GS1 Digital Link") or Data Matrix carrying the product number and,
+  // on weighed packs, the net weight (src/lib/gs1.js).
+  Html5QrcodeSupportedFormats.QR_CODE,
+  Html5QrcodeSupportedFormats.DATA_MATRIX,
 ];
 
 // Browsers/devices surface a camera failure in wildly inconsistent shapes
@@ -786,6 +792,15 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       return false;
     }
   })();
+  // Net weight read from a weighed pack's GS1 QR / Data Matrix code — the
+  // amount the food page opens at for this scan only (never saved onto
+  // the library food, since the next pack weighs something else).
+  const packWeightRef = useRef(null);
+  const [scanHint, setScanHint] = useState("");
+  function withPackWeight(food) {
+    const g = packWeightRef.current;
+    return g && food && !food.liquid ? { ...food, defaultQty: g } : food;
+  }
   const lookedUpCodeRef = useRef(""); // the digits actually resolved — tagged onto a food saved to the library so the next scan/entry of the same barcode is instant
   const scannerRef = useRef(null);
   // Mirrors this scan session's openedAt/detectedAt out of the scanning
@@ -826,6 +841,13 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   // a barcode saved to the library on a previous "not found" pass should
   // resolve instantly next time, without ever hitting Open Food Facts —
   // then falls back to the real network lookup.
+  // A typed code: the digits of a barcode, or a pasted GS1 link.
+  function resolveTyped(text) {
+    const parsed = parseScannedCode(text);
+    packWeightRef.current = parsed.kind === "gs1" ? parsed.netWeightGrams : null;
+    resolveCode(parsed.kind === "gs1" ? parsed.gtin : text);
+  }
+
   async function resolveCode(code) {
     const digits = String(code).replace(/\D/g, "");
     // Real latency breakdown, logged at every terminal outcome — not a
@@ -873,7 +895,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
         }));
       }
       if (closedRef.current) return;
-      onAdd({ ...known, per: known.per ?? 100, defaultQty: known.defaultQty ?? 100 });
+      onAdd(withPackWeight({ ...known, per: known.per ?? 100, defaultQty: known.defaultQty ?? 100 }));
       // A user's own correction is never silently refreshed over — it's
       // the most trustworthy thing on record for this barcode (a human
       // read it off the real pack) and a later automated re-fetch
@@ -907,6 +929,21 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
             // a working result with a failed re-check.
           });
       }
+      return;
+    }
+    if (isVariableMeasureGtin(digits)) {
+      // A weighed pack's GS1 QR / Data Matrix (meat, deli): a stable
+      // product number, so — like the scale-label case below — it's added
+      // once from the label and remembered for every later pack of it,
+      // but it will never be in Open Food Facts.
+      logOutcome("variable-measure-skip-network");
+      if (closedRef.current) return;
+      setError(
+        `Code scanned: ${digits}${packWeightRef.current ? ` · pack weight ${packWeightRef.current}g` : ""}\nThis is a weighed pack (meat, deli). Add its nutrition per 100g from the label once below — next time anyone scans this product it fills in by itself.`
+      );
+      setErrorDetail("");
+      setManual({ name: "", cals: "", protein: "", carbs: "", fat: "" });
+      setStatus("not-found");
       return;
     }
     if (isVariableWeightBarcode(digits)) {
@@ -961,7 +998,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       const existing = await findCustomFoodByBarcode(cacheKey);
       const saved = existing ? { ...existing, per: existing.per ?? 100, defaultQty: existing.defaultQty ?? 100 } : createFood({ ...foodData, barcode: cacheKey, verifiedAt: Date.now() });
       if (closedRef.current) return;
-      onAdd(saved);
+      onAdd(withPackWeight(saved));
     } catch (err) {
       logOutcome(err.notFound ? "not-found" : "lookup-error", { notFound: !!err.notFound });
       if (debugEnabled) {
@@ -981,6 +1018,8 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
   useEffect(() => {
     if (!open) return;
     closedRef.current = false;
+    setScanHint("");
+    packWeightRef.current = null;
     setStatus("scanning");
     setError("");
     setErrorDetail("");
@@ -1032,8 +1071,18 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
       });
     }
 
-    async function onDecoded(decodedText) {
+    async function onDecoded(scannedText) {
       if (stopped) return;
+      // A QR / Data Matrix code: a GS1 one names the product (and a weighed
+      // pack's weight); any other QR code is just a website link, which
+      // can't identify the food — say so and keep scanning.
+      const parsed = parseScannedCode(scannedText);
+      if (parsed.kind === "url") {
+        setScanHint("That QR code is a website link, not the product. Scan the barcode, or the other code on the pack.");
+        return;
+      }
+      packWeightRef.current = parsed.kind === "gs1" ? parsed.netWeightGrams : null;
+      const decodedText = parsed.kind === "gs1" ? parsed.gtin : scannedText;
       const detectedDigits = decodedText.replace(/\D/g, "");
       // Reject a decode the checksum itself proves is wrong BEFORE locking
       // the scan session to it, instead of accepting every raw detection
@@ -1285,7 +1334,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
     const withBarcode = lookedUpCodeRef.current
       ? { ...data, barcode: lookedUpCodeRef.current, verificationLevel: "VERIFIED", confidenceScore: 100, correctedByUser: true, verifiedAt: Date.now() }
       : data;
-    onAdd(createFood(withBarcode));
+    onAdd(withPackWeight(createFood(withBarcode)));
   }
 
   if (!open) return null;
@@ -1332,7 +1381,12 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
               </button>
             )}
           </div>
-          <p className={dark ? "text-white/40 text-sm text-center mt-4 px-8" : "text-black/40 text-sm text-center mt-4 px-8"}>Point your camera at a product barcode</p>
+          <p className={dark ? "text-white/40 text-sm text-center mt-4 px-8" : "text-black/40 text-sm text-center mt-4 px-8"}>Point your camera at the barcode or QR code</p>
+          {scanHint && (
+            <p className="text-sm text-center mt-2 px-8" style={{ color: MEASURE_BLUE }} role="status">
+              {scanHint}
+            </p>
+          )}
 
           {/* Dev-only diagnostics — never shown unless BARCODE_DEBUG_FLAG is
               set on this device (toggle lives in Coach → More). Exists to
@@ -1380,7 +1434,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
                   placeholder="Barcode digits"
                   className={dark ? "flex-1 bg-white/5 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none placeholder:text-white/30" : "flex-1 bg-black/5 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30"}
                 />
-                <SecondaryButton dark={dark} onClick={() => manualCode.trim() && resolveCode(manualCode)} disabled={!manualCode.trim()} className="px-4">
+                <SecondaryButton dark={dark} onClick={() => manualCode.trim() && resolveTyped(manualCode)} disabled={!manualCode.trim()} className="px-4">
                   Look up
                 </SecondaryButton>
               </div>
@@ -1431,7 +1485,7 @@ export function BarcodeScanSheet({ open, onClose, onAdd, dark = false }) {
                   placeholder="Barcode digits"
                   className={dark ? "flex-1 bg-white/5 rounded-xl px-3.5 py-2.5 text-white text-sm outline-none placeholder:text-white/30" : "flex-1 bg-black/5 rounded-xl px-3.5 py-2.5 text-black text-sm outline-none placeholder:text-black/30"}
                 />
-                <SecondaryButton dark={dark} onClick={() => manualCode.trim() && resolveCode(manualCode)} disabled={!manualCode.trim()} className="px-4">
+                <SecondaryButton dark={dark} onClick={() => manualCode.trim() && resolveTyped(manualCode)} disabled={!manualCode.trim()} className="px-4">
                   Look up
                 </SecondaryButton>
               </div>
