@@ -168,7 +168,11 @@ OWNER TO DO, in order
              expiring cards, failed card payments and 3D Secure
              confirmation links (+ reminders). Trial-reminder email left
              off (7-day trial).
-    TODO  100%-off test coupon; D16 five programs; then E17 merge (me).
+    DONE  Stripe test coupon "APEX test": 100% off, once, max 5 uses,
+             promotion code APEXTEST (checkout allows promotion codes).
+             Cancel any monthly test subscription afterwards.
+    TODO  GST registration + ABN Lookup page to Apple; D16 five programs;
+             then E17 merge (me).
   A. Apple (App Store Connect) — start now, the agreements take days:
     1. Business: sign the Paid Apps Agreement; add bank account and tax
        forms. Enrol in the App Store Small Business Program (15%).
