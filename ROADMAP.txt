@@ -140,6 +140,25 @@ What was built (2026-10-28)
   Tests: REGRESSION_TESTS.md #104.
 
 OWNER TO DO, in order
+  PROGRESS 2026-11-02 (evening, with the owner):
+    DONE  A1 Paid Apps Agreement signed, bank added (processing), W-8BEN
+             submitted (Article 12(2), 5%); Small Business Program applied.
+    TODO  A1 ABN/GST form: the owner is NOT registered for GST. Apple won't
+             sell paid subscriptions in Australia until GST registration
+             proof (ABN Lookup page) is uploaded (30 days). Register via the
+             ATO / accountant first.
+    DONE  A2 four subscriptions (group "Train Solo"), prices, display names,
+             review screenshot, 1-week free trial on both yearly plans;
+             levels All Access yearly/monthly above Plus yearly/monthly.
+    DONE  A3 Billing Grace Period off (never set up).
+    DONE  A4 In-App Purchase key 4X8FP22L33 made and uploaded to RevenueCat.
+    DONE  B5-B11 RevenueCat app (com.apexcoaching.platform), products,
+             entitlements plus (all 4) and all_access (2), current offering
+             "default" (packages all_access_yearly/monthly, plus_yearly/
+             monthly), webhook, Apple server notifications (prod + sandbox),
+             GitHub secrets REVENUECAT_SECRET_KEY (V1) and
+             REVENUECAT_WEBHOOK_AUTH, appl_ key in PurchasesBridge.swift.
+    TODO  C12-C15 Stripe; D16 five programs; then E17 merge (me).
   A. Apple (App Store Connect) — start now, the agreements take days:
     1. Business: sign the Paid Apps Agreement; add bank account and tax
        forms. Enrol in the App Store Small Business Program (15%).
