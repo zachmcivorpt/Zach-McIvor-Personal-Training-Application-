@@ -2379,6 +2379,10 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Tests**: `src/components/messageComposer.test.jsx` (5): multi-line box; phone Return never sends and isn't prevented; keyboard Enter sends, Shift+Enter doesn't; typing detection on/off; only text fields count. They fail on the old code (the component and hook didn't exist; the old box was an `<input>` that sent on Enter).
 - **Regression check**: full suite (761 passed), lint, build.
 
+### 128. Coach and client messaging: premium chat design (design change, owner request 2026-11-03)
+- **Change**: shared `src/components/Chat.jsx` for the coach thread (`CoachMessages.jsx` ThreadMessages) and the client's Messages (`ClientApp.jsx` MessagesSheet). Your own messages are MEASURE_BLUE with white text; theirs quiet charcoal (dark) or white with a hairline (client light theme). Messages from the same person within 5 minutes group together (3px apart, joined corners, one time under the group); each day starts with a small spaced-caps divider (Today / Yesterday / date). The composer is one row: a single + that opens Photo / Video (client: Form check) / PDF chips (and shows upload progress), the growing message box (#127), and a round blue send arrow (mic while empty). The client sheet's title is the coach's name. Voice notes on the blue bubble use white labels; attachment chips match the bubble. No behaviour changes: same send/upload/voice-note/form-check reply code paths and placeholders.
+- **Regression check**: full suite (761 passed, including `CoachMessages.test.jsx` draft-isolation and `coachFormCheckReply.test.jsx`), lint (no new warnings in the changed files), build; rendered the coach thread (dark) and client thread (light) at 390px with Playwright, including the attach chips and a multi-paragraph draft growing the box.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

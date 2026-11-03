@@ -56,7 +56,6 @@ import {
   Video,
   Percent,
   Lock,
-  Paperclip,
   CheckCircle2,
   GripVertical,
   MoreVertical,
@@ -93,13 +92,14 @@ import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase
 import { localDateKey } from "../lib/dateKey";
 import { QUEUED, localFirst, onLocalWriteFailed } from "../lib/offlineWrite";
 import { MessageComposerInput } from "../components/MessageComposerInput";
+import { ChatBubble, ChatComposer, ChatDayDivider, bubbleTone, chatRows, chatTime } from "../components/Chat";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
 import { hasFoodLogged, buildFrequentFoods, baseFoodName, entryAmountLabel, entrySourceFood, sourceSnapshot } from "../lib/nutritionLog";
 import { scheduleRestNotification, cancelRestNotification } from "../lib/restNotification";
 import { useVoiceRecorder, voiceNotesSupported, nativeMicAllowed } from "../lib/voiceNote";
-import { VoiceRecordingBar, MicButton, VoiceNotePlayer } from "../components/VoiceNote";
+import { VoiceRecordingBar, VoiceNotePlayer } from "../components/VoiceNote";
 import { formCheckSet, formCheckMessageText, formCheckLabel, latestFormFeedback } from "../lib/formCheck";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth, useAppleHealthSync } from "../lib/appleHealth";
 import { countExercises, estimateWorkoutMinutes, countWorkoutSets } from "../lib/workoutStats";
@@ -7773,18 +7773,6 @@ function CoachSheet({ open, onClose, ctx }) {
   );
 }
 
-// A send-attachment button previously just showed its static icon the whole
-// time a file was compressing/uploading — with no percentage yet (file
-// selected but the real Firebase progress events haven't started landing)
-// that read as nothing happening at all, exactly "the app froze" for a big
-// phone photo that takes a few seconds to compress before the upload itself
-// even begins. Spinner for "started, no progress yet", percentage once real
-// progress lands, otherwise the resting icon.
-function attachButtonContent(icon, uploadPct, dark) {
-  if (uploadPct === null) return icon;
-  if (uploadPct > 0) return <span className="text-[10px] font-bold">{Math.round(uploadPct * 100)}%</span>;
-  return <span className={`w-4 h-4 border-2 rounded-full animate-spin ${dark ? "border-white/30 border-t-white" : "border-black/30 border-t-black"}`} />;
-}
 
 function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const dark = useClientDark();
@@ -7873,71 +7861,47 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   }
 
   return (
-    <BottomSheet dark={dark} open={open} onClose={onClose} title="Messages">
-      <div className="space-y-3 pb-3">
+    <BottomSheet dark={dark} open={open} onClose={onClose} title={coachName ? `${coachName}` : "Messages"}>
+      <div className="pb-3">
         {thread.length === 0 && (
-          <div className="flex justify-start">
-            <div className={dark ? "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-white/8 text-white/85" : "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-black/8 text-black/85"}>
-              <p className="whitespace-pre-line">
-                {`Hey, this is your 24/7 coach — ${coachName || "your coach"} will respond within due time. Ask any questions any time!`}
-              </p>
-            </div>
-          </div>
+          <ChatBubble mine={false} first last dark={dark}>
+            <p className="whitespace-pre-line">{`Hey, this is your 24/7 coach — ${coachName || "your coach"} will respond within due time. Ask any questions any time!`}</p>
+          </ChatBubble>
         )}
-        {thread.map((m) => (
-          <div key={m.id} className={`flex ${m.from === "client" ? "justify-end" : "justify-start"}`}>
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${
-                m.from === "client" ? (dark ? "bg-white text-black" : "bg-black text-white") : dark ? "bg-white/8 text-white/85" : "bg-black/8 text-black/85"
-              }`}
-            >
-              {m.replyTo && (
-                <p className={`text-[10px] font-semibold mb-1 ${m.from === "client" ? (dark ? "text-black/50" : "text-white/50") : dark ? "text-white/50" : "text-black/50"}`}>
-                  Re: your form check · {m.replyTo.exerciseName}
-                </p>
-              )}
-              {m.text && !m.attachment?.formCheck && <p className="whitespace-pre-line">{m.text}</p>}
-              {m.attachment?.formCheck && (
-                <p className="text-[10px] font-bold tracking-wide uppercase">Form check · {formCheckLabel(m.attachment.formCheck)}</p>
-              )}
+        {chatRows(thread, (m) => m.from === "client").map((row) => {
+          if (row.type === "day") return <ChatDayDivider key={row.key} label={row.label} dark={dark} />;
+          const { m, mine, first, last } = row;
+          const tone = bubbleTone(mine, dark);
+          return (
+            <ChatBubble key={row.key} mine={mine} first={first} last={last} dark={dark} time={chatTime(m.date)}>
+              {m.replyTo && <p className={`text-[11px] font-semibold mb-1 ${tone.muted}`}>Re: your form check · {m.replyTo.exerciseName}</p>}
+              {m.text && !m.attachment?.formCheck && <p className="whitespace-pre-line break-words">{m.text}</p>}
+              {m.attachment?.formCheck && <p className={`text-[10px] font-bold tracking-[0.1em] uppercase ${tone.muted}`}>Form check · {formCheckLabel(m.attachment.formCheck)}</p>}
               {m.attachment && m.attachment.type === "audio" ? (
-                <VoiceNotePlayer attachment={m.attachment} mine={m.from === "client"} dark={dark} />
+                // On the blue bubble, mine + dark={false} gives white labels.
+                <VoiceNotePlayer attachment={m.attachment} mine={mine} dark={mine ? false : dark} />
               ) : m.attachment && m.attachment.type === "video" ? (
-                <video src={m.attachment.url} controls playsInline className={dark ? "mt-2 w-full max-w-[220px] rounded-lg bg-white" : "mt-2 w-full max-w-[220px] rounded-lg bg-black"} />
+                <video src={m.attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-xl bg-black" />
               ) : m.attachment && m.attachment.type === "image" ? (
                 <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
-                  <img src={m.attachment.url} alt={m.attachment.name || "Photo"} loading="eager" decoding="async" className="w-full max-w-[220px] rounded-lg object-cover" />
+                  <img src={m.attachment.url} alt={m.attachment.name || "Photo"} loading="eager" decoding="async" className="w-full max-w-[220px] rounded-xl object-cover" />
                 </a>
               ) : (
                 m.attachment && (
-                  <a
-                    href={m.attachment.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`mt-2 flex items-center gap-2 rounded-lg px-3 py-2 ${
-                      m.from === "client" ? (dark ? "bg-black/15 text-black" : "bg-white/15 text-white") : dark ? "bg-white/8 text-white" : "bg-black/8 text-black"
-                    }`}
-                  >
+                  <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className={`mt-2 flex items-center gap-2 rounded-xl px-3 py-2 ${tone.chip}`}>
                     <FileText size={14} className="shrink-0" />
                     <span className="text-xs font-medium truncate">{m.attachment.name}</span>
                   </a>
                 )
               )}
-              <p
-                className={`text-[10px] mt-1 ${
-                  m.from === "client" ? (dark ? "text-black/40" : "text-white/40") : dark ? "text-white/30" : "text-black/30"
-                }`}
-              >
-                {new Date(m.date).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
-              </p>
-            </div>
-          </div>
-        ))}
+            </ChatBubble>
+          );
+        })}
         <div ref={endRef} />
       </div>
       <div
-        className="sticky bottom-0 -mx-5 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-        style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}
+        className="sticky bottom-0 -mx-5 px-5 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] border-t"
+        style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, borderColor: dark ? CLIENT_DARK_BORDER : BORDER }}
       >
         {(uploadError || recorder.error) && (
           <div className="mb-2 flex items-center justify-between gap-2 bg-red-50 border border-red-100 text-red-700 text-xs px-3 py-2 rounded-lg">
@@ -7953,58 +7917,27 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
             </button>
           </div>
         )}
-        {recorder.state === "recording" ? (
-          <VoiceRecordingBar seconds={recorder.seconds} onCancel={recorder.cancel} onSend={sendVoiceNote} dark={dark} />
-        ) : (
-        <div className="flex items-end gap-2">
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
         <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
         <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
-        {/* Attach buttons step aside once there's text, so the message
-            gets the width (#127). */}
-        {(!input.trim() || uploadPct !== null) && (
-        <>
-        <button
-          onClick={() => videoInputRef.current?.click()}
-          disabled={uploadPct !== null}
-          aria-label="Attach a form-check video"
-          className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
-        >
-          {attachButtonContent(<Video size={17} />, uploadPct, dark)}
-        </button>
-        <button
-          onClick={() => pdfInputRef.current?.click()}
-          disabled={uploadPct !== null}
-          aria-label="Attach a PDF"
-          className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
-        >
-          {attachButtonContent(<Paperclip size={17} />, uploadPct, dark)}
-        </button>
-        <button
-          onClick={() => imageInputRef.current?.click()}
-          disabled={uploadPct !== null}
-          aria-label="Attach a photo"
-          className={dark ? "w-11 h-11 rounded-full bg-white/8 flex items-center justify-center shrink-0 text-white/60 disabled:opacity-50" : "w-11 h-11 rounded-full bg-black/8 flex items-center justify-center shrink-0 text-black/60 disabled:opacity-50"}
-        >
-          {attachButtonContent(<ImageIcon size={17} />, uploadPct, dark)}
-        </button>
-        </>
-        )}
-        <MessageComposerInput
-          value={input}
-          onChange={setInput}
-          onSend={send}
-          placeholder="Message your coach..."
-          className={dark ? "flex-1 min-w-0 bg-white/8 rounded-[22px] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 min-w-0 bg-black/8 rounded-[22px] px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
-        />
-        {canRecord && !input.trim() ? (
-          <MicButton onClick={recorder.start} disabled={uploadPct !== null || recorder.state !== "idle"} dark={dark} />
+        {recorder.state === "recording" ? (
+          <VoiceRecordingBar seconds={recorder.seconds} onCancel={recorder.cancel} onSend={sendVoiceNote} dark={dark} />
         ) : (
-        <button onClick={send} className={dark ? "w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0" : "w-11 h-11 rounded-full bg-black flex items-center justify-center shrink-0"}>
-          <Send size={16} className={dark ? "text-black" : "text-white"} />
-        </button>
-        )}
-        </div>
+          <ChatComposer
+            dark={dark}
+            value={input}
+            onChange={setInput}
+            onSend={send}
+            placeholder="Message your coach..."
+            uploadPct={uploadPct}
+            onPickPhoto={() => imageInputRef.current?.click()}
+            onPickVideo={() => videoInputRef.current?.click()}
+            videoLabel="Form check"
+            onPickPdf={() => pdfInputRef.current?.click()}
+            canRecord={canRecord}
+            onRecord={recorder.start}
+            recordDisabled={recorder.state !== "idle"}
+          />
         )}
       </div>
     </BottomSheet>
