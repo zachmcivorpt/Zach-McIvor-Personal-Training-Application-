@@ -17,6 +17,8 @@ import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 import { customSessionState } from "./customSessions";
 import { canUse, savedSessionLimit } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
+import { SwitchProgramSheet, ProgramsGuideSheet } from "./SoloProgramSwitch";
+import { weekInProgram } from "./currentProgram";
 
 // A purchased program's own overview — which week the customer is in, that
 // week's workouts, and a Start button for each that opens
@@ -219,10 +221,12 @@ export default function SoloMyTrainingScreen() {
     soloAccess,
     soloEnrolments,
     soloHasAllAccess,
-    startAllAccessProgram,
     setEnrolmentStartDate,
     saveSoloCustomProgram,
     soloCustomPrograms,
+    soloCurrentProgram,
+    switchSoloProgram,
+    markSoloProgramsGuideSeen,
   } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   // Recovery add-ons are a Plus feature once subscriptions launch.
@@ -231,6 +235,7 @@ export default function SoloMyTrainingScreen() {
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [openPurchaseId, setOpenPurchaseId] = useState(null);
+  const [pendingSwitchId, setPendingSwitchId] = useState(null);
   const [overviewPurchaseId, setOverviewPurchaseId] = useState(null);
   const [viewLog, setViewLog] = useState(null);
   const exercisesById = useMemo(() => Object.fromEntries((soloExercises || []).map((e) => [e.id, e])), [soloExercises]);
@@ -246,8 +251,12 @@ export default function SoloMyTrainingScreen() {
   // instead of just the tab with nothing else happening.
   useEffect(() => {
     const requestedId = location.state?.openPurchaseId;
-    if (requestedId && soloTrainingPrograms.some((p) => p.id === requestedId)) {
-      setOpenPurchaseId(requestedId);
+    const requested = requestedId ? soloTrainingPrograms.find((p) => p.id === requestedId) : null;
+    if (requested) {
+      // Not the current program: starting it goes through the switch
+      // sheet, which says what moves to Archived (#140).
+      if (!requested.current && !requested.locked) setPendingSwitchId(requested.id);
+      else setOpenPurchaseId(requestedId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state, soloTrainingPrograms]);
@@ -269,7 +278,9 @@ export default function SoloMyTrainingScreen() {
   useEffect(() => {
     if (boughtPurchase && !checkoutSheetOpened) {
       setCheckoutSheetOpened(true);
-      setOpenPurchaseId(boughtPurchase.id);
+      const row = soloTrainingPrograms.find((p) => p.id === boughtPurchase.id);
+      if (row && !row.current) setPendingSwitchId(row.id);
+      else setOpenPurchaseId(boughtPurchase.id);
     }
   }, [boughtPurchase, checkoutSheetOpened]);
   // The weekdays chosen in the consultation — sessions are scheduled on them.
@@ -291,7 +302,9 @@ export default function SoloMyTrainingScreen() {
   // soloWorkoutLogs. Bought programs first, then the active All Access one,
   // the customer's own, then paused and locked ones.
   const ownedRows = useMemo(() => {
-    const order = (p) => (p.locked ? 4 : p.status === "paused" ? 3 : p.source === "custom" ? 2 : p.source === "all_access" ? 1 : 0);
+    // The current program first, then archived ones (started before
+    // not-started), locked last (#140).
+    const order = (p) => (p.locked ? 3 : p.current ? 0 : p.started ? 1 : 2);
     return [...soloTrainingPrograms]
       .sort((a, b) => order(a) - order(b))
       .map((purchase) => {
@@ -301,24 +314,47 @@ export default function SoloMyTrainingScreen() {
       })
       .filter(Boolean);
   }, [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, trainingDays]);
+  const currentRow = ownedRows.find((r) => r.purchase.current) || null;
+  const archivedRows = ownedRows.filter((r) => !r.purchase.current);
 
-  // Resuming a paused All Access program (it becomes the active one; the
-  // current one pauses — enrolments.js).
-  const [resuming, setResuming] = useState(null);
-  async function resumeProgram(row) {
-    if (!soloHasAllAccess) {
+  // Weeks in a program, for "at Week N".
+  const totalWeeksOf = (programId) => programsById[programId]?.weekOnePreview?.totalWeeks || totalWeeksForProgram(programPhases(soloContentById[programId]));
+  const currentSummary = soloCurrentProgram
+    ? { name: programsById[soloCurrentProgram.programId]?.name || "Your current program", week: soloCurrentProgram.startDate && soloCurrentProgram.startDate <= localDateKey() ? weekInProgram(soloCurrentProgram, totalWeeksOf(soloCurrentProgram.programId), localDateKey()) : null }
+    : null;
+
+  // Starting or resuming another program (#140): one sheet, which says
+  // what moves to Archived.
+  const [switchRow, setSwitchRow] = useState(null);
+  function openSwitch(row) {
+    if (row.purchase.source === "all_access" && !soloHasAllAccess) {
       openPaywall({ tier: "all_access", reason: `${row.program.name} is included with All Access.` });
       return;
     }
-    setResuming(row.purchase.id);
-    try {
-      const totalWeeksByProgramId = Object.fromEntries(
-        soloEnrolments.map((e) => [e.programId, programsById[e.programId]?.weekOnePreview?.totalWeeks || totalWeeksForProgram(programPhases(soloContentById[e.programId]))])
-      );
-      await startAllAccessProgram({ uid: soloCurrentUser.id, programId: row.purchase.programId, startDate: todayKey, enrolments: soloEnrolments, totalWeeksByProgramId });
-    } finally {
-      setResuming(null);
+    setSwitchRow(row);
+  }
+
+  useEffect(() => {
+    if (!pendingSwitchId) return;
+    const row = ownedRows.find((r) => r.purchase.id === pendingSwitchId);
+    if (row) {
+      setPendingSwitchId(null);
+      openSwitch(row);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingSwitchId, ownedRows]);
+
+  // The run-through, once: the first time someone has a program.
+  const [guideOpen, setGuideOpen] = useState(false);
+  const guideSeen = !!soloCurrentUser?.programsGuideSeenAt;
+  useEffect(() => {
+    // Never on top of the switch sheet; it shows once that's done.
+    if (soloCurrentUser && !guideSeen && ownedRows.length > 0 && !switchRow && !pendingSwitchId) setGuideOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloCurrentUser?.id, guideSeen, ownedRows.length > 0, switchRow, pendingSwitchId]);
+  function closeGuide() {
+    setGuideOpen(false);
+    if (!guideSeen) markSoloProgramsGuideSeen().catch(() => {});
   }
   const glass = soloGlass(t);
   const todayKey = localDateKey();
@@ -463,47 +499,79 @@ export default function SoloMyTrainingScreen() {
 
         {ownedRows.length > 0 && (
           <>
-            <h2 className="text-lg font-bold mt-8 mb-3">Your Programs</h2>
-            <div className="space-y-2.5">
-              {ownedRows.map((row) => {
-                const { locked, status, source } = row.purchase;
-                const onTap = locked
-                  ? () => openPaywall({ tier: source === "custom" ? "plus" : "all_access", reason: source === "custom" ? "Your own programs run with Plus. Everything you've logged is kept." : `${row.program.name} is included with All Access. Your progress is kept — pick up where you left off.` })
-                  : status === "paused"
-                    ? () => resumeProgram(row)
-                    : () => (source === "custom" ? setOpenPurchaseId(row.purchase.id) : setOverviewPurchaseId(row.purchase.id));
-                return (
-                  <button
-                    key={row.purchase.id}
-                    onClick={onTap}
-                    disabled={resuming === row.purchase.id}
-                    className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
-                    style={{ ...glass, opacity: locked || status === "paused" ? 0.75 : 1 }}
-                  >
-                    <SoloArtwork program={row.program} t={t} className="w-14 h-14 rounded-xl shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold leading-snug truncate">{row.program.name}</p>
-                        <SourceTag source={source} t={t} />
-                      </div>
-                      <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
-                        {locked
-                          ? source === "custom"
-                            ? "Runs with Plus"
-                            : "Included with All Access"
-                          : status === "paused"
-                            ? resuming === row.purchase.id
-                              ? "Resuming…"
-                              : `Paused at Week ${row.purchase.pausedAtWeek || 1} · tap to resume`
-                            : weekLine(row)}
-                      </p>
-                      {!locked && status !== "paused" && row.purchase.startDate && row.pct > 0 && <ProgressBar pct={row.pct} t={t} className="mt-2" />}
-                    </div>
-                    {locked ? <Lock size={14} color={t.textFaint} className="shrink-0" /> : <ChevronRight size={16} color={t.textFaint} className="shrink-0" />}
-                  </button>
-                );
-              })}
+            <div className="flex items-baseline justify-between mt-8 mb-3">
+              <h2 className="text-lg font-bold">Your program</h2>
+              <button type="button" onClick={() => setGuideOpen(true)} className="text-xs font-semibold" style={{ color: t.textMuted }}>
+                How it works
+              </button>
             </div>
+            {currentRow ? (
+              <button
+                key={currentRow.purchase.id}
+                onClick={() => (currentRow.purchase.source === "custom" ? setOpenPurchaseId(currentRow.purchase.id) : setOverviewPurchaseId(currentRow.purchase.id))}
+                className="w-full flex items-center gap-3.5 rounded-2xl p-2.5 pr-4 text-left"
+                style={glass}
+              >
+                <SoloArtwork program={currentRow.program} t={t} className="w-14 h-14 rounded-xl shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold leading-snug truncate">{currentRow.program.name}</p>
+                    <SourceTag source={currentRow.purchase.source} t={t} />
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                    {weekLine(currentRow)}
+                  </p>
+                  {currentRow.purchase.startDate && currentRow.pct > 0 && <ProgressBar pct={currentRow.pct} t={t} className="mt-2" />}
+                </div>
+                <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+              </button>
+            ) : (
+              <p className="text-sm leading-relaxed" style={{ color: t.textMuted }}>
+                Nothing on your calendar right now. Resume a program below, or start one from the catalogue.
+              </p>
+            )}
+
+            {archivedRows.length > 0 && (
+              <>
+                <p className="text-[11px] font-bold tracking-wide uppercase mt-6 mb-2.5" style={{ color: t.textFaint }}>
+                  Archived
+                </p>
+                <div className="space-y-2">
+                  {archivedRows.map((row) => {
+                    const { locked, source, started, pausedAtWeek } = row.purchase;
+                    const onTap = locked
+                      ? () => openPaywall({ tier: source === "custom" ? "plus" : "all_access", reason: source === "custom" ? "Your own programs run with Plus. Everything you've logged is kept." : `${row.program.name} is included with All Access. Your progress is kept — pick up where you left off.` })
+                      : () => openSwitch(row);
+                    return (
+                      <button
+                        key={row.purchase.id}
+                        onClick={onTap}
+                        className="w-full flex items-center gap-3 rounded-2xl p-2 pr-4 text-left"
+                        style={{ ...glass, opacity: 0.8 }}
+                      >
+                        <SoloArtwork program={row.program} t={t} className="w-11 h-11 rounded-lg shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold leading-snug truncate">{row.program.name}</p>
+                            <SourceTag source={source} t={t} />
+                          </div>
+                          <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                            {locked
+                              ? source === "custom"
+                                ? "Runs with Plus"
+                                : "Included with All Access"
+                              : started
+                                ? `Archived at Week ${pausedAtWeek} · tap to resume`
+                                : "Not started · tap to start"}
+                          </p>
+                        </div>
+                        {locked ? <Lock size={14} color={t.textFaint} className="shrink-0" /> : <ChevronRight size={16} color={t.textFaint} className="shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -530,7 +598,7 @@ export default function SoloMyTrainingScreen() {
       {soloWorkoutLogs.length > 0 && (
         <div className="mt-8">
           <p className="text-[11px] font-bold tracking-wide uppercase mb-2.5" style={{ color: t.textFaint }}>
-            History
+            Session history
           </p>
           <div className="space-y-2">
             {soloWorkoutLogs.slice(0, 10).map((log) => (
@@ -567,6 +635,11 @@ export default function SoloMyTrainingScreen() {
           setViewLog(log);
         }}
         onSetStartDate={async (date) => {
+          // A program that isn't the current one becomes it (#140).
+          if (!openPurchase.current) {
+            await switchSoloProgram({ target: openPurchase, startDate: date });
+            return;
+          }
           if (openPurchase.source === "all_access") await setEnrolmentStartDate(openPurchase.id, date);
           else if (openPurchase.source === "custom") {
             const cp = soloCustomPrograms.find((c) => c.id === openPurchase.customProgramId);
@@ -589,6 +662,21 @@ export default function SoloMyTrainingScreen() {
         dark={dark}
         t={t}
       />
+
+      <SwitchProgramSheet
+        open={!!switchRow}
+        onClose={() => setSwitchRow(null)}
+        programName={switchRow?.program.name || ""}
+        resumeWeek={switchRow?.purchase.started ? switchRow.purchase.pausedAtWeek : null}
+        current={currentSummary}
+        onConfirm={async (startDate) => {
+          await switchSoloProgram({ target: switchRow.purchase, startDate });
+          setSwitchRow(null);
+        }}
+        dark={dark}
+        t={t}
+      />
+      <ProgramsGuideSheet open={guideOpen} onClose={closeGuide} dark={dark} t={t} />
 
       <CompletedSessionSheet log={viewLog} programName={logProgramName(viewLog)} exercisesById={exercisesById} onClose={() => setViewLog(null)} dark={dark} t={t} />
       </div>

@@ -288,9 +288,14 @@ any Train Solo work from now on:
   `hasAllAccess()`), not just hidden in the UI.
 - Programs on the calendar come from `soloTrainingPrograms` (bought
   purchases + All Access enrolments + own built programs), looked up in
-  `soloProgramsById` / `soloContentById` — not `soloPurchases` alone. One
-  active All Access program at a time; switching pauses, resuming keeps
-  the week numbers (logs are keyed on them).
+  `soloProgramsById` / `soloContentById` — not `soloPurchases` alone.
+- **One program at a time, of any kind** (#140, `src/solo/currentProgram.js`):
+  the profile's `currentProgramId` is the only program on the calendar and
+  under "Your program"; the rest are Archived (`archivedPrograms`), history
+  kept. Every start/resume/switch goes through `switchSoloProgram` and the
+  `SwitchProgramSheet` (which says what moves to Archived); resuming keeps
+  the week numbers (logs are keyed on them). Never add a second way to put
+  a program on the calendar.
 - Nothing is gated until `settings/soloMonetisation.live` (coach console >
   Train Solo > Subscriptions) or the account is a test account; before
   that, Train Solo must behave exactly as it did.

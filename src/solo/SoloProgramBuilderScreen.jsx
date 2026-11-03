@@ -8,6 +8,8 @@ import { dayFromSession, validateCustomProgram, customProgramKey, MAX_PROGRAM_WE
 import { canUse } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
 import { localDateKey } from "../lib/dateKey";
+import { SwitchProgramSheet } from "./SoloProgramSwitch";
+import { weekInProgram } from "./currentProgram";
 
 // Plus: build a multi-week program from your own saved sessions
 // (customPrograms.js). The sessions you pick are one week; it repeats for
@@ -17,7 +19,19 @@ import { localDateKey } from "../lib/dateKey";
 export default function SoloProgramBuilderScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { soloCurrentUser, soloCustomSessions, soloCustomPrograms, saveSoloCustomProgram, deleteSoloCustomProgram, soloAccess, soloEntitlementReady = true } = useSoloApp();
+  const {
+    soloCurrentUser,
+    soloCustomSessions,
+    soloCustomPrograms,
+    saveSoloCustomProgram,
+    deleteSoloCustomProgram,
+    soloAccess,
+    soloEntitlementReady = true,
+    soloCurrentProgram,
+    soloProgramsById,
+    switchSoloProgram,
+    keepSoloProgramForLater,
+  } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
@@ -32,6 +46,14 @@ export default function SoloProgramBuilderScreen() {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // A new program saved while another is running: start it or keep it (#140).
+  const [justSaved, setJustSaved] = useState(null);
+  const goToTraining = (openId) => navigate("/solo/home", { replace: true, state: { soloTab: "training", ...(openId ? { openPurchaseId: openId } : {}) } });
+  const replacingName = soloCurrentProgram ? soloProgramsById?.[soloCurrentProgram.programId]?.name || "Your current program" : "";
+  const replacingWeek =
+    soloCurrentProgram?.startDate && soloCurrentProgram.startDate <= localDateKey()
+      ? weekInProgram(soloCurrentProgram, Number(soloProgramsById?.[soloCurrentProgram.programId]?.weekOnePreview?.totalWeeks) || Number(soloCustomPrograms.find((c) => `cp_${c.id}` === soloCurrentProgram.programId)?.weeks) || 0, localDateKey())
+      : null;
 
   useEffect(() => {
     // Wait for the member's plan before deciding (#137).
@@ -61,6 +83,17 @@ export default function SoloProgramBuilderScreen() {
     setSaving(true);
     try {
       const saved = await saveSoloCustomProgram(soloCurrentUser.id, draft);
+      if (!existing) {
+        // One program at a time (#140): a new program becomes the current
+        // one, or — when another is running — they choose.
+        const target = { programId: customProgramKey(saved.id), source: "custom", customProgramId: saved.id, id: `${soloCurrentUser.id}_${customProgramKey(saved.id)}` };
+        if (soloCurrentProgram && soloCurrentProgram.programId !== target.programId) {
+          setJustSaved({ target, startDate: saved.startDate });
+          setSaving(false);
+          return;
+        }
+        await switchSoloProgram({ target, startDate: saved.startDate || localDateKey() });
+      }
       navigate("/solo/home", { replace: true, state: { soloTab: "training", openPurchaseId: `${soloCurrentUser.id}_${customProgramKey(saved.id)}` } });
     } catch {
       setSaving(false);
@@ -230,6 +263,23 @@ export default function SoloProgramBuilderScreen() {
           </div>
         )}
       </BottomSheet>
+      <SwitchProgramSheet
+        open={!!justSaved}
+        onClose={() => goToTraining(null)}
+        programName={name.trim()}
+        defaultStartDate={justSaved?.startDate}
+        current={justSaved ? { name: replacingName, week: replacingWeek } : null}
+        onConfirm={async (date) => {
+          await switchSoloProgram({ target: justSaved.target, startDate: date });
+          goToTraining(justSaved.target.id);
+        }}
+        onLater={async () => {
+          await keepSoloProgramForLater(justSaved.target.programId);
+          goToTraining(null);
+        }}
+        dark={dark}
+        t={t}
+      />
     </div>
   );
 }

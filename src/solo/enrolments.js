@@ -42,6 +42,8 @@ export function trainingPrograms({ purchases = [], enrolments = [], allAccess = 
     const paused = e.status === "paused";
     rows.push({
       ...e,
+      exists: true,
+      enrolmentStatus: e.status,
       source: "all_access",
       status: paused ? "paused" : "active",
       untilDate: paused ? e.pausedAt || null : null,

@@ -11,10 +11,10 @@ import { GOAL_OPTIONS, ENVIRONMENT_OPTIONS } from "./programAttributes";
 import { BottomSheet, PrimaryButton } from "../components/ui";
 import { ClientThemeContext, ExerciseDetailSheet } from "../client/ClientApp";
 import { canUse } from "./soloAccess";
-import { activeEnrolment } from "./enrolments";
+import { SwitchProgramSheet } from "./SoloProgramSwitch";
+import { weekInProgram } from "./currentProgram";
 import { useSoloPaywall } from "./SoloPaywall";
 import { localDateKey } from "../lib/dateKey";
-import { currentWeekNumber } from "./weekProgress";
 
 const GOAL_LABELS = Object.fromEntries(GOAL_OPTIONS.map((g) => [g.value, g.label]));
 const ENVIRONMENT_LABELS = Object.fromEntries(ENVIRONMENT_OPTIONS.map((e) => [e.value, e.label]));
@@ -40,14 +40,14 @@ export default function SoloProgramDetailsScreen() {
     soloAccess,
     soloGatesLive,
     soloHasAllAccess,
-    soloEnrolments,
-    startAllAccessProgram,
+    soloTrainingPrograms,
+    soloCurrentProgram,
+    soloProgramsById,
+    soloContentById,
+    switchSoloProgram,
   } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   const [startOpen, setStartOpen] = useState(false);
-  const [startDate, setStartDate] = useState(() => localDateKey());
-  const [starting, setStarting] = useState(false);
-  const [startError, setStartError] = useState("");
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -83,25 +83,33 @@ export default function SoloProgramDetailsScreen() {
   // Access (owner decision 2026-10-28). Programs already bought stay owned.
   const purchasable = !isAddon && !owned && !iosApp && !soloGatesLive;
   const viaAllAccess = soloGatesLive && !isAddon && !owned;
-  const enrolment = (soloEnrolments || []).find((e) => e.programId === id) || null;
-  const current = activeEnrolment(soloEnrolments || []);
-  const switchingFrom = current && current.programId !== id ? soloPrograms.find((p) => p.id === current.programId) : null;
-  const switchingWeek = switchingFrom ? currentWeekNumber(current.startDate, switchingFrom.weekOnePreview?.totalWeeks || 0) || 1 : null;
+  // This program as an All Access row (current or archived), if it has one,
+  // and the program it would replace (#140: one program at a time).
+  const enrolment = (soloTrainingPrograms || []).find((r) => r.programId === id && r.source === "all_access") || null;
+  const isCurrent = !!enrolment?.current;
+  const resumeWeek = enrolment && !isCurrent && enrolment.started ? enrolment.pausedAtWeek : null;
+  const replacing = soloCurrentProgram && soloCurrentProgram.programId !== id ? soloCurrentProgram : null;
+  const replacingSummary = replacing
+    ? {
+        name: soloProgramsById?.[replacing.programId]?.name || "Your current program",
+        week:
+          replacing.startDate && replacing.startDate <= localDateKey()
+            ? weekInProgram(
+                replacing,
+                soloProgramsById?.[replacing.programId]?.weekOnePreview?.totalWeeks ||
+                  (soloContentById?.[replacing.programId]?.phases || []).reduce((n, p) => n + (Number(p.durationWeeks) || 0), 0),
+                localDateKey()
+              )
+            : null,
+      }
+    : null;
   const addonLocked = isAddon && !canUse("recoveryAddons", soloAccess);
 
-  async function startViaAllAccess() {
-    setStarting(true);
-    setStartError("");
-    try {
-      const totalWeeksByProgramId = Object.fromEntries(soloPrograms.map((p) => [p.id, p.weekOnePreview?.totalWeeks || 0]));
-      const plan = await startAllAccessProgram({ uid: soloCurrentUser.id, programId: id, startDate, enrolments: soloEnrolments || [], totalWeeksByProgramId });
-      setStartOpen(false);
-      navigate("/solo/home", { state: { soloTab: "training", openPurchaseId: plan.start.id } });
-    } catch {
-      setStartError("Couldn't start this program — check your connection and try again.");
-    } finally {
-      setStarting(false);
-    }
+  async function startViaAllAccess(startDate) {
+    const plan = await switchSoloProgram({ target: enrolment || { programId: id, source: "all_access" }, startDate });
+    setStartOpen(false);
+    const enrolmentDocId = plan.enrolments.find((e) => e.fields.status === "active")?.id;
+    navigate("/solo/home", { state: { soloTab: "training", openPurchaseId: enrolmentDocId } });
   }
 
   async function applyAddon(programId) {
@@ -349,7 +357,7 @@ export default function SoloProgramDetailsScreen() {
             </button>
           ) : viaAllAccess ? (
             soloHasAllAccess ? (
-              enrolment?.status === "active" ? (
+              isCurrent ? (
                 <button
                   onClick={() => navigate("/solo/home", { state: { soloTab: "training", openPurchaseId: enrolment.id } })}
                   className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full"
@@ -359,13 +367,12 @@ export default function SoloProgramDetailsScreen() {
                 </button>
               ) : (
                 <button
-                  onClick={() => (enrolment?.status === "paused" && !switchingFrom ? startViaAllAccess() : setStartOpen(true))}
-                  disabled={starting}
-                  className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full disabled:opacity-50"
+                  onClick={() => setStartOpen(true)}
+                  className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full"
                   style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
                 >
                   <PlayCircle size={18} />
-                  {enrolment?.status === "paused" ? `Resume at Week ${enrolment.pausedAtWeek || 1}` : "Start program"}
+                  {resumeWeek ? `Resume at Week ${resumeWeek}` : "Start program"}
                 </button>
               )
             ) : (
@@ -436,37 +443,16 @@ export default function SoloProgramDetailsScreen() {
         </PrimaryButton>
       </BottomSheet>
 
-      <BottomSheet open={startOpen} onClose={() => setStartOpen(false)} title={enrolment?.status === "paused" ? "Resume program" : "Start program"} dark={dark}>
-        {switchingFrom && (
-          <p className="text-sm mb-4 leading-relaxed" style={{ color: t.textMuted }}>
-            You're running "{switchingFrom.name}" (Week {switchingWeek}). Starting "{program.name}" pauses it at Week {switchingWeek} — everything you've
-            logged stays, and you can pick it back up from there any time from My Training.
-          </p>
-        )}
-        {enrolment?.status === "paused" ? (
-          <p className="text-sm mb-5 leading-relaxed" style={{ color: t.textMuted }}>
-            You'll pick up at Week {enrolment.pausedAtWeek || 1}, starting this week.
-          </p>
-        ) : (
-          <>
-            <p className="text-sm mb-3" style={{ color: t.textMuted }}>
-              Pick the date Week 1, Day 1 starts.
-            </p>
-            <input
-              type="date"
-              value={startDate}
-              min={localDateKey()}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4"
-              style={{ backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" }}
-            />
-          </>
-        )}
-        {startError && <p className="text-red-500 text-sm mb-4">{startError}</p>}
-        <PrimaryButton dark={dark} className="w-full" onClick={startViaAllAccess} disabled={starting || !startDate}>
-          {starting ? "STARTING…" : switchingFrom ? "SWITCH PROGRAM" : enrolment?.status === "paused" ? "RESUME" : "START"}
-        </PrimaryButton>
-      </BottomSheet>
+      <SwitchProgramSheet
+        open={startOpen}
+        onClose={() => setStartOpen(false)}
+        programName={program?.name || ""}
+        resumeWeek={resumeWeek}
+        current={replacingSummary}
+        onConfirm={startViaAllAccess}
+        dark={dark}
+        t={t}
+      />
 
       <BottomSheet open={replaceOpen} onClose={() => setReplaceOpen(false)} title="Replace add-on?" dark={dark}>
         <p className="text-sm mb-5 leading-relaxed" style={{ color: t.textMuted }}>

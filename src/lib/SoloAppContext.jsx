@@ -32,6 +32,7 @@ import { savedOrQueued, QUEUED } from "./offlineWrite";
 import { tierFromEntitlement, gatesLive, canUse } from "../solo/soloAccess";
 import { trainingPrograms, planStart } from "../solo/enrolments";
 import { customProgramEntries } from "../solo/customPrograms";
+import { resolveCurrentProgramId, applyCurrentProgram, planSwitch, planArchiveForLater, legacyMigration } from "../solo/currentProgram";
 import { inAppPurchasesAvailable, identifyPurchaser, forgetPurchaser } from "./purchases";
 
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
@@ -120,6 +121,10 @@ export function SoloAppProvider({ children }) {
   const [soloMonetisation, setSoloMonetisation] = useState({});
   const [soloEnrolments, setSoloEnrolments] = useState([]);
   const [soloCustomPrograms, setSoloCustomPrograms] = useState([]);
+  // Which program lists have answered since sign-in (the one-time
+  // one-program migration waits for all of them — #140).
+  const [programListsLoaded, setProgramListsLoaded] = useState({});
+  const markLoaded = (key) => setProgramListsLoaded((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
   // Re-checked every minute so a subscription that runs out while the app
   // is open locks without a reload.
   const [clock, setClock] = useState(() => Date.now());
@@ -226,6 +231,7 @@ export function SoloAppProvider({ children }) {
   useEffect(() => {
     if (!soloAuthUser) {
       setSoloPurchases([]);
+      setProgramListsLoaded({});
       return;
     }
     const q = query(collection(soloDb, "soloPurchases"), where("soloUserId", "==", soloAuthUser.uid));
@@ -236,6 +242,7 @@ export function SoloAppProvider({ children }) {
     // again (a new purchase resets refunded to false).
     return onSnapshot(q, (snap) => {
       setSoloPurchases(snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((p) => p.refunded !== true));
+      markLoaded("purchases");
     });
   }, [soloAuthUser]);
 
@@ -276,12 +283,14 @@ export function SoloAppProvider({ children }) {
         },
         () => setSoloEntitlementReady(true)
       ),
-      onSnapshot(query(collection(soloDb, "soloEnrolments"), where("soloUserId", "==", uid)), (snap) =>
-        setSoloEnrolments(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
-      ),
-      onSnapshot(query(collection(soloDb, "soloCustomPrograms"), where("soloUserId", "==", uid)), (snap) =>
-        setSoloCustomPrograms(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)))
-      ),
+      onSnapshot(query(collection(soloDb, "soloEnrolments"), where("soloUserId", "==", uid)), (snap) => {
+        setSoloEnrolments(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        markLoaded("enrolments");
+      }),
+      onSnapshot(query(collection(soloDb, "soloCustomPrograms"), where("soloUserId", "==", uid)), (snap) => {
+        setSoloCustomPrograms(snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)));
+        markLoaded("custom");
+      }),
     ];
     return () => unsubs.forEach((u) => u());
   }, [soloAuthUser]);
@@ -309,13 +318,25 @@ export function SoloAppProvider({ children }) {
     () => customProgramEntries(soloAuthUser?.uid || "", soloCustomPrograms, { locked: builderLocked }),
     [soloAuthUser?.uid, soloCustomPrograms, builderLocked]
   );
-  const soloTrainingPrograms = useMemo(
+  const rawTrainingPrograms = useMemo(
     () => [
       ...trainingPrograms({ purchases: soloPurchases, enrolments: soloGatesLive ? soloEnrolments : [], allAccess: soloHasAllAccess }),
       ...soloCustomEntries.trainingRows,
     ],
     [soloPurchases, soloEnrolments, soloGatesLive, soloHasAllAccess, soloCustomEntries]
   );
+  // One program at a time (#140, src/solo/currentProgram.js): the profile
+  // names the current one; every other is archived (history kept).
+  // undefined = a profile from before this (one is picked, then saved).
+  const savedCurrentProgramId = soloProfile && Object.prototype.hasOwnProperty.call(soloProfile, "currentProgramId") ? soloProfile.currentProgramId : undefined;
+  const archivedPrograms = soloProfile?.archivedPrograms || NO_ARCHIVE;
+  const soloCurrentProgramId = resolveCurrentProgramId(rawTrainingPrograms, savedCurrentProgramId);
+  const todayKeyForPrograms = localDateKey(new Date(clock));
+  const soloTrainingPrograms = useMemo(
+    () => applyCurrentProgram(rawTrainingPrograms, { currentProgramId: soloCurrentProgramId, archived: archivedPrograms, todayKey: todayKeyForPrograms }),
+    [rawTrainingPrograms, soloCurrentProgramId, archivedPrograms, todayKeyForPrograms]
+  );
+  const soloCurrentProgram = soloTrainingPrograms.find((r) => r.current) || null;
 
   // One content listener per distinct owned programId — re-subscribes
   // only when the actual set of owned programs changes (not on every
@@ -439,6 +460,39 @@ export function SoloAppProvider({ children }) {
     () => ({ ...soloProgramContentByProgramId, ...soloCustomEntries.contentByProgramId }),
     [soloProgramContentByProgramId, soloCustomEntries]
   );
+
+  // Weeks in a program, for "archived at Week N".
+  const totalWeeksFor = (programId) => {
+    const phases = soloContentById[programId]?.phases;
+    if (Array.isArray(phases) && phases.length) return phases.reduce((n, p) => n + (Number(p.durationWeeks) || 0), 0);
+    return Number(soloProgramsById[programId]?.weekOnePreview?.totalWeeks) || 0;
+  };
+
+  // Profiles from before one-program-at-a-time with several programs
+  // running: keep one current, archive the rest as of today — once, after
+  // every program list has answered (#140).
+  const migratedRef = useRef(false);
+  const listsReady = programListsLoaded.purchases && programListsLoaded.enrolments && programListsLoaded.custom;
+  useEffect(() => {
+    if (!soloProfile?.id || !listsReady || migratedRef.current || savedCurrentProgramId !== undefined) return;
+    const plan = legacyMigration({ rows: rawTrainingPrograms, savedCurrentId: savedCurrentProgramId, archived: archivedPrograms, todayKey: localDateKey(), totalWeeksFor });
+    migratedRef.current = true;
+    if (!plan) return;
+    const batch = writeBatch(soloDb);
+    batch.update(doc(soloDb, "soloUsers", soloProfile.id), plan.profile);
+    for (const e of plan.enrolments) batch.update(doc(soloDb, "soloEnrolments", e.id), e.fields);
+    batch.commit().catch(() => {
+      migratedRef.current = false;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloProfile?.id, listsReady, savedCurrentProgramId, rawTrainingPrograms]);
+  useEffect(() => {
+    migratedRef.current = false;
+  }, [soloAuthUser?.uid]);
+
+  // The actions below are made once; they read the latest program state here.
+  const programStateRef = useRef({});
+  programStateRef.current = { soloProfile, soloAuthUser, soloCurrentProgram, soloTrainingPrograms, archivedPrograms, savedCurrentProgramId, soloCurrentProgramId, totalWeeksFor };
 
   const soloSessionLoading = soloAuthUser === undefined || (!!soloAuthUser && soloProfile === null && !soloProfileMissing);
 
@@ -717,6 +771,47 @@ export function SoloAppProvider({ children }) {
         await batch.commit();
         return plan;
       },
+      // Make `target` the one current program (#140, currentProgram.js):
+      // the current one is archived at the week it's in, an archived
+      // target resumes where it was, a new one starts on `startDate`. One
+      // batch, so there's never a moment with two programs or none.
+      async switchSoloProgram({ target, startDate }) {
+        const st = programStateRef.current;
+        const uid = st.soloProfile?.id || st.soloAuthUser?.uid;
+        const plan = planSwitch({
+          uid,
+          target,
+          current: st.soloCurrentProgram,
+          rows: st.soloTrainingPrograms,
+          archived: st.archivedPrograms,
+          startDate,
+          todayKey: localDateKey(),
+          totalWeeksFor: st.totalWeeksFor,
+        });
+        const batch = writeBatch(soloDb);
+        batch.update(doc(soloDb, "soloUsers", uid), plan.profile);
+        for (const e of plan.enrolments) {
+          if (e.create) batch.set(doc(soloDb, "soloEnrolments", e.id), e.fields);
+          else batch.update(doc(soloDb, "soloEnrolments", e.id), e.fields);
+        }
+        for (const p of plan.purchases) batch.update(doc(soloDb, "soloPurchases", p.id), { startDate: p.startDate });
+        for (const c of plan.customPrograms) batch.update(doc(soloDb, "soloCustomPrograms", c.id), { startDate: c.startDate, updatedAt: Date.now() });
+        await batch.commit();
+        return plan;
+      },
+      // A program kept for later: archived, not on the calendar.
+      async keepSoloProgramForLater(programId) {
+        const st = programStateRef.current;
+        const uid = st.soloProfile?.id || st.soloAuthUser?.uid;
+        const update = { archivedPrograms: planArchiveForLater(st.archivedPrograms, programId) };
+        if (st.savedCurrentProgramId === undefined) update.currentProgramId = st.soloCurrentProgramId === programId ? null : st.soloCurrentProgramId;
+        await updateDoc(doc(soloDb, "soloUsers", uid), update);
+      },
+      async markSoloProgramsGuideSeen() {
+        const st = programStateRef.current;
+        const uid = st.soloProfile?.id || st.soloAuthUser?.uid;
+        if (uid) await updateDoc(doc(soloDb, "soloUsers", uid), { programsGuideSeenAt: Date.now() });
+      },
       async setEnrolmentStartDate(enrolmentId, startDateKey) {
         await updateDoc(doc(soloDb, "soloEnrolments", enrolmentId), { startDate: startDateKey });
       },
@@ -943,6 +1038,7 @@ export function SoloAppProvider({ children }) {
       soloEnrolments,
       soloCustomPrograms,
       soloTrainingPrograms,
+      soloCurrentProgram,
       soloProgramsById,
       soloContentById,
       ...actions,
@@ -973,6 +1069,7 @@ export function SoloAppProvider({ children }) {
       soloEnrolments,
       soloCustomPrograms,
       soloTrainingPrograms,
+      soloCurrentProgram,
       soloProgramsById,
       soloContentById,
       actions,
@@ -981,6 +1078,8 @@ export function SoloAppProvider({ children }) {
 
   return <SoloAppCtx.Provider value={value}>{children}</SoloAppCtx.Provider>;
 }
+
+const NO_ARCHIVE = {};
 
 // This phone's last confirmed entitlement for the signed-in account, shown
 // straight away on the next open (#137). Only ever a starting point: the

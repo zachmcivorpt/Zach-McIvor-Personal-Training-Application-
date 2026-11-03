@@ -151,24 +151,38 @@ describe("after launch, Free", () => {
 });
 
 describe("after launch, All Access", () => {
-  it("starting a second program says the current one pauses at its week, then starts it", async () => {
+  // #140: one program at a time, across catalogue, All Access and own programs.
+  it("starting a program says the current one (any kind) moves to Archived at its week, then switches", async () => {
     const start = new Date(Date.now() - 15 * 86400000);
     const startKey = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-${String(start.getDate()).padStart(2, "0")}`;
-    ctx = baseCtx({ soloGatesLive: true, soloTier: "all_access", soloEnrolments: [{ id: "u1_p2", programId: "p2", status: "active", startDate: startKey }] });
+    const currentRow = { id: "u1_p2", programId: "p2", status: "active", startDate: startKey, source: "all_access", current: true };
+    ctx = baseCtx({
+      soloGatesLive: true,
+      soloTier: "all_access",
+      soloTrainingPrograms: [currentRow],
+      soloCurrentProgram: currentRow,
+      soloProgramsById: { p2: other },
+      switchSoloProgram: vi.fn(() => Promise.resolve({ enrolments: [{ id: "u1_p1", fields: { status: "active" } }] })),
+    });
     await renderProgram("p1");
     fireEvent.click(screen.getByRole("button", { name: /start program/i }));
-    const sheet = await screen.findByText(/pauses it at Week 3/);
-    expect(sheet.textContent).toContain("Powerbuilding");
+    const note = await screen.findByText(/moves to Archived at Week 3/);
+    expect(note.textContent).toContain("Powerbuilding");
+    expect(note.textContent).toMatch(/Everything you've logged stays/);
     fireEvent.click(screen.getByRole("button", { name: /switch program/i }));
-    await waitFor(() => expect(ctx.startAllAccessProgram).toHaveBeenCalled());
-    expect(ctx.startAllAccessProgram.mock.calls[0][0]).toMatchObject({ uid: "u1", programId: "p1" });
+    await waitFor(() => expect(ctx.switchSoloProgram).toHaveBeenCalled());
+    expect(ctx.switchSoloProgram.mock.calls[0][0]).toMatchObject({ target: { programId: "p1", source: "all_access" } });
     await screen.findByText("home-page");
   });
 
-  it("a paused program offers to resume at its week", async () => {
-    ctx = baseCtx({ soloGatesLive: true, soloTier: "all_access", soloEnrolments: [{ id: "u1_p1", programId: "p1", status: "paused", pausedAtWeek: 4 }] });
+  it("an archived program offers to resume at its week; the current one goes to My Training", async () => {
+    ctx = baseCtx({ soloGatesLive: true, soloTier: "all_access", soloTrainingPrograms: [{ id: "u1_p1", programId: "p1", source: "all_access", status: "paused", started: true, pausedAtWeek: 4, current: false }] });
     await renderProgram("p1");
     expect(screen.getByRole("button", { name: /resume at week 4/i })).toBeTruthy();
+    cleanup();
+    ctx = baseCtx({ soloGatesLive: true, soloTier: "all_access", soloTrainingPrograms: [{ id: "u1_p1", programId: "p1", source: "all_access", status: "active", current: true }] });
+    await renderProgram("p1");
+    expect(screen.getByRole("button", { name: /go to my training/i })).toBeTruthy();
   });
 });
 
