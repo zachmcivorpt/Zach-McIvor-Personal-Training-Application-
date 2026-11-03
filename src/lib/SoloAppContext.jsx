@@ -264,7 +264,15 @@ export function SoloAppProvider({ children }) {
 
   // In the iPhone app (1.0.4+), purchases are made as the signed-in account.
   useEffect(() => {
-    if (soloAuthUser && inAppPurchasesAvailable()) identifyPurchaser(soloAuthUser.uid).catch(() => {});
+    if (!soloAuthUser || !inAppPurchasesAvailable()) return;
+    // ...and the server re-reads the App Store once per open (#133): a
+    // purchase whose confirmation never reached the page (the page was
+    // dropped under Apple's sheet) still unlocks on the next open, without
+    // waiting on RevenueCat's webhook or a Restore tap.
+    identifyPurchaser(soloAuthUser.uid)
+      .catch(() => {})
+      .then(() => httpsCallable(soloFunctions, "syncSoloEntitlement")())
+      .catch(() => {});
   }, [soloAuthUser]);
 
   const soloTier = tierFromEntitlement(soloEntitlement, clock);

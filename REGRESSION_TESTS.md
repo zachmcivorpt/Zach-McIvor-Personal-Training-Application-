@@ -2406,6 +2406,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Tests**: native only — no Swift toolchain in CI; reviewed by hand. Verify on the next TestFlight build: buy a plan; after the sheet the app must show Train Solo (not black), and Profile shows the new plan.
 - **Regression check**: web suite unaffected (no web change); existing process-termination reload kept.
 
+### 133. A TestFlight purchase didn't unlock Plus (2026-11-03)
+- **Problem (owner)**: after buying Plus monthly (sandbox) the page went black (#132); after reopening, the account was still Free (paywall offered plans, 3-session limit). The web only asks the server to re-read the App Store (`syncSoloEntitlement`) right after the native "purchase done" reply — which never arrived because the page was gone — or on Restore purchases; otherwise it depends on RevenueCat's webhook.
+- **Fix**: `SoloAppContext.jsx` — in the iPhone app, after identifying the purchaser on sign-in, call `syncSoloEntitlement` once per open, so a purchase whose reply was lost unlocks on the next open. Server code unchanged.
+- **Tests**: `src/lib/SoloAppContext.syncOnOpen.test.jsx` — the sync is called once after sign-in in the iPhone app; fails without the fix.
+- **Still to check (owner)**: if Restore purchases also says "No subscription found", the purchase isn't reaching our server — check RevenueCat → Customers (Sandbox data on) for the purchase and its App User ID, and that the webhook sends Sandbox events.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

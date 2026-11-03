@@ -293,6 +293,9 @@ any Train Solo work from now on:
 - In the iPhone app, if the App Store returns no subscriptions the paywall
   shows why (REGRESSION_TESTS.md #124) and retries on the next open — never
   a silent disabled button, never a pointer to the website.
+- In the iPhone app the subscription is re-read from the server on every
+  open (`syncSoloEntitlement`, #133), not only after the purchase reply —
+  that reply can be lost if iOS drops the page under Apple's sheet.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.
