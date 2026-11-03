@@ -554,8 +554,23 @@ export function BottomSheet({ open, onClose, title, children, dark = false, wide
           // touch-none: nothing here scrolls anyway (it's a backdrop), but
           // without this a drag starting on it can still move the page
           // behind it on iOS — the actual production report this fixes.
-          className={`absolute inset-0 ${backdropClassName} touch-none transition-opacity duration-300 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
+          // Runs on past the visible area (#138): the iPhone keyboard's
+          // see-through edges must show the backdrop, not the bare page.
+          className={`absolute inset-x-0 top-0 ${backdropClassName} touch-none transition-opacity duration-300 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
+          style={{ bottom: "-100vh" }}
           onClick={onClose}
+        />
+        {/* The sheet's own surface continued below it (#138). The sheet ends
+            where the visible area ends, but the iPhone keyboard (iOS 26's
+            floating one especially) has see-through margins around its
+            keys and toolbar: without this the page behind showed in the
+            strip between the sheet and the keyboard. Off-screen when no
+            keyboard is up. */}
+        <div
+          aria-hidden="true"
+          data-testid="sheet-under-keyboard"
+          className={`absolute top-full ${wide ? "max-w-2xl" : "max-w-md"} w-full transition-transform duration-300 ease-out ${visible ? "translate-y-0" : "translate-y-full"}`}
+          style={{ height: "100vh", backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED, ...surface, ...(visible ? {} : { opacity: 0 }) }}
         />
         <div
           ref={panelRef}

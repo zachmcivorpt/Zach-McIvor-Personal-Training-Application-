@@ -2627,7 +2627,8 @@ export function AddExerciseSheet({ open, allExercises, excludeIds, onClose, onCo
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search exercises"
-          autoFocus
+          // No autoFocus (#138): the keyboard opening with the sheet hid
+          // half the list. It opens when they tap Search.
           className={dark ? "bg-transparent outline-none text-white text-sm flex-1 placeholder:text-white/30" : "bg-transparent outline-none text-black text-sm flex-1 placeholder:text-black/30"}
         />
       </div>

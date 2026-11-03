@@ -366,6 +366,12 @@ any Train Solo work from now on:
 - The logo shows this phone's last confirmed answer immediately
   (`appLogo.js`); only a first-ever open waits for the server.
 
+## Bottom sheets and the keyboard (#138)
+
+- `BottomSheet` continues its own surface (and backdrop) below the visible
+  area, because the iPhone keyboard has see-through margins. Keep it, and
+  don't give a sheet's search `autoFocus`: let the list show first.
+
 ## Messaging composers (#127)
 
 - Every chat's message box is `MessageComposerInput`
