@@ -28,7 +28,28 @@ const kgText = (n) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)} 
 const signed = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}`;
 
 // What goes on the card, in order (also what the screen shows).
-export function shareCardContent({ programName, stats, bodyweight, exercisesById = {} }) {
+// Their progress photos for the program (#145): the first one from its
+// start date and the last one, labelled with the program week each was
+// taken in. null without two photos on different days.
+export function progressPhotoPair(photos = [], startDate, totalWeeks = 0) {
+  const list = photos
+    .filter((p) => p?.url && (!startDate || (dateKeyOf(p.date) || "") >= startDate))
+    .sort((a, b) => Number(new Date(a.date)) - Number(new Date(b.date)));
+  if (list.length < 2) return null;
+  const first = list[0];
+  const last = list[list.length - 1];
+  if (dateKeyOf(first.date) === dateKeyOf(last.date)) return null;
+  const weekOf = (p) => {
+    if (!startDate) return null;
+    const days = Math.floor((new Date(`${dateKeyOf(p.date)}T00:00:00`) - new Date(`${startDate}T00:00:00`)) / 86400000);
+    const w = Math.floor(days / 7) + 1;
+    return totalWeeks > 0 ? Math.min(Math.max(w, 1), totalWeeks) : Math.max(w, 1);
+  };
+  const label = (p) => (weekOf(p) ? `Week ${weekOf(p)}` : new Date(p.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" }));
+  return { before: { url: first.url, label: label(first) }, after: { url: last.url, label: label(last) } };
+}
+
+export function shareCardContent({ programName, stats, bodyweight, exercisesById = {}, photos = null }) {
   const figures = [
     { value: String(stats?.sessions || 0), label: "Sessions" },
     { value: kgText(stats?.volume || 0), label: "Total lifted" },
@@ -39,7 +60,13 @@ export function shareCardContent({ programName, stats, bodyweight, exercisesById
     .filter((s) => s.pct > 0)
     .slice(0, 5)
     .map((s) => ({ name: exercisesById[s.exerciseId]?.name || "Lift", pct: `+${s.pct}%`, detail: `${s.from} → ${s.to} kg` }));
-  return { eyebrow: "PROGRAM COMPLETE", title: programName || "Program complete", figures, lifts };
+  return {
+    eyebrow: "PROGRAM COMPLETE",
+    title: programName || "Program complete",
+    figures,
+    lifts,
+    photos: photos ? { before: { label: photos.before.label.toUpperCase() }, after: { label: photos.after.label.toUpperCase() } } : null,
+  };
 }
 
 function wrap(ctx, text, maxWidth) {
@@ -57,93 +84,185 @@ function wrap(ctx, text, maxWidth) {
   return lines;
 }
 
-// Draws the card. `photo` and `logo` are loaded HTMLImageElements (or
-// null). Returns false if the canvas can't draw (e.g. tests).
-export function drawShareCard(canvas, content, { photo = null, logo = null } = {}) {
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Draw `img` to cover the box (crop, never stretch).
+function cover(ctx, img, x, y, w, h) {
+  const scale = Math.max(w / img.width, h / img.height);
+  const sw = w / scale;
+  const sh = h / scale;
+  ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
+}
+
+// A frosted copy of the background: drawn tiny, then scaled back up
+// (works on every browser, unlike ctx.filter).
+function frosted(bg) {
+  if (typeof document === "undefined") return null;
+  const small = document.createElement("canvas");
+  small.width = Math.round(CARD_W / 24);
+  small.height = Math.round(CARD_H / 24);
+  const sctx = small.getContext("2d");
+  if (!sctx) return null;
+  sctx.imageSmoothingEnabled = true;
+  sctx.drawImage(bg, 0, 0, small.width, small.height);
+  return small;
+}
+
+// The card (#145): an APEX gym photo, and over it one pane of frosted glass
+// holding the results — program name, week 1 and final-week progress
+// photos side by side, the headline figures and the biggest lift gains.
+// `background`, `logo`, `before`, `after` are loaded images (or null).
+// Returns false if the canvas can't draw (tests).
+export function drawShareCard(canvas, content, { background = null, logo = null, before = null, after = null } = {}) {
   const ctx = canvas?.getContext?.("2d");
   if (!ctx) return false;
   canvas.width = CARD_W;
   canvas.height = CARD_H;
-  const pad = 80;
+  const pad = 64;
 
-  // Background: their photo, cover-fitted, or the APEX near-black.
+  // Background: the APEX photo, darkened.
   ctx.fillStyle = "#0A0A0B";
   ctx.fillRect(0, 0, CARD_W, CARD_H);
-  if (photo && photo.width && photo.height) {
-    const scale = Math.max(CARD_W / photo.width, CARD_H / photo.height);
-    const w = photo.width * scale;
-    const h = photo.height * scale;
-    ctx.drawImage(photo, (CARD_W - w) / 2, (CARD_H - h) / 2, w, h);
-  }
-  // Darken so the results always read.
-  const shade = ctx.createLinearGradient(0, 0, 0, CARD_H);
-  shade.addColorStop(0, photo ? "rgba(10,10,11,0.35)" : "rgba(10,10,11,0)");
-  shade.addColorStop(0.38, photo ? "rgba(10,10,11,0.45)" : "rgba(10,10,11,0)");
-  shade.addColorStop(1, "rgba(10,10,11,0.94)");
-  ctx.fillStyle = shade;
-  ctx.fillRect(0, 0, CARD_W, CARD_H);
-
-  if (logo && logo.width) {
-    const h = 54;
-    ctx.drawImage(logo, pad, pad, (logo.width / logo.height) * h, h);
+  if (background?.width) {
+    ctx.save();
+    ctx.filter = "grayscale(1)";
+    cover(ctx, background, 0, 0, CARD_W, CARD_H);
+    ctx.restore();
+    ctx.fillStyle = "rgba(10,10,11,0.45)";
+    ctx.fillRect(0, 0, CARD_W, CARD_H);
   }
 
+  // Header on the photo.
+  if (logo?.width) ctx.drawImage(logo, pad, pad - 6, (logo.width / logo.height) * 46, 46);
   ctx.textBaseline = "alphabetic";
-  let y = CARD_H - pad;
+  ctx.textAlign = "right";
+  ctx.font = `700 22px ${FONT}`;
+  ctx.fillStyle = "rgba(255,255,255,0.8)";
+  ctx.fillText("TRAIN SOLO", CARD_W - pad, pad + 30);
 
-  // From the bottom up: lifts, figures, title, eyebrow.
-  const lifts = content.lifts || [];
-  const rowH = 58;
-  for (let i = lifts.length - 1; i >= 0; i--) {
-    const l = lifts[i];
-    ctx.font = `600 34px ${FONT}`;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.textAlign = "left";
-    ctx.fillText(l.name, pad, y);
-    ctx.textAlign = "right";
-    ctx.fillStyle = BLUE;
-    ctx.fillText(l.pct, CARD_W - pad, y);
-    y -= rowH;
+  // The glass pane.
+  const gx = 48;
+  const gy = 150;
+  const gw = CARD_W - gx * 2;
+  const gh = CARD_H - gy - 48;
+  ctx.save();
+  roundRect(ctx, gx, gy, gw, gh, 44);
+  ctx.clip();
+  const frost = background?.width ? frosted(background) : null;
+  if (frost) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(frost, 0, 0, CARD_W, CARD_H);
+    ctx.fillStyle = "rgba(10,10,11,0.42)";
+    ctx.fillRect(gx, gy, gw, gh);
+  } else {
+    ctx.fillStyle = "rgba(28,28,30,0.9)";
+    ctx.fillRect(gx, gy, gw, gh);
   }
-  if (lifts.length) {
-    ctx.textAlign = "left";
-    ctx.font = `600 24px ${FONT}`;
-    ctx.fillStyle = "rgba(255,255,255,0.55)";
-    ctx.fillText("STRONGER", pad, y - 4);
-    y -= 70;
-  }
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  ctx.fillRect(gx, gy, gw, gh);
+  ctx.restore();
+  roundRect(ctx, gx + 0.5, gy + 0.5, gw - 1, gh - 1, 44);
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
 
-  const figures = content.figures || [];
-  const colW = (CARD_W - pad * 2) / Math.max(1, figures.length);
-  figures.forEach((f, i) => {
-    const x = pad + i * colW;
-    ctx.textAlign = "left";
-    ctx.font = `600 26px ${FONT}`;
-    ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.fillText(f.label, x, y);
-    ctx.font = `600 66px ${FONT}`;
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(f.value, x, y - 40);
-  });
-  y -= 150;
+  const ix = gx + 52;
+  const iw = gw - 104;
+  let y = gy + 84;
 
   ctx.textAlign = "left";
-  ctx.font = `600 72px ${FONT}`;
-  ctx.fillStyle = "#FFFFFF";
-  const lines = wrap(ctx, content.title, CARD_W - pad * 2).slice(0, 3);
-  for (let i = lines.length - 1; i >= 0; i--) {
-    ctx.fillText(lines[i], pad, y);
-    y -= 82;
-  }
-  ctx.font = `600 26px ${FONT}`;
+  ctx.font = `700 22px ${FONT}`;
   ctx.fillStyle = BLUE;
-  ctx.fillText(content.eyebrow, pad, y - 6);
+  ctx.fillText(content.eyebrow.split("").join(String.fromCharCode(8202)), ix, y);
+  y += 62;
+  ctx.font = `600 54px ${FONT}`;
+  ctx.fillStyle = "#FFFFFF";
+  for (const line of wrap(ctx, content.title, iw).slice(0, 2)) {
+    ctx.fillText(line, ix, y);
+    y += 62;
+  }
 
-  // Small sign-off, top right.
-  ctx.textAlign = "right";
-  ctx.font = `600 24px ${FONT}`;
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
-  ctx.fillText("TRAIN SOLO", CARD_W - pad, pad + 38);
+  // Week 1 and final week, side by side.
+  const photos = content.photos;
+  if (photos && before?.width && after?.width) {
+    y += 6;
+    const gap = 20;
+    const pw = (iw - gap) / 2;
+    const ph = 430;
+    [
+      [before, photos.before.label],
+      [after, photos.after.label],
+    ].forEach(([img, label], i) => {
+      const px = ix + i * (pw + gap);
+      ctx.save();
+      roundRect(ctx, px, y, pw, ph, 26);
+      ctx.clip();
+      cover(ctx, img, px, y, pw, ph);
+      const fade = ctx.createLinearGradient(0, y + ph - 120, 0, y + ph);
+      fade.addColorStop(0, "rgba(0,0,0,0)");
+      fade.addColorStop(1, "rgba(0,0,0,0.55)");
+      ctx.fillStyle = fade;
+      ctx.fillRect(px, y + ph - 120, pw, 120);
+      ctx.restore();
+      ctx.font = `700 22px ${FONT}`;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText(label, px + 22, y + ph - 24);
+    });
+    y += ph + 66;
+  } else {
+    y += 30;
+  }
+
+  // Figures.
+  const figures = content.figures || [];
+  const colW = iw / Math.max(1, figures.length);
+  figures.forEach((f, i) => {
+    const x = ix + i * colW;
+    ctx.font = `600 50px ${FONT}`;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(f.value, x, y);
+    ctx.font = `500 22px ${FONT}`;
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.fillText(f.label, x, y + 36);
+  });
+  y += 92;
+
+  // Stronger: as many of the top gains as fit.
+  const lifts = content.lifts || [];
+  if (lifts.length) {
+    ctx.strokeStyle = "rgba(255,255,255,0.14)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ix, y);
+    ctx.lineTo(ix + iw, y);
+    ctx.stroke();
+    y += 50;
+    ctx.textAlign = "left";
+    ctx.font = `700 20px ${FONT}`;
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fillText("STRONGER".split("").join(String.fromCharCode(8202)), ix, y);
+    y += 56;
+    const bottom = gy + gh - 40;
+    for (const l of lifts) {
+      if (y > bottom) break;
+      ctx.textAlign = "left";
+      ctx.font = `600 28px ${FONT}`;
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText(l.name, ix, y);
+      ctx.textAlign = "right";
+      ctx.fillStyle = BLUE;
+      ctx.fillText(l.pct, ix + iw, y);
+      y += 50;
+    }
+  }
   return true;
 }
 

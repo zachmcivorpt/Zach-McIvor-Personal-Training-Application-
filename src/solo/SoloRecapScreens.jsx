@@ -1,10 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
-import { ChevronRight, ImagePlus, Share2 } from "lucide-react";
-import { bodyweightChange, shareCardContent, drawShareCard, loadImage } from "./shareCard";
+import { ChevronRight, Share2 } from "lucide-react";
+import { BottomSheet } from "../components/ui";
+import { bodyweightChange, shareCardContent, drawShareCard, loadImage, progressPhotoPair } from "./shareCard";
 import { MEASURE_BLUE } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloClearSheetGlass, CLEAR_SHEET_BACKDROP } from "./SoloThemeContext";
+
+// The APEX gym photo behind the share card's glass.
+const SHARE_BACKGROUND = "/brand/gym-dark.jpg";
 import { SoloButton, SoloTextButton, SOLO_TYPE } from "./SoloUI";
 import { SoloArtwork } from "./SoloArtwork";
 import { recommendForAnswers } from "./recommendations";
@@ -47,7 +51,7 @@ const kg = (n) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)} t` :
 export function SoloProgramCompleteScreen() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { soloWorkoutLogs, soloProgramsById, soloExercises, soloPrograms, soloProgramCategories, soloCurrentUser, soloWeighIns, soloTrainingPrograms } = useSoloApp();
+  const { soloWorkoutLogs, soloProgramsById, soloExercises, soloPrograms, soloProgramCategories, soloCurrentUser, soloWeighIns, soloTrainingPrograms, soloProgressPhotos, soloContentById } = useSoloApp();
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const { purchaseId, programId } = location.state || {};
@@ -59,10 +63,13 @@ export function SoloProgramCompleteScreen() {
   );
   const startDate = (soloTrainingPrograms || []).find((r) => r.id === purchaseId)?.startDate || null;
   const bodyweight = useMemo(() => bodyweightChange(soloWeighIns || [], startDate), [soloWeighIns, startDate]);
+  const totalWeeks = (soloContentById?.[programId]?.phases || []).reduce((n, p) => n + (Number(p.durationWeeks) || 0), 0) || Number(soloProgramsById?.[programId]?.weekOnePreview?.totalWeeks) || 0;
+  const photos = useMemo(() => progressPhotoPair(soloProgressPhotos || [], startDate, totalWeeks), [soloProgressPhotos, startDate, totalWeeks]);
+  const [shareOpen, setShareOpen] = useState(false);
   if (!purchaseId) return <Navigate to="/solo/home" replace />;
   const program = soloProgramsById?.[programId];
   const gains = stats.strength.filter((s) => s.pct > 0).slice(0, 5);
-  const card = shareCardContent({ programName: program?.name, stats, bodyweight, exercisesById });
+  const card = shareCardContent({ programName: program?.name, stats, bodyweight, exercisesById, photos });
 
   return (
     <Page t={t}>
@@ -96,6 +103,25 @@ export function SoloProgramCompleteScreen() {
         </div>
       )}
 
+      {photos && (
+        // Week 1 and the final week, side by side (#145).
+        <div className="mt-7" data-testid="program-complete-photos">
+          <p className={`${SOLO_TYPE.eyebrow} mb-3`} style={{ color: t.textFaint }}>
+            Progress
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {[photos.before, photos.after].map((ph, i) => (
+              <div key={i} className="relative rounded-2xl overflow-hidden" style={{ aspectRatio: "3 / 4", backgroundColor: t.chipBg }}>
+                <img src={ph.url} alt={ph.label} className="w-full h-full object-cover" />
+                <span className="absolute left-2.5 bottom-2.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide text-white" style={{ backgroundColor: "rgba(10,10,11,0.45)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+                  {ph.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {gains.length > 0 && (
         <div className="mt-7">
           <p className={`${SOLO_TYPE.eyebrow} mb-1`} style={{ color: t.textFaint }}>
@@ -119,7 +145,10 @@ export function SoloProgramCompleteScreen() {
         </div>
       )}
 
-      <ShareResults card={card} programName={program?.name} t={t} />
+      <SoloButton t={t} className="mt-8" style={{ backgroundColor: "transparent", color: t.text, border: `1px solid ${t.panelBorder}` }} onClick={() => setShareOpen(true)}>
+        <Share2 size={15} /> Share your results
+      </SoloButton>
+      <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} card={card} photos={photos} programName={program?.name} dark={dark} t={t} />
 
       {next && (
         <button type="button" onClick={() => navigate(`/solo/program/${next.id}`)} className="w-full flex items-center gap-3.5 mt-8 text-left">
@@ -146,23 +175,30 @@ export function SoloProgramCompleteScreen() {
   );
 }
 
-// "Share your results" (#144): their own photo behind their numbers, as one
-// image they can post. The photo stays on the phone — it's only drawn into
-// the card, never uploaded.
-function ShareResults({ card, programName, t }) {
+// Share (#145): the results card — an APEX gym photo behind frosted glass
+// with their numbers and their week 1 / final week progress photos —
+// shown in a glass sheet, then the phone's share sheet. Progress photos are
+// already on their account; nothing new is uploaded.
+function ShareSheet({ open, onClose, card, photos, programName, dark, t }) {
   const canvasRef = useRef(null);
-  const [photoUrl, setPhotoUrl] = useState(null);
   const [preview, setPreview] = useState(null);
   const [hint, setHint] = useState("");
   const [busy, setBusy] = useState(false);
   const cardKey = JSON.stringify(card);
 
   useEffect(() => {
+    if (!open) return;
     let cancelled = false;
+    setHint("");
     (async () => {
-      const [photo, logo] = await Promise.all([loadImage(photoUrl), loadImage(SOLO_THEMES.dark.logo)]);
+      const [background, logo, before, after] = await Promise.all([
+        loadImage(SHARE_BACKGROUND),
+        loadImage(SOLO_THEMES.dark.logo),
+        loadImage(photos?.before?.url),
+        loadImage(photos?.after?.url),
+      ]);
       if (cancelled || !canvasRef.current) return;
-      if (drawShareCard(canvasRef.current, card, { photo, logo })) {
+      if (drawShareCard(canvasRef.current, card, { background, logo, before, after })) {
         try {
           setPreview(canvasRef.current.toDataURL("image/jpeg", 0.9));
         } catch {
@@ -174,22 +210,12 @@ function ShareResults({ card, programName, t }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [photoUrl, cardKey]);
-
-  useEffect(() => () => photoUrl && URL.revokeObjectURL(photoUrl), [photoUrl]);
-
-  function pickPhoto(e) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    setHint("");
-    setPhotoUrl(URL.createObjectURL(file));
-  }
+  }, [open, cardKey, photos?.before?.url, photos?.after?.url]);
 
   async function share() {
     setHint("");
     const canvas = canvasRef.current;
-    if (!canvas?.toBlob) return setHint("Press and hold the image to save it.");
+    if (!canvas?.toBlob) return setHint("Press and hold the image to save or share it.");
     setBusy(true);
     try {
       const blob = await new Promise((r) => canvas.toBlob(r, "image/jpeg", 0.92));
@@ -207,32 +233,23 @@ function ShareResults({ card, programName, t }) {
   }
 
   return (
-    <div className="mt-9" data-testid="share-results">
-      <p className={`${SOLO_TYPE.eyebrow} mb-3`} style={{ color: t.textFaint }}>
-        Share your results
-      </p>
+    <BottomSheet open={open} onClose={onClose} title="Share your results" dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
+      {/* Sheets open outside the page: give their text the theme colour, or it falls back to black (dark mode, #146). */}
+      <div style={{ color: t.text }}>
       <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
-      {preview ? (
-        <img src={preview} alt="Your results card" className="w-full rounded-2xl" style={{ aspectRatio: "4 / 5", objectFit: "cover" }} />
-      ) : (
-        <div className="w-full rounded-2xl" style={{ aspectRatio: "4 / 5", backgroundColor: "#0A0A0B" }} />
-      )}
-      <div className="grid grid-cols-2 gap-2.5 mt-3">
-        <label className="h-12 rounded-2xl flex items-center justify-center gap-2 text-[13px] font-bold uppercase tracking-[0.02em] cursor-pointer" style={{ border: `1px solid ${t.panelBorder}`, color: t.text }}>
-          <ImagePlus size={15} />
-          {photoUrl ? "Change photo" : "Add photo"}
-          <input type="file" accept="image/*" className="hidden" onChange={pickPhoto} aria-label={photoUrl ? "Change photo" : "Add photo"} />
-        </label>
-        <SoloButton t={t} onClick={share} disabled={busy}>
-          <Share2 size={15} /> Share
-        </SoloButton>
+      <div data-testid="share-card" className="w-full rounded-2xl overflow-hidden" style={{ aspectRatio: "4 / 5", backgroundColor: "#0A0A0B" }}>
+        {preview && <img src={preview} alt="Your results card" className="w-full h-full object-cover" />}
       </div>
+      <SoloButton t={t} className="mt-4" onClick={share} disabled={busy}>
+        <Share2 size={15} /> Share
+      </SoloButton>
       {hint && (
         <p className={`${SOLO_TYPE.meta} mt-2 text-center`} style={{ color: t.textMuted }}>
           {hint}
         </p>
       )}
-    </div>
+      </div>
+    </BottomSheet>
   );
 }
 

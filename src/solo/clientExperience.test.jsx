@@ -92,6 +92,10 @@ describe("program complete", () => {
         { id: "2", purchaseId: "u1_p1", weekNumber: 2, dayId: "a", durationMin: 60, entries: [{ exerciseId: "sq", sets: [{ weight: 110, reps: 5, isPR: true }] }] },
       ],
       soloTrainingPrograms: [{ id: "u1_p1", programId: "p1", startDate: "2026-09-01" }],
+      soloProgressPhotos: [
+        { id: "ph1", url: "data:image/jpeg;base64,AAA", date: new Date("2026-09-02T12:00:00").getTime() },
+        { id: "ph2", url: "data:image/jpeg;base64,BBB", date: new Date("2026-09-10T12:00:00").getTime() },
+      ],
       soloWeighIns: [
         { weight: 84, date: new Date("2026-09-03T12:00:00").getTime() },
         { weight: 81.5, date: new Date("2026-10-30T12:00:00").getTime() },
@@ -110,10 +114,15 @@ describe("program complete", () => {
     expect(screen.getAllByText("+10%").length).toBeGreaterThan(0);
     // Bodyweight over the program (#144): 84 → 81.5 kg since the start date.
     expect(screen.getByTestId("program-complete-bodyweight").textContent).toContain("−2.5 kg");
-    // Share your results: their photo behind their numbers.
-    const share = screen.getByTestId("share-results");
-    expect(share.querySelector('input[type="file"][accept="image/*"]')).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Share/ })).toBeTruthy();
+    // Week 1 and final-week progress photos side by side (#145).
+    const photos = screen.getByTestId("program-complete-photos");
+    expect(photos.textContent).toContain("Week 1");
+    expect(photos.textContent).toContain("Week 2");
+    expect(photos.querySelectorAll("img")).toHaveLength(2);
+    // Share opens the results card in a sheet.
+    fireEvent.click(screen.getByRole("button", { name: /Share your results/ }));
+    await screen.findByTestId("share-card");
+    expect(screen.getByRole("button", { name: /^Share$/ })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Start your next program" }));
     await screen.findByText("program-page");
   });
@@ -202,3 +211,4 @@ describe("swaps and the plates helper", () => {
     expect(screen.getByText("80 kg × 2")).toBeTruthy();
   });
 });
+
