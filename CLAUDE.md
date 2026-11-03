@@ -318,6 +318,11 @@ any Train Solo work from now on:
 - ViewController checks the page is still drawn every time the app becomes
   active (`checkPageAlive`, #132) and reloads a blank one — iOS can drop
   the page under Apple's purchase sheet without telling us. Keep it.
+- During Apple's purchase sheet the page is covered by a still picture of
+  itself that takes all taps (`coverPageForPurchase`, #135), removed once
+  the page has reloaded after the sheet. WebKit can leave the page undrawn
+  but tappable there, which `checkPageAlive`'s DOM check can't see. Keep
+  the cover; any new native sheet over the webview may need the same.
 
 - The iOS app is a WKWebView on the live web app, so web-only changes reach
   App Store users without a build or review — from 1.0.4 on, on their next

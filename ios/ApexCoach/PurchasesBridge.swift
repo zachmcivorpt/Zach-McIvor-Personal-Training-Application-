@@ -42,6 +42,12 @@ enum PurchasesConfig {
 
 final class PurchasesBridge {
     weak var webView: WKWebView?
+    // Apple's purchase sheet can leave the page undrawn (black) but still
+    // tappable (#134). ViewController covers the page with a picture of
+    // itself just before the sheet (then calls the block to show it) and
+    // takes the cover off once the page has reloaded after it.
+    var coverPageForSheet: ((@escaping () -> Void) -> Void)?
+    var sheetFinished: (() -> Void)?
     private let plans = ["plus_monthly", "plus_yearly", "all_access_monthly", "all_access_yearly"]
     private func productId(_ plan: String) -> String { "apex_solo_\(plan)" }
 
@@ -120,10 +126,16 @@ final class PurchasesBridge {
                 guard let pkg = offerings?.current?.availablePackages.first(where: { $0.storeProduct.productIdentifier == self.productId(plan) }) else {
                     return self.reply(id, error: "That plan isn't available right now.")
                 }
-                Purchases.shared.purchase(package: pkg) { _, _, error, userCancelled in
-                    if userCancelled { return self.reply(id, error: "Cancelled.", cancelled: true) }
-                    if let error = error { return self.reply(id, error: error.localizedDescription) }
-                    self.reply(id, result: ["ok": true])
+                let showSheet = {
+                    Purchases.shared.purchase(package: pkg) { _, _, error, userCancelled in
+                        defer { DispatchQueue.main.async { self.sheetFinished?() } }
+                        if userCancelled { return self.reply(id, error: "Cancelled.", cancelled: true) }
+                        if let error = error { return self.reply(id, error: error.localizedDescription) }
+                        self.reply(id, result: ["ok": true])
+                    }
+                }
+                DispatchQueue.main.async {
+                    if let cover = self.coverPageForSheet { cover(showSheet) } else { showSheet() }
                 }
             }
         }

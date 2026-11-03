@@ -184,6 +184,7 @@ function SoloPaywallSheet({ request, onClose }) {
   async function buy() {
     setBusy(true);
     setMessage("");
+    let reloading = false;
     try {
       if (iosApp) {
         // Whatever Apple's sheet answered, reload so the page is drawn
@@ -196,6 +197,7 @@ function SoloPaywallSheet({ request, onClose }) {
           outcome = err?.cancelled ? { cancelled: true, tier } : { error: err?.message || "Something went wrong — please try again.", tier };
         }
         rememberPurchaseOutcome(outcome);
+        reloading = true; // stays busy: no second tap before the reload
         paywallPage.reload();
         return;
       }
@@ -215,7 +217,7 @@ function SoloPaywallSheet({ request, onClose }) {
     } catch (err) {
       if (!err?.cancelled) setMessage(err?.message || "Something went wrong — please try again.");
     } finally {
-      setBusy(false);
+      if (!reloading) setBusy(false);
     }
   }
 

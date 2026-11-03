@@ -47,6 +47,11 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private let savedCopyStaleKey = "apexSavedCopyStale"
     private var openedFromSavedCopy = false
     private var offlineView: UIView?
+    // Apple's purchase sheet (#134): a still picture of the page shown over
+    // it while the sheet is up and until the page has reloaded after it.
+    private var purchaseCover: UIView?
+    private var purchaseSheetOpen = false
+    private var navigationsSinceSheet = 0
 
     // Apple Health reads for the web app — see HealthBridge.swift.
     private let health = HealthBridge()
@@ -136,6 +141,11 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         webView.backgroundColor = .white
         health.webView = webView
         purchases.webView = webView
+        purchases.coverPageForSheet = { [weak self] show in
+            guard let self = self else { return show() }
+            self.coverPageForPurchase(then: show)
+        }
+        purchases.sheetFinished = { [weak self] in self?.purchaseSheetDidFinish() }
         view.addSubview(webView)
 
         // Pin below the status bar/notch — a bare WKWebView doesn't auto-inset
@@ -296,6 +306,14 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             pendingFCMToken = nil
             sendTokenToWeb(token)
         }
+        // Reloaded after Apple's purchase sheet: give the page a moment to
+        // paint, then show it again (#134).
+        if purchaseCover != nil && !purchaseSheetOpen {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+                guard let self = self, !self.purchaseSheetOpen else { return }
+                self.removePurchaseCover()
+            }
+        }
     }
 
     @objc private func handleFCMToken(_ note: Notification) {
@@ -407,7 +425,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // empty #root means it's gone, so load it again (the saved copy opens
     // instantly, and the purchase itself is already recorded by Apple).
     @objc private func checkPageAlive() {
-        guard webView != nil, !webView.isLoading else { return }
+        guard webView != nil, !webView.isLoading, !purchaseSheetOpen, purchaseCover == nil else { return }
         var answered = false
         let timer = DispatchWorkItem { [weak self] in
             guard let self = self, !answered else { return }
@@ -428,6 +446,54 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         view.bringSubviewToFront(spinner)
         spinner.startAnimating()
         loadSite()
+    }
+
+    // Apple's In-App Purchase sheet (#134). With the sheet up, WebKit can
+    // stop drawing the page: black behind the sheet and after it, while the
+    // page still takes taps (a tap on the invisible Subscribe button bought
+    // again). So just before the sheet, a picture of the page covers it and
+    // takes the taps. Once the sheet answers, the page reloads itself
+    // (SoloPaywall.jsx); an older saved copy that doesn't is reloaded from
+    // here. The cover comes off when that load has finished.
+    private func coverPageForPurchase(then show: @escaping () -> Void) {
+        purchaseSheetOpen = true
+        navigationsSinceSheet = 0
+        webView.takeSnapshot(with: nil) { [weak self] image, _ in
+            guard let self = self else { return show() }
+            if let image = image {
+                self.purchaseCover?.removeFromSuperview()
+                let cover = UIImageView(image: image)
+                cover.frame = self.webView.frame
+                cover.contentMode = .scaleToFill
+                cover.isUserInteractionEnabled = true
+                self.view.insertSubview(cover, aboveSubview: self.webView)
+                self.purchaseCover = cover
+            }
+            show()
+        }
+    }
+
+    private func purchaseSheetDidFinish() {
+        purchaseSheetOpen = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self = self, self.purchaseCover != nil, self.navigationsSinceSheet == 0, !self.webView.isLoading else { return }
+            self.loadSite()
+        }
+        // Never leave the cover up for long, whatever happens.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
+            guard let self = self, !self.purchaseSheetOpen else { return }
+            self.removePurchaseCover()
+        }
+    }
+
+    private func removePurchaseCover() {
+        guard let cover = purchaseCover else { return }
+        purchaseCover = nil
+        UIView.animate(withDuration: 0.2, animations: { cover.alpha = 0 }, completion: { _ in cover.removeFromSuperview() })
+    }
+
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        navigationsSinceSheet += 1
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {

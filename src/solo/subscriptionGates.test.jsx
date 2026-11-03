@@ -235,6 +235,10 @@ describe("inside the iPhone app", () => {
       await screen.findByText("$179.99");
       fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
       await waitFor(() => expect(reloadSpy).toHaveBeenCalledTimes(1));
+      // No second purchase from a tap while the page reloads.
+      await new Promise((r) => setTimeout(r, 20));
+      const buyButton = screen.getAllByRole("button").find((b) => /free trial|subscribe|wait|…/i.test(b.textContent));
+      expect(buyButton.disabled).toBe(true);
       cleanup(); // the reload
     }
 

@@ -2419,7 +2419,15 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
   - `functions/soloSubscriptions.js` `appleSourceFromSubscriber`: besides RevenueCat's `plus` / `all_access` entitlements, an active subscription to one of our own product ids (`apex_solo_<plan>`) now unlocks its tier, so a purchase can't stay Free because the entitlements are named or attached differently in RevenueCat. Expired, refunded or unknown products still give nothing.
 - **Tests**: `src/solo/subscriptionGates.test.jsx` "after Apple's purchase sheet (#134)" (reload + confirmed plan, shown once; server still Free → honest message; error shown / cancel silent) and the updated 1.0.4+ purchase test; `functions/soloSubscriptions.test.js` (product-id unlock, All Access over Plus, expired/refunded/foreign products). All 6 fail without the fix (4 web, 2 server).
 - **Regression check**: full suite 777 passed; `vite build` clean. Website (Stripe) purchase path and Restore purchases unchanged.
-- **Still to check (owner)**: on the iPhone, buy once; after Apple's "You're all set" the app should reload into Train Solo and say which plan you have. If it says the purchase hasn't reached your account, check RevenueCat → Customers (Sandbox data on): App User ID must be your Train Solo uid, and the webhook must send Sandbox events.
+- **Also**: the Subscribe button stays disabled from the tap until the reload, so it can't start a second purchase (test asserts it; fails without the `reloading` guard).
+- **Owner confirmed (2026-11-03)**: after swiping the app away and reopening, Profile showed "Train Solo Plus · Renews 4 Nov · App Store", so the server side (#133 sync on open) works. The broken part was the black screens; see #135 for the native half.
+- **Still to check (owner)**: on the iPhone, buy once; after Apple's "You're all set" the app should reload into Train Solo and say which plan you have.
+
+### 135. Black screen behind and after Apple's purchase sheet — native cover (needs the next 1.0.4 build, 2026-11-03)
+- **Problem (owner screenshots, TestFlight 1.0.4)**: the page was black behind Apple's In-App Purchase sheet and stayed black after "You're all set"; taps still reached the invisible page. #134's web reload redraws it after the sheet, but not during it.
+- **Fix (native)**: `PurchasesBridge.swift` asks `ViewController.coverPageForPurchase` to cover the page before it calls `Purchases.shared.purchase`. That method lays a still picture of the page (`takeSnapshot`) over the webview and only then shows Apple's sheet; the picture takes all taps. `purchaseSheetDidFinish` runs when the sheet answers. If the page hasn't started reloading itself within 2s (an older saved copy without #134), it reloads it from native (`loadSite`). The cover fades out 0.6s after that load finishes (`didFinish`) and never stays up more than 12s. `checkPageAlive` (#132) is skipped while the sheet or cover is up.
+- **Tests**: native only, no Swift toolchain here; reviewed by hand. Web half covered by #134's tests.
+- **Verify on the next TestFlight 1.0.4 build**: buy (or cancel) a plan. Behind Apple's sheet you should see the membership sheet, not black. After "You're all set" the app shows Train Solo again within about a second, then "You're in — welcome to …". Tapping during that time does nothing.
 
 ## What still requires manual testing
 
