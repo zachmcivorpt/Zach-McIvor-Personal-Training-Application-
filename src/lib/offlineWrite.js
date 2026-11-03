@@ -33,3 +33,30 @@ export function savedOrQueued(writePromise, { onLateError, waitMs } = {}) {
     );
   });
 }
+
+// Local-first saves (coached client app). Firestore's on-phone cache shows
+// a write on screen the moment it's made and keeps it until the server has
+// it — even across an app restart — so a client action doesn't need to
+// wait for the server at all: logging a food, editing an entry, finishing
+// a workout, moving a session. This resolves straight away ("saved", or
+// "queued" when the phone knows it has no signal) and hands a failure that
+// only arrives later (e.g. the server refusing it) to onLateError and to
+// any listener registered with onLocalWriteFailed, so it's never silent.
+const lateFailureListeners = new Set();
+
+export function onLocalWriteFailed(fn) {
+  lateFailureListeners.add(fn);
+  return () => lateFailureListeners.delete(fn);
+}
+
+export function localFirst(writePromise, { onLateError, label } = {}) {
+  Promise.resolve(writePromise).catch((err) => {
+    onLateError?.(err);
+    lateFailureListeners.forEach((fn) => {
+      try {
+        fn(err, label);
+      } catch {}
+    });
+  });
+  return Promise.resolve(typeof navigator !== "undefined" && navigator.onLine === false ? QUEUED : SAVED);
+}

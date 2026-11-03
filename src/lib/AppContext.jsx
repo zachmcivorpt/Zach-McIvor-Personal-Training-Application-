@@ -17,14 +17,13 @@ import {
   deleteDoc,
   getDoc,
   getDocs,
-  getDocsFromCache,
+  getDocFromCache,
   query,
   where,
   documentId,
   onSnapshot,
   writeBatch,
   deleteField,
-  runTransaction,
   arrayRemove,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -42,7 +41,16 @@ import { pickBestFoodForBarcode } from "./barcodeLookup";
 // this file (see importBuiltInFoods) to keep it out of the main bundle; a
 // static import from foodDatabase.js itself would defeat that.
 import { sanitizeFoodUnits } from "./foodUnits";
-import { savedOrQueued, SAVED } from "./offlineWrite";
+import { savedOrQueued, SAVED, localFirst } from "./offlineWrite";
+
+// Collections whose live listener has had at least one answer from the
+// server this session (not just the phone's cache). setNutritionForDate
+// uses it to know that a day missing from the phone's copy really doesn't
+// exist yet, so it can save straight away instead of asking the server.
+const serverSyncedKeys = new Set();
+// One save at a time per nutrition day, so two quick logs (a food then a
+// water tap, a scan right after a quick-add) each build on the other.
+const nutritionDayQueue = new Map();
 
 // Firestore rejects any field whose value is `undefined` (setDoc/updateDoc
 // throw synchronously with "Unsupported field value: undefined"), and old
@@ -374,6 +382,7 @@ export function AppProvider({ children }) {
     // "No clients yet" on the coach's roster, "Nothing scheduled" on a
     // client's calendar — even though the data was never actually lost.
     const pendingKeys = new Set();
+    serverSyncedKeys.clear();
     function markReceived(key) {
       if (key === "users") setUsersReady(true);
       if (pendingKeys.delete(key) && pendingKeys.size === 0) setDbReady(true);
@@ -408,15 +417,23 @@ export function AppProvider({ children }) {
       unsubs.push(() => unsub?.());
     }
 
-    function watch(name, key, constraints) {
+    // trackServerSync: also note when the server (not just the phone's
+    // cache) has answered — a metadata-only snapshot for that is used for
+    // the note alone, never re-rendering the app with identical data.
+    function watch(name, key, constraints, { trackServerSync = false } = {}) {
       pendingKeys.add(key);
       const colRef = collection(firestore, name);
       const q = constraints?.length ? query(colRef, ...constraints) : colRef;
+      let haveData = false;
       subscribeWithRetry((onOk, onErr) =>
         onSnapshot(
           q,
+          ...(trackServerSync ? [{ includeMetadataChanges: true }] : []),
           (snap) => {
             onOk();
+            if (trackServerSync && !snap.metadata?.fromCache) serverSyncedKeys.add(key);
+            if (trackServerSync && haveData && typeof snap.docChanges === "function" && snap.docChanges().length === 0) return;
+            haveData = true;
             setRaw((r) => ({ ...r, [key]: snap.docs.map((d) => ({ id: d.id, ...d.data() })) }));
             markReceived(key);
           },
@@ -519,7 +536,7 @@ export function AppProvider({ children }) {
       // just the groups they're a member of.
       watch("groups", "groups");
       watch("groupMessages", "groupMessages");
-      watch("nutritionLogs", "nutritionLogs");
+      watch("nutritionLogs", "nutritionLogs", undefined, { trackServerSync: true });
       watch("bodyMetrics", "bodyMetrics");
       watch("mealPlans", "mealPlans");
       watch("liveSessions", "liveSessions");
@@ -537,7 +554,7 @@ export function AppProvider({ children }) {
       watch("weighIns", "weighIns", [where("clientId", "==", uid)]);
       watch("scheduledWorkouts", "scheduledWorkouts", [where("clientId", "==", uid)]);
       watch("bodyStatsSchedules", "bodyStatsSchedules", [where("clientId", "==", uid)]);
-      watch("nutritionLogs", "nutritionLogs", [where("clientId", "==", uid)]);
+      watch("nutritionLogs", "nutritionLogs", [where("clientId", "==", uid)], { trackServerSync: true });
       watch("bodyMetrics", "bodyMetrics", [where("clientId", "==", uid)]);
       watch("mealPlans", "mealPlans", [where("clientId", "==", uid)]);
       // liveSessions/{clientId} — unlike its neighbors above, this rule
@@ -1618,8 +1635,10 @@ export function AppProvider({ children }) {
         // legitimately repeat multiple times a day.
         const id = workoutLogDocId(clientId, entry, () => newDocId("workoutLogs"));
         try {
-          // "queued" = no signal: kept on the phone, sends itself later (offlineWrite.js).
-          return await savedOrQueued(setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }), {
+          // Local-first (#126): shown and kept on the phone at once, sent to
+          // the server in the background; "queued" = the phone has no signal.
+          return await localFirst(setDoc(doc(firestore, "workoutLogs", id), { id, clientId, date: Date.now(), ...entry }), {
+            label: "workout",
             onLateError: (err) => logClientError(clientId, "Log workout (sent later)", err.message || "unknown error"),
           });
         } catch (err) {
@@ -1680,69 +1699,65 @@ export function AppProvider({ children }) {
       // (clientId__date) so each day's log is separate, mirroring the
       // scheduledWorkouts date-keyed pattern.
       //
-      // Runs as a real Firestore transaction — reading the day's doc fresh
-      // from the server inside the transaction, not the local onSnapshot
-      // cache — rather than a plain read-then-setDoc. The old version read
-      // `db.nutritionLogs` (a React state snapshot that can be a beat
-      // behind the server) and did a full overwrite: two adds close
-      // together — a barcode scan confirmed right after a quick-add, two
-      // devices/tabs open on the same client, or a scan whose lookup
-      // resolves just as another add is still in flight — could each read
-      // the same pre-update base and the second write would silently
-      // clobber the first add instead of summing with it. A transaction
-      // retries automatically against the real current doc when Firestore
-      // detects exactly that kind of conflicting concurrent write, so
-      // every add/remove is a true delta against whatever is actually
-      // saved, never a stale local copy.
+      // Local-first (2026-11-03, REGRESSION_TESTS.md #126). This used to be
+      // a server transaction: every food, water tap or edit waited for a
+      // round trip to the server before it appeared, which felt slow on
+      // mobile data. Now the change is applied to the phone's own copy of
+      // the day (the listener's cache, pending saves included) and saved
+      // with setDoc, which shows on screen at once and reaches the server
+      // in the background — online or not.
       //
-      // Also fixes a second bug found while rewriting this: `base` used to
-      // be hand-built from only {calories, protein, carbs, fat, water,
-      // meals}, silently dropping every micronutrient field (satFat,
-      // fiber, sugar, sodium, etc.) that was actually saved on the doc.
-      // addFood/removeFood read `base[key]` for each of those fields to
-      // compute a running total — with it always undefined, every add
-      // overwrote the day's micronutrient totals with just that one food's
-      // values instead of accumulating them. Passing the full saved
-      // document through (minus its own id/clientId/date, which get
-      // re-set below) fixes that for every field, not just macros.
-      //
-      // No signal: a transaction can't run at all offline (it has to read
-      // the server's copy first), so every food/water log in a gym with no
-      // reception used to fail with "Couldn't save". Offline (or when the
-      // transaction itself reports the server unreachable) this instead
-      // applies the same updater to the phone's own copy of the day — the
-      // cache already holds every one of this client's days via the
-      // nutritionLogs listener, pending local writes included, so several
-      // offline logs in a row still build on each other — and writes it
-      // with a plain setDoc, which the cache keeps and sends once there's a
-      // connection again (offlineWrite.js, same as finishing a workout
-      // offline). Resolves "saved" or "queued".
+      // What the transaction protected is kept:
+      // - two quick saves on this phone never overwrite each other: saves
+      //   to the same day run one after another (nutritionDayQueue), each
+      //   building on the last;
+      // - the full saved day is passed to the updater (every micronutrient
+      //   field, not just macros), so running totals stay correct;
+      // - a day missing from the phone is only treated as empty once the
+      //   server has answered the listener; before that it's read from the
+      //   server once.
+      // A failure that only arrives later is logged and shown (localFirst).
       async setNutritionForDate(clientId, date, updater) {
         const id = `${clientId}__${date}`;
         const ref = doc(firestore, "nutritionLogs", id);
         const strip = (data) => (({ id: _id, clientId: _cid, date: _d, ...rest }) => rest)(data);
-        async function writeFromPhoneCopy() {
-          const cached = await getDocsFromCache(query(collection(firestore, "nutritionLogs"), where("clientId", "==", clientId)));
-          const hit = cached.docs.find((d) => d.id === id);
-          const next = updater(hit ? strip(hit.data()) : null);
-          return savedOrQueued(setDoc(ref, { id, clientId, date, ...next }), {
+        const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+        async function currentDay() {
+          // The phone's copy, pending local saves included. Kept current by
+          // the nutritionLogs listener, so it's the same data on screen.
+          try {
+            const hit = await getDocFromCache(ref);
+            if (hit.exists()) return strip(hit.data());
+          } catch {}
+          // Not on the phone: it doesn't exist yet if the server has
+          // already answered the listener (or there's no signal to ask).
+          if (offline || serverSyncedKeys.has("nutritionLogs")) return null;
+          // Only right after opening, before the listener's first server
+          // answer: ask the server for this one day so nothing is replaced.
+          try {
+            const snap = await getDoc(ref);
+            return snap.exists() ? strip(snap.data()) : null;
+          } catch {
+            return null;
+          }
+        }
+        const run = async () => {
+          const next = updater(await currentDay());
+          // Shown on screen at once by the listener and kept on the phone;
+          // the server gets it in the background (offlineWrite.js).
+          return localFirst(setDoc(ref, { id, clientId, date, ...next }), {
+            label: "nutrition",
             onLateError: (err) => logClientError(clientId, "Log nutrition/water (sent later)", err.message || "unknown error"),
           });
-        }
+        };
+        const previous = nutritionDayQueue.get(id) || Promise.resolve();
+        const mine = previous.catch(() => {}).then(run);
+        nutritionDayQueue.set(id, mine);
+        mine.finally(() => {
+          if (nutritionDayQueue.get(id) === mine) nutritionDayQueue.delete(id);
+        }).catch(() => {});
         try {
-          if (typeof navigator !== "undefined" && navigator.onLine === false) return await writeFromPhoneCopy();
-          try {
-            await runTransaction(firestore, async (tx) => {
-              const snap = await tx.get(ref);
-              const base = snap.exists() ? strip(snap.data()) : null;
-              const next = updater(base);
-              tx.set(ref, { id, clientId, date, ...next });
-            });
-            return SAVED;
-          } catch (err) {
-            if (err?.code === "unavailable" || /offline/i.test(err?.message || "")) return await writeFromPhoneCopy();
-            throw err;
-          }
+          return await mine;
         } catch (err) {
           logClientError(clientId, "Log nutrition/water", err.message || "unknown error");
           throw new Error("Couldn't save — " + (err.message || "check your connection and try again."));
@@ -1926,7 +1941,8 @@ export function AppProvider({ children }) {
           const batch = writeBatch(firestore);
           batch.set(doc(firestore, "scheduledWorkouts", id), entry);
           if (previousId && previousId !== id) batch.delete(doc(firestore, "scheduledWorkouts", previousId));
-          await batch.commit();
+          // Local-first (#126): one batch, applied on the phone at once.
+          await localFirst(batch.commit(), { label: "workout" });
         } catch (err) {
           throw new Error("Couldn't save that workout — " + (err.message || "please try again."));
         }
@@ -1995,7 +2011,7 @@ export function AppProvider({ children }) {
             ...(entry.wod ? { wod: true } : {}),
           });
           batch.delete(doc(firestore, "scheduledWorkouts", workoutId));
-          await batch.commit();
+          await localFirst(batch.commit(), { label: "workout" });
         } catch (err) {
           throw new Error("Couldn't move that workout — " + (err.message || "please try again."));
         }
@@ -2017,9 +2033,13 @@ export function AppProvider({ children }) {
       // on a workout log (Trainerize's Edit Stats / Edit This Workout).
       // `extra` lets the same save also fix the session's name (dayLabel)
       // when it was logged under the wrong workout.
-      async updateWorkoutLogEntries(logId, entries, extra) {
+      // { localFirst: true } (the client app) returns at once instead of
+      // waiting for the server (#126); the coach console still waits.
+      async updateWorkoutLogEntries(logId, entries, extra, { localFirst: fast = false } = {}) {
         try {
-          return await savedOrQueued(updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) }));
+          const write = updateDoc(doc(firestore, "workoutLogs", logId), { entries, ...(extra || {}) });
+          if (fast) return await localFirst(write, { label: "workout" });
+          return await savedOrQueued(write);
         } catch (err) {
           throw new Error("Couldn't save your changes — " + (err.message || "check your connection and try again."));
         }

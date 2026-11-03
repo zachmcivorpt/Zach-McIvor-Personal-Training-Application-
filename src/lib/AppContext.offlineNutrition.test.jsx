@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 //
-// Logging food or water with no signal. setNutritionForDate used a
-// Firestore transaction, and a transaction can't run offline at all (it
-// has to read the server's copy first), so every log in a gym with no
-// reception failed with "Couldn't save". Offline it now applies the same
-// change to the phone's own copy of the day and writes it with setDoc,
-// which the phone keeps and sends later — resolving "queued".
+// Logging food or water. setNutritionForDate used a server transaction, so
+// every food, water tap or edit waited on a round trip to the server
+// (slow on mobile data, impossible offline). It is now local-first
+// (REGRESSION_TESTS.md #126): the change is applied to the phone's copy of
+// the day and saved with setDoc, which shows on screen at once; the call
+// returns without waiting for the server ("saved", or "queued" offline).
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
@@ -13,8 +13,8 @@ import { AppProvider, useApp } from "./AppContext";
 
 const fs = vi.hoisted(() => ({
   setDoc: null,
-  runTransaction: null,
-  getDocsFromCache: null,
+  getDocFromCache: null,
+  getDoc: null,
 }));
 
 vi.mock("./firebase", () => ({ auth: {}, db: {}, functions: {} }));
@@ -38,16 +38,16 @@ vi.mock("firebase/firestore", () => ({
   setDoc: (...a) => fs.setDoc(...a),
   updateDoc: vi.fn(() => new Promise(() => {})),
   deleteDoc: vi.fn(() => Promise.resolve()),
-  getDoc: vi.fn(() => Promise.resolve({ exists: () => false })),
+  getDoc: (...a) => fs.getDoc(...a),
   getDocs: vi.fn(() => Promise.resolve({ docs: [] })),
-  getDocsFromCache: (...a) => fs.getDocsFromCache(...a),
+  getDocsFromCache: vi.fn(() => Promise.resolve({ docs: [] })),
+  getDocFromCache: (...a) => fs.getDocFromCache(...a),
   query: (ref) => ref,
   where: vi.fn(),
   documentId: vi.fn(),
   onSnapshot: () => () => {},
   writeBatch: vi.fn(),
   deleteField: vi.fn(),
-  runTransaction: (...a) => fs.runTransaction(...a),
   arrayRemove: vi.fn(),
 }));
 
@@ -59,10 +59,21 @@ function Probe() {
 
 const CACHED_DAY = { id: "c1__2026-10-28", clientId: "c1", date: "2026-10-28", calories: 100, meals: { Breakfast: [{ id: "a", name: "Apple", cals: 100 }] } };
 
+// The phone's copy of each day: starts with CACHED_DAY and, like
+// Firestore's real cache, reflects every setDoc the moment it's made.
+let phone;
 beforeEach(() => {
-  fs.setDoc = vi.fn(() => new Promise(() => {})); // no signal: the server never answers
-  fs.runTransaction = vi.fn(() => Promise.reject(Object.assign(new Error("Failed to get document because the client is offline."), { code: "unavailable" })));
-  fs.getDocsFromCache = vi.fn(() => Promise.resolve({ docs: [{ id: CACHED_DAY.id, data: () => CACHED_DAY }] }));
+  phone = new Map([[CACHED_DAY.id, CACHED_DAY]]);
+  fs.setDoc = vi.fn((ref, data) => {
+    phone.set(ref.path.split("/")[1], data);
+    return new Promise(() => {}); // the server never answers in these tests
+  });
+  fs.getDocFromCache = vi.fn(async (ref) => {
+    const data = phone.get(ref.path.split("/")[1]);
+    if (!data) throw Object.assign(new Error("Failed to get document from cache."), { code: "unavailable" });
+    return { exists: () => true, data: () => data };
+  });
+  fs.getDoc = vi.fn(async () => ({ exists: () => false }));
 });
 
 afterEach(() => {
@@ -76,57 +87,71 @@ function addBanana(day) {
   return { ...base, calories: base.calories + 105, meals: { ...base.meals, Breakfast: [...(base.meals.Breakfast || []), { id: "b", name: "Banana", cals: 105 }] } };
 }
 
-describe("coached app: logging nutrition offline", () => {
-  it("when the transaction reports the server unreachable, builds on the phone's copy of the day and comes back queued", async () => {
-    vi.useFakeTimers();
+describe("coached app: logging nutrition is local-first (#126)", () => {
+  const written = () => fs.setDoc.mock.calls.filter(([ref]) => /nutritionLogs/.test(ref.path)).map((c) => c[1]);
+
+  it("online, returns 'saved' straight away without waiting for the server, building on the phone's copy", async () => {
     render(<AppProvider><Probe /></AppProvider>);
     let result = "still waiting";
     api.setNutritionForDate("c1", "2026-10-28", addBanana).then((r) => (result = r));
-    await act(async () => vi.advanceTimersByTimeAsync(5000));
-    expect(result).toBe("queued");
-    const written = fs.setDoc.mock.calls.find(([ref]) => /nutritionLogs/.test(ref.path))[1];
-    // The cached Apple is kept — the offline write builds on the phone's
-    // copy, never replaces the day with just the new food.
-    expect(written.meals.Breakfast.map((f) => f.name)).toEqual(["Apple", "Banana"]);
-    expect(written.calories).toBe(205);
-    expect(written).toMatchObject({ id: "c1__2026-10-28", clientId: "c1", date: "2026-10-28" });
+    await act(async () => {});
+    expect(result).toBe("saved"); // the server (setDoc's promise) never answered
+    const day = written()[0];
+    expect(day.meals.Breakfast.map((f) => f.name)).toEqual(["Apple", "Banana"]);
+    expect(day.calories).toBe(205);
+    expect(day).toMatchObject({ id: "c1__2026-10-28", clientId: "c1", date: "2026-10-28" });
   });
 
-  it("skips the transaction entirely when the phone already knows it's offline", async () => {
-    vi.useFakeTimers();
+  it("offline, comes back 'queued' and still builds on the phone's copy", async () => {
     vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
     render(<AppProvider><Probe /></AppProvider>);
-    let result = "still waiting";
-    api.setNutritionForDate("c1", "2026-10-28", addBanana).then((r) => (result = r));
-    await act(async () => vi.advanceTimersByTimeAsync(1000));
-    expect(result).toBe("queued");
-    expect(fs.runTransaction).not.toHaveBeenCalled();
+    await expect(api.setNutritionForDate("c1", "2026-10-28", addBanana)).resolves.toBe("queued");
+    expect(written()[0].meals.Breakfast.map((f) => f.name)).toEqual(["Apple", "Banana"]);
+    expect(fs.getDoc).not.toHaveBeenCalled();
   });
 
-  it("a day that isn't on the phone yet starts empty", async () => {
-    vi.useFakeTimers();
-    fs.getDocsFromCache = vi.fn(() => Promise.resolve({ docs: [] }));
+  it("two quick saves to the same day never overwrite each other", async () => {
     render(<AppProvider><Probe /></AppProvider>);
-    api.setNutritionForDate("c1", "2026-10-29", addBanana);
-    await act(async () => vi.advanceTimersByTimeAsync(5000));
-    expect(fs.setDoc.mock.calls.find(([ref]) => /nutritionLogs/.test(ref.path))[1].meals.Breakfast.map((f) => f.name)).toEqual(["Banana"]);
+    const addWater = (d) => ({ ...d, water: (d?.water || 0) + 0.25 });
+    await Promise.all([api.setNutritionForDate("c1", "2026-10-28", addBanana), api.setNutritionForDate("c1", "2026-10-28", addWater)]);
+    const last = written().at(-1);
+    expect(last.meals.Breakfast.map((f) => f.name)).toEqual(["Apple", "Banana"]);
+    expect(last.water).toBe(0.25);
   });
 
-  it("online, the transaction still does the save and nothing is written twice", async () => {
-    fs.runTransaction = vi.fn(async (_db, fn) => {
-      const tx = { get: async () => ({ exists: () => false }), set: vi.fn() };
-      await fn(tx);
-    });
+  it("a day not on the phone, before the server has answered the listener, is read from the server once so nothing is replaced", async () => {
+    fs.getDoc = vi.fn(async () => ({ exists: () => true, data: () => ({ id: "c1__2026-10-27", clientId: "c1", date: "2026-10-27", calories: 300, meals: { Breakfast: [{ id: "o", name: "Oats", cals: 300 }] } }) }));
+    render(<AppProvider><Probe /></AppProvider>);
+    await api.setNutritionForDate("c1", "2026-10-27", addBanana);
+    expect(fs.getDoc).toHaveBeenCalledTimes(1);
+    expect(written()[0].meals.Breakfast.map((f) => f.name)).toEqual(["Oats", "Banana"]);
+  });
+
+  it("a brand-new day starts empty", async () => {
+    render(<AppProvider><Probe /></AppProvider>);
+    await api.setNutritionForDate("c1", "2026-10-29", addBanana);
+    expect(written()[0].meals.Breakfast.map((f) => f.name)).toEqual(["Banana"]);
+  });
+
+  it("an updater that refuses (e.g. the entry is gone) is reported and nothing is written", async () => {
+    render(<AppProvider><Probe /></AppProvider>);
+    await expect(
+      api.setNutritionForDate("c1", "2026-10-28", () => {
+        throw new Error("That entry is no longer in your log");
+      })
+    ).rejects.toThrow(/Couldn't save — That entry is no longer in your log/);
+    expect(written()).toHaveLength(0);
+  });
+
+  it("a failure the server reports later isn't silent", async () => {
+    const { onLocalWriteFailed } = await import("./offlineWrite");
+    const seen = [];
+    const stop = onLocalWriteFailed((err, label) => seen.push([label, err.message]));
+    fs.setDoc = vi.fn(() => Promise.reject(new Error("Missing or insufficient permissions.")));
     render(<AppProvider><Probe /></AppProvider>);
     await expect(api.setNutritionForDate("c1", "2026-10-28", addBanana)).resolves.toBe("saved");
-    expect(fs.setDoc).not.toHaveBeenCalled();
-  });
-
-  it("any other failure is still reported, not swallowed", async () => {
-    fs.runTransaction = vi.fn(() => Promise.reject(Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" })));
-    render(<AppProvider><Probe /></AppProvider>);
-    await expect(api.setNutritionForDate("c1", "2026-10-28", addBanana)).rejects.toThrow(/Couldn't save/);
-    // (The failure itself is logged to clientErrors — that write is fine.)
-    expect(fs.setDoc.mock.calls.filter(([ref]) => /nutritionLogs/.test(ref.path))).toHaveLength(0);
+    await act(async () => {});
+    expect(seen).toEqual([["nutrition", "Missing or insufficient permissions."]]);
+    stop();
   });
 });

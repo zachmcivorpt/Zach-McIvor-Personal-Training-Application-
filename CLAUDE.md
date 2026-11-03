@@ -114,10 +114,13 @@ with numbers clients and coaches can trust. How it's built now:
   `entrySourceFood` handles older entries. Edits go through
   `updateFood` (keeps the id), multi-item logging through `addFoods`
   (one save).
-- **Writes must work offline**: everything goes through
-  `setNutritionForDate`, which falls back to the phone's cached copy +
-  `savedOrQueued` when there's no signal. Don't add a nutrition write
-  that only works online.
+- **Writes are local-first and must work offline** (#126): everything goes
+  through `setNutritionForDate`, which applies the change to the phone's
+  copy of the day and saves with `setDoc` without waiting for the server
+  (`localFirst`), one save per day at a time (`nutritionDayQueue`). Never
+  go back to a server transaction or an awaited server round trip for a
+  client save — that is what made logging feel slow. Don't add a
+  nutrition write that only works online.
 - **"Logged" means food logged** (`hasFoodLogged` in
   `src/lib/nutritionLog.js`), never "the day's doc exists" (water alone
   creates it). Coach adherence scores completed days (ending yesterday).
@@ -315,6 +318,25 @@ any Train Solo work from now on:
   deliveries before assuming a failed build.
 - Codemagic's ▶ on an old build row rebuilds that old commit; a build of
   the latest code is "Start new build" → branch `main`.
+
+## Speed: local-first saves in the coached client app (#126)
+
+- A client action never waits for the server. Wrap client saves in
+  `localFirst()` (`src/lib/offlineWrite.js`): it returns once Firestore's
+  on-phone cache has the write ("saved", or "queued" offline) and reports
+  a later server refusal through `onLocalWriteFailed` (ClientApp shows a
+  red toast). Where a function is shared with the coach console, opt in
+  from the client call site (`updateWorkoutLogEntries(..., { localFirst:
+  true })`, `NutritionTargetsCard saveLocalFirst`) and leave the coach's
+  waiting behaviour alone.
+- Keep coach-only code out of the client app's static imports: the
+  Nutrition Goal editor is `src/coach/NutritionTargetsCard.jsx` (never
+  import it from `CoachClientDetail`), `WorkoutEditor` is `React.lazy` in
+  ClientApp. Check `npx vite build` chunk sizes after touching imports.
+- Empty client lists use the shared `EMPTY_LIST`, not `|| []`, so memos
+  and effects don't recompute on every render.
+- The logo shows this phone's last confirmed answer immediately
+  (`appLogo.js`); only a first-ever open waits for the server.
 
 ## Data listeners (`src/lib/AppContext.jsx`)
 

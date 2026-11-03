@@ -14,6 +14,14 @@
 //
 // Known uploads map to small copies bundled with the app (cached and
 // available offline), so once confirmed they appear immediately.
+//
+// Speed (2026-11-03, REGRESSION_TESTS.md #126): waiting for the server on
+// EVERY open made the top-left logo appear late each time. Now, when this
+// phone has a server-confirmed answer from a previous open, that answer is
+// used straight away and the server is still asked in the background; if
+// the coach has changed the logo since, it swaps once. Only a phone that
+// has never had an answer (first open) waits, so it never shows a wrong
+// logo there.
 import { doc, onSnapshot } from "firebase/firestore";
 import { db as firestore, firebaseApp } from "./firebase";
 
@@ -57,7 +65,8 @@ function confirm(logos) {
   try {
     localStorage.setItem(MEMORY_KEY, JSON.stringify(logos));
   } catch {}
-  set({ ready: true, logos });
+  const same = state.ready && state.logos && state.logos.appLogoUrlOnDark === logos.appLogoUrlOnDark && state.logos.appLogoUrlOnLight === logos.appLogoUrlOnLight;
+  if (!same) set({ ready: true, logos });
 }
 
 function fallBackIfOffline() {
@@ -86,6 +95,8 @@ async function fetchLogosFromServer() {
 function start() {
   if (started) return;
   started = true;
+  const remembered = readMemory();
+  if (remembered) set({ ready: true, logos: pick(remembered) });
   try {
     onSnapshot(
       doc(firestore, "settings", "appDesign"),
@@ -98,9 +109,7 @@ function start() {
     );
   } catch {}
   fetchLogosFromServer()
-    .then((logos) => {
-      if (!state.ready) confirm(logos);
-    })
+    .then((logos) => confirm(logos))
     .catch(fallBackIfOffline);
   fallBackIfOffline();
   if (typeof window !== "undefined") window.addEventListener("offline", fallBackIfOffline);

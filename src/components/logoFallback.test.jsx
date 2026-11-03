@@ -70,6 +70,23 @@ describe("Logo — no flash", () => {
     expect(visibleSrc()).toBe(NEW);
   });
 
+  it("a phone with a confirmed logo from a previous open shows it at once, before the server answers (#126)", async () => {
+    localStorage.setItem("apexAppLogos", JSON.stringify({ appLogoUrlOnDark: NEW, appLogoUrlOnLight: null }));
+    render(<Logo variant="mark" tone="white" />);
+    await flush();
+    expect(visibleSrc()).toBe(NEW); // no server answer yet (fetch still pending, no snapshot)
+  });
+
+  it("…and if the coach has since changed it, swaps once the server confirms", async () => {
+    localStorage.setItem("apexAppLogos", JSON.stringify({ appLogoUrlOnDark: OLD, appLogoUrlOnLight: null }));
+    render(<Logo variant="mark" tone="white" />);
+    await flush();
+    expect(visibleSrc()).toBe(OLD);
+    await act(async () => emit(snap({ appLogoUrlOnDark: NEW }, false)));
+    await flush();
+    expect(visibleSrc()).toBe(NEW);
+  });
+
   it("falls back to the default mark, never a broken image", async () => {
     render(<Logo variant="mark" tone="white" />);
     await act(async () => emit(snap({ appLogoUrlOnDark: BROKEN }, false)));

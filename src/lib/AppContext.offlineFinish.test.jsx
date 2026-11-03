@@ -45,6 +45,7 @@ vi.mock("firebase/firestore", () => ({
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 let api;
@@ -54,13 +55,30 @@ function Probe() {
 }
 
 describe("coached app: finishing a workout offline", () => {
-  it("logWorkout comes back queued instead of waiting forever", async () => {
-    vi.useFakeTimers();
+  // Local-first since #126: finishing never waits for the server at all.
+  it("logWorkout returns at once while the server hasn't answered (saved online)", async () => {
     render(<AppProvider><Probe /></AppProvider>);
     let result = "still waiting";
     api.logWorkout("c1", { dayLabel: "Push", entries: [], durationMin: 40 }).then((r) => (result = r));
-    await act(async () => vi.advanceTimersByTime(5000));
+    await act(async () => {});
+    expect(result).toBe("saved");
+  });
+
+  it("logWorkout comes back queued instead of waiting forever when the phone has no signal", async () => {
+    vi.spyOn(window.navigator, "onLine", "get").mockReturnValue(false);
+    render(<AppProvider><Probe /></AppProvider>);
+    let result = "still waiting";
+    api.logWorkout("c1", { dayLabel: "Push", entries: [], durationMin: 40 }).then((r) => (result = r));
+    await act(async () => {});
     expect(result).toBe("queued");
+  });
+
+  it("the client app's edit of a logged workout returns at once too", async () => {
+    render(<AppProvider><Probe /></AppProvider>);
+    let result = "still waiting";
+    api.updateWorkoutLogEntries("log1", [], { sessionNote: "" }, { localFirst: true }).then((r) => (result = r));
+    await act(async () => {});
+    expect(result).toBe("saved");
   });
 
   it("an edit to a logged workout comes back queued too", async () => {

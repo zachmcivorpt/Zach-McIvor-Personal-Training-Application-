@@ -91,7 +91,7 @@ import {
 } from "recharts";
 import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
-import { QUEUED } from "../lib/offlineWrite";
+import { QUEUED, localFirst, onLocalWriteFailed } from "../lib/offlineWrite";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
@@ -154,8 +154,11 @@ import { MICRO_FIELDS, getAllFoods, unitsFor, scaleFoodByUnit } from "../lib/foo
 import { diverseBestMatches, matchPct, eligibleForSlot } from "../lib/mealMatch";
 import { matchesSearch } from "../lib/search";
 import { ShoppingListSheet } from "../components/ShoppingListSheet";
-import WorkoutEditor from "../coach/WorkoutEditor";
-import { NutritionTargetsCard } from "../coach/CoachClientDetail";
+// Only a coach browsing as this client edits workouts here, so the editor
+// (and the coach exercise screens it pulls in) loads when first opened,
+// not with every client's app start (#126).
+const WorkoutEditor = React.lazy(() => import("../coach/WorkoutEditor"));
+import { NutritionTargetsCard } from "../coach/NutritionTargetsCard";
 import { BarcodeScanSheet, PhotoEstimateSheet, CreateMealSheet, FoodQuantitySheet, QuickAddFoodSheet } from "./NutritionFeatures";
 import { AddFoodPage } from "./AddFoodPage";
 import { buildCorrectedFood } from "../lib/barcodeLookup";
@@ -3498,7 +3501,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
     if (!isNewDay) nextDays[editingWorkout.dayIndex] = day;
     else nextDays.push(day);
     try {
-      await updateClientPhase(currentUser.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] });
+      await localFirst(updateClientPhase(currentUser.id, phase.id, { weeks: [{ ...(phase.weeks?.[0] || { id: "w1", label: "Week 1" }), days: nextDays }] }), { label: "workout" });
       setEditingWorkout(null);
       showToast?.("Workout saved");
     } catch (err) {
@@ -3650,6 +3653,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
       {viewingAsClient && (
         <>
           {editingWorkout && (
+            <React.Suspense fallback={null}>
             <WorkoutEditor
               open
               day={editingWorkout.day}
@@ -3658,6 +3662,7 @@ function ClientProgramTab({ header = null, onPreviewDay, showToast }) {
               onSave={saveWorkout}
               showToast={showToast}
             />
+            </React.Suspense>
           )}
           <BottomSheet open={libraryPickerOpen} onClose={() => setLibraryPickerOpen(false)} title="Add from Workout Library">
             {(db.masterWorkouts || []).length === 0 ? (
@@ -3912,6 +3917,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
           </BottomSheet>
 
           {wodEditing && (
+            <React.Suspense fallback={null}>
             <WorkoutEditor
               open
               day={wodEditing.day}
@@ -3922,6 +3928,7 @@ function WorkoutsScreen({ todaySession, todayScheduledEntry, scheduledWorkoutsBy
               showDate
               dateHint={dateHint}
             />
+            </React.Suspense>
           )}
 
           <BottomSheet open={wodRemoveOpen} onClose={() => setWodRemoveOpen(false)} title="Remove today's workout?">
@@ -4685,7 +4692,7 @@ function NutritionGraphScreen({ open, onClose, nutritionByDateKey, targets, show
       </div>
 
       {viewingAsClient && (
-        <NutritionTargetsCard client={currentUser} showToast={showToast} open={targetsOpen} onClose={() => setTargetsOpen(false)} />
+        <NutritionTargetsCard client={currentUser} showToast={showToast} open={targetsOpen} onClose={() => setTargetsOpen(false)} saveLocalFirst />
       )}
     </FullScreenOverlay>
   );
@@ -7191,7 +7198,7 @@ function PreferencesSheet({ section, open, onClose, user }) {
     setError("");
     const nextPrefs = { ...prefs, goals, equipment, trainingDays, sessionLength, trainingNotes, dietType, nutritionNotes };
     try {
-      await updateUser(user.id, { preferences: nextPrefs });
+      await localFirst(updateUser(user.id, { preferences: nextPrefs }));
       notifyCoach(user.id, user.name, "preference_update", `${user.name.split(" ")[0]} updated their ${(PREF_TITLES[section] || "").toLowerCase()}.`);
       onClose();
     } catch (err) {
@@ -8935,6 +8942,11 @@ function loadActiveSession(userId) {
   }
 }
 
+// One shared empty list, so a client with no logs/messages yet doesn't hand
+// every memo and effect below a brand-new [] on each render (which made
+// them all recompute every time anything on screen changed) — #126.
+const EMPTY_LIST = [];
+
 export default function ClientApp() {
   const {
     currentUser,
@@ -9226,7 +9238,7 @@ export default function ClientApp() {
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
-  const thread = db.messages[currentUser.id] || [];
+  const thread = db.messages[currentUser.id] || EMPTY_LIST;
   const photos = db.progressPhotos[currentUser.id] || [];
   const weighIns = (db.weighIns || {})[currentUser.id] || [];
   const bodyMetricsForClient = (db.bodyMetrics || {})[currentUser.id] || [];
@@ -9239,7 +9251,7 @@ export default function ClientApp() {
   const dueCheckInsCount = ((db.formSchedules || {})[currentUser.id] || []).filter(
     (s) => s.active && isCheckInDue(s, checkInResponses)
   ).length;
-  const scheduledWorkoutsForClient = (db.scheduledWorkouts || {})[currentUser.id] || [];
+  const scheduledWorkoutsForClient = (db.scheduledWorkouts || {})[currentUser.id] || EMPTY_LIST;
   const scheduledWorkoutsByDate = useMemo(
     () => Object.fromEntries(scheduledWorkoutsForClient.map((w) => [w.date, w])),
     [scheduledWorkoutsForClient]
@@ -9327,10 +9339,10 @@ export default function ClientApp() {
   }
   const todayDateKey = localDateKey();
   const exercisesById = useMemo(() => Object.fromEntries(db.exercises.map((e) => [e.id, e])), [db.exercises]);
-  const logsForClient = db.workoutLogs[currentUser.id] || [];
+  const logsForClient = db.workoutLogs[currentUser.id] || EMPTY_LIST;
   const completedToday = isDateActuallyCompleted(todayDateKey, logsForClient);
   const todaySession = completedToday ? sessionForDate(todayDateKey, logsForClient) : scheduledToSession(scheduledWorkoutsByDate[todayDateKey]);
-  const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || [];
+  const nutritionLogsForClient = db.nutritionLogs[currentUser.id] || EMPTY_LIST;
   const nutritionByDateKey = useMemo(
     () => Object.fromEntries(nutritionLogsForClient.map((n) => [n.date, n])),
     [nutritionLogsForClient]
@@ -9447,6 +9459,18 @@ export default function ClientApp() {
     setToast({ show: true, message, tone: isError ? "error" : "success" });
     setTimeout(() => setToast({ show: false, message: "" }), isError ? 4500 : 1800);
   }
+
+  // Saves return as soon as they're on the phone (localFirst, #126); if the
+  // server later refuses one, say so instead of letting it vanish quietly.
+  useEffect(
+    () =>
+      onLocalWriteFailed((err, label) => {
+        const what = label === "nutrition" ? "your food log" : label === "workout" ? "your workout" : "that change";
+        showToast(`Couldn't sync ${what} — ${err?.message || "please try again"}`, true);
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   function startWorkout(session = todaySession) {
     if (!session) return;
@@ -9642,7 +9666,7 @@ export default function ClientApp() {
         // original duration (the real time actually spent training) still
         // stands, so it's left untouched here rather than overwritten with
         // however long this quick edit took.
-        saveStatus = await updateWorkoutLogEntries(editingLogId, entries, { sessionNote: sessionNote.trim() });
+        saveStatus = await updateWorkoutLogEntries(editingLogId, entries, { sessionNote: sessionNote.trim() }, { localFirst: true });
       } else {
         // session.date (present for anything started from a specific
         // scheduled day — today's own, or an overdue day picked up late from
@@ -9967,7 +9991,7 @@ export default function ClientApp() {
           <HomeScreen
             user={currentUser}
             onDeleteCardio={(log) =>
-              deleteWorkoutLog(log.id)
+              localFirst(deleteWorkoutLog(log.id), { label: "workout" })
                 .then(() => showToast(`${log.cardio?.activityLabel || "Cardio session"} removed`))
                 .catch((err) => {
                   showToast(err.message || "Couldn't remove — check your connection and try again", true);
@@ -9975,7 +9999,7 @@ export default function ClientApp() {
                 })
             }
             onUpdateCardio={(log, cardio) =>
-              updateWorkoutLogEntries(log.id, log.entries || [], { cardio, dayLabel: `${cardio.activityLabel} (Cardio)` })
+              updateWorkoutLogEntries(log.id, log.entries || [], { cardio, dayLabel: `${cardio.activityLabel} (Cardio)` }, { localFirst: true })
                 .then(() => showToast(`${cardio.activityLabel} updated`))
                 .catch((err) => showToast(err.message || "Couldn't save your changes — check your connection and try again", true))
             }
@@ -10084,7 +10108,7 @@ export default function ClientApp() {
             }}
             onDeleteWeighIn={(weighInId) => {
               if (!weighInId) return;
-              deleteWeighIn(currentUser.id, weighInId)
+              localFirst(deleteWeighIn(currentUser.id, weighInId))
                 .then(() => showToast("Weigh-in removed"))
                 .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again", true));
             }}
@@ -10095,23 +10119,23 @@ export default function ClientApp() {
             userId={currentUser.id}
             photos={photos}
             onAddPhoto={(clientId, dataUrl, caption, dateKey) =>
-              addProgressPhoto(clientId, dataUrl, caption, dateKey)
+              localFirst(addProgressPhoto(clientId, dataUrl, caption, dateKey))
                 .then(() => showToast("Photo saved"))
                 .catch((err) => showToast(err.message || "Couldn't save that photo — check your connection and try again", true))
             }
             onDeletePhoto={(clientId, photoId) =>
-              deleteProgressPhoto(clientId, photoId)
+              localFirst(deleteProgressPhoto(clientId, photoId))
                 .then(() => showToast("Photo removed"))
                 .catch((err) => showToast(err.message || "Couldn't remove that photo — check your connection and try again", true))
             }
             weighIns={weighIns}
             onLogWeight={(w, dateKey) =>
-              logWeight(currentUser.id, w, dateKey)
+              localFirst(logWeight(currentUser.id, w, dateKey))
                 .then(() => showToast("Weigh-in saved"))
                 .catch((err) => showToast(err.message || "Couldn't save — check your connection and try again", true))
             }
             onDeleteWeighIn={(id) =>
-              deleteWeighIn(currentUser.id, id)
+              localFirst(deleteWeighIn(currentUser.id, id))
                 .then(() => showToast("Weigh-in removed"))
                 .catch((err) => showToast(err.message || "Couldn't remove — check your connection and try again", true))
             }
