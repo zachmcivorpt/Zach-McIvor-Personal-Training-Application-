@@ -296,6 +296,12 @@ any Train Solo work from now on:
 - In the iPhone app the subscription is re-read from the server on every
   open (`syncSoloEntitlement`, #133), not only after the purchase reply —
   that reply can be lost if iOS drops the page under Apple's sheet.
+- The iPhone purchase flow is one premium sequence (#136,
+  `SoloPurchaseScreens.jsx`): Subscribe → solid full-screen "Opening the
+  App Store" (painted before Apple's sheet opens) → Apple's sheet →
+  reload → "Confirming your membership" → `SoloWelcomeScreen` ("Welcome
+  to Plus."). Keep these solid, not glass (they sit under Apple's
+  sheet), and never put a blank or black frame anywhere in that path.
 - In the iPhone app the page reloads itself once Apple's purchase sheet
   answers and shows the outcome after the reload (#134): WebKit can leave
   the page undrawn but still tappable under the sheet. Don't go back to

@@ -1,0 +1,115 @@
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { Check } from "lucide-react";
+import { MEASURE_BLUE } from "../theme";
+import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { PrimaryButton } from "../components/ui";
+import { TIER_LABELS } from "./soloAccess";
+
+// Full-screen states around Apple's In-App Purchase sheet (#136). The page
+// behind Apple's sheet is this calm, solid screen (no glass, nothing to
+// tap), and the reload after the sheet opens on the same screen, so the
+// whole purchase reads as one continuous moment: Opening the App Store →
+// Apple's sheet → Confirming your membership → Welcome to Plus. Solid
+// page colour on purpose: nothing for WebKit to composite while the sheet
+// is up (see #134/#135).
+
+function Shell({ children, label, testId }) {
+  const { dark } = useSoloTheme();
+  const t = SOLO_THEMES[dark ? "dark" : "light"];
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+  const node = (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
+      data-testid={testId}
+      className="fixed inset-0 z-[150] flex flex-col transition-opacity duration-300"
+      style={{
+        backgroundColor: t.bg,
+        color: t.text,
+        opacity: shown ? 1 : 0,
+        paddingTop: "env(safe-area-inset-top, 0px)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
+      {children(t, dark)}
+    </div>
+  );
+  return typeof document !== "undefined" ? createPortal(node, document.body) : node;
+}
+
+// "Opening the App Store" (before Apple's sheet) and "Confirming your
+// membership" (after the reload, while the server is asked).
+export function SoloPurchaseStage({ title, detail }) {
+  return (
+    <Shell label={title} testId="solo-purchase-stage">
+      {(t) => (
+        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
+          <img src={t.logo} alt="" aria-hidden="true" className="w-10 h-10 object-contain opacity-90" />
+          <p className="mt-8 text-[26px] leading-tight font-semibold tracking-[-0.02em]">{title}</p>
+          {detail && (
+            <p className="mt-2 text-sm" style={{ color: t.textMuted }}>
+              {detail}
+            </p>
+          )}
+          <div className="mt-8 h-[2px] w-24 overflow-hidden rounded-full" style={{ backgroundColor: t.panelBorder }}>
+            <div className="h-full w-1/2 rounded-full animate-pulse" style={{ backgroundColor: MEASURE_BLUE }} />
+          </div>
+        </div>
+      )}
+    </Shell>
+  );
+}
+
+const WELCOME_FEATURES = {
+  all_access: ["Every program in the catalogue", "New programs as they're released", "Suggested weights for every set", "Build your own multi-week programs"],
+  plus: ["Suggested weights for every set", "Build your own multi-week programs", "Full stats, PRs and Apple Health on Progress", "Recovery add-ons and unlimited saved sessions"],
+};
+
+// The purchase confirmed by the server: a proper welcome, not a message
+// tucked into the paywall.
+export function SoloWelcomeScreen({ tier, renewal, onDone }) {
+  const label = TIER_LABELS[tier] || "Train Solo";
+  return (
+    <Shell label={`Welcome to ${label}`} testId="solo-welcome">
+      {(t, dark) => (
+        <>
+          <div className="flex-1 flex flex-col justify-center px-6">
+            <img src={t.logo} alt="" aria-hidden="true" className="w-9 h-9 object-contain opacity-90" />
+            <p className="mt-10 text-[11px] font-semibold tracking-[0.16em] uppercase" style={{ color: t.textMuted }}>
+              Membership active
+            </p>
+            <h1 className="mt-2 text-[40px] leading-[1.05] font-semibold tracking-[-0.035em]">
+              Welcome to
+              <br />
+              {label}.
+            </h1>
+            {renewal && (
+              <p className="mt-3 text-sm" style={{ color: t.textMuted }}>
+                {renewal}
+              </p>
+            )}
+            <ul className="mt-10 border-t" style={{ borderColor: t.panelBorder }}>
+              {(WELCOME_FEATURES[tier] || []).map((f) => (
+                <li key={f} className="flex items-center gap-3 py-3.5 border-b text-[15px]" style={{ borderColor: t.panelBorder }}>
+                  <Check size={16} strokeWidth={2.5} color={MEASURE_BLUE} className="shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="px-6 pb-6 pt-2">
+            <PrimaryButton dark={dark} className="w-full" onClick={onDone}>
+              START TRAINING
+            </PrimaryButton>
+          </div>
+        </>
+      )}
+    </Shell>
+  );
+}

@@ -7,6 +7,7 @@ import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
 import { BottomSheet, PrimaryButton } from "../components/ui";
 import { PLANS, TIER_LABELS, formatPlanPrice, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { inIosApp } from "./appShell";
+import { SoloPurchaseStage, SoloWelcomeScreen } from "./SoloPurchaseScreens";
 import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, restorePurchases, manageAppleSubscription } from "../lib/purchases";
 
 // The Train Solo paywall (ROADMAP.txt step 2): Plus and All Access, yearly
@@ -61,6 +62,10 @@ const TIER_FEATURES = {
 // from the saved copy) and shows the outcome after the reload.
 const PURCHASE_OUTCOME_KEY = "apexSoloPurchaseOutcome";
 export const paywallPage = { reload: () => window.location.reload() };
+let PURCHASE_RECHECK_MS = 2500;
+export function setPurchaseRecheckMsForTests(ms) {
+  PURCHASE_RECHECK_MS = ms;
+}
 
 function rememberPurchaseOutcome(outcome) {
   try {
@@ -90,9 +95,13 @@ export function SoloPaywallProvider({ children }) {
     []
   );
   const value = useMemo(() => ({ openPaywall }), [openPaywall]);
-  const { soloAuthUser, refreshSoloEntitlement } = useSoloApp();
+  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement } = useSoloApp();
   const [outcome] = useState(takePurchaseOutcome);
   const signedIn = !!soloAuthUser;
+  // After the reload: "confirming" while the server is asked, then the
+  // welcome screen for the plan it confirms (#136).
+  const [confirming, setConfirming] = useState(() => !!outcome?.ok);
+  const [welcomeTier, setWelcomeTier] = useState(null);
 
   // The result of a purchase made just before the reload above.
   useEffect(() => {
@@ -101,18 +110,47 @@ export function SoloPaywallProvider({ children }) {
       openPaywall({ tier: outcome.tier, notice: outcome.error });
       return;
     }
+    let stopped = false;
     const notReached = "Apple confirmed your purchase, but it hasn't reached your account yet. Try Restore purchases in a minute.";
-    refreshSoloEntitlement()
-      .then((r) => {
-        const got = r?.tier;
-        openPaywall({ tier: outcome.tier, notice: got && got !== "free" ? `You're in — welcome to ${TIER_LABELS[got]}.` : notReached });
-      })
-      .catch(() => openPaywall({ tier: outcome.tier, notice: notReached }));
+    const ask = () => refreshSoloEntitlement().then((r) => r?.tier).catch(() => null);
+    (async () => {
+      let got = await ask();
+      // RevenueCat can take a moment to see a brand-new purchase.
+      if (!got || got === "free") {
+        await new Promise((r) => setTimeout(r, PURCHASE_RECHECK_MS));
+        if (stopped) return;
+        got = await ask();
+      }
+      if (stopped) return;
+      setConfirming(false);
+      if (got && got !== "free") setWelcomeTier(got);
+      else openPaywall({ tier: outcome.tier, notice: notReached });
+    })();
+    return () => {
+      stopped = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn]);
+
+  // Never leave the confirming screen up (e.g. signed out meanwhile).
+  useEffect(() => {
+    if (!confirming) return;
+    const id = setTimeout(() => setConfirming(false), 20000);
+    return () => clearTimeout(id);
+  }, [confirming]);
+
+  const renewal = renewalText(planRenewal(soloEntitlement));
   return (
     <PaywallCtx.Provider value={value}>
       {children}
+      {confirming && <SoloPurchaseStage title="Confirming your membership" detail="One moment." />}
+      {welcomeTier && (
+        <SoloWelcomeScreen
+          tier={welcomeTier}
+          renewal={renewal ? `${renewal} · App Store` : ""}
+          onDone={() => setWelcomeTier(null)}
+        />
+      )}
       <SoloPaywallSheet request={request} onClose={() => setRequest(null)} />
     </PaywallCtx.Provider>
   );
@@ -128,6 +166,9 @@ function SoloPaywallSheet({ request, onClose }) {
   const [interval, setInterval_] = useState("year");
   const [tier, setTier] = useState("all_access");
   const [busy, setBusy] = useState(false);
+  // Apple's sheet is about to open / open: the membership sheet gives way
+  // to a calm full-screen "Opening the App Store" (#136).
+  const [openingStore, setOpeningStore] = useState(false);
   const [message, setMessage] = useState("");
   const [storeProducts, setStoreProducts] = useState(null);
   // Why the App Store returned no subscriptions (e.g. the Paid Apps
@@ -190,6 +231,10 @@ function SoloPaywallSheet({ request, onClose }) {
         // Whatever Apple's sheet answered, reload so the page is drawn
         // again, and show the outcome after (#134).
         let outcome;
+        setOpeningStore(true);
+        // Let that screen paint (the iPhone app pictures it behind Apple's
+        // sheet, #135) before Apple's sheet opens.
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
         try {
           await purchasePlan(plan, soloAuthUser?.uid);
           outcome = { ok: true, tier };
@@ -255,7 +300,9 @@ function SoloPaywallSheet({ request, onClose }) {
   const canManageHere = store === "stripe" ? !iosApp : store === "apple";
 
   return (
-    <BottomSheet open={open} onClose={onClose} title={soloTier === "free" ? "Train Solo Membership" : "Your membership"} dark={dark} surface={paywallSurface(dark)} backdropClassName="bg-black/10">
+    <>
+    {openingStore && <SoloPurchaseStage title="Opening the App Store" detail="Complete your purchase in Apple's window." />}
+    <BottomSheet open={open && !openingStore} onClose={onClose} title={soloTier === "free" ? "Train Solo Membership" : "Your membership"} dark={dark} surface={paywallSurface(dark)} backdropClassName="bg-black/10">
       <div style={{ color: t.text }}>
         {request?.reason && (
           <p className="text-sm mb-4 leading-relaxed" style={{ color: t.textMuted }}>
@@ -417,5 +464,6 @@ function SoloPaywallSheet({ request, onClose }) {
         </div>
       </div>
     </BottomSheet>
+    </>
   );
 }

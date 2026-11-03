@@ -54,7 +54,8 @@ beforeEach(async () => {
   ctx = baseCtx();
   delete window.webkit;
   sessionStorage.clear();
-  const { paywallPage } = await import("./SoloPaywall");
+  const { paywallPage, setPurchaseRecheckMsForTests } = await import("./SoloPaywall");
+  setPurchaseRecheckMsForTests(5);
   reloadSpy = vi.spyOn(paywallPage, "reload").mockImplementation(() => {});
 });
 afterEach(() => {
@@ -234,21 +235,36 @@ describe("inside the iPhone app", () => {
       fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
       await screen.findByText("$179.99");
       fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
+      // Before Apple's sheet: a calm full-screen "Opening the App Store",
+      // with the glass membership sheet gone (#136).
+      await screen.findByText("Opening the App Store");
       await waitFor(() => expect(reloadSpy).toHaveBeenCalledTimes(1));
       // No second purchase from a tap while the page reloads.
       await new Promise((r) => setTimeout(r, 20));
-      const buyButton = screen.getAllByRole("button").find((b) => /free trial|subscribe|wait|…/i.test(b.textContent));
-      expect(buyButton.disabled).toBe(true);
+      const buyButton = screen.queryAllByRole("button", { hidden: true }).find((b) => /free trial|subscribe|moment/i.test(b.textContent));
+      if (buyButton) expect(buyButton.disabled).toBe(true);
+      expect(screen.getByTestId("solo-purchase-stage")).toBeTruthy();
       cleanup(); // the reload
     }
 
-    it("a purchase reloads the page, then shows the plan the server confirms", async () => {
+    it("a purchase reloads the page, then welcomes them to the plan the server confirms", async () => {
       nativeWith({ result: { ok: true } });
       await buyAllAccess();
-      ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => Promise.resolve({ tier: "all_access" })) });
+      let answer;
+      ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => new Promise((r) => { answer = r; })) });
       await renderProgram("p1");
-      await screen.findByText("You're in — welcome to All Access.");
+      // The reload opens on "Confirming", never on the paywall or a blank page (#136).
+      expect(screen.getByTestId("solo-purchase-stage").textContent).toMatch(/Confirming your membership/);
+      expect(screen.queryByText("Train Solo Membership")).toBe(null);
+      await waitFor(() => expect(answer).toBeTruthy());
+      answer({ tier: "all_access" });
+      const welcome = await screen.findByTestId("solo-welcome");
+      expect(welcome.textContent).toMatch(/Welcome to\s*All Access\./);
+      expect(screen.queryByTestId("solo-purchase-stage")).toBe(null);
+      expect(screen.queryByText("Train Solo Membership")).toBe(null);
       expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(1);
+      fireEvent.click(screen.getByRole("button", { name: "START TRAINING" }));
+      await waitFor(() => expect(screen.queryByTestId("solo-welcome")).toBe(null));
       // Shown once: the next open of the app doesn't repeat it.
       cleanup();
       ctx = baseCtx({ soloGatesLive: true });
@@ -264,6 +280,19 @@ describe("inside the iPhone app", () => {
       ctx = baseCtx({ soloGatesLive: true });
       await renderProgram("p1");
       await screen.findByText(/Apple confirmed your purchase, but it hasn't reached your account yet/);
+      // Asked twice (RevenueCat can lag a moment) before saying so.
+      expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(2);
+      expect(screen.queryByTestId("solo-welcome")).toBe(null);
+      expect(screen.queryByTestId("solo-purchase-stage")).toBe(null);
+    });
+
+    it("a server that catches up on the second ask still welcomes them", async () => {
+      nativeWith({ result: { ok: true } });
+      await buyAllAccess();
+      let n = 0;
+      ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => Promise.resolve({ tier: ++n === 1 ? "free" : "plus" })) });
+      await renderProgram("p1");
+      expect((await screen.findByTestId("solo-welcome")).textContent).toMatch(/Welcome to\s*Plus\./);
     });
 
     it("an App Store error is shown after the reload; a cancel shows nothing", async () => {
