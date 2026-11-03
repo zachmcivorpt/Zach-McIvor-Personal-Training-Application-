@@ -33,7 +33,8 @@ export function estMaxSeries(logs = [], exercisesById = {}) {
       const best = Math.max(...points.map((p) => p.value));
       return { exerciseId: l.exerciseId, name: l.name, points, first, latest, best, change: Math.round((latest - first) * 10) / 10 };
     })
-    // Lifts they've done most often first; a chart needs two sessions.
+    // A chart needs two sessions. Their heaviest lifts first (squat,
+    // deadlift…), so it opens on a big lift, not the most-logged accessory.
     .filter((l) => l.points.length >= 2)
-    .sort((a, b) => b.points.length - a.points.length || b.latest - a.latest || a.name.localeCompare(b.name));
+    .sort((a, b) => b.best - a.best || b.points.length - a.points.length || a.name.localeCompare(b.name));
 }

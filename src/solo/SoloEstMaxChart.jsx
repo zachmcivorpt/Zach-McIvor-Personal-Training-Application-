@@ -56,7 +56,7 @@ export function SoloEstMaxChart({ logs, exercisesById, dark }) {
                   {lift.name} · est. 1-rep max
                 </p>
               </div>
-              <p className="text-sm font-semibold tabular-nums" style={{ color: lift.change > 0 ? MEASURE_BLUE : muted }} data-testid="est-max-change">
+              <p className="text-sm font-semibold tabular-nums whitespace-nowrap pl-3" style={{ color: lift.change > 0 ? MEASURE_BLUE : muted }} data-testid="est-max-change">
                 {lift.change > 0 ? "+" : lift.change < 0 ? "−" : ""}
                 {kg(Math.abs(lift.change))} kg since {fmtDate(lift.points[0].date)}
               </p>

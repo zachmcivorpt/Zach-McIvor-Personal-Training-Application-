@@ -26,7 +26,7 @@ describe("estMaxSeries", () => {
     expect(estMaxSeries(logs, ex).map((l) => l.name)).toEqual(["Back Squat"]);
   });
 
-  it("ignores bodyweight-only sets, warm-ups and zero reps; orders by sessions logged", () => {
+  it("ignores bodyweight-only sets, warm-ups and zero reps; heaviest lift first", () => {
     const logs = [1, 2, 3].map((n) => ({
       id: "l" + n,
       date: day(n),
@@ -39,8 +39,8 @@ describe("estMaxSeries", () => {
     }));
     logs.push({ id: "l4", date: day(5), entries: [{ exerciseId: "sq", sets: [{ weight: 110, reps: 1 }] }] });
     const lifts = estMaxSeries(logs, ex);
-    expect(lifts.map((l) => l.name)).toEqual(["Bench Press", "Back Squat"]);
-    expect(lifts[0].points.map((p) => p.value)).toEqual([61, 62, 63]);
+    expect(lifts.map((l) => l.name)).toEqual(["Back Squat", "Bench Press"]);
+    expect(lifts[1].points.map((p) => p.value)).toEqual([61, 62, 63]);
   });
 });
 
