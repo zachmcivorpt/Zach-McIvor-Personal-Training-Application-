@@ -41,6 +41,8 @@ export function SwitchProgramSheet({ open, onClose, programName, resumeWeek = nu
   const resuming = !!resumeWeek;
   return (
     <BottomSheet open={open} onClose={onClose} title={resuming ? "Resume program" : "Start program"} dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
+      {/* Sheets open outside the page: give their text the theme colour, or it falls back to black (dark mode, #146). */}
+      <div style={{ color: t.text }}>
       <p className={SOLO_TYPE.eyebrow} style={{ color: t.textMuted }}>
         {current ? "Your new program" : "Your program"}
       </p>
@@ -87,6 +89,7 @@ export function SwitchProgramSheet({ open, onClose, programName, resumeWeek = nu
           Keep it for later
         </SoloTextButton>
       )}
+      </div>
     </BottomSheet>
   );
 }
@@ -102,6 +105,8 @@ const GUIDE = [
 export function ProgramsGuideSheet({ open, onClose, dark, t }) {
   return (
     <BottomSheet open={open} onClose={onClose} title="How your programs work" dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
+      {/* Sheets open outside the page: give their text the theme colour, or it falls back to black (dark mode, #146). */}
+      <div style={{ color: t.text }}>
       <ol className="border-t" style={{ borderColor: t.panelBorder }}>
         {GUIDE.map(([title, body], i) => (
           <li key={title} className="flex gap-4 py-4 border-b" style={{ borderColor: t.panelBorder }}>
@@ -120,6 +125,7 @@ export function ProgramsGuideSheet({ open, onClose, dark, t }) {
       <SoloButton t={t} className="mt-7" onClick={onClose}>
         Got it
       </SoloButton>
+      </div>
     </BottomSheet>
   );
 }
@@ -150,6 +156,8 @@ export function PlanSessionSheet({ open, onClose, session, days, suggested, onCo
   }
   return (
     <BottomSheet open={open} onClose={onClose} title="Plan this session" dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
+      {/* Sheets open outside the page: give their text the theme colour, or it falls back to black (dark mode, #146). */}
+      <div style={{ color: t.text }}>
       <p className={SOLO_TYPE.eyebrow} style={{ color: t.textMuted }}>
         Which day?
       </p>
@@ -179,6 +187,7 @@ export function PlanSessionSheet({ open, onClose, session, days, suggested, onCo
       <SoloButton t={t} className="mt-7" onClick={confirm} disabled={busy || !pick}>
         {busy ? "One moment…" : "Add to calendar"}
       </SoloButton>
+      </div>
     </BottomSheet>
   );
 }

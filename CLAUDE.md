@@ -84,6 +84,9 @@ rather than inventing new colors per screen:
   names itself. Own sessions go on a day through the Plan sheet with the
   best day pre-picked (`plannedSessions`). Don't add steps (date pickers,
   ordering, required names) back into these flows.
+- **Train Solo sheet content always sets its text colour** (#146): wrap a
+  sheet's content in `style={{ color: t.text }}`. A BottomSheet opens
+  outside the page, so uncoloured text falls back to black (dark mode).
 - **One-time sheets mark themselves seen when shown**, on the profile and
   on the phone, never only on close (#142). New Train Solo pop-ups use
   `soloClearSheetGlass` + `CLEAR_SHEET_BACKDROP`.

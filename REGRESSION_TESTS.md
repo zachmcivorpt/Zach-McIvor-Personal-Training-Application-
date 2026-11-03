@@ -2500,6 +2500,11 @@ Train Solo only; nothing in the coach console or the coached client app changed.
 - **Fix**: `SoloUI.jsx` keeps #143's smaller sizes with the original weights. Titles, figures, rows and labels are semibold (figures 28px, the recap headline 44px); `SoloButton` is bold ALL CAPS again (13px, `rounded-2xl` like `PrimaryButton`) and `SoloTextButton` is semibold. The leftover light and medium spots go back to semibold or bold: the run-through numerals (plain 1 / 2 / 3), the Plan sheet's day boxes (bordered, semibold), the purchase screens' titles, "Your first session", the builder's weekday labels, the recap's small figures and gains.
 - **Tests**: button names are matched on their text (the caps come from CSS), so the existing tests still apply; Train Solo suite passes; `vite build` clean.
 
+### 146. Dark mode: black text on the new Train Solo sheets (owner screenshots, 2026-11-03)
+- **Problem**: in dark mode, "How your programs work" showed its three headings (One program at a time…) and the Resume / Start program sheet showed the program's name in black on charcoal. Bottom sheets open outside the page (`FullScreenOverlay`), so text without its own colour fell back to the document's black, not the Solo theme's white.
+- **Fix**: `SoloProgramSwitch.jsx`: the content of the switch-program, run-through and Plan sheets sits in a wrapper with `color: t.text`, so every line without its own colour follows the theme (the Program complete Share sheet does the same).
+- **Tests**: `src/solo/sheetsDarkMode.test.jsx` renders all three sheets in dark mode and checks each heading and title resolves to the theme's white; it fails without the fix.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
