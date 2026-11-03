@@ -1,44 +1,46 @@
 // @vitest-environment jsdom
-// #148: the muscle map in My Training — a slim row that opens the full map.
+// #148: the muscle map card on Progress.
 import React from "react";
 import { afterEach, describe, expect, it } from "vitest";
-import { render, screen, fireEvent, within, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { SoloMuscleMapCard, daysSinceLastSession } from "./SoloMuscleMap";
+import { MuscleBody, TRAINED_RED, READY_BLUE, muscleStyle } from "./MuscleBody";
+
 afterEach(cleanup);
-import { SoloMuscleMapRow, daysSinceLastSession } from "./SoloMuscleMap";
-import { MuscleBody, TRAINED_RED, MUSCLE_IDLE, muscleFill } from "./MuscleBody";
-import { SOLO_THEMES } from "./SoloThemeContext";
 
 const ex = { bp: { id: "bp", name: "Bench Press", category: "Chest" }, sq: { id: "sq", name: "Back Squat", category: "Legs" } };
 const sets = (n) => Array.from({ length: n }, () => ({ weight: 60, reps: 8 }));
 
-describe("muscle map row", () => {
-  it("names the trained muscles in red and opens the map listing sets", () => {
+describe("muscle map card", () => {
+  it("lists trained muscles (red) with sets and ready ones (blue), with the two figures", () => {
     const logs = [{ date: Date.now() - 20 * 3600e3, entries: [{ exerciseId: "bp", sets: sets(4) }] }];
-    const t = SOLO_THEMES.dark;
-    render(<SoloMuscleMapRow logs={logs} exercisesById={ex} dark t={t} />);
-    const row = screen.getByTestId("muscle-map-row");
-    expect(row.textContent).toContain("Trained: Chest, Shoulders, Triceps");
-    expect(within(row).getByText("Trained:").style.color).toBe("rgb(255, 77, 87)");
-
-    fireEvent.click(row);
-    const list = screen.getByTestId("muscle-map-list");
-    expect(list.textContent).toContain("Chest4 sets · 20 h ago");
-    expect(list.textContent).toContain("Triceps2 sets");
-    expect(screen.getByText(/Ready:/).parentElement.textContent).toContain("Quads");
-    // Large figures on the panel: days since the last session, 11 groups ready.
+    render(<SoloMuscleMapCard logs={logs} exercisesById={ex} dark />);
+    const trained = screen.getByTestId("muscle-map-trained");
+    expect(trained.textContent).toBe("Trained Chest 4 · Shoulders 2 · Triceps 2");
+    expect(trained.firstChild.style.color).toBe("rgb(255, 77, 87)");
+    const ready = screen.getByTestId("muscle-map-ready");
+    expect(ready.textContent).toContain("Quads");
+    expect(ready.firstChild.style.color).toBe("rgb(47, 143, 255)");
     expect(screen.getByText(/Days since/).previousSibling.textContent).toBe(String(daysSinceLastSession(logs)));
-    expect(screen.getByText(/Muscle groups/).previousSibling.textContent).toBe("11");
-    // Front / Back switch.
-    fireEvent.click(screen.getByRole("tab", { name: "back" }));
-    expect(document.querySelector('[data-muscle="lats"]')).not.toBe(null);
-    // Sheet text follows the theme (dark mode isn't black-on-glass, #146).
-    expect(list.parentElement.style.color).not.toBe("");
+    const readyFigure = screen.getByText(/Muscle groups/).previousSibling;
+    expect(readyFigure.textContent).toBe("11");
+    expect(readyFigure.style.color).toBe("rgb(47, 143, 255)");
+    // Text follows the theme.
+    expect(screen.getByTestId("muscle-map").style.color).not.toBe("");
   });
 
-  it("says everything's ready when nothing was trained in the last 3 days", () => {
-    const logs = [{ date: Date.now() - 100 * 3600e3, entries: [{ exerciseId: "sq", sets: sets(5) }] }];
-    render(<SoloMuscleMapRow logs={logs} exercisesById={ex} t={SOLO_THEMES.light} />);
-    expect(screen.getByTestId("muscle-map-row").textContent).toContain("everything's ready");
+  it("Front / Back switch shows the back muscles", () => {
+    render(<SoloMuscleMapCard logs={[]} exercisesById={ex} />);
+    expect(document.querySelector('[data-muscle="lats"]')).toBe(null);
+    fireEvent.click(screen.getByRole("tab", { name: "back" }));
+    for (const m of ["lats", "glutes", "hamstrings", "lowerBack", "triceps"]) expect(document.querySelector(`[data-muscle="${m}"]`)).not.toBe(null);
+  });
+
+  it("nothing trained in the last 3 days: says so, everything ready, no days figure without logs", () => {
+    render(<SoloMuscleMapCard logs={[]} exercisesById={ex} />);
+    expect(screen.getByTestId("muscle-map-trained").textContent).toContain("nothing in the last 3 days");
+    expect(screen.getByText(/Muscle groups/).previousSibling.textContent).toBe("14");
+    expect(screen.getByText(/Days since/).previousSibling.textContent).toBe("–");
   });
 });
 
@@ -52,16 +54,30 @@ describe("days since last session", () => {
 });
 
 describe("the body", () => {
-  it("draws trained muscles red (deeper with more sets), others grey, both sides mirrored", () => {
+  it("trained muscles red (deeper with more sets), ready ones blue", () => {
     const { container } = render(<MuscleBody view="front" levels={{ chest: 1, quads: 0.45 }} />);
-    expect(container.querySelector('[data-muscle="chest"] path').getAttribute("fill")).toBe(TRAINED_RED);
-    expect(container.querySelector('[data-muscle="abs"] path').getAttribute("fill")).toBe(MUSCLE_IDLE);
-    const light = container.querySelector('[data-muscle="quads"] path').getAttribute("fill");
-    expect(light).not.toBe(MUSCLE_IDLE);
-    expect(light).not.toBe(TRAINED_RED);
-    expect(muscleFill(0.8)).not.toBe(light);
-    expect(container.querySelectorAll('[data-muscle="chest"] path')).toHaveLength(2); // both sides
-    const back = render(<MuscleBody view="back" levels={{}} />).container;
-    for (const m of ["lats", "glutes", "hamstrings", "lowerBack", "triceps"]) expect(back.querySelector(`[data-muscle="${m}"]`)).not.toBe(null);
+    const chest = container.querySelector('[data-muscle="chest"] path');
+    expect(chest.getAttribute("fill")).toBe(TRAINED_RED);
+    expect(Number(chest.getAttribute("fill-opacity"))).toBe(1);
+    const quad = container.querySelector('[data-muscle="quads"] path');
+    expect(quad.getAttribute("fill")).toBe(TRAINED_RED);
+    expect(Number(quad.getAttribute("fill-opacity"))).toBeLessThan(1);
+    expect(container.querySelector('[data-muscle="abs"] path').getAttribute("fill")).toBe(READY_BLUE);
+    expect(muscleStyle(0).fill).toBe(READY_BLUE);
+  });
+
+  it("draws every head: 4 quads, 3 hamstrings, 2 biceps, 2 triceps, delts, calves 2 heads + soleus", () => {
+    const heads = (c, m) => c.querySelectorAll(`[data-muscle="${m}"] path`).length / 2; // mirrored
+    const front = render(<MuscleBody view="front" />).container;
+    expect(heads(front, "quads")).toBe(4);
+    expect(heads(front, "biceps")).toBe(2);
+    expect(heads(front, "shoulders")).toBe(2);
+    expect(heads(front, "chest")).toBe(2);
+    expect(heads(front, "abs")).toBe(4);
+    const back = render(<MuscleBody view="back" />).container;
+    expect(heads(back, "hamstrings")).toBe(3);
+    expect(heads(back, "triceps")).toBe(2);
+    expect(heads(back, "calves")).toBe(3);
+    expect(heads(back, "glutes")).toBe(2);
   });
 });

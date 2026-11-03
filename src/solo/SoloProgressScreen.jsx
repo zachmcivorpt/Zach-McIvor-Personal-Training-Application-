@@ -3,6 +3,8 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import { Trophy, Lock } from "lucide-react";
 import { canUse } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
+import { SoloMuscleMapCard } from "./SoloMuscleMap";
+import { SoloEstMaxChart } from "./SoloEstMaxChart";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { Card } from "../components/ui";
@@ -238,6 +240,10 @@ export default function SoloProgressScreen() {
             </div>
           </Card>
           )}
+
+          {fullStats && <SoloEstMaxChart logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} />}
+
+          <SoloMuscleMapCard logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} />
 
           <ConsistencyHeatmap logs={soloWorkoutLogs} scheduledWorkouts={[]} dark={dark} />
 

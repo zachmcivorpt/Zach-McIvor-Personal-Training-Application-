@@ -122,13 +122,15 @@ rather than inventing new colors per screen:
   `artworkUrl`, otherwise the plain cover gradient + APEX mark.
 - Spelling is "Program", never "Programme".
 - **Muscle map** (#148, `SoloMuscleMap.jsx`, `MuscleBody.jsx`,
-  `muscleMap.js`): a slim row in My Training, never a big card; opens a
-  clear-glass sheet. The body is a solid anatomical figure (charcoal
-  silhouette, grey muscles, dark seams) on its own dark panel in both modes,
-  with "days since last session" / "muscle groups ready" as large figures;
-  the owner rejected a holographic wireframe. Trained muscles are grey mixed
-  toward `TRAINED_RED` by sets (`muscleFill`), nothing else red. Last 72 h of their own logs, helpers count half; muscles come
-  only from `exerciseMuscles.js` (#149).
+  `muscleMap.js`): a glass card on Progress, not in My Training. Draw every
+  muscle head (4 quads, 3 hamstrings, delt heads, calves + soleus…);
+  translucent on the glass; trained `TRAINED_RED` (deeper with sets), ready
+  `READY_BLUE`, untracked muscles neutral. Large figures: days since last
+  session, muscle groups ready (blue). Last 72 h of their own logs, helpers
+  count half; muscles come only from `exerciseMuscles.js` (#149).
+- **Estimated Max chart** (#150, `estMax.js`, `SoloEstMaxChart.jsx`): under
+  Strength Personal Bests on Progress, one point per session from the
+  best set's `e1rm`; only real logged weights, never estimated points.
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
 
