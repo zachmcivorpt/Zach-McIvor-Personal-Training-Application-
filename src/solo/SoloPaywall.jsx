@@ -54,10 +54,62 @@ const TIER_FEATURES = {
   plus: ["Suggested weights for every set", "Build your own multi-week programs", "Full stats, PRs and Apple Health on Progress", "Recovery add-ons and unlimited saved sessions"],
 };
 
+// After Apple's purchase sheet the iPhone app's page can be left undrawn: a
+// black screen that still takes taps, so a tap on the invisible Subscribe
+// button started a second purchase (#134). The page's code still runs, so
+// once the sheet answers the page reloads itself (drawn again, instantly
+// from the saved copy) and shows the outcome after the reload.
+const PURCHASE_OUTCOME_KEY = "apexSoloPurchaseOutcome";
+export const paywallPage = { reload: () => window.location.reload() };
+
+function rememberPurchaseOutcome(outcome) {
+  try {
+    sessionStorage.setItem(PURCHASE_OUTCOME_KEY, JSON.stringify({ ...outcome, at: Date.now() }));
+  } catch {
+    // No storage: the reload still redraws the page, and the purchase is
+    // picked up by the sync on open (#133).
+  }
+}
+
+function takePurchaseOutcome() {
+  try {
+    const raw = sessionStorage.getItem(PURCHASE_OUTCOME_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(PURCHASE_OUTCOME_KEY);
+    const outcome = JSON.parse(raw);
+    return outcome && Date.now() - (outcome.at || 0) < 10 * 60 * 1000 ? outcome : null;
+  } catch {
+    return null;
+  }
+}
+
 export function SoloPaywallProvider({ children }) {
-  const [request, setRequest] = useState(null); // { reason, tier }
-  const openPaywall = useCallback((opts = {}) => setRequest({ reason: opts.reason || null, tier: opts.tier || "all_access" }), []);
+  const [request, setRequest] = useState(null); // { reason, tier, notice }
+  const openPaywall = useCallback(
+    (opts = {}) => setRequest({ reason: opts.reason || null, tier: opts.tier || "all_access", notice: opts.notice || "" }),
+    []
+  );
   const value = useMemo(() => ({ openPaywall }), [openPaywall]);
+  const { soloAuthUser, refreshSoloEntitlement } = useSoloApp();
+  const [outcome] = useState(takePurchaseOutcome);
+  const signedIn = !!soloAuthUser;
+
+  // The result of a purchase made just before the reload above.
+  useEffect(() => {
+    if (!outcome || outcome.cancelled || !signedIn) return;
+    if (outcome.error) {
+      openPaywall({ tier: outcome.tier, notice: outcome.error });
+      return;
+    }
+    const notReached = "Apple confirmed your purchase, but it hasn't reached your account yet. Try Restore purchases in a minute.";
+    refreshSoloEntitlement()
+      .then((r) => {
+        const got = r?.tier;
+        openPaywall({ tier: outcome.tier, notice: got && got !== "free" ? `You're in — welcome to ${TIER_LABELS[got]}.` : notReached });
+      })
+      .catch(() => openPaywall({ tier: outcome.tier, notice: notReached }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn]);
   return (
     <PaywallCtx.Provider value={value}>
       {children}
@@ -88,7 +140,7 @@ function SoloPaywallSheet({ request, onClose }) {
     if (!open) return;
     setTier(request.tier === "plus" ? "plus" : "all_access");
     setInterval_("year");
-    setMessage("");
+    setMessage(request.notice || "");
     if (nativeIap && !(storeProducts && storeProducts.length)) {
       setStoreError("");
       setShowStoreError(false);
@@ -134,10 +186,17 @@ function SoloPaywallSheet({ request, onClose }) {
     setMessage("");
     try {
       if (iosApp) {
-        await purchasePlan(plan, soloAuthUser?.uid);
-        await refreshSoloEntitlement().catch(() => {});
-        setMessage("You're in — welcome to " + TIER_LABELS[tier] + ".");
-        setTimeout(onClose, 1200);
+        // Whatever Apple's sheet answered, reload so the page is drawn
+        // again, and show the outcome after (#134).
+        let outcome;
+        try {
+          await purchasePlan(plan, soloAuthUser?.uid);
+          outcome = { ok: true, tier };
+        } catch (err) {
+          outcome = err?.cancelled ? { cancelled: true, tier } : { error: err?.message || "Something went wrong — please try again.", tier };
+        }
+        rememberPurchaseOutcome(outcome);
+        paywallPage.reload();
         return;
       }
       const result = await startSoloSubscription(plan);

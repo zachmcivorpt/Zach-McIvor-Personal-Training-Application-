@@ -49,13 +49,18 @@ function baseCtx(over = {}) {
   };
 }
 
-beforeEach(() => {
+let reloadSpy;
+beforeEach(async () => {
   ctx = baseCtx();
   delete window.webkit;
+  sessionStorage.clear();
+  const { paywallPage } = await import("./SoloPaywall");
+  reloadSpy = vi.spyOn(paywallPage, "reload").mockImplementation(() => {});
 });
 afterEach(() => {
   cleanup();
   delete window.webkit;
+  reloadSpy?.mockRestore();
 });
 
 async function renderAt(path, element, routePath) {
@@ -200,8 +205,78 @@ describe("inside the iPhone app", () => {
     expect(screen.getByRole("button", { name: /restore purchases/i })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
     await waitFor(() => expect(posted.some((m) => m.action === "purchase" && m.plan === "all_access_yearly" && m.uid === "u1")).toBe(true));
-    await waitFor(() => expect(ctx.refreshSoloEntitlement).toHaveBeenCalled());
+    // Apple's sheet answered: the page reloads to be drawn again (#134).
+    await waitFor(() => expect(reloadSpy).toHaveBeenCalledTimes(1));
     expect(ctx.startSoloSubscription).not.toHaveBeenCalled();
+  });
+
+  // #134: after Apple's sheet the page was left black but still tappable;
+  // a tap on the invisible Subscribe button bought again.
+  describe("after Apple's purchase sheet (#134)", () => {
+    function nativeWith(purchaseReply) {
+      window.webkit = {
+        messageHandlers: {
+          apexTheme: { postMessage() {} },
+          apexPurchases: {
+            postMessage(msg) {
+              const reply = msg.action === "offerings"
+                ? { id: msg.id, result: [{ plan: "all_access_yearly", price: "$179.99", trialDays: 7 }, { plan: "plus_monthly", price: "$9.99", trialDays: 0 }] }
+                : msg.action === "purchase" ? { id: msg.id, ...purchaseReply } : { id: msg.id, result: { ok: true } };
+              setTimeout(() => window.__apexNativePurchases.receive(reply), 0);
+            },
+          },
+        },
+      };
+    }
+    async function buyAllAccess() {
+      ctx = baseCtx({ soloGatesLive: true });
+      await renderProgram("p1");
+      fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+      await screen.findByText("$179.99");
+      fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
+      await waitFor(() => expect(reloadSpy).toHaveBeenCalledTimes(1));
+      cleanup(); // the reload
+    }
+
+    it("a purchase reloads the page, then shows the plan the server confirms", async () => {
+      nativeWith({ result: { ok: true } });
+      await buyAllAccess();
+      ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => Promise.resolve({ tier: "all_access" })) });
+      await renderProgram("p1");
+      await screen.findByText("You're in — welcome to All Access.");
+      expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(1);
+      // Shown once: the next open of the app doesn't repeat it.
+      cleanup();
+      ctx = baseCtx({ soloGatesLive: true });
+      await renderProgram("p1");
+      await new Promise((r) => setTimeout(r, 20));
+      expect(screen.queryByText("Train Solo Membership")).toBe(null);
+      expect(ctx.refreshSoloEntitlement).not.toHaveBeenCalled();
+    });
+
+    it("if the server still says Free, it says so instead of claiming success", async () => {
+      nativeWith({ result: { ok: true } });
+      await buyAllAccess();
+      ctx = baseCtx({ soloGatesLive: true });
+      await renderProgram("p1");
+      await screen.findByText(/Apple confirmed your purchase, but it hasn't reached your account yet/);
+    });
+
+    it("an App Store error is shown after the reload; a cancel shows nothing", async () => {
+      nativeWith({ error: "Payment failed." });
+      await buyAllAccess();
+      ctx = baseCtx({ soloGatesLive: true });
+      await renderProgram("p1");
+      await screen.findByText("Payment failed.");
+      cleanup();
+
+      nativeWith({ error: "Cancelled.", cancelled: true });
+      await buyAllAccess();
+      ctx = baseCtx({ soloGatesLive: true });
+      await renderProgram("p1");
+      await new Promise((r) => setTimeout(r, 20));
+      expect(screen.queryByText("Train Solo Membership")).toBe(null);
+    });
   });
 
   it("1.0.4+: when the App Store returns nothing, the paywall says why (no silent grey button) and retries on reopen", async () => {

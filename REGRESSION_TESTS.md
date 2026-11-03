@@ -2412,6 +2412,15 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Tests**: `src/lib/SoloAppContext.syncOnOpen.test.jsx` — the sync is called once after sign-in in the iPhone app; fails without the fix.
 - **Still to check (owner)**: if Restore purchases also says "No subscription found", the purchase isn't reaching our server — check RevenueCat → Customers (Sandbox data on) for the purchase and its App User ID, and that the webhook sends Sandbox events.
 
+### 134. iPhone purchase: black screen, a second purchase, and still Free (TestFlight 1.0.4, 2026-11-03)
+- **Problem (owner screenshots)**: the page was already black behind Apple's In-App Purchase sheet, stayed black after "You're all set", and a tap on the black screen opened Apple's sheet again (bought twice). So the page wasn't gone, just not drawn: its code still ran and took taps. #132's native check counts `#root`'s children, which are still there, so it can't catch this. The account also stayed Free after the purchases.
+- **Fix (web + server, no new build needed)**:
+  - `SoloPaywall.jsx` `buy()` (iPhone app): once Apple's sheet answers (bought, cancelled or error) the outcome goes in sessionStorage (`apexSoloPurchaseOutcome`) and the page reloads (`paywallPage.reload`), so it is drawn again and there is no invisible Subscribe button to tap. After the reload `SoloPaywallProvider` asks the server once (`refreshSoloEntitlement`) and opens the membership sheet with "You're in — welcome to …", or, if the server still says Free, says Apple confirmed it but it hasn't reached the account yet (never a false "You're in"). An App Store error is shown after the reload; a cancel shows nothing. Shown once (older than 10 min is dropped).
+  - `functions/soloSubscriptions.js` `appleSourceFromSubscriber`: besides RevenueCat's `plus` / `all_access` entitlements, an active subscription to one of our own product ids (`apex_solo_<plan>`) now unlocks its tier, so a purchase can't stay Free because the entitlements are named or attached differently in RevenueCat. Expired, refunded or unknown products still give nothing.
+- **Tests**: `src/solo/subscriptionGates.test.jsx` "after Apple's purchase sheet (#134)" (reload + confirmed plan, shown once; server still Free → honest message; error shown / cancel silent) and the updated 1.0.4+ purchase test; `functions/soloSubscriptions.test.js` (product-id unlock, All Access over Plus, expired/refunded/foreign products). All 6 fail without the fix (4 web, 2 server).
+- **Regression check**: full suite 777 passed; `vite build` clean. Website (Stripe) purchase path and Restore purchases unchanged.
+- **Still to check (owner)**: on the iPhone, buy once; after Apple's "You're all set" the app should reload into Train Solo and say which plan you have. If it says the purchase hasn't reached your account, check RevenueCat → Customers (Sandbox data on): App User ID must be your Train Solo uid, and the webhook must send Sandbox events.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

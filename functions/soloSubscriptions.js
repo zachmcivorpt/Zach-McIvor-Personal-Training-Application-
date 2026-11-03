@@ -84,19 +84,32 @@ function stripeSourceFromSubscriptions(subs, now = Date.now()) {
 function appleSourceFromSubscriber(subscriber, now = Date.now()) {
   const ents = subscriber?.entitlements || {};
   const subs = subscriber?.subscriptions || {};
-  let best = null;
+  // RevenueCat's entitlements ("plus", "all_access") first; then our own
+  // App Store product ids (apex_solo_<plan>) straight from the
+  // subscriptions, so a purchase still unlocks if the entitlements are
+  // named or attached differently in RevenueCat's dashboard (#134).
+  const candidates = [];
   for (const tier of ["all_access", "plus"]) {
-    const ent = ents[tier];
-    if (!ent) continue;
-    const expiresAt = ent.expires_date ? Date.parse(ent.expires_date) : null; // null = lifetime / promotional without end
-    const sub = subs[ent.product_identifier] || {};
+    if (ents[tier]) candidates.push({ tier, productId: ents[tier].product_identifier, expires: ents[tier].expires_date });
+  }
+  for (const tier of ["all_access", "plus"]) {
+    for (const [productId, s] of Object.entries(subs)) {
+      const plan = planFromLookupKey(productId);
+      // An auto-renewing subscription always has an end date; skip one without.
+      if (plan && PLANS[plan].tier === tier && s?.expires_date) candidates.push({ tier, productId, expires: s?.expires_date });
+    }
+  }
+  let best = null;
+  for (const { tier, productId, expires } of candidates) {
+    const expiresAt = expires ? Date.parse(expires) : null; // null = lifetime / promotional without end
+    const sub = subs[productId] || {};
     const refunded = !!sub.refunded_at;
     const paidUp = !refunded && (expiresAt == null || expiresAt > now);
     const source = {
       tier,
       status: refunded ? "refunded" : !paidUp ? (sub.billing_issues_detected_at ? "billing_issue" : "expired") : sub.period_type === "trial" ? "trialing" : "active",
       expiresAt,
-      productId: ent.product_identifier || null,
+      productId: productId || null,
       store: sub.store || null,
       willRenew: !!(paidUp && !sub.unsubscribe_detected_at && !sub.billing_issues_detected_at),
     };

@@ -296,6 +296,12 @@ any Train Solo work from now on:
 - In the iPhone app the subscription is re-read from the server on every
   open (`syncSoloEntitlement`, #133), not only after the purchase reply —
   that reply can be lost if iOS drops the page under Apple's sheet.
+- In the iPhone app the page reloads itself once Apple's purchase sheet
+  answers and shows the outcome after the reload (#134): WebKit can leave
+  the page undrawn but still tappable under the sheet. Don't go back to
+  showing the result on the page that opened the sheet. The server
+  unlocks from RevenueCat's `plus`/`all_access` entitlements OR an active
+  `apex_solo_<plan>` subscription.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.

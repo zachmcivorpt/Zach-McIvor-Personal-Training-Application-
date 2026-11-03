@@ -112,6 +112,30 @@ describe("Apple (RevenueCat) → entitlement", () => {
     expect(deriveEntitlement({ apple: src }, NOW).tier).toBe("free");
   });
 
+  // #134: a sandbox purchase went through at Apple but the account stayed
+  // Free; unlocking must not depend on the entitlement names in RevenueCat.
+  it("an active apex_solo_ subscription unlocks even with no matching entitlement", () => {
+    const src = appleSourceFromSubscriber(
+      {
+        entitlements: { Plus: { expires_date: iso(NOW + DAY), product_identifier: "apex_solo_plus_monthly" } },
+        subscriptions: { apex_solo_plus_monthly: { expires_date: iso(NOW + DAY), store: "app_store", period_type: "normal", is_sandbox: true } },
+      },
+      NOW
+    );
+    expect(src).toMatchObject({ tier: "plus", status: "active", productId: "apex_solo_plus_monthly", willRenew: true });
+    expect(deriveEntitlement({ apple: src }, NOW).tier).toBe("plus");
+  });
+
+  it("an All Access product id gives All Access; expired or refunded ones don't", () => {
+    const sub = (exp, extra = {}) => ({ expires_date: iso(exp), ...extra });
+    expect(appleSourceFromSubscriber({ subscriptions: { apex_solo_plus_yearly: sub(NOW + DAY), apex_solo_all_access_monthly: sub(NOW + DAY) } }, NOW).tier).toBe("all_access");
+    const expired = appleSourceFromSubscriber({ subscriptions: { apex_solo_all_access_monthly: sub(NOW - DAY) } }, NOW);
+    expect(deriveEntitlement({ apple: expired }, NOW).tier).toBe("free");
+    const refunded = appleSourceFromSubscriber({ subscriptions: { apex_solo_plus_monthly: sub(NOW + DAY, { refunded_at: iso(NOW - 1) }) } }, NOW);
+    expect(refunded.status).toBe("refunded");
+    expect(appleSourceFromSubscriber({ subscriptions: { some_other_app_product: sub(NOW + DAY) } }, NOW)).toBe(null);
+  });
+
   it("a refund ends access even before the period would have", () => {
     const src = appleSourceFromSubscriber(
       { entitlements: { all_access: { expires_date: iso(NOW + 20 * DAY), product_identifier: "aa" } }, subscriptions: { aa: { refunded_at: iso(NOW - 1) } } },
