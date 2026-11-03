@@ -7,6 +7,8 @@ import { useVoiceRecorder, voiceNotesSupported } from "../lib/voiceNote";
 import { VoiceRecordingBar, MicButton, VoiceNotePlayer } from "../components/VoiceNote";
 import { formCheckLabel } from "../lib/formCheck";
 import { CLIENT_DARK_BG, CLIENT_DARK_BORDER, MEASURE_BLUE_SOFT } from "../theme";
+import { MessageComposerInput } from "../components/MessageComposerInput";
+import { useTextEntryFocused } from "../lib/textEntryFocus";
 
 // A send-attachment button previously just showed its static icon the whole
 // time a file was compressing/uploading — with no percentage yet (file
@@ -64,6 +66,7 @@ function AttachmentPill({ attachment, tone = "theirs" }) {
 // the inline right-hand panel of the desktop Messages screen.
 export function ThreadMessages({ client }) {
   const { db, sendMessage, updateUser } = useApp();
+  const typing = useTextEntryFocused();
   const [input, setInput] = useState("");
   const [uploadPct, setUploadPct] = useState(null);
   const [uploadError, setUploadError] = useState("");
@@ -231,8 +234,12 @@ export function ThreadMessages({ client }) {
           <VoiceRecordingBar seconds={recorder.seconds} onCancel={recorder.cancel} onSend={sendVoiceNote} />
         </div>
       ) : (
-      <div className="flex gap-2 px-5 pt-2 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-t" style={{ borderColor: CLIENT_DARK_BORDER }}>
+      <div className={`flex items-end gap-2 px-5 pt-2 ${typing ? "pb-2" : "pb-[max(1.25rem,env(safe-area-inset-bottom))]"} border-t`} style={{ borderColor: CLIENT_DARK_BORDER }}>
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
+        {/* The attach buttons step aside once there's text, so the
+            message itself gets the width (#127). */}
+        {(!input.trim() || uploadPct !== null) && (
+        <>
         <button
           onClick={() => videoInputRef.current?.click()}
           disabled={uploadPct !== null}
@@ -259,12 +266,14 @@ export function ThreadMessages({ client }) {
         >
           {attachButtonContent(<ImageIcon size={17} />, uploadPct)}
         </button>
-        <input
+        </>
+        )}
+        <MessageComposerInput
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
+          onChange={setInput}
+          onSend={send}
           placeholder={replyTo ? "Write your feedback..." : `Message ${client.name?.split(" ")[0] || "your client"}...`}
-          className="flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white"
+          className="flex-1 min-w-0 bg-white/8 rounded-[22px] px-4 py-3 text-sm text-white outline-none placeholder:text-white"
         />
         {canRecord && !input.trim() ? (
           <MicButton onClick={recorder.start} disabled={uploadPct !== null || recorder.state !== "idle"} />
@@ -303,6 +312,8 @@ export function ThreadView({ client, onClose }) {
 
 export default function CoachMessages() {
   const { db } = useApp();
+  // The tab bar hides while typing (CoachShell), so drop its space too.
+  const typing = useTextEntryFocused();
   const [search, setSearch] = useState("");
   const [openClientId, setOpenClientId] = useState(null);
 
@@ -320,7 +331,7 @@ export default function CoachMessages() {
 
   return (
     <div
-      className="h-screen md:h-screen flex flex-col -mt-14 -mb-16 pt-14 pb-16 md:mt-0 md:mb-0 md:pt-0 md:pb-0"
+      className={`h-screen md:h-screen flex flex-col -mt-14 -mb-16 pt-14 ${typing ? "pb-0" : "pb-16"} md:mt-0 md:mb-0 md:pt-0 md:pb-0`}
       style={{ backgroundColor: CLIENT_DARK_BG }}
     >
       <div className={`px-4 pt-5 pb-4 md:px-8 md:pt-8 shrink-0 ${openClientId ? "hidden md:block" : ""}`}>

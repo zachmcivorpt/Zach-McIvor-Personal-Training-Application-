@@ -92,6 +92,7 @@ import {
 import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { QUEUED, localFirst, onLocalWriteFailed } from "../lib/offlineWrite";
+import { MessageComposerInput } from "../components/MessageComposerInput";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
@@ -1122,16 +1123,16 @@ function GroupChatSheet({ open, group, messages, currentUserId, coachName, onClo
           })}
           <div ref={endRef} />
         </div>
-        <div className="flex gap-2 pt-2 sticky bottom-0" style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}>
-          <input
+        <div className="flex items-end gap-2 pt-2 sticky bottom-0" style={{ backgroundColor: dark ? CLIENT_DARK_SURFACE_2 : SURFACE_RAISED }}>
+          <MessageComposerInput
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && send()}
+            onChange={setInput}
+            onSend={send}
             placeholder="Message the group..."
             className={
               dark
-                ? "flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white"
-                : "flex-1 min-w-0 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black"
+                ? "flex-1 min-w-0 bg-white/8 rounded-[22px] px-4 py-3 text-sm text-white outline-none placeholder:text-white"
+                : "flex-1 min-w-0 bg-black/8 rounded-[22px] px-4 py-3 text-sm text-black outline-none placeholder:text-black"
             }
           />
           <button
@@ -7955,8 +7956,14 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         {recorder.state === "recording" ? (
           <VoiceRecordingBar seconds={recorder.seconds} onCancel={recorder.cancel} onSend={sendVoiceNote} dark={dark} />
         ) : (
-        <div className="flex gap-2">
+        <div className="flex items-end gap-2">
         <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFile} className="hidden" />
+        <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
+        <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
+        {/* Attach buttons step aside once there's text, so the message
+            gets the width (#127). */}
+        {(!input.trim() || uploadPct !== null) && (
+        <>
         <button
           onClick={() => videoInputRef.current?.click()}
           disabled={uploadPct !== null}
@@ -7965,7 +7972,6 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         >
           {attachButtonContent(<Video size={17} />, uploadPct, dark)}
         </button>
-        <input ref={pdfInputRef} type="file" accept="application/pdf" onChange={handlePdfFile} className="hidden" />
         <button
           onClick={() => pdfInputRef.current?.click()}
           disabled={uploadPct !== null}
@@ -7974,7 +7980,6 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         >
           {attachButtonContent(<Paperclip size={17} />, uploadPct, dark)}
         </button>
-        <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageFile} className="hidden" />
         <button
           onClick={() => imageInputRef.current?.click()}
           disabled={uploadPct !== null}
@@ -7983,12 +7988,14 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
         >
           {attachButtonContent(<ImageIcon size={17} />, uploadPct, dark)}
         </button>
-        <input
+        </>
+        )}
+        <MessageComposerInput
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && send()}
+          onChange={setInput}
+          onSend={send}
           placeholder="Message your coach..."
-          className={dark ? "flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 min-w-0 bg-black/8 rounded-full px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
+          className={dark ? "flex-1 min-w-0 bg-white/8 rounded-[22px] px-4 py-3 text-sm text-white outline-none placeholder:text-white/30" : "flex-1 min-w-0 bg-black/8 rounded-[22px] px-4 py-3 text-sm text-black outline-none placeholder:text-black/30"}
         />
         {canRecord && !input.trim() ? (
           <MicButton onClick={recorder.start} disabled={uploadPct !== null || recorder.state !== "idle"} dark={dark} />

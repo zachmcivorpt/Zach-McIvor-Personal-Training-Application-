@@ -338,6 +338,16 @@ any Train Solo work from now on:
 - The logo shows this phone's last confirmed answer immediately
   (`appLogo.js`); only a first-ever open waits for the server.
 
+## Messaging composers (#127)
+
+- Every chat's message box is `MessageComposerInput`
+  (`src/components/MessageComposerInput.jsx`): grows to ~6 lines, Return
+  is a new line on phones (send button sends), Enter sends only with a
+  real keyboard. Don't put a one-line `<input>` with Enter-to-send back.
+- The coach console hides its mobile tab bar while a text field has focus
+  (`useTextEntryFocused`, `src/lib/textEntryFocus.js`); screens that
+  reserve space for the bar (Messages) drop it while typing too.
+
 ## Data listeners (`src/lib/AppContext.jsx`)
 
 - Subscribe a collection only for the roles firestore.rules lets read

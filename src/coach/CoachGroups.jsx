@@ -3,6 +3,7 @@ import { useApp } from "../lib/AppContext";
 import { Avatar, BottomSheet, FullScreenOverlay, Field, TextInput, TextArea, SecondaryButton, DangerButton } from "../components/ui";
 import { MEASURE_BLUE, CLIENT_DARK_BORDER, CLIENT_DARK_SURFACE_2 } from "../theme";
 import { DarkPage, DarkPanel, DarkPageHeader } from "./darkUI";
+import { MessageComposerInput } from "../components/MessageComposerInput";
 import { Users2, Plus, ChevronLeft, MoreVertical, UserPlus, Settings, Send, X, Trash2 } from "lucide-react";
 
 // A group's "members" are just client ids — resolved against the live
@@ -287,9 +288,8 @@ function GroupDetail({ group, clientsById, activeClients, onClose, showToast }) 
   }
 
   function pickMention(name) {
-    const parts = input.split(/\s+/);
-    parts[parts.length - 1] = `@${name}`;
-    setInput(parts.join(" ") + " ");
+    // Replace just the word being typed, keeping earlier lines/spaces.
+    setInput(input.replace(/\S*$/, `@${name} `));
   }
 
   // Date dividers, same convention as the reference — one pill per
@@ -364,13 +364,13 @@ function GroupDetail({ group, clientsById, activeClients, onClose, showToast }) 
               ))}
             </div>
           )}
-          <div className="flex gap-2">
-            <input
+          <div className="flex items-end gap-2">
+            <MessageComposerInput
               value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
+              onChange={setInput}
+              onSend={send}
               placeholder="Message the group..."
-              className="flex-1 min-w-0 bg-white/8 rounded-full px-4 py-3 text-sm text-white outline-none placeholder:text-white"
+              className="flex-1 min-w-0 bg-white/8 rounded-[22px] px-4 py-3 text-sm text-white outline-none placeholder:text-white"
             />
             <button onClick={send} disabled={!input.trim()} className="w-11 h-11 rounded-full bg-white flex items-center justify-center shrink-0 disabled:opacity-40">
               <Send size={16} className="text-black" />

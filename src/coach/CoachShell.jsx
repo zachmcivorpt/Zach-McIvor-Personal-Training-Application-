@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTextEntryFocused } from "../lib/textEntryFocus";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../lib/AppContext";
 import { disablePush } from "../lib/push";
@@ -89,6 +90,7 @@ export default function CoachShell() {
   const { currentUser, logout, db, markNotificationRead, markAllNotificationsRead } = useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState("dashboard");
+  const typing = useTextEntryFocused();
   const [clientSearch, setClientSearch] = useState("");
   const [toast, setToast] = useState({ show: false, message: "" });
   const [notifOpen, setNotifOpen] = useState(false);
@@ -295,7 +297,9 @@ export default function CoachShell() {
       </div>
 
       {/* mobile bottom tab bar — see the top bar above for why translateZ(0) */}
-      <div className="dark-chrome md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center" style={{ transform: "translateZ(0)" }}>
+      {/* Hidden while typing (keyboard up), so it never sits between a
+          message box and the keyboard (#127). */}
+      <div className={`dark-chrome md:hidden fixed bottom-0 left-0 right-0 z-40 flex justify-center ${typing ? "hidden" : ""}`} style={{ transform: "translateZ(0)" }}>
         <div className="w-full bg-[#0A0A0C]/97 backdrop-blur flex px-1 pb-safe border-t border-white/[0.06]">
           {MAIN_MENU.map((item) => {
             const Icon = item.icon;
