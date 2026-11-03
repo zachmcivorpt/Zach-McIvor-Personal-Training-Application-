@@ -13,7 +13,7 @@ import { matchesSearch } from "../lib/search";
 const MUSCLES = new Set(["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Legs", "Core", "Forearms", "Full Body", "Cardio"]);
 // Finer muscle names (categories or primaryMuscles) folded into the groups above.
 const CATEGORY_ALIASES = {
-  "Biceps Brachii": "Biceps", "Bicep Femoris": "Legs", Lats: "Back", "Back Activation": "Back", Rhomboids: "Back", Traps: "Back", Trapezius: "Back",
+  "Biceps Brachii": "Biceps", "Bicep Femoris": "Legs", Lats: "Back", "Upper Back": "Back", "Lower Back": "Back", "Back Activation": "Back", Rhomboids: "Back", Traps: "Back", Trapezius: "Back",
   Glutes: "Legs", Hamstrings: "Legs", Quads: "Legs", Quadriceps: "Legs", Calves: "Legs", Delts: "Shoulders", Deltoids: "Shoulders", Pecs: "Chest", Abs: "Core", Obliques: "Core",
 };
 const PREP = new Set(["Warm-up", "Cool-down"]);

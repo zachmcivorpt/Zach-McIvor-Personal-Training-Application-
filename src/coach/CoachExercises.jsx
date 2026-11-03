@@ -5,6 +5,7 @@ import { Plus, Upload, Search, Trash2, Download, Copy, Layers } from "lucide-rea
 import { SEED_EXERCISES } from "../lib/seed";
 import { parseVideoUrl } from "../lib/video";
 import { matchesSearch } from "../lib/search";
+import { canonicalMuscleFields } from "../lib/exerciseMuscles";
 
 function emptyExercise() {
   return {
@@ -67,9 +68,26 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
     setUploadedName(file.name);
   }
 
+  // Muscles follow the movement (#149): blank fields are filled from the
+  // name; muscles the coach changed by hand are kept and marked manual, so
+  // the library correction never overwrites them.
+  const suggested = canonicalMuscleFields({ name: form.name, category: form.category });
+  function fillMusclesFromName() {
+    if (!form.name.trim() || form.primaryMuscles.trim()) return;
+    if (!suggested.primaryMuscles.length) return;
+    setForm((f) => ({ ...f, primaryMuscles: suggested.primaryMuscles.join(", "), secondaryMuscles: suggested.secondaryMuscles.join(", ") }));
+  }
+
   function submit(e) {
     e.preventDefault();
     const data = fromFormState(form);
+    if (!data.primaryMuscles.length && suggested.primaryMuscles.length) {
+      data.primaryMuscles = suggested.primaryMuscles;
+      data.secondaryMuscles = suggested.secondaryMuscles;
+    }
+    const matchesMovement =
+      data.primaryMuscles.join("|") === suggested.primaryMuscles.join("|") && data.secondaryMuscles.join("|") === suggested.secondaryMuscles.join("|");
+    data.musclesSource = matchesMovement || !suggested.primaryMuscles.length ? "movement" : "manual";
     if (exercise) {
       updateExercise(exercise.id, data);
       showToast("Exercise updated");
@@ -84,7 +102,7 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
     <BottomSheet open={open} onClose={onClose} title={exercise ? "Edit Exercise" : "Add Exercise"}>
       <form onSubmit={submit} className="space-y-4">
         <Field label="EXERCISE NAME">
-          <TextInput value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. Bulgarian Split Squat" required />
+          <TextInput value={form.name} onChange={(e) => set("name", e.target.value)} onBlur={fillMusclesFromName} placeholder="e.g. Bulgarian Split Squat" required />
         </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="CATEGORY">
@@ -106,7 +124,7 @@ export function ExerciseSheet({ exercise, open, onClose, showToast }) {
           </Select>
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="PRIMARY MUSCLES" hint="comma separated">
+          <Field label="PRIMARY MUSCLES" hint={suggested.primaryMuscles.length ? `from the movement: ${suggested.primaryMuscles.join(", ")}` : "comma separated"}>
             <TextInput value={form.primaryMuscles} onChange={(e) => set("primaryMuscles", e.target.value)} placeholder="Quads, Glutes" />
           </Field>
           <Field label="SECONDARY MUSCLES" hint="comma separated">

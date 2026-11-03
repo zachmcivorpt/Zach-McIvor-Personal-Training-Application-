@@ -441,6 +441,16 @@ any Train Solo work from now on:
   `ensureFastStart`. Keep the immutable `cacheControl` on video uploads and
   `preload="metadata"` on chat `<video>` players.
 
+## Exercise muscles (#149)
+
+- An exercise's Primary / Secondary Muscles come from its movement
+  (`src/lib/exerciseMuscles.js`), stored as the 14 labels only (Chest …
+  Upper Back, Lower Back). The coach console corrects differing exercises
+  on open; a coach's own edit is `musclesSource: "manual"` and kept. Add
+  new movements to `MOVEMENT_RULES` (most specific first) and re-run the
+  library check in `exerciseMuscles.test.js`; never free-text muscle names
+  in code.
+
 ## Data listeners (`src/lib/AppContext.jsx`)
 
 - Subscribe a collection only for the roles firestore.rules lets read

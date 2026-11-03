@@ -30,6 +30,7 @@ import { httpsCallable } from "firebase/functions";
 import { auth, db as firestore, functions } from "./firebase";
 import { inviteCode } from "./id";
 import { SEED_EXERCISES, SEED_PROGRAMS } from "./seed";
+import { muscleCorrections, canonicalMuscleFields } from "./exerciseMuscles";
 import { COACH_SETUP_CODE } from "./config";
 import { localDateKey } from "./dateKey";
 import { detectNoteContext } from "./apexInsights";
@@ -172,7 +173,8 @@ async function pushClientActivated(uid, oldId) {
 async function seedCoachData() {
   try {
     const exBatch = writeBatch(firestore);
-    SEED_EXERCISES.forEach((ex) => exBatch.set(doc(firestore, "exercises", ex.id), ex));
+    // Seeded with each exercise's movement muscles (#149).
+    SEED_EXERCISES.forEach((ex) => exBatch.set(doc(firestore, "exercises", ex.id), { ...ex, ...canonicalMuscleFields(ex) }));
     await exBatch.commit();
     const progBatch = writeBatch(firestore);
     SEED_PROGRAMS.forEach((p) => progBatch.set(doc(firestore, "programs", p.id), p));
@@ -307,6 +309,32 @@ export function AppProvider({ children }) {
   }, [authUser]);
 
   const role = profile?.role;
+
+  // Every exercise's Primary / Secondary Muscles follow its movement
+  // (#149, src/lib/exerciseMuscles.js) — shared by the coach console and
+  // Train Solo. When the coach console opens, any exercise whose stored
+  // muscles differ is corrected (only those are written, so it's a no-op
+  // once done). One the coach set by hand in the editor (musclesSource
+  // "manual") is left alone.
+  const musclesCheckedRef = React.useRef(false);
+  useEffect(() => {
+    if (role !== "coach" || musclesCheckedRef.current) return;
+    const list = raw.exercises;
+    if (!Array.isArray(list) || list.length === 0) return;
+    musclesCheckedRef.current = true;
+    const fixes = muscleCorrections(list.filter((ex) => ex.musclesSource !== "manual"));
+    if (!fixes.length) return;
+    (async () => {
+      for (let i = 0; i < fixes.length; i += 400) {
+        const batch = writeBatch(firestore);
+        fixes.slice(i, i + 400).forEach(({ id, fields }) => batch.update(doc(firestore, "exercises", id), fields));
+        await batch.commit();
+      }
+    })().catch((err) => {
+      console.error("exercise muscles correction failed:", err);
+      musclesCheckedRef.current = false;
+    });
+  }, [role, raw.exercises]);
 
   // Keeps settings/coachProfile (public, readable by clients) in sync with
   // the coach's real users/{uid} doc whenever their name or avatar changes.
@@ -1447,6 +1475,8 @@ export function AppProvider({ children }) {
       async createExercise(data) {
         const id = newDocId("exercises");
         const exercise = { id, instructions: [], formCues: [], secondaryMuscles: [], videoUrl: "", ...data };
+        // No muscles given: fill them from the movement (#149).
+        if (!(exercise.primaryMuscles || []).length) Object.assign(exercise, canonicalMuscleFields(exercise));
         try {
           await setDoc(doc(firestore, "exercises", id), exercise);
         } catch (err) {
