@@ -19,6 +19,7 @@ import { canUse, savedSessionLimit } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
 import { SwitchProgramSheet, ProgramsGuideSheet, PlanSessionSheet } from "./SoloProgramSwitch";
 import { weekInProgram } from "./currentProgram";
+import { SoloMuscleMapRow } from "./SoloMuscleMap";
 
 // A purchased program's own overview — which week the customer is in, that
 // week's workouts, and a Start button for each that opens
@@ -594,6 +595,8 @@ export default function SoloMyTrainingScreen() {
             </SoloGlassBox>
           </div>
         )}
+
+        {soloWorkoutLogs.length > 0 && <SoloMuscleMapRow logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} t={t} />}
 
         <WaterCard
           dateKey={selectedKey}
