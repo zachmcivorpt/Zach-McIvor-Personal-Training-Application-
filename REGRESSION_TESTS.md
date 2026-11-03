@@ -2511,6 +2511,11 @@ Train Solo only; nothing in the coach console or the coached client app changed.
 - **Tests**: `src/solo/shareCard.test.js` (4, hand-checked: bodyweight from the start date, fewer than two → none; card figures sessions / "85.2 t" / "−3.3 kg" and the five biggest gains in order; PRs instead of bodyweight, non-gains left off). `clientExperience.test.jsx`: the Program complete test also checks the bodyweight row (−2.5 kg) and the share section (photo picker, Share button). Both fail without the change. The card was drawn in Chromium with a gym photo and checked by eye, and the eyebrow spacing was adjusted.
 - **Still to check on a phone**: the iPhone app's share sheet with the image (WKWebView's `navigator.share` with files); if it isn't offered there, the press-and-hold fallback shows.
 
+### 146. Dark mode: black text on the new Train Solo sheets (owner screenshots, 2026-11-03)
+- **Problem**: in dark mode, "How your programs work" showed its three headings (One program at a time…) and the Resume / Start program sheet showed the program's name in black on charcoal. Bottom sheets open outside the page (`FullScreenOverlay`), so text without its own colour fell back to the document's black, not the Solo theme's white.
+- **Fix**: `SoloProgramSwitch.jsx`: the content of the switch-program, run-through and Plan sheets sits in a wrapper with `color: t.text`, so every line without its own colour follows the theme (the Program complete Share sheet does the same).
+- **Tests**: `src/solo/sheetsDarkMode.test.jsx` renders all three sheets in dark mode and checks each heading and title resolves to the theme's white; it fails without the fix.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
