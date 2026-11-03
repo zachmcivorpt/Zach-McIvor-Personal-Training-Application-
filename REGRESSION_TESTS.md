@@ -2400,6 +2400,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Tests**: `chatReactions.test.jsx` — holding clears the selection and opens the bar; the list style opts out of selection. Fails on the #130 code (no `NO_TEXT_SELECT`, selection never cleared).
 - **Regression check**: full suite (771 passed), lint, build; reactions, attachments, voice notes, form-check reply unchanged. Needs confirming on a real iPhone (jsdom can't show the iOS callout).
 
+### 132. Black screen after buying a subscription in the iPhone app (TestFlight 1.0.4, 2026-11-03)
+- **Problem (owner screenshots)**: Apple's In-App Purchase sheet showed over an already-black page, and after tapping Subscribe the app stayed on a black screen. The web purchase code was fine (`SoloPaywall` `buy()` waits for the native reply, refreshes the entitlement, closes the sheet); the page itself had gone while the system sheet was up and iOS didn't call `webViewWebContentProcessDidTerminate`, so nothing reloaded it.
+- **Fix (native, needs the next build)**: `ViewController.swift` observes `UIApplication.didBecomeActiveNotification` (fires when Apple's sheet, Face ID or another app hands back) and runs `checkPageAlive`: asks the page for `#root`'s child count; an error, no answer within 2s, or 0 means the page is gone, so it reloads (`loadSite`, saved copy opens instantly). Skipped while a load is in progress. The purchase is recorded by Apple/RevenueCat either way; after reload the entitlement is read again.
+- **Tests**: native only — no Swift toolchain in CI; reviewed by hand. Verify on the next TestFlight build: buy a plan; after the sheet the app must show Train Solo (not black), and Profile shows the new plan.
+- **Regression check**: web suite unaffected (no web change); existing process-termination reload kept.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

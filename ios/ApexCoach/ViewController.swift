@@ -159,6 +159,12 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         NotificationCenter.default.addObserver(
             self, selector: #selector(keyboardWillChangeFrame(_:)), name: UIResponder.keyboardWillChangeFrameNotification, object: nil
         )
+        // Coming back to the app (after Apple's purchase sheet, Face ID,
+        // another app): if iOS ended the page while we were away and didn't
+        // tell us, the screen is left black. Check and reload (#132).
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(checkPageAlive), name: UIApplication.didBecomeActiveNotification, object: nil
+        )
 
         spinner.color = isDarkBackground ? .lightGray : .gray
         spinner.center = view.center
@@ -395,6 +401,35 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // iOS can end the page's process while the app sits in the background
     // (memory pressure); without this the app came back to a blank screen.
     // Reload it — from the saved copy, so it's back straight away.
+    // Blank-page guard (#132): after the In-App Purchase sheet the page
+    // could be gone (black screen) with no termination callback. Ask the
+    // page whether the app is drawn; no answer within 2s, an error, or an
+    // empty #root means it's gone, so load it again (the saved copy opens
+    // instantly, and the purchase itself is already recorded by Apple).
+    @objc private func checkPageAlive() {
+        guard webView != nil, !webView.isLoading else { return }
+        var answered = false
+        let timer = DispatchWorkItem { [weak self] in
+            guard let self = self, !answered else { return }
+            answered = true
+            self.reloadBlankPage()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: timer)
+        webView.evaluateJavaScript("(function(){var r=document.getElementById('root');return r?r.childElementCount:0})()") { [weak self] result, error in
+            guard let self = self, !answered else { return }
+            answered = true
+            timer.cancel()
+            let count = (result as? NSNumber)?.intValue ?? 0
+            if error != nil || count == 0 { self.reloadBlankPage() }
+        }
+    }
+
+    private func reloadBlankPage() {
+        view.bringSubviewToFront(spinner)
+        spinner.startAnimating()
+        loadSite()
+    }
+
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         view.bringSubviewToFront(spinner)
         spinner.startAnimating()

@@ -306,6 +306,10 @@ any Train Solo work from now on:
 
 ## iOS builds (Codemagic)
 
+- ViewController checks the page is still drawn every time the app becomes
+  active (`checkPageAlive`, #132) and reloads a blank one — iOS can drop
+  the page under Apple's purchase sheet without telling us. Keep it.
+
 - The iOS app is a WKWebView on the live web app, so web-only changes reach
   App Store users without a build or review — from 1.0.4 on, on their next
   open after Vercel deploys (instant open uses the saved copy first). Only
