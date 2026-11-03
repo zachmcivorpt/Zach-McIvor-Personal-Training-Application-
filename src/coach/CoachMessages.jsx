@@ -19,7 +19,9 @@ function AttachmentPill({ attachment, tone = "theirs" }) {
     return <VoiceNotePlayer attachment={attachment} mine={tone === "mine"} dark={tone !== "mine"} />;
   }
   if (attachment.type === "video") {
-    return <video src={attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />;
+    // preload="metadata" + #t: shows the first frame without downloading
+    // the clip until play is tapped (#129).
+    return <video src={`${attachment.url}#t=0.001`} controls playsInline preload="metadata" className="mt-2 w-full max-w-[220px] rounded-lg bg-black" />;
   }
   if (attachment.type === "image") {
     return (

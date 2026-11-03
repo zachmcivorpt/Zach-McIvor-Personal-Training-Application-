@@ -7881,7 +7881,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
                 // On the blue bubble, mine + dark={false} gives white labels.
                 <VoiceNotePlayer attachment={m.attachment} mine={mine} dark={mine ? false : dark} />
               ) : m.attachment && m.attachment.type === "video" ? (
-                <video src={m.attachment.url} controls playsInline className="mt-2 w-full max-w-[220px] rounded-xl bg-black" />
+                <video src={`${m.attachment.url}#t=0.001`} controls playsInline preload="metadata" className="mt-2 w-full max-w-[220px] rounded-xl bg-black" />
               ) : m.attachment && m.attachment.type === "image" ? (
                 <a href={m.attachment.url} target="_blank" rel="noopener noreferrer" className="block mt-2">
                   <img src={m.attachment.url} alt={m.attachment.name || "Photo"} loading="eager" decoding="async" className="w-full max-w-[220px] rounded-xl object-cover" />

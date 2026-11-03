@@ -353,6 +353,13 @@ any Train Solo work from now on:
   (`useTextEntryFocused`, `src/lib/textEntryFocus.js`); screens that
   reserve space for the bar (Messages) drop it while typing too.
 
+## Chat videos (#129)
+
+- `uploadMessageVideo` must leave every clip "fast start" (index before the
+  video data): compressed clips via `fastStart: "in-memory"`, others via
+  `ensureFastStart`. Keep the immutable `cacheControl` on video uploads and
+  `preload="metadata"` on chat `<video>` players.
+
 ## Data listeners (`src/lib/AppContext.jsx`)
 
 - Subscribe a collection only for the roles firestore.rules lets read

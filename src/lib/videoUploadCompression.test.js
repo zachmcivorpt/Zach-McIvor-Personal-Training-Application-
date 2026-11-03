@@ -110,6 +110,7 @@ describe("uploadMessageVideo size limit", () => {
         Object.defineProperty(out, "size", { value: compressedSize * 1024 * 1024 });
         return out;
       },
+      ensureFastStart: async (file) => file, // #129: re-packaging only, size unchanged
     }));
     const put = vi.fn();
     vi.doMock("firebase/storage", () => ({

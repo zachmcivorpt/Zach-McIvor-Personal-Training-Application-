@@ -191,3 +191,53 @@ export async function maybeCompressVideo(file, onProgress) {
     audioCtx?.close?.().catch(() => {});
   }
 }
+
+// Fast start (REGRESSION_TESTS.md #129). A phone's MP4/MOV usually keeps
+// its index (the "moov" box) at the END of the file, after the video data.
+// A player can't start until it has that index, so watching such a clip
+// meant downloading the whole file first. Clips that weren't re-encoded
+// above (small ones, or ones that didn't shrink) are re-packaged — no
+// re-encode, a few hundred ms — with the index at the front, so playback
+// starts after the first few hundred KB. Any failure keeps the original.
+
+// Top-level MP4/MOV boxes: does "mdat" (the video data) come before "moov"?
+export async function moovAfterData(file) {
+  try {
+    let offset = 0;
+    for (let i = 0; i < 64 && offset + 8 <= file.size; i++) {
+      const head = new DataView(await file.slice(offset, offset + 16).arrayBuffer());
+      let size = head.getUint32(0);
+      const type = String.fromCharCode(head.getUint8(4), head.getUint8(5), head.getUint8(6), head.getUint8(7));
+      if (type === "moov") return false;
+      if (type === "mdat") return true;
+      if (size === 1) size = Number(head.getBigUint64(8));
+      else if (size === 0) return false; // runs to the end of the file
+      if (size < 8) return false;
+      offset += size;
+    }
+  } catch {}
+  return false;
+}
+
+const FASTSTART_MAX_BYTES = 250 * 1024 * 1024;
+
+export async function ensureFastStart(file) {
+  if (!/^video\/(mp4|quicktime)$/.test(file?.type || "") || file.size > FASTSTART_MAX_BYTES) return file;
+  if (!(await moovAfterData(file))) return file;
+  let input;
+  try {
+    const mb = await import("mediabunny");
+    input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
+    const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: "in-memory" }), target: new mb.BufferTarget() });
+    // No video/audio options: tracks are copied as they are, not re-encoded.
+    const conversion = await mb.Conversion.init({ input, output });
+    if (!conversion.isValid || conversion.discardedTracks.length) return file;
+    await conversion.execute();
+    const name = file.name.replace(/\.[^.]+$/, "") + ".mp4";
+    return new File([output.target.buffer], name, { type: "video/mp4" });
+  } catch {
+    return file;
+  } finally {
+    input?.dispose?.();
+  }
+}

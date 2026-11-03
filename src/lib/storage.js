@@ -5,7 +5,7 @@
 // Firestore's 1MB-per-document limit).
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "./firebase";
-import { maybeCompressVideo } from "./videoCompress";
+import { maybeCompressVideo, ensureFastStart } from "./videoCompress";
 import { compressImageFile } from "./image";
 
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200MB uploaded — a compressed 2-minute clip is ~30MB
@@ -107,8 +107,11 @@ export async function uploadMessageVideo(clientId, file, onProgress) {
   // compression isn't applicable or fails for any reason. The size limit
   // applies to what's uploaded, so a long clip that compresses under it
   // (a 2-minute iPhone clip is often 300MB+ before) still goes.
-  const upload = await maybeCompressVideo(file, onProgress);
+  let upload = await maybeCompressVideo(file, onProgress);
   const compressed = upload !== file;
+  // Not re-encoded: put the index at the front so it plays straight away
+  // instead of after a full download (#129).
+  if (!compressed) upload = await ensureFastStart(upload);
   if (upload.size > MAX_VIDEO_BYTES) {
     throw new Error(`That video is ${(upload.size / 1024 / 1024).toFixed(0)}MB — please keep it under ${MAX_VIDEO_BYTES / 1024 / 1024}MB.`);
   }
@@ -117,7 +120,10 @@ export async function uploadMessageVideo(clientId, file, onProgress) {
     upload,
     "video",
     "Video",
-    (frac) => onProgress?.(compressed ? 0.3 + frac * 0.7 : frac)
+    (frac) => onProgress?.(compressed ? 0.3 + frac * 0.7 : frac),
+    // Each upload has its own path and never changes, so phones and
+    // browsers may keep it: watching it again doesn't download it again.
+    { contentType: upload.type || "video/mp4", cacheControl: "public, max-age=31536000, immutable" }
   );
 }
 
