@@ -109,7 +109,7 @@ describe("My Training: one program at a time (#140)", () => {
     expect(screen.getByText(/Picks up at Week 3/)).toBeTruthy();
     const note = screen.getByText(/moves to Archived at Week 3/);
     expect(note.textContent).toContain("Strength Foundation");
-    fireEvent.click(screen.getByRole("button", { name: "SWITCH PROGRAM" }));
+    fireEvent.click(screen.getByRole("button", { name: "Switch program" }));
     await waitFor(() => expect(ctx.switchSoloProgram).toHaveBeenCalledWith(expect.objectContaining({ target: archivedRow })));
   });
 
@@ -119,9 +119,9 @@ describe("My Training: one program at a time (#140)", () => {
     await renderMyTraining();
     expect(screen.getByText(/Nothing on your calendar right now/)).toBeTruthy();
     fireEvent.click(screen.getByText("Not started · tap to start"));
-    await screen.findByText("Start program");
+    await screen.findByRole("button", { name: "Start program" });
     expect(screen.getByLabelText("Week 1, Day 1 starts")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "START PROGRAM" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start program" }));
     await waitFor(() => expect(ctx.switchSoloProgram).toHaveBeenCalled());
   });
 
@@ -130,7 +130,7 @@ describe("My Training: one program at a time (#140)", () => {
     await renderMyTraining();
     await screen.findByText("How your programs work");
     expect(screen.getByText("One program at a time")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "GOT IT" }));
+    fireEvent.click(screen.getByRole("button", { name: "Got it" }));
     await waitFor(() => expect(ctx.markSoloProgramsGuideSeen).toHaveBeenCalledTimes(1));
     cleanup();
     ctx = baseCtx();
@@ -172,7 +172,7 @@ describe("Build a program: start it now or keep it for later (#140)", () => {
   it("with another program running it asks: switch (archiving it) or keep for later", async () => {
     ctx = baseCtx({ soloCustomSessions: [session], soloAccess: { tier: "plus", live: true } });
     await buildOne();
-    const sheet = await screen.findByText("Start program");
+    const sheet = await screen.findByRole("button", { name: "Switch program" });
     expect(sheet).toBeTruthy();
     expect(screen.getByText(/moves to Archived at Week 3/).textContent).toContain("Strength Foundation");
     fireEvent.click(screen.getByRole("button", { name: "Keep it for later" }));
@@ -233,7 +233,7 @@ describe("scheduling, done for them (#142)", () => {
     expect(screen.getByText("Which day?")).toBeTruthy();
     const pressed = within(screen.getByRole("group", { name: "Day" })).getAllByRole("button").filter((b) => b.getAttribute("aria-pressed") === "true");
     expect(pressed).toHaveLength(1);
-    fireEvent.click(screen.getByRole("button", { name: "ADD TO CALENDAR" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add to calendar" }));
     await waitFor(() => expect(ctx.planSoloSession).toHaveBeenCalledWith("u1", expect.stringMatching(/^s1_\d{4}-\d{2}-\d{2}$/), "s1", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
   });
 

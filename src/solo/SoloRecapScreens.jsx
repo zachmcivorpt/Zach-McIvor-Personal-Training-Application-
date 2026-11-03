@@ -4,7 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
-import { PrimaryButton } from "../components/ui";
+import { SoloButton, SoloTextButton, SOLO_TYPE } from "./SoloUI";
 import { SoloArtwork } from "./SoloArtwork";
 import { recommendForAnswers } from "./recommendations";
 import { programStats, weekRecap } from "./trainingRecap";
@@ -20,8 +20,8 @@ import { localDateKey } from "../lib/dateKey";
 function Page({ children, t }) {
   return (
     <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg, color: t.text }}>
-      <div className="max-w-md mx-auto px-5 pb-10" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 36px)" }}>
-        <img src={t.logo} alt="APEX" className="w-auto mb-10" style={{ height: 19 }} />
+      <div className="max-w-md mx-auto px-5 pb-10" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 40px)" }}>
+        <img src={t.logo} alt="APEX" className="w-auto mb-12" style={{ height: 16 }} />
         {children}
       </div>
     </div>
@@ -30,11 +30,11 @@ function Page({ children, t }) {
 
 function Figure({ value, label, t, accent = false, small = false }) {
   return (
-    <div className="py-4 min-w-0">
-      <p className={`${small ? "text-[26px]" : "text-[34px]"} leading-none font-semibold tracking-[-0.03em] tabular-nums whitespace-nowrap`} style={accent ? { color: MEASURE_BLUE } : undefined}>
+    <div className="py-5 min-w-0">
+      <p className={`${small ? "text-[24px] leading-none font-light tracking-[-0.02em] tabular-nums" : SOLO_TYPE.figure} whitespace-nowrap`} style={accent ? { color: MEASURE_BLUE } : undefined}>
         {value}
       </p>
-      <p className="text-xs mt-1.5" style={{ color: t.textMuted }}>
+      <p className={`${SOLO_TYPE.meta} mt-2`} style={{ color: t.textMuted }}>
         {label}
       </p>
     </div>
@@ -62,15 +62,15 @@ export function SoloProgramCompleteScreen() {
 
   return (
     <Page t={t}>
-      <p className="text-[11px] font-semibold tracking-[0.16em] uppercase" style={{ color: MEASURE_BLUE }}>
+      <p className={SOLO_TYPE.eyebrow} style={{ color: MEASURE_BLUE }}>
         Program complete
       </p>
-      <h1 className="mt-2 text-[34px] leading-[1.08] font-semibold tracking-[-0.03em]">{program?.name || "Your program"}</h1>
-      <p className="mt-3 text-sm" style={{ color: t.textMuted }}>
+      <h1 className={`mt-3 ${SOLO_TYPE.title}`}>{program?.name || "Your program"}</h1>
+      <p className={`mt-2 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
         Every session, done. That's the hard part.
       </p>
 
-      <div className="grid grid-cols-2 gap-x-6 mt-8 border-t" style={{ borderColor: t.panelBorder }} data-testid="program-complete-figures">
+      <div className="grid grid-cols-2 gap-x-6 mt-9 border-t" style={{ borderColor: t.panelBorder }} data-testid="program-complete-figures">
         <Figure value={stats.sessions} label="Sessions" t={t} />
         <Figure value={`${Math.round(stats.minutes / 60)} h`} label="Training time" t={t} />
         <Figure value={kg(stats.volume)} label="Total lifted" t={t} />
@@ -78,20 +78,20 @@ export function SoloProgramCompleteScreen() {
       </div>
 
       {gains.length > 0 && (
-        <div className="mt-6">
-          <p className="text-[11px] font-bold tracking-wide uppercase mb-1" style={{ color: t.textFaint }}>
+        <div className="mt-7">
+          <p className={`${SOLO_TYPE.eyebrow} mb-1`} style={{ color: t.textFaint }}>
             Stronger
           </p>
           <ul className="border-t" style={{ borderColor: t.panelBorder }}>
             {gains.map((g) => (
               <li key={g.exerciseId} className="flex items-center justify-between py-3 border-b" style={{ borderColor: t.panelBorder }}>
                 <span className="min-w-0">
-                  <span className="block text-sm font-semibold truncate">{exercisesById[g.exerciseId]?.name || "Lift"}</span>
-                  <span className="block text-xs mt-0.5 tabular-nums" style={{ color: t.textMuted }}>
+                  <span className={`block ${SOLO_TYPE.row} truncate`}>{exercisesById[g.exerciseId]?.name || "Lift"}</span>
+                  <span className={`block ${SOLO_TYPE.meta} mt-0.5 tabular-nums`} style={{ color: t.textMuted }}>
                     Est. max {g.from} → {g.to} kg
                   </span>
                 </span>
-                <span className="text-lg font-semibold tabular-nums" style={{ color: MEASURE_BLUE }}>
+                <span className="text-[17px] font-light tabular-nums" style={{ color: MEASURE_BLUE }}>
                   +{g.pct}%
                 </span>
               </li>
@@ -102,24 +102,24 @@ export function SoloProgramCompleteScreen() {
 
       {next && (
         <button type="button" onClick={() => navigate(`/solo/program/${next.id}`)} className="w-full flex items-center gap-3.5 mt-8 text-left">
-          <SoloArtwork program={next} t={t} className="w-12 h-12 rounded-xl shrink-0" />
+          <SoloArtwork program={next} t={t} className="w-11 h-11 rounded-xl shrink-0" />
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-semibold tracking-[0.12em] uppercase" style={{ color: t.textMuted }}>
+            <span className={`block ${SOLO_TYPE.eyebrow}`} style={{ color: t.textMuted }}>
               Up next
             </span>
-            <span className="block text-sm font-semibold truncate mt-0.5">{next.name}</span>
+            <span className={`block ${SOLO_TYPE.row} truncate mt-1`}>{next.name}</span>
           </span>
-          <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+          <ChevronRight size={15} strokeWidth={1.75} color={t.textFaint} className="shrink-0" />
         </button>
       )}
 
-      <PrimaryButton dark={dark} className="w-full mt-8" onClick={() => (next ? navigate(`/solo/program/${next.id}`) : navigate("/solo/home", { replace: true }))}>
-        {next ? "START YOUR NEXT PROGRAM" : "DONE"}
-      </PrimaryButton>
+      <SoloButton t={t} className="mt-9" onClick={() => (next ? navigate(`/solo/program/${next.id}`) : navigate("/solo/home", { replace: true }))}>
+        {next ? "Start your next program" : "Done"}
+      </SoloButton>
       {next && (
-        <button type="button" onClick={() => navigate("/solo/home", { replace: true })} className="w-full text-sm font-semibold py-4" style={{ color: t.textMuted }}>
+        <SoloTextButton t={t} className="mt-1" onClick={() => navigate("/solo/home", { replace: true })}>
           Not yet
-        </button>
+        </SoloTextButton>
       )}
     </Page>
   );
@@ -153,50 +153,50 @@ export function SoloWeekRecapScreen() {
 
   return (
     <Page t={t}>
-      <p className="text-[11px] font-semibold tracking-[0.16em] uppercase" style={{ color: t.textMuted }}>
+      <p className={SOLO_TYPE.eyebrow} style={{ color: t.textMuted }}>
         Your week · {range}
       </p>
-      <p className="mt-3 text-[64px] leading-none font-semibold tracking-[-0.04em] tabular-nums" data-testid="week-headline">
+      <p className={`mt-4 ${SOLO_TYPE.hero}`} data-testid="week-headline">
         {headline}
       </p>
-      <p className="mt-2 text-sm" style={{ color: t.textMuted }}>
+      <p className={`mt-2 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
         {recap.planned > 0 ? "planned sessions done" : recap.sessionsDone === 1 ? "session done" : "sessions done"}
       </p>
 
-      <div className="grid grid-cols-[1fr_1.4fr_0.8fr] gap-x-4 mt-8 border-t" style={{ borderColor: t.panelBorder }}>
+      <div className="grid grid-cols-[1fr_1.4fr_0.8fr] gap-x-4 mt-9 border-t" style={{ borderColor: t.panelBorder }}>
         <Figure small value={`${recap.minutes}`} label="Minutes" t={t} />
         <Figure small value={kg(recap.volume)} label={recap.volumeChangePct == null ? "Lifted" : `Lifted · ${recap.volumeChangePct >= 0 ? "+" : ""}${recap.volumeChangePct}%`} t={t} />
         <Figure small value={recap.prs} label="PRs" t={t} accent={recap.prs > 0} />
       </div>
 
-      <div className="mt-6">
-        <p className="text-[11px] font-bold tracking-wide uppercase mb-1" style={{ color: t.textFaint }}>
+      <div className="mt-7">
+        <p className={`${SOLO_TYPE.eyebrow} mb-1`} style={{ color: t.textFaint }}>
           This week
         </p>
         {recap.thisWeek.length ? (
           <ul className="border-t" style={{ borderColor: t.panelBorder }}>
             {recap.thisWeek.map((w) => (
-              <li key={w.id} className="flex items-center justify-between py-3 border-b text-sm" style={{ borderColor: t.panelBorder }}>
-                <span className="font-semibold truncate">{w.title}</span>
-                <span className="text-xs shrink-0 ml-3" style={{ color: t.textMuted }}>
+              <li key={w.id} className="flex items-center justify-between py-3 border-b" style={{ borderColor: t.panelBorder }}>
+                <span className={`${SOLO_TYPE.row} truncate`}>{w.title}</span>
+                <span className={`${SOLO_TYPE.meta} shrink-0 ml-3`} style={{ color: t.textMuted }}>
                   {sessionDayLabel(w.dateKey, todayKey)}
                 </span>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm py-2" style={{ color: t.textMuted }}>
+          <p className={`${SOLO_TYPE.body} py-2`} style={{ color: t.textMuted }}>
             Nothing planned — build a session or start a program to fill your week.
           </p>
         )}
       </div>
 
-      <PrimaryButton dark={dark} className="w-full mt-8" onClick={() => navigate("/solo/home", { replace: true, state: { soloTab: "progress" } })}>
-        LOG THIS WEEK'S CHECK-IN
-      </PrimaryButton>
-      <button type="button" onClick={() => navigate("/solo/home", { replace: true })} className="w-full text-sm font-semibold py-4" style={{ color: t.textMuted }}>
+      <SoloButton t={t} className="mt-9" onClick={() => navigate("/solo/home", { replace: true, state: { soloTab: "progress" } })}>
+        Log this week's check-in
+      </SoloButton>
+      <SoloTextButton t={t} className="mt-1" onClick={() => navigate("/solo/home", { replace: true })}>
         Done
-      </button>
+      </SoloTextButton>
     </Page>
   );
 }

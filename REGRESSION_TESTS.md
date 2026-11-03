@@ -2487,6 +2487,14 @@ Train Solo only; nothing in the coach console or the coached client app changed.
 - **Tests**: `src/solo/scheduling.test.js` (7: training days first; spread when none; keeps set weekdays, Mon → Sun sort, default name; dates from weekdays; invalid weekdays ignored; planned sessions startable only on their day and done when logged; deleted session's plan hidden). `oneProgramAtATime.test.jsx` (+3: builder week Mon/Wed/Fri, move to Sat, saves weekdays [1,3,6] and the auto-name; Plan sheet with one pre-picked day calls `planSoloSession`; run-through marked seen on show (profile + phone), clear glass, not shown again before the profile save arrives). All fail without the change. Screens checked at iPhone size.
 - **Regression check**: full suite 840 passed; `vite build` clean. Catalogue programs keep the consultation-day placement; nothing outside Train Solo touched.
 
+### 143. Train Solo's new pages and pop-ups: smaller type, more premium (owner request, 2026-11-03)
+- **Change (design)**: the pages and pop-ups from #136 and #140–#142 used large, heavy type and big ALL-CAPS black buttons. They now share one quieter scale and slim buttons from `src/solo/SoloUI.jsx`:
+  - `SOLO_TYPE`: eyebrow 10px medium with wide tracking; titles 24px medium (sheet titles 20px); figures 30px light, the recap's headline 44px light; body 13px; rows 13px medium / 11px meta.
+  - `SoloButton` (48px, rounded, the theme's ink, sentence case) and `SoloTextButton` for the quiet second action.
+  - Applied to: day-one first session, Program complete, Your week, Opening the App Store / Confirming / Welcome to Plus, and the switch-program, run-through ("01 / 02 / 03" in light numerals) and Plan sheets (day chips are light pills, not boxes). The builder's weekday labels are small caps; "Your week in review" is 13/11px.
+- **Tests**: button names updated to sentence case in `oneProgramAtATime`, `subscriptionGates` and `clientExperience` tests; "Start program" is now both the sheet title and the button, so those tests find the button by role. Full suite passes; `vite build` clean; every screen checked rendered at iPhone size, light and dark.
+- **Not changed**: the rest of Train Solo, the coached app and the shared `PrimaryButton` (used outside Train Solo).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

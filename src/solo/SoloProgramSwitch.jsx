@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Archive } from "lucide-react";
-import { BottomSheet, PrimaryButton } from "../components/ui";
+import { BottomSheet } from "../components/ui";
+import { SoloButton, SoloTextButton, SOLO_TYPE } from "./SoloUI";
 import { localDateKey } from "../lib/dateKey";
 import { soloClearSheetGlass, CLEAR_SHEET_BACKDROP } from "./SoloThemeContext";
 
@@ -40,17 +41,17 @@ export function SwitchProgramSheet({ open, onClose, programName, resumeWeek = nu
   const resuming = !!resumeWeek;
   return (
     <BottomSheet open={open} onClose={onClose} title={resuming ? "Resume program" : "Start program"} dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
-      <p className="text-[11px] font-semibold tracking-[0.14em] uppercase" style={{ color: t.textMuted }}>
+      <p className={SOLO_TYPE.eyebrow} style={{ color: t.textMuted }}>
         {current ? "Your new program" : "Your program"}
       </p>
-      <p className="text-2xl font-semibold tracking-[-0.02em] leading-tight mt-1">{programName}</p>
+      <p className={`${SOLO_TYPE.sheetTitle} mt-1.5`}>{programName}</p>
       {resuming ? (
-        <p className="text-sm mt-2" style={{ color: t.textMuted }}>
+        <p className={`${SOLO_TYPE.body} mt-2`} style={{ color: t.textMuted }}>
           Picks up at Week {resumeWeek}, starting this week.
         </p>
       ) : (
         <>
-          <label className="block text-sm mt-5 mb-2" style={{ color: t.textMuted }} htmlFor="solo-switch-start">
+          <label className={`block ${SOLO_TYPE.meta} mt-6 mb-2`} style={{ color: t.textMuted }} htmlFor="solo-switch-start">
             Week 1, Day 1 starts
           </label>
           <input
@@ -59,17 +60,17 @@ export function SwitchProgramSheet({ open, onClose, programName, resumeWeek = nu
             value={startDate}
             min={localDateKey()}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full rounded-xl px-3.5 py-2.5 text-sm"
+            className="w-full rounded-xl px-3.5 py-2.5 text-[13px]"
             style={{ backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" }}
           />
         </>
       )}
 
       {current && (
-        <div className="flex items-start gap-3 mt-5 pt-4 border-t" style={{ borderColor: t.panelBorder }}>
-          <Archive size={16} className="shrink-0 mt-0.5" color={t.textMuted} />
-          <p className="text-sm leading-relaxed" style={{ color: t.textMuted }}>
-            <span style={{ color: t.text }} className="font-semibold">
+        <div className="flex items-start gap-3 mt-6 pt-4 border-t" style={{ borderColor: t.panelBorder }}>
+          <Archive size={14} strokeWidth={1.75} className="shrink-0 mt-0.5" color={t.textMuted} />
+          <p className={SOLO_TYPE.body} style={{ color: t.textMuted }}>
+            <span style={{ color: t.text }} className="font-medium">
               {current.name}
             </span>{" "}
             moves to Archived{current.week ? ` at Week ${current.week}` : ""}. Everything you've logged stays, and you can resume it any time.
@@ -77,14 +78,14 @@ export function SwitchProgramSheet({ open, onClose, programName, resumeWeek = nu
         </div>
       )}
 
-      {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-      <PrimaryButton dark={dark} className="w-full mt-6" onClick={() => run(() => onConfirm(startDate))} disabled={busy || (!resuming && !startDate)}>
-        {busy ? "ONE MOMENT…" : current ? "SWITCH PROGRAM" : resuming ? "RESUME" : "START PROGRAM"}
-      </PrimaryButton>
+      {error && <p className="text-red-500 text-[13px] mt-4">{error}</p>}
+      <SoloButton t={t} className="mt-7" onClick={() => run(() => onConfirm(startDate))} disabled={busy || (!resuming && !startDate)}>
+        {busy ? "One moment…" : current ? "Switch program" : resuming ? "Resume" : "Start program"}
+      </SoloButton>
       {onLater && (
-        <button type="button" onClick={() => run(onLater)} disabled={busy} className="w-full text-sm font-semibold py-3 mt-1" style={{ color: t.textMuted }}>
+        <SoloTextButton t={t} className="mt-1" onClick={() => run(onLater)} disabled={busy}>
           Keep it for later
-        </button>
+        </SoloTextButton>
       )}
     </BottomSheet>
   );
@@ -104,21 +105,21 @@ export function ProgramsGuideSheet({ open, onClose, dark, t }) {
       <ol className="border-t" style={{ borderColor: t.panelBorder }}>
         {GUIDE.map(([title, body], i) => (
           <li key={title} className="flex gap-4 py-4 border-b" style={{ borderColor: t.panelBorder }}>
-            <span className="text-[28px] leading-none font-semibold tabular-nums tracking-[-0.03em] w-7 shrink-0" style={{ color: t.textFaint }}>
-              {i + 1}
+            <span className="text-[20px] leading-none font-light tabular-nums w-6 shrink-0 pt-px" style={{ color: t.textFaint }}>
+              {String(i + 1).padStart(2, "0")}
             </span>
             <span className="min-w-0">
-              <span className="block text-[15px] font-semibold">{title}</span>
-              <span className="block text-sm leading-relaxed mt-1" style={{ color: t.textMuted }}>
+              <span className="block text-[14px] font-medium">{title}</span>
+              <span className={`block ${SOLO_TYPE.body} mt-1`} style={{ color: t.textMuted }}>
                 {body}
               </span>
             </span>
           </li>
         ))}
       </ol>
-      <PrimaryButton dark={dark} className="w-full mt-6" onClick={onClose}>
-        GOT IT
-      </PrimaryButton>
+      <SoloButton t={t} className="mt-7" onClick={onClose}>
+        Got it
+      </SoloButton>
     </BottomSheet>
   );
 }
@@ -149,11 +150,11 @@ export function PlanSessionSheet({ open, onClose, session, days, suggested, onCo
   }
   return (
     <BottomSheet open={open} onClose={onClose} title="Plan this session" dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
-      <p className="text-2xl font-semibold tracking-[-0.02em] leading-tight">{session?.name}</p>
-      <p className="text-sm mt-1" style={{ color: t.textMuted }}>
+      <p className={SOLO_TYPE.eyebrow} style={{ color: t.textMuted }}>
         Which day?
       </p>
-      <div className="grid grid-cols-7 gap-1.5 mt-4" role="group" aria-label="Day">
+      <p className={`${SOLO_TYPE.sheetTitle} mt-1.5`}>{session?.name}</p>
+      <div className="grid grid-cols-7 gap-1 mt-5" role="group" aria-label="Day">
         {(days || []).map((d) => {
           const on = d.key === pick;
           return (
@@ -163,21 +164,21 @@ export function PlanSessionSheet({ open, onClose, session, days, suggested, onCo
               onClick={() => setPick(d.key)}
               aria-pressed={on}
               aria-label={d.full}
-              className="flex flex-col items-center justify-center rounded-2xl py-2.5"
-              style={on ? { backgroundColor: t.text, color: t.bg } : { backgroundColor: "transparent", border: `1px solid ${t.panelBorder}`, color: t.text }}
+              className="flex flex-col items-center justify-center rounded-full py-2.5 transition-colors"
+              style={on ? { backgroundColor: t.text, color: t.bg } : { backgroundColor: "transparent", color: t.text }}
             >
-              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ opacity: 0.7 }}>
-                {d.weekday}
+              <span className="text-[9px] font-medium uppercase tracking-[0.12em]" style={{ opacity: on ? 0.75 : 0.5 }}>
+                {d.weekday === "Today" ? "Today" : d.weekday}
               </span>
-              <span className="text-lg font-semibold tabular-nums leading-tight mt-0.5">{d.date}</span>
+              <span className="text-[15px] font-normal tabular-nums leading-tight mt-1">{d.date}</span>
             </button>
           );
         })}
       </div>
-      {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
-      <PrimaryButton dark={dark} className="w-full mt-6" onClick={confirm} disabled={busy || !pick}>
-        {busy ? "ONE MOMENT…" : "ADD TO CALENDAR"}
-      </PrimaryButton>
+      {error && <p className="text-red-500 text-[13px] mt-4">{error}</p>}
+      <SoloButton t={t} className="mt-7" onClick={confirm} disabled={busy || !pick}>
+        {busy ? "One moment…" : "Add to calendar"}
+      </SoloButton>
     </BottomSheet>
   );
 }

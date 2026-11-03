@@ -277,7 +277,7 @@ describe("inside the iPhone app", () => {
       expect(screen.queryByTestId("solo-purchase-stage")).toBe(null);
       expect(screen.queryByText("Train Solo Membership")).toBe(null);
       expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(1);
-      fireEvent.click(screen.getByRole("button", { name: "START TRAINING" }));
+      fireEvent.click(screen.getByRole("button", { name: "Start training" }));
       await waitFor(() => expect(screen.queryByTestId("solo-welcome")).toBe(null));
       // Shown once: the next open of the app doesn't repeat it.
       cleanup();

@@ -189,7 +189,7 @@ export default function SoloProgramBuilderScreen() {
                       onClick={() => setDayPickerFor((v) => (v === d.id ? null : d.id))}
                       aria-label={`Change day for ${d.label}`}
                       aria-expanded={dayPickerFor === d.id}
-                      className="w-12 shrink-0 text-left text-sm font-bold"
+                      className="w-11 shrink-0 text-left text-[11px] font-semibold uppercase tracking-[0.12em]"
                       style={{ color: accent }}
                     >
                       {WEEKDAY_SHORT[d.weekday] || "—"}

@@ -103,7 +103,7 @@ describe("program complete", () => {
     expect(figures).toContain("1Personal records");
     expect(screen.getByText("Back Squat")).toBeTruthy();
     expect(screen.getByText("+10%")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "START YOUR NEXT PROGRAM" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start your next program" }));
     await screen.findByText("program-page");
   });
 });
@@ -127,7 +127,7 @@ describe("Monday recap", () => {
     expect(screen.getByTestId("week-headline").textContent).toBe("2");
     expect(screen.getByText("75")).toBeTruthy();
     expect(screen.getByText(/Nothing planned/)).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "LOG THIS WEEK'S CHECK-IN" }));
+    fireEvent.click(screen.getByRole("button", { name: "Log this week's check-in" }));
     await screen.findByText("home-page");
   });
 });
@@ -140,7 +140,7 @@ describe("day one", () => {
     const list = screen.getByTestId("first-session-exercises").textContent;
     expect(list).toContain("Goblet Squat");
     expect(list).not.toContain("Back Squat"); // no barbell for this member
-    fireEvent.click(screen.getByRole("button", { name: /START YOUR FIRST SESSION/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Start your first session/ }));
     await screen.findByText("workout-page");
   });
 });

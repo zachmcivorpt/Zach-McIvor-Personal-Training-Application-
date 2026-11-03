@@ -72,6 +72,11 @@ rather than inventing new colors per screen:
 
 ### Train Solo (self-guided app, `src/solo/`) design rules
 
+- **Type and buttons on Train Solo's full pages and pop-ups** (#143): use
+  `SOLO_TYPE`, `SoloButton` and `SoloTextButton` from `src/solo/SoloUI.jsx`:
+  small, light type (24px titles, 13px body, light numerals) and slim
+  sentence-case buttons, never ALL-CAPS black blocks. The owner wants it
+  smaller and quieter, not bigger.
 - **Scheduling is done for them** (#142): a built program's sessions get
   weekdays automatically (`nextWeekday`: training days first, else spread),
   shown as "Your week" and moved by tapping the day; it starts today and

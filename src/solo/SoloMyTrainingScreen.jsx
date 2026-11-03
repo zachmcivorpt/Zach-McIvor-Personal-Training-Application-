@@ -524,8 +524,8 @@ export default function SoloMyTrainingScreen() {
           // Monday and Tuesday: last week's recap (#141).
           <button type="button" onClick={() => navigate("/solo/week")} className="w-full flex items-center justify-between gap-3 py-3 mb-4 border-y text-left" style={{ borderColor: t.panelBorder }}>
             <span>
-              <span className="block text-sm font-semibold">Your week in review</span>
-              <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
+              <span className="block text-[13px] font-medium">Your week in review</span>
+              <span className="block text-[11px] mt-0.5" style={{ color: t.textMuted }}>
                 Last week's sessions, PRs and what's on this week
               </span>
             </span>

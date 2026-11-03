@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Check } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
-import { PrimaryButton } from "../components/ui";
+import { SoloButton, SOLO_TYPE } from "./SoloUI";
 import { TIER_LABELS } from "./soloAccess";
 
 // Full-screen states around Apple's In-App Purchase sheet (#136). The page
@@ -50,10 +50,10 @@ export function SoloPurchaseStage({ title, detail }) {
     <Shell label={title} testId="solo-purchase-stage">
       {(t) => (
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-          <img src={t.logo} alt="" aria-hidden="true" className="w-10 h-10 object-contain opacity-90" />
-          <p className="mt-8 text-[26px] leading-tight font-semibold tracking-[-0.02em]">{title}</p>
+          <img src={t.logo} alt="" aria-hidden="true" className="w-8 h-8 object-contain opacity-90" />
+          <p className="mt-8 text-[20px] leading-tight font-medium tracking-[-0.015em]">{title}</p>
           {detail && (
-            <p className="mt-2 text-sm" style={{ color: t.textMuted }}>
+            <p className={`mt-2 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
               {detail}
             </p>
           )}
@@ -80,33 +80,33 @@ export function SoloWelcomeScreen({ tier, renewal, onDone }) {
       {(t, dark) => (
         <>
           <div className="flex-1 flex flex-col justify-center px-6">
-            <img src={t.logo} alt="" aria-hidden="true" className="w-9 h-9 object-contain opacity-90" />
-            <p className="mt-10 text-[11px] font-semibold tracking-[0.16em] uppercase" style={{ color: t.textMuted }}>
+            <img src={t.logo} alt="" aria-hidden="true" className="w-7 h-7 object-contain opacity-90" />
+            <p className={`mt-10 ${SOLO_TYPE.eyebrow}`} style={{ color: t.textMuted }}>
               Membership active
             </p>
-            <h1 className="mt-2 text-[40px] leading-[1.05] font-semibold tracking-[-0.035em]">
+            <h1 className="mt-3 text-[32px] leading-[1.08] font-medium tracking-[-0.03em]">
               Welcome to
               <br />
               {label}.
             </h1>
             {renewal && (
-              <p className="mt-3 text-sm" style={{ color: t.textMuted }}>
+              <p className={`mt-3 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
                 {renewal}
               </p>
             )}
             <ul className="mt-10 border-t" style={{ borderColor: t.panelBorder }}>
               {(WELCOME_FEATURES[tier] || []).map((f) => (
-                <li key={f} className="flex items-center gap-3 py-3.5 border-b text-[15px]" style={{ borderColor: t.panelBorder }}>
-                  <Check size={16} strokeWidth={2.5} color={MEASURE_BLUE} className="shrink-0" />
+                <li key={f} className="flex items-center gap-3 py-3.5 border-b text-[13px]" style={{ borderColor: t.panelBorder }}>
+                  <Check size={14} strokeWidth={2} color={MEASURE_BLUE} className="shrink-0" />
                   {f}
                 </li>
               ))}
             </ul>
           </div>
           <div className="px-6 pb-6 pt-2">
-            <PrimaryButton dark={dark} className="w-full" onClick={onDone}>
-              START TRAINING
-            </PrimaryButton>
+            <SoloButton t={t} onClick={onDone}>
+              Start training
+            </SoloButton>
           </div>
         </>
       )}
