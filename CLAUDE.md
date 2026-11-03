@@ -80,7 +80,7 @@ rather than inventing new colors per screen:
   buttons; keep the weights, keep it small.
 - **Program complete share card** (#145, `src/solo/shareCard.js`): the APEX
   gym photo behind one pane of frosted glass with the member's real
-  numbers (sessions, total lifted, bodyweight change, top 5 lift gains) and
+  numbers (sessions, kg lifted, bodyweight change, top 5 lift gains) and
   their week 1 / final-week progress photos (changeable to any of their
   progress photos, #147). Lifts show est. max first → last week; figures
   (incl. PRs set) are spread evenly across the full width. Every figure
@@ -98,6 +98,8 @@ rather than inventing new colors per screen:
 - **One-time sheets mark themselves seen when shown**, on the profile and
   on the phone, never only on close (#142). New Train Solo pop-ups use
   `soloClearSheetGlass` + `CLEAR_SHEET_BACKDROP`.
+- **Total lifted is shown in full kg** ("176,240" / "Kg lifted"), never
+  tonnes ("176 t" was unclear, #151).
 - **Client-experience moments** (#141): Program complete and the Monday
   recap (`SoloRecapScreens.jsx`) and the day-one first session
   (`SoloFirstSessionScreen.jsx`) are solid full pages with large figures,

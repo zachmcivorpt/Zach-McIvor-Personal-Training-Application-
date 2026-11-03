@@ -24,7 +24,9 @@ export function bodyweightChange(weighIns = [], startDate) {
   return { from, to, change: Math.round((to - from) * 10) / 10 };
 }
 
-const kgText = (n) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)} t` : `${Math.round(n).toLocaleString("en-AU")} kg`);
+// Total lifted as the full figure in kg ("85,230", label "Kg lifted"), never
+// tonnes: "85.2 t" read as unclear (#151).
+const kgText = (n) => Math.round(n).toLocaleString("en-AU");
 const signed = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}`;
 
 // What goes on the card, in order (also what the screen shows).
@@ -61,7 +63,7 @@ export function progressPhotoPair(photos = [], startDate, totalWeeks = 0) {
 export function shareCardContent({ programName, stats, bodyweight, exercisesById = {}, photos = null }) {
   const figures = [
     { value: String(stats?.sessions || 0), label: "Sessions" },
-    { value: kgText(stats?.volume || 0), label: "Total lifted" },
+    { value: kgText(stats?.volume || 0), label: "Kg lifted" },
   ];
   if (bodyweight) figures.push({ value: `${signed(bodyweight.change)} kg`, label: "Bodyweight" });
   figures.push({ value: String(stats?.prs || 0), label: "PRs set" });

@@ -2543,6 +2543,11 @@ Train Solo only; nothing in the coach console or the coached client app changed.
   - Data (`src/solo/estMax.js`, `estMaxSeries`): from their own logs only. Each session's point is the best set's Epley estimate (`e1rm`, weight × (1 + reps ÷ 30), 1 rep = the weight), the same formula the recap and share card use. Bodyweight-only sets, zero-rep sets, warm-ups/cool-downs/cardio don't count.
 - **Tests**: `src/solo/estMax.test.jsx` (by hand: 100×5 = 116.7 vs 110×3 = 121 → 121; 120×1 vs 105×6 = 126 → 126, change +5; a lift with one session has no chart; push-ups with no weight, warm-ups and 0-rep sets ignored; heaviest lift first (Squat before the more-logged Bench, fails on most-logged ordering); chart shows 112 kg / +12 kg and switches to Bench 75 kg / +5 kg; the empty hint). Fail without the change (module missing). Rendered in Chromium.
 
+### 151. "Total lifted 176 t" was unclear: show the full kg figure (owner question, 2026-11-03)
+- **Problem**: Program complete, the Monday recap and the share card shortened total lifted (every set's weight × reps added up) to tonnes over 10,000 kg ("176 t", "22.4 t"). The owner couldn't tell what "t" meant.
+- **Fix**: the full figure in kg with the unit in the label: "176,240" / "Kg lifted" (recap: "Kg lifted · +4%"; share card the same). Never tonnes.
+- **Tests**: `shareCard.test.js` (85,230 → "85,230" / "Kg lifted"; 2,450 → "2,450"; even spacing recalculated with the new label width), `clientExperience.test.jsx` ("1,050" + "Kg lifted" on Program complete). 4 fail on the old formatting.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -109,7 +109,7 @@ describe("program complete", () => {
     const figures = screen.getByTestId("program-complete-figures").textContent;
     expect(figures).toContain("2Sessions");
     expect(figures).toContain("2 hTraining time");
-    expect(figures).toContain("1,050 kgTotal lifted");
+    expect(figures).toContain("1,050Kg lifted");
     expect(figures).toContain("1Personal records");
     expect(screen.getAllByText("Back Squat").length).toBeGreaterThan(0);
     expect(screen.getAllByText("+10%").length).toBeGreaterThan(0);

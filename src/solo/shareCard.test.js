@@ -26,7 +26,7 @@ describe("card content", () => {
     expect(c.title).toBe("Strength Foundation");
     expect(c.figures).toEqual([
       { value: "24", label: "Sessions" },
-      { value: "85.2 t", label: "Total lifted" },
+      { value: "85,230", label: "Kg lifted" },
       { value: "−3.3 kg", label: "Bodyweight" },
       { value: "9", label: "PRs set" },
     ]);
@@ -36,7 +36,7 @@ describe("card content", () => {
   });
   it("without weigh-ins: sessions, total lifted, PRs set; lifts that didn't improve are left off", () => {
     const c = shareCardContent({ programName: "P", stats: { sessions: 3, volume: 2450, prs: 2, strength: [{ exerciseId: "a", from: 100, to: 95, pct: -5 }] }, bodyweight: null, exercisesById });
-    expect(c.figures[1]).toEqual({ value: "2,450 kg", label: "Total lifted" });
+    expect(c.figures[1]).toEqual({ value: "2,450", label: "Kg lifted" });
     expect(c.figures[2]).toEqual({ value: "2", label: "PRs set" });
     expect(c.figures).toHaveLength(3);
     expect(c.lifts).toEqual([]);
@@ -89,12 +89,12 @@ describe("photo choices and even spacing", () => {
     const canvas = { getContext: () => ctx };
     const content = shareCardContent({ programName: "P", stats: { sessions: 24, volume: 85230, prs: 9, strength: [] }, bodyweight: { from: 84, to: 81, change: -3 } });
     drawShareCard(canvas, content, {});
-    const xs = ["24", "85.2 t", "−3 kg", "9"].map((v) => calls.find((c) => c.txt === v).x);
-    // widths (10px a character, the longer of value and label): "Sessions" 80, "Total lifted" 120, "Bodyweight" 100, "PRs set" 70
+    const xs = ["24", "85,230", "−3 kg", "9"].map((v) => calls.find((c) => c.txt === v).x);
+    // widths (10px a character, the longer of value and label): "Sessions" 80, "Kg lifted" 90, "Bodyweight" 100, "PRs set" 70
     const left = 48 + 52;
     const inner = 1080 - 96 - 104;
-    const gap = (inner - (80 + 120 + 100 + 70)) / 3;
-    expect(xs).toEqual([left, left + 80 + gap, left + 80 + 120 + gap * 2, left + 80 + 120 + 100 + gap * 3]);
+    const gap = (inner - (80 + 90 + 100 + 70)) / 3;
+    expect(xs).toEqual([left, left + 80 + gap, left + 80 + 90 + gap * 2, left + 80 + 90 + 100 + gap * 3]);
     expect(xs[3] + 70).toBeCloseTo(left + inner);
   });
 });

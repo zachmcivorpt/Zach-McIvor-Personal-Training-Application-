@@ -46,7 +46,9 @@ function Figure({ value, label, t, accent = false, small = false }) {
   );
 }
 
-const kg = (n) => (n >= 10000 ? `${(n / 1000).toFixed(n >= 100000 ? 0 : 1)} t` : `${n.toLocaleString()} kg`);
+// Total lifted: the full figure, unit in the label ("176,240" / "Kg lifted"),
+// never tonnes ("176 t" read as unclear, #151).
+const kg = (n) => Math.round(n || 0).toLocaleString("en-AU");
 
 export function SoloProgramCompleteScreen() {
   const location = useLocation();
@@ -96,7 +98,7 @@ export function SoloProgramCompleteScreen() {
       <div className="grid grid-cols-2 gap-x-6 mt-9 border-t" style={{ borderColor: t.panelBorder }} data-testid="program-complete-figures">
         <Figure value={stats.sessions} label="Sessions" t={t} />
         <Figure value={`${Math.round(stats.minutes / 60)} h`} label="Training time" t={t} />
-        <Figure value={kg(stats.volume)} label="Total lifted" t={t} />
+        <Figure value={kg(stats.volume)} label="Kg lifted" t={t} />
         <Figure value={stats.prs} label="Personal records" t={t} accent={stats.prs > 0} />
       </div>
 
@@ -361,7 +363,7 @@ export function SoloWeekRecapScreen() {
 
       <div className="grid grid-cols-[1fr_1.4fr_0.8fr] gap-x-4 mt-9 border-t" style={{ borderColor: t.panelBorder }}>
         <Figure small value={`${recap.minutes}`} label="Minutes" t={t} />
-        <Figure small value={kg(recap.volume)} label={recap.volumeChangePct == null ? "Lifted" : `Lifted · ${recap.volumeChangePct >= 0 ? "+" : ""}${recap.volumeChangePct}%`} t={t} />
+        <Figure small value={kg(recap.volume)} label={recap.volumeChangePct == null ? "Kg lifted" : `Kg lifted · ${recap.volumeChangePct >= 0 ? "+" : ""}${recap.volumeChangePct}%`} t={t} />
         <Figure small value={recap.prs} label="PRs" t={t} accent={recap.prs > 0} />
       </div>
 
