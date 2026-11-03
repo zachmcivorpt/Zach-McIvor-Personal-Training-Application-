@@ -214,7 +214,13 @@ function SoloPaywallSheet({ request, onClose }) {
     return formatPlanPrice(PLANS[planKey]);
   }
   function trialDaysOf(planKey) {
-    if (iosApp) return (storeProducts || []).find((x) => x.plan === planKey)?.trialDays || 0;
+    if (iosApp) {
+      // Apple's free trial is only for someone who has never subscribed in
+      // the group. A Plus member (or anyone who has had a plan) upgrading
+      // gets no trial, whatever the store's eligibility check says (#139).
+      if (trialUsed || store || soloEntitlement?.sources?.apple || soloEntitlement?.sources?.stripe) return 0;
+      return (storeProducts || []).find((x) => x.plan === planKey)?.trialDays || 0;
+    }
     // A paid-up subscriber's upgrade changes their current subscription
     // (charged pro rata, functions checkoutDecision "change") — no trial.
     return trialUsed || store ? 0 : PLANS[planKey].trialDays;

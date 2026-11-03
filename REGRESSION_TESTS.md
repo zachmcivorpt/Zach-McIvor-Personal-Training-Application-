@@ -2451,6 +2451,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Tests**: `src/components/bottomSheetUnderKeyboard.test.jsx`: the surface continues below in light, dark and Solo glass; the backdrop extends; Add Exercise opens unfocused with the list shown. All 3 fail without the fix. Checked in Chromium at iPhone size with the visible area cut to 55% (a simulated keyboard): the sheet's glass carries on to the bottom, and no page rows show.
 - **Regression check**: existing BottomSheet suites (`bottomSheetKeyboardCover`, `bottomSheetSurface`, `bodyScrollLockIOS`) and the full suite pass.
 
+### 139. iPhone app offered a Plus member a "7-day free trial" of All Access (owner screenshot, 2026-11-03)
+- **Problem**: a Plus member (App Store) opening the membership sheet saw All Access yearly with "7 days free" and START 7-DAY FREE TRIAL. Apple only gives the introductory trial to someone who has never subscribed in the group, so an upgrading member gets no trial; the copy promised one anyway. The website already hid the trial for subscribers, but the iPhone app used the store's eligibility answer alone (`trialDaysOf`).
+- **Fix**: `SoloPaywall.jsx` `trialDaysOf` (iPhone app): no trial when the member has a paid plan now, has ever had an App Store or website subscription (`soloEntitlement.sources`), or `trialUsed`; otherwise the store's answer as before. The button then reads SUBSCRIBE TO ALL ACCESS, and the terms line shows the plain price.
+- **Tests**: `src/solo/subscriptionGates.test.jsx` "a Plus member upgrading to All Access isn't offered a free trial, even if the store says eligible (#139)". Fails without the fix.
+- **Also seen, owner to fix in App Store Connect (not code)**: the same screenshot showed All Access yearly at **$99.00**. Inside the iPhone app prices always come from Apple, so `apex_solo_all_access_yearly` is set to $99.00 in App Store Connect; the approved price is A$179.99 (ROADMAP.txt step 2). Fix it there (Subscriptions → Train Solo → All Access yearly → Subscription Prices → Australia A$179.99, other countries auto-equalised).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -312,6 +312,29 @@ describe("inside the iPhone app", () => {
     });
   });
 
+  it("1.0.4+: a Plus member upgrading to All Access isn't offered a free trial, even if the store says eligible (#139)", async () => {
+    window.webkit = {
+      messageHandlers: {
+        apexTheme: { postMessage() {} },
+        apexPurchases: {
+          postMessage(msg) {
+            const answer = msg.action === "offerings" ? [{ plan: "all_access_yearly", price: "$179.99", trialDays: 7 }, { plan: "plus_monthly", price: "$9.99", trialDays: 0 }] : { ok: true };
+            setTimeout(() => window.__apexNativePurchases.receive({ id: msg.id, result: answer }), 0);
+          },
+        },
+      },
+    };
+    const FUTURE = Date.now() + 30 * 86400000;
+    ctx = baseCtx({ soloGatesLive: true, soloTier: "plus", soloEntitlement: { sources: { apple: { tier: "plus", status: "active", expiresAt: FUTURE } } } });
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    await screen.findByText("$179.99");
+    expect(screen.queryByText(/days free/)).toBe(null);
+    expect(screen.queryByRole("button", { name: /free trial/i })).toBe(null);
+    expect(screen.getByRole("button", { name: /subscribe to all access/i })).toBeTruthy();
+    expect(screen.getByText(/^\$179\.99 a year\. Renews automatically/)).toBeTruthy();
+  });
+
   it("1.0.4+: when the App Store returns nothing, the paywall says why (no silent grey button) and retries on reopen", async () => {
     let calls = 0;
     window.webkit = {

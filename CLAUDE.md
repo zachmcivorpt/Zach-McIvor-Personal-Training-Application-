@@ -312,6 +312,9 @@ any Train Solo work from now on:
   showing the result on the page that opened the sheet. The server
   unlocks from RevenueCat's `plus`/`all_access` entitlements OR an active
   `apex_solo_<plan>` subscription.
+- No free-trial wording for anyone who has or has had a plan, in the
+  iPhone app too (#139): Apple's trial is for first-time subscribers in the
+  group only, whatever the store's eligibility check returns.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.
