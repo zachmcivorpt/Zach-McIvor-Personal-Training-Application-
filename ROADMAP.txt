@@ -181,9 +181,9 @@ OWNER TO DO, in order
              Agreement is "Pending User Info": bank account processing
              (~24h); W-8BEN and U.S. Certificate of Foreign Status done;
              "ABN and GST Registration Documents" still missing.
-    TODO  ABN Lookup page (showing GST) uploaded to Apple (App Store
-             Connect > Business > Tax Forms > ABN and GST > Choose File +
-             ABN); then Paid Apps Active -> prices appear; TestFlight 1.0.4
+    DONE  2026-11-03: ABN and GST documents submitted to Apple (ABN Lookup
+             PDF showing GST from 02 Nov 2026); Paid Apps "Processing".
+    TODO  Paid Apps Active -> prices appear; TestFlight 1.0.4
              testing (APEXTEST on the website); submit.
   A. Apple (App Store Connect) — start now, the agreements take days:
     1. Business: sign the Paid Apps Agreement; add bank account and tax
