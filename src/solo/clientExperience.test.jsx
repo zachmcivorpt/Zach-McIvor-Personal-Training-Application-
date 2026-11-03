@@ -91,6 +91,11 @@ describe("program complete", () => {
         { id: "1", purchaseId: "u1_p1", weekNumber: 1, dayId: "a", durationMin: 60, entries: [{ exerciseId: "sq", sets: [{ weight: 100, reps: 5 }] }] },
         { id: "2", purchaseId: "u1_p1", weekNumber: 2, dayId: "a", durationMin: 60, entries: [{ exerciseId: "sq", sets: [{ weight: 110, reps: 5, isPR: true }] }] },
       ],
+      soloTrainingPrograms: [{ id: "u1_p1", programId: "p1", startDate: "2026-09-01" }],
+      soloWeighIns: [
+        { weight: 84, date: new Date("2026-09-03T12:00:00").getTime() },
+        { weight: 81.5, date: new Date("2026-10-30T12:00:00").getTime() },
+      ],
     });
     const { SoloProgramCompleteScreen } = await import("./SoloRecapScreens");
     await renderAt("/solo/program-complete", <SoloProgramCompleteScreen />, "/solo/program-complete", { purchaseId: "u1_p1", programId: "p1" });
@@ -101,8 +106,14 @@ describe("program complete", () => {
     expect(figures).toContain("2 hTraining time");
     expect(figures).toContain("1,050 kgTotal lifted");
     expect(figures).toContain("1Personal records");
-    expect(screen.getByText("Back Squat")).toBeTruthy();
-    expect(screen.getByText("+10%")).toBeTruthy();
+    expect(screen.getAllByText("Back Squat").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("+10%").length).toBeGreaterThan(0);
+    // Bodyweight over the program (#144): 84 → 81.5 kg since the start date.
+    expect(screen.getByTestId("program-complete-bodyweight").textContent).toContain("−2.5 kg");
+    // Share your results: their photo behind their numbers.
+    const share = screen.getByTestId("share-results");
+    expect(share.querySelector('input[type="file"][accept="image/*"]')).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Share/ })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Start your next program" }));
     await screen.findByText("program-page");
   });

@@ -78,6 +78,11 @@ rather than inventing new colors per screen:
   figures, bold all-caps buttons) at the smaller sizes (24px titles, 13px
   body). The owner rejected light/medium weights and sentence-case
   buttons; keep the weights, keep it small.
+- **Program complete share card** (#145, `src/solo/shareCard.js`): the
+  member's own photo (kept on the phone, never uploaded) behind their real
+  numbers (sessions, total lifted, bodyweight change, top 5 lift gains).
+  Every figure from their logs and weigh-ins; leave a figure off rather
+  than estimate it.
 - **Scheduling is done for them** (#142): a built program's sessions get
   weekdays automatically (`nextWeekday`: training days first, else spread),
   shown as "Your week" and moved by tapping the day; it starts today and

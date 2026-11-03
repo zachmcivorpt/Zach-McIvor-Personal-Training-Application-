@@ -2500,6 +2500,17 @@ Train Solo only; nothing in the coach console or the coached client app changed.
 - **Fix**: `SoloUI.jsx` keeps #143's smaller sizes with the original weights. Titles, figures, rows and labels are semibold (figures 28px, the recap headline 44px); `SoloButton` is bold ALL CAPS again (13px, `rounded-2xl` like `PrimaryButton`) and `SoloTextButton` is semibold. The leftover light and medium spots go back to semibold or bold: the run-through numerals (plain 1 / 2 / 3), the Plan sheet's day boxes (bordered, semibold), the purchase screens' titles, "Your first session", the builder's weekday labels, the recap's small figures and gains.
 - **Tests**: button names are matched on their text (the caps come from CSS), so the existing tests still apply; Train Solo suite passes; `vite build` clean.
 
+### 145. Program complete: share your results with a photo; top 5 lifts and bodyweight (owner request, 2026-11-03)
+- **Change (feature)**: Program complete (`SoloRecapScreens.jsx`) now shows the member's **five** biggest lift improvements (was 3) and their **bodyweight change** over the program (`shareCard.bodyweightChange`: the first weigh-in from the program's start date vs the latest; left off with fewer than two). A new **Share your results** section builds a 1080 × 1350 image (`shareCard.js` `drawShareCard`, fits an Instagram post or story):
+  - their own photo (Add photo / Change photo, `accept="image/*"`; it stays on the phone, drawn into the card, never uploaded) cover-fitted behind a dark fade
+  - the APEX mark and "TRAIN SOLO", "PROGRAM COMPLETE" and the program name
+  - sessions, total lifted, and bodyweight change (PRs when there are no weigh-ins)
+  - "STRONGER" with the top 5 lifts and their % gain in blue
+  
+  SHARE uses the phone's share sheet (`navigator.share` with the image file) where it can; otherwise it says "Press and hold the image to save or share it" under the preview. Cancelling the share sheet is silent. "Up next" and START YOUR NEXT PROGRAM stay below, to keep them going.
+- **Tests**: `src/solo/shareCard.test.js` (4, hand-checked: bodyweight from the start date, fewer than two → none; card figures sessions / "85.2 t" / "−3.3 kg" and the five biggest gains in order; PRs instead of bodyweight, non-gains left off). `clientExperience.test.jsx`: the Program complete test also checks the bodyweight row (−2.5 kg) and the share section (photo picker, Share button). Both fail without the change. The card was drawn in Chromium with a gym photo and checked by eye, and the eyebrow spacing was adjusted.
+- **Still to check on a phone**: the iPhone app's share sheet with the image (WKWebView's `navigator.share` with files); if it isn't offered there, the press-and-hold fallback shows.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
