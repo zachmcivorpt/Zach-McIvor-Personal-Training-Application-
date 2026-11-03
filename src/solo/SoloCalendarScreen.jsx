@@ -15,7 +15,7 @@ import { isRecoveryAddon } from "./recommendations";
 // since a Solo program's days are laid out from its start date.
 export default function SoloCalendarScreen() {
   const navigate = useNavigate();
-  const { soloCurrentUser, soloTrainingPrograms, soloProgramsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, soloAccess } =
+  const { soloCurrentUser, soloTrainingPrograms, soloProgramsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, soloAccess, soloCustomSessions } =
     useSoloApp();
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
@@ -46,10 +46,12 @@ export default function SoloCalendarScreen() {
         accountCreatedAt: soloCurrentUser?.createdAt,
         trainingDays: soloCurrentUser?.onboarding?.answers?.trainingDays,
         sessionPlan: soloCurrentUser?.sessionPlan,
+        plannedSessions: soloCurrentUser?.plannedSessions,
+        customSessions: soloCustomSessions,
         fromKey,
         toKey,
       }),
-    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, soloCurrentUser?.onboarding?.answers?.trainingDays, soloCurrentUser?.sessionPlan, fromKey, toKey]
+    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, soloCurrentUser?.onboarding?.answers?.trainingDays, soloCurrentUser?.sessionPlan, soloCurrentUser?.plannedSessions, soloCustomSessions, fromKey, toKey]
   );
 
   // Only days with something on them, plus today so the list always has
@@ -143,7 +145,7 @@ export default function SoloCalendarScreen() {
                   )}
                   {items.map((item) => {
                     const action = actionFor(item);
-                    const locked = (item.type === "workout" || item.type === "addon") && !item.done && !action;
+                    const locked = (item.type === "workout" || item.type === "addon" || item.type === "planned") && !item.done && !action;
                     return (
                       <button
                         key={item.id}
@@ -164,7 +166,7 @@ export default function SoloCalendarScreen() {
                             {item.title}
                           </p>
                           <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
-                            {item.done ? (item.type === "workout" || item.type === "recovery" || item.type === "addon" || item.type === "custom" ? "Completed." : "Done for this week.") : item.subtitle}
+                            {item.done ? (item.type === "workout" || item.type === "recovery" || item.type === "addon" || item.type === "custom" || item.type === "planned" ? "Completed." : "Done for this week.") : item.subtitle}
                           </p>
                         </div>
                         {locked ? <Lock size={14} color={t.textFaint} className="shrink-0" /> : action ? <ChevronRight size={16} color={t.textFaint} className="shrink-0" /> : null}

@@ -158,6 +158,20 @@ export function soloGlassVars(t) {
   return { "--solo-glass-bg": t.glassBg, "--solo-glass-border": t.panelBorder };
 }
 
+// The clearer glass of the membership sheet (#125), shared by the
+// one-program sheets (#142): lighter fill, stronger blur and saturation so
+// the page shows through while text stays readable. Use with a light
+// backdrop (CLEAR_SHEET_BACKDROP).
+export function soloClearSheetGlass(dark) {
+  return {
+    backgroundColor: dark ? "rgba(16,16,18,0.38)" : "rgba(255,255,255,0.3)",
+    backdropFilter: dark ? "blur(30px) saturate(170%)" : "blur(30px) saturate(190%) brightness(1.12)",
+    WebkitBackdropFilter: dark ? "blur(30px) saturate(170%)" : "blur(30px) saturate(190%) brightness(1.12)",
+    boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.1)" : "inset 0 1px 0 rgba(255,255,255,0.85)",
+  };
+}
+export const CLEAR_SHEET_BACKDROP = "bg-black/10";
+
 // Glass for Train Solo's bottom sheets (BottomSheet's `surface` prop) —
 // a denser fill than soloGlass so text stays readable over the dimmed page.
 export function soloSheetGlass(t) {

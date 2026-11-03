@@ -25,7 +25,7 @@
 import { localDateKey } from "../lib/dateKey";
 import { phaseForWeekNumber, currentWeekNumber } from "./weekProgress";
 import { isRecoveryLog } from "./activeRecovery";
-import { isCustomSessionLog } from "./customSessions";
+import { isCustomSessionLog, customSessionState } from "./customSessions";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -61,9 +61,22 @@ export function sessionOffsets(n) {
 // there are at least as many as the week's sessions, the sessions go on
 // those weekdays, in order, within the week; otherwise they're spread
 // evenly across the week.
-export function sessionDateKeys(startDate, weekNumber, count, trainingDays = []) {
+// A program the customer built can carry its own weekday for each session
+// (`weekdays`, 0 = Sunday, one per session, #142): those win, each session
+// on its weekday within the program week.
+export function validWeekdays(weekdays, count) {
+  if (!Array.isArray(weekdays) || weekdays.length !== count || count === 0) return false;
+  const nums = weekdays.map(Number);
+  return nums.every((d) => Number.isInteger(d) && d >= 0 && d <= 6) && new Set(nums).size === nums.length;
+}
+
+export function sessionDateKeys(startDate, weekNumber, count, trainingDays = [], weekdays = null) {
   if (!startDate || !weekNumber) return [];
   const weekStart = addDays(startDate, (weekNumber - 1) * 7);
+  if (validWeekdays(weekdays, count)) {
+    const week = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    return weekdays.map((wd) => week.find((k) => parseKey(k).getDay() === Number(wd)));
+  }
   const chosen = new Set((trainingDays || []).map(Number));
   if (count > 0 && chosen.size >= count) {
     const keys = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).filter((k) => chosen.has(parseKey(k).getDay()));
@@ -100,6 +113,10 @@ export function buildSoloCalendar({
   trainingDays = [],
   // Missed sessions moved or skipped (#141): { [purchaseId]: { [`${week}_${dayId}`]: { moveTo } | { skipped: true } } }.
   sessionPlan = {},
+  // The customer's own saved sessions put on a day (#142):
+  // plannedSessions { [planId]: { sessionId, date } }, customSessions [{ id, name, exercises }].
+  plannedSessions = {},
+  customSessions = [],
   fromKey,
   toKey,
 }) {
@@ -122,6 +139,25 @@ export function buildSoloCalendar({
     push(keyOf(log.date), { type: "custom", id: `custom:${log.id}`, logId: log.id, title: log.dayLabel || "Your session", subtitle: "Your own session", done: true });
   }
 
+  // Own sessions planned on a day: startable on (or after) their day,
+  // done once a session of theirs is logged that day.
+  const sessionsById = Object.fromEntries((customSessions || []).map((c) => [c.id, c]));
+  const customDoneOn = new Set(workoutLogs.filter(isCustomSessionLog).map((l) => `${l.dayId}|${keyOf(l.date)}`));
+  for (const [planId, plan] of Object.entries(plannedSessions || {})) {
+    const session = plan && sessionsById[plan.sessionId];
+    if (!session || !plan.date) continue;
+    push(plan.date, {
+      type: "planned",
+      id: `planned:${planId}`,
+      planId,
+      title: session.name || "Your session",
+      subtitle: "Your own session",
+      done: customDoneOn.has(`${session.id}|${plan.date}`),
+      session,
+      dateKey: plan.date,
+    });
+  }
+
   for (const purchase of purchases) {
     const program = programsById[purchase.programId];
     const phases = contentByProgramId[purchase.programId]?.phases;
@@ -131,7 +167,7 @@ export function buildSoloCalendar({
     if (totalWeeks > 0) programSpans.push({ start: purchase.startDate, totalWeeks, until });
     for (let week = 1; week <= totalWeeks; week++) {
       const days = phaseForWeekNumber(phases, week)?.phase?.days || [];
-      const dates = sessionDateKeys(purchase.startDate, week, days.length, trainingDays);
+      const dates = sessionDateKeys(purchase.startDate, week, days.length, trainingDays, purchase.weekdays);
       days.forEach((day, i) => {
         if (until && dates[i] >= until) return;
         const planned = sessionPlan?.[purchase.id]?.[sessionPlanKey(week, day.id)] || null;
@@ -220,6 +256,10 @@ export function calendarItemTarget(item, { todayKey, soloUid, contentByProgramId
     };
   }
   if (item.type === "bodystats" || item.type === "photos") return { path: "/solo/home", state: { soloTab: "progress" } };
+  if (item.type === "planned") {
+    if (item.done || item.dateKey > todayKey) return null; // waits for its day
+    return { path: "/solo/workout", state: customSessionState(soloUid, item.session) };
+  }
   if (item.type === "workout" && !item.done) {
     if (item.purchase.status === "paused" || item.purchase.locked) return null; // history only until it's resumed
     if (item.skipped) return null;

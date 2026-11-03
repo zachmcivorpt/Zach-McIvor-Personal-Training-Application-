@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Archive } from "lucide-react";
 import { BottomSheet, PrimaryButton } from "../components/ui";
 import { localDateKey } from "../lib/dateKey";
+import { soloClearSheetGlass, CLEAR_SHEET_BACKDROP } from "./SoloThemeContext";
 
 // One program at a time (#140, src/solo/currentProgram.js): the sheet every
 // "start / resume / switch program" goes through — from the catalogue, My
@@ -38,7 +39,7 @@ export function SwitchProgramSheet({ open, onClose, programName, resumeWeek = nu
 
   const resuming = !!resumeWeek;
   return (
-    <BottomSheet open={open} onClose={onClose} title={resuming ? "Resume program" : "Start program"} dark={dark}>
+    <BottomSheet open={open} onClose={onClose} title={resuming ? "Resume program" : "Start program"} dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
       <p className="text-[11px] font-semibold tracking-[0.14em] uppercase" style={{ color: t.textMuted }}>
         {current ? "Your new program" : "Your program"}
       </p>
@@ -99,7 +100,7 @@ const GUIDE = [
 // any time from "How it works" next to Your program.
 export function ProgramsGuideSheet({ open, onClose, dark, t }) {
   return (
-    <BottomSheet open={open} onClose={onClose} title="How your programs work" dark={dark}>
+    <BottomSheet open={open} onClose={onClose} title="How your programs work" dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
       <ol className="border-t" style={{ borderColor: t.panelBorder }}>
         {GUIDE.map(([title, body], i) => (
           <li key={title} className="flex gap-4 py-4 border-b" style={{ borderColor: t.panelBorder }}>
@@ -117,6 +118,65 @@ export function ProgramsGuideSheet({ open, onClose, dark, t }) {
       </ol>
       <PrimaryButton dark={dark} className="w-full mt-6" onClick={onClose}>
         GOT IT
+      </PrimaryButton>
+    </BottomSheet>
+  );
+}
+
+// Put one of their own saved sessions on a day (#142): the next 7 days as
+// one row of chips, the best one already picked (their next training day
+// without a session, else today), then one button.
+export function PlanSessionSheet({ open, onClose, session, days, suggested, onConfirm, dark, t }) {
+  const [pick, setPick] = useState(suggested);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!open) return;
+    setPick(suggested);
+    setBusy(false);
+    setError("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  async function confirm() {
+    setBusy(true);
+    setError("");
+    try {
+      await onConfirm(pick);
+    } catch {
+      setError("Couldn't add it — check your connection and try again.");
+      setBusy(false);
+    }
+  }
+  return (
+    <BottomSheet open={open} onClose={onClose} title="Plan this session" dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
+      <p className="text-2xl font-semibold tracking-[-0.02em] leading-tight">{session?.name}</p>
+      <p className="text-sm mt-1" style={{ color: t.textMuted }}>
+        Which day?
+      </p>
+      <div className="grid grid-cols-7 gap-1.5 mt-4" role="group" aria-label="Day">
+        {(days || []).map((d) => {
+          const on = d.key === pick;
+          return (
+            <button
+              key={d.key}
+              type="button"
+              onClick={() => setPick(d.key)}
+              aria-pressed={on}
+              aria-label={d.full}
+              className="flex flex-col items-center justify-center rounded-2xl py-2.5"
+              style={on ? { backgroundColor: t.text, color: t.bg } : { backgroundColor: "transparent", border: `1px solid ${t.panelBorder}`, color: t.text }}
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ opacity: 0.7 }}>
+                {d.weekday}
+              </span>
+              <span className="text-lg font-semibold tabular-nums leading-tight mt-0.5">{d.date}</span>
+            </button>
+          );
+        })}
+      </div>
+      {error && <p className="text-red-500 text-sm mt-4">{error}</p>}
+      <PrimaryButton dark={dark} className="w-full mt-6" onClick={confirm} disabled={busy || !pick}>
+        {busy ? "ONE MOMENT…" : "ADD TO CALENDAR"}
       </PrimaryButton>
     </BottomSheet>
   );

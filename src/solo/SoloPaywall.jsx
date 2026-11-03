@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
-import { useSoloTheme, SOLO_THEMES } from "./SoloThemeContext";
+import { useSoloTheme, SOLO_THEMES, soloClearSheetGlass } from "./SoloThemeContext";
 import { BottomSheet, PrimaryButton } from "../components/ui";
 import { PLANS, TIER_LABELS, formatPlanPrice, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { inIosApp } from "./appShell";
@@ -31,12 +31,7 @@ export const useSoloPaywall = () => useContext(PaywallCtx);
 // Solo sheet (soloSheetGlass) so the page shows through, with a stronger
 // blur and saturation so text stays readable.
 function paywallSurface(dark) {
-  return {
-    backgroundColor: dark ? "rgba(16,16,18,0.38)" : "rgba(255,255,255,0.3)",
-    backdropFilter: dark ? "blur(30px) saturate(170%)" : "blur(30px) saturate(190%) brightness(1.12)",
-    WebkitBackdropFilter: dark ? "blur(30px) saturate(170%)" : "blur(30px) saturate(190%) brightness(1.12)",
-    boxShadow: dark ? "inset 0 1px 0 rgba(255,255,255,0.1)" : "inset 0 1px 0 rgba(255,255,255,0.85)",
-  };
+  return soloClearSheetGlass(dark);
 }
 
 // A plan tile: a thinner pane of glass on the sheet's glass.

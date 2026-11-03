@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronUp, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
-import { dayFromSession, validateCustomProgram, customProgramKey, MAX_PROGRAM_WEEKS, MAX_PROGRAM_DAYS } from "./customPrograms";
+import { dayFromSession, validateCustomProgram, customProgramKey, MAX_PROGRAM_WEEKS, MAX_PROGRAM_DAYS, fillWeekdays, nextWeekday, byWeekday, defaultProgramName, WEEK_ORDER, WEEKDAY_SHORT } from "./customPrograms";
+import { sessionDateKeys, sessionDayLabel } from "./soloCalendar";
 import { canUse } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
 import { localDateKey } from "../lib/dateKey";
@@ -40,8 +41,20 @@ export default function SoloProgramBuilderScreen() {
 
   const [name, setName] = useState(existing?.name || "");
   const [weeks, setWeeks] = useState(existing?.weeks || 6);
-  const [days, setDays] = useState(existing?.days || []);
+  // Each session sits on a weekday, picked for them (#142): their training
+  // days from the consultation first, else spread out. An older program
+  // gets its weekdays from where its sessions already fell.
+  const trainingDays = soloCurrentUser?.onboarding?.answers?.trainingDays || [];
+  const [days, setDays] = useState(() => {
+    const list = existing?.days || [];
+    const saved = Array.isArray(existing?.weekdays) && existing.weekdays.length === list.length ? existing.weekdays : null;
+    return fillWeekdays(list.map((d, i) => ({ ...d, weekday: saved ? Number(saved[i]) : d.weekday ?? null })), trainingDays);
+  });
   const [startDate, setStartDate] = useState(existing?.startDate || localDateKey());
+  const [dateOpen, setDateOpen] = useState(false);
+  const [dayPickerFor, setDayPickerFor] = useState(null); // a session's id while choosing its weekday
+  const week = [...days].sort(byWeekday);
+  const firstSessionKey = days.length ? [...sessionDateKeys(startDate, 1, days.length, [], [...days].sort(byWeekday).map((d) => d.weekday))].sort()[0] : null;
   const [pickOpen, setPickOpen] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -61,14 +74,9 @@ export default function SoloProgramBuilderScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allowed, soloEntitlementReady]);
 
-  function move(i, dir) {
-    setDays((list) => {
-      const next = [...list];
-      const j = i + dir;
-      if (j < 0 || j >= next.length) return list;
-      [next[i], next[j]] = [next[j], next[i]];
-      return next;
-    });
+  function setWeekday(id, weekday) {
+    setDays((list) => list.map((d) => (d.id === id ? { ...d, weekday } : d)));
+    setDayPickerFor(null);
   }
 
   async function save() {
@@ -76,7 +84,17 @@ export default function SoloProgramBuilderScreen() {
       openPaywall({ tier: "plus", reason: "Turn your sessions into a multi-week program on your calendar — part of Plus." });
       return;
     }
-    const draft = { ...(existing || {}), name, weeks, days, startDate: startDate || null };
+    // The week Monday → Sunday, each session with its weekday; the name
+    // fills itself in if they skipped it.
+    const ordered = [...days].sort(byWeekday);
+    const draft = {
+      ...(existing || {}),
+      name: name.trim() || defaultProgramName(ordered),
+      weeks,
+      days: ordered.map(({ weekday, ...d }) => d),
+      weekdays: ordered.map((d) => d.weekday),
+      startDate: startDate || null,
+    };
     const problem = validateCustomProgram(draft);
     if (problem) return setError(problem);
     setError("");
@@ -136,7 +154,7 @@ export default function SoloProgramBuilderScreen() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={60}
-          placeholder="e.g. My 6-week strength block"
+          placeholder={days.length ? defaultProgramName(days) : "e.g. My 6-week strength block"}
           className="w-full rounded-xl px-3.5 py-3 text-sm outline-none"
           style={{ ...soloGlass(t), color: t.text }}
         />
@@ -155,36 +173,65 @@ export default function SoloProgramBuilderScreen() {
           </div>
         </div>
 
-        {label(`Each week${days.length ? ` · ${days.length} session${days.length === 1 ? "" : "s"}` : ""}`)}
+        {label(`Your week${days.length ? ` · ${days.length} session${days.length === 1 ? "" : "s"}` : ""}`)}
         {days.length === 0 ? (
           <p className="text-sm py-6 px-4 text-center rounded-2xl" style={{ ...soloGlass(t), color: t.textMuted }}>
-            Add the sessions you'll do each week, in order. They go on the training days from your consultation.
+            Add the sessions you'll do each week. We'll put them on your training days.
           </p>
         ) : (
-          <div className="rounded-2xl" style={soloGlass(t)}>
-            {days.map((d, i) => (
-              <div key={d.id} className="flex items-center gap-2 px-3.5 py-3" style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}>
-                <span className="text-xs font-bold w-12 shrink-0" style={{ color: t.textFaint }}>
-                  Day {i + 1}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold truncate">{d.label}</span>
-                  <span className="block text-xs" style={{ color: t.textMuted }}>
-                    {(d.exercises || []).length} exercise{(d.exercises || []).length === 1 ? "" : "s"}
-                  </span>
-                </span>
-                <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`Move ${d.label} up`} className="w-7 h-7 flex items-center justify-center disabled:opacity-25">
-                  <ChevronUp size={16} />
-                </button>
-                <button type="button" onClick={() => move(i, 1)} disabled={i === days.length - 1} aria-label={`Move ${d.label} down`} className="w-7 h-7 flex items-center justify-center disabled:opacity-25">
-                  <ChevronDown size={16} />
-                </button>
-                <button type="button" onClick={() => setDays((list) => list.filter((_, j) => j !== i))} aria-label={`Remove ${d.label}`} className="w-7 h-7 flex items-center justify-center" style={{ color: t.textMuted }}>
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="rounded-2xl" style={soloGlass(t)} data-testid="program-week">
+              {week.map((d, i) => (
+                <div key={d.id} style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}>
+                  <div className="flex items-center gap-3 px-3.5 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setDayPickerFor((v) => (v === d.id ? null : d.id))}
+                      aria-label={`Change day for ${d.label}`}
+                      aria-expanded={dayPickerFor === d.id}
+                      className="w-12 shrink-0 text-left text-sm font-bold"
+                      style={{ color: accent }}
+                    >
+                      {WEEKDAY_SHORT[d.weekday] || "—"}
+                    </button>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-semibold truncate">{d.label}</span>
+                      <span className="block text-xs" style={{ color: t.textMuted }}>
+                        {(d.exercises || []).length} exercise{(d.exercises || []).length === 1 ? "" : "s"}
+                      </span>
+                    </span>
+                    <button type="button" onClick={() => setDays((list) => list.filter((x) => x.id !== d.id))} aria-label={`Remove ${d.label}`} className="w-7 h-7 flex items-center justify-center" style={{ color: t.textMuted }}>
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                  {dayPickerFor === d.id && (
+                    <div className="flex justify-between gap-1 px-3.5 pb-3" role="group" aria-label={`Day for ${d.label}`}>
+                      {WEEK_ORDER.map((wd) => {
+                        const takenBy = days.find((x) => x.weekday === wd && x.id !== d.id);
+                        const on = d.weekday === wd;
+                        return (
+                          <button
+                            key={wd}
+                            type="button"
+                            disabled={!!takenBy}
+                            onClick={() => setWeekday(d.id, wd)}
+                            aria-pressed={on}
+                            className="flex-1 h-9 rounded-full text-xs font-semibold disabled:opacity-25"
+                            style={on ? { backgroundColor: accent, color: "#fff" } : { backgroundColor: t.chipBg, color: t.text }}
+                          >
+                            {WEEKDAY_SHORT[wd].slice(0, 2)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-xs mt-2 px-1" style={{ color: t.textMuted }}>
+              {trainingDays.length ? "On your training days." : "Spread out so you get rest between."} Tap a day to move a session.
+            </p>
+          </>
         )}
         {days.length < MAX_PROGRAM_DAYS && (
           <button type="button" onClick={() => setPickOpen(true)} className="w-full flex items-center justify-center gap-2 text-sm font-semibold py-3 mt-2.5 rounded-2xl" style={{ ...soloGlass(t), color: accent }}>
@@ -193,13 +240,28 @@ export default function SoloProgramBuilderScreen() {
         )}
 
         {label("Starts")}
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="w-full rounded-xl px-3.5 py-2.5 text-sm"
-          style={{ backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" }}
-        />
+        <div className="flex items-center justify-between gap-3 px-1">
+          <p className="text-sm" data-testid="program-starts">
+            {startDate === localDateKey() ? "Today" : sessionDayLabel(startDate)}
+            {firstSessionKey && (
+              <span style={{ color: t.textMuted }}> · first session {sessionDayLabel(firstSessionKey).replace(/^(Today|Tomorrow)$/, (m) => m.toLowerCase())}</span>
+            )}
+          </p>
+          <button type="button" onClick={() => setDateOpen((v) => !v)} className="text-xs font-semibold shrink-0" style={{ color: accent }}>
+            {dateOpen ? "Done" : "Change"}
+          </button>
+        </div>
+        {dateOpen && (
+          <input
+            type="date"
+            value={startDate}
+            min={localDateKey()}
+            onChange={(e) => setStartDate(e.target.value)}
+            aria-label="Start date"
+            className="w-full rounded-xl px-3.5 py-2.5 text-sm mt-2"
+            style={{ backgroundColor: t.inputBg, border: `1px solid ${t.inputBorder}`, color: t.text, colorScheme: dark ? "dark" : "light" }}
+          />
+        )}
 
         {error && <p className="text-sm text-red-500 text-center mt-4">{error}</p>}
 
@@ -245,7 +307,7 @@ export default function SoloProgramBuilderScreen() {
                 key={s.id}
                 type="button"
                 onClick={() => {
-                  setDays((list) => [...list, dayFromSession(s)]);
+                  setDays((list) => [...list, { ...dayFromSession(s), weekday: nextWeekday(list.map((d) => d.weekday), trainingDays) }]);
                   setPickOpen(false);
                 }}
                 className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"

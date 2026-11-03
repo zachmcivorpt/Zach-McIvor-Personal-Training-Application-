@@ -62,7 +62,50 @@ export function customProgramEntries(uid, programs = [], { locked = false } = {}
       untilDate: null,
       locked,
       customProgramId: p.id,
+      weekdays: Array.isArray(p.weekdays) ? p.weekdays : null,
     });
   }
   return { trainingRows, programsById, contentByProgramId };
+}
+
+// Scheduling a built program (#142): each session gets a weekday, done for
+// them. Weeks read Monday → Sunday.
+export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];
+export const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const circular = (a, b) => {
+  const x = Math.abs(a - b) % 7;
+  return Math.min(x, 7 - x);
+};
+
+// The weekday for the next session added: their first free training day
+// from the consultation, else the free day furthest from the ones taken
+// (Monday for the first), so sessions spread out with rest between.
+export function nextWeekday(taken = [], trainingDays = []) {
+  const used = new Set(taken.map(Number));
+  const chosen = new Set((trainingDays || []).map(Number));
+  const preferred = WEEK_ORDER.filter((d) => chosen.has(d) && !used.has(d));
+  if (preferred.length) return preferred[0];
+  const free = WEEK_ORDER.filter((d) => !used.has(d));
+  if (!free.length) return null;
+  if (!used.size) return 1;
+  const gap = (d) => Math.min(...[...used].map((u) => circular(d, u)));
+  return [...free].sort((a, b) => gap(b) - gap(a) || WEEK_ORDER.indexOf(a) - WEEK_ORDER.indexOf(b))[0];
+}
+
+// Weekdays for a list of sessions that don't have one yet (an older
+// program, or several added at once), keeping any already set.
+export function fillWeekdays(days = [], trainingDays = []) {
+  const taken = days.map((d) => d.weekday).filter((w) => w != null);
+  return days.map((d) => {
+    if (d.weekday != null) return d;
+    const wd = nextWeekday(taken, trainingDays);
+    taken.push(wd);
+    return { ...d, weekday: wd };
+  });
+}
+
+export const byWeekday = (a, b) => WEEK_ORDER.indexOf(a.weekday) - WEEK_ORDER.indexOf(b.weekday);
+
+export function defaultProgramName(days = []) {
+  return `My ${days.length}-day program`;
 }

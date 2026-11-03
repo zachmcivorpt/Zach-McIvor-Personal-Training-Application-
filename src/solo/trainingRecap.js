@@ -78,7 +78,7 @@ export function weekRecap({ logs = [], byDate = {}, todayKey = localDateKey() })
   });
   const lastWeekLogs = inRange(lastMonday, thisMonday);
   const priorWeekLogs = inRange(priorMonday, lastMonday);
-  const workoutsIn = (from) => Array.from({ length: 7 }, (_, i) => byDate[addDays(from, i)] || []).flat().filter((i) => i.type === "workout" && !i.skipped);
+  const workoutsIn = (from) => Array.from({ length: 7 }, (_, i) => byDate[addDays(from, i)] || []).flat().filter((i) => (i.type === "workout" || i.type === "planned") && !i.skipped);
   const plannedLast = workoutsIn(lastMonday);
   const plannedThis = workoutsIn(thisMonday);
   const volume = volumeOf(lastWeekLogs);

@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { CalendarDays, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus, Zap, Pencil } from "lucide-react";
+import { CalendarDays, CalendarPlus, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus, Zap, Pencil } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { SoloArtwork } from "./SoloArtwork";
 import { isRecoveryAddon } from "./recommendations";
@@ -17,7 +17,7 @@ import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
 import { customSessionState } from "./customSessions";
 import { canUse, savedSessionLimit } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
-import { SwitchProgramSheet, ProgramsGuideSheet } from "./SoloProgramSwitch";
+import { SwitchProgramSheet, ProgramsGuideSheet, PlanSessionSheet } from "./SoloProgramSwitch";
 import { weekInProgram } from "./currentProgram";
 
 // A purchased program's own overview — which week the customer is in, that
@@ -45,7 +45,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
   const current = weekNumber ? phaseForWeekNumber(phases, weekNumber) : null;
   const isFutureWeek = currentWeek != null && weekNumber > currentWeek;
   const today = localDateKey();
-  const dateKeys = sessionDateKeys(purchase?.startDate, weekNumber, (current?.phase?.days || []).length, trainingDays);
+  const dateKeys = sessionDateKeys(purchase?.startDate, weekNumber, (current?.phase?.days || []).length, trainingDays, purchase?.weekdays);
 
   function logForDay(dayId) {
     return soloWorkoutLogs.find((l) => l.purchaseId === purchase?.id && l.dayId === dayId && l.weekNumber === weekNumber) || null;
@@ -228,6 +228,7 @@ export default function SoloMyTrainingScreen() {
     switchSoloProgram,
     markSoloProgramsGuideSeen,
     setSoloSessionPlan,
+    planSoloSession,
   } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   // Recovery add-ons are a Plus feature once subscriptions launch.
@@ -345,17 +346,35 @@ export default function SoloMyTrainingScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingSwitchId, ownedRows]);
 
-  // The run-through, once: the first time someone has a program.
+  // The run-through, once ever (#142): marked seen the moment it first
+  // shows — on the profile and on this phone — so leaving the screen,
+  // a slow save or a reinstall of the page can't bring it back.
   const [guideOpen, setGuideOpen] = useState(false);
-  const guideSeen = !!soloCurrentUser?.programsGuideSeenAt;
+  const guideKey = soloCurrentUser?.id ? `apexSoloProgramsGuide:${soloCurrentUser.id}` : null;
+  const seenOnPhone = (() => {
+    try {
+      return !!(guideKey && localStorage.getItem(guideKey));
+    } catch {
+      return false;
+    }
+  })();
+  const guideSeen = !!soloCurrentUser?.programsGuideSeenAt || seenOnPhone;
+  const guideShownRef = useRef(false);
   useEffect(() => {
     // Never on top of the switch sheet; it shows once that's done.
-    if (soloCurrentUser && !guideSeen && ownedRows.length > 0 && !switchRow && !pendingSwitchId) setGuideOpen(true);
+    if (!soloCurrentUser || guideSeen || guideShownRef.current || ownedRows.length === 0 || switchRow || pendingSwitchId) return;
+    guideShownRef.current = true;
+    setGuideOpen(true);
+    try {
+      if (guideKey) localStorage.setItem(guideKey, String(Date.now()));
+    } catch {
+      // Storage blocked: the profile flag below still records it.
+    }
+    markSoloProgramsGuideSeen().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soloCurrentUser?.id, guideSeen, ownedRows.length > 0, switchRow, pendingSwitchId]);
   function closeGuide() {
     setGuideOpen(false);
-    if (!guideSeen) markSoloProgramsGuideSeen().catch(() => {});
   }
   const glass = soloGlass(t);
   const todayKey = localDateKey();
@@ -382,10 +401,12 @@ export default function SoloMyTrainingScreen() {
         accountCreatedAt: soloCurrentUser?.createdAt,
         trainingDays,
         sessionPlan: soloCurrentUser?.sessionPlan,
+        plannedSessions: soloCurrentUser?.plannedSessions,
+        customSessions: soloCustomSessions,
         fromKey: weekStart,
         toKey: addDays(weekStart, 6),
       }),
-    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, trainingDays, soloCurrentUser?.sessionPlan, weekStart]
+    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, trainingDays, soloCurrentUser?.sessionPlan, soloCurrentUser?.plannedSessions, soloCustomSessions, weekStart]
   );
   // Sessions from the last week that were planned but not done (#141):
   // offered to move to today or skip.
@@ -402,6 +423,30 @@ export default function SoloMyTrainingScreen() {
     });
     return missedSessions(recent, todayKey, 7);
   }, [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, trainingDays, soloCurrentUser?.sessionPlan, todayKey]);
+  // Planning one of their own sessions on a day (#142).
+  const [planFor, setPlanFor] = useState(null);
+  const planDays = useMemo(
+    () =>
+      Array.from({ length: 7 }, (_, i) => {
+        const k = addDays(todayKey, i);
+        const d = new Date(`${k}T00:00:00`);
+        return { key: k, weekday: i === 0 ? "Today" : d.toLocaleDateString("en-AU", { weekday: "short" }), date: d.getDate(), full: d.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" }) };
+      }),
+    [todayKey]
+  );
+  const plannedEntries = Object.entries(soloCurrentUser?.plannedSessions || {}).filter(([, p]) => p && p.date >= todayKey);
+  // The best day: their next training day (today included) with nothing
+  // on it yet, else the next free day, else today.
+  function suggestDay() {
+    const chosen = new Set((trainingDays || []).map(Number));
+    const busy = new Set(plannedEntries.map(([, p]) => p.date));
+    const free = (k) => !busy.has(k) && !(byDate[k] || []).some((it) => it.type === "workout" || it.type === "planned");
+    return planDays.find((d) => chosen.has(new Date(`${d.key}T00:00:00`).getDay()) && free(d.key))?.key || planDays.find((d) => free(d.key))?.key || todayKey;
+  }
+  function plannedLabel(session) {
+    const next = plannedEntries.filter(([, p]) => p.sessionId === session.id).map(([, p]) => p.date).sort()[0];
+    return next ? sessionDayLabel(next, todayKey) : null;
+  }
   const [planBusy, setPlanBusy] = useState(null);
   async function planMissed(item, value) {
     setPlanBusy(item.id);
@@ -573,6 +618,8 @@ export default function SoloMyTrainingScreen() {
           }
           onStart={startCustomSession}
           onEdit={(session) => navigate("/solo/session-builder", { state: { sessionId: session.id } })}
+          onPlan={(session) => setPlanFor(session)}
+          plannedLabel={plannedLabel}
           t={t}
         />
 
@@ -756,6 +803,20 @@ export default function SoloMyTrainingScreen() {
         t={t}
       />
       <ProgramsGuideSheet open={guideOpen} onClose={closeGuide} dark={dark} t={t} />
+      <PlanSessionSheet
+        open={!!planFor}
+        onClose={() => setPlanFor(null)}
+        session={planFor}
+        days={planDays}
+        suggested={planFor ? suggestDay() : todayKey}
+        onConfirm={async (date) => {
+          await planSoloSession(soloCurrentUser.id, `${planFor.id}_${date}`, planFor.id, date);
+          setPlanFor(null);
+          setSelectedKey(date);
+        }}
+        dark={dark}
+        t={t}
+      />
 
       <CompletedSessionSheet log={viewLog} programName={logProgramName(viewLog)} exercisesById={exercisesById} onClose={() => setViewLog(null)} dark={dark} t={t} />
       </div>
@@ -763,13 +824,13 @@ export default function SoloMyTrainingScreen() {
   );
 }
 
-const ITEM_ORDER = { workout: 0, custom: 0.5, addon: 1, recovery: 2, bodystats: 3, photos: 4 };
-const ITEM_ICON = { workout: Dumbbell, custom: Dumbbell, addon: HeartPulse, recovery: HeartPulse, bodystats: Scale, photos: Camera };
+const ITEM_ORDER = { workout: 0, planned: 0.25, custom: 0.5, addon: 1, recovery: 2, bodystats: 3, photos: 4 };
+const ITEM_ICON = { workout: Dumbbell, planned: Dumbbell, custom: Dumbbell, addon: HeartPulse, recovery: HeartPulse, bodystats: Scale, photos: Camera };
 // Session-type entries (the large card on the day, the dot on the week strip).
-const isSessionItem = (i) => i.type === "workout" || i.type === "addon" || i.type === "custom";
+const isSessionItem = (i) => i.type === "workout" || i.type === "planned" || i.type === "addon" || i.type === "custom";
 
 // Free training: start an empty session, build one, or run a saved one.
-function YourSessions({ sessions, limit = Infinity, onQuickStart, onBuild, onBuildProgram, onStart, onEdit, t }) {
+function YourSessions({ sessions, limit = Infinity, onQuickStart, onBuild, onBuildProgram, onStart, onEdit, onPlan, plannedLabel = () => null, t }) {
   return (
     <div className="mt-8">
       <div className="flex items-center justify-between gap-3 mb-3">
@@ -820,8 +881,14 @@ function YourSessions({ sessions, limit = Infinity, onQuickStart, onBuild, onBui
                 <p className="text-sm font-semibold truncate">{session.name}</p>
                 <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
                   {session.exercises.length} exercise{session.exercises.length === 1 ? "" : "s"}
+                  {plannedLabel(session) ? <span style={{ color: MEASURE_BLUE }}> · {plannedLabel(session)}</span> : null}
                 </p>
               </div>
+              {onPlan && (
+                <button type="button" onClick={() => onPlan(session)} aria-label={`Plan ${session.name}`} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ color: t.textMuted }}>
+                  <CalendarPlus size={16} />
+                </button>
+              )}
               <button type="button" onClick={() => onEdit(session)} aria-label={`Edit ${session.name}`} className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ color: t.textMuted }}>
                 <Pencil size={15} />
               </button>
@@ -1254,7 +1321,7 @@ export function summarizeProgress(purchase, program, content, logs, trainingDays
   const days = current?.phase?.days || null;
   const sessionsThisWeek = days ? days.length : null;
   const doneThisWeek = days ? days.filter((d) => doneKeys.has(`${weekNumber}:${d.id}`)).length : 0;
-  const dateKeys = days ? sessionDateKeys(purchase.startDate, weekNumber, days.length, trainingDays) : [];
+  const dateKeys = days ? sessionDateKeys(purchase.startDate, weekNumber, days.length, trainingDays, purchase.weekdays) : [];
   const weekSessions = (days || []).map((day, i) => ({ day, dateKey: dateKeys[i], done: doneKeys.has(`${weekNumber}:${day.id}`) }));
 
   let nextLabel = "—";

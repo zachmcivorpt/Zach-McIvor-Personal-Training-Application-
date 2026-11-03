@@ -127,7 +127,7 @@ export function SoloProgramCompleteScreen() {
 
 export function SoloWeekRecapScreen() {
   const navigate = useNavigate();
-  const { soloWorkoutLogs, soloTrainingPrograms, soloProgramsById, soloContentById, soloCurrentUser } = useSoloApp();
+  const { soloWorkoutLogs, soloTrainingPrograms, soloProgramsById, soloContentById, soloCurrentUser, soloCustomSessions } = useSoloApp();
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const todayKey = localDateKey();
@@ -140,11 +140,13 @@ export function SoloWeekRecapScreen() {
       workoutLogs: soloWorkoutLogs || [],
       trainingDays: soloCurrentUser?.onboarding?.answers?.trainingDays,
       sessionPlan: soloCurrentUser?.sessionPlan,
+      plannedSessions: soloCurrentUser?.plannedSessions,
+      customSessions: soloCustomSessions || [],
       fromKey: addDays(thisMonday, -7),
       toKey: addDays(thisMonday, 6),
     });
     return weekRecap({ logs: soloWorkoutLogs || [], byDate, todayKey });
-  }, [soloWorkoutLogs, soloTrainingPrograms, soloProgramsById, soloContentById, soloCurrentUser, todayKey]);
+  }, [soloWorkoutLogs, soloTrainingPrograms, soloProgramsById, soloContentById, soloCurrentUser, soloCustomSessions, todayKey]);
 
   const range = `${new Date(`${recap.lastMonday}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} – ${new Date(`${addDays(recap.lastMonday, 6)}T00:00:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}`;
   const headline = recap.planned > 0 ? `${recap.plannedDone} of ${recap.planned}` : String(recap.sessionsDone);

@@ -72,6 +72,15 @@ rather than inventing new colors per screen:
 
 ### Train Solo (self-guided app, `src/solo/`) design rules
 
+- **Scheduling is done for them** (#142): a built program's sessions get
+  weekdays automatically (`nextWeekday`: training days first, else spread),
+  shown as "Your week" and moved by tapping the day; it starts today and
+  names itself. Own sessions go on a day through the Plan sheet with the
+  best day pre-picked (`plannedSessions`). Don't add steps (date pickers,
+  ordering, required names) back into these flows.
+- **One-time sheets mark themselves seen when shown**, on the profile and
+  on the phone, never only on close (#142). New Train Solo pop-ups use
+  `soloClearSheetGlass` + `CLEAR_SHEET_BACKDROP`.
 - **Client-experience moments** (#141): Program complete and the Monday
   recap (`SoloRecapScreens.jsx`) and the day-one first session
   (`SoloFirstSessionScreen.jsx`) are solid full pages with large figures,

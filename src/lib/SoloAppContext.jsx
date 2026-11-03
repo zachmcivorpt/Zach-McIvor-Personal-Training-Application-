@@ -816,6 +816,10 @@ export function SoloAppProvider({ children }) {
       async setSoloSessionPlan(uid, purchaseId, key, value) {
         await updateDoc(doc(soloDb, "soloUsers", uid), { [`sessionPlan.${purchaseId}.${key}`]: value || deleteField() });
       },
+      // One of their own sessions put on a day (#142); null date removes it.
+      async planSoloSession(uid, planId, sessionId, date) {
+        await updateDoc(doc(soloDb, "soloUsers", uid), { [`plannedSessions.${planId}`]: date ? { sessionId, date } : deleteField() });
+      },
       async markSoloProgramsGuideSeen() {
         const st = programStateRef.current;
         const uid = st.soloProfile?.id || st.soloAuthUser?.uid;

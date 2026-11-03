@@ -52,6 +52,7 @@ function baseCtx(over = {}) {
     keepSoloProgramForLater: vi.fn(() => Promise.resolve()),
     markSoloProgramsGuideSeen: vi.fn(() => Promise.resolve()),
     setSoloSessionPlan: vi.fn(() => Promise.resolve()),
+    planSoloSession: vi.fn(() => Promise.resolve()),
     saveSoloCustomProgram: vi.fn((uid, p) => Promise.resolve({ ...p, id: "new1" })),
     deleteSoloCustomProgram: vi.fn(),
     addSoloWater: vi.fn(),
@@ -67,6 +68,7 @@ function baseCtx(over = {}) {
 
 beforeEach(() => {
   ctx = baseCtx();
+  localStorage.clear();
 });
 afterEach(cleanup);
 
@@ -183,5 +185,73 @@ describe("Build a program: start it now or keep it for later (#140)", () => {
     await buildOne();
     await waitFor(() => expect(ctx.switchSoloProgram).toHaveBeenCalledWith(expect.objectContaining({ target: expect.objectContaining({ programId: "cp_new1", source: "custom" }) })));
     await screen.findByText("home-page");
+  });
+});
+
+describe("scheduling, done for them (#142)", () => {
+  const sessions = [
+    { id: "s1", name: "Push", exercises: [{ exerciseId: "e1" }] },
+    { id: "s2", name: "Pull", exercises: [{ exerciseId: "e1" }] },
+    { id: "s3", name: "Legs", exercises: [{ exerciseId: "e1" }] },
+  ];
+
+  it("Build a program puts sessions on their training days, lets them move one, starts today, names itself", async () => {
+    ctx = baseCtx({
+      soloCustomSessions: sessions,
+      soloAccess: { tier: "plus", live: true },
+      soloCurrentProgram: null,
+      soloTrainingPrograms: [],
+      soloCurrentUser: { id: "u1", programsGuideSeenAt: 1, onboarding: { answers: { trainingDays: [1, 3, 5] } } },
+    });
+    const { default: SoloProgramBuilderScreen } = await import("./SoloProgramBuilderScreen");
+    await renderAt("/solo/program-builder", <SoloProgramBuilderScreen />, "/solo/program-builder");
+    for (const name of ["Push", "Pull", "Legs"]) {
+      fireEvent.click(screen.getByRole("button", { name: /add a session/i }));
+      fireEvent.click(await screen.findByText(name));
+    }
+    const week = screen.getByTestId("program-week").textContent;
+    expect(week).toMatch(/Mon\s*Push.*Wed\s*Pull.*Fri\s*Legs/);
+    expect(screen.getByText(/On your training days\. Tap a day to move a session\./)).toBeTruthy();
+    expect(screen.getByTestId("program-starts").textContent).toMatch(/^Today/);
+    // Move Legs to Saturday.
+    fireEvent.click(screen.getByRole("button", { name: "Change day for Legs" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Day for Legs" })).getByRole("button", { name: "Sa" }));
+    expect(screen.getByTestId("program-week").textContent).toMatch(/Sat\s*Legs/);
+    fireEvent.click(screen.getByRole("button", { name: /create program/i }));
+    await waitFor(() => expect(ctx.saveSoloCustomProgram).toHaveBeenCalled());
+    const saved = ctx.saveSoloCustomProgram.mock.calls[0][1];
+    expect(saved.name).toBe("My 3-day program");
+    expect(saved.days.map((d) => d.label)).toEqual(["Push", "Pull", "Legs"]);
+    expect(saved.weekdays).toEqual([1, 3, 6]);
+  });
+
+  it("Plan puts one of their sessions on a day: the best day picked, one tap to add", async () => {
+    ctx = baseCtx({ soloCustomSessions: sessions, soloCurrentUser: { id: "u1", programsGuideSeenAt: 1, onboarding: { answers: {} } } });
+    await renderMyTraining();
+    fireEvent.click(screen.getByRole("button", { name: "Plan Push" }));
+    await screen.findByText("Plan this session");
+    expect(screen.getByText("Which day?")).toBeTruthy();
+    const pressed = within(screen.getByRole("group", { name: "Day" })).getAllByRole("button").filter((b) => b.getAttribute("aria-pressed") === "true");
+    expect(pressed).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "ADD TO CALENDAR" }));
+    await waitFor(() => expect(ctx.planSoloSession).toHaveBeenCalledWith("u1", expect.stringMatching(/^s1_\d{4}-\d{2}-\d{2}$/), "s1", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)));
+  });
+
+  it("the run-through is marked seen the moment it shows, and is clear glass", async () => {
+    ctx = baseCtx({ soloCurrentUser: { id: "u1", onboarding: { answers: {} } } });
+    await renderMyTraining();
+    const title = await screen.findByText("How your programs work");
+    expect(ctx.markSoloProgramsGuideSeen).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem("apexSoloProgramsGuide:u1")).toBeTruthy();
+    // The membership sheet's clear glass, not the denser standard sheet.
+    let panel = title.parentElement;
+    while (panel && !panel.style.backdropFilter) panel = panel.parentElement;
+    expect(["rgba(255, 255, 255, 0.3)", "rgba(16, 16, 18, 0.38)"]).toContain(panel.style.backgroundColor);
+    cleanup();
+    // The profile save hasn't come back yet, but this phone remembers: never twice.
+    ctx = baseCtx({ soloCurrentUser: { id: "u1", onboarding: { answers: {} } } });
+    await renderMyTraining();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(screen.queryByText("How your programs work")).toBe(null);
   });
 });
