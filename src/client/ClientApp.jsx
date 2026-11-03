@@ -7776,6 +7776,7 @@ function CoachSheet({ open, onClose, ctx }) {
 
 function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
   const dark = useClientDark();
+  const { reactToMessage } = useApp();
   const [input, setInput] = useState("");
   const [uploadPct, setUploadPct] = useState(null);
   const [uploadError, setUploadError] = useState("");
@@ -7873,7 +7874,17 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
           const { m, mine, first, last } = row;
           const tone = bubbleTone(mine, dark);
           return (
-            <ChatBubble key={row.key} mine={mine} first={first} last={last} dark={dark} time={chatTime(m.date)}>
+            <ChatBubble
+              key={row.key}
+              mine={mine}
+              first={first}
+              last={last}
+              dark={dark}
+              time={chatTime(m.date)}
+              reactions={m.reactions}
+              myReaction={m.reactions?.client}
+              onReact={(emoji) => reactToMessage(m.id, "client", emoji)}
+            >
               {m.replyTo && <p className={`text-[11px] font-semibold mb-1 ${tone.muted}`}>Re: your form check · {m.replyTo.exerciseName}</p>}
               {m.text && !m.attachment?.formCheck && <p className="whitespace-pre-line break-words">{m.text}</p>}
               {m.attachment?.formCheck && <p className={`text-[10px] font-bold tracking-[0.1em] uppercase ${tone.muted}`}>Form check · {formCheckLabel(m.attachment.formCheck)}</p>}

@@ -349,6 +349,10 @@ any Train Solo work from now on:
   with a single + for attachments): own messages MEASURE_BLUE, theirs
   charcoal / white with a hairline (#128). Use it for any new chat view
   rather than restyling bubbles per screen.
+- Message reactions (#130): `reactions: { coach?, client? }` on the
+  message, set via `reactToMessage`; firestore.rules lets a client change
+  only `reactions.client` in their own thread. Keep any new message field
+  a client can write equally narrow.
 - The coach console hides its mobile tab bar while a text field has focus
   (`useTextEntryFocused`, `src/lib/textEntryFocus.js`); screens that
   reserve space for the bar (Messages) drop it while typing too.

@@ -1764,6 +1764,12 @@ export function AppProvider({ children }) {
         }
       },
 
+      // Emoji reaction on a message (#130): one per side (role is "coach"
+      // or "client"); null removes it. Shows at once (local-first).
+      reactToMessage(messageId, role, emoji) {
+        return localFirst(updateDoc(doc(firestore, "messages", messageId), { [`reactions.${role}`]: emoji || deleteField() }), { label: "message" });
+      },
+
       // `extra` carries optional links, e.g. a coach's reply to a client's
       // form-check video: { replyTo: { messageId, exerciseId, exerciseName } }.
       sendMessage(clientId, from, text, attachment, extra) {

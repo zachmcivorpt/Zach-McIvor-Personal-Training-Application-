@@ -4,7 +4,7 @@
 // white on the client's light theme) with a hairline. Messages from the
 // same person within a few minutes are grouped — tighter spacing, one
 // time under the group — and each day starts with a small divider.
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Plus, X, ArrowUp, Video, Paperclip, Image as ImageIcon } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
 import { MessageComposerInput } from "./MessageComposerInput";
@@ -56,21 +56,111 @@ export function bubbleTone(mine, dark) {
   return dark ? { text: "text-white/90", muted: "text-white/45", chip: "bg-white/8 text-white" } : { text: "text-black/85", muted: "text-black/45", chip: "bg-black/5 text-black" };
 }
 
-export function ChatBubble({ mine, first, last, dark, time, children, wide = false }) {
+// Emoji reactions (#130): press and hold a message (right-click on a
+// computer) to pick one; tapping the same one again removes it. Each side
+// has one reaction per message: reactions = { coach?: "👍", client?: "❤️" }.
+export const REACTIONS = ["❤️", "👍", "😂", "😮", "💪", "🔥"];
+const HOLD_MS = 450;
+
+function ReactionPicker({ mine, dark, current, onPick, onClose }) {
+  return (
+    <>
+      <div className="fixed inset-0 z-[130]" onClick={onClose} onContextMenu={(e) => (e.preventDefault(), onClose())} />
+      <div
+        role="menu"
+        aria-label="React"
+        className={`absolute z-[131] bottom-full mb-1.5 ${mine ? "right-0" : "left-0"} flex gap-0.5 rounded-full px-1.5 py-1 shadow-lg`}
+        style={dark ? { backgroundColor: "#1C1C1E", border: "1px solid rgba(255,255,255,0.1)" } : { backgroundColor: "#FFFFFF", border: "1px solid rgba(20,19,15,0.1)" }}
+      >
+        {REACTIONS.map((e) => (
+          <button
+            key={e}
+            type="button"
+            role="menuitem"
+            aria-label={`React ${e}`}
+            onClick={() => onPick(current === e ? null : e)}
+            className="w-9 h-9 rounded-full text-[20px] leading-none flex items-center justify-center"
+            style={current === e ? { backgroundColor: dark ? "rgba(255,255,255,0.14)" : "rgba(20,19,15,0.08)" } : undefined}
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+export function ChatBubble({ mine, first, last, dark, time, children, wide = false, reactions, myReaction, onReact }) {
+  const [picking, setPicking] = useState(false);
+  const hold = useRef(null);
+  const start = useRef(null);
+  const cancelHold = () => {
+    clearTimeout(hold.current);
+    hold.current = null;
+  };
+  const pressHandlers = onReact
+    ? {
+        onPointerDown: (e) => {
+          start.current = { x: e.clientX, y: e.clientY };
+          cancelHold();
+          hold.current = setTimeout(() => setPicking(true), HOLD_MS);
+        },
+        onPointerMove: (e) => {
+          if (start.current && Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 10) cancelHold();
+        },
+        onPointerUp: cancelHold,
+        onPointerLeave: cancelHold,
+        onPointerCancel: cancelHold,
+        onContextMenu: (e) => {
+          e.preventDefault();
+          cancelHold();
+          setPicking(true);
+        },
+      }
+    : {};
+  const shown = Object.values(reactions || {}).filter(Boolean);
   const tail = mine ? (last ? "rounded-br-[6px]" : "") : last ? "rounded-bl-[6px]" : "";
   const join = mine ? (!first ? "rounded-tr-[6px]" : "") : !first ? "rounded-tl-[6px]" : "";
   const theirs = dark
     ? { backgroundColor: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.06)" }
     : { backgroundColor: "#FFFFFF", border: "1px solid rgba(20,19,15,0.08)" };
   return (
-    <div className={`flex flex-col ${mine ? "items-end" : "items-start"} ${first ? "mt-3" : "mt-[3px]"}`}>
-      <div
-        className={`${wide ? "max-w-[85%]" : "max-w-[78%]"} rounded-[20px] ${tail} ${join} px-3.5 py-2.5 text-[14.5px] leading-[1.4] ${bubbleTone(mine, dark).text}`}
-        style={mine ? { backgroundColor: MEASURE_BLUE } : theirs}
-      >
-        {children}
+    <div className={`flex flex-col ${mine ? "items-end" : "items-start"} ${first ? "mt-3" : "mt-[3px]"} ${shown.length && !(last && time) ? "mb-3" : ""}`}>
+      <div className={`relative ${wide ? "max-w-[85%]" : "max-w-[78%]"}`}>
+        <div
+          {...pressHandlers}
+          className={`rounded-[20px] ${tail} ${join} px-3.5 py-2.5 text-[14.5px] leading-[1.4] ${bubbleTone(mine, dark).text}`}
+          style={{ ...(mine ? { backgroundColor: MEASURE_BLUE } : theirs), ...(onReact ? { WebkitTouchCallout: "none", WebkitUserSelect: "none", userSelect: "none" } : null) }}
+        >
+          {children}
+        </div>
+        {shown.length > 0 && (
+          <button
+            type="button"
+            onClick={() => onReact && setPicking(true)}
+            aria-label={`Reactions ${shown.join(" ")}`}
+            className={`absolute -bottom-3 ${mine ? "left-2" : "right-2"} flex items-center gap-0.5 rounded-full px-1.5 h-6 text-[13px] leading-none`}
+            style={dark ? { backgroundColor: "#1C1C1E", border: "1px solid rgba(255,255,255,0.12)" } : { backgroundColor: "#FFFFFF", border: "1px solid rgba(20,19,15,0.1)" }}
+          >
+            {shown.map((e, i) => (
+              <span key={i}>{e}</span>
+            ))}
+          </button>
+        )}
+        {picking && (
+          <ReactionPicker
+            mine={mine}
+            dark={dark}
+            current={myReaction}
+            onClose={() => setPicking(false)}
+            onPick={(e) => {
+              setPicking(false);
+              onReact(e);
+            }}
+          />
+        )}
       </div>
-      {last && time && <p className={`text-[10.5px] mt-1 px-1 tabular-nums ${dark ? "text-white/35" : "text-black/35"}`}>{time}</p>}
+      {last && time && <p className={`text-[10.5px] ${shown.length ? "mt-4" : "mt-1"} px-1 tabular-nums ${dark ? "text-white/35" : "text-black/35"}`}>{time}</p>}
     </div>
   );
 }

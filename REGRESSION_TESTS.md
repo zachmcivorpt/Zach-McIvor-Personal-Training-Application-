@@ -2389,6 +2389,11 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Tests**: `src/lib/videoFastStart.test.js` (4): detects index-after-data, re-packages with tracks copied and fast start on, leaves fast-start / non-MP4 clips alone, upload carries the cache header — 3 fail on the old code (the 4th, "leave alone", passes either way). `videoUploadCompression.test.js` mock updated. Real-file check: an ffmpeg-made MOV with moov at the end came out moov-first, `video/mp4`, and played its full 4s in Chromium.
 - **Regression check**: full suite, lint, build; compression path, size limit and upload progress unchanged.
 
+### 130. Emoji reactions on coach ↔ client messages (feature, owner request 2026-11-03)
+- **Change**: press and hold a message (right-click on a computer) to pick ❤️ 👍 😂 😮 💪 🔥; picking your current one again removes it. One reaction per side per message, stored on the message as `reactions: { coach?, client? }` and shown as a small pill on the bubble's bottom corner. `ChatBubble` (`src/components/Chat.jsx`) gains `reactions` / `myReaction` / `onReact` (no picker without `onReact`; a bubble you can react to turns off text selection so the hold isn't taken by iOS's copy menu). `reactToMessage(messageId, role, emoji|null)` in `AppContext.jsx` (local-first `updateDoc`, `deleteField` to remove). Wired into the coach thread (`CoachMessages.jsx`) and the client's Messages (`ClientApp.jsx`). `firestore.rules` messages: a client may now update ONLY `reactions.client` on messages in their own thread (text, sender and the coach's reaction stay coach-only); deployed with the rules on the next production build (`scripts/deploy-firestore-rules.js`).
+- **Tests**: `src/components/chatReactions.test.jsx` (5): hold opens the picker and picking reacts; a quick tap or a scroll doesn't; right-click opens it and re-picking your reaction removes it; both sides' reactions show; no picker without `onReact`. They fail without the feature (no picker/props existed).
+- **Regression check**: full suite (770 passed), lint, build; chat send/attachments/voice notes/form-check replies unchanged.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

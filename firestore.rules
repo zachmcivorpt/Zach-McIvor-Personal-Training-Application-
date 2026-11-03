@@ -214,7 +214,13 @@ service cloud.firestore {
       // scoped to their own clientId) must claim from=="client".
       allow create: if (isCoach() && request.resource.data.from == "coach") ||
         (ownsClientId(request.resource.data.clientId) && request.resource.data.from == "client");
-      allow update, delete: if isCoach();
+      // Emoji reactions (#130): a client may change ONLY their own
+      // reaction (reactions.client) on a message in their own thread —
+      // never the text, sender or the coach's reaction.
+      allow update: if isCoach() || (isSignedIn() && resource.data.clientId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(["reactions"]) &&
+        request.resource.data.get("reactions", {}).diff(resource.data.get("reactions", {})).affectedKeys().hasOnly(["client"]));
+      allow delete: if isCoach();
     }
     // --- workoutComments/{id}: the per-workout comment thread shown from
     //     a completed workout's "..." menu — both the coach and that

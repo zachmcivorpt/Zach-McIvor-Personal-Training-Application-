@@ -55,7 +55,7 @@ function AttachmentPill({ attachment, tone = "theirs" }) {
 // both the full-screen ThreadView (opened from a client's own profile) and
 // the inline right-hand panel of the desktop Messages screen.
 export function ThreadMessages({ client }) {
-  const { db, sendMessage, updateUser } = useApp();
+  const { db, sendMessage, updateUser, reactToMessage } = useApp();
   const typing = useTextEntryFocused();
   const [input, setInput] = useState("");
   const [uploadPct, setUploadPct] = useState(null);
@@ -169,7 +169,17 @@ export function ThreadMessages({ client }) {
           const { m, mine, first, last } = row;
           const tone = bubbleTone(mine, true);
           return (
-            <ChatBubble key={row.key} mine={mine} first={first} last={last} dark time={chatTime(m.date)}>
+            <ChatBubble
+              key={row.key}
+              mine={mine}
+              first={first}
+              last={last}
+              dark
+              time={chatTime(m.date)}
+              reactions={m.reactions}
+              myReaction={m.reactions?.coach}
+              onReact={(emoji) => reactToMessage(m.id, "coach", emoji)}
+            >
               {m.attachment?.formCheck && (
                 <p className={`text-[10px] font-bold tracking-[0.1em] uppercase mb-1 ${tone.muted}`}>Form check · {formCheckLabel(m.attachment.formCheck)}</p>
               )}
