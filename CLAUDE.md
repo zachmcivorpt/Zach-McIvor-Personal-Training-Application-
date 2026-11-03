@@ -72,6 +72,13 @@ rather than inventing new colors per screen:
 
 ### Train Solo (self-guided app, `src/solo/`) design rules
 
+- **Client-experience moments** (#141): Program complete and the Monday
+  recap (`SoloRecapScreens.jsx`) and the day-one first session
+  (`SoloFirstSessionScreen.jsx`) are solid full pages with large figures,
+  every number from the member's own logs (`trainingRecap.js`), never
+  invented. Missed sessions are moved or skipped through the profile's
+  `sessionPlan` (never by rewriting logs); kept swaps live in
+  `programSwaps`. Warm-up and plate maths stays in `liftHelpers.js`.
 - **Every box/card is frosted glass**: translucent fill + hairline border +
   backdrop blur, in both Solo light and dark mode. Use `soloGlass(t)` from
   `SoloThemeContext.jsx` for Solo's own boxes; shared Card-based widgets

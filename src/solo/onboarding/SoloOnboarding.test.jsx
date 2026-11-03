@@ -21,6 +21,7 @@ function tree(path) {
       <Routes>
         <Route path="/solo/onboarding" element={<SoloOnboarding />} />
         <Route path="/solo/home" element={<div>SOLO_HOME</div>} />
+        <Route path="/solo/first-session" element={<div>FIRST_SESSION</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -202,18 +203,19 @@ describe("SoloOnboarding — completing the questionnaire", () => {
     fireEvent.click(screen.getByText(/^No$/));
     fireEvent.click(screen.getByText("Finish"));
 
-    expect(screen.queryByText("SOLO_HOME")).toBeNull();
+    expect(screen.queryByText("FIRST_SESSION")).toBeNull();
 
     // The save resolves, but soloCurrentUser (the real, Firestore-backed
     // source of truth) hasn't caught up yet — still must not navigate.
     resolveSave();
     await new Promise((r) => setTimeout(r, 0));
-    expect(screen.queryByText("SOLO_HOME")).toBeNull();
+    expect(screen.queryByText("FIRST_SESSION")).toBeNull();
 
     // Now the real completion flag arrives (simulating the onSnapshot
-    // listener delivering the updated document).
+    // listener delivering the updated document). A new member goes
+    // straight to their first session (#141).
     setCompleted(true);
     rerender();
-    expect(await screen.findByText("SOLO_HOME")).toBeTruthy();
+    expect(await screen.findByText("FIRST_SESSION")).toBeTruthy();
   });
 });

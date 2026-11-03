@@ -807,6 +807,15 @@ export function SoloAppProvider({ children }) {
         if (st.savedCurrentProgramId === undefined) update.currentProgramId = st.soloCurrentProgramId === programId ? null : st.soloCurrentProgramId;
         await updateDoc(doc(soloDb, "soloUsers", uid), update);
       },
+      // A swap kept for the rest of a program (#141): every later session
+      // of that program opens with it. null removes it.
+      async setSoloProgramSwap(uid, purchaseId, originalExerciseId, exerciseId) {
+        await updateDoc(doc(soloDb, "soloUsers", uid), { [`programSwaps.${purchaseId}.${originalExerciseId}`]: exerciseId || deleteField() });
+      },
+      // A missed program session moved to another day or skipped (#141).
+      async setSoloSessionPlan(uid, purchaseId, key, value) {
+        await updateDoc(doc(soloDb, "soloUsers", uid), { [`sessionPlan.${purchaseId}.${key}`]: value || deleteField() });
+      },
       async markSoloProgramsGuideSeen() {
         const st = programStateRef.current;
         const uid = st.soloProfile?.id || st.soloAuthUser?.uid;

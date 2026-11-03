@@ -15,7 +15,7 @@ export default function SoloWorkoutSummaryScreen() {
   const location = useLocation();
   const navigate = useNavigate();
   const { dark } = useSoloTheme();
-  const { daySession, activeLog, durationMin = 0, savedOffline = false } = location.state || {};
+  const { daySession, activeLog, durationMin = 0, savedOffline = false, programComplete = null } = location.state || {};
 
   // <Navigate> rather than navigate() during render (a side effect React
   // Router warns about) — e.g. reopening this page with no workout state.
@@ -64,10 +64,10 @@ export default function SoloWorkoutSummaryScreen() {
       </div>
 
       <button
-        onClick={() => navigate("/solo/home", { replace: true })}
+        onClick={() => (programComplete ? navigate("/solo/program-complete", { replace: true, state: programComplete }) : navigate("/solo/home", { replace: true }))}
         className={`w-full max-w-sm mt-8 font-bold py-4 rounded-2xl ${dark ? "bg-white text-black" : "bg-black text-white"}`}
       >
-        DONE
+        {programComplete ? "SEE YOUR PROGRAM" : "DONE"}
       </button>
     </div>
   );

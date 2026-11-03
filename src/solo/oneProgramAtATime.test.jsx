@@ -51,6 +51,7 @@ function baseCtx(over = {}) {
     switchSoloProgram: vi.fn(() => Promise.resolve({ enrolments: [] })),
     keepSoloProgramForLater: vi.fn(() => Promise.resolve()),
     markSoloProgramsGuideSeen: vi.fn(() => Promise.resolve()),
+    setSoloSessionPlan: vi.fn(() => Promise.resolve()),
     saveSoloCustomProgram: vi.fn((uid, p) => Promise.resolve({ ...p, id: "new1" })),
     deleteSoloCustomProgram: vi.fn(),
     addSoloWater: vi.fn(),
@@ -135,6 +136,17 @@ describe("My Training: one program at a time (#140)", () => {
     expect(screen.queryByText("How your programs work")).toBe(null);
     fireEvent.click(screen.getByRole("button", { name: "How it works" }));
     await screen.findByText("How your programs work");
+  });
+
+  it("a missed session from this week can be moved to today or skipped (#141)", async () => {
+    await renderMyTraining();
+    expect(screen.getByText("Missed this week")).toBeTruthy();
+    expect(screen.getByText(/Planned yesterday · Week 3/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Move to today" }));
+    const today = daysAgo(0);
+    await waitFor(() => expect(ctx.setSoloSessionPlan).toHaveBeenCalledWith("u1", "u1_p1", "3_d1", expect.objectContaining({ moveTo: today })));
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
+    await waitFor(() => expect(ctx.setSoloSessionPlan).toHaveBeenLastCalledWith("u1", "u1_p1", "3_d1", expect.objectContaining({ skipped: true })));
   });
 
   it("the log list reads Session history", async () => {

@@ -9,7 +9,7 @@ import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { programPhases } from "../lib/AppContext";
 import { localDateKey } from "../lib/dateKey";
 import { totalWeeksForProgram, currentWeekNumber, phaseForWeekNumber } from "./weekProgress";
-import { sessionDateKeys, sessionDayLabel, buildSoloCalendar, calendarItemTarget, mondayOf, addDays } from "./soloCalendar";
+import { sessionDateKeys, sessionDayLabel, buildSoloCalendar, calendarItemTarget, mondayOf, addDays, missedSessions, sessionPlanKey } from "./soloCalendar";
 import SoloGlassBox from "./SoloGlassBox";
 import { CompletedSessionSheet, ProgramOverviewSheet } from "./SoloTrainingSheets";
 import { APP_STORE_URL } from "./appShell";
@@ -227,6 +227,7 @@ export default function SoloMyTrainingScreen() {
     soloCurrentProgram,
     switchSoloProgram,
     markSoloProgramsGuideSeen,
+    setSoloSessionPlan,
   } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   // Recovery add-ons are a Plus feature once subscriptions launch.
@@ -380,11 +381,36 @@ export default function SoloMyTrainingScreen() {
         recoveryAddon,
         accountCreatedAt: soloCurrentUser?.createdAt,
         trainingDays,
+        sessionPlan: soloCurrentUser?.sessionPlan,
         fromKey: weekStart,
         toKey: addDays(weekStart, 6),
       }),
-    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, trainingDays, weekStart]
+    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, trainingDays, soloCurrentUser?.sessionPlan, weekStart]
   );
+  // Sessions from the last week that were planned but not done (#141):
+  // offered to move to today or skip.
+  const missed = useMemo(() => {
+    const recent = buildSoloCalendar({
+      purchases: soloTrainingPrograms,
+      programsById,
+      contentByProgramId: soloContentById,
+      workoutLogs: soloWorkoutLogs,
+      trainingDays,
+      sessionPlan: soloCurrentUser?.sessionPlan,
+      fromKey: addDays(todayKey, -7),
+      toKey: todayKey,
+    });
+    return missedSessions(recent, todayKey, 7);
+  }, [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, trainingDays, soloCurrentUser?.sessionPlan, todayKey]);
+  const [planBusy, setPlanBusy] = useState(null);
+  async function planMissed(item, value) {
+    setPlanBusy(item.id);
+    try {
+      await setSoloSessionPlan(soloCurrentUser.id, item.purchase.id, sessionPlanKey(item.weekNumber, item.day.id), value);
+    } finally {
+      setPlanBusy(null);
+    }
+  }
   const dayItems = [...(byDate[selectedKey] || [])].sort((a, b) => ITEM_ORDER[a.type] - ITEM_ORDER[b.type]);
 
   // The log a finished session on the day view was saved as — a program
@@ -449,6 +475,19 @@ export default function SoloMyTrainingScreen() {
           </div>
         )}
 
+        {[1, 2].includes(new Date(`${todayKey}T00:00:00`).getDay()) && soloWorkoutLogs.length > 0 && (
+          // Monday and Tuesday: last week's recap (#141).
+          <button type="button" onClick={() => navigate("/solo/week")} className="w-full flex items-center justify-between gap-3 py-3 mb-4 border-y text-left" style={{ borderColor: t.panelBorder }}>
+            <span>
+              <span className="block text-sm font-semibold">Your week in review</span>
+              <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
+                Last week's sessions, PRs and what's on this week
+              </span>
+            </span>
+            <ChevronRight size={16} color={t.textFaint} className="shrink-0" />
+          </button>
+        )}
+
         <WeekStrip
           weekKeys={weekKeys}
           selectedKey={selectedKey}
@@ -470,6 +509,46 @@ export default function SoloMyTrainingScreen() {
           onBrowse={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })}
           t={t}
         />
+
+        {selectedKey === todayKey && missed.length > 0 && (
+          // Missed sessions (#141): move one to today, or skip it — never
+          // left sitting on the calendar as a failure.
+          <div className="mt-4">
+            <p className="text-[11px] font-bold tracking-wide uppercase mb-2" style={{ color: t.textFaint }}>
+              Missed this week
+            </p>
+            <SoloGlassBox t={t} className="rounded-2xl">
+              {missed.slice(0, 3).map((item, i) => (
+                <div key={item.id} className="flex items-center gap-3 px-4 py-3" style={i > 0 ? { borderTop: `1px solid ${t.panelBorder}` } : undefined}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold truncate">{item.title}</p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
+                      Planned {sessionDayLabel(item.dateKey, todayKey).replace(/^Yesterday$/, "yesterday")} · Week {item.weekNumber}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => planMissed(item, { skipped: true, at: Date.now() })}
+                    disabled={planBusy === item.id}
+                    className="text-xs font-semibold px-2 py-2 shrink-0"
+                    style={{ color: t.textMuted }}
+                  >
+                    Skip
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => planMissed(item, { moveTo: todayKey, at: Date.now() })}
+                    disabled={planBusy === item.id}
+                    className="text-xs font-bold px-3.5 py-2 rounded-full shrink-0"
+                    style={{ backgroundColor: t.text, color: t.bg }}
+                  >
+                    Move to today
+                  </button>
+                </div>
+              ))}
+            </SoloGlassBox>
+          </div>
+        )}
 
         <WaterCard
           dateKey={selectedKey}
@@ -945,9 +1024,14 @@ function SessionHero({ item, actionable, onStart, future, t }) {
         <p className="text-xs mt-0.5 truncate" style={{ color: t.textMuted }}>
           {item.subtitle}
           {exercises > 0 ? ` · ${exercises} exercise${exercises === 1 ? "" : "s"}` : ""}
+          {item.movedFrom ? " · moved" : ""}
         </p>
       </div>
-      {item.done ? (
+      {item.skipped && !item.done ? (
+        <span className="text-[11px] font-semibold shrink-0" style={{ color: t.textFaint }}>
+          Skipped
+        </span>
+      ) : item.done ? (
         <span className="flex items-center gap-1 text-xs font-bold shrink-0" style={{ color: MEASURE_BLUE }}>
           <CheckCircle2 size={15} /> Done
           {actionable && <ChevronRight size={14} />}

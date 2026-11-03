@@ -15,6 +15,8 @@ import SoloConsultationScreen from "./SoloConsultationScreen";
 import SoloFinishSetupScreen from "./SoloFinishSetupScreen";
 import SoloSessionBuilderScreen from "./SoloSessionBuilderScreen";
 import SoloProgramBuilderScreen from "./SoloProgramBuilderScreen";
+import SoloFirstSessionScreen from "./SoloFirstSessionScreen";
+import { SoloProgramCompleteScreen, SoloWeekRecapScreen } from "./SoloRecapScreens";
 import { SoloPaywallProvider } from "./SoloPaywall";
 
 function SoloSessionLoadingScreen() {
@@ -112,6 +114,36 @@ export default function SoloRoutes() {
             element={
               <RequireSoloAuth>
                 <SoloOnboarding />
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="program-complete"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloProgramCompleteScreen />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="week"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloWeekRecapScreen />
+                </RequireOnboardingComplete>
+              </RequireSoloAuth>
+            }
+          />
+          <Route
+            path="first-session"
+            element={
+              <RequireSoloAuth>
+                <RequireOnboardingComplete>
+                  <SoloFirstSessionScreen />
+                </RequireOnboardingComplete>
               </RequireSoloAuth>
             }
           />

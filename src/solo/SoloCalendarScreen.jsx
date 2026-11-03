@@ -45,10 +45,11 @@ export default function SoloCalendarScreen() {
         recoveryAddon,
         accountCreatedAt: soloCurrentUser?.createdAt,
         trainingDays: soloCurrentUser?.onboarding?.answers?.trainingDays,
+        sessionPlan: soloCurrentUser?.sessionPlan,
         fromKey,
         toKey,
       }),
-    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, soloCurrentUser?.onboarding?.answers?.trainingDays, fromKey, toKey]
+    [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, soloWeighIns, soloBodyMetrics, soloProgressPhotos, recoveryAddon, soloCurrentUser?.createdAt, soloCurrentUser?.onboarding?.answers?.trainingDays, soloCurrentUser?.sessionPlan, fromKey, toKey]
   );
 
   // Only days with something on them, plus today so the list always has

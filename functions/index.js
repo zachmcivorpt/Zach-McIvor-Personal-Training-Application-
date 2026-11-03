@@ -158,10 +158,11 @@ exports.soloWeeklyCheckInReminder = onSchedule(
         const res = await messaging.sendEachForMulticast({
           tokens,
           notification: {
-            title: "Monday check-in",
-            body: "Log your body stats and take this week's progress photos — it only takes a minute.",
+            title: "Your week in review",
+            body: "See last week's sessions and PRs, then log this week's body stats and photos.",
           },
-          webpush: { fcmOptions: { link: "/solo/calendar" } },
+          // Opens the Monday recap (#141), which leads on to the check-in.
+          webpush: { fcmOptions: { link: "/solo/week" } },
         });
         const deadTokens = tokens.filter((_, i) => !res.responses[i].success);
         if (deadTokens.length > 0) {

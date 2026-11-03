@@ -98,6 +98,8 @@ export function buildSoloCalendar({
   recoveryAddon = null,
   accountCreatedAt,
   trainingDays = [],
+  // Missed sessions moved or skipped (#141): { [purchaseId]: { [`${week}_${dayId}`]: { moveTo } | { skipped: true } } }.
+  sessionPlan = {},
   fromKey,
   toKey,
 }) {
@@ -132,13 +134,18 @@ export function buildSoloCalendar({
       const dates = sessionDateKeys(purchase.startDate, week, days.length, trainingDays);
       days.forEach((day, i) => {
         if (until && dates[i] >= until) return;
-        workoutDays.add(dates[i]);
-        push(dates[i], {
+        const planned = sessionPlan?.[purchase.id]?.[sessionPlanKey(week, day.id)] || null;
+        const dateKey = planned?.moveTo || dates[i];
+        workoutDays.add(dateKey);
+        push(dateKey, {
           type: "workout",
           id: `${purchase.id}:${week}:${day.id}`,
           title: day.label || "Workout",
           subtitle: `${program.name} · Week ${week}`,
           done: doneSessions.has(`${purchase.id}:${week}:${day.id}`),
+          skipped: !!planned?.skipped,
+          movedFrom: planned?.moveTo ? dates[i] : null,
+          dateKey,
           purchase,
           source: purchase.source || "owned",
           programId: program.id,
@@ -215,6 +222,7 @@ export function calendarItemTarget(item, { todayKey, soloUid, contentByProgramId
   if (item.type === "bodystats" || item.type === "photos") return { path: "/solo/home", state: { soloTab: "progress" } };
   if (item.type === "workout" && !item.done) {
     if (item.purchase.status === "paused" || item.purchase.locked) return null; // history only until it's resumed
+    if (item.skipped) return null;
     const totalWeeks = (contentByProgramId[item.programId]?.phases || []).reduce((s, p) => s + (p.durationWeeks || 0), 0);
     const current = currentWeekNumber(item.purchase.startDate, totalWeeks);
     if (current == null || item.weekNumber > current) return null; // a future week — locked, same as My Training
@@ -224,6 +232,24 @@ export function calendarItemTarget(item, { todayKey, soloUid, contentByProgramId
     };
   }
   return null;
+}
+
+export const sessionPlanKey = (week, dayId) => `${week}_${dayId}`;
+
+// Planned program sessions from the last `daysBack` days (before today)
+// that weren't done, skipped or already moved (#141) — what My Training
+// offers to move to today or skip. Current program only.
+export function missedSessions(byDate, todayKey, daysBack = 7) {
+  const out = [];
+  for (let i = daysBack; i >= 1; i--) {
+    const key = addDays(todayKey, -i);
+    for (const item of byDate[key] || []) {
+      if (item.type !== "workout" || item.done || item.skipped || item.movedFrom) continue;
+      if (!item.purchase?.current) continue;
+      out.push({ ...item, dateKey: key });
+    }
+  }
+  return out;
 }
 
 export function rangeKeys(daysBack, daysForward, today = localDateKey()) {

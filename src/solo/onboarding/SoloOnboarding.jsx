@@ -154,8 +154,11 @@ export default function SoloOnboarding() {
 
   useEffect(() => {
     if (!finishing) return;
+    // A brand-new member goes straight to their first session (#141); a
+    // review of the answers goes back home as before.
+    const next = isReview || wasCompleteOnMount.current ? "/solo/home" : "/solo/first-session";
     if (soloCurrentUser?.onboarding?.completed) {
-      navigate("/solo/home", { replace: true });
+      navigate(next, { replace: true });
       return;
     }
     // If the real flag still hasn't shown up after a few seconds (e.g.
@@ -164,7 +167,7 @@ export default function SoloOnboarding() {
     // RequireOnboardingComplete only ever checks the same real flag and
     // will correctly send them right back here to retry if it's still
     // false.
-    const timeout = setTimeout(() => navigate("/solo/home", { replace: true }), 5000);
+    const timeout = setTimeout(() => navigate(next, { replace: true }), 5000);
     return () => clearTimeout(timeout);
     // Depends on the `completed` flag itself, not the soloCurrentUser
     // object — see SoloLoginScreen.jsx's comment on the equivalent

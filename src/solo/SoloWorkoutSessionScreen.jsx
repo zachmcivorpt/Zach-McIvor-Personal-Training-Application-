@@ -14,6 +14,8 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlassVars } from "./SoloThemeContext";
 import SoloExerciseBlock from "./SoloExerciseBlock";
 import SoloSwapSheet from "./SoloSwapSheet";
+import { isBarbell, workingWeight, platesPerSide, warmupSets } from "./liftHelpers";
+import { programFinished } from "./trainingRecap";
 import { planExerciseTargets, isStalled, targetReasonText } from "./soloProgression";
 import { canUse } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
@@ -35,7 +37,7 @@ import { playTimerDing, armRestTimerAudio, unlockTimerAudio } from "./timerAudio
 export default function SoloWorkoutSessionScreen() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { soloCurrentUser, soloExercises, soloWorkoutLogs, logSoloWorkout, soloAccess } = useSoloApp();
+  const { soloCurrentUser, soloExercises, soloWorkoutLogs, logSoloWorkout, soloAccess, setSoloProgramSwap, soloContentById } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   // Suggested weights are a Plus feature once subscriptions launch.
   const showTargets = canUse("suggestedWeights", soloAccess);
@@ -49,7 +51,9 @@ export default function SoloWorkoutSessionScreen() {
   const [activeLog, setActiveLog] = useState({});
   const [extraExercises, setExtraExercises] = useState([]);
   // Swapped exercises: original exerciseId → the exerciseId done instead.
-  const [swaps, setSwaps] = useState({});
+  // A program's sessions open with the swaps kept for it (#141).
+  const savedSwaps = !isCustom && sessionInfo?.purchaseId ? soloCurrentUser?.programSwaps?.[sessionInfo.purchaseId] || null : null;
+  const [swaps, setSwaps] = useState(() => ({ ...(savedSwaps || {}) }));
   const [swapFor, setSwapFor] = useState(null); // the exMeta being swapped
   const [addExerciseOpen, setAddExerciseOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState(null);
@@ -115,6 +119,7 @@ export default function SoloWorkoutSessionScreen() {
   }
 
   const { day, dayId, weekNumber, purchaseId } = sessionInfo;
+  const firstBarbellId = exercisesForSession.find((m) => (m.section || "main") === "main" && isBarbell(exercisesById[m.exerciseId]))?.exerciseId || null;
 
   function rowsFor(exMeta) {
     const existing = activeLog[exMeta.exerciseId] || [];
@@ -169,15 +174,21 @@ export default function SoloWorkoutSessionScreen() {
     setResting(true);
     scheduleRestNotification(rest, exercisesById[exMeta.exerciseId]?.name);
   }
-  function swapExercise(exMeta, exercise) {
+  function swapExercise(exMeta, exercise, remember = false) {
     const original = exMeta.swappedFrom || exMeta.exerciseId;
+    const backToPlan = exercise.id === original;
     setSwaps((prev) => {
       const next = { ...prev };
-      if (exercise.id === original) delete next[original];
+      if (backToPlan) delete next[original];
       else next[original] = exercise.id;
       return next;
     });
     setSwapFor(null);
+    // Kept for the rest of the program, or a kept swap undone (#141).
+    if (!isCustom && purchaseId && soloCurrentUser?.id && setSoloProgramSwap) {
+      if (remember && !backToPlan) setSoloProgramSwap(soloCurrentUser.id, purchaseId, original, exercise.id).catch(() => {});
+      else if (backToPlan && savedSwaps?.[original]) setSoloProgramSwap(soloCurrentUser.id, purchaseId, original, null).catch(() => {});
+    }
   }
   function addExtraExercise(exercise) {
     setExtraExercises((prev) => [
@@ -221,7 +232,15 @@ export default function SoloWorkoutSessionScreen() {
       setSaveError("Couldn't save this workout — check your connection and tap Complete Workout again.");
       return;
     }
-    navigate("/solo/workout-summary", { state: { daySession: day, activeLog, durationMin, savedOffline }, replace: true });
+    // The last session of a program: the summary leads on to the
+    // program-complete moment (#141).
+    const programId = sessionInfo.programId;
+    const isProgramSession = !isCustom && programId && !String(purchaseId).endsWith("_recovery");
+    const programComplete =
+      isProgramSession && programFinished(soloWorkoutLogs, purchaseId, soloContentById?.[programId]?.phases || [], { weekNumber, dayId })
+        ? { purchaseId, programId }
+        : null;
+    navigate("/solo/workout-summary", { state: { daySession: day, activeLog, durationMin, savedOffline, programComplete }, replace: true });
   }
 
   return (
@@ -257,6 +276,9 @@ export default function SoloWorkoutSessionScreen() {
                     const rows = rowsFor(exMeta);
                     const previousSets = getPreviousSets(soloWorkoutLogs, exMeta.exerciseId);
                     const targets = showTargets ? planExerciseTargets(previousSets, exMeta.targetReps, rows.length, { stalled: isStalled(soloWorkoutLogs, exMeta.exerciseId) }) : [];
+                    // Barbell lifts get plates; the first one gets warm-up sets too (#141).
+                    const work = isBarbell(exercise) && (exMeta.section || "main") === "main" ? workingWeight({ targets, rows, previousSets }) : 0;
+                    const liftHelp = work > 20 ? { work, plates: platesPerSide(work), warmup: exMeta.exerciseId === firstBarbellId ? warmupSets(work) : [] } : null;
                     return (
                       <SoloExerciseBlock
                         key={(exMeta.swappedFrom || exMeta.exerciseId) + i}
@@ -267,6 +289,7 @@ export default function SoloWorkoutSessionScreen() {
                         targets={targets}
                         targetReason={targetReasonText(targets.find(Boolean), exMeta.targetReps)}
                         swappedFromName={exMeta.swappedFrom ? exercisesById[exMeta.swappedFrom]?.name || "the planned exercise" : null}
+                        liftHelp={liftHelp}
                         onSwap={() => setSwapFor(exMeta)}
                         onChangeField={(idx, field, value) => setField(exMeta.exerciseId, idx, field, value)}
                         onBlurKg={(idx) => handleBlurKg(exMeta, idx)}
@@ -306,7 +329,9 @@ export default function SoloWorkoutSessionScreen() {
             allExercises={soloExercises}
             excludeIds={new Set(exercisesForSession.map((e) => e.exerciseId).filter((id) => id !== swapFor?.swappedFrom))}
             onClose={() => setSwapFor(null)}
-            onPick={(exercise) => swapExercise(swapFor, exercise)}
+            onPick={(exercise, remember) => swapExercise(swapFor, exercise, remember)}
+            canRemember={!isCustom}
+            originalExercise={swapFor?.swappedFrom ? exercisesById[swapFor.swappedFrom] || null : null}
           />
 
           {detailExercise && <ExerciseDetailSheet exercise={detailExercise} logsForClient={soloWorkoutLogs} onClose={() => setDetailExercise(null)} />}

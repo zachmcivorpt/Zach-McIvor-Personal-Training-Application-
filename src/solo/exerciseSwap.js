@@ -42,6 +42,25 @@ export function primaryMuscleOf(exercise) {
 
 const isPrep = (exercise) => PREP.has(exercise?.category);
 
+// Words that say nothing about the movement itself.
+const FILLER = new Set(["the", "a", "with", "and", "on", "of", "to", "machine", "barbell", "dumbbell", "cable", "band", "bodyweight", "kettlebell", "smith", "single", "arm", "leg", "seated", "standing"]);
+const wordsOf = (name) => new Set(String(name || "").toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !FILLER.has(w)));
+
+// How close `candidate` is to `exercise` as a stand-in (#141): the same
+// movement pattern in the name counts most (row → row, press → press), then
+// the same equipment, then sharing the other muscles worked.
+export function swapScore(exercise, candidate) {
+  if (!exercise || !candidate) return 0;
+  const a = wordsOf(exercise.name);
+  let score = 0;
+  for (const w of wordsOf(candidate.name)) if (a.has(w)) score += 3;
+  if (exercise.equipment && candidate.equipment === exercise.equipment) score += 2;
+  const secondary = new Set([...(exercise.primaryMuscles || []), ...(exercise.secondaryMuscles || [])]);
+  for (const m of [...(candidate.primaryMuscles || []), ...(candidate.secondaryMuscles || [])]) if (secondary.has(m)) score += 1;
+  return score;
+}
+
+// Closest matches first (swapScore), then A–Z.
 export function swapCandidates(exercise, allExercises, { search = "", sameMuscle = true, sameEquipment = false, excludeIds = new Set(), limit = 40 } = {}) {
   const muscle = primaryMuscleOf(exercise);
   const prep = isPrep(exercise);
@@ -51,5 +70,8 @@ export function swapCandidates(exercise, allExercises, { search = "", sameMuscle
     .filter((e) => matchesSearch(e.name || "", search))
     .filter((e) => !sameMuscle || !muscle || primaryMuscleOf(e) === muscle)
     .filter((e) => !sameEquipment || !exercise?.equipment || e.equipment === exercise.equipment)
-    .slice(0, limit);
+    .map((e) => ({ e, score: swapScore(exercise, e) }))
+    .sort((x, y) => y.score - x.score || String(x.e.name).localeCompare(String(y.e.name)))
+    .slice(0, limit)
+    .map(({ e }) => e);
 }

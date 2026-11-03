@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, Timer, TrendingUp, Play, ArrowRightLeft } from "lucide-react";
+import { ChevronDown, Timer, TrendingUp, Play, ArrowRightLeft, Disc3 } from "lucide-react";
+import { formatPlates } from "./liftHelpers";
 import { useClientDark, formatTargetReps } from "../client/ClientApp";
 import { ExerciseThumb } from "../components/ui";
 import { playTimerDing, unlockTimerAudio } from "./timerAudio";
@@ -26,12 +27,13 @@ function formatSeconds(total) {
   return sec ? `${m}:${String(sec).padStart(2, "0")}` : `${m} min`;
 }
 
-export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets = [], targets = [], targetReason = null, swappedFromName = null, onSwap, onChangeField, onBlurKg, onAddSet, onStartRest, onOpenDetail }) {
+export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets = [], targets = [], targetReason = null, swappedFromName = null, liftHelp = null, onSwap, onChangeField, onBlurKg, onAddSet, onStartRest, onOpenDetail }) {
   const dark = useClientDark();
   const { accent } = useSoloTheme();
   const isWarmup = (exMeta.section || "main") === "warmup";
   const [expanded, setExpanded] = useState(!isWarmup);
   const [notesExpanded, setNotesExpanded] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const programNote = exMeta.notes || "";
   const isLongNote = programNote.length > 90;
 
@@ -165,6 +167,48 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
           <TrendingUp size={12} className="shrink-0 mt-px" />
           <span>{targetReason}</span>
         </p>
+      )}
+
+      {expanded && liftHelp && !isTimeBased && (
+        // Barbell lifts: plates for the working weight, and (first barbell
+        // lift of the session) warm-up sets to build up to it (#141).
+        <div className="mt-2.5 px-1">
+          <button
+            type="button"
+            onClick={() => setHelpOpen((v) => !v)}
+            aria-expanded={helpOpen}
+            className="flex items-center gap-1.5 text-[11px] font-semibold"
+            style={{ color: SOLO_THEMES[dark ? "dark" : "light"].textMuted }}
+          >
+            <Disc3 size={12} />
+            {liftHelp.warmup.length ? "Warm-up & plates" : "Plates"} for {liftHelp.work} kg
+            <ChevronDown size={12} className={helpOpen ? "rotate-180 transition-transform" : "transition-transform"} />
+          </button>
+          {helpOpen && (
+            <div className="mt-2 text-[12px] leading-relaxed" style={{ color: SOLO_THEMES[dark ? "dark" : "light"].textMuted }}>
+              <p>
+                <span className="font-semibold" style={{ color: SOLO_THEMES[dark ? "dark" : "light"].text }}>
+                  Each side:
+                </span>{" "}
+                {formatPlates(liftHelp.plates.perSide)}
+                {!liftHelp.plates.exact && " (closest — add small plates if your gym has them)"}
+                <span> · 20 kg bar</span>
+              </p>
+              {liftHelp.warmup.length > 0 && (
+                <ul className="mt-1.5 divide-y" style={{ borderColor: SOLO_THEMES[dark ? "dark" : "light"].panelBorder }}>
+                  {liftHelp.warmup.map((w, i) => (
+                    <li key={w.weight} className="flex justify-between py-1" style={{ borderColor: SOLO_THEMES[dark ? "dark" : "light"].panelBorder }}>
+                      <span>Warm-up {i + 1}</span>
+                      <span className="tabular-nums">
+                        {w.weight === 20 ? "Bar" : `${w.weight} kg`} × {w.reps}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {expanded && (
