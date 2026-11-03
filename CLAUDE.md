@@ -353,6 +353,8 @@ any Train Solo work from now on:
   message, set via `reactToMessage`; firestore.rules lets a client change
   only `reactions.client` in their own thread. Keep any new message field
   a client can write equally narrow.
+  The message LIST (not just the bubble) carries `NO_TEXT_SELECT`, or iOS
+  turns the hold into Copy / Look Up / Translate (#131).
 - The coach console hides its mobile tab bar while a text field has focus
   (`useTextEntryFocused`, `src/lib/textEntryFocus.js`); screens that
   reserve space for the bar (Messages) drop it while typing too.

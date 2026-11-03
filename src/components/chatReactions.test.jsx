@@ -6,7 +6,7 @@
 import React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { ChatBubble } from "./Chat";
+import { ChatBubble, NO_TEXT_SELECT } from "./Chat";
 
 afterEach(() => {
   cleanup();
@@ -71,5 +71,20 @@ describe("message reactions (#130)", () => {
     );
     fireEvent.contextMenu(screen.getByText("Welcome").parentElement);
     expect(screen.queryByRole("menu")).toBe(null);
+  });
+
+  // #131 (owner, iPhone): holding a message popped up Copy / Look Up /
+  // Translate instead of only the reaction bar.
+  it("holding a message clears any text selection iPhone started, and the message list opts out of selection", () => {
+    vi.useFakeTimers();
+    const removeAllRanges = vi.fn();
+    vi.spyOn(window, "getSelection").mockReturnValue({ removeAllRanges });
+    bubble({});
+    const msg = screen.getByText("Great session today").parentElement;
+    fireEvent.pointerDown(msg, { clientX: 10, clientY: 10 });
+    act(() => vi.advanceTimersByTime(500));
+    expect(removeAllRanges).toHaveBeenCalled();
+    expect(screen.getByRole("menu")).toBeTruthy();
+    expect(NO_TEXT_SELECT).toMatchObject({ WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none" });
   });
 });

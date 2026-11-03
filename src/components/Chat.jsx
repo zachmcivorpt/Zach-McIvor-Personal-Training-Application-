@@ -62,6 +62,20 @@ export function bubbleTone(mine, dark) {
 export const REACTIONS = ["❤️", "👍", "😂", "😮", "💪", "🔥"];
 const HOLD_MS = 450;
 
+// Press-and-hold is for reactions, not text selection (#131). On iPhone a
+// hold selects the nearest text and pops up Copy / Look Up / Translate —
+// even text next to the bubble (the time, the message box below) when only
+// the bubble opts out. So the whole message LIST opts out (spread this on
+// it), and any selection that still slips through is cleared when the
+// reaction bar opens.
+export const NO_TEXT_SELECT = { WebkitUserSelect: "none", userSelect: "none", WebkitTouchCallout: "none" };
+
+function clearSelection() {
+  try {
+    window.getSelection?.()?.removeAllRanges();
+  } catch {}
+}
+
 function ReactionPicker({ mine, dark, current, onPick, onClose }) {
   return (
     <>
@@ -103,7 +117,10 @@ export function ChatBubble({ mine, first, last, dark, time, children, wide = fal
         onPointerDown: (e) => {
           start.current = { x: e.clientX, y: e.clientY };
           cancelHold();
-          hold.current = setTimeout(() => setPicking(true), HOLD_MS);
+          hold.current = setTimeout(() => {
+            clearSelection();
+            setPicking(true);
+          }, HOLD_MS);
         },
         onPointerMove: (e) => {
           if (start.current && Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > 10) cancelHold();
@@ -111,9 +128,11 @@ export function ChatBubble({ mine, first, last, dark, time, children, wide = fal
         onPointerUp: cancelHold,
         onPointerLeave: cancelHold,
         onPointerCancel: cancelHold,
+        onSelectStart: (e) => e.preventDefault(),
         onContextMenu: (e) => {
           e.preventDefault();
           cancelHold();
+          clearSelection();
           setPicking(true);
         },
       }

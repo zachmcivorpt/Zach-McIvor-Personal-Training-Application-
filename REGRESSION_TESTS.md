@@ -2394,6 +2394,12 @@ Follow-up audit (diagnose-only, then this fix once authorized) confirmed product
 - **Tests**: `src/components/chatReactions.test.jsx` (5): hold opens the picker and picking reacts; a quick tap or a scroll doesn't; right-click opens it and re-picking your reaction removes it; both sides' reactions show; no picker without `onReact`. They fail without the feature (no picker/props existed).
 - **Regression check**: full suite (770 passed), lint, build; chat send/attachments/voice notes/form-check replies unchanged.
 
+### 131. Holding a message popped up iPhone's Copy / Look Up / Translate (2026-11-03)
+- **Problem (owner screenshot)**: press-and-hold for a reaction (#130) also started iPhone's text selection and showed Copy / Look Up / Translate. Only the bubble itself had selection turned off, so iOS selected nearby text (the time, other messages, the area by the message box) instead.
+- **Fix**: `NO_TEXT_SELECT` (`src/components/Chat.jsx`: user-select none + `-webkit-touch-callout: none`) on the whole message list in the coach thread (`CoachMessages.jsx`) and the client's Messages (`ClientApp.jsx`); the bubble also blocks `selectstart`, and any selection that still slipped through is cleared (`getSelection().removeAllRanges()`) the moment the reaction bar opens. The message box itself is outside the list, so typing, selecting and pasting there still work.
+- **Tests**: `chatReactions.test.jsx` — holding clears the selection and opens the bar; the list style opts out of selection. Fails on the #130 code (no `NO_TEXT_SELECT`, selection never cleared).
+- **Regression check**: full suite (771 passed), lint, build; reactions, attachments, voice notes, form-check reply unchanged. Needs confirming on a real iPhone (jsdom can't show the iOS callout).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -7,7 +7,7 @@ import { useVoiceRecorder, voiceNotesSupported } from "../lib/voiceNote";
 import { VoiceRecordingBar, VoiceNotePlayer } from "../components/VoiceNote";
 import { formCheckLabel } from "../lib/formCheck";
 import { CLIENT_DARK_BG, CLIENT_DARK_BORDER, MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
-import { ChatBubble, ChatComposer, ChatDayDivider, bubbleTone, chatRows, chatTime } from "../components/Chat";
+import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime } from "../components/Chat";
 import { useTextEntryFocused } from "../lib/textEntryFocus";
 
 // tone="mine" = the coach's own (blue) bubble; tone="theirs" = the client's
@@ -162,7 +162,7 @@ export function ThreadMessages({ client }) {
 
   return (
     <>
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-1 pb-4">
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-1 pb-4" style={NO_TEXT_SELECT}>
         {thread.length === 0 && <p className="text-white/45 text-sm text-center py-14">No messages yet with {client.name?.split(" ")[0] || "them"}.</p>}
         {rows.map((row) => {
           if (row.type === "day") return <ChatDayDivider key={row.key} label={row.label} dark />;

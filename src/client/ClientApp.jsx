@@ -92,7 +92,7 @@ import { useApp, estimate1RM, getPreviousSets, getBestEverStats, getCurrentPhase
 import { localDateKey } from "../lib/dateKey";
 import { QUEUED, localFirst, onLocalWriteFailed } from "../lib/offlineWrite";
 import { MessageComposerInput } from "../components/MessageComposerInput";
-import { ChatBubble, ChatComposer, ChatDayDivider, bubbleTone, chatRows, chatTime } from "../components/Chat";
+import { ChatBubble, ChatComposer, ChatDayDivider, NO_TEXT_SELECT, bubbleTone, chatRows, chatTime } from "../components/Chat";
 import { WHOOP_CLIENT_ID } from "../lib/config";
 import { db as firestore } from "../lib/firebase";
 import { isMealPlanEnded } from "../lib/mealPlanEnd";
@@ -7863,7 +7863,7 @@ function MessagesSheet({ open, onClose, user, thread, onSend, coachName }) {
 
   return (
     <BottomSheet dark={dark} open={open} onClose={onClose} title={coachName ? `${coachName}` : "Messages"}>
-      <div className="pb-3">
+      <div className="pb-3" style={NO_TEXT_SELECT}>
         {thread.length === 0 && (
           <ChatBubble mine={false} first last dark={dark}>
             <p className="whitespace-pre-line">{`Hey, this is your 24/7 coach — ${coachName || "your coach"} will respond within due time. Ask any questions any time!`}</p>
