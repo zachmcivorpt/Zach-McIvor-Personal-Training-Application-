@@ -113,6 +113,10 @@ export function SoloAppProvider({ children }) {
   // entitlement, the launch switch, their All Access enrolments
   // (src/solo/enrolments.js) and the programs they built (Plus).
   const [soloEntitlement, setSoloEntitlement] = useState(null);
+  // False until this account's entitlement is known (the server's answer,
+  // or this phone's last confirmed copy) — so a paying member is never
+  // treated as Free while it loads (#137).
+  const [soloEntitlementReady, setSoloEntitlementReady] = useState(false);
   const [soloMonetisation, setSoloMonetisation] = useState({});
   const [soloEnrolments, setSoloEnrolments] = useState([]);
   const [soloCustomPrograms, setSoloCustomPrograms] = useState([]);
@@ -245,13 +249,33 @@ export function SoloAppProvider({ children }) {
   useEffect(() => {
     if (!soloAuthUser) {
       setSoloEntitlement(null);
+      setSoloEntitlementReady(false);
       setSoloEnrolments([]);
       setSoloCustomPrograms([]);
       return;
     }
     const uid = soloAuthUser.uid;
+    const cached = readCachedEntitlement(uid);
+    if (cached !== undefined) {
+      setSoloEntitlement(cached);
+      setSoloEntitlementReady(true);
+    } else {
+      setSoloEntitlement(null);
+      setSoloEntitlementReady(false);
+    }
     const unsubs = [
-      onSnapshot(doc(soloDb, "soloEntitlements", uid), (snap) => setSoloEntitlement(snap.exists() ? snap.data() : null), () => setSoloEntitlement(null)),
+      onSnapshot(
+        doc(soloDb, "soloEntitlements", uid),
+        (snap) => {
+          // "No doc" from the phone's own cache isn't an answer yet.
+          if (!snap.exists() && snap.metadata?.fromCache) return;
+          const data = snap.exists() ? snap.data() : null;
+          setSoloEntitlement(data);
+          setSoloEntitlementReady(true);
+          writeCachedEntitlement(uid, data);
+        },
+        () => setSoloEntitlementReady(true)
+      ),
       onSnapshot(query(collection(soloDb, "soloEnrolments"), where("soloUserId", "==", uid)), (snap) =>
         setSoloEnrolments(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
       ),
@@ -915,6 +939,7 @@ export function SoloAppProvider({ children }) {
       soloGatesLive,
       soloHasAllAccess,
       soloAccess: { tier: soloTier, live: soloGatesLive },
+      soloEntitlementReady,
       soloEnrolments,
       soloCustomPrograms,
       soloTrainingPrograms,
@@ -941,6 +966,7 @@ export function SoloAppProvider({ children }) {
       soloCustomSessions,
       soloProgramContentByProgramId,
       soloEntitlement,
+      soloEntitlementReady,
       soloTier,
       soloGatesLive,
       soloHasAllAccess,
@@ -954,6 +980,28 @@ export function SoloAppProvider({ children }) {
   );
 
   return <SoloAppCtx.Provider value={value}>{children}</SoloAppCtx.Provider>;
+}
+
+// This phone's last confirmed entitlement for the signed-in account, shown
+// straight away on the next open (#137). Only ever a starting point: the
+// server's copy replaces it as soon as it arrives, expiry dates are still
+// checked against the clock (tierFromEntitlement), and paid program content
+// stays behind firestore.rules either way.
+const ENTITLEMENT_CACHE_KEY = "apexSoloEntitlement";
+function readCachedEntitlement(uid) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(ENTITLEMENT_CACHE_KEY) || "null");
+    return cached && cached.uid === uid ? cached.data ?? null : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function writeCachedEntitlement(uid, data) {
+  try {
+    localStorage.setItem(ENTITLEMENT_CACHE_KEY, JSON.stringify({ uid, data }));
+  } catch {
+    // Storage blocked: the next open just waits for the server again.
+  }
 }
 
 export function useSoloApp() {

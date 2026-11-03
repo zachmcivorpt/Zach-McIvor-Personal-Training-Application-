@@ -475,3 +475,75 @@ describe("paywall for subscribers", () => {
     expect(screen.queryByText(/days free/i)).toBe(null);
   });
 });
+
+// Unlock sweep (2026-11-03): every paid gate, Free → Plus → All Access.
+describe("unlock sweep: Plus, then All Access", () => {
+  const tiers = (tier) => baseCtx({ soloGatesLive: true, soloTier: tier, soloWorkoutLogs: [], soloWeighIns: [], soloProgressPhotos: [], soloBodyMetrics: [], soloCustomPrograms: [], soloEntitlementReady: true });
+
+  async function renderProgress() {
+    const { default: SoloProgressScreen } = await import("./SoloProgressScreen");
+    await renderAt("/solo/progress", <SoloProgressScreen />, "/solo/progress");
+  }
+  async function renderBuilder() {
+    const { default: SoloProgramBuilderScreen } = await import("./SoloProgramBuilderScreen");
+    await renderAt("/solo/program-builder", <SoloProgramBuilderScreen />, "/solo/program-builder");
+  }
+
+  it("full stats: locked on Free, open on Plus and All Access", async () => {
+    for (const [tier, locked] of [["free", true], ["plus", false], ["all_access", false]]) {
+      ctx = tiers(tier);
+      await renderProgress();
+      expect(!!screen.queryByText("Full stats with Plus")).toBe(locked);
+      cleanup();
+    }
+  });
+
+  it("program builder: the paywall on Free only, and never before the member's plan has loaded (#137)", async () => {
+    ctx = { ...tiers("free"), soloEntitlementReady: false };
+    await renderBuilder();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText("Train Solo Membership")).toBe(null);
+    cleanup();
+    ctx = tiers("free");
+    await renderBuilder();
+    await screen.findByText("Train Solo Membership");
+    cleanup();
+    for (const tier of ["plus", "all_access"]) {
+      ctx = tiers(tier);
+      await renderBuilder();
+      await new Promise((r) => setTimeout(r, 20));
+      expect(screen.queryByText("Train Solo Membership")).toBe(null);
+      cleanup();
+    }
+  });
+
+  it("recovery add-ons: Plus and All Access add them without a paywall", async () => {
+    for (const tier of ["plus", "all_access"]) {
+      ctx = tiers(tier);
+      await renderProgram("r1");
+      expect(screen.queryByRole("button", { name: /add with plus/i })).toBe(null);
+      cleanup();
+    }
+  });
+
+  it("catalogue programs: Plus still unlocks them with All Access; All Access starts them", async () => {
+    ctx = tiers("plus");
+    await renderProgram("p1");
+    expect(screen.getByRole("button", { name: /unlock with all access/i })).toBeTruthy();
+    cleanup();
+    ctx = tiers("all_access");
+    await renderProgram("p1");
+    expect(screen.queryByRole("button", { name: /unlock/i })).toBe(null);
+    expect(screen.getByRole("button", { name: /start program/i })).toBeTruthy();
+  });
+
+  it("a Plus member upgrading sees only All Access, preselected with its buy button", async () => {
+    ctx = tiers("plus");
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    await screen.findByText("Your membership");
+    expect(screen.queryByRole("button", { name: /^Plus/ })).toBe(null);
+    fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial|subscribe to all access/i }));
+    await waitFor(() => expect(ctx.startSoloSubscription).toHaveBeenCalledWith(expect.stringMatching(/^all_access_/)));
+  });
+});

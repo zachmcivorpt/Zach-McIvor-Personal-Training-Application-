@@ -179,7 +179,8 @@ function SoloPaywallSheet({ request, onClose }) {
 
   useEffect(() => {
     if (!open) return;
-    setTier(request.tier === "plus" ? "plus" : "all_access");
+    // A Plus member can only move up, so All Access is always preselected for them.
+    setTier(request.tier === "plus" && soloTier !== "plus" ? "plus" : "all_access");
     setInterval_("year");
     setMessage(request.notice || "");
     if (nativeIap && !(storeProducts && storeProducts.length)) {

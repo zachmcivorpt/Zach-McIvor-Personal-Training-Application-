@@ -280,6 +280,10 @@ any Train Solo work from now on:
   server (`functions/soloSubscriptions.js`) from Stripe and RevenueCat. The
   app never writes it and never grants access by itself. A failed payment,
   expiry or refund is Free immediately (owner rule).
+- The member's plan opens from this phone's last confirmed copy
+  (`apexSoloEntitlement` in SoloAppContext, #137), so a paying member is
+  never treated as Free while it loads. Anything that opens the paywall by
+  itself must wait for `soloEntitlementReady`.
 - Paid content must stay gated on the server too (firestore.rules
   `hasAllAccess()`), not just hidden in the UI.
 - Programs on the calendar come from `soloTrainingPrograms` (bought

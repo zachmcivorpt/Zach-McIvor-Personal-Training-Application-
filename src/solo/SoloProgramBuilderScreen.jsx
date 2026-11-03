@@ -17,7 +17,7 @@ import { localDateKey } from "../lib/dateKey";
 export default function SoloProgramBuilderScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { soloCurrentUser, soloCustomSessions, soloCustomPrograms, saveSoloCustomProgram, deleteSoloCustomProgram, soloAccess } = useSoloApp();
+  const { soloCurrentUser, soloCustomSessions, soloCustomPrograms, saveSoloCustomProgram, deleteSoloCustomProgram, soloAccess, soloEntitlementReady = true } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   const { dark, accent } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
@@ -34,9 +34,10 @@ export default function SoloProgramBuilderScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    if (!allowed) openPaywall({ tier: "plus", reason: "Turn your sessions into a multi-week program on your calendar — part of Plus." });
+    // Wait for the member's plan before deciding (#137).
+    if (!allowed && soloEntitlementReady) openPaywall({ tier: "plus", reason: "Turn your sessions into a multi-week program on your calendar — part of Plus." });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allowed]);
+  }, [allowed, soloEntitlementReady]);
 
   function move(i, dir) {
     setDays((list) => {
