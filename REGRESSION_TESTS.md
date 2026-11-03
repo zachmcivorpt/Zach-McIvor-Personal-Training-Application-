@@ -2495,6 +2495,11 @@ Train Solo only; nothing in the coach console or the coached client app changed.
 - **Tests**: button names updated to sentence case in `oneProgramAtATime`, `subscriptionGates` and `clientExperience` tests; "Start program" is now both the sheet title and the button, so those tests find the button by role. Full suite passes; `vite build` clean; every screen checked rendered at iPhone size, light and dark.
 - **Not changed**: the rest of Train Solo, the coached app and the shared `PrimaryButton` (used outside Train Solo).
 
+### 144. Train Solo type: back to the app's own font weights, just smaller (owner, 2026-11-03)
+- **Problem (owner)**: #143's lighter, medium-weight type and sentence-case buttons weren't wanted: "revert back to the old font, just smaller size".
+- **Fix**: `SoloUI.jsx` keeps #143's smaller sizes with the original weights. Titles, figures, rows and labels are semibold (figures 28px, the recap headline 44px); `SoloButton` is bold ALL CAPS again (13px, `rounded-2xl` like `PrimaryButton`) and `SoloTextButton` is semibold. The leftover light and medium spots go back to semibold or bold: the run-through numerals (plain 1 / 2 / 3), the Plan sheet's day boxes (bordered, semibold), the purchase screens' titles, "Your first session", the builder's weekday labels, the recap's small figures and gains.
+- **Tests**: button names are matched on their text (the caps come from CSS), so the existing tests still apply; Train Solo suite passes; `vite build` clean.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

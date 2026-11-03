@@ -51,7 +51,7 @@ export function SoloPurchaseStage({ title, detail }) {
       {(t) => (
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
           <img src={t.logo} alt="" aria-hidden="true" className="w-8 h-8 object-contain opacity-90" />
-          <p className="mt-8 text-[20px] leading-tight font-medium tracking-[-0.015em]">{title}</p>
+          <p className="mt-8 text-[20px] leading-tight font-semibold tracking-[-0.02em]">{title}</p>
           {detail && (
             <p className={`mt-2 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
               {detail}
@@ -84,7 +84,7 @@ export function SoloWelcomeScreen({ tier, renewal, onDone }) {
             <p className={`mt-10 ${SOLO_TYPE.eyebrow}`} style={{ color: t.textMuted }}>
               Membership active
             </p>
-            <h1 className="mt-3 text-[32px] leading-[1.08] font-medium tracking-[-0.03em]">
+            <h1 className="mt-3 text-[32px] leading-[1.05] font-semibold tracking-[-0.035em]">
               Welcome to
               <br />
               {label}.

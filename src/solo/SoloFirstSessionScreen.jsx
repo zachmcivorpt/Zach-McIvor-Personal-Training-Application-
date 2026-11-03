@@ -46,7 +46,7 @@ export default function SoloFirstSessionScreen() {
         {session.exercises.length > 0 ? (
           <div className="mt-9 rounded-3xl px-5 pt-5 pb-3" style={soloGlass(t)}>
             <div className="flex items-baseline justify-between">
-              <p className="text-[15px] font-medium">Your first session</p>
+              <p className="text-[15px] font-bold">Your first session</p>
               <p className={`${SOLO_TYPE.meta} tabular-nums`} style={{ color: t.textMuted }}>
                 {session.exercises.length} exercises · 3 sets
               </p>

@@ -70,7 +70,7 @@ export function SwitchProgramSheet({ open, onClose, programName, resumeWeek = nu
         <div className="flex items-start gap-3 mt-6 pt-4 border-t" style={{ borderColor: t.panelBorder }}>
           <Archive size={14} strokeWidth={1.75} className="shrink-0 mt-0.5" color={t.textMuted} />
           <p className={SOLO_TYPE.body} style={{ color: t.textMuted }}>
-            <span style={{ color: t.text }} className="font-medium">
+            <span style={{ color: t.text }} className="font-semibold">
               {current.name}
             </span>{" "}
             moves to Archived{current.week ? ` at Week ${current.week}` : ""}. Everything you've logged stays, and you can resume it any time.
@@ -105,11 +105,11 @@ export function ProgramsGuideSheet({ open, onClose, dark, t }) {
       <ol className="border-t" style={{ borderColor: t.panelBorder }}>
         {GUIDE.map(([title, body], i) => (
           <li key={title} className="flex gap-4 py-4 border-b" style={{ borderColor: t.panelBorder }}>
-            <span className="text-[20px] leading-none font-light tabular-nums w-6 shrink-0 pt-px" style={{ color: t.textFaint }}>
-              {String(i + 1).padStart(2, "0")}
+            <span className="text-[22px] leading-none font-semibold tabular-nums tracking-[-0.03em] w-6 shrink-0" style={{ color: t.textFaint }}>
+              {i + 1}
             </span>
             <span className="min-w-0">
-              <span className="block text-[14px] font-medium">{title}</span>
+              <span className="block text-[14px] font-semibold">{title}</span>
               <span className={`block ${SOLO_TYPE.body} mt-1`} style={{ color: t.textMuted }}>
                 {body}
               </span>
@@ -164,13 +164,13 @@ export function PlanSessionSheet({ open, onClose, session, days, suggested, onCo
               onClick={() => setPick(d.key)}
               aria-pressed={on}
               aria-label={d.full}
-              className="flex flex-col items-center justify-center rounded-full py-2.5 transition-colors"
-              style={on ? { backgroundColor: t.text, color: t.bg } : { backgroundColor: "transparent", color: t.text }}
+              className="flex flex-col items-center justify-center rounded-2xl py-2"
+              style={on ? { backgroundColor: t.text, color: t.bg } : { backgroundColor: "transparent", border: `1px solid ${t.panelBorder}`, color: t.text }}
             >
-              <span className="text-[9px] font-medium uppercase tracking-[0.12em]" style={{ opacity: on ? 0.75 : 0.5 }}>
-                {d.weekday === "Today" ? "Today" : d.weekday}
+              <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ opacity: 0.7 }}>
+                {d.weekday}
               </span>
-              <span className="text-[15px] font-normal tabular-nums leading-tight mt-1">{d.date}</span>
+              <span className="text-[15px] font-semibold tabular-nums leading-tight mt-0.5">{d.date}</span>
             </button>
           );
         })}

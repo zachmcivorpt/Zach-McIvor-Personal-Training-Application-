@@ -31,7 +31,7 @@ function Page({ children, t }) {
 function Figure({ value, label, t, accent = false, small = false }) {
   return (
     <div className="py-5 min-w-0">
-      <p className={`${small ? "text-[24px] leading-none font-light tracking-[-0.02em] tabular-nums" : SOLO_TYPE.figure} whitespace-nowrap`} style={accent ? { color: MEASURE_BLUE } : undefined}>
+      <p className={`${small ? "text-[22px] leading-none font-semibold tracking-[-0.03em] tabular-nums" : SOLO_TYPE.figure} whitespace-nowrap`} style={accent ? { color: MEASURE_BLUE } : undefined}>
         {value}
       </p>
       <p className={`${SOLO_TYPE.meta} mt-2`} style={{ color: t.textMuted }}>
@@ -91,7 +91,7 @@ export function SoloProgramCompleteScreen() {
                     Est. max {g.from} → {g.to} kg
                   </span>
                 </span>
-                <span className="text-[17px] font-light tabular-nums" style={{ color: MEASURE_BLUE }}>
+                <span className="text-[16px] font-semibold tabular-nums" style={{ color: MEASURE_BLUE }}>
                   +{g.pct}%
                 </span>
               </li>
