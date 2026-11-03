@@ -2515,6 +2515,12 @@ Train Solo only; nothing in the coach console or the coached client app changed.
 - **Fix**: `SoloProgramSwitch.jsx`: the content of the switch-program, run-through and Plan sheets sits in a wrapper with `color: t.text`, so every line without its own colour follows the theme (the Program complete Share sheet does the same).
 - **Tests**: `src/solo/sheetsDarkMode.test.jsx` renders all three sheets in dark mode and checks each heading and title resolves to the theme's white; it fails without the fix.
 
+### 147. Share card: estimated max and PRs, evenly spread figures, choose your own progress photos (owner request, 2026-11-03)
+- **Change**:
+  - **Card** (`shareCard.js`): each of the top 5 lifts shows its estimated max, first week → last week (whole kg, under an "EST. MAX" heading), before its % gain. **PRs set** is always on the card, so the figures are Sessions, Total lifted, Bodyweight (when they have two weigh-ins) and PRs set. They're spread across the full width, evenly spaced: the first starts at the left edge, the last ends at the right, and the gaps between are equal (each block's width is the wider of its number and label).
+  - **Photos** (`SoloRecapScreens.jsx`): the week 1 / final-week photos are still picked automatically (`progressPhotoPair`; it now falls back to their first and latest photos overall when the program has fewer than two). Tapping either opens a clear-glass picker of every progress photo they've uploaded, newest first, each labelled "Week N" (`photoLabel`) or with its date if taken before the program. The current choice is outlined in blue, and the pick replaces that photo on the screen and on the card.
+- **Tests**: `shareCard.test.js` (+3 and updated: est. max detail; PRs set always present; photo labels by week or date; fallback pair; the even-spacing positions checked by hand against a measured canvas). `clientExperience.test.jsx`: change the first photo through the picker (3 photos offered, choose the 15 Aug one, the screen shows it). Card and picker rendered in Chromium and the card sent to the owner. Full suite 851 passed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

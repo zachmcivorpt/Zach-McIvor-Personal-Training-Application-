@@ -31,22 +31,31 @@ const signed = (n) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n)}`;
 // Their progress photos for the program (#145): the first one from its
 // start date and the last one, labelled with the program week each was
 // taken in. null without two photos on different days.
-export function progressPhotoPair(photos = [], startDate, totalWeeks = 0) {
-  const list = photos
-    .filter((p) => p?.url && (!startDate || (dateKeyOf(p.date) || "") >= startDate))
-    .sort((a, b) => Number(new Date(a.date)) - Number(new Date(b.date)));
-  if (list.length < 2) return null;
-  const first = list[0];
-  const last = list[list.length - 1];
-  if (dateKeyOf(first.date) === dateKeyOf(last.date)) return null;
-  const weekOf = (p) => {
-    if (!startDate) return null;
-    const days = Math.floor((new Date(`${dateKeyOf(p.date)}T00:00:00`) - new Date(`${startDate}T00:00:00`)) / 86400000);
+// "Week N" for a photo taken during the program (capped at the last
+// week), else its date.
+export function photoLabel(photo, startDate, totalWeeks = 0) {
+  const key = dateKeyOf(photo?.date);
+  if (startDate && key && key >= startDate) {
+    const days = Math.floor((new Date(`${key}T00:00:00`) - new Date(`${startDate}T00:00:00`)) / 86400000);
     const w = Math.floor(days / 7) + 1;
-    return totalWeeks > 0 ? Math.min(Math.max(w, 1), totalWeeks) : Math.max(w, 1);
+    return `Week ${totalWeeks > 0 ? Math.min(Math.max(w, 1), totalWeeks) : Math.max(w, 1)}`;
+  }
+  return photo?.date != null ? new Date(photo.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "";
+}
+
+export function progressPhotoPair(photos = [], startDate, totalWeeks = 0) {
+  const sorted = photos.filter((p) => p?.url).sort((x, y) => Number(new Date(x.date)) - Number(new Date(y.date)));
+  // Photos from the program first; if there aren't two on different days,
+  // their first and latest photos overall.
+  const inProgram = sorted.filter((p) => !startDate || (dateKeyOf(p.date) || "") >= startDate);
+  const pick = (list) => (list.length >= 2 && dateKeyOf(list[0].date) !== dateKeyOf(list[list.length - 1].date) ? [list[0], list[list.length - 1]] : null);
+  const pair = pick(inProgram) || pick(sorted);
+  if (!pair) return null;
+  const [first, last] = pair;
+  return {
+    before: { id: first.id, url: first.url, label: photoLabel(first, startDate, totalWeeks) },
+    after: { id: last.id, url: last.url, label: photoLabel(last, startDate, totalWeeks) },
   };
-  const label = (p) => (weekOf(p) ? `Week ${weekOf(p)}` : new Date(p.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" }));
-  return { before: { url: first.url, label: label(first) }, after: { url: last.url, label: label(last) } };
 }
 
 export function shareCardContent({ programName, stats, bodyweight, exercisesById = {}, photos = null }) {
@@ -55,11 +64,11 @@ export function shareCardContent({ programName, stats, bodyweight, exercisesById
     { value: kgText(stats?.volume || 0), label: "Total lifted" },
   ];
   if (bodyweight) figures.push({ value: `${signed(bodyweight.change)} kg`, label: "Bodyweight" });
-  else figures.push({ value: String(stats?.prs || 0), label: "PRs" });
+  figures.push({ value: String(stats?.prs || 0), label: "PRs set" });
   const lifts = (stats?.strength || [])
     .filter((s) => s.pct > 0)
     .slice(0, 5)
-    .map((s) => ({ name: exercisesById[s.exerciseId]?.name || "Lift", pct: `+${s.pct}%`, detail: `${s.from} → ${s.to} kg` }));
+    .map((s) => ({ name: exercisesById[s.exerciseId]?.name || "Lift", pct: `+${s.pct}%`, detail: `${Math.round(s.from)} → ${Math.round(s.to)} kg` }));
   return {
     eyebrow: "PROGRAM COMPLETE",
     title: programName || "Program complete",
@@ -222,16 +231,27 @@ export function drawShareCard(canvas, content, { background = null, logo = null,
   }
 
   // Figures.
+  // Figures across the full width, evenly spaced: the first at the left
+  // edge, the last finishing at the right, equal gaps between.
   const figures = content.figures || [];
-  const colW = iw / Math.max(1, figures.length);
+  const valueSize = figures.length > 3 ? 44 : 50;
+  const widths = figures.map((f) => {
+    ctx.font = `600 ${valueSize}px ${FONT}`;
+    const v = ctx.measureText(f.value).width;
+    ctx.font = `500 22px ${FONT}`;
+    return Math.max(v, ctx.measureText(f.label).width);
+  });
+  const gap = figures.length > 1 ? (iw - widths.reduce((a, b) => a + b, 0)) / (figures.length - 1) : 0;
+  let fx = ix;
   figures.forEach((f, i) => {
-    const x = ix + i * colW;
-    ctx.font = `600 50px ${FONT}`;
+    ctx.textAlign = "left";
+    ctx.font = `600 ${valueSize}px ${FONT}`;
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(f.value, x, y);
+    ctx.fillText(f.value, fx, y);
     ctx.font = `500 22px ${FONT}`;
     ctx.fillStyle = "rgba(255,255,255,0.6)";
-    ctx.fillText(f.label, x, y + 36);
+    ctx.fillText(f.label, fx, y + 36);
+    fx += widths[i] + gap;
   });
   y += 92;
 
@@ -251,6 +271,11 @@ export function drawShareCard(canvas, content, { background = null, logo = null,
     ctx.fillText("STRONGER".split("").join(String.fromCharCode(8202)), ix, y);
     y += 56;
     const bottom = gy + gh - 40;
+    // Each lift: name, its estimated max first week → last week, the gain.
+    ctx.textAlign = "right";
+    ctx.font = `500 20px ${FONT}`;
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.fillText("EST. MAX", ix + iw - 130, y - 56);
     for (const l of lifts) {
       if (y > bottom) break;
       ctx.textAlign = "left";
@@ -258,6 +283,10 @@ export function drawShareCard(canvas, content, { background = null, logo = null,
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText(l.name, ix, y);
       ctx.textAlign = "right";
+      ctx.font = `500 24px ${FONT}`;
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillText(l.detail, ix + iw - 130, y);
+      ctx.font = `600 28px ${FONT}`;
       ctx.fillStyle = BLUE;
       ctx.fillText(l.pct, ix + iw, y);
       y += 50;

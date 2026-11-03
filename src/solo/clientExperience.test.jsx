@@ -5,7 +5,7 @@
 // warm-up & plates helper.
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.setConfig({ testTimeout: 20000 });
@@ -93,6 +93,7 @@ describe("program complete", () => {
       ],
       soloTrainingPrograms: [{ id: "u1_p1", programId: "p1", startDate: "2026-09-01" }],
       soloProgressPhotos: [
+        { id: "ph0", url: "data:image/jpeg;base64,ZZZ", date: new Date("2026-08-15T12:00:00").getTime() },
         { id: "ph1", url: "data:image/jpeg;base64,AAA", date: new Date("2026-09-02T12:00:00").getTime() },
         { id: "ph2", url: "data:image/jpeg;base64,BBB", date: new Date("2026-09-10T12:00:00").getTime() },
       ],
@@ -119,6 +120,13 @@ describe("program complete", () => {
     expect(photos.textContent).toContain("Week 1");
     expect(photos.textContent).toContain("Week 2");
     expect(photos.querySelectorAll("img")).toHaveLength(2);
+    // Either photo can be swapped for any progress photo they've taken.
+    fireEvent.click(screen.getByRole("button", { name: "Change the first photo" }));
+    const picker = await screen.findByTestId("photo-picker");
+    expect(picker.querySelectorAll("button")).toHaveLength(3);
+    fireEvent.click(within(picker).getByRole("button", { name: /15 Aug/ }));
+    await waitFor(() => expect(screen.queryByTestId("photo-picker")).toBe(null));
+    expect(screen.getByTestId("program-complete-photos").textContent).toMatch(/15 Aug/);
     // Share opens the results card in a sheet.
     fireEvent.click(screen.getByRole("button", { name: /Share your results/ }));
     await screen.findByTestId("share-card");

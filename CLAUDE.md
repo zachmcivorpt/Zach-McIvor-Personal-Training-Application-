@@ -81,8 +81,11 @@ rather than inventing new colors per screen:
 - **Program complete share card** (#145, `src/solo/shareCard.js`): the APEX
   gym photo behind one pane of frosted glass with the member's real
   numbers (sessions, total lifted, bodyweight change, top 5 lift gains) and
-  their week 1 / final-week progress photos. Every figure from their own
-  logs, weigh-ins and photos; leave a figure off rather than estimate it.
+  their week 1 / final-week progress photos (changeable to any of their
+  progress photos, #147). Lifts show est. max first → last week; figures
+  (incl. PRs set) are spread evenly across the full width. Every figure
+  from their own logs, weigh-ins and photos; leave a figure off rather
+  than estimate it.
 - **Scheduling is done for them** (#142): a built program's sessions get
   weekdays automatically (`nextWeekday`: training days first, else spread),
   shown as "Your week" and moved by tapping the day; it starts today and

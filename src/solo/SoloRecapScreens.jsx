@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, Share2 } from "lucide-react";
 import { BottomSheet } from "../components/ui";
-import { bodyweightChange, shareCardContent, drawShareCard, loadImage, progressPhotoPair } from "./shareCard";
+import { bodyweightChange, shareCardContent, drawShareCard, loadImage, progressPhotoPair, photoLabel } from "./shareCard";
 import { MEASURE_BLUE } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloClearSheetGlass, CLEAR_SHEET_BACKDROP } from "./SoloThemeContext";
@@ -64,7 +64,19 @@ export function SoloProgramCompleteScreen() {
   const startDate = (soloTrainingPrograms || []).find((r) => r.id === purchaseId)?.startDate || null;
   const bodyweight = useMemo(() => bodyweightChange(soloWeighIns || [], startDate), [soloWeighIns, startDate]);
   const totalWeeks = (soloContentById?.[programId]?.phases || []).reduce((n, p) => n + (Number(p.durationWeeks) || 0), 0) || Number(soloProgramsById?.[programId]?.weekOnePreview?.totalWeeks) || 0;
-  const photos = useMemo(() => progressPhotoPair(soloProgressPhotos || [], startDate, totalWeeks), [soloProgressPhotos, startDate, totalWeeks]);
+  const defaultPhotos = useMemo(() => progressPhotoPair(soloProgressPhotos || [], startDate, totalWeeks), [soloProgressPhotos, startDate, totalWeeks]);
+  // They can swap either photo for any progress photo they've taken (#145).
+  const [chosen, setChosen] = useState({ before: null, after: null });
+  const [pickSlot, setPickSlot] = useState(null); // "before" | "after" while choosing
+  const allPhotos = useMemo(() => [...(soloProgressPhotos || [])].filter((p) => p?.url).sort((a, b) => Number(new Date(b.date)) - Number(new Date(a.date))), [soloProgressPhotos]);
+  const photos = useMemo(() => {
+    if (!defaultPhotos) return null;
+    const slot = (key) => {
+      const p = chosen[key] && allPhotos.find((x) => x.id === chosen[key]);
+      return p ? { id: p.id, url: p.url, label: photoLabel(p, startDate, totalWeeks) } : defaultPhotos[key];
+    };
+    return { before: slot("before"), after: slot("after") };
+  }, [defaultPhotos, chosen, allPhotos, startDate, totalWeeks]);
   const [shareOpen, setShareOpen] = useState(false);
   if (!purchaseId) return <Navigate to="/solo/home" replace />;
   const program = soloProgramsById?.[programId];
@@ -110,17 +122,44 @@ export function SoloProgramCompleteScreen() {
             Progress
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {[photos.before, photos.after].map((ph, i) => (
-              <div key={i} className="relative rounded-2xl overflow-hidden" style={{ aspectRatio: "3 / 4", backgroundColor: t.chipBg }}>
+            {[
+              ["before", photos.before],
+              ["after", photos.after],
+            ].map(([slot, ph]) => (
+              <button
+                type="button"
+                key={slot}
+                onClick={() => setPickSlot(slot)}
+                aria-label={`Change the ${slot === "before" ? "first" : "latest"} photo`}
+                className="relative rounded-2xl overflow-hidden text-left"
+                style={{ aspectRatio: "3 / 4", backgroundColor: t.chipBg }}
+              >
                 <img src={ph.url} alt={ph.label} className="w-full h-full object-cover" />
                 <span className="absolute left-2.5 bottom-2.5 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide text-white" style={{ backgroundColor: "rgba(10,10,11,0.45)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
                   {ph.label}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
+          <p className={`${SOLO_TYPE.meta} mt-2`} style={{ color: t.textMuted }}>
+            Tap a photo to choose another.
+          </p>
         </div>
       )}
+      <PhotoPickerSheet
+        open={!!pickSlot}
+        onClose={() => setPickSlot(null)}
+        title={pickSlot === "after" ? "Choose your latest photo" : "Choose your first photo"}
+        photos={allPhotos}
+        selectedId={pickSlot ? photos?.[pickSlot]?.id : null}
+        labelOf={(p) => photoLabel(p, startDate, totalWeeks)}
+        onPick={(p) => {
+          setChosen((c) => ({ ...c, [pickSlot]: p.id }));
+          setPickSlot(null);
+        }}
+        dark={dark}
+        t={t}
+      />
 
       {gains.length > 0 && (
         <div className="mt-7">
@@ -172,6 +211,35 @@ export function SoloProgramCompleteScreen() {
         </SoloTextButton>
       )}
     </Page>
+  );
+}
+
+// Choosing a different progress photo for the card (#145): every photo
+// they've taken, newest first, labelled with its program week.
+function PhotoPickerSheet({ open, onClose, title, photos, selectedId, labelOf, onPick, dark, t }) {
+  return (
+    <BottomSheet open={open} onClose={onClose} title={title} dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
+      <div style={{ color: t.text }}>
+        <div className="grid grid-cols-3 gap-1.5" data-testid="photo-picker">
+          {photos.map((p) => (
+            <button
+              type="button"
+              key={p.id}
+              onClick={() => onPick(p)}
+              aria-pressed={p.id === selectedId}
+              aria-label={labelOf(p)}
+              className="relative rounded-xl overflow-hidden"
+              style={{ aspectRatio: "3 / 4", backgroundColor: t.chipBg, outline: p.id === selectedId ? `2px solid ${MEASURE_BLUE}` : "none", outlineOffset: -2 }}
+            >
+              <img src={p.url} alt="" className="w-full h-full object-cover" />
+              <span className="absolute left-1.5 bottom-1.5 px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide text-white" style={{ backgroundColor: "rgba(10,10,11,0.5)" }}>
+                {labelOf(p)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </BottomSheet>
   );
 }
 
