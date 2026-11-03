@@ -1,161 +1,117 @@
-import React, { useId } from "react";
+import React from "react";
 
-// The muscle map's body (#148): a futuristic, holographic human — fine
-// MEASURE_BLUE contour lines and segmented muscle plates on a dark scan
-// grid, trained muscles glowing red (stronger with more sets). Always drawn
-// on its own dark display panel, in Solo light and dark mode alike.
+// The muscle map's body (#148): a solid anatomical figure on a dark panel —
+// charcoal silhouette, grey muscle plates separated by dark seams, trained
+// muscles in red (deeper red with more sets). Same panel in Solo light and
+// dark mode.
 //
-// Each muscle is drawn once on the body's right side and mirrored, so the
-// two sides always match.
+// Each muscle is drawn once on the body's right half and mirrored, so both
+// sides always match.
 //
 //   levels: { [muscle]: 0..1 }  (muscleMap.intensity)
 
 export const TRAINED_RED = "#FF4D57";
-const BLUE = "#2F8FFF";
+export const MUSCLE_IDLE = "#4A4D57";
+export const PANEL_BG = "#15161B";
+const BODY = "#2B2D34";
+const SEAM = "#16171C";
 
-// Muscle plates, right half (viewBox 0 0 200 440, body centred on x=100).
+// Mix the idle grey toward red by training level (0.45 → 1).
+export function muscleFill(level) {
+  if (!(level > 0)) return MUSCLE_IDLE;
+  const k = 0.35 + 0.65 * Math.min(1, level);
+  const a = [0x4a, 0x4d, 0x57];
+  const b = [0xff, 0x4d, 0x57];
+  return "#" + a.map((v, i) => Math.round(v + (b[i] - v) * k).toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+
+// Silhouette, right half: head, neck, shoulder, arm held slightly out,
+// torso, leg. Closes just past the centre line so the halves overlap.
+const OUTLINE_HALF =
+  "M99 10 L100 10 C114 10 122 21 122 36 C122 48 117 57 111 61 L111 70 C120 75 134 76 146 80 C158 84 165 96 165 110 C168 126 171 142 172 156 C177 172 182 196 186 222 C190 232 192 244 189 254 C186 260 179 258 177 250 C175 240 172 232 170 226 C164 204 157 186 154 168 C151 156 149 146 147 132 C146 126 144 120 142 116 C141 140 134 160 130 180 C130 195 136 205 138 218 C140 240 139 268 134 296 C132 308 130 316 130 326 C134 348 134 372 129 396 C130 408 132 420 126 430 L108 430 C109 420 109 410 108 400 C104 378 103 352 106 330 C104 316 104 306 105 296 C103 274 103 252 104 236 C103 234 101 232 99 232 Z";
+
+const SHOULDER = "M143 80 C157 82 166 95 165 112 C163 122 158 128 153 130 C150 118 146 104 137 92 C139 87 140 83 143 80 Z";
+const FOREARM = [
+  "M163 172 C170 175 178 192 183 214 C184 220 182 224 178 222 C170 208 163 190 161 176 Z",
+  "M157 176 C161 188 167 204 172 221 C169 223 167 221 165 217 C160 205 156 191 157 176 Z",
+];
+
 const FRONT = {
-  traps: ["M106 58 C114 60 121 63 126 67 L117 71 C112 67 108 65 106 63 Z"],
-  shoulders: ["M127 67 C141 66 151 77 151 95 C145 93 138 89 131 86 C127 81 125 75 127 67 Z"],
-  chest: [
-    "M102 74 L123 71 C131 76 135 85 133 95 C125 97 112 97 102 95 Z",
-    "M102 98 C112 99 125 99 132 98 C131 104 128 108 124 110 C115 113 108 113 102 111 Z",
-  ],
-  biceps: ["M146 99 C153 107 156 122 152 139 C146 138 141 128 140 115 C140 107 142 101 146 99 Z"],
-  forearms: ["M151 145 C158 158 161 177 158 198 L150 199 C145 183 143 163 145 147 Z"],
+  traps: ["M111 68 C120 73 132 76 142 79 C130 82 118 82 108 80 Z"],
+  shoulders: [SHOULDER],
+  chest: ["M102 84 C116 82 130 84 138 92 C145 101 148 112 146 120 C138 126 120 128 104 124 C102 118 101 100 102 84 Z"],
+  biceps: ["M150 132 C158 130 165 140 168 155 C169 162 166 168 161 166 C156 160 151 148 150 132 Z"],
+  forearms: FOREARM,
   abs: [
-    "M102 116 L115 115 C116 122 116 128 116 133 L102 134 Z",
-    "M102 137 L116 136 C117 143 117 149 117 154 L102 155 Z",
-    "M102 158 L117 157 C117 164 117 170 116 176 L102 177 Z",
-    "M102 180 L116 179 C116 185 115 190 114 195 L102 197 Z",
+    "M102 131 L116 129 C117 136 117 142 117 147 L102 148 Z",
+    "M102 151 L117 150 C117 157 117 163 116 168 L102 169 Z",
+    "M102 172 L116 171 C116 178 115 184 114 189 L102 190 Z",
+    "M102 193 L114 192 C113 205 109 216 102 226 Z",
   ],
-  obliques: ["M119 117 C127 124 130 150 126 181 L118 190 C121 166 121 140 119 117 Z"],
+  obliques: ["M120 130 C130 132 137 138 137 150 C135 166 131 180 127 196 C124 202 120 204 118 200 C119 184 120 160 120 130 Z"],
   quads: [
-    "M106 214 C113 212 119 214 122 220 C123 245 121 272 117 300 L110 312 C106 292 104 252 106 214 Z",
-    "M124 219 C131 225 134 238 134 252 C134 276 129 296 121 312 C124 286 126 250 124 219 Z",
+    "M118 224 C128 224 136 236 137 258 C137 280 133 298 126 312 C121 306 119 296 118 280 C116 262 116 240 118 224 Z",
+    "M106 236 C112 232 116 240 116 256 C116 278 118 296 122 314 C114 316 108 308 106 296 C104 278 104 256 106 236 Z",
   ],
-  calves: ["M112 332 C123 335 127 358 124 394 L115 395 C111 371 110 350 112 332 Z"],
+  calves: [
+    "M124 332 C131 340 132 360 129 384 C127 392 123 392 122 386 C121 368 121 348 124 332 Z",
+    "M108 336 C113 340 116 352 116 368 C115 380 112 388 110 386 C107 372 106 352 108 336 Z",
+  ],
 };
 
 const BACK = {
-  traps: ["M100 56 L113 61 C122 65 128 70 130 75 C122 82 112 92 100 104 Z"],
-  shoulders: ["M127 67 C141 66 151 77 151 95 C145 93 138 89 131 86 C127 81 125 75 127 67 Z"],
-  lats: ["M102 106 C112 96 121 86 128 82 C136 99 134 128 122 151 L104 159 Z"],
-  triceps: ["M146 99 C153 107 156 122 152 139 C146 138 141 128 140 115 C140 107 142 101 146 99 Z"],
-  forearms: ["M151 145 C158 158 161 177 158 198 L150 199 C145 183 143 163 145 147 Z"],
-  lowerBack: ["M102 163 L121 155 C122 170 120 183 116 192 L102 194 Z"],
-  glutes: ["M102 199 C120 195 134 205 134 225 C132 241 118 248 102 244 Z"],
+  lats: ["M107 122 C114 106 128 94 141 91 C146 104 142 120 138 140 C135 158 130 174 126 186 C118 182 110 176 104 170 C104 152 105 134 107 122 Z"],
+  traps: ["M100 62 C106 66 112 70 118 72 C128 76 136 78 142 80 C132 88 118 98 109 112 C105 122 102 132 100 142 Z"],
+  shoulders: [SHOULDER],
+  triceps: ["M150 124 C158 124 166 136 168 152 C168 160 165 166 161 164 C155 156 150 142 150 124 Z"],
+  forearms: FOREARM,
+  lowerBack: ["M102 148 C106 162 113 174 123 189 C118 197 110 202 102 204 Z"],
+  glutes: ["M102 207 C116 201 132 205 136 220 C138 236 132 248 118 250 C110 250 104 248 102 246 Z"],
   hamstrings: [
-    "M104 251 C112 250 118 252 120 258 C120 280 118 300 116 314 L108 314 C104 296 103 271 104 251 Z",
-    "M122 256 C129 262 132 272 132 282 C130 298 126 308 120 314 C122 296 123 276 122 256 Z",
+    "M106 256 C112 252 117 256 118 266 C119 284 118 300 116 312 C110 312 106 304 105 290 C104 278 104 266 106 256 Z",
+    "M122 256 C130 256 136 266 136 280 C135 294 130 306 122 314 C121 296 121 276 122 256 Z",
   ],
   calves: [
-    "M110 331 C116 331 119 336 119 342 C119 356 117 370 114 384 C108 362 107 345 110 331 Z",
-    "M121 334 C127 339 130 352 126 380 L117 384 C120 368 122 350 121 334 Z",
+    "M108 332 C115 330 118 340 118 352 C118 366 115 376 112 380 C108 370 106 352 108 332 Z",
+    "M121 332 C129 334 133 346 131 362 C130 372 126 378 121 380 C120 366 119 348 121 332 Z",
   ],
 };
 
-// The body's outline, right half — head, neck, torso, arm, leg.
-const OUTLINE_HALF =
-  "M100 8 C113 8 121 19 121 33 C121 45 115 54 108 57 L109 61 C122 64 140 64 151 74 C158 82 159 94 157 104 C160 120 162 140 162 152 C165 172 166 190 163 204 L160 214 L149 214 C146 200 143 180 142 160 C140 150 138 132 136 120 C134 140 133 160 135 182 C137 194 137 204 136 212 C139 236 139 262 134 292 C131 306 128 316 128 326 C132 350 132 374 128 398 C129 410 128 420 124 428 L110 428 C111 416 110 404 109 396 C106 370 106 348 109 326 C108 316 106 306 105 296 C103 276 102 256 102 240 L100 240";
-
 const MIRROR = "translate(200 0) scale(-1 1)";
 
-// Small "joint" nodes for the futuristic read.
-const NODES = [
-  [100, 62], [137, 72], [63, 72], [146, 142], [54, 142], [154, 201], [46, 201], [115, 322], [85, 322], [100, 208],
-];
-
 export function MuscleBody({ view = "front", levels = {}, className = "", style, label }) {
-  const uid = useId().replace(/:/g, "");
   const shapes = view === "back" ? BACK : FRONT;
-  const glow = `glow-${uid}`;
-  const redGlow = `red-${uid}`;
-  const body = `body-${uid}`;
   return (
-    <svg viewBox="30 0 140 440" className={className} style={style} role="img" aria-label={label || `${view === "back" ? "Back" : "Front"} muscles`}>
-      <defs>
-        <filter id={glow} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.6" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <filter id={redGlow} x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="3.2" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-        <linearGradient id={body} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor={BLUE} stopOpacity="0.16" />
-          <stop offset="1" stopColor={BLUE} stopOpacity="0.04" />
-        </linearGradient>
-      </defs>
-
-      {/* Body: a faint blue fill with a glowing contour. */}
-      <g filter={`url(#${glow})`}>
-        {[null, MIRROR].map((tr, i) => (
-          <path key={i} d={OUTLINE_HALF} transform={tr || undefined} fill={`url(#${body})`} stroke={BLUE} strokeOpacity="0.55" strokeWidth="0.9" />
-        ))}
-      </g>
-      {/* Centre line. */}
-      <line x1="100" y1="64" x2="100" y2="238" stroke={BLUE} strokeOpacity="0.18" strokeWidth="0.6" strokeDasharray="2 3" />
-
-      {/* Muscle plates. */}
+    <svg viewBox="6 4 188 430" className={className} style={style} role="img" aria-label={label || `${view === "back" ? "Back" : "Front"} muscles`}>
+      {[null, MIRROR].map((tr, i) => (
+        <path key={i} d={OUTLINE_HALF} transform={tr || undefined} fill={BODY} />
+      ))}
       {Object.entries(shapes).map(([muscle, paths]) => {
         const level = levels[muscle] || 0;
-        const on = level > 0;
+        const fill = muscleFill(level);
         return (
-          <g key={muscle} data-muscle={muscle} data-level={level} filter={on ? `url(#${redGlow})` : undefined}>
+          <g key={muscle} data-muscle={muscle} data-level={level}>
             {paths.flatMap((d, i) =>
               [null, MIRROR].map((tr, j) => (
-                <path
-                  key={`${i}-${j}`}
-                  d={d}
-                  transform={tr || undefined}
-                  fill={on ? TRAINED_RED : BLUE}
-                  fillOpacity={on ? 0.25 + level * 0.65 : 0.07}
-                  stroke={on ? TRAINED_RED : BLUE}
-                  strokeOpacity={on ? 0.95 : 0.45}
-                  strokeWidth="0.7"
-                />
+                <path key={`${i}-${j}`} d={d} transform={tr || undefined} fill={fill} stroke={SEAM} strokeWidth="1.4" strokeLinejoin="round" />
               ))
             )}
           </g>
         );
       })}
-
-      {/* Joint nodes. */}
-      {NODES.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="1.3" fill={BLUE} fillOpacity="0.8" />
-      ))}
     </svg>
   );
 }
 
-// The display panel: dark glass with a faint scan grid, front and back
-// side by side, FRONT / BACK labels.
-export function MuscleDisplay({ levels, height = 220, compact = false, className = "" }) {
-  const grid = `repeating-linear-gradient(0deg, rgba(47,143,255,0.06) 0 1px, transparent 1px 14px), repeating-linear-gradient(90deg, rgba(47,143,255,0.06) 0 1px, transparent 1px 14px)`;
+// The dark display panel: one body (front or back), or both side by side
+// when compact (the My Training row's thumbnail).
+export function MuscleDisplay({ levels, view = "front", height = 220, compact = false, className = "", children }) {
   return (
-    <div
-      className={`relative overflow-hidden ${compact ? "rounded-xl" : "rounded-3xl"} ${className}`}
-      style={{ background: `radial-gradient(120% 90% at 50% 20%, #0F1726 0%, #07090D 70%)`, border: "1px solid rgba(47,143,255,0.22)" }}
-    >
-      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: grid }} />
-      <div className={`relative flex items-end justify-center ${compact ? "gap-0.5 px-1 py-1.5" : "gap-4 px-4 pt-5 pb-3"}`}>
-        {["front", "back"].map((v) => (
-          <div key={v} className="flex flex-col items-center">
-            <MuscleBody view={v} levels={levels} className="w-auto" style={{ height }} />
-            {!compact && (
-              <span className="text-[9px] font-semibold tracking-[0.22em] mt-1" style={{ color: "rgba(47,143,255,0.7)" }}>
-                {v.toUpperCase()}
-              </span>
-            )}
-          </div>
+    <div className={`relative overflow-hidden ${compact ? "rounded-xl" : "rounded-3xl"} ${className}`} style={{ background: PANEL_BG }}>
+      {children}
+      <div className={`relative flex items-end justify-center ${compact ? "gap-0.5 px-1 py-1.5" : "px-4 pt-4 pb-4"}`}>
+        {(compact ? ["front", "back"] : [view]).map((v) => (
+          <MuscleBody key={v} view={v} levels={levels} style={{ height }} />
         ))}
       </div>
     </div>

@@ -123,9 +123,11 @@ rather than inventing new colors per screen:
 - Spelling is "Program", never "Programme".
 - **Muscle map** (#148, `SoloMuscleMap.jsx`, `MuscleBody.jsx`,
   `muscleMap.js`): a slim row in My Training, never a big card; opens a
-  clear-glass sheet. The body is a MEASURE_BLUE holographic figure on its
-  own dark panel in both modes; trained muscles are `TRAINED_RED`, nothing
-  else red. Last 72 h of their own logs, helpers count half; muscles come
+  clear-glass sheet. The body is a solid anatomical figure (charcoal
+  silhouette, grey muscles, dark seams) on its own dark panel in both modes,
+  with "days since last session" / "muscle groups ready" as large figures;
+  the owner rejected a holographic wireframe. Trained muscles are grey mixed
+  toward `TRAINED_RED` by sets (`muscleFill`), nothing else red. Last 72 h of their own logs, helpers count half; muscles come
   only from `exerciseMuscles.js` (#149).
 - Solo work stays Solo-only — don't restyle the coached app, coach console
   or shared components to get a Solo look.
