@@ -59,3 +59,19 @@ describe("waking WebKit (what leaving and reopening the app did)", () => {
     expect(fn(vc(), "checkPageVisible")).toMatch(/self\.wakeWebKit\(\)\s*\n\s*self\.reattachWebView\(\)/);
   });
 });
+
+describe("Apple's sheet still up after a cancel (#175)", () => {
+  it("a fresh page is made only once the app is active and Apple's sheet has gone", () => {
+    const body = fn(vc(), "whenAppActive");
+    expect(body).toMatch(/presentedViewController == nil/);
+    expect(body).toMatch(/applicationState == \.active && sheetGone/);
+  });
+
+  it("never uncovers under Apple's sheet — waits, then checks the page again", () => {
+    expect(fn(vc(), "uncoverAfterPurchase")).toMatch(/if self\.presentedViewController != nil \{\s*return self\.whenAppActive \{[^}]*revealAfterPurchase\(\)/);
+  });
+
+  it("the Continue fallback starts counting only once the fresh page is being made", () => {
+    expect(fn(vc(), "purchaseSheetDidFinish")).toMatch(/self\.rebuildWebView\(\)[\s\S]*asyncAfter\(deadline: \.now\(\) \+ 15\)[\s\S]*offerContinue\(\)/);
+  });
+});

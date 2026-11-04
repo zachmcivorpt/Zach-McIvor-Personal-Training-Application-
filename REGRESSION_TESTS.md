@@ -2774,6 +2774,17 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Test**: `src/solo/pageHeader174.test.js` (3; all fail on the old code).
 - **Scope**: Train Solo files only.
 
+### 175. White screen after cancelling a subscription in the iPhone app (owner, TestFlight, 2026-11-04)
+- **Problem**: after cancelling through Manage Subscriptions, the app showed a white screen.
+- **Cause**: Apple's Manage Subscriptions can answer while its sheet (the cancel confirmation) is still up. The app made the fresh page and took its cover off under that sheet. WebKit froze the page there, so it showed white once the sheet closed. The wait only checked that the app was "active", which it is under that sheet, and it gave up after 5 s.
+- **Fix** (`ios/ApexCoach/ViewController.swift`, native only):
+  - `whenAppActive` also waits until `presentedViewController == nil` (Apple's sheet really gone), for up to 10 minutes.
+  - `uncoverAfterPurchase` never takes the cover off while a sheet is up; it waits, then checks the page again.
+  - The 15 s Continue fallback starts only once the fresh page is being made.
+  - The purchase flow uses the same path.
+- **Tests**: `src/nativeAppleSheets166.test.js`, 3 new; 2 fail on the old code. The third (the 15 s fallback after the rebuild) matches the old text too. Swift type-checked against UIKit stubs.
+- **Scope**: native iOS only; no web, coach or client file changed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
