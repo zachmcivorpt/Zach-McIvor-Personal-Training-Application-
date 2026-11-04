@@ -412,6 +412,9 @@ any Train Solo work from now on:
 - On the website a Stripe subscriber changes plan (up, down, interval) in
   the membership sheet via the in-place change (#159); never a second
   checkout for someone already subscribed.
+- The membership sheet re-reads the plan from the stores every time it opens
+  and buying waits for that answer (#162) — never offer a plan to someone
+  whose phone copy is merely behind.
 - After an iPhone purchase the welcome is for the plan the server says is
   active; a lower one than bought is re-asked first, a higher one (Apple's
   pending downgrade) says when it switches (`pendingChangeNote`, #162).
