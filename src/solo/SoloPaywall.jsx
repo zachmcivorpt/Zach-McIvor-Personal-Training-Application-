@@ -5,7 +5,7 @@ import { MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloClearSheetGlass } from "./SoloThemeContext";
 import { BottomSheet, PrimaryButton } from "../components/ui";
-import { PLANS, TIER_LABELS, formatPlanPrice, activeStore, planRenewal, renewalText } from "./soloAccess";
+import { PLANS, TIER_LABELS, formatPlanPrice, formatRenewalDate, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { inIosApp } from "./appShell";
 import { SoloPurchaseStage, SoloWelcomeScreen } from "./SoloPurchaseScreens";
 import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, restorePurchases, manageAppleSubscription } from "../lib/purchases";
@@ -33,6 +33,18 @@ export function pendingChangeNote(activeTier, boughtTier, renewal) {
   if (!boughtTier || !activeTier || boughtTier === activeTier || !(TIER_RANK[boughtTier] < TIER_RANK[activeTier])) return "";
   const when = renewal?.date ? new Date(renewal.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "your renewal date";
   return `You chose ${TIER_LABELS[boughtTier]}. Your ${TIER_LABELS[activeTier]} plan stays until ${when}, then it switches to ${TIER_LABELS[boughtTier]}.`;
+}
+
+// A cancelled Apple plan that's still inside its paid period (#164). Buying
+// a LOWER plan then makes Apple turn the cancelled one back on and switch
+// down only at its end date — they'd get (and keep paying for) the higher
+// plan. So the app offers only that plan until it ends.
+export function appleLapsingHigher(entitlement, tier, now = Date.now()) {
+  const s = entitlement?.sources?.apple;
+  if (!s || !(Number(s.expiresAt) > now)) return null;
+  const cancelled = s.status === "cancelled" || s.willRenew === false;
+  if (!cancelled || !(TIER_RANK[s.tier] > TIER_RANK[tier])) return null;
+  return { tier: s.tier, date: Number(s.expiresAt) };
 }
 
 const PaywallCtx = createContext({ openPaywall: () => {} });
@@ -349,7 +361,7 @@ function SoloPaywallSheet({ request, onClose }) {
   const price = priceOf(plan);
 
   async function buy() {
-    if (paidElsewhere || checking) return;
+    if (paidElsewhere || checking || lapsingHigher) return;
     setBusy(true);
     setMessage("");
     let reloading = false;
@@ -439,13 +451,14 @@ function SoloPaywallSheet({ request, onClose }) {
   // plan is changed where they bought it; said without a link or a mention
   // of the website (3.1.1).
   const paidElsewhere = iosApp && store === "stripe";
+  const lapsingHigher = iosApp ? appleLapsingHigher(soloEntitlement, tier) : null;
   // Inside the app, a website subscriber manages it on the website — said
   // without a link or price (3.1.1).
   const canManageHere = store === "stripe" ? !iosApp : store === "apple";
 
   return (
     <>
-    {openingStore && <SoloPurchaseStage title="Opening the App Store" detail="Complete your purchase in Apple's window." />}
+    {openingStore && <SoloPurchaseStage instant title="Opening the App Store" detail="Complete your purchase in Apple's window." />}
     <BottomSheet open={open && !openingStore} onClose={onClose} title={soloTier === "free" ? "Train Solo Membership" : "Your membership"} dark={dark} surface={paywallSurface(dark)} backdropClassName="bg-black/10">
       <div style={{ color: t.text }}>
         {request?.reason && (
@@ -577,6 +590,10 @@ function SoloPaywallSheet({ request, onClose }) {
               ) : paidElsewhere ? (
                 <p className="text-sm text-center font-semibold py-3 rounded-full" style={planGlass(dark, false)} data-testid="paid-elsewhere">
                   Your plan can't be changed in the app
+                </p>
+              ) : lapsingHigher ? (
+                <p className="text-sm text-center leading-relaxed py-3" style={{ color: t.textMuted }} data-testid="lapsing-higher">
+                  Your cancelled {TIER_LABELS[lapsingHigher.tier]} plan runs until {formatRenewalDate(lapsingHigher.date)}. The App Store can only start {TIER_LABELS[tier]} after that — choose {TIER_LABELS[lapsingHigher.tier]} to keep it now.
                 </p>
               ) : (
                 <PrimaryButton dark={dark} className="w-full" onClick={buy} disabled={busy || checking || (iosApp && !price)}>

@@ -14,10 +14,13 @@ import { TIER_LABELS } from "./soloAccess";
 // page colour on purpose: nothing for WebKit to composite while the sheet
 // is up (see #134/#135).
 
-function Shell({ children, label, testId }) {
+// instant: full strength on the first frame, no fade — "Opening the App
+// Store" is pictured just before Apple's sheet opens, and a fade caught
+// half-way showed the membership sheet through it (#164).
+function Shell({ children, label, testId, instant = false }) {
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState(instant);
   useEffect(() => {
     const id = requestAnimationFrame(() => setShown(true));
     return () => cancelAnimationFrame(id);
@@ -28,7 +31,7 @@ function Shell({ children, label, testId }) {
       aria-modal="true"
       aria-label={label}
       data-testid={testId}
-      className="fixed inset-0 z-[150] flex flex-col transition-opacity duration-300"
+      className={`fixed inset-0 z-[150] flex flex-col${instant ? "" : " transition-opacity duration-300"}`}
       style={{
         backgroundColor: t.bg,
         color: t.text,
@@ -45,9 +48,9 @@ function Shell({ children, label, testId }) {
 
 // "Opening the App Store" (before Apple's sheet) and "Confirming your
 // membership" (after the reload, while the server is asked).
-export function SoloPurchaseStage({ title, detail }) {
+export function SoloPurchaseStage({ title, detail, instant = false }) {
   return (
-    <Shell label={title} testId="solo-purchase-stage">
+    <Shell label={title} testId="solo-purchase-stage" instant={instant}>
       {(t) => (
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
           <img src={t.logo} alt="" aria-hidden="true" className="w-8 h-8 object-contain opacity-90" />

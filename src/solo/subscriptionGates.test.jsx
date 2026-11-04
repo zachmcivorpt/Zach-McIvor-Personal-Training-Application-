@@ -733,3 +733,84 @@ describe("unlock sweep: Plus, then All Access", () => {
     await waitFor(() => expect(ctx.startSoloSubscription).toHaveBeenCalledWith(expect.stringMatching(/^all_access_/)));
   });
 });
+
+// #164: on an iPhone, buying Plus showed the membership sheet through a
+// half-faded "Opening the App Store", and a Plus purchase while a cancelled
+// All Access was still in its paid period gave All Access (Apple turns the
+// cancelled plan back on and moves to Plus only at its end date).
+describe("iPhone purchase: stage and a cancelled higher plan (#164)", () => {
+  let posted;
+  beforeEach(() => {
+    posted = [];
+    window.webkit = {
+      messageHandlers: {
+        apexTheme: { postMessage() {} },
+        apexPurchases: {
+          postMessage(msg) {
+            posted.push(msg);
+            const answer = msg.action === "offerings" ? [{ plan: "all_access_monthly", price: "$24.99", trialDays: 0 }, { plan: "plus_monthly", price: "$9.99", trialDays: 0 }, { plan: "all_access_yearly", price: "$179.99", trialDays: 0 }, { plan: "plus_yearly", price: "$79.99", trialDays: 0 }] : { ok: true };
+            setTimeout(() => window.__apexNativePurchases.receive({ id: msg.id, result: answer }), 0);
+          },
+        },
+      },
+    };
+  });
+
+  it("'Opening the App Store' is at full strength on its first frame, with no fade", async () => {
+    const { SoloThemeProvider } = await import("./SoloThemeContext");
+    const { SoloPurchaseStage } = await import("./SoloPurchaseScreens");
+    render(
+      <MemoryRouter>
+        <SoloThemeProvider>
+          <SoloPurchaseStage instant title="Opening the App Store" />
+        </SoloThemeProvider>
+      </MemoryRouter>
+    );
+    const stage = screen.getByTestId("solo-purchase-stage");
+    expect(stage.style.opacity).toBe("1");
+    expect(stage.className).not.toMatch(/transition/);
+  });
+
+  it("the paywall's Subscribe opens the instant stage", async () => {
+    ctx = baseCtx({ soloGatesLive: true });
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    await screen.findByText("$179.99");
+    fireEvent.click(screen.getByRole("button", { name: /subscribe to all access/i }));
+    const stage = await screen.findByTestId("solo-purchase-stage");
+    expect(stage.className).not.toMatch(/transition/);
+    expect(stage.style.opacity).toBe("1");
+    await waitFor(() => expect(reloadSpy).toHaveBeenCalled());
+  });
+
+  it("with a cancelled All Access still running, Plus isn't sold; All Access still is", async () => {
+    const ends = Date.now() + 86400000;
+    const lapsing = { sources: { apple: { tier: "all_access", status: "cancelled", willRenew: false, expiresAt: ends, productId: "apex_solo_all_access_yearly" } } };
+    ctx = baseCtx({ soloGatesLive: true, soloTier: "free", soloEntitlement: lapsing });
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    await screen.findByText("$179.99");
+    fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Plus/ }));
+    const note = await screen.findByTestId("lapsing-higher");
+    expect(note.textContent).toMatch(/cancelled All Access plan runs until/);
+    expect(screen.queryByRole("button", { name: /subscribe to plus/i })).toBe(null);
+    expect(posted.some((m) => m.action === "purchase")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: /^All Access/ }));
+    expect(screen.queryByTestId("lapsing-higher")).toBe(null);
+    expect(screen.getByRole("button", { name: /subscribe to all access/i })).toBeTruthy();
+  });
+
+  it("appleLapsingHigher: only a cancelled, unexpired, higher Apple plan", async () => {
+    const { appleLapsingHigher } = await import("./SoloPaywall");
+    const now = 1000;
+    const src = (s) => ({ sources: { apple: { tier: "all_access", expiresAt: 5000, ...s } } });
+    expect(appleLapsingHigher(src({ status: "cancelled" }), "plus", now)).toEqual({ tier: "all_access", date: 5000 });
+    expect(appleLapsingHigher(src({ status: "active", willRenew: false }), "plus", now)).toBeTruthy();
+    expect(appleLapsingHigher(src({ status: "active", willRenew: true }), "plus", now)).toBe(null);
+    expect(appleLapsingHigher(src({ status: "cancelled", expiresAt: 500 }), "plus", now)).toBe(null);
+    expect(appleLapsingHigher(src({ status: "cancelled" }), "all_access", now)).toBe(null);
+    expect(appleLapsingHigher({ sources: { stripe: { tier: "all_access", status: "cancelled", expiresAt: 5000 } } }, "plus", now)).toBe(null);
+    expect(appleLapsingHigher(null, "plus", now)).toBe(null);
+  });
+});
