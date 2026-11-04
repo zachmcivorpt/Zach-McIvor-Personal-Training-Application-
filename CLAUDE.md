@@ -418,6 +418,10 @@ any Train Solo work from now on:
 - After an iPhone purchase the welcome is for the plan the server says is
   active; a lower one than bought is re-asked first, a higher one (Apple's
   pending downgrade) says when it switches (`pendingChangeNote`, #162).
+- In the iPhone app a LOWER plan is never sold while a cancelled higher
+  Apple plan is still in its paid period (`appleLapsingHigher`, #164): Apple
+  would turn the higher one back on. "Opening the App Store" is
+  `SoloPurchaseStage instant` (no fade): it's pictured before Apple's sheet.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.
