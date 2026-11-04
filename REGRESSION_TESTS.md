@@ -2548,6 +2548,10 @@ Train Solo only; nothing in the coach console or the coached client app changed.
 - **Fix**: the full figure in kg with the unit in the label: "176,240" / "Kg lifted" (recap: "Kg lifted · +4%"; share card the same). Never tonnes.
 - **Tests**: `shareCard.test.js` (85,230 → "85,230" / "Kg lifted"; 2,450 → "2,450"; even spacing recalculated with the new label width), `clientExperience.test.jsx` ("1,050" + "Kg lifted" on Program complete). 4 fail on the old formatting.
 
+### 152. Train Solo Session history moves to the bottom of Progress (owner request, 2026-11-04)
+- **Change**: the list of past sessions left the bottom of My Training and is now the last section of the Progress tab ("Session History", `src/solo/SoloSessionHistory.jsx`, after Achievements). Same glass rows (day, date · minutes, sets), newest first; 10 shown, then "Show all N sessions"; tapping one opens the same Completed session sheet. Logged sessions are still opened from My Training's calendar and the program's schedule.
+- **Tests**: `src/solo/sessionHistory.test.jsx` (on the real Progress screen: it comes after Achievements and is the last section; rows list the sessions with "2 sets"; tapping opens the logged exercises; 10 then all 12 with Show all; nothing logged → no section). `oneProgramAtATime.test.jsx`: My Training no longer shows Session history. 4 fail on the old screens.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

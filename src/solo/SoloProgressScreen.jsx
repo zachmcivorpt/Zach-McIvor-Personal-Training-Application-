@@ -5,6 +5,7 @@ import { canUse } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
 import { SoloMuscleMapCard } from "./SoloMuscleMap";
 import { SoloEstMaxChart } from "./SoloEstMaxChart";
+import { SoloSessionHistory } from "./SoloSessionHistory";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { Card } from "../components/ui";
@@ -363,6 +364,8 @@ export default function SoloProgressScreen() {
               </div>
             )}
           </Card>
+
+          <SoloSessionHistory logs={soloWorkoutLogs} exercisesById={exercisesById} dark={dark} />
         </div>
 
         <MetricDetailSheet metric={openMetric} onClose={() => setOpenMetric(null)} />

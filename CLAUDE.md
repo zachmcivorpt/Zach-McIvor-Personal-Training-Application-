@@ -130,6 +130,8 @@ rather than inventing new colors per screen:
   `READY_BLUE`, untracked muscles neutral. Large figures: days since last
   session, muscle groups ready (blue). Last 72 h of their own logs, helpers
   count half; muscles come only from `exerciseMuscles.js` (#149).
+- **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
+  of Progress, not in My Training.
 - **Estimated Max chart** (#150, `estMax.js`, `SoloEstMaxChart.jsx`): under
   Strength Personal Bests on Progress, one point per session from the
   best set's `e1rm`; only real logged weights, never estimated points.

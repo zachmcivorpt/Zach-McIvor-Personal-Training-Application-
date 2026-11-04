@@ -722,29 +722,6 @@ export default function SoloMyTrainingScreen() {
           </>
         )}
 
-      {soloWorkoutLogs.length > 0 && (
-        <div className="mt-8">
-          <p className="text-[11px] font-bold tracking-wide uppercase mb-2.5" style={{ color: t.textFaint }}>
-            Session history
-          </p>
-          <div className="space-y-2">
-            {soloWorkoutLogs.slice(0, 10).map((log) => (
-              <button key={log.id} type="button" onClick={() => setViewLog(log)} className="w-full flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left" style={glass}>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{log.dayLabel}</p>
-                  <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
-                    {new Date(log.date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })} · {log.durationMin} min
-                  </p>
-                </div>
-                <p className="text-xs font-semibold shrink-0" style={{ color: t.textMuted }}>
-                  {(log.entries || []).reduce((a, e) => a + (e.sets || []).length, 0)} sets
-                </p>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       <ProgramProgressSheet
         open={!!openPurchase}
         onClose={() => setOpenPurchaseId(null)}

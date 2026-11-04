@@ -151,9 +151,9 @@ describe("My Training: one program at a time (#140)", () => {
     await waitFor(() => expect(ctx.setSoloSessionPlan).toHaveBeenLastCalledWith("u1", "u1_p1", "3_d1", expect.objectContaining({ skipped: true })));
   });
 
-  it("the log list reads Session history", async () => {
+  it("My Training no longer lists past sessions (moved to the bottom of Progress, #152)", async () => {
     await renderMyTraining();
-    expect(screen.getByText("Session history")).toBeTruthy();
+    expect(screen.queryByText(/^Session history$/i)).toBe(null);
     expect(screen.queryByText(/^History$/)).toBe(null);
   });
 });
