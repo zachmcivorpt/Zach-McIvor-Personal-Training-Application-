@@ -126,6 +126,19 @@ rather than inventing new colors per screen:
 - No drawn/stock artwork: a program shows only its coach-uploaded
   `artworkUrl`, otherwise the plain cover gradient + APEX mark.
 - Spelling is "Program", never "Programme".
+- **A workout in progress is kept on the phone** (#157,
+  `src/solo/workoutDraft.js`): every typed set goes to the account's draft
+  in localStorage (not sessionStorage — it must survive a rebuilt web view),
+  cleared only on Complete or Discard; Cancel with sets entered asks (an
+  in-page sheet — WKWebView has no `confirm()`); My Training offers Resume.
+  Never hold logged sets only in React state.
+- **Customer saves never wait on the server** (#157): new Train Solo writes
+  in `SoloAppContext` go through `keep()` (`savedOrQueued`), so with no
+  signal a button never sits on "Saving…" for good; sign-out clean-up that
+  needs the network is time-boxed. Buttons that leave for Stripe stay busy
+  until the page has gone (`pageshow` resets them) — one checkout per tap.
+- Screens that show "not found"/"no programs" wait for `soloProgramsLoaded`
+  (#157), so nothing flashes before the catalogue arrives.
 - **Muscle map** (#148, `SoloMuscleMap.jsx`, `MuscleBody.jsx`,
   `muscleMap.js`): a glass card on Progress, not in My Training. Draw every
   muscle head (4 quads, 3 hamstrings, delt heads, calves + soleus…);
@@ -382,6 +395,23 @@ any Train Solo work from now on:
 - No free-trial wording for anyone who has or has had a plan, in the
   iPhone app too (#139): Apple's trial is for first-time subscribers in the
   group only, whatever the store's eligibility check returns.
+- **Never sell a second subscription** (#158): in the iPhone app a website
+  (Stripe) subscriber gets no Apple Subscribe button; on the website an
+  Apple subscriber is sent to Apple (`checkoutDecision`). Every Stripe
+  checkout goes through `priorCheckout`/`rememberCheckout`
+  (`soloCheckoutSessions/{uid}`, server-only), so only the latest one can
+  be paid. `soloStripeWebhook` returns 500 on a failure so Stripe retries;
+  keep every handler safe to repeat.
+- Plus features that write data are gated in firestore.rules too once live
+  (`hasPlus()` + `soloGatesLive()`, e.g. creating a `soloCustomPrograms`
+  doc) — never only in the app. Existing docs stay editable after a lapse.
+- Free's 3 saved sessions are also enforced by `soloFreeSessionLimit`
+  (#159, `functions/soloSessionLimit.js`): it keeps the 3 OLDEST, never
+  "the newest to arrive" (offline syncs arrive together). Keep the number in
+  step with `FREE_SAVED_SESSIONS` in soloAccess.js.
+- On the website a Stripe subscriber changes plan (up, down, interval) in
+  the membership sheet via the in-place change (#159); never a second
+  checkout for someone already subscribed.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.

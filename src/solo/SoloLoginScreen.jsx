@@ -6,6 +6,66 @@ import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field
 import { SoloBackgroundFrame } from "./SoloBackground";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+// "Forgot password?" (#157): Train Solo had no way back into an account
+// whose password was forgotten. Same wording as Coaching's own form; never
+// says whether the email has an account.
+function SoloForgotPassword({ initialEmail, onBack }) {
+  const { sendSoloPasswordReset } = useSoloApp();
+  const [email, setEmail] = useState(initialEmail || "");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+
+  async function submit(e) {
+    e.preventDefault();
+    setError("");
+    if (!email.trim()) {
+      setError("Enter your email.");
+      return;
+    }
+    setSending(true);
+    try {
+      await sendSoloPasswordReset(email.trim());
+      setSent(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  if (sent) {
+    return (
+      <div>
+        <p className="text-white/70 text-sm text-center mb-6">
+          If an account exists for <span className="text-white font-semibold">{email.trim()}</span>, a password reset link is on its way.
+        </p>
+        <button type="button" onClick={onBack} className="block mx-auto text-white font-semibold text-sm underline underline-offset-2">
+          Back to sign in
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="text-white/50 text-sm text-center mb-6">Enter your email and we'll send you a link to reset your password.</p>
+      <form onSubmit={submit} className="space-y-4">
+        <Field label="EMAIL">
+          <TextInput type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoCapitalize="none" autoComplete="username" />
+        </Field>
+        {error && <p className="text-white text-sm bg-white/10 border border-white/15 rounded-xl px-3.5 py-2.5">{error}</p>}
+        <PrimaryButton type="submit" disabled={sending} className="w-full !rounded-full">
+          {sending ? "SENDING…" : "SEND RESET LINK"}
+        </PrimaryButton>
+        <button type="button" onClick={onBack} className="block mx-auto text-white/50 text-sm">
+          Back to sign in
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function SoloLoginScreen() {
   const { soloLogin, soloCurrentUser, soloAppDesign, soloProfileMissing, fetchOnboardingCompletedFromServer } = useSoloApp();
   const navigate = useNavigate();
@@ -17,6 +77,7 @@ export default function SoloLoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   // soloCurrentUser's first value after a login can be a stale, locally-
   // cached document from a previous session on this browser/origin (see
@@ -96,8 +157,11 @@ export default function SoloLoginScreen() {
 
       <div className="w-full max-w-sm mx-auto">
         <h1 className="text-white text-xl font-bold text-center mb-1">Train Solo</h1>
-        <p className="text-white/50 text-sm text-center mb-6">Log in to your independent account.</p>
+        <p className="text-white/50 text-sm text-center mb-6">{forgotOpen ? "Reset your password." : "Log in to your independent account."}</p>
 
+        {forgotOpen ? (
+          <SoloForgotPassword initialEmail={email} onBack={() => setForgotOpen(false)} />
+        ) : (
         <form onSubmit={submit} className="space-y-4">
           <Field label="EMAIL">
             <TextInput
@@ -126,7 +190,18 @@ export default function SoloLoginScreen() {
           <PrimaryButton type="submit" disabled={busy} className="w-full !rounded-full">
             {busy ? "SIGNING IN…" : <>SIGN IN <ChevronRight size={18} /></>}
           </PrimaryButton>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setForgotOpen(true);
+            }}
+            className="block mx-auto text-white/50 text-sm"
+          >
+            Forgot password?
+          </button>
         </form>
+        )}
 
         <p className="text-center text-white/50 text-sm mt-6">
           Don't have an account?{" "}

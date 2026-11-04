@@ -333,3 +333,44 @@ describe("All Access ends while running its program (#154)", () => {
     expect(screen.getByText(/Hypertrophy is included with All Access/)).toBeTruthy();
   });
 });
+
+describe("the program sheet's start date (#158)", () => {
+  async function openSheet(row) {
+    ctx = baseCtx({ soloTrainingPrograms: [row], soloCurrentProgram: row, soloPurchases: [{ id: row.id, programId: row.programId, startDate: row.startDate }] });
+    const { SoloThemeProvider } = await import("./SoloThemeContext");
+    const { SoloPaywallProvider } = await import("./SoloPaywall");
+    const { default: SoloMyTrainingScreen } = await import("./SoloMyTrainingScreen");
+    render(
+      <MemoryRouter initialEntries={[{ pathname: "/solo/training", state: { openPurchaseId: row.id } }]}>
+        <SoloThemeProvider>
+          <SoloPaywallProvider>
+            <Routes>
+              <Route path="/solo/training" element={<SoloMyTrainingScreen />} />
+            </Routes>
+          </SoloPaywallProvider>
+        </SoloThemeProvider>
+      </MemoryRouter>
+    );
+  }
+  const inDays = (n) => daysAgo(-n);
+
+  it("a program starting later says STARTS, not STARTED", async () => {
+    await openSheet({ ...currentRow, startDate: inDays(5) });
+    await screen.findByText("STARTS");
+    expect(screen.queryByText("STARTED")).toBe(null);
+  });
+  it("a running one still says STARTED", async () => {
+    await openSheet(currentRow);
+    await screen.findByText("STARTED");
+  });
+  it("a start date that can't be saved says so", async () => {
+    await openSheet(currentRow);
+    ctx.setPurchaseStartDate.mockImplementation(() => Promise.reject(new Error("permission-denied")));
+    fireEvent.click(await screen.findByText("Change start date"));
+    const input = document.querySelector('input[type="date"]');
+    fireEvent.change(input, { target: { value: inDays(3) } });
+    fireEvent.click(screen.getByRole("button", { name: "SAVE NEW START DATE" }));
+    await screen.findByText(/Couldn't save the start date/);
+    expect(ctx.setPurchaseStartDate).toHaveBeenCalledWith("u1_p1", inDays(3));
+  });
+});

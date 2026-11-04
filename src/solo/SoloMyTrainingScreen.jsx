@@ -19,6 +19,7 @@ import { canUse, savedSessionLimit } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
 import { SwitchProgramSheet, ProgramsGuideSheet, PlanSessionSheet } from "./SoloProgramSwitch";
 import { weekInProgram } from "./currentProgram";
+import { loadWorkoutDraft } from "./workoutDraft";
 
 // A purchased program's own overview — which week the customer is in, that
 // week's workouts, and a Start button for each that opens
@@ -38,6 +39,12 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
   const [draftDate, setDraftDate] = useState("");
   const [editingDate, setEditingDate] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(null);
+  const [dateError, setDateError] = useState("");
+  // A failed save used to be an unhandled rejection with nothing said (#158).
+  function saveStartDate(date) {
+    setDateError("");
+    Promise.resolve(onSetStartDate(date)).catch(() => setDateError("Couldn't save the start date — check your connection and try again."));
+  }
   const phases = programPhases(content);
   const totalWeeks = totalWeeksForProgram(phases);
   const currentWeek = currentWeekNumber(purchase?.startDate, totalWeeks);
@@ -56,6 +63,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
       setDraftDate(purchase?.startDate || localDateKey());
       setEditingDate(false);
       setSelectedWeek(null);
+      setDateError("");
     }
   }, [open, purchase?.startDate]);
 
@@ -77,13 +85,14 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
             className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4"
             style={inputStyle}
           />
-          <PrimaryButton dark={dark} className="w-full" onClick={() => onSetStartDate(draftDate)} disabled={!draftDate}>
+          <PrimaryButton dark={dark} className="w-full" onClick={() => saveStartDate(draftDate)} disabled={!draftDate}>
             SET START DATE
           </PrimaryButton>
         </div>
       ) : (
         <div>
-          <p className="text-xs mb-1" style={{ color: t.textFaint }}>STARTED</p>
+          {/* A start date still ahead "starts", not "started" (#158). */}
+          <p className="text-xs mb-1" style={{ color: t.textFaint }}>{purchase.startDate > today ? "STARTS" : "STARTED"}</p>
           <p className="text-sm font-semibold mb-4">
             {new Date(`${purchase.startDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
           </p>
@@ -182,7 +191,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                 dark={dark}
                 className="w-full"
                 onClick={() => {
-                  onSetStartDate(draftDate);
+                  saveStartDate(draftDate);
                   setEditingDate(false);
                 }}
                 disabled={!draftDate || draftDate === purchase.startDate}
@@ -193,6 +202,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
           )}
         </div>
       )}
+      {dateError && <p className="text-red-500 text-[13px] mt-3">{dateError}</p>}
       </div>
     </BottomSheet>
   );
@@ -463,6 +473,8 @@ export default function SoloMyTrainingScreen() {
     setPlanBusy(item.id);
     try {
       await setSoloSessionPlan(soloCurrentUser.id, item.purchase.id, sessionPlanKey(item.weekNumber, item.day.id), value);
+    } catch {
+      // Refused by the server: the row stays as it was (was an unhandled rejection).
     } finally {
       setPlanBusy(null);
     }
@@ -486,6 +498,13 @@ export default function SoloMyTrainingScreen() {
     if (!soloCurrentUser) return;
     navigate("/solo/workout", { state: customSessionState(soloCurrentUser.id, session) });
   }
+
+  // A workout left unfinished on this phone (#157) — not one that has since
+  // been logged (e.g. finished on another device).
+  const workoutDraft = useMemo(() => {
+    const draft = loadWorkoutDraft(soloCurrentUser?.id);
+    return draft && !soloWorkoutLogs.some((l) => l.id === draft.key) ? draft : null;
+  }, [soloCurrentUser?.id, soloWorkoutLogs]);
 
   function logProgramName(log) {
     const purchase = soloTrainingPrograms.find((p) => p.id === log?.purchaseId);
@@ -529,6 +548,25 @@ export default function SoloMyTrainingScreen() {
               </button>
             </div>
           </div>
+        )}
+
+        {workoutDraft && (
+          <button
+            type="button"
+            onClick={() => navigate("/solo/workout", { state: workoutDraft.sessionInfo })}
+            className="w-full flex items-center justify-between gap-3 py-3 mb-4 border-y text-left"
+            style={{ borderColor: t.panelBorder }}
+          >
+            <span className="min-w-0">
+              <span className="block text-[13px] font-semibold">Workout in progress</span>
+              <span className="block text-[11px] mt-0.5 truncate" style={{ color: t.textMuted }}>
+                {workoutDraft.sessionInfo.day?.label || "Your session"} · pick up where you left off
+              </span>
+            </span>
+            <span className="flex items-center gap-1 text-[12px] font-bold uppercase shrink-0" style={{ color: MEASURE_BLUE }}>
+              Resume <ChevronRight size={14} />
+            </span>
+          </button>
         )}
 
         {[1, 2].includes(new Date(`${todayKey}T00:00:00`).getDay()) && soloWorkoutLogs.length > 0 && (

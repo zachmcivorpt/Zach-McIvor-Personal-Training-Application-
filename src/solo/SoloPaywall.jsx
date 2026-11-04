@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
@@ -106,7 +106,9 @@ export function SoloPaywallProvider({ children }) {
     []
   );
   const value = useMemo(() => ({ openPaywall }), [openPaywall]);
-  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement } = useSoloApp();
+  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement, soloTier } = useSoloApp();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [outcome] = useState(readPurchaseOutcome);
   const signedIn = !!soloAuthUser;
   // After the reload: "confirming" while the server is asked, then the
@@ -155,6 +157,42 @@ export function SoloPaywallProvider({ children }) {
     return () => clearTimeout(id);
   }, [confirming]);
 
+  // Back from a website (Stripe) subscription checkout:
+  // /solo/home?subscribed=<plan> (#157). This page used to show nothing at
+  // all, so a new member landed looking Free until Stripe's webhook arrived.
+  // Now: "Confirming your membership" until the plan reaches the account,
+  // then the welcome. The tier still only ever comes from the server.
+  const [webPlan, setWebPlan] = useState(null);
+  const [webWelcome, setWebWelcome] = useState(false);
+  useEffect(() => {
+    const plan = new URLSearchParams(location.search).get("subscribed");
+    if (!plan || !signedIn) return;
+    setWebPlan(plan);
+    setConfirming(true);
+    const rest = new URLSearchParams(location.search);
+    rest.delete("subscribed");
+    const search = rest.toString();
+    navigate(location.pathname + (search ? `?${search}` : ""), { replace: true, state: location.state });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, signedIn]);
+  useEffect(() => {
+    if (!webPlan) return;
+    if (soloTier && soloTier !== "free") {
+      setWebPlan(null);
+      setConfirming(false);
+      setWebWelcome(true);
+      setWelcomeTier(soloTier);
+      return;
+    }
+    // Stripe's confirmation can lag; say so rather than leave them guessing.
+    const id = setTimeout(() => {
+      setWebPlan(null);
+      setConfirming(false);
+      openPaywall({ tier: PLANS[webPlan]?.tier || "all_access", notice: "Payment received — your membership is on its way and unlocks in a minute or two. No need to pay again." });
+    }, 15000);
+    return () => clearTimeout(id);
+  }, [webPlan, soloTier, openPaywall]);
+
   const renewal = renewalText(planRenewal(soloEntitlement));
   return (
     <PaywallCtx.Provider value={value}>
@@ -163,10 +201,11 @@ export function SoloPaywallProvider({ children }) {
       {welcomeTier && (
         <SoloWelcomeScreen
           tier={welcomeTier}
-          renewal={renewal ? `${renewal} · App Store` : ""}
+          renewal={renewal ? (webWelcome ? renewal : `${renewal} · App Store`) : ""}
           onDone={() => {
             clearPurchaseOutcome();
             setWelcomeTier(null);
+            setWebWelcome(false);
           }}
         />
       )}
@@ -195,12 +234,28 @@ function SoloPaywallSheet({ request, onClose }) {
   // leaving a silent grey button. Cleared on each open so it retries.
   const [storeError, setStoreError] = useState("");
   const [showStoreError, setShowStoreError] = useState(false);
+  // Back from Stripe with the browser's back button (page cache): the
+  // button left busy above is usable again.
+  useEffect(() => {
+    const onShow = (e) => {
+      if (e.persisted) setBusy(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
     // A Plus member can only move up, so All Access is always preselected for them.
-    setTier(request.tier === "plus" && soloTier !== "plus" ? "plus" : "all_access");
-    setInterval_("year");
+    // A website subscriber starts on the plan they have (#159).
+    const current = !iosApp && activeStore(soloEntitlement) === "stripe" ? PLANS[soloEntitlement?.sources?.stripe?.plan] : null;
+    if (current) {
+      setTier(current.tier);
+      setInterval_(current.interval);
+    } else {
+      setTier(request.tier === "plus" && soloTier !== "plus" ? "plus" : "all_access");
+      setInterval_("year");
+    }
     setMessage(request.notice || "");
     if (nativeIap && !(storeProducts && storeProducts.length)) {
       setStoreError("");
@@ -249,6 +304,7 @@ function SoloPaywallSheet({ request, onClose }) {
   const price = priceOf(plan);
 
   async function buy() {
+    if (paidElsewhere) return;
     setBusy(true);
     setMessage("");
     let reloading = false;
@@ -274,6 +330,9 @@ function SoloPaywallSheet({ request, onClose }) {
       }
       const result = await startSoloSubscription(plan);
       if (result?.url) {
+        // Stays busy while the page leaves for Stripe: a second tap would
+        // open a second checkout, and paying both is two subscriptions (#157).
+        reloading = true;
         window.location.href = result.url;
         return;
       }
@@ -323,7 +382,18 @@ function SoloPaywallSheet({ request, onClose }) {
     }
   }
 
-  const alreadyThis = soloTier === "all_access" || (soloTier === "plus" && tier === "plus");
+  // A website (Stripe) subscriber on the website changes plan right here —
+  // up, down, or monthly ↔ yearly — through the server's in-place change
+  // (pro rata, functions checkoutDecision "change"). Downgrading from All
+  // Access used to be possible only through Stripe's portal (#159).
+  const stripePlan = store === "stripe" ? soloEntitlement?.sources?.stripe?.plan || null : null;
+  const changeHere = !iosApp && !!stripePlan;
+  const alreadyThis = changeHere ? plan === stripePlan : soloTier === "all_access" || (soloTier === "plus" && tier === "plus");
+  // A website subscriber in the iPhone app (#158): an Apple purchase here
+  // would be a SECOND subscription — the website one keeps charging. Their
+  // plan is changed where they bought it; said without a link or a mention
+  // of the website (3.1.1).
+  const paidElsewhere = iosApp && store === "stripe";
   // Inside the app, a website subscriber manages it on the website — said
   // without a link or price (3.1.1).
   const canManageHere = store === "stripe" ? !iosApp : store === "apple";
@@ -365,7 +435,7 @@ function SoloPaywallSheet({ request, onClose }) {
           </div>
         )}
 
-        {soloTier !== "all_access" && (
+        {(soloTier !== "all_access" || changeHere) && (
           <>
             <div className="grid grid-cols-2 gap-1 p-1 rounded-full mb-5" style={{ ...planGlass(dark, false), boxShadow: "none" }} role="tablist">
               {[
@@ -388,7 +458,7 @@ function SoloPaywallSheet({ request, onClose }) {
 
             <div className="space-y-3">
               {["all_access", "plus"].map((key) => {
-                if (soloTier === "plus" && key === "plus") return null;
+                if (!changeHere && soloTier === "plus" && key === "plus") return null;
                 const planKey = `${key}_${interval === "year" ? "yearly" : "monthly"}`;
                 const p = priceOf(planKey);
                 const days = trialDaysOf(planKey);
@@ -453,9 +523,25 @@ function SoloPaywallSheet({ request, onClose }) {
                 <p className="text-sm text-center font-semibold py-3 rounded-full" style={planGlass(dark, false)}>
                   Update the APEX app to subscribe
                 </p>
-              ) : alreadyThis ? null : (
+              ) : alreadyThis ? (
+                changeHere ? (
+                  <p className="text-sm text-center font-semibold py-3" style={{ color: t.textMuted }} data-testid="current-plan">
+                    Your current plan
+                  </p>
+                ) : null
+              ) : paidElsewhere ? (
+                <p className="text-sm text-center font-semibold py-3 rounded-full" style={planGlass(dark, false)} data-testid="paid-elsewhere">
+                  Your plan can't be changed in the app
+                </p>
+              ) : (
                 <PrimaryButton dark={dark} className="w-full" onClick={buy} disabled={busy || (iosApp && !price)}>
-                  {busy ? "ONE MOMENT…" : trialDays > 0 ? `START ${trialDays}-DAY FREE TRIAL` : `SUBSCRIBE TO ${TIER_LABELS[tier].toUpperCase()}`}
+                  {busy
+                    ? "ONE MOMENT…"
+                    : changeHere
+                      ? `SWITCH TO ${TIER_LABELS[tier].toUpperCase()} ${interval === "year" ? "YEARLY" : "MONTHLY"}`
+                      : trialDays > 0
+                        ? `START ${trialDays}-DAY FREE TRIAL`
+                        : `SUBSCRIBE TO ${TIER_LABELS[tier].toUpperCase()}`}
                 </PrimaryButton>
               )}
               {nativeIap && !price && storeError && !alreadyThis && (
@@ -472,6 +558,7 @@ function SoloPaywallSheet({ request, onClose }) {
               {price && (
                 <p className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
                   {trialDays > 0 ? `${trialDays} days free, then ${price} a ${per}. ` : `${price} a ${per}. `}
+                  {changeHere && !alreadyThis ? "Your plan changes now; the difference is charged or credited pro rata. " : ""}
                   Renews automatically until you cancel; cancel at least 24 hours before it renews to avoid the next charge. Cancelling ends your membership straight away, with no refund for the rest of the period.
                   {iosApp ? " Manage or cancel in iPhone Settings." : " Manage or cancel any time from Profile."}
                 </p>
@@ -480,7 +567,7 @@ function SoloPaywallSheet({ request, onClose }) {
           </>
         )}
 
-        {soloTier === "all_access" && message && <p className="text-sm mt-2">{message}</p>}
+        {soloTier === "all_access" && !changeHere && message && <p className="text-sm mt-2">{message}</p>}
 
         <div className="flex items-center justify-center gap-4 mt-4 text-[11px] font-semibold" style={{ color: t.textMuted }}>
           {nativeIap && (

@@ -242,6 +242,33 @@ async function syncStripeCustomer(db, stripe, customerId, uidHint) {
   return uid;
 }
 
+// One open Stripe checkout per account and purpose (#158). Two open
+// checkouts (two tabs, an old one reopened from history) could both be
+// paid: two subscriptions, or the same program bought twice. The id of the
+// last checkout started is kept in soloCheckoutSessions/{uid} (server-only:
+// firestore.rules has no match for it, so no app can read or write it).
+// Before a new one: if the last one was already paid (its webhook hasn't
+// landed yet) say so instead of charging again; if it's still open, expire
+// it so it can't be paid. `slot` is "subscription" or "program_<id>".
+async function priorCheckout(db, stripe, uid, slot) {
+  const ref = db.collection("soloCheckoutSessions").doc(uid);
+  const snap = await ref.get();
+  const oldId = snap.exists ? snap.data()?.[slot] : null;
+  if (!oldId) return { alreadyPaid: false };
+  let old = null;
+  try {
+    old = await stripe.checkout.sessions.retrieve(oldId);
+  } catch {
+    return { alreadyPaid: false }; // gone: nothing to stop
+  }
+  if (old.status === "complete") return { alreadyPaid: true };
+  if (old.status === "open") await stripe.checkout.sessions.expire(oldId).catch(() => {});
+  return { alreadyPaid: false };
+}
+async function rememberCheckout(db, uid, slot, sessionId) {
+  await db.collection("soloCheckoutSessions").doc(uid).set({ [slot]: sessionId, updatedAt: Date.now() }, { merge: true });
+}
+
 function revenueCatConfigured(env = process.env) {
   return !!(env.REVENUECAT_SECRET_KEY && env.REVENUECAT_SECRET_KEY !== "not-configured-yet");
 }
@@ -276,4 +303,6 @@ module.exports = {
   syncStripeCustomer,
   syncApple,
   revenueCatConfigured,
+  priorCheckout,
+  rememberCheckout,
 };

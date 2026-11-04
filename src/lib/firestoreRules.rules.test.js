@@ -614,6 +614,66 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
       await assertFails(updateDoc(doc(db, "soloCustomPrograms", "cp1"), { soloUserId: SOLO_B }));
       await assertFails(setDoc(doc(dbAs(SOLO_B), "soloCustomPrograms", "cp2"), { ...cp, id: "cp2" }));
     });
+
+    // #158: no direct write gets around the paywall.
+    describe("subscription bypass attempts (#158)", () => {
+      const cp = { id: "cp1", soloUserId: SOLO_A, name: "Mine", weeks: 4, days: [] };
+      async function setup({ live = true, testUids = [], plusUntil } = {}) {
+        await testEnv.withSecurityRulesDisabled(async (ctx) => {
+          const db = ctx.firestore();
+          await setDoc(doc(db, "settings", "soloMonetisation"), { live, testUids });
+          if (plusUntil !== undefined) await setDoc(doc(db, "soloEntitlements", SOLO_A), { plusUntil, allAccessUntil: 0, sources: {} });
+        });
+      }
+
+      it("once live, a Free member can't create their own program by writing it directly", async () => {
+        await setup();
+        await assertFails(setDoc(doc(dbAs(SOLO_A), "soloCustomPrograms", "cp1"), cp));
+      });
+      it("a lapsed Plus (plusUntil in the past) can't either", async () => {
+        await setup({ plusUntil: NOW - 1000 });
+        await assertFails(setDoc(doc(dbAs(SOLO_A), "soloCustomPrograms", "cp1"), cp));
+      });
+      it("a paid-up Plus member can", async () => {
+        await setup({ plusUntil: NOW + 86400000 });
+        await assertSucceeds(setDoc(doc(dbAs(SOLO_A), "soloCustomPrograms", "cp1"), cp));
+      });
+      it("on the test list, the gate applies before launch too", async () => {
+        await setup({ live: false, testUids: [SOLO_A] });
+        await assertFails(setDoc(doc(dbAs(SOLO_A), "soloCustomPrograms", "cp1"), cp));
+        await assertSucceeds(setDoc(doc(dbAs(SOLO_B), "soloCustomPrograms", "cp2"), { ...cp, id: "cp2", soloUserId: SOLO_B }));
+      });
+      it("before launch everyone builds, as today", async () => {
+        await setup({ live: false });
+        await assertSucceeds(setDoc(doc(dbAs(SOLO_A), "soloCustomPrograms", "cp1"), cp));
+      });
+      it("a lapsed member still edits and deletes the programs they made", async () => {
+        await setup({ plusUntil: NOW - 1000 });
+        await testEnv.withSecurityRulesDisabled(async (ctx) => {
+          await setDoc(doc(ctx.firestore(), "soloCustomPrograms", "cp1"), cp);
+        });
+        await assertSucceeds(setDoc(doc(dbAs(SOLO_A), "soloCustomPrograms", "cp1"), { ...cp, name: "Renamed" }));
+        await assertSucceeds(deleteDoc(doc(dbAs(SOLO_A), "soloCustomPrograms", "cp1")));
+      });
+      it("a member can't give themselves a program purchase or un-refund one", async () => {
+        const db = dbAs(SOLO_A);
+        await assertFails(setDoc(doc(db, "soloPurchases", `${SOLO_A}_p1`), { soloUserId: SOLO_A, programId: "p1", refunded: false }));
+        await testEnv.withSecurityRulesDisabled(async (ctx) => {
+          await setDoc(doc(ctx.firestore(), "soloPurchases", `${SOLO_A}_p1`), { soloUserId: SOLO_A, programId: "p1", refunded: true, startDate: null });
+        });
+        await assertFails(updateDoc(doc(db, "soloPurchases", `${SOLO_A}_p1`), { refunded: false }));
+        await assertFails(updateDoc(doc(db, "soloPurchases", `${SOLO_A}_p1`), { programId: "p2" }));
+        await assertSucceeds(updateDoc(doc(db, "soloPurchases", `${SOLO_A}_p1`), { startDate: "2026-11-10" }));
+        await assertFails(deleteDoc(doc(db, "soloPurchases", `${SOLO_A}_p1`)));
+      });
+      it("nobody reads or writes the server's checkout record", async () => {
+        await testEnv.withSecurityRulesDisabled(async (ctx) => {
+          await setDoc(doc(ctx.firestore(), "soloCheckoutSessions", SOLO_A), { subscription: "cs_1" });
+        });
+        await assertFails(getDoc(doc(dbAs(SOLO_A), "soloCheckoutSessions", SOLO_A)));
+        await assertFails(setDoc(doc(dbAs(SOLO_A), "soloCheckoutSessions", SOLO_A), { subscription: null }));
+      });
+    });
   });
 
   describe("soloUsers", () => {

@@ -226,6 +226,33 @@ describe("inside the iPhone app", () => {
     expect(ctx.startSoloSubscription).not.toHaveBeenCalled();
   });
 
+  // #158: a website (Stripe) Plus member in the iPhone app was offered All
+  // Access through Apple — a second subscription, the website one still
+  // charging.
+  it("a website subscriber can't start a second subscription through Apple", async () => {
+    const posted = [];
+    window.webkit = {
+      messageHandlers: {
+        apexTheme: { postMessage() {} },
+        apexPurchases: {
+          postMessage(msg) {
+            posted.push(msg);
+            const answer = msg.action === "offerings" ? [{ plan: "all_access_yearly", price: "$179.99", trialDays: 7 }, { plan: "plus_yearly", price: "$79.99", trialDays: 7 }] : { ok: true };
+            setTimeout(() => window.__apexNativePurchases.receive({ id: msg.id, result: answer }), 0);
+          },
+        },
+      },
+    };
+    const stripePlus = { sources: { stripe: { tier: "plus", plan: "plus_yearly", status: "active", expiresAt: Date.now() + 30 * 86400000 } } };
+    ctx = baseCtx({ soloGatesLive: true, soloTier: "plus", soloEntitlement: stripePlus });
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    await screen.findByTestId("paid-elsewhere");
+    expect(screen.queryByRole("button", { name: /subscribe to|free trial/i })).toBe(null);
+    expect(screen.queryByText(/website/i)).toBe(null);
+    expect(posted.some((m) => m.action === "purchase")).toBe(false);
+  });
+
   // #134: after Apple's sheet the page was left black but still tappable;
   // a tap on the invisible Subscribe button bought again.
   describe("after Apple's purchase sheet (#134)", () => {
@@ -470,6 +497,51 @@ describe("Free: 3 saved sessions", () => {
 });
 
 describe("paywall for subscribers", () => {
+  // #159: an All Access website subscriber could only downgrade through
+  // Stripe's portal (if its settings allowed it); the sheet hid every plan.
+  describe("a website subscriber changes plan in the sheet (#159)", () => {
+    const stripeAll = { sources: { stripe: { tier: "all_access", plan: "all_access_yearly", status: "active", expiresAt: Date.now() + 9e8 } } };
+    async function openSheet(over = {}) {
+      ctx = baseCtx({ soloGatesLive: true, soloTier: "all_access", soloEntitlement: stripeAll, ...over });
+      const { useSoloPaywall } = await import("./SoloPaywall");
+      function Opener() {
+        const { openPaywall } = useSoloPaywall();
+        return <button onClick={() => openPaywall({})}>open</button>;
+      }
+      await renderAt("/x", <Opener />, "/x");
+      fireEvent.click(screen.getByText("open"));
+      await screen.findByText("Your membership");
+    }
+
+    it("opens on their own plan, marked current, with no buy button", async () => {
+      await openSheet();
+      expect(screen.getByTestId("current-plan")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: /switch to|subscribe|trial/i })).toBe(null);
+    });
+    it("downgrades to Plus in place: the server's change path, no new checkout, no trial", async () => {
+      ctx = null;
+      await openSheet({ startSoloSubscription: vi.fn(() => Promise.resolve({ changed: true })) });
+      fireEvent.click(screen.getByRole("button", { name: /^Plus/ }));
+      expect(screen.queryByText(/days free/)).toBe(null);
+      expect(screen.getByText(/the difference is charged or credited pro rata/)).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "SWITCH TO PLUS YEARLY" }));
+      await waitFor(() => expect(ctx.startSoloSubscription).toHaveBeenCalledWith("plus_yearly"));
+      await screen.findByText("Done — you're now on Plus.");
+    });
+    it("switches monthly ↔ yearly on the same tier", async () => {
+      await openSheet({ startSoloSubscription: vi.fn(() => Promise.resolve({ changed: true })) });
+      fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
+      fireEvent.click(screen.getByRole("button", { name: "SWITCH TO ALL ACCESS MONTHLY" }));
+      await waitFor(() => expect(ctx.startSoloSubscription).toHaveBeenCalledWith("all_access_monthly"));
+    });
+    it("in the iPhone app nothing changes: no plan switching for a website subscriber", async () => {
+      window.webkit = { messageHandlers: { apexTheme: { postMessage() {} } } };
+      await openSheet();
+      expect(screen.queryByTestId("current-plan")).toBe(null);
+      expect(screen.queryByRole("button", { name: /switch to/i })).toBe(null);
+    });
+  });
+
   it("All Access members see their plan and Manage, not a buy button", async () => {
     ctx = baseCtx({
       soloGatesLive: true,

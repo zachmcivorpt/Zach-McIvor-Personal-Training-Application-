@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { PLANS, stripeSourceFromSubscriptions, appleSourceFromSubscriber, deriveEntitlement, checkoutDecision, planFromLookupKey, lookupKey } = require("./soloSubscriptions.js");
 
+const solo = require("./soloSubscriptions.js");
 const NOW = 1_800_000_000_000;
 const sec = (ms) => Math.floor(ms / 1000);
 const DAY = 86_400_000;
@@ -223,5 +224,73 @@ describe("website checkout decision", () => {
   });
   it("unknown plan", () => {
     expect(checkoutDecision({}, "gold", NOW)).toEqual({ action: "invalid" });
+  });
+});
+
+// #158: one payable checkout per account and purpose.
+describe("priorCheckout / rememberCheckout", () => {
+  function fakeDb(initial = {}) {
+    const store = { ...initial };
+    return {
+      store,
+      collection: () => ({
+        doc: (uid) => ({
+          get: async () => ({ exists: !!store[uid], data: () => store[uid] }),
+          set: async (data, opts) => {
+            store[uid] = opts?.merge ? { ...(store[uid] || {}), ...data } : data;
+          },
+        }),
+      }),
+    };
+  }
+  function fakeStripe(sessions) {
+    const expired = [];
+    return {
+      expired,
+      checkout: {
+        sessions: {
+          retrieve: async (id) => {
+            if (!sessions[id]) throw new Error("No such checkout session");
+            return { id, status: sessions[id] };
+          },
+          expire: async (id) => {
+            expired.push(id);
+            sessions[id] = "expired";
+          },
+        },
+      },
+    };
+  }
+
+  it("no earlier checkout: go ahead", async () => {
+    const r = await solo.priorCheckout(fakeDb(), fakeStripe({}), "u1", "subscription");
+    expect(r).toEqual({ alreadyPaid: false });
+  });
+  it("an earlier one still open is expired, so only the new one can be paid", async () => {
+    const stripe = fakeStripe({ cs_old: "open" });
+    const r = await solo.priorCheckout(fakeDb({ u1: { subscription: "cs_old" } }), stripe, "u1", "subscription");
+    expect(r.alreadyPaid).toBe(false);
+    expect(stripe.expired).toEqual(["cs_old"]);
+  });
+  it("an earlier one already paid (webhook not landed yet) stops a second charge", async () => {
+    const stripe = fakeStripe({ cs_old: "complete" });
+    const r = await solo.priorCheckout(fakeDb({ u1: { program_p1: "cs_old" } }), stripe, "u1", "program_p1");
+    expect(r.alreadyPaid).toBe(true);
+    expect(stripe.expired).toEqual([]);
+  });
+  it("slots are separate: a program checkout doesn't touch the subscription one", async () => {
+    const stripe = fakeStripe({ cs_sub: "open" });
+    await solo.priorCheckout(fakeDb({ u1: { subscription: "cs_sub" } }), stripe, "u1", "program_p1");
+    expect(stripe.expired).toEqual([]);
+  });
+  it("an expired or unknown earlier one is ignored", async () => {
+    expect((await solo.priorCheckout(fakeDb({ u1: { subscription: "cs_x" } }), fakeStripe({ cs_x: "expired" }), "u1", "subscription")).alreadyPaid).toBe(false);
+    expect((await solo.priorCheckout(fakeDb({ u1: { subscription: "gone" } }), fakeStripe({}), "u1", "subscription")).alreadyPaid).toBe(false);
+  });
+  it("remembers the latest checkout per slot", async () => {
+    const db = fakeDb();
+    await solo.rememberCheckout(db, "u1", "subscription", "cs_1");
+    await solo.rememberCheckout(db, "u1", "program_p1", "cs_2");
+    expect(db.store.u1).toMatchObject({ subscription: "cs_1", program_p1: "cs_2" });
   });
 });
