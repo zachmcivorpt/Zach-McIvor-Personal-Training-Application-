@@ -33,6 +33,7 @@ import { localDateKey } from "../lib/dateKey";
 import { fileToCompressedDataUrl } from "../lib/image";
 import { MetricTile } from "../components/charts";
 import { MEASURE_BLUE } from "../theme";
+import { SoloPageHeader } from "./SoloUI";
 import {
   ClientThemeContext,
   LogWeightSheet,
@@ -181,9 +182,7 @@ export default function SoloProgressScreen() {
   return (
     <ClientThemeContext.Provider value={dark}>
       <div className="pb-10">
-        <div className="px-3 pt-5 pb-2">
-          <h1 className="text-xl font-extrabold">Progress</h1>
-        </div>
+        <SoloPageHeader t={SOLO_THEMES[dark ? "dark" : "light"]} title="Progress" />
 
         {/* The shared timeline paints its own solid band; inside Train Solo it
             sits in a glass card instead (index.css clears the inner fill). */}

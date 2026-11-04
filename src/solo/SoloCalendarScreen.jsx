@@ -7,6 +7,7 @@ import { localDateKey } from "../lib/dateKey";
 import { MEASURE_BLUE } from "../theme";
 import { buildSoloCalendar, rangeKeys, addDays, calendarItemTarget, canMoveItem, planMove } from "./soloCalendar";
 import { canUse } from "./soloAccess";
+import { SoloPageHeader } from "./SoloUI";
 import { isRecoveryAddon } from "./recommendations";
 
 // Train Solo's Calendar tab (#171) — a scrolling day-by-day list built
@@ -240,21 +241,25 @@ export default function SoloCalendarScreen() {
   return (
     // Exactly the space above the tab bar; only the day list scrolls.
     <div className="w-full flex flex-col" style={{ height: `calc(100dvh - ${NAV_SPACE})`, backgroundColor: t.bg, color: t.text }}>
-      <div className="w-full max-w-md mx-auto px-3 pt-5 pb-3 flex items-center justify-between gap-3 shrink-0">
-        <div className="min-w-0">
-          <h1 className="text-xl font-extrabold leading-tight">Calendar</h1>
+      <SoloPageHeader
+        t={t}
+        title="Calendar"
+        className="w-full max-w-md mx-auto shrink-0"
+        sub={
           <p className="text-xs" style={{ color: t.textMuted }} data-testid="calendar-move-hint">
             Hold a workout and drag it to another day to move it.
           </p>
-        </div>
-        <button
-          onClick={() => todayRef.current?.scrollIntoView({ block: "start", behavior: "smooth" })}
-          className="text-sm font-semibold shrink-0"
-          style={{ color: t.textMuted }}
-        >
-          Today
-        </button>
-      </div>
+        }
+        right={
+          <button
+            onClick={() => todayRef.current?.scrollIntoView({ block: "start", behavior: "smooth" })}
+            className="text-sm font-semibold shrink-0 pt-1"
+            style={{ color: t.textMuted }}
+          >
+            Today
+          </button>
+        }
+      />
 
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 min-h-0 overflow-y-auto">
         <div className="w-full max-w-md mx-auto px-3 pb-10">

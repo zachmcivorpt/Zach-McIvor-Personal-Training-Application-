@@ -7,6 +7,7 @@ import { canUse, TIER_LABELS, activeStore, planRenewal, renewalText } from "./so
 import { useSoloPaywall } from "./SoloPaywall";
 import { inIosApp } from "./appShell";
 import SoloGlassBox from "./SoloGlassBox";
+import { SoloPageHeader } from "./SoloUI";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
@@ -107,18 +108,22 @@ export default function SoloProfileScreen() {
   const programsById = useMemo(() => Object.fromEntries(soloPrograms.map((p) => [p.id, p])), [soloPrograms]);
 
   return (
-    <div className="w-full max-w-md mx-auto px-3 pt-5 pb-10">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-extrabold">Profile</h1>
-        <button
-          onClick={toggleSoloTheme}
-          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-          className="w-9 h-9 rounded-full flex items-center justify-center"
-          style={soloGlass(t)}
-        >
-          {dark ? <Sun size={15} color={t.text} /> : <Moon size={15} color={t.text} />}
-        </button>
-      </div>
+    <div className="w-full max-w-md mx-auto px-3 pb-10">
+      <SoloPageHeader
+        t={t}
+        title="Profile"
+        className="-mx-3 mb-3"
+        right={
+          <button
+            onClick={toggleSoloTheme}
+            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+            className="w-9 h-9 -my-1 rounded-full flex items-center justify-center shrink-0"
+            style={soloGlass(t)}
+          >
+            {dark ? <Sun size={15} color={t.text} /> : <Moon size={15} color={t.text} />}
+          </button>
+        }
+      />
 
       <div className="rounded-2xl px-4 py-4 mb-5" style={soloGlass(t)}>
         <p className="text-sm font-bold">{soloCurrentUser?.name || "there"}</p>

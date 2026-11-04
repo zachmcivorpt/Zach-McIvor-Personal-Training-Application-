@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { SheetSurfaceContext } from "../components/ui";
-import { MARK_BLACK, MARK_WHITE } from "../lib/brand";
+import { SOLO_MARK_BLACK as MARK_BLACK, SOLO_MARK_WHITE as MARK_WHITE } from "./soloMark";
 import { useSoloApp } from "../lib/SoloAppContext";
 
 // The one coach-configurable Train Solo branding setting (see

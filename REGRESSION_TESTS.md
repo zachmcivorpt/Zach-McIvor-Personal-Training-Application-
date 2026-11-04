@@ -2764,6 +2764,16 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Tests**: `src/nativeAppleSheets166.test.js` (6): no `didEnterBackground`/`willResignActive` anywhere in ViewController, the foreground-only post, the resize and repaint, and the wake at uncover. 3 fail on the old code. Swift type-checked against UIKit stubs.
 - **Scope**: native iOS only; no web, coach or client file changed.
 
+### 174. Train Solo: missing logo top left; tab headings not matching (owner, TestFlight, 2026-11-04)
+- **Problem**: on the iPhone the APEX mark was missing top left on My Training and the Catalogue, leaving a blank gap (it showed in a browser). The tab headings were at different heights and sizes. "Welcome, <name>" was on the Catalogue.
+- **Fix**:
+  - The Solo logo is now a small image built into the code (`src/solo/soloMark.js`, 60 px tall, about 3 KB each) instead of `/brand/mark-*.png`, which could come up empty in the iPhone app.
+  - New `SoloPageHeader` (SoloUI.jsx) on all five tabs: the logo, then the title at one size and position.
+  - "Welcome, <first name>" moved to My Training; the Catalogue heading is just "Catalogue".
+- **Verified**: built app, iPhone 13 size, fresh test account (deleted afterwards). Every tab's h1 is at top 59 px and 20 px, and the logo is loaded on all five.
+- **Test**: `src/solo/pageHeader174.test.js` (3; all fail on the old code).
+- **Scope**: Train Solo files only.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

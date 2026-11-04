@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { SoloButton } from "./SoloUI";
+import { SoloButton, SoloPageHeader } from "./SoloUI";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, CalendarPlus, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus, Zap, Pencil } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
@@ -311,6 +311,7 @@ export default function SoloMyTrainingScreen() {
   }, [boughtPurchase, checkoutSheetOpened]);
   // The weekdays chosen in the consultation — sessions are scheduled on them.
   const trainingDays = soloCurrentUser?.onboarding?.answers?.trainingDays;
+  const firstName = (soloCurrentUser?.name || "").trim().split(/\s+/)[0];
   const openPurchase = soloTrainingPrograms.find((p) => p.id === openPurchaseId && !p.locked) || null;
   const openProgram = openPurchase ? programsById[openPurchase.programId] : null;
   const openContent = openPurchase ? soloContentById[openPurchase.programId] : null;
@@ -527,9 +528,8 @@ export default function SoloMyTrainingScreen() {
 
   return (
     <div className="relative w-full">
-      <div className="relative w-full max-w-md mx-auto px-3 pt-6 pb-10">
-        <h1 className="sr-only">My Training</h1>
-        <img src={t.logo} alt="APEX" className="w-auto mb-5" style={{ height: 19 }} />
+      <SoloPageHeader t={t} title={firstName ? `Welcome, ${firstName}` : "Welcome"} className="max-w-md mx-auto" />
+      <div className="relative w-full max-w-md mx-auto px-3 pt-2 pb-10">
 
         {boughtProgramId && !checkoutDismissed && (
           <div className="rounded-2xl px-4 py-3.5 mb-5" style={{ ...glass, borderColor: "rgba(47,143,255,0.45)" }}>
