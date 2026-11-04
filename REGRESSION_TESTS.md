@@ -2757,6 +2757,13 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Not testable here**: real App Store purchase, restore, upgrade and cancel (needs the iPhone and a sandbox Apple ID). Those flows are covered by `subscriptionGates`, `membershipLifecycle`, `afterPurchaseWhiteScreen`, `nativePurchaseReveal` and `nativeAppleSheets166`, all passing.
 - **Scope**: Train Solo files only; no coach or client file changed.
 
+### 173. Black screen after an iPhone purchase, until leaving and reopening the app (owner, TestFlight 190, 2026-11-04)
+- **Problem**: after buying in the iPhone app (dark mode), the screen stayed black; leaving the app and coming back showed "Confirming your membership".
+- **Cause**: #166's `wakeWebKit()` posted a fake `UIScene.didEnterBackgroundNotification` for the app's window scene. UIKit hears it too, not just WebKit, so the whole app stopped drawing — including the native "Confirming your membership" cover — until a real return to the app.
+- **Fix** (`ios/ApexCoach/ViewController.swift`): `wakeWebKit()` now posts only `willEnterForegroundNotification` (WebKit's unfreeze signal), nudges the web view's height by 1 pt and back (a new size makes WebKit lay out and commit a fresh picture), and asks the page to repaint. `uncoverAfterPurchase` wakes the page as the cover comes off and again 0.5 s and 1.5 s later; the blank-page checks, retries and Continue fallback from #161–#166 stay.
+- **Tests**: `src/nativeAppleSheets166.test.js` (6): no `didEnterBackground`/`willResignActive` anywhere in ViewController, the foreground-only post, the resize and repaint, and the wake at uncover. 3 fail on the old code. Swift type-checked against UIKit stubs.
+- **Scope**: native iOS only; no web, coach or client file changed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

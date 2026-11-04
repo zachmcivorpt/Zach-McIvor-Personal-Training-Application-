@@ -30,10 +30,24 @@ describe("Apple's Manage Subscriptions sheet (cancelling)", () => {
 });
 
 describe("waking WebKit (what leaving and reopening the app did)", () => {
-  it("posts the window scene's background → foreground notifications WebKit listens for", () => {
+  it("posts only 'came to the front' — never a fake 'entered background', which froze the whole app black (#173)", () => {
     const body = fn(vc(), "wakeWebKit");
-    expect(body).toMatch(/webView\?\.window\?\.windowScene/);
-    expect(body).toMatch(/UIScene\.didEnterBackgroundNotification, object: scene[\s\S]*UIScene\.willEnterForegroundNotification, object: scene/);
+    expect(body).toMatch(/wv\.window\?\.windowScene/);
+    expect(body).toMatch(/UIScene\.willEnterForegroundNotification, object: scene/);
+    // Nowhere in the app: a fake background signal is heard by all of UIKit.
+    expect(vc()).not.toMatch(/didEnterBackgroundNotification|willResignActiveNotification/);
+  });
+
+  it("also nudges the web view's size and asks the page to repaint (#173)", () => {
+    const body = fn(vc(), "wakeWebKit");
+    expect(body).toMatch(/bottom\.constant = constant - 1[\s\S]*layoutIfNeeded[\s\S]*bottom\.constant = constant/);
+    expect(body).toMatch(/evaluateJavaScript\(/);
+  });
+
+  it("wakes the page as the purchase cover comes off and twice just after (#173)", () => {
+    const body = fn(vc(), "uncoverAfterPurchase");
+    expect(body).toMatch(/self\.wakeWebKit\(\)\s*\n\s*self\.removePurchaseCover\(\)/);
+    expect(body).toMatch(/\[0\.5, 1\.5\][\s\S]*wakeWebKit/);
   });
 
   it("runs before every 'is it drawn?' decision after Apple's sheets, and before replacing a blank page on return", () => {
