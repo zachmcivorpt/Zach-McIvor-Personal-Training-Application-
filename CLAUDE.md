@@ -496,9 +496,13 @@ any Train Solo work from now on:
   native Continue button. The fresh web view waits for the app to be active.
 - **Apple's sheets freeze WebKit's drawing; only "back to the front"
   unfreezes it** (#166). `wakeWebKit()` posts the window scene's
-  background → foreground notifications (what leaving and reopening the
-  app does) before any "is it drawn?" decision after Apple's sheets and
-  before re-attaching on return. Every native sheet over the page (the
+  "will enter foreground" notification, nudges the web view's height by
+  1 pt and back, and asks the page to repaint — before any "is it drawn?"
+  decision after Apple's sheets, as the purchase cover comes off (and
+  0.5 s / 1.5 s later), and before re-attaching on return. **Never post a
+  fake "entered background" / "resign active"** (#173): all of UIKit hears
+  it and the whole app, native cover included, froze black after a
+  purchase until the member left and came back. Every native sheet over the page (the
   purchase sheet AND Manage Subscriptions) is covered first and recovered
   after; Manage Subscriptions reopens Train Solo Home (`freshPageURL`).
 - "/" opens Train Solo for a member signed in only to Train Solo

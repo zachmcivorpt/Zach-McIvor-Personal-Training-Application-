@@ -869,22 +869,45 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private func uncoverAfterPurchase() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             guard let self = self else { return }
+            // The checks can't always see a page WebKit has stopped drawing
+            // (#163, #173), so wake it as the cover comes off and twice
+            // more just after — harmless on a page that's fine.
+            self.wakeWebKit()
             self.removePurchaseCover()
+            for delay in [0.5, 1.5] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.wakeWebKit() }
+            }
             self.verifyShownAfterPurchase()
         }
     }
 
-    // Tells WebKit the app has come (back) to the front: a background then
-    // foreground notification for the web view's window scene — the same
-    // signals iOS sends when the member leaves the app and comes back,
-    // which is what made a page frozen under Apple's sheet appear (#166).
-    // WebKit (ApplicationStateTracker) then unfreezes and redraws the page.
-    // Nothing else in the app listens for these scene notifications.
+    // Makes WebKit draw the page again after Apple's sheet (#166, #173).
+    //  1. "The app came to the front" for the web view's window scene — the
+    //     signal WebKit (ApplicationStateTracker) unfreezes a page on. ONLY
+    //     that one: #166 also posted "entered background", which the rest of
+    //     the app hears too — after a purchase the whole app, native
+    //     screens included, stayed black until the member left and came back.
+    //  2. The web view's frame 1 pt shorter and back: a new size makes
+    //     WebKit lay the page out and commit a fresh picture of it.
+    //  3. The page itself is asked to repaint.
+    // All public and harmless on a page that's fine.
     private func wakeWebKit() {
-        guard let scene = webView?.window?.windowScene else { return }
-        let center = NotificationCenter.default
-        center.post(name: UIScene.didEnterBackgroundNotification, object: scene)
-        center.post(name: UIScene.willEnterForegroundNotification, object: scene)
+        guard let wv = webView else { return }
+        if let scene = wv.window?.windowScene {
+            NotificationCenter.default.post(name: UIScene.willEnterForegroundNotification, object: scene)
+        }
+        if let bottom = webViewBottomConstraint {
+            let constant = bottom.constant
+            bottom.constant = constant - 1
+            view.layoutIfNeeded()
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self, self.webViewBottomConstraint === bottom,
+                      bottom.constant == constant - 1 else { return }
+                bottom.constant = constant
+                self.view.layoutIfNeeded()
+            }
+        }
+        wv.evaluateJavaScript("(function(){var s=document.documentElement.style;s.transform='translateZ(0)';requestAnimationFrame(function(){requestAnimationFrame(function(){s.transform='';});});})()")
     }
 
     // Apple's Manage Subscriptions sheet has closed (#166) — usually after a
