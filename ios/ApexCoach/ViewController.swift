@@ -132,15 +132,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             config.userContentController.add(self, name: "apexPurchases")
         }
 
-        webView = WKWebView(frame: .zero, configuration: config)
-        webView.navigationDelegate = self
-        webView.uiDelegate = self
-        webView.translatesAutoresizingMaskIntoConstraints = false
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
-        webView.isOpaque = false
-        webView.backgroundColor = .white
-        health.webView = webView
-        purchases.webView = webView
+        webView = makeWebView(config)
         purchases.coverPageForSheet = { [weak self] show in
             guard let self = self else { return show() }
             self.coverPageForPurchase(then: show)
@@ -175,6 +167,22 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         spinner.startAnimating()
 
         loadSite()
+    }
+
+    // The web view and its settings. Also used to replace a page iOS has
+    // stopped drawing with a brand-new web view (rebuildWebView, #154).
+    private func makeWebView(_ config: WKWebViewConfiguration) -> WKWebView {
+        let wv = WKWebView(frame: .zero, configuration: config)
+        wv.navigationDelegate = self
+        wv.uiDelegate = self
+        wv.translatesAutoresizingMaskIntoConstraints = false
+        wv.scrollView.contentInsetAdjustmentBehavior = .never
+        wv.isOpaque = false
+        wv.backgroundColor = isDarkBackground ? nearBlack : .white
+        wv.scrollView.bounces = !isEdgeToEdge
+        health.webView = wv
+        purchases.webView = wv
+        return wv
     }
 
     // The web view's constraints. Also used after re-attaching it to the
@@ -434,23 +442,70 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // instantly, and the purchase itself is already recorded by Apple).
     @objc private func checkPageAlive() {
         guard webView != nil, !webView.isLoading, !purchaseSheetOpen, purchaseCover == nil else { return }
-        var answered = false
-        let timer = DispatchWorkItem { [weak self] in
-            guard let self = self, !answered else { return }
-            answered = true
-            self.reloadBlankPage()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2, execute: timer)
-        webView.evaluateJavaScript("(function(){var r=document.getElementById('root');return r?r.childElementCount:0})()") { [weak self] result, error in
-            guard let self = self, !answered else { return }
-            answered = true
-            timer.cancel()
-            let count = (result as? NSNumber)?.intValue ?? 0
-            if error != nil || count == 0 { self.reloadBlankPage() }
+        // Not just "is there content" (#154): iOS can leave the page with all
+        // its content but undrawn (white) after the app comes back. Ask for
+        // a drawn frame; none → re-attach the web view and ask again; still
+        // none → a brand-new web view (what closing the app did).
+        pageDrawsFrame { [weak self] drawn in
+            guard let self = self, !drawn else { return }
+            self.reattachWebView()
+            self.pageDrawsFrame { [weak self] drawn in
+                guard let self = self, !drawn else { return }
+                self.rebuildWebView()
+            }
         }
     }
 
-    private func reloadBlankPage() {
+    // Asks the page to report a drawn frame: two requestAnimationFrames, and
+    // the app's #root has content. An undrawn, gone or empty page doesn't
+    // answer in time (or answers 0) → false.
+    private func pageDrawsFrame(timeout: TimeInterval = 1.5, _ done: @escaping (Bool) -> Void) {
+        var answered = false
+        let giveUp = DispatchWorkItem {
+            guard !answered else { return }
+            answered = true
+            done(false)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout, execute: giveUp)
+        let js = "return await new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(function(){var el=document.getElementById('root');r(el?el.childElementCount:0)})})})"
+        webView.callAsyncJavaScript(js, arguments: [:], in: nil, in: .page) { result in
+            guard !answered else { return }
+            answered = true
+            giveUp.cancel()
+            if case .success(let value) = result, ((value as? NSNumber)?.intValue ?? 0) > 0 {
+                done(true)
+            } else {
+                done(false)
+            }
+        }
+    }
+
+    // Takes the web view off the screen and puts it back (what leaving and
+    // reopening the app does to it), keeping its constraints and the cover.
+    private func reattachWebView() {
+        webView.removeFromSuperview()
+        view.insertSubview(webView, at: 0)
+        pinWebView()
+        view.layoutIfNeeded()
+        if let cover = purchaseCover { view.bringSubviewToFront(cover) }
+    }
+
+    // A brand-new web view on the same configuration (same cookies,
+    // storage and sign-in), loading the site: what force-closing the app
+    // did, without closing it.
+    private func rebuildWebView() {
+        let old: WKWebView = webView
+        let config = old.configuration
+        old.stopLoading()
+        old.navigationDelegate = nil
+        old.uiDelegate = nil
+        old.removeFromSuperview()
+        webView = makeWebView(config)
+        view.insertSubview(webView, at: 0)
+        pinWebView()
+        view.layoutIfNeeded()
+        if let cover = purchaseCover { view.bringSubviewToFront(cover) }
+        webViewReady = false
         view.bringSubviewToFront(spinner)
         spinner.startAnimating()
         loadSite()
@@ -499,45 +554,28 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // showed it), but WebKit never drew it, so taking the cover off showed
     // a white screen. Before the cover comes off: re-attach the web view to
     // the screen (what leaving and reopening the app does, which brought it
-    // back), then ask the page to report a drawn frame. No answer → load it
-    // fresh once (cover stays up meanwhile); the 12s guard still applies.
+    // back), then ask the page to report a drawn frame. No answer → a
+    // brand-new web view once (cover stays up meanwhile, #154); the 12s
+    // guard still applies.
     private var purchaseRevealAttempts = 0
 
     private func revealAfterPurchase() {
-        webView.removeFromSuperview()
-        view.insertSubview(webView, at: 0)
-        pinWebView()
-        view.layoutIfNeeded()
-        if let cover = purchaseCover { view.bringSubviewToFront(cover) }
-
-        var answered = false
-        let giveUp = DispatchWorkItem { [weak self] in
-            guard let self = self, !answered else { return }
-            answered = true
-            self.pageDidNotDraw()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: giveUp)
-        let js = "return await new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(function(){var el=document.getElementById('root');r(el?el.childElementCount:0)})})})"
-        webView.callAsyncJavaScript(js, arguments: [:], in: nil, in: .page) { [weak self] result in
-            guard let self = self, !answered else { return }
-            answered = true
-            giveUp.cancel()
-            if case .success(let value) = result, ((value as? NSNumber)?.intValue ?? 0) > 0 {
+        reattachWebView()
+        pageDrawsFrame { [weak self] drawn in
+            guard let self = self else { return }
+            if drawn {
                 self.purchaseRevealAttempts = 0
                 self.removePurchaseCover()
-            } else {
-                self.pageDidNotDraw()
+                return
             }
-        }
-    }
-
-    private func pageDidNotDraw() {
-        purchaseRevealAttempts += 1
-        if purchaseRevealAttempts <= 1 {
-            loadSite() // didFinish calls revealAfterPurchase again
-        } else {
-            purchaseRevealAttempts = 0
-            removePurchaseCover()
+            self.purchaseRevealAttempts += 1
+            if self.purchaseRevealAttempts <= 1 {
+                // A new web view under the cover; its didFinish reveals again.
+                self.rebuildWebView()
+            } else {
+                self.purchaseRevealAttempts = 0
+                self.removePurchaseCover()
+            }
         }
     }
 

@@ -351,6 +351,9 @@ any Train Solo work from now on:
 - In the iPhone app, if the App Store returns no subscriptions the paywall
   shows why (REGRESSION_TESTS.md #124) and retries on the next open — never
   a silent disabled button, never a pointer to the website.
+- A plan is re-checked at the exact second its period ends (#154). A
+  cancelled plan runs to the end of what was paid (App Store rule), then
+  locks at once; refund / failed payment / expiry lock immediately.
 - In the iPhone app the subscription is re-read from the server on every
   open (`syncSoloEntitlement`, #133), not only after the purchase reply —
   that reply can be lost if iOS drops the page under Apple's sheet.
@@ -391,10 +394,14 @@ any Train Solo work from now on:
   but tappable there, which `checkPageAlive`'s DOM check can't see. Keep
   the cover; any new native sheet over the webview may need the same.
 
-- After Apple's purchase sheet the cover comes off only once the page has
-  drawn a frame (`revealAfterPurchase`, #153): the web view is re-attached
-  and asked for a frame; none → loaded fresh once. Never go back to
-  removing the cover on a timer alone (that showed a white, undrawn page).
+- iOS can leave the page undrawn (white, content all there) after Apple's
+  sheet or any return to the app (#153, #154). The native app asks for a
+  drawn frame (`pageDrawsFrame`); none → re-attach the web view; still none
+  → `rebuildWebView` (a brand-new web view, same configuration). After
+  Apple's sheet the cover comes off only on a drawn frame. Never go back to
+  a content-only check or removing the cover on a timer alone. Anything
+  that must survive a rebuilt web view goes in localStorage, not
+  sessionStorage (the purchase result does, until the flow finishes).
 
 - The iOS app is a WKWebView on the live web app, so web-only changes reach
   App Store users without a build or review — from 1.0.4 on, on their next

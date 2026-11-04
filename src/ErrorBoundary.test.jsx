@@ -73,3 +73,21 @@ describe("ErrorBoundary — stale chunk / dynamic import failure", () => {
     expect(screen.getByText("Something went wrong")).toBeTruthy();
   });
 });
+
+describe("ErrorBoundary — never white for good (#154)", () => {
+  it("if the recovery reload hasn't landed after 6 seconds, the recovery screen with Reload shows", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout"] });
+    try {
+      renderWithThrow("Importing a module script failed");
+      expect(screen.queryByText("Something went wrong")).toBeNull();
+      const { act } = await import("@testing-library/react");
+      await act(async () => {
+        vi.advanceTimersByTime(6100);
+      });
+      expect(screen.getByText("Something went wrong")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Reload" })).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

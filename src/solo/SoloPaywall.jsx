@@ -62,22 +62,38 @@ export function setPurchaseRecheckMsForTests(ms) {
   PURCHASE_RECHECK_MS = ms;
 }
 
+// Kept in localStorage, not sessionStorage (#154): if iOS leaves the
+// reloaded page undrawn, the native app replaces it with a brand-new web
+// view, which has an empty sessionStorage — the result must survive that.
+// It stays until the flow is finished (welcome dismissed, or the error /
+// "not reached yet" shown), so a page replaced mid-flow shows it again;
+// 10 minutes at most.
 function rememberPurchaseOutcome(outcome) {
   try {
-    sessionStorage.setItem(PURCHASE_OUTCOME_KEY, JSON.stringify({ ...outcome, at: Date.now() }));
+    localStorage.setItem(PURCHASE_OUTCOME_KEY, JSON.stringify({ ...outcome, at: Date.now() }));
   } catch {
     // No storage: the reload still redraws the page, and the purchase is
     // picked up by the sync on open (#133).
   }
 }
 
-function takePurchaseOutcome() {
+function clearPurchaseOutcome() {
   try {
-    const raw = sessionStorage.getItem(PURCHASE_OUTCOME_KEY);
+    localStorage.removeItem(PURCHASE_OUTCOME_KEY);
+    sessionStorage.removeItem(PURCHASE_OUTCOME_KEY); // from builds before #154
+  } catch {
+    // nothing to clear
+  }
+}
+
+function readPurchaseOutcome() {
+  try {
+    const raw = localStorage.getItem(PURCHASE_OUTCOME_KEY) || sessionStorage.getItem(PURCHASE_OUTCOME_KEY);
     if (!raw) return null;
-    sessionStorage.removeItem(PURCHASE_OUTCOME_KEY);
     const outcome = JSON.parse(raw);
-    return outcome && Date.now() - (outcome.at || 0) < 10 * 60 * 1000 ? outcome : null;
+    if (outcome && Date.now() - (outcome.at || 0) < 10 * 60 * 1000) return outcome;
+    clearPurchaseOutcome();
+    return null;
   } catch {
     return null;
   }
@@ -91,7 +107,7 @@ export function SoloPaywallProvider({ children }) {
   );
   const value = useMemo(() => ({ openPaywall }), [openPaywall]);
   const { soloAuthUser, refreshSoloEntitlement, soloEntitlement } = useSoloApp();
-  const [outcome] = useState(takePurchaseOutcome);
+  const [outcome] = useState(readPurchaseOutcome);
   const signedIn = !!soloAuthUser;
   // After the reload: "confirming" while the server is asked, then the
   // welcome screen for the plan it confirms (#136).
@@ -100,8 +116,10 @@ export function SoloPaywallProvider({ children }) {
 
   // The result of a purchase made just before the reload above.
   useEffect(() => {
+    if (outcome?.cancelled) clearPurchaseOutcome();
     if (!outcome || outcome.cancelled || !signedIn) return;
     if (outcome.error) {
+      clearPurchaseOutcome();
       openPaywall({ tier: outcome.tier, notice: outcome.error });
       return;
     }
@@ -119,7 +137,10 @@ export function SoloPaywallProvider({ children }) {
       if (stopped) return;
       setConfirming(false);
       if (got && got !== "free") setWelcomeTier(got);
-      else openPaywall({ tier: outcome.tier, notice: notReached });
+      else {
+        clearPurchaseOutcome();
+        openPaywall({ tier: outcome.tier, notice: notReached });
+      }
     })();
     return () => {
       stopped = true;
@@ -143,7 +164,10 @@ export function SoloPaywallProvider({ children }) {
         <SoloWelcomeScreen
           tier={welcomeTier}
           renewal={renewal ? `${renewal} · App Store` : ""}
-          onDone={() => setWelcomeTier(null)}
+          onDone={() => {
+            clearPurchaseOutcome();
+            setWelcomeTier(null);
+          }}
         />
       )}
       <SoloPaywallSheet request={request} onClose={() => setRequest(null)} />

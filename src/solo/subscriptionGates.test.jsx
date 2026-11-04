@@ -54,6 +54,7 @@ beforeEach(async () => {
   ctx = baseCtx();
   delete window.webkit;
   sessionStorage.clear();
+  localStorage.removeItem("apexSoloPurchaseOutcome");
   const { paywallPage, setPurchaseRecheckMsForTests } = await import("./SoloPaywall");
   setPurchaseRecheckMsForTests(5);
   reloadSpy = vi.spyOn(paywallPage, "reload").mockImplementation(() => {});
@@ -285,6 +286,32 @@ describe("inside the iPhone app", () => {
       await renderProgram("p1");
       await new Promise((r) => setTimeout(r, 20));
       expect(screen.queryByText("Train Solo Membership")).toBe(null);
+      expect(ctx.refreshSoloEntitlement).not.toHaveBeenCalled();
+    });
+
+    it("a page iOS left undrawn and the app replaced (new web view, empty sessionStorage) still shows Confirming then Welcome, until tapped (#154)", async () => {
+      nativeWith({ result: { ok: true } });
+      await buyAllAccess();
+      // The reloaded page mounts (undrawn), then the native app swaps in a
+      // brand-new web view: its sessionStorage is empty.
+      ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => Promise.resolve({ tier: "all_access" })) });
+      await renderProgram("p1");
+      await screen.findByTestId("solo-welcome");
+      cleanup();
+      sessionStorage.clear();
+      ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => Promise.resolve({ tier: "all_access" })) });
+      await renderProgram("p1");
+      expect(screen.getByTestId("solo-purchase-stage").textContent).toMatch(/Confirming your membership/);
+      const welcome = await screen.findByTestId("solo-welcome");
+      expect(welcome.textContent).toMatch(/Welcome to\s*All Access\./);
+      fireEvent.click(screen.getByRole("button", { name: "Start training" }));
+      // Finished: never again.
+      cleanup();
+      ctx = baseCtx({ soloGatesLive: true });
+      await renderProgram("p1");
+      await new Promise((r) => setTimeout(r, 20));
+      expect(screen.queryByTestId("solo-welcome")).toBe(null);
+      expect(screen.queryByTestId("solo-purchase-stage")).toBe(null);
       expect(ctx.refreshSoloEntitlement).not.toHaveBeenCalled();
     });
 
