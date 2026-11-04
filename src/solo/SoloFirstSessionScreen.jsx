@@ -9,6 +9,10 @@ import { customSessionState } from "./customSessions";
 import { recommendForAnswers } from "./recommendations";
 import { starterSession } from "./firstSession";
 
+// One empty object for "no answers yet", so memos that depend on the
+// answers don't recompute on every render (#172).
+const NO_ANSWERS = Object.freeze({});
+
 // Straight after the questionnaire (#141): the first session, today. A
 // short full-body session from the equipment they said they have
 // (firstSession.js), on every plan; their recommended program sits below
@@ -18,7 +22,7 @@ export default function SoloFirstSessionScreen() {
   const { soloCurrentUser, soloExercises, soloPrograms, soloProgramCategories } = useSoloApp();
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
-  const answers = soloCurrentUser?.onboarding?.answers || {};
+  const answers = soloCurrentUser?.onboarding?.answers || NO_ANSWERS;
   const session = useMemo(() => starterSession(soloExercises || [], answers), [soloExercises, answers]);
   const exercisesById = useMemo(() => Object.fromEntries((soloExercises || []).map((e) => [e.id, e])), [soloExercises]);
   const recommended = useMemo(() => recommendForAnswers(soloPrograms || [], soloProgramCategories || [], answers, { limit: 1 }).programs[0] || null, [soloPrograms, soloProgramCategories, answers]);

@@ -14,6 +14,10 @@ import {
   isFlaggedForMedicalReview,
 } from "./questionnaireConfig";
 
+// One empty object for "no answers yet", so memos that depend on the
+// answers don't recompute on every render (#172).
+const NO_ANSWERS = Object.freeze({});
+
 // One question centred on screen at a time, over the background above —
 // a single translucent "glass" panel per question, built from the exact
 // bg-white/10 + backdrop-blur-sm + border-white/10 combination
@@ -130,7 +134,7 @@ export default function SoloOnboarding() {
   const [searchParams] = useSearchParams();
   const isReview = searchParams.get("review") === "1";
 
-  const savedAnswers = soloCurrentUser?.onboarding?.answers || {};
+  const savedAnswers = soloCurrentUser?.onboarding?.answers || NO_ANSWERS;
   // Local draft layered over the last-saved answers — lets typing in a
   // text field feel instant without a round-trip to Firestore on every
   // keystroke, while every Next/option click still persists immediately
