@@ -334,6 +334,10 @@ any Train Solo work from now on:
 - Programs on the calendar come from `soloTrainingPrograms` (bought
   purchases + All Access enrolments + own built programs), looked up in
   `soloProgramsById` / `soloContentById` — not `soloPurchases` alone.
+- A navigation's `openPurchaseId` (open this program's sheet on My
+  Training) is acted on once per navigation and then cleared from the
+  history entry (#153); never in an effect that re-runs on every program
+  list change.
 - **One program at a time, of any kind** (#140, `src/solo/currentProgram.js`):
   the profile's `currentProgramId` is the only program on the calendar and
   under "Your program"; the rest are Archived (`archivedPrograms`), history
@@ -386,6 +390,11 @@ any Train Solo work from now on:
   the page has reloaded after the sheet. WebKit can leave the page undrawn
   but tappable there, which `checkPageAlive`'s DOM check can't see. Keep
   the cover; any new native sheet over the webview may need the same.
+
+- After Apple's purchase sheet the cover comes off only once the page has
+  drawn a frame (`revealAfterPurchase`, #153): the web view is re-attached
+  and asked for a frame; none → loaded fresh once. Never go back to
+  removing the cover on a timer alone (that showed a white, undrawn page).
 
 - The iOS app is a WKWebView on the live web app, so web-only changes reach
   App Store users without a build or review — from 1.0.4 on, on their next

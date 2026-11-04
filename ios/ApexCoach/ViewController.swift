@@ -154,15 +154,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // The edge-to-edge alternative (pinned to the raw view top instead)
         // is pre-built here too but starts inactive — see isEdgeToEdge above
         // for when it's swapped in.
-        webViewBottomConstraint = webView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        webViewTopConstraint = webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
-        webViewTopConstraintEdgeToEdge = webView.topAnchor.constraint(equalTo: view.topAnchor)
-        NSLayoutConstraint.activate([
-            webViewTopConstraint,
-            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            webViewBottomConstraint,
-        ])
+        pinWebView()
         isDarkBackground = UserDefaults.standard.bool(forKey: lastDarkKey)
         isEdgeToEdge = UserDefaults.standard.bool(forKey: lastEdgeKey)
 
@@ -183,6 +175,22 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         spinner.startAnimating()
 
         loadSite()
+    }
+
+    // The web view's constraints. Also used after re-attaching it to the
+    // screen (revealAfterPurchase), which drops them. Keeps the current
+    // keyboard inset and edge-to-edge choice.
+    private func pinWebView() {
+        let bottomInset = webViewBottomConstraint?.constant ?? 0
+        webViewBottomConstraint = webView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: bottomInset)
+        webViewTopConstraint = webView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
+        webViewTopConstraintEdgeToEdge = webView.topAnchor.constraint(equalTo: view.topAnchor)
+        NSLayoutConstraint.activate([
+            isEdgeToEdge ? webViewTopConstraintEdgeToEdge : webViewTopConstraint,
+            webView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            webViewBottomConstraint,
+        ])
     }
 
     // With no signal when the app opens, the first load fails; the app then
@@ -309,9 +317,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // Reloaded after Apple's purchase sheet: give the page a moment to
         // paint, then show it again (#134).
         if purchaseCover != nil && !purchaseSheetOpen {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-                guard let self = self, !self.purchaseSheetOpen else { return }
-                self.removePurchaseCover()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
+                self.revealAfterPurchase()
             }
         }
     }
@@ -483,6 +491,53 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
             guard let self = self, !self.purchaseSheetOpen else { return }
             self.removePurchaseCover()
+        }
+    }
+
+    // White page after a purchase (#153): the page reloaded after Apple's
+    // sheet and was there (it took taps, and leaving and reopening the app
+    // showed it), but WebKit never drew it, so taking the cover off showed
+    // a white screen. Before the cover comes off: re-attach the web view to
+    // the screen (what leaving and reopening the app does, which brought it
+    // back), then ask the page to report a drawn frame. No answer → load it
+    // fresh once (cover stays up meanwhile); the 12s guard still applies.
+    private var purchaseRevealAttempts = 0
+
+    private func revealAfterPurchase() {
+        webView.removeFromSuperview()
+        view.insertSubview(webView, at: 0)
+        pinWebView()
+        view.layoutIfNeeded()
+        if let cover = purchaseCover { view.bringSubviewToFront(cover) }
+
+        var answered = false
+        let giveUp = DispatchWorkItem { [weak self] in
+            guard let self = self, !answered else { return }
+            answered = true
+            self.pageDidNotDraw()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: giveUp)
+        let js = "return await new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(function(){var el=document.getElementById('root');r(el?el.childElementCount:0)})})})"
+        webView.callAsyncJavaScript(js, arguments: [:], in: nil, in: .page) { [weak self] result in
+            guard let self = self, !answered else { return }
+            answered = true
+            giveUp.cancel()
+            if case .success(let value) = result, ((value as? NSNumber)?.intValue ?? 0) > 0 {
+                self.purchaseRevealAttempts = 0
+                self.removePurchaseCover()
+            } else {
+                self.pageDidNotDraw()
+            }
+        }
+    }
+
+    private func pageDidNotDraw() {
+        purchaseRevealAttempts += 1
+        if purchaseRevealAttempts <= 1 {
+            loadSite() // didFinish calls revealAfterPurchase again
+        } else {
+            purchaseRevealAttempts = 0
+            removePurchaseCover()
         }
     }
 

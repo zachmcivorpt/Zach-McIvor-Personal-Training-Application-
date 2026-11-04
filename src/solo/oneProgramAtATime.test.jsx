@@ -255,3 +255,46 @@ describe("scheduling, done for them (#142)", () => {
     expect(screen.queryByText("How your programs work")).toBe(null);
   });
 });
+
+describe("Opening a program from the catalogue opens its sheet once (#153)", () => {
+  it("doesn't reopen after closing when the program list updates, or when coming back to the tab", async () => {
+    const { default: SoloMyTrainingScreen } = await import("./SoloMyTrainingScreen");
+    const { SoloThemeProvider } = await import("./SoloThemeContext");
+    const { SoloPaywallProvider } = await import("./SoloPaywall");
+    const { useLocation } = await import("react-router-dom");
+    let seenState;
+    function Spy() {
+      seenState = useLocation().state;
+      return null;
+    }
+    const tree = (show = true) => (
+      <MemoryRouter initialEntries={[{ pathname: "/solo/home", state: { soloTab: "training", openPurchaseId: "u1_p1" } }]}>
+        <SoloThemeProvider>
+          <SoloPaywallProvider>
+            <Spy />
+            {show && <SoloMyTrainingScreen />}
+          </SoloPaywallProvider>
+        </SoloThemeProvider>
+      </MemoryRouter>
+    );
+    const view = render(tree());
+    // Opens once, straight away.
+    await waitFor(() => expect(screen.getByText("Change start date")).toBeTruthy());
+    // The request is cleared from the history entry; the tab is kept.
+    expect(seenState).toEqual({ soloTab: "training" });
+    fireEvent.click(document.querySelector("svg.lucide-x").closest("button"));
+    await waitFor(() => expect(screen.queryByText("Change start date")).toBe(null));
+    // The program list updates (e.g. the enrolment confirmed by the server): a fresh array.
+    for (let i = 0; i < 3; i++) {
+      ctx = { ...ctx, soloTrainingPrograms: ctx.soloTrainingPrograms.map((r) => ({ ...r })) };
+      view.rerender(tree());
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    expect(screen.queryByText("Change start date")).toBe(null);
+    // Leaving the tab and coming back doesn't reopen it either.
+    view.rerender(tree(false));
+    view.rerender(tree(true));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText("Change start date")).toBe(null);
+  });
+});

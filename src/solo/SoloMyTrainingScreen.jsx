@@ -251,17 +251,28 @@ export default function SoloMyTrainingScreen() {
   // post-purchase navigate) opens that program's progress sheet
   // immediately, so the customer lands straight on "pick a start date"
   // instead of just the tab with nothing else happening.
+  // Handled ONCE per navigation (#153): the effect re-runs whenever the
+  // program list updates (a new enrolment is saved, then confirmed by the
+  // server…), so without this the sheet reopened after every close. The
+  // request is then cleared from the history entry, so coming back to this
+  // tab doesn't reopen it either.
+  const handledOpenRequestRef = useRef(null);
   useEffect(() => {
     const requestedId = location.state?.openPurchaseId;
-    const requested = requestedId ? soloTrainingPrograms.find((p) => p.id === requestedId) : null;
-    if (requested) {
-      // Not the current program: starting it goes through the switch
-      // sheet, which says what moves to Archived (#140).
-      if (!requested.current && !requested.locked) setPendingSwitchId(requested.id);
-      else setOpenPurchaseId(requestedId);
-    }
+    if (!requestedId || handledOpenRequestRef.current === location.key) return;
+    const requested = soloTrainingPrograms.find((p) => p.id === requestedId);
+    // Not on the list yet (the new program is still being saved): wait.
+    if (!requested) return;
+    handledOpenRequestRef.current = location.key;
+    // Not the current program: starting it goes through the switch
+    // sheet, which says what moves to Archived (#140).
+    if (!requested.current && !requested.locked) setPendingSwitchId(requested.id);
+    else setOpenPurchaseId(requestedId);
+    const rest = { ...(location.state || {}) };
+    delete rest.openPurchaseId;
+    navigate(location.pathname + location.search, { replace: true, state: rest });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state, soloTrainingPrograms]);
+  }, [location.key, location.state, soloTrainingPrograms]);
 
   // Catalogue programs and the customer's own built ones (SoloAppContext).
   const programsById = soloProgramsById;
