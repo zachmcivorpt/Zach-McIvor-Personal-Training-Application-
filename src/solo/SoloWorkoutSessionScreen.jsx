@@ -8,7 +8,7 @@ import {
   AddExerciseSheet,
   sectionedExercises,
 } from "../client/ClientApp";
-import { BottomSheet, FullScreenOverlay, PrimaryButton, SessionIntelligenceCard } from "../components/ui";
+import { BottomSheet, FullScreenOverlay, SessionIntelligenceCard } from "../components/ui";
 import { getBestEverStats, estimate1RM, getPreviousSets } from "../lib/AppContext";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlassVars, soloClearSheetGlass, CLEAR_SHEET_BACKDROP } from "./SoloThemeContext";
@@ -348,9 +348,9 @@ export default function SoloWorkoutSessionScreen() {
               Add Exercise
             </button>
             {saveError && <p className="text-sm text-red-500 text-center">{saveError}</p>}
-            <PrimaryButton dark={dark} className="w-full" onClick={handleFinish} disabled={finishing}>
+            <SoloButton t={t} className="w-full" onClick={handleFinish} disabled={finishing}>
               {finishing ? "Saving…" : "Complete Workout"}
-            </PrimaryButton>
+            </SoloButton>
           </div>
 
           <AddExerciseSheet

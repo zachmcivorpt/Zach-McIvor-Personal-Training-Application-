@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { SoloButton } from "./SoloUI";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, CalendarPlus, ChevronRight, ChevronLeft, Play, CheckCircle2, Lock, Dumbbell, HeartPulse, Scale, Camera, Droplet, Minus, Plus, Zap, Pencil } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
@@ -13,11 +14,12 @@ import { sessionDateKeys, sessionDayLabel, buildSoloCalendar, calendarItemTarget
 import SoloGlassBox from "./SoloGlassBox";
 import { CompletedSessionSheet, ProgramOverviewSheet } from "./SoloTrainingSheets";
 import { APP_STORE_URL } from "./appShell";
-import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
+import { BottomSheet, SecondaryButton } from "../components/ui";
 import { customSessionState } from "./customSessions";
 import { canUse, savedSessionLimit } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
-import { SwitchProgramSheet, ProgramsGuideSheet, PlanSessionSheet } from "./SoloProgramSwitch";
+import { SwitchProgramSheet, ProgramsGuideSheet, PlanSessionSheet, DeleteProgramSheet } from "./SoloProgramSwitch";
+import SoloSwipeRow from "./SoloSwipeRow";
 import { weekInProgram } from "./currentProgram";
 import { loadWorkoutDraft } from "./workoutDraft";
 
@@ -85,9 +87,9 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
             className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4"
             style={inputStyle}
           />
-          <PrimaryButton dark={dark} className="w-full" onClick={() => saveStartDate(draftDate)} disabled={!draftDate}>
+          <SoloButton t={t} className="w-full" onClick={() => saveStartDate(draftDate)} disabled={!draftDate}>
             SET START DATE
-          </PrimaryButton>
+          </SoloButton>
         </div>
       ) : (
         <div>
@@ -187,8 +189,8 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                 className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-3"
                 style={inputStyle}
               />
-              <PrimaryButton
-                dark={dark}
+              <SoloButton
+                t={t}
                 className="w-full"
                 onClick={() => {
                   saveStartDate(draftDate);
@@ -197,7 +199,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                 disabled={!draftDate || draftDate === purchase.startDate}
               >
                 SAVE NEW START DATE
-              </PrimaryButton>
+              </SoloButton>
             </div>
           )}
         </div>
@@ -229,7 +231,6 @@ export default function SoloMyTrainingScreen() {
     soloProgramsById,
     soloContentById,
     soloAccess,
-    soloEnrolments,
     soloHasAllAccess,
     setEnrolmentStartDate,
     saveSoloCustomProgram,
@@ -240,6 +241,7 @@ export default function SoloMyTrainingScreen() {
     setSoloSessionPlan,
     planSoloSession,
     soloListsReady,
+    removeSoloProgram,
   } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   // Recovery add-ons are a Plus feature once subscriptions launch.
@@ -339,7 +341,9 @@ export default function SoloMyTrainingScreen() {
       .filter(Boolean);
   }, [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, trainingDays]);
   const currentRow = ownedRows.find((r) => r.purchase.current) || null;
-  const archivedRows = ownedRows.filter((r) => !r.purchase.current);
+  // A bought program deleted from Archived stays owned but hidden until
+  // it's started again (#168).
+  const archivedRows = ownedRows.filter((r) => !r.purchase.current && !soloCurrentUser?.hiddenPrograms?.[r.purchase.programId]);
 
   // Weeks in a program, for "at Week N".
   const totalWeeksOf = (programId) => programsById[programId]?.weekOnePreview?.totalWeeks || totalWeeksForProgram(programPhases(soloContentById[programId]));
@@ -447,6 +451,8 @@ export default function SoloMyTrainingScreen() {
   }, [soloTrainingPrograms, programsById, soloContentById, soloWorkoutLogs, trainingDays, soloCurrentUser?.sessionPlan, todayKey]);
   // Planning one of their own sessions on a day (#142).
   const [planFor, setPlanFor] = useState(null);
+  // Swipe → Delete on an archived program (#168): the row being deleted.
+  const [deleteRow, setDeleteRow] = useState(null);
   const planDays = useMemo(
     () =>
       Array.from({ length: 7 }, (_, i) => {
@@ -721,8 +727,8 @@ export default function SoloMyTrainingScreen() {
                       ? () => openPaywall({ tier: source === "custom" ? "plus" : "all_access", reason: source === "custom" ? "Your own programs run with Plus. Everything you've logged is kept." : `${row.program.name} is included with All Access. Your progress is kept — pick up where you left off.` })
                       : () => openSwitch(row);
                     return (
+                      <SoloSwipeRow key={row.purchase.id} onDelete={() => setDeleteRow(row)}>
                       <button
-                        key={row.purchase.id}
                         onClick={onTap}
                         className="w-full flex items-center gap-3 rounded-2xl p-2 pr-4 text-left"
                         style={{ ...glass, opacity: 0.8 }}
@@ -745,6 +751,7 @@ export default function SoloMyTrainingScreen() {
                         </div>
                         {locked ? <Lock size={14} color={t.textFaint} className="shrink-0" /> : <ChevronRight size={16} color={t.textFaint} className="shrink-0" />}
                       </button>
+                      </SoloSwipeRow>
                     );
                   })}
                 </div>
@@ -832,6 +839,17 @@ export default function SoloMyTrainingScreen() {
         t={t}
       />
       <ProgramsGuideSheet open={guideOpen} onClose={closeGuide} dark={dark} t={t} />
+      <DeleteProgramSheet
+        open={!!deleteRow}
+        row={deleteRow}
+        onClose={() => setDeleteRow(null)}
+        onConfirm={async () => {
+          await removeSoloProgram(deleteRow.purchase);
+          setDeleteRow(null);
+        }}
+        dark={dark}
+        t={t}
+      />
       <PlanSessionSheet
         open={!!planFor}
         onClose={() => setPlanFor(null)}

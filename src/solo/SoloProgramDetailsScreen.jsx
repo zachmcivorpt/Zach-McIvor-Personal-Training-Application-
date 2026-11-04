@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { SoloButton } from "./SoloUI";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Lock, Eye, PlayCircle } from "lucide-react";
 import { SoloArtwork } from "./SoloArtwork";
@@ -8,7 +9,7 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { visiblePrograms, visibleRecoveryAddons, isRecoveryAddon, formatAudPrice } from "./recommendations";
 import { GOAL_OPTIONS, ENVIRONMENT_OPTIONS } from "./programAttributes";
-import { BottomSheet, PrimaryButton } from "../components/ui";
+import { BottomSheet } from "../components/ui";
 import { ClientThemeContext, ExerciseDetailSheet } from "../client/ClientApp";
 import { canUse } from "./soloAccess";
 import { SwitchProgramSheet } from "./SoloProgramSwitch";
@@ -466,9 +467,9 @@ export default function SoloProgramDetailsScreen() {
           unlocks as soon as payment completes.
         </p>
         {purchaseError && <p className="text-red-500 text-sm mb-4">{purchaseError}</p>}
-        <PrimaryButton dark={dark} className="w-full" onClick={confirmPurchase} disabled={purchasing}>
+        <SoloButton t={t} className="w-full" onClick={confirmPurchase} disabled={purchasing}>
           {purchasing ? "STARTING CHECKOUT…" : `PAY ${formatAudPrice(program.priceCents)}`}
-        </PrimaryButton>
+        </SoloButton>
       </BottomSheet>
 
       <SwitchProgramSheet
@@ -488,9 +489,9 @@ export default function SoloProgramDetailsScreen() {
           in your history.
         </p>
         {addonError && <p className="text-red-500 text-sm mb-4">{addonError}</p>}
-        <PrimaryButton dark={dark} className="w-full" onClick={() => applyAddon(id)} disabled={addonSaving}>
+        <SoloButton t={t} className="w-full" onClick={() => applyAddon(id)} disabled={addonSaving}>
           {addonSaving ? "REPLACING…" : "REPLACE"}
-        </PrimaryButton>
+        </SoloButton>
       </BottomSheet>
 
       {detailExercise && (

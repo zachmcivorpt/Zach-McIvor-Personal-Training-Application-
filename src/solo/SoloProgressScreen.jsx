@@ -28,7 +28,6 @@ import {
   computeMonthlyVolume,
   computeAchievements,
   computePerformanceTimeline,
-  trendDirection,
 } from "../lib/trainingStats";
 import { localDateKey } from "../lib/dateKey";
 import { fileToCompressedDataUrl } from "../lib/image";

@@ -33,7 +33,7 @@ import { savedOrQueued, QUEUED } from "./offlineWrite";
 import { tierFromEntitlement, gatesLive, canUse } from "../solo/soloAccess";
 import { trainingPrograms, planStart } from "../solo/enrolments";
 import { customProgramEntries } from "../solo/customPrograms";
-import { resolveCurrentProgramId, applyCurrentProgram, planSwitch, planArchiveForLater, legacyMigration } from "../solo/currentProgram";
+import { resolveCurrentProgramId, applyCurrentProgram, planSwitch, planArchiveForLater, legacyMigration, planRemoveProgram } from "../solo/currentProgram";
 import { inAppPurchasesAvailable, identifyPurchaser, forgetPurchaser } from "./purchases";
 
 // Completely separate from AppContext.jsx/AppProvider on purpose — Train
@@ -111,6 +111,9 @@ export function SoloAppProvider({ children }) {
   // experience. Same isolation as soloPurchases: never Coaching's
   // workoutLogs collection, never another customer's logs.
   const [soloWorkoutLogs, setSoloWorkoutLogs] = useState([]);
+  // The latest logs for actions made once (removeSoloProgram, #168).
+  const soloWorkoutLogsRef = useRef([]);
+  soloWorkoutLogsRef.current = soloWorkoutLogs;
   // A customer's own body-weight log — the Progress tab. Same isolation
   // as soloWorkoutLogs: never Coaching's weighIns collection, never
   // visible to a coach.
@@ -895,7 +898,9 @@ export function SoloAppProvider({ children }) {
           totalWeeksFor: st.totalWeeksFor,
         });
         const batch = writeBatch(soloDb);
-        batch.update(doc(soloDb, "soloUsers", uid), plan.profile);
+        // Starting a bought program that was deleted from Archived shows it
+        // again (#168).
+        batch.update(doc(soloDb, "soloUsers", uid), { ...plan.profile, [`hiddenPrograms.${target.programId}`]: deleteField() });
         for (const e of plan.enrolments) {
           if (e.create) batch.set(doc(soloDb, "soloEnrolments", e.id), e.fields);
           else batch.update(doc(soloDb, "soloEnrolments", e.id), e.fields);
@@ -904,6 +909,26 @@ export function SoloAppProvider({ children }) {
         for (const c of plan.customPrograms) batch.update(doc(soloDb, "soloCustomPrograms", c.id), { startDate: c.startDate, updatedAt: Date.now() });
         await keep(batch.commit());
         return plan;
+      },
+      // Delete an archived program (#168, currentProgram.js planRemoveProgram):
+      // the program's own data goes, the member's logged sessions stay on
+      // Progress (detached from it). Never the current program.
+      async removeSoloProgram(row) {
+        const st = programStateRef.current;
+        const uid = st.soloProfile?.id || st.soloAuthUser?.uid;
+        const plan = planRemoveProgram(row, soloWorkoutLogsRef.current);
+        if (!uid || !plan) return;
+        const ops = [
+          (b) => b.update(doc(soloDb, "soloUsers", uid), Object.fromEntries(Object.entries(plan.profile).map(([k, v]) => [k, v === null ? deleteField() : v]))),
+          ...plan.deletes.map(([c, id]) => (b) => b.delete(doc(soloDb, c, id))),
+          ...plan.updates.map(([c, id, fields]) => (b) => b.update(doc(soloDb, c, id), fields)),
+        ];
+        // Firestore takes 500 writes per batch.
+        for (let i = 0; i < ops.length; i += 400) {
+          const batch = writeBatch(soloDb);
+          for (const op of ops.slice(i, i + 400)) op(batch);
+          await keep(batch.commit());
+        }
       },
       // A program kept for later: archived, not on the calendar.
       async keepSoloProgramForLater(programId) {

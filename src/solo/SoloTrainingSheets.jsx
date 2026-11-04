@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
+import { SoloButton } from "./SoloUI";
 import { Check, Trophy, ChevronLeft, ChevronRight } from "lucide-react";
 import { MEASURE_BLUE } from "../theme";
-import { BottomSheet, PrimaryButton, ExerciseThumb } from "../components/ui";
+import { BottomSheet, ExerciseThumb } from "../components/ui";
 import { countExercises, countWorkoutSets, estimateWorkoutMinutes } from "../lib/workoutStats";
 import { programPhases } from "../lib/AppContext";
 import { totalWeeksForProgram } from "./weekProgress";
@@ -352,9 +353,9 @@ export function ProgramOverviewSheet({ open, onClose, program, content, purchase
             );
           })}
 
-          <PrimaryButton dark={dark} className="w-full mt-2" onClick={onOpenSchedule}>
+          <SoloButton t={t} className="w-full mt-2" onClick={onOpenSchedule}>
             {purchase?.startDate ? "THIS WEEK & SCHEDULE" : "SET START DATE"}
-          </PrimaryButton>
+          </SoloButton>
         </div>
       )}
     </BottomSheet>

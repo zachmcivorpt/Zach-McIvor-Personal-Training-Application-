@@ -392,3 +392,47 @@ describe("My Training while programs are still loading (#165)", () => {
     expect(screen.getByText("Browse the catalogue")).toBeTruthy();
   });
 });
+
+// #168: swipe an archived program left → Delete → confirm. Nothing is
+// removed without the confirm; the current program can't be swiped.
+describe("deleting an archived program (#168)", () => {
+  function swipeLeft(el) {
+    fireEvent.pointerDown(el, { clientX: 300, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(el, { clientX: 250, clientY: 12, pointerId: 1 });
+    fireEvent.pointerMove(el, { clientX: 180, clientY: 12, pointerId: 1 });
+    fireEvent.pointerUp(window, { pointerId: 1 });
+  }
+
+  it("swipe shows Delete, which asks first; confirming deletes that program only", async () => {
+    ctx = baseCtx({ removeSoloProgram: vi.fn(() => Promise.resolve()) });
+    await renderMyTraining();
+    const rows = screen.getAllByTestId("solo-swipe-row");
+    expect(rows).toHaveLength(1); // the archived one; the current program has no swipe
+    const inner = within(rows[0]).getByText("Hypertrophy").closest("button").parentElement;
+    swipeLeft(inner);
+    fireEvent.click(within(rows[0]).getByRole("button", { name: "Delete" }));
+    expect(ctx.removeSoloProgram).not.toHaveBeenCalled();
+    expect(screen.getByText("Delete program?")).toBeTruthy();
+    expect(screen.getByTestId("delete-program-keeps").textContent).toMatch(/logged sessions, PRs and everything on Progress stay/);
+    fireEvent.click(screen.getByRole("button", { name: "Delete program" }));
+    await waitFor(() => expect(ctx.removeSoloProgram).toHaveBeenCalledTimes(1));
+    expect(ctx.removeSoloProgram.mock.calls[0][0]).toMatchObject({ id: archivedRow.id, programId: "p2" });
+  });
+
+  it("Keep it deletes nothing", async () => {
+    ctx = baseCtx({ removeSoloProgram: vi.fn(() => Promise.resolve()) });
+    await renderMyTraining();
+    const row = screen.getByTestId("solo-swipe-row");
+    swipeLeft(within(row).getByText("Hypertrophy").closest("button").parentElement);
+    fireEvent.click(within(row).getByRole("button", { name: "Delete" }));
+    fireEvent.click(screen.getByRole("button", { name: "Keep it" }));
+    expect(ctx.removeSoloProgram).not.toHaveBeenCalled();
+  });
+
+  it("a deleted bought program is hidden from Archived (still owned)", async () => {
+    ctx = baseCtx({ soloCurrentUser: { id: "u1", programsGuideSeenAt: 1, onboarding: { answers: {} }, hiddenPrograms: { p2: true } } });
+    await renderMyTraining();
+    expect(screen.queryByText("Hypertrophy")).toBe(null);
+    expect(screen.queryByTestId("solo-swipe-row")).toBe(null);
+  });
+});

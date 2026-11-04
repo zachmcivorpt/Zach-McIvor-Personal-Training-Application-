@@ -170,6 +170,11 @@ export function buildSoloCalendar({
       const dates = sessionDateKeys(purchase.startDate, week, days.length, trainingDays, purchase.weekdays);
       days.forEach((day, i) => {
         if (until && dates[i] >= until) return;
+        const done = doneSessions.has(`${purchase.id}:${week}:${day.id}`);
+        // An archived program's history is what was actually done (#169):
+        // its sessions never done showed as still "to do" on days before it
+        // was archived — a dot on Monday for a program switched away from.
+        if (until && !done) return;
         const planned = sessionPlan?.[purchase.id]?.[sessionPlanKey(week, day.id)] || null;
         const dateKey = planned?.moveTo || dates[i];
         workoutDays.add(dateKey);
@@ -178,7 +183,7 @@ export function buildSoloCalendar({
           id: `${purchase.id}:${week}:${day.id}`,
           title: day.label || "Workout",
           subtitle: `${program.name} · Week ${week}`,
-          done: doneSessions.has(`${purchase.id}:${week}:${day.id}`),
+          done,
           skipped: !!planned?.skipped,
           movedFrom: planned?.moveTo ? dates[i] : null,
           dateKey,

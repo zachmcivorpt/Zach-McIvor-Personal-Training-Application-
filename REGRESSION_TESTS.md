@@ -2707,6 +2707,28 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Fix**: `db.messages?.[client.id] || []`, the client's own thread, as every other coach screen reads it (`CoachMessages`, `CoachClients`, `CoachDashboard`).
 - **Tests**: `src/coach/welcomeMessageSend.test.jsx` now builds `db.messages` exactly as AppContext does (grouped by client), plus 2 new tests: the page opens with grouped messages (another client's welcome doesn't count), and with no messages loaded. On the #162 code, 5 of the 6 tests fail with the crash.
 
+### 168. Delete an archived program by swiping (owner request, 2026-11-04)
+- **Change**: on My Training → Archived, swipe a program left to show **Delete**. It asks first ("Delete program?", what goes and that "Your logged sessions, PRs and everything on Progress stay"), with **Delete program** / **Keep it**. The current program can't be swiped.
+- **What's removed** (`planRemoveProgram`, `src/solo/currentProgram.js`; `removeSoloProgram` in SoloAppContext, offline-safe through `keep()`, batches of 400):
+  - own built program: its `soloCustomPrograms` doc;
+  - All Access program: its enrolment (it stays in the catalogue to start again);
+  - bought program: never deleted (paid for, and firestore.rules refuse it). Its start date is cleared and `hiddenPrograms[programId]` hides it from Archived; starting it again (`switchSoloProgram`) un-hides it;
+  - all three: its archived record, `sessionPlan` and `programSwaps`.
+- **What stays**: every logged session (Progress, PRs, history, muscle map). The sessions are detached from the program (`purchaseId` → `<id>_removed_<time>`, `removedFromProgram`), because All Access enrolment ids are fixed per program and a re-started program would otherwise show the old sessions as done.
+- **Swipe**: `src/solo/SoloSwipeRow.jsx`, Train Solo's own (never `ClientApp`'s `SwipeableRow`), following the #107/#109 rules: no capture on pointerdown, capture once a sideways swipe starts (in try/catch), finish from window-level up/cancel, decide from `dragXRef`; a tap on an open row closes it.
+- **Tests**: `currentProgram.test.js` planRemoveProgram (4: All Access, built, bought, current refused); `oneProgramAtATime.test.jsx` (3: swipe → Delete → confirm deletes only that program, Keep it deletes nothing, a hidden bought program isn't listed). These fail without the change (no swipe row, no function). Real touch (CDP `Input.dispatchTouchEvent`, iPhone 13 emulation), 6 checks: a tap opens the program; a vertical scroll only scrolls; a short swipe snaps back; a full swipe reveals Delete; tapping Delete asks and closes the row; tapping an open row closes it without opening the program.
+
+### 169. "The date is wrong" on My Training; Train Solo sweep (owner, 2026-11-04)
+- **Problem**: My Training showed a session dot on **Monday 2nd** while the current program had just started (Wed 4th), so the week looked wrong.
+- **Cause**: an archived program's calendar showed every session dated before it was archived, **including ones never done**, as still to do. Switching programs today left the archived program's undone Monday session on the week strip.
+- **Fix** (`soloCalendar.js` `buildSoloCalendar`): an archived program (one with `untilDate`) shows only its sessions that were done. That's its history; nothing "to do".
+- **Sweep, Train Solo only**:
+  - Dates: no UTC-date traps (`toISOString` dates, date-only strings parsed as UTC) anywhere in Train Solo. Weigh-ins and photos store timestamps or local noon.
+  - Removed dead code: `TIERS` (soloAccess.js), the unused `soloEnrolments` in My Training, the unused `trendDirection` import in Progress, and the unused `dark` parameter in the welcome screen. No unused Train Solo files.
+  - Buttons: the builders, workout, program page, start-date sheet, program overview and consultation used the shared sentence-case `PrimaryButton`, against #143/#144. They now use `SoloButton` (bold all-caps). The login, register and finish-setup photo screens keep their own style.
+  - Click-through of every Train Solo screen on a fresh account (register, questionnaire, first session, My Training, Catalogue, a program and its exercise sheet, Progress, Profile, theme switch, Calendar, both builders, Recovery, Consultation, week recap, Program complete, a quick workout and cancel, reload): no page errors, no console errors (twice, before and after the button change).
+- **Tests**: `enrolments.test.js` (2, rewritten for the rule: an archived program shows only the sessions done before it was archived, never one to do). Both fail on the old calendar code. Full suite 1071 passed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

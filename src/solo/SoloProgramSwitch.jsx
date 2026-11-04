@@ -191,3 +191,60 @@ export function PlanSessionSheet({ open, onClose, session, days, suggested, onCo
     </BottomSheet>
   );
 }
+
+// Deleting an archived program (#168): says exactly what goes and what
+// stays, and asks before anything is removed.
+export function DeleteProgramSheet({ open, row, onClose, onConfirm, dark, t }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (open) {
+      setBusy(false);
+      setError("");
+    }
+  }, [open]);
+  if (!row) return null;
+  const { source } = row.purchase;
+  const what =
+    source === "custom"
+      ? "This deletes the program you built, with its weeks, schedule and progress."
+      : source === "all_access"
+        ? "This removes it from your programs, with its schedule and progress. It stays in the catalogue to start again from Week 1."
+        : "This removes it from your programs, with its schedule and progress. You still own it — start it again from the catalogue any time.";
+  return (
+    <BottomSheet open={open} onClose={busy ? () => {} : onClose} title="Delete program?" dark={dark} surface={soloClearSheetGlass(dark)} backdropClassName={CLEAR_SHEET_BACKDROP}>
+      <div style={{ color: t.text }}>
+        <p className="text-[15px] font-semibold leading-snug">{row.program.name}</p>
+        <p className={`${SOLO_TYPE.body} mt-2 leading-relaxed`} style={{ color: t.textMuted }}>
+          {what}
+        </p>
+        <p className={`${SOLO_TYPE.body} mt-2 leading-relaxed`} style={{ color: t.textMuted }} data-testid="delete-program-keeps">
+          Your logged sessions, PRs and everything on Progress stay.
+        </p>
+        {error && <p className="text-sm mt-3 text-red-500">{error}</p>}
+        <div className="mt-6 space-y-1">
+          <SoloButton
+            t={t}
+            disabled={busy}
+            style={{ backgroundColor: "#E5484D", color: "#FFFFFF" }}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              try {
+                await onConfirm();
+              } catch (err) {
+                setError(err?.message || "Couldn't delete it — please try again.");
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? "Deleting…" : "Delete program"}
+          </SoloButton>
+          <SoloTextButton t={t} onClick={onClose} disabled={busy}>
+            Keep it
+          </SoloTextButton>
+        </div>
+      </div>
+    </BottomSheet>
+  );
+}

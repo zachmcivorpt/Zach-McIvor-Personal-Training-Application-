@@ -82,7 +82,7 @@ export function SoloWelcomeScreen({ tier, renewal, note = "", onDone }) {
     // instant (#165): it replaces "Confirming your membership" in the same
     // frame; a fade-in showed the page underneath between the two.
     <Shell label={`Welcome to ${label}`} testId="solo-welcome" instant>
-      {(t, dark) => (
+      {(t) => (
         <>
           <div className="flex-1 flex flex-col justify-center px-6">
             <img src={t.logo} alt="" aria-hidden="true" className="w-7 h-7 object-contain opacity-90" />

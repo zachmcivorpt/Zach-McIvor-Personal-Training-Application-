@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
+import { SoloButton } from "./SoloUI";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronUp, ChevronDown, Minus, Plus, Trash2 } from "lucide-react";
 import { ClientThemeContext, AddExerciseSheet } from "../client/ClientApp";
-import { ExerciseThumb, PrimaryButton, SecondaryButton } from "../components/ui";
+import { ExerciseThumb, SecondaryButton } from "../components/ui";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { newSessionExercise, sessionProblem, customSessionState, REST_OPTIONS, MAX_SESSION_EXERCISES } from "./customSessions";
@@ -180,9 +181,9 @@ export default function SoloSessionBuilderScreen() {
           {error && <p className="text-sm text-red-500 text-center mt-4">{error}</p>}
 
           <div className="mt-6 space-y-2.5">
-            <PrimaryButton dark={dark} className="w-full" onClick={() => save(true)} disabled={saving}>
+            <SoloButton t={t} className="w-full" onClick={() => save(true)} disabled={saving}>
               {saving ? "Saving…" : "Save & start"}
-            </PrimaryButton>
+            </SoloButton>
             <SecondaryButton dark={dark} className="w-full" onClick={() => save(false)} disabled={saving}>
               Save for later
             </SecondaryButton>
