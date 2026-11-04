@@ -529,7 +529,7 @@ export default function SoloMyTrainingScreen() {
   return (
     <div className="relative w-full">
       <SoloPageHeader t={t} title={firstName ? `Welcome, ${firstName}` : "Welcome"} className="max-w-md mx-auto" />
-      <div className="relative w-full max-w-md mx-auto px-3 pt-2 pb-10">
+      <div className="relative w-full max-w-md mx-auto px-3 pb-10">
 
         {boughtProgramId && !checkoutDismissed && (
           <div className="rounded-2xl px-4 py-3.5 mb-5" style={{ ...glass, borderColor: "rgba(47,143,255,0.45)" }}>
@@ -1053,7 +1053,7 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, on
   const sessions = items.filter(isSessionItem);
   const others = items.filter((i) => !isSessionItem(i));
   return (
-    <div className="mt-6">
+    <div className="mt-4">
       <h2 className="text-lg font-bold leading-tight mb-3">{heading}</h2>
       {items.length === 0 && !listsReady ? (
         // Programs still loading: nothing yet, never "Rest day" or "Browse

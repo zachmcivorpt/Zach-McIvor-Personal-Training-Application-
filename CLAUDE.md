@@ -152,7 +152,9 @@ rather than inventing new colors per screen:
 - **Tab headers** (#174): every tab opens with `SoloPageHeader`
   (SoloUI.jsx): the APEX mark top left, then the title at one size and
   position — "Welcome, <first name>" on My Training, then Progress,
-  Calendar, Catalogue, Profile. The Solo logo (`t.logo`) is the small
+  Calendar, Catalogue, Profile. Spacing is tight (#176): logo → title
+  10px, title → first section 8px; My Training's day heading 16px
+  below the week strip. The Solo logo (`t.logo`) is the small
   inline image in `soloMark.js`, never a /brand file (it came up empty in
   the iPhone app).
 - **Tabs** (#171): My Training, Progress, Calendar, Catalogue, Profile.

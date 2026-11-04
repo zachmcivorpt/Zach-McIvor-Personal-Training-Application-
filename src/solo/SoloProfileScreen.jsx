@@ -112,7 +112,7 @@ export default function SoloProfileScreen() {
       <SoloPageHeader
         t={t}
         title="Profile"
-        className="-mx-3 mb-3"
+        className="-mx-3"
         right={
           <button
             onClick={toggleSoloTheme}
