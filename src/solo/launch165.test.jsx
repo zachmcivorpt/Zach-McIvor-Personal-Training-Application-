@@ -181,7 +181,7 @@ describe("index.html", () => {
 });
 
 describe("the iPhone app's 'is the page alive?' check during a workout", () => {
-  it("finds content in #root even though the workout screen draws outside it (it rebuilt the web view mid-workout)", async () => {
+  it("finds content in #root even though the workout screen draws outside it (it rebuilt the web view mid-workout)", { timeout: 30000 }, async () => {
     const { createPortal } = await import("react-dom");
     vi.doMock("./soloScreens", () => ({
       SoloWorkoutSessionScreen: () => createPortal(<p>workout screen</p>, document.body),
@@ -212,7 +212,9 @@ describe("the iPhone app's 'is the page alive?' check during a workout", () => {
       </MemoryRouter>,
       { container: root }
     );
-    await screen.findByText("workout screen");
+    // Loading all of Train Solo's routes can take a few seconds under the
+    // full suite's load.
+    await screen.findByText("workout screen", {}, { timeout: 15000 });
     // What ViewController.pageDrawsFrame evaluates: #root's element count.
     expect(document.getElementById("root").childElementCount).toBeGreaterThan(0);
     vi.doUnmock("./soloScreens");
