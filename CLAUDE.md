@@ -149,6 +149,12 @@ rather than inventing new colors per screen:
   count half; muscles come only from `exerciseMuscles.js` (#149).
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
+- **Tab headers** (#174): every tab opens with `SoloPageHeader`
+  (SoloUI.jsx): the APEX mark top left, then the title at one size and
+  position — "Welcome, <first name>" on My Training, then Progress,
+  Calendar, Catalogue, Profile. The Solo logo (`t.logo`) is the small
+  inline image in `soloMark.js`, never a /brand file (it came up empty in
+  the iPhone app).
 - **Tabs** (#171): My Training, Progress, Calendar, Catalogue, Profile.
   Calendar sessions move like the client calendar (grip handle, drag onto a
   listed day) via `canMoveItem` / `planMove` (soloCalendar.js) through

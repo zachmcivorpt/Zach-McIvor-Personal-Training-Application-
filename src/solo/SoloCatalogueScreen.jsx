@@ -8,6 +8,7 @@ import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { SoloArtwork } from "./SoloArtwork";
 import { inIosApp, APP_STORE_URL } from "./appShell";
 import { useSoloPaywall } from "./SoloPaywall";
+import { SoloPageHeader } from "./SoloUI";
 
 // One empty object for "no answers yet", so memos that depend on the
 // answers don't recompute on every render (#172).
@@ -84,7 +85,6 @@ export default function SoloCatalogueScreen() {
   );
   const recommended = picks.programs;
   const flagged = isFlaggedForMedicalReview(answers);
-  const firstName = (soloCurrentUser?.name || "").trim().split(/\s+/)[0];
 
   const groups = categories
     .filter((c) => !activeCategoryId || c.id === activeCategoryId)
@@ -100,15 +100,7 @@ export default function SoloCatalogueScreen() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="flex items-center justify-between gap-3 px-3 pt-5 pb-2">
-        <img src={t.logo} alt="" style={{ height: 19 }} />
-      </div>
-
-      <div className="px-3 pt-3 pb-0">
-        <h1 className="text-xl font-bold leading-tight">
-          {firstName ? `Welcome, ${firstName}` : "Welcome"}
-        </h1>
-      </div>
+      <SoloPageHeader t={t} title="Catalogue" />
 
       <div className="px-3 pt-2 pb-1">
         {/* Website only: how buying works. The iOS app shows no prices and
