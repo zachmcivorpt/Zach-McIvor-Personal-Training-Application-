@@ -54,7 +54,7 @@ function ProgramCard({ program, t, onClick, live = false }) {
 
 export default function SoloCatalogueScreen() {
   const navigate = useNavigate();
-  const { soloProgramCategories, soloPrograms, soloCurrentUser, soloPurchases, soloGatesLive, soloHasAllAccess, soloEnrolments } = useSoloApp();
+  const { soloProgramCategories, soloPrograms, soloProgramsLoaded, soloCurrentUser, soloPurchases, soloGatesLive, soloHasAllAccess, soloEnrolments } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   const live = soloGatesLive;
   const { dark, accent } = useSoloTheme();
@@ -217,9 +217,13 @@ export default function SoloCatalogueScreen() {
         </div>
 
         {published.length === 0 ? (
-          <p className="text-sm text-center py-16" style={{ color: t.textFaint }}>
-            No programs are published yet — check back soon.
-          </p>
+          // Still arriving (first open on this phone): nothing, rather than
+          // "No programs" flashing before the catalogue shows (#157).
+          soloProgramsLoaded === false ? null : (
+            <p className="text-sm text-center py-16" style={{ color: t.textFaint }}>
+              No programs are published yet — check back soon.
+            </p>
+          )
         ) : groups.length === 0 ? (
           <p className="text-sm text-center py-16" style={{ color: t.textFaint }}>
             No programs in this category yet.

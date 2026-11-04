@@ -126,6 +126,19 @@ rather than inventing new colors per screen:
 - No drawn/stock artwork: a program shows only its coach-uploaded
   `artworkUrl`, otherwise the plain cover gradient + APEX mark.
 - Spelling is "Program", never "Programme".
+- **A workout in progress is kept on the phone** (#157,
+  `src/solo/workoutDraft.js`): every typed set goes to the account's draft
+  in localStorage (not sessionStorage — it must survive a rebuilt web view),
+  cleared only on Complete or Discard; Cancel with sets entered asks (an
+  in-page sheet — WKWebView has no `confirm()`); My Training offers Resume.
+  Never hold logged sets only in React state.
+- **Customer saves never wait on the server** (#157): new Train Solo writes
+  in `SoloAppContext` go through `keep()` (`savedOrQueued`), so with no
+  signal a button never sits on "Saving…" for good; sign-out clean-up that
+  needs the network is time-boxed. Buttons that leave for Stripe stay busy
+  until the page has gone (`pageshow` resets them) — one checkout per tap.
+- Screens that show "not found"/"no programs" wait for `soloProgramsLoaded`
+  (#157), so nothing flashes before the catalogue arrives.
 - **Muscle map** (#148, `SoloMuscleMap.jsx`, `MuscleBody.jsx`,
   `muscleMap.js`): a glass card on Progress, not in My Training. Draw every
   muscle head (4 quads, 3 hamstrings, delt heads, calves + soleus…);

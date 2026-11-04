@@ -19,6 +19,7 @@ import { canUse, savedSessionLimit } from "./soloAccess";
 import { useSoloPaywall } from "./SoloPaywall";
 import { SwitchProgramSheet, ProgramsGuideSheet, PlanSessionSheet } from "./SoloProgramSwitch";
 import { weekInProgram } from "./currentProgram";
+import { loadWorkoutDraft } from "./workoutDraft";
 
 // A purchased program's own overview — which week the customer is in, that
 // week's workouts, and a Start button for each that opens
@@ -463,6 +464,8 @@ export default function SoloMyTrainingScreen() {
     setPlanBusy(item.id);
     try {
       await setSoloSessionPlan(soloCurrentUser.id, item.purchase.id, sessionPlanKey(item.weekNumber, item.day.id), value);
+    } catch {
+      // Refused by the server: the row stays as it was (was an unhandled rejection).
     } finally {
       setPlanBusy(null);
     }
@@ -486,6 +489,13 @@ export default function SoloMyTrainingScreen() {
     if (!soloCurrentUser) return;
     navigate("/solo/workout", { state: customSessionState(soloCurrentUser.id, session) });
   }
+
+  // A workout left unfinished on this phone (#157) — not one that has since
+  // been logged (e.g. finished on another device).
+  const workoutDraft = useMemo(() => {
+    const draft = loadWorkoutDraft(soloCurrentUser?.id);
+    return draft && !soloWorkoutLogs.some((l) => l.id === draft.key) ? draft : null;
+  }, [soloCurrentUser?.id, soloWorkoutLogs]);
 
   function logProgramName(log) {
     const purchase = soloTrainingPrograms.find((p) => p.id === log?.purchaseId);
@@ -529,6 +539,25 @@ export default function SoloMyTrainingScreen() {
               </button>
             </div>
           </div>
+        )}
+
+        {workoutDraft && (
+          <button
+            type="button"
+            onClick={() => navigate("/solo/workout", { state: workoutDraft.sessionInfo })}
+            className="w-full flex items-center justify-between gap-3 py-3 mb-4 border-y text-left"
+            style={{ borderColor: t.panelBorder }}
+          >
+            <span className="min-w-0">
+              <span className="block text-[13px] font-semibold">Workout in progress</span>
+              <span className="block text-[11px] mt-0.5 truncate" style={{ color: t.textMuted }}>
+                {workoutDraft.sessionInfo.day?.label || "Your session"} · pick up where you left off
+              </span>
+            </span>
+            <span className="flex items-center gap-1 text-[12px] font-bold uppercase shrink-0" style={{ color: MEASURE_BLUE }}>
+              Resume <ChevronRight size={14} />
+            </span>
+          </button>
         )}
 
         {[1, 2].includes(new Date(`${todayKey}T00:00:00`).getDay()) && soloWorkoutLogs.length > 0 && (

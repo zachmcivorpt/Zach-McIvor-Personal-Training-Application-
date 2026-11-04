@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
 import { useSoloApp } from "../lib/SoloAppContext";
@@ -106,7 +106,9 @@ export function SoloPaywallProvider({ children }) {
     []
   );
   const value = useMemo(() => ({ openPaywall }), [openPaywall]);
-  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement } = useSoloApp();
+  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement, soloTier } = useSoloApp();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [outcome] = useState(readPurchaseOutcome);
   const signedIn = !!soloAuthUser;
   // After the reload: "confirming" while the server is asked, then the
@@ -155,6 +157,42 @@ export function SoloPaywallProvider({ children }) {
     return () => clearTimeout(id);
   }, [confirming]);
 
+  // Back from a website (Stripe) subscription checkout:
+  // /solo/home?subscribed=<plan> (#157). This page used to show nothing at
+  // all, so a new member landed looking Free until Stripe's webhook arrived.
+  // Now: "Confirming your membership" until the plan reaches the account,
+  // then the welcome. The tier still only ever comes from the server.
+  const [webPlan, setWebPlan] = useState(null);
+  const [webWelcome, setWebWelcome] = useState(false);
+  useEffect(() => {
+    const plan = new URLSearchParams(location.search).get("subscribed");
+    if (!plan || !signedIn) return;
+    setWebPlan(plan);
+    setConfirming(true);
+    const rest = new URLSearchParams(location.search);
+    rest.delete("subscribed");
+    const search = rest.toString();
+    navigate(location.pathname + (search ? `?${search}` : ""), { replace: true, state: location.state });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, signedIn]);
+  useEffect(() => {
+    if (!webPlan) return;
+    if (soloTier && soloTier !== "free") {
+      setWebPlan(null);
+      setConfirming(false);
+      setWebWelcome(true);
+      setWelcomeTier(soloTier);
+      return;
+    }
+    // Stripe's confirmation can lag; say so rather than leave them guessing.
+    const id = setTimeout(() => {
+      setWebPlan(null);
+      setConfirming(false);
+      openPaywall({ tier: PLANS[webPlan]?.tier || "all_access", notice: "Payment received — your membership is on its way and unlocks in a minute or two. No need to pay again." });
+    }, 15000);
+    return () => clearTimeout(id);
+  }, [webPlan, soloTier, openPaywall]);
+
   const renewal = renewalText(planRenewal(soloEntitlement));
   return (
     <PaywallCtx.Provider value={value}>
@@ -163,10 +201,11 @@ export function SoloPaywallProvider({ children }) {
       {welcomeTier && (
         <SoloWelcomeScreen
           tier={welcomeTier}
-          renewal={renewal ? `${renewal} · App Store` : ""}
+          renewal={renewal ? (webWelcome ? renewal : `${renewal} · App Store`) : ""}
           onDone={() => {
             clearPurchaseOutcome();
             setWelcomeTier(null);
+            setWebWelcome(false);
           }}
         />
       )}
@@ -195,6 +234,15 @@ function SoloPaywallSheet({ request, onClose }) {
   // leaving a silent grey button. Cleared on each open so it retries.
   const [storeError, setStoreError] = useState("");
   const [showStoreError, setShowStoreError] = useState(false);
+  // Back from Stripe with the browser's back button (page cache): the
+  // button left busy above is usable again.
+  useEffect(() => {
+    const onShow = (e) => {
+      if (e.persisted) setBusy(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -274,6 +322,9 @@ function SoloPaywallSheet({ request, onClose }) {
       }
       const result = await startSoloSubscription(plan);
       if (result?.url) {
+        // Stays busy while the page leaves for Stripe: a second tap would
+        // open a second checkout, and paying both is two subscriptions (#157).
+        reloading = true;
         window.location.href = result.url;
         return;
       }

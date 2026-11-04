@@ -31,6 +31,7 @@ export default function SoloProgramDetailsScreen() {
   const navigate = useNavigate();
   const {
     soloPrograms,
+    soloProgramsLoaded,
     soloProgramCategories,
     soloExercises,
     soloCurrentUser,
@@ -57,6 +58,19 @@ export default function SoloProgramDetailsScreen() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [addonSaving, setAddonSaving] = useState(false);
+  const [addonError, setAddonError] = useState("");
+
+  // Back from Stripe with the browser's back button: this page comes back
+  // from the browser's page cache with the button still on "Starting
+  // checkout…" (it stays busy while leaving, so a second tap can't start a
+  // second checkout — #157).
+  useEffect(() => {
+    const onShow = (e) => {
+      if (e.persisted) setPurchasing(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
 
   // Arriving from a scrolled Catalogue would otherwise open this page
   // part-way down, past the hero.
@@ -114,10 +128,14 @@ export default function SoloProgramDetailsScreen() {
 
   async function applyAddon(programId) {
     setAddonSaving(true);
+    setAddonError("");
     try {
       await setRecoveryAddon(soloCurrentUser.id, programId);
       setReplaceOpen(false);
       if (programId) navigate("/solo/calendar");
+    } catch {
+      // Was unhandled: the button just came back with nothing said (#157).
+      setAddonError("Couldn't update your add-on — check your connection and try again.");
     } finally {
       setAddonSaving(false);
     }
@@ -137,6 +155,7 @@ export default function SoloProgramDetailsScreen() {
     if (inIosApp()) return; // never start a Stripe checkout inside the iOS app
     setPurchasing(true);
     setPurchaseError("");
+    let leaving = false;
     try {
       const result = await startSoloCheckout(program.id);
       if (result?.alreadyOwned) {
@@ -155,6 +174,9 @@ export default function SoloProgramDetailsScreen() {
         // show locally yet; My Training picks it up via its own
         // onSnapshot listener the moment that write lands, same as the
         // old placeholder flow's post-purchase redirect did.
+        // Stays "Starting checkout…" while the page leaves: a second tap
+        // would start a second checkout (and a second charge) — #157.
+        leaving = true;
         window.location.href = result.url;
         return;
       }
@@ -162,10 +184,15 @@ export default function SoloProgramDetailsScreen() {
     } catch (err) {
       setPurchaseError(err?.message || "Something went wrong starting checkout — please try again.");
     } finally {
-      setPurchasing(false);
+      if (!leaving) setPurchasing(false);
     }
   }
 
+  // Opened straight onto this page (a link, a reload): the catalogue hasn't
+  // arrived yet, so "isn't available" would flash before the program shows.
+  if (!program && !soloProgramsLoaded) {
+    return <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg }} />;
+  }
   if (!program) {
     return (
       <div className="min-h-dvh w-full flex flex-col items-center justify-center px-6" style={{ backgroundColor: t.bg, color: t.text }}>
@@ -429,6 +456,7 @@ export default function SoloProgramDetailsScreen() {
             {owned ? "Go to My Training" : "Start Program"}
           </button>
           )}
+          {addonError && !replaceOpen && <p className="text-red-500 text-sm mt-3 text-center">{addonError}</p>}
         </div>
       </div>
 
@@ -459,6 +487,7 @@ export default function SoloProgramDetailsScreen() {
           Only one recovery add-on can run at a time. Replace "{otherAddon?.name}" with "{program.name}"? Sessions you've already completed stay
           in your history.
         </p>
+        {addonError && <p className="text-red-500 text-sm mb-4">{addonError}</p>}
         <PrimaryButton dark={dark} className="w-full" onClick={() => applyAddon(id)} disabled={addonSaving}>
           {addonSaving ? "REPLACING…" : "REPLACE"}
         </PrimaryButton>

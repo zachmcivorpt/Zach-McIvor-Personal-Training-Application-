@@ -35,7 +35,10 @@ const NAV_SPACE = "calc(68px + env(safe-area-inset-bottom,0px))";
 export default function SoloShell() {
   const location = useLocation();
   const navigate = useNavigate();
-  const initialTab = TABS.some((t) => t.id === location.state?.soloTab) ? location.state.soloTab : "training";
+  // Also `?soloTab=` — what Stripe's billing portal returns to
+  // (/solo/home?soloTab=profile), which used to land on My Training (#157).
+  const requestedTab = location.state?.soloTab || new URLSearchParams(location.search).get("soloTab");
+  const initialTab = TABS.some((t) => t.id === requestedTab) ? requestedTab : "training";
   const [tab, setTab] = useState(initialTab);
 
   // navigate(path, { state }) to a route already mounted as SoloShell (e.g.

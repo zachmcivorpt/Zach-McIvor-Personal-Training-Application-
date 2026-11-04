@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
   EmailAuthProvider,
   reauthenticateWithCredential,
   deleteUser,
@@ -56,6 +57,21 @@ function friendlySoloAuthError(err) {
 
 const SoloAppCtx = createContext(null);
 
+// A customer's own save (a session, a start date, a photo…): settles once
+// the server has it, or after a few seconds once it's kept on the phone —
+// Firestore's on-phone cache sends it by itself later (offlineWrite.js). The
+// bare write's promise only settles when the server answers, so awaiting it
+// with no signal left buttons on "Saving…" for good (#157). A refusal that
+// arrives quickly still rejects, so screens keep showing real errors.
+const keep = (writePromise) => savedOrQueued(writePromise);
+
+// Sign-out clean-up that needs the network (the push token, RevenueCat) gets
+// a few seconds, never longer: with no signal it used to hold Log out for
+// good (#157).
+function atMost(promise, ms) {
+  return Promise.race([Promise.resolve(promise).catch(() => {}), new Promise((r) => setTimeout(r, ms))]);
+}
+
 // Asks the server to send the one-time Train Solo welcome email (see
 // functions/soloWelcomeEmail.js) once a profile exists. Fire-and-forget: the
 // server sends at most once per account and does nothing until email is
@@ -77,6 +93,9 @@ export function SoloAppProvider({ children }) {
   const deletingAccountRef = useRef(false);
   const [soloProgramCategories, setSoloProgramCategories] = useState([]);
   const [soloPrograms, setSoloPrograms] = useState([]);
+  // False until the catalogue has answered once (cache or server), so a
+  // screen can tell "still loading" from "not there".
+  const [soloProgramsLoaded, setSoloProgramsLoaded] = useState(false);
   const [soloPurchases, setSoloPurchases] = useState([]);
   // The shared exercise library — same collection Coaching's Program
   // Builder/WorkoutEditor reads from and the same one Solo programs'
@@ -198,7 +217,9 @@ export function SoloAppProvider({ children }) {
   useEffect(() => {
     return onSnapshot(collection(soloDb, "soloPrograms"), (snap) => {
       setSoloPrograms(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+      // A first, empty answer from an empty on-phone cache isn't the catalogue.
+      if (!(snap.metadata?.fromCache && snap.empty)) setSoloProgramsLoaded(true);
+    }, () => setSoloProgramsLoaded(true));
   }, []);
   useEffect(() => {
     return onSnapshot(doc(soloDb, "settings", "appDesign"), (snap) => {
@@ -668,9 +689,21 @@ export function SoloAppProvider({ children }) {
         // Take this device's push token off the account first, while still
         // signed in (the rules only let the owner edit soloUsers/{uid}).
         const uid = soloAuth.currentUser?.uid;
-        if (uid) await removeSoloPushToken(uid);
-        if (inAppPurchasesAvailable()) await forgetPurchaser().catch(() => {});
+        if (uid) await atMost(removeSoloPushToken(uid), 3000);
+        if (inAppPurchasesAvailable()) await atMost(forgetPurchaser(), 3000);
         await signOut(soloAuth);
+      },
+
+      // Firebase's own reset email for a Train Solo login (#157). Its
+      // Continue link comes back to Train Solo's sign-in, not Coaching's.
+      async sendSoloPasswordReset(email) {
+        try {
+          await sendPasswordResetEmail(soloAuth, email.trim(), { url: `${window.location.origin}/solo/login`, handleCodeInApp: false });
+        } catch (err) {
+          const code = err?.code || "";
+          if (code.includes("user-not-found")) return; // never say whether an account exists
+          throw new Error(friendlySoloAuthError(err));
+        }
       },
 
       // The customer's one active recovery add-on (a free kind:"recovery"
@@ -678,7 +711,7 @@ export function SoloAppProvider({ children }) {
       // setting a new one replaces the old. Its sessions are laid onto the
       // rest days of their started programs by src/solo/soloCalendar.js.
       async setRecoveryAddon(uid, programId) {
-        await updateDoc(doc(soloDb, "soloUsers", uid), { recoveryAddon: programId ? { programId, addedAt: Date.now() } : null });
+        await keep(updateDoc(doc(soloDb, "soloUsers", uid), { recoveryAddon: programId ? { programId, addedAt: Date.now() } : null }));
       },
 
       // Monday check-in reminders on/off (soloWeeklyCheckInReminder in
@@ -721,10 +754,12 @@ export function SoloAppProvider({ children }) {
       // registration), so updateDoc never hits a missing-document error.
       async saveOnboardingAnswer(uid, currentAnswers, questionId, value) {
         const nextAnswers = { ...currentAnswers, [questionId]: value };
-        await updateDoc(doc(soloDb, "soloUsers", uid), {
-          "onboarding.answers": nextAnswers,
-          "onboarding.completed": isComplete(nextAnswers),
-        });
+        await keep(
+          updateDoc(doc(soloDb, "soloUsers", uid), {
+            "onboarding.answers": nextAnswers,
+            "onboarding.completed": isComplete(nextAnswers),
+          })
+        );
       },
 
       // A separate, explicit consent record for the sensitive health
@@ -798,7 +833,7 @@ export function SoloAppProvider({ children }) {
         const existing = enrolments.some((e) => e.id === plan.start.id);
         if (existing) batch.update(doc(soloDb, "soloEnrolments", plan.start.id), plan.start.fields);
         else batch.set(doc(soloDb, "soloEnrolments", plan.start.id), plan.start.fields);
-        await batch.commit();
+        await keep(batch.commit());
         return plan;
       },
       // Make `target` the one current program (#140, currentProgram.js):
@@ -826,7 +861,7 @@ export function SoloAppProvider({ children }) {
         }
         for (const p of plan.purchases) batch.update(doc(soloDb, "soloPurchases", p.id), { startDate: p.startDate });
         for (const c of plan.customPrograms) batch.update(doc(soloDb, "soloCustomPrograms", c.id), { startDate: c.startDate, updatedAt: Date.now() });
-        await batch.commit();
+        await keep(batch.commit());
         return plan;
       },
       // A program kept for later: archived, not on the calendar.
@@ -835,20 +870,20 @@ export function SoloAppProvider({ children }) {
         const uid = st.soloProfile?.id || st.soloAuthUser?.uid;
         const update = { archivedPrograms: planArchiveForLater(st.archivedPrograms, programId) };
         if (st.savedCurrentProgramId === undefined) update.currentProgramId = st.soloCurrentProgramId === programId ? null : st.soloCurrentProgramId;
-        await updateDoc(doc(soloDb, "soloUsers", uid), update);
+        await keep(updateDoc(doc(soloDb, "soloUsers", uid), update));
       },
       // A swap kept for the rest of a program (#141): every later session
       // of that program opens with it. null removes it.
       async setSoloProgramSwap(uid, purchaseId, originalExerciseId, exerciseId) {
-        await updateDoc(doc(soloDb, "soloUsers", uid), { [`programSwaps.${purchaseId}.${originalExerciseId}`]: exerciseId || deleteField() });
+        await keep(updateDoc(doc(soloDb, "soloUsers", uid), { [`programSwaps.${purchaseId}.${originalExerciseId}`]: exerciseId || deleteField() }));
       },
       // A missed program session moved to another day or skipped (#141).
       async setSoloSessionPlan(uid, purchaseId, key, value) {
-        await updateDoc(doc(soloDb, "soloUsers", uid), { [`sessionPlan.${purchaseId}.${key}`]: value || deleteField() });
+        await keep(updateDoc(doc(soloDb, "soloUsers", uid), { [`sessionPlan.${purchaseId}.${key}`]: value || deleteField() }));
       },
       // One of their own sessions put on a day (#142); null date removes it.
       async planSoloSession(uid, planId, sessionId, date) {
-        await updateDoc(doc(soloDb, "soloUsers", uid), { [`plannedSessions.${planId}`]: date ? { sessionId, date } : deleteField() });
+        await keep(updateDoc(doc(soloDb, "soloUsers", uid), { [`plannedSessions.${planId}`]: date ? { sessionId, date } : deleteField() }));
       },
       async markSoloProgramsGuideSeen() {
         const st = programStateRef.current;
@@ -856,10 +891,10 @@ export function SoloAppProvider({ children }) {
         if (uid) await updateDoc(doc(soloDb, "soloUsers", uid), { programsGuideSeenAt: Date.now() });
       },
       async setEnrolmentStartDate(enrolmentId, startDateKey) {
-        await updateDoc(doc(soloDb, "soloEnrolments", enrolmentId), { startDate: startDateKey });
+        await keep(updateDoc(doc(soloDb, "soloEnrolments", enrolmentId), { startDate: startDateKey }));
       },
       async pauseEnrolment(enrolmentId, pausedAtWeek) {
-        await updateDoc(doc(soloDb, "soloEnrolments", enrolmentId), { status: "paused", pausedAt: localDateKey(), pausedAtWeek: pausedAtWeek || 1 });
+        await keep(updateDoc(doc(soloDb, "soloEnrolments", enrolmentId), { status: "paused", pausedAt: localDateKey(), pausedAtWeek: pausedAtWeek || 1 }));
       },
 
       // A multi-week program the customer built (Plus — customPrograms.js).
@@ -867,11 +902,11 @@ export function SoloAppProvider({ children }) {
         const id = program.id || doc(collection(soloDb, "soloCustomPrograms")).id;
         const now = Date.now();
         const data = { ...program, id, soloUserId: uid, name: program.name.trim(), createdAt: program.createdAt || now, updatedAt: now };
-        await setDoc(doc(soloDb, "soloCustomPrograms", id), data);
+        await keep(setDoc(doc(soloDb, "soloCustomPrograms", id), data));
         return data;
       },
       async deleteSoloCustomProgram(id) {
-        await deleteDoc(doc(soloDb, "soloCustomPrograms", id));
+        await keep(deleteDoc(doc(soloDb, "soloCustomPrograms", id)));
       },
 
       // A customer picks or changes which calendar date Week 1, Day 1
@@ -879,7 +914,7 @@ export function SoloAppProvider({ children }) {
       // is derived from this plus today's date, never stored separately,
       // so it can never drift out of sync with the calendar.
       async setPurchaseStartDate(purchaseId, startDateKey) {
-        await updateDoc(doc(soloDb, "soloPurchases", purchaseId), { startDate: startDateKey });
+        await keep(updateDoc(doc(soloDb, "soloPurchases", purchaseId), { startDate: startDateKey }));
       },
 
       // Finishing a workout. `dayId` + `weekNumber` make a deterministic
@@ -905,10 +940,10 @@ export function SoloAppProvider({ children }) {
           const [y, m, d] = dateKey.split("-").map(Number);
           date = new Date(y, m - 1, d, 12, 0, 0).getTime();
         }
-        await setDoc(doc(soloDb, "soloWeighIns", id), { id, soloUserId: uid, weight, date });
+        await keep(setDoc(doc(soloDb, "soloWeighIns", id), { id, soloUserId: uid, weight, date }));
       },
       async deleteSoloWeighIn(id) {
-        await deleteDoc(doc(soloDb, "soloWeighIns", id));
+        await keep(deleteDoc(doc(soloDb, "soloWeighIns", id)));
       },
 
       // Mirrors Coaching's own addProgressPhoto/deleteProgressPhoto exactly
@@ -922,10 +957,10 @@ export function SoloAppProvider({ children }) {
           const [y, m, d] = dateKey.split("-").map(Number);
           date = new Date(y, m - 1, d, 12, 0, 0).getTime();
         }
-        await setDoc(doc(soloDb, "soloProgressPhotos", id), { id, soloUserId: uid, url: dataUrl, date, caption });
+        await keep(setDoc(doc(soloDb, "soloProgressPhotos", id), { id, soloUserId: uid, url: dataUrl, date, caption }));
       },
       async deleteSoloProgressPhoto(id) {
-        await deleteDoc(doc(soloDb, "soloProgressPhotos", id));
+        await keep(deleteDoc(doc(soloDb, "soloProgressPhotos", id)));
       },
 
       // Mirrors Coaching's own logBodyMetric/deleteBodyMetric exactly —
@@ -933,11 +968,11 @@ export function SoloAppProvider({ children }) {
       // for the same day fills it in alongside whatever's already there.
       async logSoloBodyMetric(uid, dateKey, field, value) {
         const id = `${uid}_${dateKey}`;
-        await setDoc(doc(soloDb, "soloBodyMetrics", id), { id, soloUserId: uid, date: dateKey, [field]: value }, { merge: true });
+        await keep(setDoc(doc(soloDb, "soloBodyMetrics", id), { id, soloUserId: uid, date: dateKey, [field]: value }, { merge: true }));
       },
       async deleteSoloBodyMetric(uid, dateKey, field) {
         const id = `${uid}_${dateKey}`;
-        await updateDoc(doc(soloDb, "soloBodyMetrics", id), { [field]: deleteField() });
+        await keep(updateDoc(doc(soloDb, "soloBodyMetrics", id), { [field]: deleteField() }));
       },
 
       // Water for one day: adding uses an atomic increment so quick
@@ -946,10 +981,10 @@ export function SoloAppProvider({ children }) {
       async addSoloWater(uid, dateKey, deltaMl, currentMl = 0) {
         const id = `${uid}_${dateKey}`;
         const ml = deltaMl >= 0 ? increment(deltaMl) : Math.max(0, (Number(currentMl) || 0) + deltaMl);
-        await setDoc(doc(soloDb, "soloWaterLogs", id), { id, soloUserId: uid, date: dateKey, ml, updatedAt: Date.now() }, { merge: true });
+        await keep(setDoc(doc(soloDb, "soloWaterLogs", id), { id, soloUserId: uid, date: dateKey, ml, updatedAt: Date.now() }, { merge: true }));
       },
       async setSoloWaterGoal(uid, goalMl) {
-        await updateDoc(doc(soloDb, "soloUsers", uid), { waterGoalMl: goalMl });
+        await keep(updateDoc(doc(soloDb, "soloUsers", uid), { waterGoalMl: goalMl }));
       },
 
       // A session the customer built (customSessions.js). A new one gets a
@@ -965,11 +1000,11 @@ export function SoloAppProvider({ children }) {
           createdAt: session.createdAt || now,
           updatedAt: now,
         };
-        await setDoc(doc(soloDb, "soloCustomSessions", id), data);
+        await keep(setDoc(doc(soloDb, "soloCustomSessions", id), data));
         return data;
       },
       async deleteSoloCustomSession(id) {
-        await deleteDoc(doc(soloDb, "soloCustomSessions", id));
+        await keep(deleteDoc(doc(soloDb, "soloCustomSessions", id)));
       },
 
       // Self-service account deletion — same App Store/Play Data Safety
@@ -1061,6 +1096,7 @@ export function SoloAppProvider({ children }) {
       soloSessionLoading,
       soloProgramCategories,
       soloPrograms,
+      soloProgramsLoaded,
       soloPurchases,
       soloAppDesign,
       soloBranding,
@@ -1093,6 +1129,7 @@ export function SoloAppProvider({ children }) {
       soloSessionLoading,
       soloProgramCategories,
       soloPrograms,
+      soloProgramsLoaded,
       soloPurchases,
       soloAppDesign,
       soloBranding,
