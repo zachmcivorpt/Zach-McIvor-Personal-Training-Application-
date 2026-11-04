@@ -1458,6 +1458,20 @@ exports.soloRevenueCatWebhook = onRequest(async (req, res) => {
   res.json({ received: true });
 });
 
+// Free: 3 saved sessions, checked on the server too (#159,
+// functions/soloSessionLimit.js) — the app's own limit can be skipped with a
+// direct write, and rules can't count documents.
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { enforceFreeSessionLimit } = require("./soloSessionLimit");
+exports.soloFreeSessionLimit = onDocumentCreated("soloCustomSessions/{id}", async (event) => {
+  if (!event.data) return;
+  try {
+    await enforceFreeSessionLimit(db, event.data);
+  } catch (err) {
+    console.error("soloFreeSessionLimit failed", event.params?.id, err.message);
+  }
+});
+
 // Coach console → Train Solo → Subscriptions: add or remove a test account
 // (by its Train Solo email) that sees the tiers before launch.
 exports.setSoloTestAccount = onCall(async (request) => {

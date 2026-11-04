@@ -247,8 +247,15 @@ function SoloPaywallSheet({ request, onClose }) {
   useEffect(() => {
     if (!open) return;
     // A Plus member can only move up, so All Access is always preselected for them.
-    setTier(request.tier === "plus" && soloTier !== "plus" ? "plus" : "all_access");
-    setInterval_("year");
+    // A website subscriber starts on the plan they have (#159).
+    const current = !iosApp && activeStore(soloEntitlement) === "stripe" ? PLANS[soloEntitlement?.sources?.stripe?.plan] : null;
+    if (current) {
+      setTier(current.tier);
+      setInterval_(current.interval);
+    } else {
+      setTier(request.tier === "plus" && soloTier !== "plus" ? "plus" : "all_access");
+      setInterval_("year");
+    }
     setMessage(request.notice || "");
     if (nativeIap && !(storeProducts && storeProducts.length)) {
       setStoreError("");
@@ -375,7 +382,13 @@ function SoloPaywallSheet({ request, onClose }) {
     }
   }
 
-  const alreadyThis = soloTier === "all_access" || (soloTier === "plus" && tier === "plus");
+  // A website (Stripe) subscriber on the website changes plan right here —
+  // up, down, or monthly ↔ yearly — through the server's in-place change
+  // (pro rata, functions checkoutDecision "change"). Downgrading from All
+  // Access used to be possible only through Stripe's portal (#159).
+  const stripePlan = store === "stripe" ? soloEntitlement?.sources?.stripe?.plan || null : null;
+  const changeHere = !iosApp && !!stripePlan;
+  const alreadyThis = changeHere ? plan === stripePlan : soloTier === "all_access" || (soloTier === "plus" && tier === "plus");
   // A website subscriber in the iPhone app (#158): an Apple purchase here
   // would be a SECOND subscription — the website one keeps charging. Their
   // plan is changed where they bought it; said without a link or a mention
@@ -422,7 +435,7 @@ function SoloPaywallSheet({ request, onClose }) {
           </div>
         )}
 
-        {soloTier !== "all_access" && (
+        {(soloTier !== "all_access" || changeHere) && (
           <>
             <div className="grid grid-cols-2 gap-1 p-1 rounded-full mb-5" style={{ ...planGlass(dark, false), boxShadow: "none" }} role="tablist">
               {[
@@ -445,7 +458,7 @@ function SoloPaywallSheet({ request, onClose }) {
 
             <div className="space-y-3">
               {["all_access", "plus"].map((key) => {
-                if (soloTier === "plus" && key === "plus") return null;
+                if (!changeHere && soloTier === "plus" && key === "plus") return null;
                 const planKey = `${key}_${interval === "year" ? "yearly" : "monthly"}`;
                 const p = priceOf(planKey);
                 const days = trialDaysOf(planKey);
@@ -510,13 +523,25 @@ function SoloPaywallSheet({ request, onClose }) {
                 <p className="text-sm text-center font-semibold py-3 rounded-full" style={planGlass(dark, false)}>
                   Update the APEX app to subscribe
                 </p>
-              ) : alreadyThis ? null : paidElsewhere ? (
+              ) : alreadyThis ? (
+                changeHere ? (
+                  <p className="text-sm text-center font-semibold py-3" style={{ color: t.textMuted }} data-testid="current-plan">
+                    Your current plan
+                  </p>
+                ) : null
+              ) : paidElsewhere ? (
                 <p className="text-sm text-center font-semibold py-3 rounded-full" style={planGlass(dark, false)} data-testid="paid-elsewhere">
                   Your plan can't be changed in the app
                 </p>
               ) : (
                 <PrimaryButton dark={dark} className="w-full" onClick={buy} disabled={busy || (iosApp && !price)}>
-                  {busy ? "ONE MOMENT…" : trialDays > 0 ? `START ${trialDays}-DAY FREE TRIAL` : `SUBSCRIBE TO ${TIER_LABELS[tier].toUpperCase()}`}
+                  {busy
+                    ? "ONE MOMENT…"
+                    : changeHere
+                      ? `SWITCH TO ${TIER_LABELS[tier].toUpperCase()} ${interval === "year" ? "YEARLY" : "MONTHLY"}`
+                      : trialDays > 0
+                        ? `START ${trialDays}-DAY FREE TRIAL`
+                        : `SUBSCRIBE TO ${TIER_LABELS[tier].toUpperCase()}`}
                 </PrimaryButton>
               )}
               {nativeIap && !price && storeError && !alreadyThis && (
@@ -533,6 +558,7 @@ function SoloPaywallSheet({ request, onClose }) {
               {price && (
                 <p className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
                   {trialDays > 0 ? `${trialDays} days free, then ${price} a ${per}. ` : `${price} a ${per}. `}
+                  {changeHere && !alreadyThis ? "Your plan changes now; the difference is charged or credited pro rata. " : ""}
                   Renews automatically until you cancel; cancel at least 24 hours before it renews to avoid the next charge. Cancelling ends your membership straight away, with no refund for the rest of the period.
                   {iosApp ? " Manage or cancel in iPhone Settings." : " Manage or cancel any time from Profile."}
                 </p>
@@ -541,7 +567,7 @@ function SoloPaywallSheet({ request, onClose }) {
           </>
         )}
 
-        {soloTier === "all_access" && message && <p className="text-sm mt-2">{message}</p>}
+        {soloTier === "all_access" && !changeHere && message && <p className="text-sm mt-2">{message}</p>}
 
         <div className="flex items-center justify-center gap-4 mt-4 text-[11px] font-semibold" style={{ color: t.textMuted }}>
           {nativeIap && (

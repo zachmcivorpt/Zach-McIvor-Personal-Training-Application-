@@ -405,6 +405,13 @@ any Train Solo work from now on:
 - Plus features that write data are gated in firestore.rules too once live
   (`hasPlus()` + `soloGatesLive()`, e.g. creating a `soloCustomPrograms`
   doc) — never only in the app. Existing docs stay editable after a lapse.
+- Free's 3 saved sessions are also enforced by `soloFreeSessionLimit`
+  (#159, `functions/soloSessionLimit.js`): it keeps the 3 OLDEST, never
+  "the newest to arrive" (offline syncs arrive together). Keep the number in
+  step with `FREE_SAVED_SESSIONS` in soloAccess.js.
+- On the website a Stripe subscriber changes plan (up, down, interval) in
+  the membership sheet via the in-place change (#159); never a second
+  checkout for someone already subscribed.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.
