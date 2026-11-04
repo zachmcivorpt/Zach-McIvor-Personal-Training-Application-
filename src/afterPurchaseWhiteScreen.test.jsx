@@ -1,0 +1,121 @@
+// @vitest-environment jsdom
+//
+// #161: a white screen after an iPhone purchase. The native app now loads a
+// brand-new web view on the page the member was on and keeps a solid
+// "Confirming your membership" screen up until that page shows a real
+// screen. Covered here:
+//  - "/" sends a member signed in only to Train Solo back into Train Solo
+//    (a new web view, or a cold launch, opens "/"; it used to land on the
+//    Coaching / Train Solo chooser and the purchase confirmation never ran),
+//  - the readiness check the native app runs (taken from
+//    ios/ApexCoach/ViewController.swift itself) never counts a loading
+//    placeholder as ready, does count the purchase screens and real screens,
+//  - SoloAppContext keeps the "signed in to Train Solo" mark in step.
+import React from "react";
+import { readFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { Routed } from "./App";
+
+let mockUseApp;
+vi.mock("./lib/AppContext", () => ({ useApp: () => mockUseApp(), PROFILE_CACHE_KEY: "apexProfileCache" }));
+vi.mock("./coach/CoachShell", () => ({ default: () => <div>COACH_SHELL</div> }));
+vi.mock("./client/ClientApp", () => ({ default: () => <div>CLIENT_APP</div> }));
+vi.mock("./solo/SoloRoutes", () => ({ default: () => <div>SOLO_ROUTES</div> }));
+
+beforeEach(() => localStorage.clear());
+afterEach(cleanup);
+
+const signedOutOfCoaching = () => ({ db: { appDesign: {} }, currentUser: null, sessionLoading: false });
+
+describe("opening the app at / (#161)", () => {
+  it("signed in to Train Solo on this phone → straight into Train Solo, not the chooser", async () => {
+    localStorage.setItem("apexSoloSignedIn", "1");
+    mockUseApp = signedOutOfCoaching;
+    render(<MemoryRouter initialEntries={["/"]}><Routed /></MemoryRouter>);
+    expect(await screen.findByText("SOLO_ROUTES")).toBeTruthy();
+    expect(screen.queryByText("Coaching")).toBe(null);
+  });
+  it("not signed in to anything → the chooser, as before", async () => {
+    mockUseApp = signedOutOfCoaching;
+    render(<MemoryRouter initialEntries={["/"]}><Routed /></MemoryRouter>);
+    expect(await screen.findByText("Coaching")).toBeTruthy();
+  });
+  it("a coaching session still wins (coached app unchanged)", async () => {
+    localStorage.setItem("apexSoloSignedIn", "1");
+    mockUseApp = () => ({ db: { appDesign: {} }, currentUser: { id: "c1", role: "client" }, sessionLoading: false });
+    render(<MemoryRouter initialEntries={["/"]}><Routed /></MemoryRouter>);
+    expect(await screen.findByText("CLIENT_APP")).toBeTruthy();
+  });
+});
+
+// The JavaScript the iPhone app runs to decide the page is ready, exactly as
+// written in ViewController.swift (Swift's \" unescaped).
+function nativeReadyCheck() {
+  const swift = readFileSync("ios/ApexCoach/ViewController.swift", "utf8");
+  const appReady = swift.match(/\? "(var stage=.*?)"\n/)[1].replace(/\\"/g, '"');
+  const wrapper = swift.match(/let js = "(return await new Promise.*?var el=document\.getElementById\('root'\);)" \+ check/)[1];
+  return `${wrapper}${appReady}})})})`;
+}
+async function runCheck(html, portal = "") {
+  document.body.innerHTML = `<div id="root">${html}</div>${portal}`;
+  globalThis.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+  const fn = new Function(`return (async () => { ${nativeReadyCheck()} })()`);
+  return fn();
+}
+
+describe("the native app's 'page is ready' check after a purchase (#161)", () => {
+  it("a loading placeholder is NOT ready (it used to uncover onto a near-blank page)", async () => {
+    expect(await runCheck('<div data-apex-loading=""></div>')).toBe(0);
+  });
+  it("an empty page is not ready", async () => {
+    expect(await runCheck("")).toBe(0);
+  });
+  it("the Confirming screen is ready even while the account is still loading underneath", async () => {
+    expect(await runCheck('<div data-apex-loading=""></div>', '<div data-testid="solo-purchase-stage"></div>')).toBeGreaterThan(0);
+  });
+  it("the welcome screen and any real screen are ready", async () => {
+    expect(await runCheck("<main>My Training</main>", '<div data-testid="solo-welcome"></div>')).toBeGreaterThan(0);
+    expect(await runCheck("<main>My Training</main>")).toBeGreaterThan(0);
+  });
+  it("both loading placeholders carry the marker", () => {
+    expect(readFileSync("src/App.jsx", "utf8")).toMatch(/function SessionLoadingScreen[\s\S]*?data-apex-loading/);
+    expect(readFileSync("src/solo/SoloRoutes.jsx", "utf8")).toMatch(/function SoloSessionLoadingScreen[\s\S]*?data-apex-loading/);
+  });
+});
+
+describe("the native fix itself (ViewController.swift, #161)", () => {
+  const swift = () => readFileSync("ios/ApexCoach/ViewController.swift", "utf8");
+  it("after every purchase sheet: a solid screen at once, then a brand-new web view on the same page", () => {
+    const body = swift().match(/private func purchaseSheetDidFinish\(bought: Bool\) \{[\s\S]*?\n {4}\}\n/)[0];
+    expect(body).toMatch(/showPurchaseStageCover\(title: bought \? "Confirming your membership"/);
+    expect(body).toMatch(/rebuildWebView\(\)/);
+    expect(swift()).toMatch(/let resume = currentSitePage\(old\)[\s\S]*?loadSite\(resume\)/);
+  });
+  it("the old page's own reload can't uncover it, and the reveal waits for a real screen", () => {
+    expect(swift()).toMatch(/purchaseCover != nil && !purchaseSheetOpen && !awaitingFreshPage/);
+    expect(swift()).toMatch(/pageDrawsFrame\(appReady: true\)/);
+  });
+});
+
+describe("white screen when coming back to the app (#162)", () => {
+  const swift = () => readFileSync("ios/ApexCoach/ViewController.swift", "utf8");
+  const fn = (name) => swift().match(new RegExp(`func ${name}\\([\\s\\S]*?\\n {4}\\}\\n`))[0];
+  it("a page that says it's drawn is still checked visually on every return", () => {
+    expect(fn("checkPageAlive")).toMatch(/if drawn \{[\s\S]*?self\.checkPageVisible\(\)/);
+  });
+  it("only a real screen (not a loading placeholder) that's one flat colour counts as blank; re-attach, then a new web view", () => {
+    const f = fn("checkPageVisible");
+    expect(f).toContain("pageDrawsFrame(appReady: true)");
+    expect(f).toContain("self.pageLooksBlank");
+    expect(f).toContain("self.reattachWebView()");
+    expect(f).toContain("self.rebuildWebView()");
+    expect(fn("isOneColour")).toMatch(/> 10/);
+  });
+  it("after a purchase the cover also stays until the new page really shows something (twice at most)", () => {
+    const f = fn("revealAfterPurchase");
+    expect(f).toContain("self.pageLooksBlank");
+    expect(f).toMatch(/blank && self\.purchaseRebuilds < 2/);
+  });
+});

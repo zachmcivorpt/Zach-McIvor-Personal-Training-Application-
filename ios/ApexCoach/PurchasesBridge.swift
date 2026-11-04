@@ -47,7 +47,8 @@ final class PurchasesBridge {
     // itself just before the sheet (then calls the block to show it) and
     // takes the cover off once the page has reloaded after it.
     var coverPageForSheet: ((@escaping () -> Void) -> Void)?
-    var sheetFinished: (() -> Void)?
+    // true when the purchase went through (#161: the screen after says so).
+    var sheetFinished: ((Bool) -> Void)?
     private let plans = ["plus_monthly", "plus_yearly", "all_access_monthly", "all_access_yearly"]
     private func productId(_ plan: String) -> String { "apex_solo_\(plan)" }
 
@@ -128,7 +129,8 @@ final class PurchasesBridge {
                 }
                 let showSheet = {
                     Purchases.shared.purchase(package: pkg) { _, _, error, userCancelled in
-                        defer { DispatchQueue.main.async { self.sheetFinished?() } }
+                        let bought = !userCancelled && error == nil
+                        defer { DispatchQueue.main.async { self.sheetFinished?(bought) } }
                         if userCancelled { return self.reply(id, error: "Cancelled.", cancelled: true) }
                         if let error = error { return self.reply(id, error: error.localizedDescription) }
                         self.reply(id, result: ["ok": true])

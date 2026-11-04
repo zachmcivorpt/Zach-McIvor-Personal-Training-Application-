@@ -101,10 +101,31 @@ async function checkRevenueCat() {
   else pass(`RevenueCat offering "${current.identifier}" has all four products`);
 }
 
+// One account's subscription as RevenueCat sees it and what our server makes
+// of it (#162: bought Plus, welcomed to All Access). Only when the workflow
+// is run with a uid. Product ids, dates and flags only — no personal details.
+async function checkSubscriber() {
+  const uid = (process.env.SUBSCRIBER_UID || "").trim();
+  if (!uid) return note("no account uid given — skipped");
+  const key = process.env.REVENUECAT_SECRET_KEY || "";
+  if (!key) return fail("REVENUECAT_SECRET_KEY secret missing");
+  const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(uid)}`, { headers: { Authorization: `Bearer ${key}` } });
+  if (!res.ok) return fail(`RevenueCat subscriber: HTTP ${res.status}`);
+  const sub = (await res.json()).subscriber || {};
+  for (const [id, s] of Object.entries(sub.subscriptions || {})) {
+    note(`subscription ${id}: bought ${s.purchase_date}, expires ${s.expires_date}, ${s.period_type}, store ${s.store}${s.is_sandbox ? " (sandbox)" : ""}${s.unsubscribe_detected_at ? `, cancelled ${s.unsubscribe_detected_at}` : ""}${s.billing_issues_detected_at ? ", billing issue" : ""}${s.refunded_at ? ", refunded" : ""}${s.auto_resume_date ? `, resumes ${s.auto_resume_date}` : ""}`);
+  }
+  for (const [id, e] of Object.entries(sub.entitlements || {})) note(`entitlement ${id} → ${e.product_identifier}, expires ${e.expires_date}`);
+  const { appleSourceFromSubscriber, deriveEntitlement } = fnRequire("./soloSubscriptions.js");
+  const source = appleSourceFromSubscriber(sub);
+  note(`our server reads: ${JSON.stringify(source)} → tier ${deriveEntitlement({ apple: source }).tier}`);
+}
+
 (async () => {
   for (const [name, fn] of [
     ["Stripe", checkStripe],
     ["RevenueCat", checkRevenueCat],
+    ["One account", checkSubscriber],
   ]) {
     lines.push(`\n### ${name}`);
     try {

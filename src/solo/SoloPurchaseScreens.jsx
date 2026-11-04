@@ -73,7 +73,7 @@ const WELCOME_FEATURES = {
 
 // The purchase confirmed by the server: a proper welcome, not a message
 // tucked into the paywall.
-export function SoloWelcomeScreen({ tier, renewal, onDone }) {
+export function SoloWelcomeScreen({ tier, renewal, note = "", onDone }) {
   const label = TIER_LABELS[tier] || "Train Solo";
   return (
     <Shell label={`Welcome to ${label}`} testId="solo-welcome">
@@ -92,6 +92,11 @@ export function SoloWelcomeScreen({ tier, renewal, onDone }) {
             {renewal && (
               <p className={`mt-3 ${SOLO_TYPE.body}`} style={{ color: t.textMuted }}>
                 {renewal}
+              </p>
+            )}
+            {note && (
+              <p className={`mt-2 ${SOLO_TYPE.body}`} style={{ color: t.text }} data-testid="solo-welcome-note">
+                {note}
               </p>
             )}
             <ul className="mt-10 border-t" style={{ borderColor: t.panelBorder }}>

@@ -168,7 +168,22 @@ export function SoloAppProvider({ children }) {
   const [soloAppDesign, setSoloAppDesign] = useState({});
   const [soloBranding, setSoloBranding] = useState({ accent: "blue" });
 
-  useEffect(() => onAuthStateChanged(soloAuth, (u) => setSoloAuthUser(u)), []);
+  useEffect(
+    () =>
+      onAuthStateChanged(soloAuth, (u) => {
+        setSoloAuthUser(u);
+        // Remembered on the phone so opening the app at "/" goes straight
+        // back into Train Solo, not to the Coaching / Train Solo chooser
+        // (App.jsx RootRedirect, #161). Cleared on sign-out.
+        try {
+          if (u) localStorage.setItem(SOLO_SIGNED_IN_KEY, "1");
+          else localStorage.removeItem(SOLO_SIGNED_IN_KEY);
+        } catch {
+          // Storage blocked: "/" shows the chooser, as before.
+        }
+      }),
+    []
+  );
 
   useEffect(() => {
     if (!soloAuthUser) {
@@ -1169,6 +1184,9 @@ export function SoloAppProvider({ children }) {
 }
 
 const NO_ARCHIVE = {};
+
+// Set while a Train Solo account is signed in on this phone (#161).
+export const SOLO_SIGNED_IN_KEY = "apexSoloSignedIn";
 
 // This phone's last confirmed entitlement for the signed-in account, shown
 // straight away on the next open (#137). Only ever a starting point: the

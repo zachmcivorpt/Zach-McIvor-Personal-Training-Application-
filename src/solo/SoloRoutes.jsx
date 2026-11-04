@@ -20,7 +20,8 @@ import { SoloProgramCompleteScreen, SoloWeekRecapScreen } from "./SoloRecapScree
 import { SoloPaywallProvider } from "./SoloPaywall";
 
 function SoloSessionLoadingScreen() {
-  return <div className="w-full h-screen flex items-center justify-center bg-[#0A0A0B]" />;
+  // data-apex-loading: see App.jsx's SessionLoadingScreen (#161).
+  return <div data-apex-loading="" className="w-full h-screen flex items-center justify-center bg-[#0A0A0B]" />;
 }
 
 function RequireSoloAuth({ children }) {

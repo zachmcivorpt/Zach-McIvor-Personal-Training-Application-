@@ -7,6 +7,11 @@ name: Train Solo store check
 # is in the run's summary.
 on:
   workflow_dispatch:
+    inputs:
+      uid:
+        description: "Optional: a Train Solo account uid to look up in RevenueCat"
+        required: false
+        default: ""
 
 jobs:
   check:
@@ -23,3 +28,5 @@ jobs:
         run: node scripts/solo-store-check.cjs
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          REVENUECAT_SECRET_KEY: ${{ secrets.REVENUECAT_SECRET_KEY }}
+          SUBSCRIBER_UID: ${{ github.event.inputs.uid }}

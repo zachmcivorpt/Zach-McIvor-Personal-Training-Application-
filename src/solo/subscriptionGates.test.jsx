@@ -271,12 +271,16 @@ describe("inside the iPhone app", () => {
         },
       };
     }
-    async function buyAllAccess() {
+    async function buyAllAccess(tier = "all_access") {
       ctx = baseCtx({ soloGatesLive: true });
       await renderProgram("p1");
       fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
       await screen.findByText("$179.99");
-      fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
+      if (tier === "plus") {
+        fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
+        fireEvent.click(screen.getByRole("button", { name: /^Plus/ }));
+        fireEvent.click(screen.getByRole("button", { name: /subscribe to plus/i }));
+      } else fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
       // Before Apple's sheet: a calm full-screen "Opening the App Store",
       // with the glass membership sheet gone (#136).
       await screen.findByText("Opening the App Store");
@@ -348,8 +352,8 @@ describe("inside the iPhone app", () => {
       ctx = baseCtx({ soloGatesLive: true });
       await renderProgram("p1");
       await screen.findByText(/Apple confirmed your purchase, but it hasn't reached your account yet/);
-      // Asked twice (RevenueCat can lag a moment) before saying so.
-      expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(2);
+      // Asked up to four times (RevenueCat can lag a moment, #162) before saying so.
+      expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(4);
       expect(screen.queryByTestId("solo-welcome")).toBe(null);
       expect(screen.queryByTestId("solo-purchase-stage")).toBe(null);
     });
@@ -361,6 +365,31 @@ describe("inside the iPhone app", () => {
       ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => Promise.resolve({ tier: ++n === 1 ? "free" : "plus" })) });
       await renderProgram("p1");
       expect((await screen.findByTestId("solo-welcome")).textContent).toMatch(/Welcome to\s*Plus\./);
+    });
+
+    // #162: bought Plus, welcomed to All Access.
+    it("an upgrade isn't announced as the old plan: it waits for the server to catch up", async () => {
+      nativeWith({ result: { ok: true } });
+      await buyAllAccess();
+      let n = 0;
+      ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => Promise.resolve({ tier: ++n < 3 ? "plus" : "all_access" })) });
+      await renderProgram("p1");
+      expect((await screen.findByTestId("solo-welcome")).textContent).toMatch(/Welcome to\s*All Access\./);
+      expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(3);
+    });
+
+    it("bought Plus while All Access still runs: welcomed to All Access, told when it switches to Plus", async () => {
+      nativeWith({ result: { ok: true } });
+      await buyAllAccess("plus");
+      const renews = Date.parse("2026-12-05T00:00:00Z");
+      ctx = baseCtx({
+        soloGatesLive: true,
+        soloEntitlement: { sources: { apple: { tier: "all_access", status: "active", expiresAt: renews, willRenew: true } } },
+        refreshSoloEntitlement: vi.fn(() => Promise.resolve({ tier: "all_access" })),
+      });
+      await renderProgram("p1");
+      expect((await screen.findByTestId("solo-welcome")).textContent).toMatch(/Welcome to\s*All Access\./);
+      expect(screen.getByTestId("solo-welcome-note").textContent).toBe("You chose Plus. Your All Access plan stays until 5 Dec, then it switches to Plus.");
     });
 
     it("an App Store error is shown after the reload; a cancel shows nothing", async () => {
