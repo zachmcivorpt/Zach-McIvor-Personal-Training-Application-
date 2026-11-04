@@ -333,6 +333,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             pendingFCMToken = nil
             sendTokenToWeb(token)
         }
+        calibrateScreenPicture()
         // Reloaded after Apple's purchase sheet: give the page a moment to
         // paint, then show it again (#134).
         if purchaseCover != nil && !purchaseSheetOpen && !awaitingFreshPage {
@@ -500,12 +501,53 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
 
     // A small picture of what the web view is showing: true when it's one
     // flat colour (#162). No picture → false (nothing done).
+    //
+    // #163: WebKit's own takeSnapshot re-renders the page itself, so it can
+    // look fine while the screen shows white — that let the cover come off
+    // onto a white page after a purchase. The picture is now taken from the
+    // screen (drawHierarchy: what the member actually sees), once that has
+    // been confirmed to work on this phone (screenPictureWorks, checked on a
+    // normal screen after the first load); until then WebKit's picture.
     private func pageLooksBlank(_ done: @escaping (Bool) -> Void) {
+        if screenPictureWorks == true, let cg = screenPicture() {
+            return done(ViewController.isOneColour(cg))
+        }
         let config = WKSnapshotConfiguration()
         config.snapshotWidth = NSNumber(value: 64)
         webView.takeSnapshot(with: config) { image, _ in
             guard let cg = image?.cgImage else { return done(false) }
             done(ViewController.isOneColour(cg))
+        }
+    }
+
+    // nil = not known yet; true/false once checked on a normal screen.
+    private var screenPictureWorks: Bool?
+
+    // What the web view shows on screen right now, 64 points wide.
+    private func screenPicture() -> CGImage? {
+        let bounds = webView.bounds
+        guard bounds.width > 1, bounds.height > 1 else { return nil }
+        let size = CGSize(width: 64, height: max(1, (bounds.height * 64 / bounds.width).rounded()))
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            _ = self.webView.drawHierarchy(in: CGRect(origin: .zero, size: size), afterScreenUpdates: false)
+        }
+        return image.cgImage
+    }
+
+    // Once, after the first normal load: does the screen picture show the
+    // page? (A real screen is never one flat colour.) If it doesn't, this
+    // phone's screen pictures can't be trusted and WebKit's is used instead.
+    private func calibrateScreenPicture() {
+        guard screenPictureWorks == nil, purchaseCover == nil else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            guard let self = self, self.screenPictureWorks == nil, self.purchaseCover == nil,
+                  UIApplication.shared.applicationState == .active else { return }
+            self.pageDrawsFrame(appReady: true) { [weak self] ready in
+                guard let self = self, ready, self.screenPictureWorks == nil, let cg = self.screenPicture() else { return }
+                self.screenPictureWorks = !ViewController.isOneColour(cg)
+            }
         }
     }
 
@@ -637,23 +679,55 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         showPurchaseStageCover(title: bought ? "Confirming your membership" : "One moment", detail: bought ? "One moment." : "")
         awaitingFreshPage = true
         purchaseRebuilds = 0
+        // The new web view is made only once Apple's sheet has fully gone
+        // and the app is active again (#163) — one made while the app is
+        // still inactive can come up unpainted too.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self, self.awaitingFreshPage else { return }
-            self.awaitingFreshPage = false
-            self.rebuildWebView()
+            self.whenAppActive { [weak self] in
+                guard let self = self, self.awaitingFreshPage else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                    guard let self = self, self.awaitingFreshPage else { return }
+                    self.awaitingFreshPage = false
+                    self.rebuildWebView()
+                }
+            }
         }
-        // Never leave the screen up for long, whatever happens.
+        // Never leave the screen up for long — but never uncover onto a
+        // white page either (#163): after 15s the screen offers Continue.
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
-            guard let self = self, !self.purchaseSheetOpen else { return }
+            guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
             self.awaitingFreshPage = false
-            self.removePurchaseCover()
+            self.offerContinue()
         }
+    }
+
+    // Runs `block` once the app is active (checked every 0.25s, 5s at most).
+    private func whenAppActive(tries: Int = 0, _ block: @escaping () -> Void) {
+        if UIApplication.shared.applicationState == .active || tries >= 20 { return block() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            guard let self = self else { return }
+            self.whenAppActive(tries: tries + 1, block)
+        }
+    }
+
+    // The page still isn't showing: the purchase screen stays, with a
+    // Continue button that opens a fresh page (never a white screen).
+    private func offerContinue() {
+        guard purchaseCover != nil else { return }
+        showPurchaseStageCover(title: "You're all set", detail: "Tap Continue to open APEX.", showContinue: true)
+    }
+
+    @objc private func continueAfterPurchase() {
+        purchaseRebuilds = 0
+        showPurchaseStageCover(title: "One moment", detail: "")
+        rebuildWebView() // its didFinish reveals again
     }
 
     // A plain native screen in the app's colours with a title, a line and a
     // spinner — the same words the page shows next, so the hand-over is
     // seamless. Replaces the picture of the page, taking all taps.
-    private func showPurchaseStageCover(title: String, detail: String) {
+    private func showPurchaseStageCover(title: String, detail: String, showContinue: Bool = false) {
         let stage = UIView(frame: view.bounds)
         stage.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         stage.backgroundColor = isDarkBackground ? nearBlack : .white
@@ -674,7 +748,21 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         let wheel = UIActivityIndicatorView(style: .medium)
         wheel.color = ink.withAlphaComponent(0.6)
         wheel.startAnimating()
-        let stack = UIStackView(arrangedSubviews: [titleLabel, detailLabel, wheel])
+        var items: [UIView] = [titleLabel, detailLabel]
+        if showContinue {
+            let button = UIButton(type: .system)
+            button.setTitle("CONTINUE", for: .normal)
+            button.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
+            button.setTitleColor(isDarkBackground ? nearBlack : .white, for: .normal)
+            button.backgroundColor = ink
+            button.layer.cornerRadius = 16
+            button.contentEdgeInsets = UIEdgeInsets(top: 14, left: 48, bottom: 14, right: 48)
+            button.addTarget(self, action: #selector(continueAfterPurchase), for: .touchUpInside)
+            items.append(button)
+        } else {
+            items.append(wheel)
+        }
+        let stack = UIStackView(arrangedSubviews: items)
         stack.axis = .vertical
         stack.spacing = 12
         stack.alignment = .center
@@ -700,29 +788,54 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
             if drawn {
                 // Also check what's really on screen before uncovering it:
-                // one flat colour → another brand-new web view (twice at most).
+                // one flat colour → another brand-new web view (twice at
+                // most), then Continue — never a white screen (#163).
                 self.pageLooksBlank { [weak self] blank in
                     guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
-                    if blank && self.purchaseRebuilds < 2 {
-                        self.purchaseRebuilds += 1
-                        self.rebuildWebView() // its didFinish reveals again
+                    if blank {
+                        self.retryFreshPageOrContinue()
                         return
                     }
-                    self.purchaseRebuilds = 0
+                    // (The retry count is only reset when a new purchase
+                    // starts or Continue is tapped, so a check that keeps
+                    // disagreeing can't rebuild in a loop.)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-                        self?.removePurchaseCover()
+                        guard let self = self else { return }
+                        self.removePurchaseCover()
+                        self.verifyShownAfterPurchase()
                     }
                 }
                 return
             }
             if tries >= 12 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-                    self?.removePurchaseCover()
-                }
+                self.retryFreshPageOrContinue()
                 return
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.revealAfterPurchase(tries: tries + 1)
+                guard let self = self else { return }
+                self.revealAfterPurchase(tries: tries + 1)
+            }
+        }
+    }
+
+    private func retryFreshPageOrContinue() {
+        if purchaseRebuilds < 2 {
+            purchaseRebuilds += 1
+            rebuildWebView() // its didFinish reveals again
+        } else {
+            offerContinue()
+        }
+    }
+
+    // Uncovered: look again a moment later; white then → the purchase
+    // screen back up and a fresh page (#163).
+    private func verifyShownAfterPurchase() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+            guard let self = self, self.purchaseCover == nil, !self.purchaseSheetOpen else { return }
+            self.pageLooksBlank { [weak self] blank in
+                guard let self = self, blank, self.purchaseCover == nil else { return }
+                self.showPurchaseStageCover(title: "One moment", detail: "")
+                self.retryFreshPageOrContinue()
             }
         }
     }

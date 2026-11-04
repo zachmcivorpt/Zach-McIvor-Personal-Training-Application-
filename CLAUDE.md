@@ -456,6 +456,11 @@ any Train Solo work from now on:
   (`pageDrawsFrame(appReady: true)` — loading placeholders carry
   `data-apex-loading`). Don't go back to reloading/re-attaching the same
   web view: its "drawn" answer can't be trusted after the sheet.
+- The screen check uses a picture of what's really on screen
+  (`screenPicture`/`drawHierarchy`, calibrated once per launch), not
+  WebKit's own snapshot, which can look fine over a white screen (#163).
+  After a purchase the cover never comes off onto white: retries, then a
+  native Continue button. The fresh web view waits for the app to be active.
 - "/" opens Train Solo for a member signed in only to Train Solo
   (`apexSoloSignedIn`, App.jsx RootRedirect, #161).
 - Every return to the app also checks what's really on screen (#162,
