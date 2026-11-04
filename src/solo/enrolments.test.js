@@ -83,25 +83,31 @@ describe("calendar with All Access programs", () => {
   const contentByProgramId = { p1: content, p2: content };
   const range = { fromKey: addDays(TODAY, -21), toKey: addDays(TODAY, 21) };
 
-  it("a paused program shows its sessions up to the day it was paused, none after", () => {
+  // #169: an archived (paused) program's calendar is its history — the
+  // sessions actually done before it was archived. Ones never done used to
+  // show as still "to do" (a dot on a day before the switch).
+  it("a paused program shows only the sessions done before it was paused, none after", () => {
     const rows = trainingPrograms({
       enrolments: [{ id: "u_p1", programId: "p1", status: "paused", pausedAt: TODAY, startDate: addDays(TODAY, -14) }],
       allAccess: true,
     });
-    const byDate = buildSoloCalendar({ purchases: rows, programsById, contentByProgramId, ...range });
-    const dates = Object.entries(byDate).filter(([, items]) => items.some((i) => i.type === "workout")).map(([k]) => k);
-    expect(dates.length).toBeGreaterThan(0);
-    expect(dates.every((k) => k < TODAY)).toBe(true);
+    const all = buildSoloCalendar({ purchases: rows.map((r) => ({ ...r, untilDate: null })), programsById, contentByProgramId, ...range });
+    const first = Object.values(all).flat().find((i) => i.type === "workout" && i.dateKey < TODAY);
+    const workoutLogs = [{ id: "l1", purchaseId: "u_p1", weekNumber: first.weekNumber, dayId: first.day.id, date: Date.now() }];
+    const byDate = buildSoloCalendar({ purchases: rows, programsById, contentByProgramId, workoutLogs, ...range });
+    const items = Object.entries(byDate).flatMap(([k, list]) => list.filter((i) => i.type === "workout").map((i) => ({ ...i, k })));
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ done: true, weekNumber: first.weekNumber });
+    expect(items.every((i) => i.k < TODAY)).toBe(true);
     // nor rest-day recovery after the pause
-    const recoveryAfter = Object.entries(byDate).filter(([k, items]) => k >= TODAY && items.some((i) => i.type === "recovery"));
+    const recoveryAfter = Object.entries(byDate).filter(([k, list]) => k >= TODAY && list.some((i) => i.type === "recovery"));
     expect(recoveryAfter).toHaveLength(0);
   });
 
-  it("a paused program's past sessions can't be started (history only)", () => {
+  it("a paused program never shows a session still to do (history only)", () => {
     const rows = trainingPrograms({ enrolments: [{ id: "u_p1", programId: "p1", status: "paused", pausedAt: TODAY, startDate: addDays(TODAY, -14) }], allAccess: true });
     const byDate = buildSoloCalendar({ purchases: rows, programsById, contentByProgramId, ...range });
-    const item = Object.values(byDate).flat().find((i) => i.type === "workout" && !i.done);
-    expect(calendarItemTarget(item, { todayKey: TODAY, soloUid: "u", contentByProgramId })).toBe(null);
+    expect(Object.values(byDate).flat().filter((i) => i.type === "workout" && !i.done)).toHaveLength(0);
   });
 
   it("a locked program (All Access lapsed) is not on the calendar", () => {

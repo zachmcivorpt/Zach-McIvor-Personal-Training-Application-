@@ -2718,6 +2718,17 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Swipe**: `src/solo/SoloSwipeRow.jsx`, Train Solo's own (never `ClientApp`'s `SwipeableRow`), following the #107/#109 rules: no capture on pointerdown, capture once a sideways swipe starts (in try/catch), finish from window-level up/cancel, decide from `dragXRef`; a tap on an open row closes it.
 - **Tests**: `currentProgram.test.js` planRemoveProgram (4: All Access, built, bought, current refused); `oneProgramAtATime.test.jsx` (3: swipe → Delete → confirm deletes only that program, Keep it deletes nothing, a hidden bought program isn't listed). These fail without the change (no swipe row, no function). Real touch (CDP `Input.dispatchTouchEvent`, iPhone 13 emulation), 6 checks: a tap opens the program; a vertical scroll only scrolls; a short swipe snaps back; a full swipe reveals Delete; tapping Delete asks and closes the row; tapping an open row closes it without opening the program.
 
+### 169. "The date is wrong" on My Training; Train Solo sweep (owner, 2026-11-04)
+- **Problem**: My Training showed a session dot on **Monday 2nd** while the current program had just started (Wed 4th), so the week looked wrong.
+- **Cause**: an archived program's calendar showed every session dated before it was archived, **including ones never done**, as still to do. Switching programs today left the archived program's undone Monday session on the week strip.
+- **Fix** (`soloCalendar.js` `buildSoloCalendar`): an archived program (one with `untilDate`) shows only its sessions that were done. That's its history; nothing "to do".
+- **Sweep, Train Solo only**:
+  - Dates: no UTC-date traps (`toISOString` dates, date-only strings parsed as UTC) anywhere in Train Solo. Weigh-ins and photos store timestamps or local noon.
+  - Removed dead code: `TIERS` (soloAccess.js), the unused `soloEnrolments` in My Training, the unused `trendDirection` import in Progress, and the unused `dark` parameter in the welcome screen. No unused Train Solo files.
+  - Buttons: the builders, workout, program page, start-date sheet, program overview and consultation used the shared sentence-case `PrimaryButton`, against #143/#144. They now use `SoloButton` (bold all-caps). The login, register and finish-setup photo screens keep their own style.
+  - Click-through of every Train Solo screen on a fresh account (register, questionnaire, first session, My Training, Catalogue, a program and its exercise sheet, Progress, Profile, theme switch, Calendar, both builders, Recovery, Consultation, week recap, Program complete, a quick workout and cancel, reload): no page errors, no console errors (twice, before and after the button change).
+- **Tests**: `enrolments.test.js` (2, rewritten for the rule: an archived program shows only the sessions done before it was archived, never one to do). Both fail on the old calendar code. Full suite 1071 passed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

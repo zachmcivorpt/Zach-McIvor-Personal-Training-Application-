@@ -21,7 +21,6 @@
 // Until then every feature that's free today stays free and programs are
 // still bought one at a time.
 
-export const TIERS = ["free", "plus", "all_access"];
 const RANK = { free: 0, plus: 1, all_access: 2 };
 
 export const TIER_LABELS = { free: "Free", plus: "Plus", all_access: "All Access" };

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { SoloButton } from "./SoloUI";
 import { Link, useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import { MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
@@ -7,7 +8,7 @@ import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import SoloGlassBox from "./SoloGlassBox";
 import { SoloArtwork } from "./SoloArtwork";
 import { recommendForAnswers } from "./recommendations";
-import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
+import { BottomSheet, SecondaryButton } from "../components/ui";
 import { SECTIONS, getVisibleQuestions, isAnswered, isComplete, isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 
 // Profile → "Review my consultation answers": every answer on one page,
@@ -159,9 +160,9 @@ export default function SoloConsultationScreen() {
               <SecondaryButton dark={dark} className="flex-1" type="button" onClick={() => setDraft({})} disabled={saving}>
                 Discard
               </SecondaryButton>
-              <PrimaryButton dark={dark} className="flex-[2]" type="button" onClick={save} disabled={!complete || saving}>
+              <SoloButton t={t} className="flex-[2]" type="button" onClick={save} disabled={!complete || saving}>
                 {saving ? "Saving…" : "Save changes"}
-              </PrimaryButton>
+              </SoloButton>
             </div>
           </div>
         </div>
@@ -185,9 +186,9 @@ export default function SoloConsultationScreen() {
           <p className="text-sm mb-5" style={{ color: t.textMuted }}>
             You've changed some answers but haven't saved them.
           </p>
-          <PrimaryButton dark={dark} className="w-full mb-2" type="button" onClick={() => setConfirmLeave(false)}>
+          <SoloButton t={t} className="w-full mb-2" type="button" onClick={() => setConfirmLeave(false)}>
             Keep editing
-          </PrimaryButton>
+          </SoloButton>
           <SecondaryButton dark={dark} className="w-full" type="button" onClick={leave}>
             Discard and leave
           </SecondaryButton>
@@ -232,9 +233,9 @@ function EditAnswerSheet({ question, value, answers, onClose, onDone, t, dark })
           )}
           {!question.helper && <div className="mb-4" />}
           <AnswerInput question={question} value={local} answers={answers} onChange={setLocal} t={t} dark={dark} />
-          <PrimaryButton dark={dark} className="w-full mt-5" type="button" disabled={!ok} onClick={() => onDone(local)}>
+          <SoloButton t={t} className="w-full mt-5" type="button" disabled={!ok} onClick={() => onDone(local)}>
             Done
-          </PrimaryButton>
+          </SoloButton>
         </div>
       )}
     </BottomSheet>
@@ -386,9 +387,9 @@ function SavedConfirmation({ answers, t, dark, accent, programs, categories, own
         </section>
       )}
 
-      <PrimaryButton dark={dark} className="w-full mb-2" type="button" onClick={onCatalogue}>
+      <SoloButton t={t} className="w-full mb-2" type="button" onClick={onCatalogue}>
         Go to Catalogue
-      </PrimaryButton>
+      </SoloButton>
       <SecondaryButton dark={dark} className="w-full" type="button" onClick={onProfile}>
         Back to Profile
       </SecondaryButton>

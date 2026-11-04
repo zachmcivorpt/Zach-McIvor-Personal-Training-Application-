@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
+import { SoloButton } from "./SoloUI";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Minus, Plus, Trash2 } from "lucide-react";
-import { BottomSheet, PrimaryButton, SecondaryButton } from "../components/ui";
+import { BottomSheet, SecondaryButton } from "../components/ui";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { dayFromSession, validateCustomProgram, customProgramKey, MAX_PROGRAM_WEEKS, MAX_PROGRAM_DAYS, fillWeekdays, nextWeekday, byWeekday, defaultProgramName, WEEK_ORDER, WEEKDAY_SHORT } from "./customPrograms";
@@ -266,9 +267,9 @@ export default function SoloProgramBuilderScreen() {
         {error && <p className="text-sm text-red-500 text-center mt-4">{error}</p>}
 
         <div className="mt-6 space-y-2.5">
-          <PrimaryButton dark={dark} className="w-full" onClick={save} disabled={saving}>
+          <SoloButton t={t} className="w-full" onClick={save} disabled={saving}>
             {saving ? "Saving…" : existing ? "Save program" : "Create program"}
-          </PrimaryButton>
+          </SoloButton>
           {existing &&
             (confirmDelete ? (
               <div className="flex gap-2.5">
@@ -296,9 +297,9 @@ export default function SoloProgramBuilderScreen() {
             <p className="text-sm mb-4" style={{ color: t.textMuted }}>
               Build a session first — then add it here.
             </p>
-            <PrimaryButton dark={dark} className="w-full" onClick={() => navigate("/solo/session-builder")}>
+            <SoloButton t={t} className="w-full" onClick={() => navigate("/solo/session-builder")}>
               BUILD A SESSION
-            </PrimaryButton>
+            </SoloButton>
           </div>
         ) : (
           <div className="rounded-2xl" style={{ ...soloGlass(t), color: t.text }}>
