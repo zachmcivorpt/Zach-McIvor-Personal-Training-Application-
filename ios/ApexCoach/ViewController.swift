@@ -697,21 +697,25 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
                     guard let self = self, self.awaitingFreshPage else { return }
                     self.awaitingFreshPage = false
                     self.rebuildWebView()
+                    // Never leave the screen up for long — but never uncover
+                    // onto a white page either (#163): after 15s it offers Continue.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
+                        guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
+                        self.offerContinue()
+                    }
                 }
             }
         }
-        // Never leave the screen up for long — but never uncover onto a
-        // white page either (#163): after 15s the screen offers Continue.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
-            guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
-            self.awaitingFreshPage = false
-            self.offerContinue()
-        }
     }
 
-    // Runs `block` once the app is active (checked every 0.25s, 5s at most).
+    // Runs `block` once the app is active AND Apple's sheet has really gone
+    // (checked every 0.25s). #175: after a cancel, Manage Subscriptions can
+    // answer while its sheet (the cancel confirmation) is still up; a page
+    // made then froze under it and showed white once it closed. The sheet
+    // can stay up as long as the member likes, so wait up to 10 minutes.
     private func whenAppActive(tries: Int = 0, _ block: @escaping () -> Void) {
-        if UIApplication.shared.applicationState == .active || tries >= 20 { return block() }
+        let sheetGone = presentedViewController == nil
+        if (UIApplication.shared.applicationState == .active && sheetGone) || tries >= 2400 { return block() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
             guard let self = self else { return }
             self.whenAppActive(tries: tries + 1, block)
@@ -869,6 +873,11 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private func uncoverAfterPurchase() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             guard let self = self else { return }
+            // Apple's sheet still (or again) up (#175): never uncover under
+            // it — check the page again once it has gone.
+            if self.presentedViewController != nil {
+                return self.whenAppActive { [weak self] in self?.revealAfterPurchase() }
+            }
             // The checks can't always see a page WebKit has stopped drawing
             // (#163, #173), so wake it as the cover comes off and twice
             // more just after — harmless on a page that's fine.
