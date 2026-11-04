@@ -574,6 +574,17 @@ any Train Solo work from now on:
 
 ## Data listeners (`src/lib/AppContext.jsx`)
 
+- **`db` shapes (#167)**: `db.messages`, `workoutLogs`, `nutritionLogs`,
+  `workoutComments`, `progressPhotos`, `savedMeals`, `habits` and
+  `clientPhases` are grouped by client (`{ [clientId]: [...] }`), never
+  lists. Read one client's with `db.messages?.[client.id] || []`. A test
+  that mocks `useApp()` must build `db` in that same shape: a flat list in
+  a mock hid a crash of every client page in the coach console (#167).
+- **The coach console and coached client app are off-limits to Train Solo
+  work.** A change there (only when the task is about them) gets a test
+  that renders the real component with real-shaped data, and the coach's
+  client page is opened in a browser before it ships.
+
 - Subscribe a collection only for the roles firestore.rules lets read
   it. A refused listener isn't harmless: `subscribeWithRetry` retries it
   forever (backing off to every 16s) on every phone with the app open.

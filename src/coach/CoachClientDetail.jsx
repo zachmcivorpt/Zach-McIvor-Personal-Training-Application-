@@ -5269,8 +5269,11 @@ export function QuickSendActions({ client, showToast, onSendLogin }) {
   // chatting for days. It asks first, and says if they already got it.
   const [welcomeConfirmOpen, setWelcomeConfirmOpen] = useState(false);
   const welcomeText = (db.welcomeMessage?.text || "").replace(/\{name\}/gi, (client.name || "").split(" ")[0]).trim();
-  const lastWelcome = (db.messages || [])
-    .filter((m) => m.clientId === client.id && m.from === "coach" && (m.kind === "welcome" || (welcomeText && (m.text || "").trim() === welcomeText)))
+  // db.messages is grouped by client ({ [clientId]: [...] }, AppContext
+  // bucket()), not a list — calling .filter on it crashed every client's
+  // page in the coach console (#167).
+  const lastWelcome = (db.messages?.[client.id] || [])
+    .filter((m) => m.from === "coach" && (m.kind === "welcome" || (welcomeText && (m.text || "").trim() === welcomeText)))
     .reduce((latest, m) => (!latest || m.date > latest.date ? m : latest), null);
   function sendWelcomeNow() {
     const welcome = db.welcomeMessage;
