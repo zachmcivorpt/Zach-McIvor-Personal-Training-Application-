@@ -146,3 +146,20 @@ describe("white screen after a purchase, second fix (#163)", () => {
     expect(fn("offerContinue")).toContain("showContinue: true");
   });
 });
+
+describe("the native purchase screen looks like the app's own (#163, owner: logo + blue line)", () => {
+  const swift = () => readFileSync("ios/ApexCoach/ViewController.swift", "utf8");
+  it("APEX mark, title, line and the thin blue line (#2F8FFF), in Train Solo's colours", () => {
+    const f = swift().match(/private func showPurchaseStageCover[\s\S]*?\n {4}\}\n/)[0];
+    expect(f).toContain('UIImage(named: dark ? "ApexMarkWhite" : "ApexMarkBlack")');
+    expect(f).toMatch(/track\.widthAnchor\.constraint\(equalToConstant: 96\)/);
+    expect(f).toMatch(/red: 47\.0 \/ 255\.0, green: 143\.0 \/ 255\.0, blue: 1/);
+    expect(f).not.toContain("UIActivityIndicatorView");
+  });
+  it("the mark images are in the app's image catalogue", () => {
+    for (const n of ["Black", "White"]) {
+      const json = JSON.parse(readFileSync(`ios/ApexCoach/Assets.xcassets/ApexMark${n}.imageset/Contents.json`, "utf8"));
+      expect(json.images[0].filename).toBe(`mark-${n.toLowerCase()}.png`);
+    }
+  });
+});

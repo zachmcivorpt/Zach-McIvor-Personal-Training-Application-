@@ -728,14 +728,22 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // spinner — the same words the page shows next, so the hand-over is
     // seamless. Replaces the picture of the page, taking all taps.
     private func showPurchaseStageCover(title: String, detail: String, showContinue: Bool = false) {
+        // The same look as the page's own purchase screens (SoloPurchaseStage,
+        // #163): APEX mark, title, a line, and the thin blue line — in Train
+        // Solo's colours, so the hand-over to the page is seamless.
+        let dark = isDarkBackground
+        let ink = dark ? UIColor.white : UIColor(red: 20.0 / 255.0, green: 19.0 / 255.0, blue: 15.0 / 255.0, alpha: 1)
         let stage = UIView(frame: view.bounds)
         stage.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        stage.backgroundColor = isDarkBackground ? nearBlack : .white
+        stage.backgroundColor = dark ? UIColor(red: 10.0 / 255.0, green: 10.0 / 255.0, blue: 11.0 / 255.0, alpha: 1) : .white
         stage.isUserInteractionEnabled = true
-        let ink: UIColor = isDarkBackground ? .white : .black
+        let mark = UIImageView(image: UIImage(named: dark ? "ApexMarkWhite" : "ApexMarkBlack"))
+        mark.contentMode = .scaleAspectFit
+        mark.alpha = 0.9
+        mark.translatesAutoresizingMaskIntoConstraints = false
         let titleLabel = UILabel()
         titleLabel.text = title
-        titleLabel.font = .systemFont(ofSize: 22, weight: .semibold)
+        titleLabel.font = .systemFont(ofSize: 20, weight: .semibold)
         titleLabel.textColor = ink
         titleLabel.textAlignment = .center
         titleLabel.numberOfLines = 0
@@ -745,30 +753,51 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         detailLabel.textColor = ink.withAlphaComponent(0.55)
         detailLabel.textAlignment = .center
         detailLabel.numberOfLines = 0
-        let wheel = UIActivityIndicatorView(style: .medium)
-        wheel.color = ink.withAlphaComponent(0.6)
-        wheel.startAnimating()
-        var items: [UIView] = [titleLabel, detailLabel]
+        detailLabel.isHidden = detail.isEmpty
+        var items: [UIView] = [mark, titleLabel, detailLabel]
         if showContinue {
             let button = UIButton(type: .system)
             button.setTitle("CONTINUE", for: .normal)
             button.titleLabel?.font = .systemFont(ofSize: 13, weight: .bold)
-            button.setTitleColor(isDarkBackground ? nearBlack : .white, for: .normal)
+            button.setTitleColor(dark ? UIColor(red: 10.0 / 255.0, green: 10.0 / 255.0, blue: 11.0 / 255.0, alpha: 1) : .white, for: .normal)
             button.backgroundColor = ink
             button.layer.cornerRadius = 16
             button.contentEdgeInsets = UIEdgeInsets(top: 14, left: 48, bottom: 14, right: 48)
             button.addTarget(self, action: #selector(continueAfterPurchase), for: .touchUpInside)
             items.append(button)
         } else {
-            items.append(wheel)
+            // The thin blue line: a 96 x 2 track with a pulsing blue half.
+            let track = UIView()
+            track.backgroundColor = ink.withAlphaComponent(dark ? 0.1 : 0.08)
+            track.layer.cornerRadius = 1
+            track.translatesAutoresizingMaskIntoConstraints = false
+            let fill = UIView()
+            fill.backgroundColor = UIColor(red: 47.0 / 255.0, green: 143.0 / 255.0, blue: 1, alpha: 1)
+            fill.layer.cornerRadius = 1
+            fill.translatesAutoresizingMaskIntoConstraints = false
+            track.addSubview(fill)
+            NSLayoutConstraint.activate([
+                track.widthAnchor.constraint(equalToConstant: 96),
+                track.heightAnchor.constraint(equalToConstant: 2),
+                fill.leadingAnchor.constraint(equalTo: track.leadingAnchor),
+                fill.topAnchor.constraint(equalTo: track.topAnchor),
+                fill.bottomAnchor.constraint(equalTo: track.bottomAnchor),
+                fill.widthAnchor.constraint(equalToConstant: 48),
+            ])
+            UIView.animate(withDuration: 1.0, delay: 0, options: [.repeat, .autoreverse, .curveEaseInOut], animations: { fill.alpha = 0.35 }, completion: nil)
+            items.append(track)
         }
         let stack = UIStackView(arrangedSubviews: items)
         stack.axis = .vertical
-        stack.spacing = 12
+        stack.spacing = 8
         stack.alignment = .center
+        stack.setCustomSpacing(32, after: mark)
+        stack.setCustomSpacing(32, after: detail.isEmpty ? titleLabel : detailLabel)
         stack.translatesAutoresizingMaskIntoConstraints = false
         stage.addSubview(stack)
         NSLayoutConstraint.activate([
+            mark.widthAnchor.constraint(equalToConstant: 32),
+            mark.heightAnchor.constraint(equalToConstant: 32),
             stack.centerYAnchor.constraint(equalTo: stage.centerYAnchor),
             stack.leadingAnchor.constraint(equalTo: stage.leadingAnchor, constant: 32),
             stack.trailingAnchor.constraint(equalTo: stage.trailingAnchor, constant: -32),
