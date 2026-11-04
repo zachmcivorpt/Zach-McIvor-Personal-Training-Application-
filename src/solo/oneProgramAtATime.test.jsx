@@ -298,3 +298,38 @@ describe("Opening a program from the catalogue opens its sheet once (#153)", () 
     expect(screen.queryByText("Change start date")).toBe(null);
   });
 });
+
+describe("All Access ends while running its program (#154)", () => {
+  it("the data layer locks it and it's no longer current or on the calendar", async () => {
+    const { trainingPrograms } = await import("./enrolments");
+    const { applyCurrentProgram, resolveCurrentProgramId } = await import("./currentProgram");
+    const enrolment = { id: "u1_p2", programId: "p2", startDate: daysAgo(10), status: "active" };
+    for (const allAccess of [true, false]) {
+      const raw = trainingPrograms({ purchases: [], enrolments: [enrolment], allAccess });
+      const current = resolveCurrentProgramId(raw, "p2");
+      const rows = applyCurrentProgram(raw, { currentProgramId: current, archived: {}, todayKey: daysAgo(0) });
+      expect(rows[0].locked).toBe(!allAccess);
+      expect(rows[0].current).toBe(allAccess);
+    }
+  });
+
+  it("My Training: no Start for it, shown locked 'Included with All Access', tapping opens the membership sheet", async () => {
+    const locked = { id: "u1_p2", programId: "p2", startDate: daysAgo(10), source: "all_access", status: "active", locked: true, current: false };
+    ctx = baseCtx({
+      soloPurchases: [],
+      soloTrainingPrograms: [locked],
+      soloCurrentProgram: null,
+      soloWorkoutLogs: [],
+      soloTier: "free",
+      soloHasAllAccess: false,
+      soloAccess: { tier: "free", live: true },
+      soloEntitlementReady: true,
+    });
+    await renderMyTraining();
+    expect(screen.getByText("Included with All Access")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^start$/i })).toBe(null);
+    fireEvent.click(screen.getByText("Hypertrophy"));
+    expect(await screen.findByText("Train Solo Membership")).toBeTruthy();
+    expect(screen.getByText(/Hypertrophy is included with All Access/)).toBeTruthy();
+  });
+});

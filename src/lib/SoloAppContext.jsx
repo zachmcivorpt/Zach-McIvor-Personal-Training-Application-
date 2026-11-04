@@ -308,6 +308,22 @@ export function SoloAppProvider({ children }) {
       .catch(() => {});
   }, [soloAuthUser]);
 
+  // Also re-checked at the exact moment the paid plan ends (#154), so a
+  // cancelled or failed plan is Free the second its period is over, not up
+  // to a minute later.
+  const nextPlanEnd = Math.min(
+    Infinity,
+    ...Object.values(soloEntitlement?.sources || {})
+      .map((s) => Number(s?.expiresAt))
+      .filter((t) => t > clock)
+  );
+  useEffect(() => {
+    if (!Number.isFinite(nextPlanEnd)) return;
+    const wait = nextPlanEnd - Date.now();
+    if (wait > 24 * 60 * 60 * 1000) return; // the minute tick and later renders get there
+    const t = setTimeout(() => setClock(Date.now()), Math.max(0, wait) + 50);
+    return () => clearTimeout(t);
+  }, [nextPlanEnd]);
   const soloTier = tierFromEntitlement(soloEntitlement, clock);
   const soloGatesLive = gatesLive(soloMonetisation, soloAuthUser?.uid);
   const soloHasAllAccess = soloGatesLive && soloTier === "all_access";

@@ -102,3 +102,45 @@ describe("Train Solo entitlement on open (#137)", () => {
     expect(probe()).toBe("free|true");
   });
 });
+
+describe("a plan that ends while the app is open (#154)", () => {
+  it("is Free the moment its period ends, with no word from the server", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: false, toFake: ["setTimeout", "setInterval", "Date"] });
+    try {
+      const ends = Date.now() + 5000;
+      localStorage.setItem("apexSoloEntitlement", JSON.stringify({ uid: "u1", data: { sources: { apple: { tier: "all_access", status: "active", expiresAt: ends } } } }));
+      render(<SoloAppProvider><Probe /></SoloAppProvider>);
+      expect(probe()).toBe("all_access|true");
+      await act(async () => {
+        vi.advanceTimersByTime(4900);
+      });
+      expect(probe()).toBe("all_access|true");
+      // Within a second of the end — not the next minute tick.
+      await act(async () => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(probe()).toBe("free|true");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a refund, failed payment or expiry from the server locks it at once", () => {
+    localStorage.setItem("apexSoloEntitlement", JSON.stringify({ uid: "u1", data: allAccess }));
+    render(<SoloAppProvider><Probe /></SoloAppProvider>);
+    expect(probe()).toBe("all_access|true");
+    for (const status of ["refunded", "billing_issue", "expired"]) {
+      act(() => listeners["soloEntitlements/u1"](snap({ sources: { apple: { tier: "all_access", status, expiresAt: FUTURE } } })));
+      expect(probe()).toBe("free|true");
+      act(() => listeners["soloEntitlements/u1"](snap(allAccess)));
+      expect(probe()).toBe("all_access|true");
+    }
+  });
+
+  it("cancelled (won't renew) keeps the paid period, then ends exactly at its end", () => {
+    localStorage.setItem("apexSoloEntitlement", JSON.stringify({ uid: "u1", data: allAccess }));
+    render(<SoloAppProvider><Probe /></SoloAppProvider>);
+    act(() => listeners["soloEntitlements/u1"](snap({ sources: { apple: { tier: "all_access", status: "active", expiresAt: FUTURE, willRenew: false } } })));
+    expect(probe()).toBe("all_access|true");
+  });
+});

@@ -53,6 +53,10 @@ export default class ErrorBoundary extends React.Component {
       sessionStorage.setItem(RELOAD_FLAG, "1");
     } catch {}
     this.setState({ recovering: true });
+    // Never a white screen for good (#154): if the reload hasn't replaced
+    // this page within a few seconds (e.g. the iPhone app's saved copy),
+    // show the normal recovery screen with its Reload button.
+    this.recoverTimer = setTimeout(() => this.setState({ recovering: false }), 6000);
 
     // Best-effort: give the service worker a chance to pick up the new
     // version before we reload, so the reload actually fetches the current
@@ -70,6 +74,10 @@ export default class ErrorBoundary extends React.Component {
     } else {
       reload();
     }
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.recoverTimer);
   }
 
   render() {
