@@ -49,6 +49,9 @@ final class PurchasesBridge {
     var coverPageForSheet: ((@escaping () -> Void) -> Void)?
     // true when the purchase went through (#161: the screen after says so).
     var sheetFinished: ((Bool) -> Void)?
+    // Apple's Manage Subscriptions sheet has closed (#166): the same frozen
+    // page as after the purchase sheet, so the same recovery, then Home.
+    var manageSheetFinished: (() -> Void)?
     private let plans = ["plus_monthly", "plus_yearly", "all_access_monthly", "all_access_yearly"]
     private func productId(_ plan: String) -> String { "apex_solo_\(plan)" }
 
@@ -76,13 +79,22 @@ final class PurchasesBridge {
                 if let error = error { self.reply(id, error: error.localizedDescription) } else { self.reply(id, result: ["ok": true]) }
             }
         case "manage":
-            Task { @MainActor in
-                if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-                    try? await AppStore.showManageSubscriptions(in: scene)
-                } else if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                    await UIApplication.shared.open(url)
+            // Like the purchase sheet (#134, #166): the page is covered by a
+            // picture of itself while Apple's sheet is up — WebKit stops
+            // drawing it there — and recovered once the sheet has closed.
+            let show: () -> Void = {
+                _ = Task { @MainActor in
+                    if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                        try? await AppStore.showManageSubscriptions(in: scene)
+                    } else if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                        await UIApplication.shared.open(url)
+                    }
+                    self.reply(id, result: ["ok": true])
+                    self.manageSheetFinished?()
                 }
-                self.reply(id, result: ["ok": true])
+            }
+            DispatchQueue.main.async {
+                if let cover = self.coverPageForSheet { cover(show) } else { show() }
             }
         default:
             reply(id, error: "Unknown purchase request.")

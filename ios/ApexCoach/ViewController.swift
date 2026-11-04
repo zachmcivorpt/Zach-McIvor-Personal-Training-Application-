@@ -55,6 +55,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // After Apple's sheet a brand-new web view is loaded (#161); until then
     // the old page's own reload must not take the cover off.
     private var awaitingFreshPage = false
+    // The page a rebuilt web view opens instead of the current one (#166:
+    // Train Solo Home after Manage Subscriptions). Cleared once shown.
+    private var freshPageURL: URL?
 
     // Apple Health reads for the web app — see HealthBridge.swift.
     private let health = HealthBridge()
@@ -141,6 +144,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             self.coverPageForPurchase(then: show)
         }
         purchases.sheetFinished = { [weak self] bought in self?.purchaseSheetDidFinish(bought: bought) }
+        purchases.manageSheetFinished = { [weak self] in self?.manageSheetDidFinish() }
         view.addSubview(webView)
 
         // Pin below the status bar/notch — a bare WKWebView doesn't auto-inset
@@ -486,6 +490,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
                 guard let self = self, ready else { return }
                 self.pageLooksBlank { [weak self] blank in
                     guard let self = self, blank else { return }
+                    self.wakeWebKit()
                     self.reattachWebView()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
                         guard let self = self else { return }
@@ -621,7 +626,8 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         let old: WKWebView = webView
         // Reopen the page they were on, not the front page (#161): the front
         // page sends someone signed in only to Train Solo to the chooser.
-        let resume = currentSitePage(old)
+        // After Manage Subscriptions: Train Solo Home (#166).
+        let resume = freshPageURL ?? currentSitePage(old)
         let config = old.configuration
         old.stopLoading()
         old.navigationDelegate = nil
@@ -675,6 +681,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     //     SoloPaywall.jsx), a brand-new web view opens the page they were on,
     //  3. the screen comes off only once that new page has drawn the app.
     private func purchaseSheetDidFinish(bought: Bool) {
+        freshPageURL = nil
         purchaseSheetOpen = false
         showPurchaseStageCover(title: bought ? "Confirming your membership" : "One moment", detail: bought ? "One moment." : "")
         awaitingFreshPage = true
@@ -813,6 +820,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private var purchaseRebuilds = 0
 
     private func revealAfterPurchase(tries: Int = 0) {
+        // What leaving and reopening the app did (#166): tell WebKit the app
+        // is at the front again, which unfreezes a page it stopped drawing
+        // under Apple's sheet — the page was all there, just not drawn.
+        if tries == 0 { wakeWebKit() }
         pageDrawsFrame(appReady: true) { [weak self] drawn in
             guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
             if drawn {
@@ -822,17 +833,25 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
                 self.pageLooksBlank { [weak self] blank in
                     guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
                     if blank {
-                        self.retryFreshPageOrContinue()
+                        // Wake WebKit and look again before replacing the page.
+                        self.wakeWebKit()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                            guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
+                            self.pageLooksBlank { [weak self] stillBlank in
+                                guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
+                                if stillBlank {
+                                    self.retryFreshPageOrContinue()
+                                } else {
+                                    self.uncoverAfterPurchase()
+                                }
+                            }
+                        }
                         return
                     }
                     // (The retry count is only reset when a new purchase
                     // starts or Continue is tapped, so a check that keeps
                     // disagreeing can't rebuild in a loop.)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-                        guard let self = self else { return }
-                        self.removePurchaseCover()
-                        self.verifyShownAfterPurchase()
-                    }
+                    self.uncoverAfterPurchase()
                 }
                 return
             }
@@ -845,6 +864,36 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
                 self.revealAfterPurchase(tries: tries + 1)
             }
         }
+    }
+
+    private func uncoverAfterPurchase() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            guard let self = self else { return }
+            self.removePurchaseCover()
+            self.verifyShownAfterPurchase()
+        }
+    }
+
+    // Tells WebKit the app has come (back) to the front: a background then
+    // foreground notification for the web view's window scene — the same
+    // signals iOS sends when the member leaves the app and comes back,
+    // which is what made a page frozen under Apple's sheet appear (#166).
+    // WebKit (ApplicationStateTracker) then unfreezes and redraws the page.
+    // Nothing else in the app listens for these scene notifications.
+    private func wakeWebKit() {
+        guard let scene = webView?.window?.windowScene else { return }
+        let center = NotificationCenter.default
+        center.post(name: UIScene.didEnterBackgroundNotification, object: scene)
+        center.post(name: UIScene.willEnterForegroundNotification, object: scene)
+    }
+
+    // Apple's Manage Subscriptions sheet has closed (#166) — usually after a
+    // cancel. The page under it is frozen the same way as after a purchase:
+    // "One moment", a brand-new web view on Train Solo Home (the plan is
+    // re-read from the server on open, #133), shown once it's really drawn.
+    private func manageSheetDidFinish() {
+        purchaseSheetDidFinish(bought: false)
+        freshPageURL = siteURL.appendingPathComponent("solo/home")
     }
 
     private func retryFreshPageOrContinue() {
@@ -864,7 +913,8 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             self.pageLooksBlank { [weak self] blank in
                 guard let self = self, blank, self.purchaseCover == nil else { return }
                 self.showPurchaseStageCover(title: "One moment", detail: "")
-                self.retryFreshPageOrContinue()
+                self.wakeWebKit()
+                self.revealAfterPurchase(tries: 1)
             }
         }
     }
@@ -872,6 +922,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private func removePurchaseCover() {
         guard let cover = purchaseCover else { return }
         purchaseCover = nil
+        freshPageURL = nil
         UIView.animate(withDuration: 0.2, animations: { cover.alpha = 0 }, completion: { _ in cover.removeFromSuperview() })
     }
 

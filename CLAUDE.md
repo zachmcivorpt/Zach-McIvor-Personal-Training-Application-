@@ -482,6 +482,13 @@ any Train Solo work from now on:
   WebKit's own snapshot, which can look fine over a white screen (#163).
   After a purchase the cover never comes off onto white: retries, then a
   native Continue button. The fresh web view waits for the app to be active.
+- **Apple's sheets freeze WebKit's drawing; only "back to the front"
+  unfreezes it** (#166). `wakeWebKit()` posts the window scene's
+  background → foreground notifications (what leaving and reopening the
+  app does) before any "is it drawn?" decision after Apple's sheets and
+  before re-attaching on return. Every native sheet over the page (the
+  purchase sheet AND Manage Subscriptions) is covered first and recovered
+  after; Manage Subscriptions reopens Train Solo Home (`freshPageURL`).
 - "/" opens Train Solo for a member signed in only to Train Solo
   (`apexSoloSignedIn`, App.jsx RootRedirect, #161).
 - Every return to the app also checks what's really on screen (#162,

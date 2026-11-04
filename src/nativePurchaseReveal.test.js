@@ -41,7 +41,7 @@ describe("a drawn frame, not just content", () => {
     expect(f).toContain("pinWebView()");
     expect(f).toContain("bringSubviewToFront(cover)");
     // ...on the page the member was on, not the front page (#161).
-    expect(f).toContain("let resume = currentSitePage(old)");
+    expect(f).toContain("let resume = freshPageURL ?? currentSitePage(old)");
     expect(f).toContain("loadSite(resume)");
     const make = fn("makeWebView");
     for (const s of ["navigationDelegate = self", "uiDelegate = self", "health.webView = wv", "purchases.webView = wv", "contentInsetAdjustmentBehavior = .never"]) expect(make).toContain(s);
@@ -63,7 +63,9 @@ describe("after Apple's purchase sheet", () => {
   it("waits for a real screen on the brand-new page, then the cover comes off", () => {
     const f = fn("revealAfterPurchase");
     expect(f).toContain("pageDrawsFrame(appReady: true)");
-    expect(f).toContain("self.removePurchaseCover()");
+    // Uncovering moved into uncoverAfterPurchase (#166).
+    expect(f).toContain("self.uncoverAfterPurchase()");
+    expect(swift.match(/private func uncoverAfterPurchase\(\) \{[\s\S]*?\n {4}\}\n/)[0]).toContain("self.removePurchaseCover()");
     expect(f).toContain("self.revealAfterPurchase(tries: tries + 1)");
     expect(f).not.toContain("reattachWebView()");
     const done = fn("purchaseSheetDidFinish");
