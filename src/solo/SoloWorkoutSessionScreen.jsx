@@ -110,7 +110,7 @@ export default function SoloWorkoutSessionScreen() {
 
   if (!sessionInfo?.day) {
     return (
-      <div className="min-h-dvh w-full flex items-center justify-center" style={{ backgroundColor: dark ? "#0A0A0B" : "#F5F4F1" }}>
+      <div className="min-h-dvh w-full flex items-center justify-center" style={{ backgroundColor: dark ? "#0A0A0B" : "#FFFFFF" }}>
         <button onClick={() => navigate("/solo/home")} className={dark ? "text-white text-sm font-semibold underline" : "text-black text-sm font-semibold underline"}>
           Back to My Training
         </button>

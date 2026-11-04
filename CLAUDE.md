@@ -119,6 +119,9 @@ rather than inventing new colors per screen:
 - The membership/paywall sheet (`SoloPaywall.jsx`) uses its own clearer
   glass (`paywallSurface`) and thinner plan tiles, title "Train Solo
   Membership" (REGRESSION_TESTS.md #125).
+- **Light mode is pure white** (#155, `SOLO_THEMES.light.bg` #FFFFFF) so it
+  flows into the white top strip; never an off-white page. Anything that
+  was white-on-the-page (chips) needs a faint grey to show.
 - Cards run near full screen width: 12px (`px-3`) page gutters.
 - No drawn/stock artwork: a program shows only its coach-uploaded
   `artworkUrl`, otherwise the plain cover gradient + APEX mark.
