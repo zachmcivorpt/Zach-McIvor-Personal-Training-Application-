@@ -374,6 +374,8 @@ function SoloPaywallSheet({ request, onClose }) {
         // Let that screen paint (the iPhone app pictures it behind Apple's
         // sheet, #135) before Apple's sheet opens.
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        // …and a beat more, so the membership sheet is never in that picture (#164).
+        await new Promise((r) => setTimeout(r, 150));
         try {
           await purchasePlan(plan, soloAuthUser?.uid);
           outcome = { ok: true, tier };
