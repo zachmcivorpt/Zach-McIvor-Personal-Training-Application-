@@ -1,0 +1,25 @@
+name: Train Solo store check
+
+# Read-only check of the LIVE Stripe and RevenueCat setup Train Solo's
+# subscriptions depend on (scripts/solo-store-check.cjs, #160): webhook
+# events, prices, customer portal, RevenueCat's current offering. Never
+# changes or charges anything. Run by hand from the Actions tab; the result
+# is in the run's summary.
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install functions dependencies
+        working-directory: functions
+        run: npm install
+      - name: Check stores
+        run: node scripts/solo-store-check.cjs
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
