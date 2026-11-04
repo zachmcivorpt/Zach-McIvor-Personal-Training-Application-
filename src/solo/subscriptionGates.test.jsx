@@ -318,6 +318,8 @@ describe("inside the iPhone app", () => {
       expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(1);
       fireEvent.click(screen.getByRole("button", { name: "Start training" }));
       await waitFor(() => expect(screen.queryByTestId("solo-welcome")).toBe(null));
+      // Bought from a program page: "Start training" lands on Train Solo Home (#166).
+      await screen.findByText("home-page");
       // Shown once: the next open of the app doesn't repeat it.
       cleanup();
       ctx = baseCtx({ soloGatesLive: true });

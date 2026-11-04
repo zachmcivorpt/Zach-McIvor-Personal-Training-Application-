@@ -93,7 +93,8 @@ describe("the native fix itself (ViewController.swift, #161)", () => {
     const body = swift().match(/private func purchaseSheetDidFinish\(bought: Bool\) \{[\s\S]*?\n {4}\}\n/)[0];
     expect(body).toMatch(/showPurchaseStageCover\(title: bought \? "Confirming your membership"/);
     expect(body).toMatch(/rebuildWebView\(\)/);
-    expect(swift()).toMatch(/let resume = currentSitePage\(old\)[\s\S]*?loadSite\(resume\)/);
+    // (#166: or Train Solo Home after Manage Subscriptions)
+    expect(swift()).toMatch(/let resume = freshPageURL \?\? currentSitePage\(old\)[\s\S]*?loadSite\(resume\)/);
   });
   it("the old page's own reload can't uncover it, and the reveal waits for a real screen", () => {
     expect(swift()).toMatch(/purchaseCover != nil && !purchaseSheetOpen && !awaitingFreshPage/);
@@ -119,7 +120,9 @@ describe("white screen when coming back to the app (#162)", () => {
     const f = fn("revealAfterPurchase");
     expect(f).toContain("self.pageLooksBlank");
     expect(f).toContain("self.retryFreshPageOrContinue()");
-    expect(f).toContain("self.verifyShownAfterPurchase()");
+    // Uncovering (and the check after it) moved into uncoverAfterPurchase (#166).
+    expect(f).toContain("self.uncoverAfterPurchase()");
+    expect(fn("uncoverAfterPurchase")).toContain("self.verifyShownAfterPurchase()");
     expect(f).not.toMatch(/tries >= 12 \{[\s\S]{0,120}removePurchaseCover/);
     expect(fn("retryFreshPageOrContinue")).toMatch(/purchaseRebuilds < 2[\s\S]*rebuildWebView\(\)[\s\S]*offerContinue\(\)/);
   });

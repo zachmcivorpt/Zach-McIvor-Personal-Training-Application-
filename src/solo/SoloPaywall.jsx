@@ -239,6 +239,9 @@ export function SoloPaywallProvider({ children }) {
             setWelcomeTier(null);
             setBoughtTier(null);
             setWebWelcome(false);
+            // Straight to Train Solo Home after a purchase (#166), whichever
+            // page it was bought from.
+            if (location.pathname !== "/solo/home") navigate("/solo/home", { replace: true });
           }}
         />
       )}
