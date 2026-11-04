@@ -2785,6 +2785,11 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Tests**: `src/nativeAppleSheets166.test.js`, 3 new; 2 fail on the old code. The third (the 15 s fallback after the rebuild) matches the old text too. Swift type-checked against UIKit stubs.
 - **Scope**: native iOS only; no web, coach or client file changed.
 
+### 176. Train Solo: gaps between logo and headings too big (owner, 2026-11-04)
+- **Change**: in `SoloPageHeader`, logo → title went from 20px to 10px and title → first section from 12px to 8px. My Training lost its extra 8px above the week strip, and the space from the week strip to "Today, …" went from 24px to 16px. Profile's extra 12px under the header is gone. All five tabs still put the title at the same place (now 49px from the top on an iPhone 13 screen, checked in the built app).
+- **Test**: `src/solo/pageHeader174.test.js`, 1 new test (fails on the old spacing).
+- **Scope**: Train Solo files only.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

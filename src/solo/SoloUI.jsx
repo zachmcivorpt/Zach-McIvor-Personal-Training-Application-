@@ -45,11 +45,12 @@ export function SoloTextButton({ t, children, className = "", ...props }) {
 
 // Every Train Solo tab opens with the same header (#174): the APEX mark top
 // left, then the page title at one size and position on all five tabs.
+// Tight spacing (#176): logo → title 10px, title → first section 8px.
 export function SoloPageHeader({ t, title, sub, right = null, className = "" }) {
   return (
-    <div className={`px-3 pt-5 pb-3 ${className}`} data-testid="solo-page-header">
+    <div className={`px-3 pt-5 pb-2 ${className}`} data-testid="solo-page-header">
       <img src={t.logo} alt="APEX" className="block w-auto" style={{ height: 19 }} />
-      <div className="mt-5 flex items-start justify-between gap-3">
+      <div className="mt-2.5 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl font-extrabold leading-tight">{title}</h1>
           {sub}
