@@ -2707,6 +2707,17 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Fix**: `db.messages?.[client.id] || []`, the client's own thread, as every other coach screen reads it (`CoachMessages`, `CoachClients`, `CoachDashboard`).
 - **Tests**: `src/coach/welcomeMessageSend.test.jsx` now builds `db.messages` exactly as AppContext does (grouped by client), plus 2 new tests: the page opens with grouped messages (another client's welcome doesn't count), and with no messages loaded. On the #162 code, 5 of the 6 tests fail with the crash.
 
+### 168. Delete an archived program by swiping (owner request, 2026-11-04)
+- **Change**: on My Training → Archived, swipe a program left to show **Delete**. It asks first ("Delete program?", what goes and that "Your logged sessions, PRs and everything on Progress stay"), with **Delete program** / **Keep it**. The current program can't be swiped.
+- **What's removed** (`planRemoveProgram`, `src/solo/currentProgram.js`; `removeSoloProgram` in SoloAppContext, offline-safe through `keep()`, batches of 400):
+  - own built program: its `soloCustomPrograms` doc;
+  - All Access program: its enrolment (it stays in the catalogue to start again);
+  - bought program: never deleted (paid for, and firestore.rules refuse it). Its start date is cleared and `hiddenPrograms[programId]` hides it from Archived; starting it again (`switchSoloProgram`) un-hides it;
+  - all three: its archived record, `sessionPlan` and `programSwaps`.
+- **What stays**: every logged session (Progress, PRs, history, muscle map). The sessions are detached from the program (`purchaseId` → `<id>_removed_<time>`, `removedFromProgram`), because All Access enrolment ids are fixed per program and a re-started program would otherwise show the old sessions as done.
+- **Swipe**: `src/solo/SoloSwipeRow.jsx`, Train Solo's own (never `ClientApp`'s `SwipeableRow`), following the #107/#109 rules: no capture on pointerdown, capture once a sideways swipe starts (in try/catch), finish from window-level up/cancel, decide from `dragXRef`; a tap on an open row closes it.
+- **Tests**: `currentProgram.test.js` planRemoveProgram (4: All Access, built, bought, current refused); `oneProgramAtATime.test.jsx` (3: swipe → Delete → confirm deletes only that program, Keep it deletes nothing, a hidden bought program isn't listed). These fail without the change (no swipe row, no function). Real touch (CDP `Input.dispatchTouchEvent`, iPhone 13 emulation), 6 checks: a tap opens the program; a vertical scroll only scrolls; a short swipe snaps back; a full swipe reveals Delete; tapping Delete asks and closes the row; tapping an open row closes it without opening the program.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

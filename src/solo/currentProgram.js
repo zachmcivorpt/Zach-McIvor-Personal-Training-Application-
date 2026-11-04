@@ -163,3 +163,40 @@ export function legacyMigration({ rows = [], savedCurrentId, archived = {}, toda
   return { profile: { currentProgramId, archivedPrograms: nextArchived }, enrolments };
 }
 
+
+// Deleting an archived program (#168, swipe on My Training → Archived).
+// Removes everything that belongs to the program, never what the member
+// did: their logged sessions stay (Progress, PRs, history) but are
+// detached from it, so starting it again begins fresh instead of showing
+// old sessions as done (All Access enrolment ids are fixed per program).
+//   own built program (custom)  → its soloCustomPrograms doc is deleted
+//   All Access program          → its enrolment is deleted (still in the
+//                                 catalogue to start again)
+//   bought program (owned)      → still owned (it was paid for; the server
+//                                 never lets a purchase be deleted): its
+//                                 start date is cleared and it's hidden
+//                                 from Archived until started again
+// Plus, for all: its archived record, schedule (sessionPlan) and swaps.
+// Returns { profile, deletes: [[collection, id]], updates: [[collection,
+// id, fields]] }, or null for the current program (never deleted here).
+export function planRemoveProgram(row, logs = [], now = Date.now()) {
+  if (!row || row.current) return null;
+  const profile = {
+    [`archivedPrograms.${row.programId}`]: null,
+    [`sessionPlan.${row.id}`]: null,
+    [`programSwaps.${row.id}`]: null,
+  };
+  const deletes = [];
+  const updates = [];
+  if (row.source === "custom") deletes.push(["soloCustomPrograms", row.customProgramId]);
+  else if (row.source === "all_access") deletes.push(["soloEnrolments", row.id]);
+  else {
+    updates.push(["soloPurchases", row.id, { startDate: null }]);
+    profile[`hiddenPrograms.${row.programId}`] = true;
+  }
+  for (const log of logs) {
+    if (log.purchaseId !== row.id) continue;
+    updates.push(["soloWorkoutLogs", log.id, { purchaseId: `${row.id}_removed_${now}`, removedFromProgram: row.programId }]);
+  }
+  return { profile, deletes, updates };
+}

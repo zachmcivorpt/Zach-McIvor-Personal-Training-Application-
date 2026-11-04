@@ -1,7 +1,7 @@
 // #140: one program at a time — current vs archived, switching, resuming
 // where it was left, and older profiles with several programs running.
 import { describe, expect, it } from "vitest";
-import { resolveCurrentProgramId, applyCurrentProgram, planSwitch, legacyMigration, planArchiveForLater, NEVER } from "./currentProgram";
+import { resolveCurrentProgramId, applyCurrentProgram, planSwitch, legacyMigration, planArchiveForLater, planRemoveProgram, NEVER } from "./currentProgram";
 import { addDays } from "./soloCalendar";
 
 const TODAY = "2026-11-03"; // a Tuesday
@@ -87,5 +87,37 @@ describe("older profiles with several programs running", () => {
     expect(plan.profile.archivedPrograms).toEqual({ a: { archivedAt: TODAY, archivedAtWeek: 3 }, b: { archivedAt: "2026-10-01", archivedAtWeek: 2 } });
     expect(legacyMigration({ rows, savedCurrentId: "cp_x", archived: {}, todayKey: TODAY })).toBe(null);
     expect(legacyMigration({ rows: [owned("a", TODAY)], savedCurrentId: undefined, archived: {}, todayKey: TODAY })).toBe(null);
+  });
+});
+
+// #168: deleting an archived program.
+describe("planRemoveProgram", () => {
+  const logs = [
+    { id: "l1", purchaseId: "u1_p2" },
+    { id: "l2", purchaseId: "u1_p2" },
+    { id: "l3", purchaseId: "u1_p1" },
+  ];
+  it("All Access: the enrolment goes; its logs stay but are detached; schedule, swaps and record cleared", () => {
+    const plan = planRemoveProgram({ id: "u1_p2", programId: "p2", source: "all_access" }, logs, 123);
+    expect(plan.deletes).toEqual([["soloEnrolments", "u1_p2"]]);
+    expect(plan.profile).toEqual({ "archivedPrograms.p2": null, "sessionPlan.u1_p2": null, "programSwaps.u1_p2": null });
+    expect(plan.updates).toEqual([
+      ["soloWorkoutLogs", "l1", { purchaseId: "u1_p2_removed_123", removedFromProgram: "p2" }],
+      ["soloWorkoutLogs", "l2", { purchaseId: "u1_p2_removed_123", removedFromProgram: "p2" }],
+    ]);
+  });
+  it("own built program: its doc is deleted", () => {
+    const plan = planRemoveProgram({ id: "u1_cp_x", programId: "cp_x", source: "custom", customProgramId: "x" }, [], 1);
+    expect(plan.deletes).toEqual([["soloCustomPrograms", "x"]]);
+    expect(plan.updates).toEqual([]);
+  });
+  it("bought program: never deleted (paid for) — start date cleared and hidden", () => {
+    const plan = planRemoveProgram({ id: "pur1", programId: "p9", source: "owned" }, [], 1);
+    expect(plan.deletes).toEqual([]);
+    expect(plan.updates).toEqual([["soloPurchases", "pur1", { startDate: null }]]);
+    expect(plan.profile["hiddenPrograms.p9"]).toBe(true);
+  });
+  it("the current program is never removed", () => {
+    expect(planRemoveProgram({ id: "u1_p1", programId: "p1", source: "owned", current: true }, logs)).toBe(null);
   });
 });

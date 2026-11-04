@@ -378,6 +378,11 @@ any Train Solo work from now on:
   `SwitchProgramSheet` (which says what moves to Archived); resuming keeps
   the week numbers (logs are keyed on them). Never add a second way to put
   a program on the calendar.
+- **Deleting an archived program** (#168): swipe → Delete → confirm, through
+  `removeSoloProgram` / `planRemoveProgram` only. Logged sessions are never
+  deleted (Progress keeps them), only detached from the program. A bought
+  program is never deleted (paid for): it's hidden (`hiddenPrograms`) until
+  started again. Train Solo swipe rows use `SoloSwipeRow`, never ClientApp's.
 - Nothing is gated until `settings/soloMonetisation.live` (coach console >
   Train Solo > Subscriptions) or the account is a test account; before
   that, Train Solo must behave exactly as it did.
