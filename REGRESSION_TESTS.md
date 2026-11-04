@@ -2729,6 +2729,12 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
   - Click-through of every Train Solo screen on a fresh account (register, questionnaire, first session, My Training, Catalogue, a program and its exercise sheet, Progress, Profile, theme switch, Calendar, both builders, Recovery, Consultation, week recap, Program complete, a quick workout and cancel, reload): no page errors, no console errors (twice, before and after the button change).
 - **Tests**: `enrolments.test.js` (2, rewritten for the rule: an archived program shows only the sessions done before it was archived, never one to do). Both fail on the old calendar code. Full suite 1071 passed.
 
+### 170. Train Solo workout: Start timer colour; Reps before Kg (owner, 2026-11-04)
+- **Problem**: (1) the workout screen's **Start timer** was slate grey-blue, not the coached client app's blue. (2) Kg came before Reps.
+- **Cause**: (1) `SoloExerciseBlock` coloured it (and the running set timer) with the coach-chosen Train Solo branding accent (`soloBranding.accent`, set to slate). The client app uses `MEASURE_BLUE`.
+- **Fix** (Train Solo only, `SoloExerciseBlock.jsx`): both timer buttons use `MEASURE_BLUE`. The set columns are **Reps, then Kg** (header and inputs), the same order as the "Previous" and "Target" lines.
+- **Tests**: `soloRestRow.test.jsx` (2, under a slate branding accent: Start timer is rgb(47, 143, 255); header REPS → KG and inputs numeric → decimal). Both fail on the old code. Full suite passes.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

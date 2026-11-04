@@ -156,7 +156,7 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
           <span className={`${dark ? "text-white/60" : "text-black/60"} text-xs font-medium flex-1 text-left`}>
             Rest {exMeta.restSeconds ?? 90}s between sets
           </span>
-          <span className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full shrink-0 text-white" style={{ backgroundColor: accent }}>
+          <span className="flex items-center gap-1 text-[11px] font-bold px-3 py-1.5 rounded-full shrink-0 text-white" style={{ backgroundColor: MEASURE_BLUE }}>
             <Play size={10} fill="currentColor" /> Start timer
           </span>
         </button>
@@ -216,8 +216,9 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
           <div className="grid grid-cols-[22px_minmax(0,1fr)_72px_72px_12px] gap-2 px-1">
             <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>SET</span>
             <span className={dark ? "text-white/30 text-[10px] font-semibold" : "text-black/30 text-[10px] font-semibold"}>PREVIOUS</span>
-            {!isTimeBased && <span className={dark ? "text-white/30 text-[10px] font-semibold text-center" : "text-black/30 text-[10px] font-semibold text-center"}>KG</span>}
+            {/* Reps first, then Kg (owner, #170) — the same order as "Previous" and "Target". */}
             <span className={`${dark ? "text-white/30" : "text-black/30"} text-[10px] font-semibold text-center ${isTimeBased ? "col-span-2" : ""}`}>{isTimeBased ? "SECONDS" : "REPS"}</span>
+            {!isTimeBased && <span className={dark ? "text-white/30 text-[10px] font-semibold text-center" : "text-black/30 text-[10px] font-semibold text-center"}>KG</span>}
             <span />
           </div>
           {rows.map((row, i) => {
@@ -256,24 +257,13 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                   </button>
                 )}
               </div>
-              {!isTimeBased && (
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  value={row.weight}
-                  onChange={(e) => onChangeField(i, "weight", e.target.value)}
-                  onBlur={() => onBlurKg(i)}
-                  placeholder="0"
-                  className={dark ? "w-full bg-white/8 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm text-center outline-none" : "w-full bg-black/5 border border-black/10 rounded-lg px-2.5 py-2 text-black text-sm text-center outline-none"}
-                />
-              )}
               {isTimeBased ? (
                 timerRowIndex === i ? (
                   <button
                     type="button"
                     onClick={() => stopRowTimer(i)}
                     className="col-span-2 w-full rounded-lg px-2.5 py-2 text-sm font-bold text-center"
-                    style={{ backgroundColor: accent, color: "#fff" }}
+                    style={{ backgroundColor: MEASURE_BLUE, color: "#fff" }}
                   >
                     {formatSeconds(timerRemaining)} — stop
                   </button>
@@ -292,6 +282,17 @@ export default function SoloExerciseBlock({ exMeta, exercise, rows, previousSets
                   inputMode="numeric"
                   value={row.reps}
                   onChange={(e) => onChangeField(i, "reps", e.target.value)}
+                  onBlur={() => onBlurKg(i)}
+                  placeholder="0"
+                  className={dark ? "w-full bg-white/8 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm text-center outline-none" : "w-full bg-black/5 border border-black/10 rounded-lg px-2.5 py-2 text-black text-sm text-center outline-none"}
+                />
+              )}
+              {!isTimeBased && (
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={row.weight}
+                  onChange={(e) => onChangeField(i, "weight", e.target.value)}
                   onBlur={() => onBlurKg(i)}
                   placeholder="0"
                   className={dark ? "w-full bg-white/8 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm text-center outline-none" : "w-full bg-black/5 border border-black/10 rounded-lg px-2.5 py-2 text-black text-sm text-center outline-none"}

@@ -39,3 +39,38 @@ describe("SoloExerciseBlock rest row", () => {
     expect(screen.getByText("Rest 90s between sets")).toBeTruthy();
   });
 });
+
+// #170 (owner): the Start timer button is the client app's blue
+// (MEASURE_BLUE), not the coach's Train Solo branding accent (it was slate
+// grey); and Reps sit left of Kg, like "Previous" and "Target".
+describe("SoloExerciseBlock look (#170)", () => {
+  async function renderThemed() {
+    vi.resetModules();
+    vi.doMock("../lib/SoloAppContext", () => ({ useSoloApp: () => ({ soloBranding: { accent: "slate" }, soloProfileMissing: false }) }));
+    vi.doMock("../client/ClientApp", () => ({ useClientDark: () => true, formatTargetReps: (r) => String(r) }));
+    const { MemoryRouter } = await import("react-router-dom");
+    const { SoloThemeProvider } = await import("./SoloThemeContext");
+    const { default: Block } = await import("./SoloExerciseBlock");
+    return render(
+      <MemoryRouter initialEntries={["/solo/workout"]}>
+        <SoloThemeProvider>
+          <Block exMeta={{ exerciseId: "e1", targetSets: 1, targetReps: 10, section: "main", restSeconds: 60 }} exercise={exercise} rows={rows}
+            onChangeField={noop} onBlurKg={noop} onAddSet={noop} onStartRest={noop} onOpenDetail={noop} />
+        </SoloThemeProvider>
+      </MemoryRouter>
+    );
+  }
+
+  it("Start timer is MEASURE_BLUE whatever the branding accent", async () => {
+    await renderThemed();
+    expect(screen.getByText("Start timer").closest("span").style.backgroundColor).toBe("rgb(47, 143, 255)");
+  });
+
+  it("Reps comes before Kg, in the header and the inputs", async () => {
+    const { container } = await renderThemed();
+    const header = [...container.querySelectorAll("span")].map((s) => s.textContent).filter((x) => x === "REPS" || x === "KG");
+    expect(header).toEqual(["REPS", "KG"]);
+    const inputs = [...container.querySelectorAll("input")].map((i) => i.getAttribute("inputmode"));
+    expect(inputs).toEqual(["numeric", "decimal"]);
+  });
+});
