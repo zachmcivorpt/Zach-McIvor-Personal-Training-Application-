@@ -158,3 +158,25 @@ describe("coming back to the app re-reads the subscription (#156)", () => {
     expect(syncCalls.n).toBe(before + 1);
   });
 });
+
+describe("a plan that renewed but whose renewal never reached us (#158)", () => {
+  it("asks the server to re-read the store at the moment the period ends, and unlocks on its answer", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: false, toFake: ["setTimeout", "setInterval", "Date"] });
+    try {
+      const ends = Date.now() + 5000;
+      localStorage.setItem("apexSoloEntitlement", JSON.stringify({ uid: "u1", data: { sources: { stripe: { tier: "plus", status: "active", expiresAt: ends } } } }));
+      render(<SoloAppProvider><Probe /></SoloAppProvider>);
+      const before = syncCalls.n;
+      await act(async () => {
+        vi.advanceTimersByTime(5100);
+      });
+      expect(probe()).toBe("free|true");
+      expect(syncCalls.n).toBe(before + 1);
+      // The server's re-read finds the renewal and rewrites the doc.
+      act(() => listeners["soloEntitlements/u1"](snap({ sources: { stripe: { tier: "plus", status: "active", expiresAt: ends + 30 * 86_400_000 } } })));
+      expect(probe()).toBe("plus|true");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

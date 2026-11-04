@@ -1152,6 +1152,10 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
   }
 
   const stripe = getStripeClient();
+  // One payable checkout per program (#158): an earlier one already paid →
+  // owned (its webhook is on the way); still open → expired first.
+  const slot = `program_${programId}`;
+  if ((await solo.priorCheckout(db, stripe, uid, slot).catch(() => ({}))).alreadyPaid) return { alreadyOwned: true };
   let session;
   try {
     session = await stripe.checkout.sessions.create({
@@ -1183,6 +1187,7 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
     console.error("Stripe checkout session creation failed:", err.message);
     throw new HttpsError("internal", `Stripe error: ${err.message}`);
   }
+  await solo.rememberCheckout(db, uid, slot, session.id).catch((err) => console.error("rememberCheckout failed", uid, err.message));
 
   return { url: session.url };
 });
@@ -1278,10 +1283,15 @@ exports.soloStripeWebhook = onRequest(async (req, res) => {
       }
     }
   } catch (err) {
-    // Still ack with 200 below after logging — a processing bug on our
-    // side shouldn't make Stripe retry the same event forever; it's
-    // logged for manual follow-up instead.
+    // 500 so Stripe delivers it again (#158). Every handler above re-reads
+    // or merges (syncStripeCustomer re-reads the customer's subscriptions;
+    // the purchase write is keyed and merged), so a retry can't double
+    // anything — while acking a failed one left a payment, renewal, failed
+    // payment or cancel never reaching the member's entitlement. Stripe
+    // stops retrying by itself after a few days.
     console.error("Error handling Stripe webhook event:", event.type, err.message);
+    res.status(500).send("Processing failed");
+    return;
   }
 
   res.json({ received: true });
@@ -1333,6 +1343,8 @@ exports.createSoloSubscriptionCheckout = onCall(async (request) => {
       await solo.syncStripeCustomer(db, stripe, typeof sub.customer === "string" ? sub.customer : sub.customer.id, uid);
       return { changed: true };
     }
+    // One payable subscription checkout per account (#158).
+    if ((await solo.priorCheckout(db, stripe, uid, "subscription").catch(() => ({}))).alreadyPaid) return { already: "stripe" };
     const user = await getAuth().getUser(uid);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -1348,6 +1360,7 @@ exports.createSoloSubscriptionCheckout = onCall(async (request) => {
       success_url: `${returnOrigin}/solo/home?subscribed=${encodeURIComponent(plan)}`,
       cancel_url: `${returnOrigin}/solo/home?subscribe=cancelled`,
     });
+    await solo.rememberCheckout(db, uid, "subscription", session.id).catch((err) => console.error("rememberCheckout failed", uid, err.message));
     return { url: session.url };
   } catch (err) {
     console.error("createSoloSubscriptionCheckout failed:", err.message);
@@ -1409,6 +1422,7 @@ exports.cancelSoloSubscriptionsForDeletion = onCall(async (request) => {
     }
   }
   await db.collection("soloEntitlements").doc(uid).delete();
+  await db.collection("soloCheckoutSessions").doc(uid).delete().catch(() => {});
   return { ok: true };
 });
 

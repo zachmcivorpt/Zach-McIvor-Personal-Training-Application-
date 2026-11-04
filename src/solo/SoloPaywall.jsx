@@ -297,6 +297,7 @@ function SoloPaywallSheet({ request, onClose }) {
   const price = priceOf(plan);
 
   async function buy() {
+    if (paidElsewhere) return;
     setBusy(true);
     setMessage("");
     let reloading = false;
@@ -375,6 +376,11 @@ function SoloPaywallSheet({ request, onClose }) {
   }
 
   const alreadyThis = soloTier === "all_access" || (soloTier === "plus" && tier === "plus");
+  // A website subscriber in the iPhone app (#158): an Apple purchase here
+  // would be a SECOND subscription — the website one keeps charging. Their
+  // plan is changed where they bought it; said without a link or a mention
+  // of the website (3.1.1).
+  const paidElsewhere = iosApp && store === "stripe";
   // Inside the app, a website subscriber manages it on the website — said
   // without a link or price (3.1.1).
   const canManageHere = store === "stripe" ? !iosApp : store === "apple";
@@ -504,7 +510,11 @@ function SoloPaywallSheet({ request, onClose }) {
                 <p className="text-sm text-center font-semibold py-3 rounded-full" style={planGlass(dark, false)}>
                   Update the APEX app to subscribe
                 </p>
-              ) : alreadyThis ? null : (
+              ) : alreadyThis ? null : paidElsewhere ? (
+                <p className="text-sm text-center font-semibold py-3 rounded-full" style={planGlass(dark, false)} data-testid="paid-elsewhere">
+                  Your plan can't be changed in the app
+                </p>
+              ) : (
                 <PrimaryButton dark={dark} className="w-full" onClick={buy} disabled={busy || (iosApp && !price)}>
                   {busy ? "ONE MOMENT…" : trialDays > 0 ? `START ${trialDays}-DAY FREE TRIAL` : `SUBSCRIBE TO ${TIER_LABELS[tier].toUpperCase()}`}
                 </PrimaryButton>

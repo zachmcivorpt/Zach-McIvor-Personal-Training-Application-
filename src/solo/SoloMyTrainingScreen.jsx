@@ -39,6 +39,12 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
   const [draftDate, setDraftDate] = useState("");
   const [editingDate, setEditingDate] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(null);
+  const [dateError, setDateError] = useState("");
+  // A failed save used to be an unhandled rejection with nothing said (#158).
+  function saveStartDate(date) {
+    setDateError("");
+    Promise.resolve(onSetStartDate(date)).catch(() => setDateError("Couldn't save the start date — check your connection and try again."));
+  }
   const phases = programPhases(content);
   const totalWeeks = totalWeeksForProgram(phases);
   const currentWeek = currentWeekNumber(purchase?.startDate, totalWeeks);
@@ -57,6 +63,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
       setDraftDate(purchase?.startDate || localDateKey());
       setEditingDate(false);
       setSelectedWeek(null);
+      setDateError("");
     }
   }, [open, purchase?.startDate]);
 
@@ -78,13 +85,14 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
             className="w-full rounded-xl px-3.5 py-2.5 text-sm mb-4"
             style={inputStyle}
           />
-          <PrimaryButton dark={dark} className="w-full" onClick={() => onSetStartDate(draftDate)} disabled={!draftDate}>
+          <PrimaryButton dark={dark} className="w-full" onClick={() => saveStartDate(draftDate)} disabled={!draftDate}>
             SET START DATE
           </PrimaryButton>
         </div>
       ) : (
         <div>
-          <p className="text-xs mb-1" style={{ color: t.textFaint }}>STARTED</p>
+          {/* A start date still ahead "starts", not "started" (#158). */}
+          <p className="text-xs mb-1" style={{ color: t.textFaint }}>{purchase.startDate > today ? "STARTS" : "STARTED"}</p>
           <p className="text-sm font-semibold mb-4">
             {new Date(`${purchase.startDate}T00:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
           </p>
@@ -183,7 +191,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
                 dark={dark}
                 className="w-full"
                 onClick={() => {
-                  onSetStartDate(draftDate);
+                  saveStartDate(draftDate);
                   setEditingDate(false);
                 }}
                 disabled={!draftDate || draftDate === purchase.startDate}
@@ -194,6 +202,7 @@ function ProgramProgressSheet({ open, onClose, program, content, purchase, onSet
           )}
         </div>
       )}
+      {dateError && <p className="text-red-500 text-[13px] mt-3">{dateError}</p>}
       </div>
     </BottomSheet>
   );

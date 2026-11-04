@@ -395,6 +395,16 @@ any Train Solo work from now on:
 - No free-trial wording for anyone who has or has had a plan, in the
   iPhone app too (#139): Apple's trial is for first-time subscribers in the
   group only, whatever the store's eligibility check returns.
+- **Never sell a second subscription** (#158): in the iPhone app a website
+  (Stripe) subscriber gets no Apple Subscribe button; on the website an
+  Apple subscriber is sent to Apple (`checkoutDecision`). Every Stripe
+  checkout goes through `priorCheckout`/`rememberCheckout`
+  (`soloCheckoutSessions/{uid}`, server-only), so only the latest one can
+  be paid. `soloStripeWebhook` returns 500 on a failure so Stripe retries;
+  keep every handler safe to repeat.
+- Plus features that write data are gated in firestore.rules too once live
+  (`hasPlus()` + `soloGatesLive()`, e.g. creating a `soloCustomPrograms`
+  doc) — never only in the app. Existing docs stay editable after a lapse.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.

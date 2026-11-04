@@ -226,6 +226,33 @@ describe("inside the iPhone app", () => {
     expect(ctx.startSoloSubscription).not.toHaveBeenCalled();
   });
 
+  // #158: a website (Stripe) Plus member in the iPhone app was offered All
+  // Access through Apple — a second subscription, the website one still
+  // charging.
+  it("a website subscriber can't start a second subscription through Apple", async () => {
+    const posted = [];
+    window.webkit = {
+      messageHandlers: {
+        apexTheme: { postMessage() {} },
+        apexPurchases: {
+          postMessage(msg) {
+            posted.push(msg);
+            const answer = msg.action === "offerings" ? [{ plan: "all_access_yearly", price: "$179.99", trialDays: 7 }, { plan: "plus_yearly", price: "$79.99", trialDays: 7 }] : { ok: true };
+            setTimeout(() => window.__apexNativePurchases.receive({ id: msg.id, result: answer }), 0);
+          },
+        },
+      },
+    };
+    const stripePlus = { sources: { stripe: { tier: "plus", plan: "plus_yearly", status: "active", expiresAt: Date.now() + 30 * 86400000 } } };
+    ctx = baseCtx({ soloGatesLive: true, soloTier: "plus", soloEntitlement: stripePlus });
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    await screen.findByTestId("paid-elsewhere");
+    expect(screen.queryByRole("button", { name: /subscribe to|free trial/i })).toBe(null);
+    expect(screen.queryByText(/website/i)).toBe(null);
+    expect(posted.some((m) => m.action === "purchase")).toBe(false);
+  });
+
   // #134: after Apple's sheet the page was left black but still tappable;
   // a tap on the invisible Subscribe button bought again.
   describe("after Apple's purchase sheet (#134)", () => {

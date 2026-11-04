@@ -442,6 +442,22 @@ service cloud.firestore {
         get(/databases/$(database)/documents/soloEntitlements/$(request.auth.uid)).data.get("allAccessUntil", 0) > request.time.toMillis();
     }
 
+    // Plus or better, paid up right now (plusUntil: same server-written
+    // doc and rules as allAccessUntil above; All Access counts too).
+    function hasPlus() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/soloEntitlements/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/soloEntitlements/$(request.auth.uid)).data.get("plusUntil", 0) > request.time.toMillis();
+    }
+    // Subscriptions switched on (settings/soloMonetisation live, or this
+    // account on its test list) — the same switch soloAccess.js gatesLive()
+    // reads. Before it, nothing is gated.
+    function soloGatesLive() {
+      return exists(/databases/$(database)/documents/settings/soloMonetisation) && (
+        get(/databases/$(database)/documents/settings/soloMonetisation).data.get("live", false) == true ||
+        request.auth.uid in get(/databases/$(database)/documents/settings/soloMonetisation).data.get("testUids", []));
+    }
+
     // --- soloEntitlements/{uid}: which Train Solo tier a customer has paid
     //     for (Free / Plus / All Access), per store. Server-written only:
     //     Stripe's and RevenueCat's webhooks (Admin SDK, bypassing these
@@ -589,9 +605,13 @@ service cloud.firestore {
     // --- soloCustomPrograms/{id}: multi-week programs a Plus customer
     //     built from their own sessions (src/solo/customPrograms.js). Same
     //     ownership shape as soloCustomSessions. ---
+    //     Building a NEW one is Plus once subscriptions are live (#158) —
+    //     the app's paywall alone could be skipped with a direct write. A
+    //     lapsed member still edits and deletes the ones they made.
     match /soloCustomPrograms/{id} {
       allow read: if isSignedIn() && resource.data.soloUserId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.soloUserId == request.auth.uid &&
+        (!soloGatesLive() || hasPlus());
       allow update: if isSignedIn() && resource.data.soloUserId == request.auth.uid &&
         request.resource.data.soloUserId == resource.data.soloUserId;
       allow delete: if isSignedIn() && resource.data.soloUserId == request.auth.uid;

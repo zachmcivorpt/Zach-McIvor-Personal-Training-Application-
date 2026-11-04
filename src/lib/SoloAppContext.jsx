@@ -332,6 +332,7 @@ export function SoloAppProvider({ children }) {
   // Also re-checked at the exact moment the paid plan ends (#154), so a
   // cancelled or failed plan is Free the second its period is over, not up
   // to a minute later.
+  const lastResyncRef = useRef(0);
   const nextPlanEnd = Math.min(
     Infinity,
     ...Object.values(soloEntitlement?.sources || {})
@@ -342,13 +343,21 @@ export function SoloAppProvider({ children }) {
     if (!Number.isFinite(nextPlanEnd)) return;
     const wait = nextPlanEnd - Date.now();
     if (wait > 24 * 60 * 60 * 1000) return; // the minute tick and later renders get there
-    const t = setTimeout(() => setClock(Date.now()), Math.max(0, wait) + 50);
+    const t = setTimeout(() => {
+      setClock(Date.now());
+      // ...and the server is asked to re-read the store (#158): a plan that
+      // RENEWED but whose renewal message never reached us would otherwise
+      // stay locked (until the member left and came back to the app).
+      if (Date.now() - lastResyncRef.current >= 20000) {
+        lastResyncRef.current = Date.now();
+        httpsCallable(soloFunctions, "syncSoloEntitlement")().catch(() => {});
+      }
+    }, Math.max(0, wait) + 50);
     return () => clearTimeout(t);
   }, [nextPlanEnd]);
   // Back in the app (from Apple's cancel screen, iPhone Settings, the
   // Stripe portal…): ask the server to re-read the subscription, so a
   // cancel locks straight away (#156). At most every 20s.
-  const lastResyncRef = useRef(0);
   useEffect(() => {
     if (!soloAuthUser) return;
     const onVisible = () => {
