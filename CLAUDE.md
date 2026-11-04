@@ -149,6 +149,10 @@ rather than inventing new colors per screen:
   count half; muscles come only from `exerciseMuscles.js` (#149).
 - **Session history** (#152, `SoloSessionHistory.jsx`) is the last section
   of Progress, not in My Training.
+- **Tabs** (#171): My Training, Progress, Calendar, Catalogue, Profile.
+  Calendar sessions move like the client calendar (grip handle, drag onto a
+  listed day) via `canMoveItem` / `planMove` (soloCalendar.js) through
+  sessionPlan / plannedSessions only, never logs.
 - **Workout set rows** (#170): Reps left of Kg; rest/set timers are
   `MEASURE_BLUE` (as in the client app), never the coach's branding accent.
 - **Estimated Max chart** (#150, `estMax.js`, `SoloEstMaxChart.jsx`): under

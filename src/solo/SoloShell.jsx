@@ -1,20 +1,24 @@
 import React, { Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutGrid, CalendarDays, LineChart, CircleUserRound } from "lucide-react";
+import { LayoutGrid, CalendarDays, LineChart, CircleUserRound, Dumbbell } from "lucide-react";
 import { useSoloTheme, SOLO_THEMES, soloGlassVars } from "./SoloThemeContext";
 import SoloCatalogueScreen from "./SoloCatalogueScreen";
 import SoloMyTrainingScreen from "./SoloMyTrainingScreen";
 import SoloProfileScreen from "./SoloProfileScreen";
+import SoloCalendarScreen from "./SoloCalendarScreen";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { soloDb } from "../lib/firebase";
 import { useAppleHealthSync } from "../lib/appleHealth";
 import { canUse } from "./soloAccess";
 import { SoloProgressScreen, preloadSoloScreens } from "./soloScreens";
 
+// Order set by the owner (#171): My Training, Progress, Calendar,
+// Catalogue, Profile.
 const TABS = [
-  { id: "training", label: "My Training", icon: CalendarDays },
-  { id: "catalogue", label: "Catalogue", icon: LayoutGrid },
+  { id: "training", label: "My Training", icon: Dumbbell },
   { id: "progress", label: "Progress", icon: LineChart },
+  { id: "calendar", label: "Calendar", icon: CalendarDays },
+  { id: "catalogue", label: "Catalogue", icon: LayoutGrid },
   { id: "profile", label: "Profile", icon: CircleUserRound },
 ];
 
@@ -84,6 +88,7 @@ export default function SoloShell() {
             <SoloProgressScreen />
           </Suspense>
         )}
+        {tab === "calendar" && <SoloCalendarScreen />}
         {tab === "profile" && <SoloProfileScreen />}
       </div>
 
