@@ -374,3 +374,21 @@ describe("the program sheet's start date (#158)", () => {
     expect(ctx.setPurchaseStartDate).toHaveBeenCalledWith("u1_p1", inDays(3));
   });
 });
+
+// #165: the profile now shows instantly from the phone, before the member's
+// programs have loaded — My Training must not say "Browse the catalogue" /
+// "Rest day" to someone whose program just hasn't arrived yet.
+describe("My Training while programs are still loading (#165)", () => {
+  it("shows an empty placeholder, never the no-program message; the real state once loaded", async () => {
+    ctx = baseCtx({ soloTrainingPrograms: [], soloPurchases: [], soloCurrentProgram: null, soloListsReady: false });
+    await renderMyTraining();
+    expect(screen.getByTestId("day-plan-loading")).toBeTruthy();
+    expect(screen.queryByText("Browse the catalogue")).toBe(null);
+    expect(screen.queryByText("Rest day")).toBe(null);
+    cleanup();
+    ctx = baseCtx({ soloTrainingPrograms: [], soloPurchases: [], soloCurrentProgram: null, soloListsReady: true });
+    await renderMyTraining();
+    expect(screen.queryByTestId("day-plan-loading")).toBe(null);
+    expect(screen.getByText("Browse the catalogue")).toBeTruthy();
+  });
+});

@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence } from "firebase/auth";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
@@ -63,7 +63,14 @@ export const functions = getFunctions(firebaseApp);
 // Train Solo write through the Coaching `db` would carry the Coaching
 // user's token (or none), not the Train Solo user's.
 export const soloApp = initializeApp(firebaseConfig, "solo");
-export const soloAuth = getAuth(soloApp);
+// Exactly what getAuth() sets up (same storage, same order, so existing
+// sign-ins carry on) minus the popup/redirect helper (#165): with it, every
+// launch first loaded Google's sign-in iframe and waited for it before
+// restoring the member's session — ~0.5 s on a phone, and with no signal
+// until a network timeout. Train Solo has no popup or redirect sign-in.
+export const soloAuth = initializeAuth(soloApp, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
+});
 export const soloDb = (() => {
   try {
     return initializeFirestore(soloApp, {

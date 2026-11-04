@@ -228,7 +228,7 @@ export function SoloPaywallProvider({ children }) {
   return (
     <PaywallCtx.Provider value={value}>
       {children}
-      {confirming && <SoloPurchaseStage title="Confirming your membership" detail="One moment." />}
+      {confirming && <SoloPurchaseStage instant title="Confirming your membership" detail="One moment." />}
       {welcomeTier && (
         <SoloWelcomeScreen
           tier={welcomeTier}

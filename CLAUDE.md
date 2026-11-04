@@ -120,7 +120,8 @@ rather than inventing new colors per screen:
   glass (`paywallSurface`) and thinner plan tiles, title "Train Solo
   Membership" (REGRESSION_TESTS.md #125).
 - **Light mode is pure white** (#155, `SOLO_THEMES.light.bg` #FFFFFF) so it
-  flows into the white top strip; never an off-white page. Anything that
+  flows into the white top strip; never an off-white page. The page under
+  Train Solo (`document.body`) follows the Solo theme too (#165). Anything that
   was white-on-the-page (chips) needs a faint grey to show.
 - Cards run near full screen width: 12px (`px-3`) page gutters.
 - No drawn/stock artwork: a program shows only its coach-uploaded
@@ -327,6 +328,20 @@ feedback). Keep the cold-open path short:
   first screen.
 - Still wait for Firebase Auth before showing signed-in screens (no writes
   while signed out).
+- **Train Solo launch path** (#165): the loading screen is
+  `SoloLaunchScreen` (member's colour + APEX mark, `data-apex-loading`) —
+  never a plain black/white div. A Train-Solo-only phone goes "/" →
+  /solo/home without waiting for Coaching's check, and Train Solo's code
+  starts downloading at startup. `soloAuth` is `initializeAuth` WITHOUT the
+  popup/redirect helper (it made every launch wait on Google's iframe); add
+  popup/redirect sign-in only with that cost in mind. Train Solo never
+  statically imports `client/ClientApp.jsx` — screens that reuse it go in
+  `src/solo/soloScreens.js` (`lazyScreen`, preloaded after Home). The
+  profile shows from the phone (`apexSoloProfile`, uid-checked); screens
+  that would say "no programs" wait for `soloListsReady`. The Inter font
+  stylesheet stays non-blocking (index.html). Train Solo keeps a hidden
+  element in `#root` (the workout screen is a portal and the iPhone app's
+  alive check counts `#root`'s children — 0 rebuilt the web view mid-workout).
 - Show "–" or nothing while data loads, never a "0" that jumps to the
   real number.
 
@@ -386,6 +401,8 @@ any Train Solo work from now on:
   reload → "Confirming your membership" → `SoloWelcomeScreen` ("Welcome
   to Plus."). Keep these solid, not glass (they sit under Apple's
   sheet), and never put a blank or black frame anywhere in that path.
+  All three draw `instant` (no fade-in): a fade showed the page underneath
+  between them (#164, #165).
 - In the iPhone app the page reloads itself once Apple's purchase sheet
   answers and shows the outcome after the reload (#134): WebKit can leave
   the page undrawn but still tappable under the sheet. Don't go back to

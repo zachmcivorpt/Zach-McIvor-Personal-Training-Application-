@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LayoutGrid, CalendarDays, LineChart, CircleUserRound } from "lucide-react";
 import { useSoloTheme, SOLO_THEMES, soloGlassVars } from "./SoloThemeContext";
 import SoloCatalogueScreen from "./SoloCatalogueScreen";
 import SoloMyTrainingScreen from "./SoloMyTrainingScreen";
-import SoloProgressScreen from "./SoloProgressScreen";
 import SoloProfileScreen from "./SoloProfileScreen";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { soloDb } from "../lib/firebase";
 import { useAppleHealthSync } from "../lib/appleHealth";
 import { canUse } from "./soloAccess";
+import { SoloProgressScreen, preloadSoloScreens } from "./soloScreens";
 
 const TABS = [
   { id: "training", label: "My Training", icon: CalendarDays },
@@ -55,6 +55,13 @@ export default function SoloShell() {
   const { dark } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
 
+  // Home is on screen: fetch the other screens' code now, so opening a
+  // program, a workout or Progress never waits for it (#165).
+  useEffect(() => {
+    const id = setTimeout(preloadSoloScreens, 300);
+    return () => clearTimeout(id);
+  }, []);
+
   // Apple Health (iPhone app only, connected from Profile).
   // A Plus feature once subscriptions launch (soloAccess.js).
   const { soloCurrentUser, soloAccess } = useSoloApp();
@@ -72,7 +79,11 @@ export default function SoloShell() {
       <div className="flex-1 solo-glass-scope" style={{ ...soloGlassVars(t), paddingBottom: NAV_SPACE }}>
         {tab === "catalogue" && <SoloCatalogueScreen />}
         {tab === "training" && <SoloMyTrainingScreen />}
-        {tab === "progress" && <SoloProgressScreen />}
+        {tab === "progress" && (
+          <Suspense fallback={null}>
+            <SoloProgressScreen />
+          </Suspense>
+        )}
         {tab === "profile" && <SoloProfileScreen />}
       </div>
 

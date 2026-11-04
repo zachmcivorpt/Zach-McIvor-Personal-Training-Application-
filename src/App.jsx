@@ -7,6 +7,7 @@ import LoginScreen from "./auth/LoginScreen";
 import ActivateScreen from "./auth/ActivateScreen";
 import LegalPage from "./legal/LegalPage";
 import StartScreen from "./solo/StartScreen";
+import SoloLaunchScreen from "./solo/SoloLaunchScreen";
 
 // CoachShell and ClientApp are each huge route trees (the entire coach
 // console / entire client app) — bundling both into the single main chunk
@@ -21,7 +22,8 @@ const loadCoachShell = () => import("./coach/CoachShell");
 const loadClientApp = () => import("./client/ClientApp");
 const CoachShell = lazy(loadCoachShell);
 const ClientApp = lazy(loadClientApp);
-const SoloRoutes = lazy(() => import("./solo/SoloRoutes"));
+const loadSoloRoutes = () => import("./solo/SoloRoutes");
+const SoloRoutes = lazy(loadSoloRoutes);
 
 // The role of whoever was last signed in on this phone (AppContext keeps
 // their profile on the phone). Their screen's code starts loading right
@@ -37,6 +39,23 @@ const lastRole = (() => {
 })();
 if (lastRole === "coach") loadCoachShell().catch(() => {});
 else if (lastRole === "client") loadClientApp().catch(() => {});
+
+// Same key as SoloAppContext's SOLO_SIGNED_IN_KEY, read here without
+// importing Train Solo's code into the main bundle.
+function soloSignedInOnThisPhone() {
+  try {
+    return localStorage.getItem("apexSoloSignedIn") === "1";
+  } catch {
+    return false;
+  }
+}
+// A Train Solo member's phone (#165): Train Solo's code starts downloading
+// at startup too (it used to start only after the redirect), and "/" goes
+// straight to Train Solo without first waiting for Coaching's sign-in check
+// — unless someone has also used Coaching on this phone (lastRole), who
+// keeps the old order.
+const soloOnlyPhone = soloSignedInOnThisPhone() && !lastRole;
+if (soloSignedInOnThisPhone() || (typeof location !== "undefined" && location.pathname.startsWith("/solo"))) loadSoloRoutes().catch(() => {});
 
 // Firebase Auth restores a persisted session asynchronously — on a cold
 // launch (most visible tapping an installed PWA icon) there's a brief
@@ -66,19 +85,20 @@ function RequireRole({ role, children }) {
   return children;
 }
 
-// Same key as SoloAppContext's SOLO_SIGNED_IN_KEY, read here without
-// importing Train Solo's code into the main bundle.
-function soloSignedInOnThisPhone() {
-  try {
-    return localStorage.getItem("apexSoloSignedIn") === "1";
-  } catch {
-    return false;
-  }
+// <Navigate> draws nothing for a frame; the launch screen under it keeps
+// that frame from being empty (#165).
+function ToSolo() {
+  return (
+    <>
+      <SoloLaunchScreen />
+      <Navigate to="/solo/home" replace />
+    </>
+  );
 }
 
 function RootRedirect() {
   const { currentUser, sessionLoading } = useApp();
-  if (sessionLoading) return <SessionLoadingScreen />;
+  if (sessionLoading) return soloOnlyPhone ? <ToSolo /> : <SessionLoadingScreen />;
   // Was <Navigate to="/login" replace /> — the only behavioral change in
   // this function. A signed-in coach/client still redirects straight to
   // /coach or /app exactly as before (the branch below is untouched); only
@@ -87,7 +107,7 @@ function RootRedirect() {
   // same /login screen.
   // Signed in to Train Solo only (#161): back into Train Solo — what the
   // iPhone app opens after a purchase or a cold launch — not the chooser.
-  if (!currentUser) return <Navigate to={soloSignedInOnThisPhone() ? "/solo/home" : "/start"} replace />;
+  if (!currentUser) return soloSignedInOnThisPhone() ? <ToSolo /> : <Navigate to="/start" replace />;
   return <Navigate to={currentUser.role === "coach" ? "/coach" : "/app"} replace />;
 }
 
@@ -153,7 +173,7 @@ export function Routed() {
         <Route
           path="/solo/*"
           element={
-            <Suspense fallback={<SessionLoadingScreen />}>
+            <Suspense fallback={<SoloLaunchScreen />}>
               <SoloRoutes />
             </Suspense>
           }

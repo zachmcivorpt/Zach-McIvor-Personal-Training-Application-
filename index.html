@@ -9,10 +9,20 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Inter loads without holding up the first paint (#165): as a plain
+         stylesheet it blocked the app's code, so with a weak signal the app
+         stayed blank (black in the iPhone app after a dark screen) until
+         Google answered. Text shows in the system font until Inter arrives
+         (display=swap, as before). -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    </noscript>
 
     <meta name="theme-color" content="#FFFFFF" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
