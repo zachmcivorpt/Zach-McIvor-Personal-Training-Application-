@@ -328,8 +328,8 @@ any Train Solo work from now on:
   `FEATURE_TIER` there, not as one-off checks.
 - The tier comes only from `soloEntitlements/{uid}`, written only by the
   server (`functions/soloSubscriptions.js`) from Stripe and RevenueCat. The
-  app never writes it and never grants access by itself. A failed payment,
-  expiry or refund is Free immediately (owner rule).
+  app never writes it and never grants access by itself. A cancellation,
+  failed payment, expiry or refund is Free immediately (owner rule, #156).
 - The member's plan opens from this phone's last confirmed copy
   (`apexSoloEntitlement` in SoloAppContext, #137), so a paying member is
   never treated as Free while it loads. Anything that opens the paywall by
@@ -356,9 +356,14 @@ any Train Solo work from now on:
 - In the iPhone app, if the App Store returns no subscriptions the paywall
   shows why (REGRESSION_TESTS.md #124) and retries on the next open — never
   a silent disabled button, never a pointer to the website.
-- A plan is re-checked at the exact second its period ends (#154). A
-  cancelled plan runs to the end of what was paid (App Store rule), then
-  locks at once; refund / failed payment / expiry lock immediately.
+- **Cancelling ends access straight away** (owner rule, #156): a cancelled
+  subscription (Stripe cancel at period end / cancel date, ended in Stripe at
+  once; Apple `unsubscribe_detected_at` / `willRenew: false`) is Free the
+  moment it reaches us, on the server and in `sourceActive`; no refund for
+  the rest of the period. Never go back to "keep access until the period
+  ends". Refund / failed payment / expiry also lock immediately, and a plan
+  is re-checked at the exact second its period ends (#154) and whenever the
+  app comes back to the front.
 - In the iPhone app the subscription is re-read from the server on every
   open (`syncSoloEntitlement`, #133), not only after the purchase reply —
   that reply can be lost if iOS drops the page under Apple's sheet.

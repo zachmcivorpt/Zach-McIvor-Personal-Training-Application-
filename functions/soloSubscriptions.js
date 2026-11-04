@@ -17,9 +17,12 @@
 //                   customer read a program they haven't bought
 //   plusUntil       same for Plus-or-better
 //
-// Owner rule: no paid access without payment. A failed renewal, a
-// cancellation that has run out, a refund or an expiry all derive to Free
-// immediately — Stripe's subscription status goes past_due/unpaid/canceled
+// Owner rule: no paid access without payment, and cancelling ends it
+// straight away (#156): a cancelled subscription (Stripe: cancel at period
+// end / a cancel date, which we then end in Stripe at once; Apple:
+// RevenueCat's unsubscribe_detected_at) is Free the moment it's cancelled,
+// not at the end of the period. A failed renewal, a refund or an expiry
+// also derive to Free immediately — Stripe's subscription status goes past_due/unpaid/canceled
 // the moment a payment fails, and Apple (Billing Grace Period off) stops
 // renewing the entitlement. Logs, sessions and history are never touched.
 //
@@ -58,10 +61,11 @@ function stripeSourceFromSubscriptions(subs, now = Date.now()) {
     .map((sub) => {
       const plan = planOfSubscription(sub);
       if (!plan) return null;
+      const cancelled = ACTIVE_STRIPE.has(sub.status) && !!(sub.cancel_at_period_end || sub.cancel_at);
       return {
         tier: PLANS[plan].tier,
         plan,
-        status: sub.status,
+        status: cancelled ? "cancelled" : sub.status,
         expiresAt: periodEndMs(sub),
         cancelAtPeriodEnd: !!sub.cancel_at_period_end,
         cancelAt: sub.cancel_at ? sub.cancel_at * 1000 : null,
@@ -104,10 +108,12 @@ function appleSourceFromSubscriber(subscriber, now = Date.now()) {
     const expiresAt = expires ? Date.parse(expires) : null; // null = lifetime / promotional without end
     const sub = subs[productId] || {};
     const refunded = !!sub.refunded_at;
-    const paidUp = !refunded && (expiresAt == null || expiresAt > now);
+    const cancelled = !refunded && !!sub.unsubscribe_detected_at;
+    const notExpired = expiresAt == null || expiresAt > now;
+    const paidUp = !refunded && !cancelled && notExpired;
     const source = {
       tier,
-      status: refunded ? "refunded" : !paidUp ? (sub.billing_issues_detected_at ? "billing_issue" : "expired") : sub.period_type === "trial" ? "trialing" : "active",
+      status: refunded ? "refunded" : cancelled && notExpired ? "cancelled" : !paidUp ? (sub.billing_issues_detected_at ? "billing_issue" : "expired") : sub.period_type === "trial" ? "trialing" : "active",
       expiresAt,
       productId: productId || null,
       store: sub.store || null,
@@ -216,6 +222,18 @@ async function syncStripeCustomer(db, stripe, customerId, uidHint) {
     for (const s of subs) {
       if (["past_due", "unpaid", "incomplete"].includes(s.status)) {
         await stripe.subscriptions.cancel(s.id).catch((err) => console.error("cancel stale subscription failed", s.id, err.message));
+      }
+    }
+  }
+  // Cancelled from the portal (cancel at period end / a cancel date): end it
+  // in Stripe now, so nothing lingers as "active" (#156). No refund.
+  for (const s of subs) {
+    if (ACTIVE_STRIPE.has(s.status) && (s.cancel_at_period_end || s.cancel_at)) {
+      try {
+        const ended = await stripe.subscriptions.cancel(s.id);
+        s.status = ended?.status || "canceled";
+      } catch (err) {
+        console.error("immediate cancel failed", s.id, err.message);
       }
     }
   }

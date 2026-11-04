@@ -52,18 +52,22 @@ describe("renews / ends date after a cancel", () => {
     expect(planRenewal({ sources: { stripe: { tier: "plus", status: "past_due", expiresAt: end } } }, NOW)).toBe(null);
   });
 
-  it("website: renewing, cancelled at period end, or cancelled to a date", () => {
+  it("cancelled is Free straight away, from either store, trial or paid (#156)", () => {
     const src = { tier: "plus", status: "active", expiresAt: end, cancelAtPeriodEnd: false, cancelAt: null };
+    expect(tierFromEntitlement({ sources: { stripe: src } }, NOW)).toBe("plus");
     expect(planRenewal({ sources: { stripe: src } }, NOW)).toMatchObject({ date: end, willRenew: true, trial: false, store: "stripe" });
-    expect(planRenewal({ sources: { stripe: { ...src, cancelAtPeriodEnd: true } } }, NOW)).toMatchObject({ date: end, willRenew: false });
-    expect(planRenewal({ sources: { stripe: { ...src, cancelAt: NOW + 5 * DAY } } }, NOW)).toMatchObject({ date: NOW + 5 * DAY, willRenew: false });
+    for (const cancelled of [{ ...src, cancelAtPeriodEnd: true }, { ...src, cancelAt: NOW + 5 * DAY }, { ...src, status: "cancelled" }]) {
+      expect(tierFromEntitlement({ sources: { stripe: cancelled } }, NOW)).toBe("free");
+      expect(planRenewal({ sources: { stripe: cancelled } }, NOW)).toBe(null);
+    }
+    const apple = { tier: "all_access", status: "trialing", expiresAt: end, willRenew: false };
+    expect(tierFromEntitlement({ sources: { apple } }, NOW)).toBe("free");
+    expect(tierFromEntitlement({ sources: { apple: { ...apple, status: "active" } } }, NOW)).toBe("free");
   });
 
-  it("App Store: willRenew false after unsubscribing; trials say so", () => {
-    const ent = { sources: { apple: { tier: "all_access", status: "trialing", expiresAt: end, willRenew: false } } };
-    expect(planRenewal(ent, NOW)).toMatchObject({ date: end, willRenew: false, trial: true, store: "apple" });
-    expect(renewalText(planRenewal(ent, NOW), NOW)).toMatch(/^Free trial · ends /);
-    ent.sources.apple.willRenew = true;
+  it("App Store: a trial that will renew says when the first payment is", () => {
+    const ent = { sources: { apple: { tier: "all_access", status: "trialing", expiresAt: end, willRenew: true } } };
+    expect(planRenewal(ent, NOW)).toMatchObject({ date: end, willRenew: true, trial: true, store: "apple" });
     expect(renewalText(planRenewal(ent, NOW), NOW)).toMatch(/^Free trial · first payment /);
   });
 

@@ -309,8 +309,11 @@ function SoloPaywallSheet({ request, onClose }) {
   async function manage() {
     try {
       if (store === "apple") {
-        if (nativeIap) await manageAppleSubscription();
-        else setMessage("Manage it in iPhone Settings → your name → Subscriptions.");
+        if (nativeIap) {
+          await manageAppleSubscription();
+          // Back from Apple's screen: a cancel there ends access now (#156).
+          await refreshSoloEntitlement().catch(() => {});
+        } else setMessage("Manage it in iPhone Settings → your name → Subscriptions.");
         return;
       }
       const { url } = await openSoloBillingPortal();
@@ -346,7 +349,11 @@ function SoloPaywallSheet({ request, onClose }) {
               {renewal && (
                 <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
                   {renewalText(renewal)}
-                  {!renewal.willRenew && " — you keep everything until then."}
+                </p>
+              )}
+              {canManageHere && (
+                <p className="text-xs mt-0.5" style={{ color: t.textMuted }} data-testid="cancel-note">
+                  Cancelling ends it straight away.
                 </p>
               )}
             </div>
@@ -465,7 +472,7 @@ function SoloPaywallSheet({ request, onClose }) {
               {price && (
                 <p className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
                   {trialDays > 0 ? `${trialDays} days free, then ${price} a ${per}. ` : `${price} a ${per}. `}
-                  Renews automatically until you cancel; cancel at least 24 hours before it renews to avoid the next charge.
+                  Renews automatically until you cancel; cancel at least 24 hours before it renews to avoid the next charge. Cancelling ends your membership straight away, with no refund for the rest of the period.
                   {iosApp ? " Manage or cancel in iPhone Settings." : " Manage or cancel any time from Profile."}
                 </p>
               )}

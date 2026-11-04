@@ -65,11 +65,26 @@ describe("Stripe → entitlement", () => {
     expect(src.subscriptionId).toBe("sub_new");
   });
 
-  it("records a cancel from the portal (still paid up until the period ends)", () => {
-    const src = stripeSourceFromSubscriptions([sub("plus_monthly", "active", NOW + 9 * DAY, { cancel_at_period_end: true, cancel_at: sec(NOW + 9 * DAY) })], NOW);
-    expect(src).toMatchObject({ cancelAtPeriodEnd: true, cancelAt: sec(NOW + 9 * DAY) * 1000 });
-    expect(deriveEntitlement({ stripe: src }, NOW).tier).toBe("plus");
-    expect(stripeSourceFromSubscriptions([sub("plus_monthly", "active", NOW + 9 * DAY)], NOW).cancelAt).toBe(null);
+  it("a cancel from the portal is Free straight away, even mid-period (#156)", () => {
+    for (const extra of [{ cancel_at_period_end: true }, { cancel_at: sec(NOW + 9 * DAY) }]) {
+      const src = stripeSourceFromSubscriptions([sub("plus_monthly", "active", NOW + 9 * DAY, extra)], NOW);
+      expect(src.status).toBe("cancelled");
+      expect(deriveEntitlement({ stripe: src }, NOW)).toEqual({ tier: "free", allAccessUntil: 0, plusUntil: 0 });
+    }
+    // A cancelled trial too.
+    expect(deriveEntitlement({ stripe: stripeSourceFromSubscriptions([sub("all_access_yearly", "trialing", NOW + 5 * DAY, { cancel_at_period_end: true })], NOW) }, NOW).tier).toBe("free");
+    // Not cancelled: unchanged.
+    const live = stripeSourceFromSubscriptions([sub("plus_monthly", "active", NOW + 9 * DAY)], NOW);
+    expect(live.cancelAt).toBe(null);
+    expect(deriveEntitlement({ stripe: live }, NOW).tier).toBe("plus");
+  });
+
+  it("cancelled, then subscribed again: the new one is used", () => {
+    const src = stripeSourceFromSubscriptions(
+      [sub("plus_monthly", "canceled", NOW + 9 * DAY, { created: 1 }), sub("all_access_monthly", "active", NOW + 30 * DAY, { created: 2 })],
+      NOW
+    );
+    expect(deriveEntitlement({ stripe: src }, NOW).tier).toBe("all_access");
   });
 
   it("works with Stripe's newer API (period end on the item)", () => {
@@ -145,12 +160,21 @@ describe("Apple (RevenueCat) → entitlement", () => {
     expect(deriveEntitlement({ apple: src }, NOW).allAccessUntil).toBe(0);
   });
 
-  it("cancelled but still inside the paid period keeps access, won't renew", () => {
+  it("cancelled (auto-renew off) is Free straight away, even inside the paid period (#156)", () => {
     const src = appleSourceFromSubscriber(
-      { entitlements: { plus: { expires_date: iso(NOW + 3 * DAY), product_identifier: "p" } }, subscriptions: { p: { unsubscribe_detected_at: iso(NOW - DAY) } } },
+      { entitlements: { all_access: { expires_date: iso(NOW + 20 * DAY), product_identifier: "aa" } }, subscriptions: { aa: { unsubscribe_detected_at: iso(NOW - 60000) } } },
       NOW
     );
-    expect(src).toMatchObject({ status: "active", willRenew: false });
+    expect(src).toMatchObject({ status: "cancelled", willRenew: false });
+    expect(deriveEntitlement({ apple: src }, NOW)).toEqual({ tier: "free", allAccessUntil: 0, plusUntil: 0 });
+    // A cancelled trial too.
+    const trial = appleSourceFromSubscriber({ entitlements: { plus: { expires_date: iso(NOW + DAY), product_identifier: "p" } }, subscriptions: { p: { period_type: "trial", unsubscribe_detected_at: iso(NOW - 1) } } }, NOW);
+    expect(deriveEntitlement({ apple: trial }, NOW).tier).toBe("free");
+  });
+
+  it("turned back on (RevenueCat clears unsubscribe_detected_at): access again", () => {
+    const src = appleSourceFromSubscriber({ entitlements: { plus: { expires_date: iso(NOW + 3 * DAY), product_identifier: "p" } }, subscriptions: { p: {} } }, NOW);
+    expect(deriveEntitlement({ apple: src }, NOW).tier).toBe("plus");
   });
 
   it("a trial shows as trialing", () => {

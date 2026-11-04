@@ -491,21 +491,25 @@ describe("paywall for subscribers", () => {
     void sheet;
   });
 
-  it("after cancelling, the plan says it won't renew and when it ends; Profile too", async () => {
+  it("after cancelling, it's Free straight away: Profile shows Free and paid features lock (#156)", async () => {
     const end = Date.now() + 9 * 86400000;
-    ctx = baseCtx({
-      soloGatesLive: true,
-      soloTier: "plus",
-      soloEntitlement: { sources: { stripe: { tier: "plus", status: "active", expiresAt: end, cancelAtPeriodEnd: true } } },
-      soloLogout: vi.fn(),
-      deleteMySoloAccount: vi.fn(),
-      setSoloReminderPref: vi.fn(),
-    });
+    const { tierFromEntitlement } = await import("./soloAccess");
+    const ent = { sources: { stripe: { tier: "plus", status: "active", expiresAt: end, cancelAtPeriodEnd: true } } };
+    const tier = tierFromEntitlement(ent);
+    expect(tier).toBe("free");
+    ctx = baseCtx({ soloGatesLive: true, soloTier: tier, soloEntitlement: ent, soloLogout: vi.fn(), deleteMySoloAccount: vi.fn(), setSoloReminderPref: vi.fn() });
     const { default: SoloProfileScreen } = await import("./SoloProfileScreen");
     await renderAt("/x", <SoloProfileScreen />, "/x");
-    const row = await screen.findByText(/^Won't renew · ends .+ · manage$/);
-    fireEvent.click(row);
-    expect(await screen.findByText(/you keep everything until then/)).toBeTruthy();
+    expect(screen.queryByText(/Won't renew/)).toBe(null);
+    expect(screen.queryByText(/Train Solo Plus/)).toBe(null);
+  });
+
+  it("subscribers are told cancelling ends it straight away; buyers are told before they buy", async () => {
+    ctx = baseCtx({ soloGatesLive: true, soloTier: "plus", soloEntitlement: { sources: { stripe: { tier: "plus", status: "active", expiresAt: Date.now() + 9e8 } } } });
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    expect((await screen.findByTestId("cancel-note")).textContent).toBe("Cancelling ends it straight away.");
+    expect(screen.getByText(/Cancelling ends your membership straight away, with no refund for the rest of the period\./)).toBeTruthy();
   });
 
   it("a renewing plan shows its renewal date", async () => {

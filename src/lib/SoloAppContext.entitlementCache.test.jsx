@@ -11,7 +11,8 @@ import { SoloAppProvider, useSoloApp } from "./SoloAppContext";
 
 vi.mock("./firebase", () => ({ soloAuth: {}, soloDb: {}, soloFunctions: {} }));
 vi.mock("./push", () => ({ removeSoloPushToken: vi.fn() }));
-vi.mock("firebase/functions", () => ({ httpsCallable: () => () => Promise.resolve({ data: {} }) }));
+const syncCalls = vi.hoisted(() => ({ n: 0 }));
+vi.mock("firebase/functions", () => ({ httpsCallable: () => () => { syncCalls.n++; return Promise.resolve({ data: {} }); } }));
 vi.mock("./purchases", () => ({ inAppPurchasesAvailable: () => false, identifyPurchaser: vi.fn(), forgetPurchaser: vi.fn() }));
 vi.mock("firebase/auth", () => ({
   onAuthStateChanged: (_auth, cb) => {
@@ -137,10 +138,23 @@ describe("a plan that ends while the app is open (#154)", () => {
     }
   });
 
-  it("cancelled (won't renew) keeps the paid period, then ends exactly at its end", () => {
+  it("cancelled (won't renew) is Free at once, even inside the paid period (#156)", () => {
     localStorage.setItem("apexSoloEntitlement", JSON.stringify({ uid: "u1", data: allAccess }));
     render(<SoloAppProvider><Probe /></SoloAppProvider>);
     act(() => listeners["soloEntitlements/u1"](snap({ sources: { apple: { tier: "all_access", status: "active", expiresAt: FUTURE, willRenew: false } } })));
-    expect(probe()).toBe("all_access|true");
+    expect(probe()).toBe("free|true");
+  });
+});
+
+describe("coming back to the app re-reads the subscription (#156)", () => {
+  it("asks the server again when the page becomes visible (e.g. back from Apple's cancel screen), at most every 20s", () => {
+    localStorage.setItem("apexSoloEntitlement", JSON.stringify({ uid: "u1", data: allAccess }));
+    render(<SoloAppProvider><Probe /></SoloAppProvider>);
+    const before = syncCalls.n;
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    expect(syncCalls.n).toBe(before + 1);
+    act(() => document.dispatchEvent(new Event("visibilitychange")));
+    expect(syncCalls.n).toBe(before + 1);
   });
 });

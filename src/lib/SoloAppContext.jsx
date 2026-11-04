@@ -324,6 +324,20 @@ export function SoloAppProvider({ children }) {
     const t = setTimeout(() => setClock(Date.now()), Math.max(0, wait) + 50);
     return () => clearTimeout(t);
   }, [nextPlanEnd]);
+  // Back in the app (from Apple's cancel screen, iPhone Settings, the
+  // Stripe portal…): ask the server to re-read the subscription, so a
+  // cancel locks straight away (#156). At most every 20s.
+  const lastResyncRef = useRef(0);
+  useEffect(() => {
+    if (!soloAuthUser) return;
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || Date.now() - lastResyncRef.current < 20000) return;
+      lastResyncRef.current = Date.now();
+      httpsCallable(soloFunctions, "syncSoloEntitlement")().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [soloAuthUser]);
   const soloTier = tierFromEntitlement(soloEntitlement, clock);
   const soloGatesLive = gatesLive(soloMonetisation, soloAuthUser?.uid);
   const soloHasAllAccess = soloGatesLive && soloTier === "all_access";
