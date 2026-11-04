@@ -6,7 +6,7 @@
 // free 3-saved-sessions limit.
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 vi.setConfig({ testTimeout: 20000 });
@@ -352,8 +352,9 @@ describe("inside the iPhone app", () => {
       ctx = baseCtx({ soloGatesLive: true });
       await renderProgram("p1");
       await screen.findByText(/Apple confirmed your purchase, but it hasn't reached your account yet/);
-      // Asked up to four times (RevenueCat can lag a moment, #162) before saying so.
-      expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(4);
+      // Asked up to four times (RevenueCat can lag a moment, #162) before
+      // saying so — plus once more as the membership sheet opens to say it.
+      expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(5);
       expect(screen.queryByTestId("solo-welcome")).toBe(null);
       expect(screen.queryByTestId("solo-purchase-stage")).toBe(null);
     });
@@ -526,6 +527,22 @@ describe("Free: 3 saved sessions", () => {
 });
 
 describe("paywall for subscribers", () => {
+  // #162: the sheet showed a member as Free (this phone's copy was behind)
+  // and let them buy again while they held All Access.
+  it("opening the sheet re-reads the plan first; buying waits for it, then shows the real plan", async () => {
+    let answer;
+    ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => new Promise((r) => (answer = r))) });
+    await renderProgram("p1");
+    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    const busy = await screen.findByRole("button", { name: "CHECKING YOUR MEMBERSHIP…" });
+    expect(busy.disabled).toBe(true);
+    fireEvent.click(busy);
+    expect(ctx.startSoloSubscription).not.toHaveBeenCalled();
+    expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(1);
+    await act(async () => answer({ tier: "free" }));
+    expect(screen.getByRole("button", { name: /start 7-day free trial/i }).disabled).toBe(false);
+  });
+
   // #159: an All Access website subscriber could only downgrade through
   // Stripe's portal (if its settings allowed it); the sheet hid every plan.
   describe("a website subscriber changes plan in the sheet (#159)", () => {

@@ -265,6 +265,30 @@ function SoloPaywallSheet({ request, onClose }) {
     return () => window.removeEventListener("pageshow", onShow);
   }, []);
 
+  // Every time the sheet opens, the plan is re-read from the stores first
+  // (#162): this phone's copy can be behind (a purchase or upgrade whose
+  // update never reached it), and a member who already has a plan must never
+  // be offered — and pay for — it again. Buying waits for the answer (a few
+  // seconds at most); the sheet updates itself from the server's reply.
+  const [checking, setChecking] = useState(false);
+  useEffect(() => {
+    if (!open || !soloAuthUser) return;
+    let done = false;
+    setChecking(true);
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setChecking(false);
+    };
+    Promise.resolve(refreshSoloEntitlement?.()).catch(() => {}).then(finish);
+    const cap = setTimeout(finish, 6000);
+    return () => {
+      done = true;
+      clearTimeout(cap);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     // A Plus member can only move up, so All Access is always preselected for them.
@@ -325,7 +349,7 @@ function SoloPaywallSheet({ request, onClose }) {
   const price = priceOf(plan);
 
   async function buy() {
-    if (paidElsewhere) return;
+    if (paidElsewhere || checking) return;
     setBusy(true);
     setMessage("");
     let reloading = false;
@@ -555,9 +579,11 @@ function SoloPaywallSheet({ request, onClose }) {
                   Your plan can't be changed in the app
                 </p>
               ) : (
-                <PrimaryButton dark={dark} className="w-full" onClick={buy} disabled={busy || (iosApp && !price)}>
+                <PrimaryButton dark={dark} className="w-full" onClick={buy} disabled={busy || checking || (iosApp && !price)}>
                   {busy
                     ? "ONE MOMENT…"
+                    : checking
+                      ? "CHECKING YOUR MEMBERSHIP…"
                     : changeHere
                       ? `SWITCH TO ${TIER_LABELS[tier].toUpperCase()} ${interval === "year" ? "YEARLY" : "MONTHLY"}`
                       : trialDays > 0
