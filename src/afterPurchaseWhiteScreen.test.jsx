@@ -113,9 +113,53 @@ describe("white screen when coming back to the app (#162)", () => {
     expect(f).toContain("self.rebuildWebView()");
     expect(fn("isOneColour")).toMatch(/> 10/);
   });
-  it("after a purchase the cover also stays until the new page really shows something (twice at most)", () => {
+  it("after a purchase the cover stays until the new page really shows something; then Continue, never white", () => {
     const f = fn("revealAfterPurchase");
     expect(f).toContain("self.pageLooksBlank");
-    expect(f).toMatch(/blank && self\.purchaseRebuilds < 2/);
+    expect(f).toContain("self.retryFreshPageOrContinue()");
+    expect(f).toContain("self.verifyShownAfterPurchase()");
+    expect(f).not.toMatch(/tries >= 12 \{[\s\S]{0,120}removePurchaseCover/);
+    expect(fn("retryFreshPageOrContinue")).toMatch(/purchaseRebuilds < 2[\s\S]*rebuildWebView\(\)[\s\S]*offerContinue\(\)/);
+  });
+});
+
+// #163: the #161/#162 build still went white after "Confirming your
+// membership" on the owner's phone.
+describe("white screen after a purchase, second fix (#163)", () => {
+  const swift = () => readFileSync("ios/ApexCoach/ViewController.swift", "utf8");
+  const fn = (name) => swift().match(new RegExp(`func ${name}\\([\\s\\S]*?\\n {4}\\}\\n`))[0];
+  it("checks what's really on screen (drawHierarchy) once that's confirmed to work on the phone, else WebKit's picture", () => {
+    const f = fn("pageLooksBlank");
+    expect(f).toMatch(/screenPictureWorks == true, let cg = screenPicture\(\)/);
+    expect(f).toContain("takeSnapshot");
+    expect(fn("screenPicture")).toContain("drawHierarchy(in:");
+    expect(fn("calibrateScreenPicture")).toContain("self.screenPictureWorks = !ViewController.isOneColour(cg)");
+  });
+  it("the fresh page is made only once the app is active again after Apple's sheet", () => {
+    const body = swift().match(/private func purchaseSheetDidFinish\(bought: Bool\) \{[\s\S]*?\n {4}\}\n/)[0];
+    expect(body).toMatch(/self\.whenAppActive \{[\s\S]*?self\.rebuildWebView\(\)/);
+    expect(body).toContain("self.offerContinue()");
+    expect(body).not.toContain("self.removePurchaseCover()");
+  });
+  it("the Continue screen opens a fresh page", () => {
+    expect(fn("continueAfterPurchase")).toContain("rebuildWebView()");
+    expect(fn("offerContinue")).toContain("showContinue: true");
+  });
+});
+
+describe("the native purchase screen looks like the app's own (#163, owner: logo + blue line)", () => {
+  const swift = () => readFileSync("ios/ApexCoach/ViewController.swift", "utf8");
+  it("APEX mark, title, line and the thin blue line (#2F8FFF), in Train Solo's colours", () => {
+    const f = swift().match(/private func showPurchaseStageCover[\s\S]*?\n {4}\}\n/)[0];
+    expect(f).toContain('UIImage(named: dark ? "ApexMarkWhite" : "ApexMarkBlack")');
+    expect(f).toMatch(/track\.widthAnchor\.constraint\(equalToConstant: 96\)/);
+    expect(f).toMatch(/red: 47\.0 \/ 255\.0, green: 143\.0 \/ 255\.0, blue: 1/);
+    expect(f).not.toContain("UIActivityIndicatorView");
+  });
+  it("the mark images are in the app's image catalogue", () => {
+    for (const n of ["Black", "White"]) {
+      const json = JSON.parse(readFileSync(`ios/ApexCoach/Assets.xcassets/ApexMark${n}.imageset/Contents.json`, "utf8"));
+      expect(json.images[0].filename).toBe(`mark-${n.toLowerCase()}.png`);
+    }
   });
 });

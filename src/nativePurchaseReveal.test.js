@@ -63,8 +63,8 @@ describe("after Apple's purchase sheet", () => {
   it("waits for a real screen on the brand-new page, then the cover comes off", () => {
     const f = fn("revealAfterPurchase");
     expect(f).toContain("pageDrawsFrame(appReady: true)");
-    expect(f).toContain("self?.removePurchaseCover()");
-    expect(f).toContain("self?.revealAfterPurchase(tries: tries + 1)");
+    expect(f).toContain("self.removePurchaseCover()");
+    expect(f).toContain("self.revealAfterPurchase(tries: tries + 1)");
     expect(f).not.toContain("reattachWebView()");
     const done = fn("purchaseSheetDidFinish");
     expect(done).toContain("showPurchaseStageCover(");
