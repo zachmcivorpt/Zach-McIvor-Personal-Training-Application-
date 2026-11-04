@@ -9,6 +9,10 @@ import { SoloArtwork } from "./SoloArtwork";
 import { inIosApp, APP_STORE_URL } from "./appShell";
 import { useSoloPaywall } from "./SoloPaywall";
 
+// One empty object for "no answers yet", so memos that depend on the
+// answers don't recompute on every render (#172).
+const NO_ANSWERS = Object.freeze({});
+
 // After launch there are no single-program prices: programs are All Access
 // and recovery add-ons come with Plus (soloAccess.js).
 function priceLabel(program, live) {
@@ -66,7 +70,7 @@ export default function SoloCatalogueScreen() {
   const recoveryAddons = useMemo(() => visibleRecoveryAddons(soloPrograms), [soloPrograms]);
   const activeAddonId = soloCurrentUser?.recoveryAddon?.programId;
 
-  const answers = soloCurrentUser?.onboarding?.answers || {};
+  const answers = soloCurrentUser?.onboarding?.answers || NO_ANSWERS;
   // The two best fits for this customer's consultation answers, leaving
   // out anything they already own.
   // (and the All Access program they're already running)

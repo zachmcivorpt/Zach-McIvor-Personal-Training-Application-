@@ -2741,6 +2741,22 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **What can move / the write** (`canMoveItem`, `planMove` in `soloCalendar.js`): program sessions of a running program not done or skipped, and their own planned sessions, today or later; written to `sessionPlan.moveTo` (#141) or `plannedSessions` (#142). Logs never touched.
 - **Tests**: `src/solo/calendarMove171.test.jsx` (9: what can move, the writes, never into the past, the hint, grip-drag onto a listed day moves it, moving first is a scroll, every day listed, tab order). The #165 `#root` test moved to `rootMarker165.test.jsx` (it shared a module registry and failed about 1 run in 4).
 
+### 172. Train Solo sweep: full journey on a fresh account; memo fix (2026-11-04)
+- **Verified end to end** (built app, iPhone 13, fresh account on the live Firebase, deleted afterwards):
+  - register and questionnaire;
+  - build two sessions, then a program from them (scheduled automatically);
+  - My Training shows it;
+  - Calendar tab, real-touch drag of "Pull · Week 2" from the 16th onto the 15th: the target day shows the blue ring and the session moves;
+  - log a set and complete the workout; Progress session history shows it;
+  - a second program puts the first in Archived; swipe-delete it; Progress still shows the session;
+  - theme switch; reload signed in back on Home in 0.94 s; sign out and back in; reload with no signal opens the app;
+  - no page errors and no console errors.
+- **Fixed**: `SoloCatalogueScreen`, `SoloFirstSessionScreen` and `SoloOnboarding` fell back to a new `{}` when there were no questionnaire answers, so their memos (the catalogue's recommendations among them) recomputed on every render. They now use one frozen `NO_ANSWERS`, and nothing writes into it.
+- **Test**: `src/solo/stableAnswers172.test.js` (3; all fail on the old code).
+- **Not bugs**: the one-time "How your programs work" guide (by design, #142); the Monday recap row (only for members with logs).
+- **Not testable here**: real App Store purchase, restore, upgrade and cancel (needs the iPhone and a sandbox Apple ID). Those flows are covered by `subscriptionGates`, `membershipLifecycle`, `afterPurchaseWhiteScreen`, `nativePurchaseReveal` and `nativeAppleSheets166`, all passing.
+- **Scope**: Train Solo files only; no coach or client file changed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
