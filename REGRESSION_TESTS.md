@@ -2665,6 +2665,32 @@ Train Solo only; nothing in the coach console or the coached client app changed.
 - **Tests**: `src/solo/subscriptionGates.test.jsx` "iPhone purchase: stage and a cancelled higher plan (#164)" (4, all fail without the fix).
 - **Note**: the iPhone app opens its saved copy of the site and picks up a web release on the NEXT open (#121) — the owner's first test after the merge still ran the old fade. Close the app fully and reopen it twice before re-testing a web fix.
 
+### 165. Black screen on opening, slow launch, reload when coming back mid-workout, flashes around purchases (owner, 2026-11-04)
+Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 150 ms / 4 Mbps), a signed-in Train Solo member, same conditions before and after.
+- **Causes found**:
+  1. Train Solo's loading screen (`SoloRoutes` `SoloSessionLoadingScreen`) was a plain **black** `#0A0A0B` div in light and dark mode: every launch went white splash → empty frame → white → **black (0.4–1.25 s)** → app.
+  2. "/" waited for **Coaching's** sign-in check before sending a Train Solo member to Train Solo, and Train Solo's code only started downloading after that redirect; `<Navigate>` drew an empty frame.
+  3. `soloAuth = getAuth()` comes with the popup/redirect helper: Firebase loaded Google's sign-in iframe and **waited for it before restoring the session** on every launch (until a timeout with no signal). Train Solo has no popup/redirect sign-in.
+  4. Train Solo statically imported six things from `ClientApp.jsx`, pulling the coached app's code and food database (**~675 KB**) into every launch.
+  5. After sign-in, the profile took **~0.8 s** to come out of Firestore's on-phone database.
+  6. The Inter stylesheet was **render-blocking**: with Google slow (3 s) nothing drew for 3.45 s — in the iPhone app that's the native background (black after a dark screen).
+  7. The page under Train Solo was always **white**, so dark mode flashed white on every bounce and any undrawn frame.
+  8. The workout screen draws outside `#root` (portal); the iPhone app's alive check (`pageDrawsFrame`) counts `#root`'s children → 0 → re-attach → **`rebuildWebView` (full reload) on every return to the app mid-workout**.
+  9. After a purchase, "Confirming your membership" and "Welcome to …" faded in from transparent, showing the page underneath between screens.
+- **Fixes** (web only — reaches installed builds on their next open; nothing native):
+  - `src/solo/SoloLaunchScreen.jsx`: one loading screen in the member's colour (white / #0A0A0B) with the APEX mark, `data-apex-loading`; used for the /solo Suspense fallback, the "/" redirect and `SoloRoutes`' loading screen.
+  - `App.jsx`: a phone signed in to Train Solo only (no Coaching profile on it) goes to /solo/home at once and starts downloading Train Solo's code at startup; the redirect draws the launch screen under `<Navigate>`. Anyone with a Coaching profile on the phone keeps the old order.
+  - `firebase.js`: `soloAuth = initializeAuth(soloApp, { persistence: [indexedDB, local, session] })` — getAuth's own storage and order, without the popup/redirect helper. Coaching's `auth` unchanged.
+  - `src/solo/soloScreens.js`: program page, workout, summary, session builder and Progress load separately (`lazyScreen`), fetched 0.3 s after Home is up (`preloadSoloScreens`); a fetched screen is handed to React synchronously (no loading frame).
+  - `SoloAppContext`: the profile is kept on the phone (`apexSoloProfile`, uid-checked, cleared on sign-out/deletion/server "gone") and shown the moment sign-in is confirmed; Firestore's listener replaces it. Never decides access. `soloListsReady` → My Training's day plan shows an empty placeholder, not "Browse the catalogue"/"Rest day", until the programs have loaded.
+  - `index.html`: Inter loads with `rel=preload` → stylesheet (non-blocking), `<noscript>` fallback.
+  - `SoloThemeContext`: `document.body` background = the Solo theme while Train Solo is open; reset on leaving.
+  - `SoloRoutes`: a hidden `<span data-apex-page="solo">` keeps `#root` non-empty on every Train Solo screen.
+  - "Confirming your membership" and the welcome screen draw `instant` (no fade).
+- **Measured** (same conditions, 3 runs each): Home on screen **2.05 / 2.20 / 2.21 s → 1.47 / 1.53 / 1.69 s**; black screen every launch → none; empty frame → none; no signal: **3.4 s (0.9 s black) → 1.95 s**; Google fonts 3 s slow: first paint **3.45 s → 0.26 s**, Home 4.5 s → 2.09 s; client-app code at launch 675 KB → 0 (fetched after Home). Navigation on the new build: tabs, program page and back 98–257 ms with no blank or loading frame; background → foreground no change; a set saved on the phone in 46–127 ms; a workout completed offline in 0.96 s ("saved on your phone") and was on the server after reconnecting (checked from a fresh profile). Coaching: "/" → chooser, /login with Inter, /app and /coach guarded — unchanged.
+- **Tests**: `src/solo/launch165.test.jsx` (11: launch screen colours, SoloRoutes loading screen, "/" straight to Train Solo + Coaching-phone order kept, soloAuth without the helper and Coaching's getAuth unchanged, no ClientApp/foodDatabase in Train Solo's static import graph, preloaded screen shows with no fallback, page colour + reset, non-blocking font link, `#root` non-empty under the workout portal + native check reads `#root`), `src/lib/SoloAppContext.profileCache.test.jsx` (5), `oneProgramAtATime.test.jsx` loading placeholder, `subscriptionGates.test.jsx` Confirming/welcome opacity 1 with no transition. Run against the original code: launch165 can't load (SoloLaunchScreen missing) and the `#root` test fails with only the marker removed; 4 of 5 profile-cache tests, the placeholder test and the purchase-screen test fail. Full suite 1058 passed.
+- **Not verifiable here**: real iPhone (WKWebView) launch time and the return-to-app check — needs the TestFlight build: open the app cold (light and dark mode), leave mid-workout for 30 s and come back (the workout screen must still be there, no reload), buy a plan (Opening the App Store → Apple → Confirming → Welcome with no flash).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

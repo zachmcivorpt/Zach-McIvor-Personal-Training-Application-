@@ -177,7 +177,10 @@ export function SoloAppProvider({ children }) {
         // (App.jsx RootRedirect, #161). Cleared on sign-out.
         try {
           if (u) localStorage.setItem(SOLO_SIGNED_IN_KEY, "1");
-          else localStorage.removeItem(SOLO_SIGNED_IN_KEY);
+          else {
+            localStorage.removeItem(SOLO_SIGNED_IN_KEY);
+            localStorage.removeItem(PROFILE_CACHE_KEY);
+          }
         } catch {
           // Storage blocked: "/" shows the chooser, as before.
         }
@@ -193,16 +196,30 @@ export function SoloAppProvider({ children }) {
       return;
     }
     setSoloProfileMissing(false);
+    // Local-first (#165): this phone's last copy of the profile shows the
+    // moment sign-in is confirmed, instead of waiting ~0.8 s for Firestore's
+    // on-phone database to open. The listener below replaces it straight
+    // away. Never decides access: plans come from soloEntitlements and
+    // content stays behind firestore.rules.
+    const cachedProfile = readCachedProfile(soloAuthUser.uid);
+    if (cachedProfile) setSoloProfile(cachedProfile);
     const ref = doc(soloDb, "soloUsers", soloAuthUser.uid);
     let latestExists = false;
     let cancelled = false;
     const unsubscribe = onSnapshot(ref, { includeMetadataChanges: true }, (snap) => {
       latestExists = snap.exists();
-      setSoloProfile(latestExists ? { id: snap.id, ...snap.data() } : null);
+      // Firestore's on-phone copy not having it isn't news when this
+      // phone's own copy does: wait for the server's answer.
+      if (!latestExists && cachedProfile && snap.metadata.fromCache) return;
+      const profile = latestExists ? { id: snap.id, ...snap.data() } : null;
+      setSoloProfile(profile);
       if (latestExists) {
+        writeCachedProfile(soloAuthUser.uid, profile);
         setSoloProfileMissing(false);
         return;
       }
+      // Gone (deleted, or never there): the phone's copy goes too.
+      clearCachedProfile();
       // The listener can briefly report "doesn't exist" right after a
       // login even when the doc is there (the lastLoginAt write is still
       // pending against a doc this device hasn't cached yet), which sent
@@ -1100,6 +1117,7 @@ export function SoloAppProvider({ children }) {
           // it isn't mistaken for a failed registration (the finish-setup
           // screen).
           deletingAccountRef.current = true;
+          clearCachedProfile();
           await deleteDoc(doc(soloDb, "soloUsers", user.uid));
           await deleteUser(user);
         } catch (err) {
@@ -1118,6 +1136,9 @@ export function SoloAppProvider({ children }) {
       soloCurrentUser: soloProfile,
       soloProfileMissing,
       soloSessionLoading,
+      // The member's programs (bought, All Access, built) have loaded — until
+      // then a screen mustn't say they have none (#165).
+      soloListsReady: !!listsReady,
       soloProgramCategories,
       soloPrograms,
       soloProgramsLoaded,
@@ -1151,6 +1172,7 @@ export function SoloAppProvider({ children }) {
       soloProfile,
       soloProfileMissing,
       soloSessionLoading,
+      listsReady,
       soloProgramCategories,
       soloPrograms,
       soloProgramsLoaded,
@@ -1193,6 +1215,34 @@ export const SOLO_SIGNED_IN_KEY = "apexSoloSignedIn";
 // server's copy replaces it as soon as it arrives, expiry dates are still
 // checked against the clock (tierFromEntitlement), and paid program content
 // stays behind firestore.rules either way.
+// This phone's last copy of the member's profile (#165), uid-checked, like
+// the coached app's apexProfileCache. Firestore timestamps are kept as
+// milliseconds (the profile's own dates are already plain numbers).
+const PROFILE_CACHE_KEY = "apexSoloProfile";
+function readCachedProfile(uid) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(PROFILE_CACHE_KEY) || "null");
+    return cached && cached.uid === uid && cached.profile?.id === uid ? cached.profile : null;
+  } catch {
+    return null;
+  }
+}
+function writeCachedProfile(uid, profile) {
+  try {
+    const json = JSON.stringify({ uid, profile }, (_key, value) => (value && typeof value.toMillis === "function" ? value.toMillis() : value));
+    localStorage.setItem(PROFILE_CACHE_KEY, json);
+  } catch {
+    // Storage full or blocked: the next open waits for Firestore, as before.
+  }
+}
+function clearCachedProfile() {
+  try {
+    localStorage.removeItem(PROFILE_CACHE_KEY);
+  } catch {
+    // nothing to clear
+  }
+}
+
 const ENTITLEMENT_CACHE_KEY = "apexSoloEntitlement";
 function readCachedEntitlement(uid) {
   try {

@@ -301,11 +301,18 @@ describe("inside the iPhone app", () => {
       await renderProgram("p1");
       // The reload opens on "Confirming", never on the paywall or a blank page (#136).
       expect(screen.getByTestId("solo-purchase-stage").textContent).toMatch(/Confirming your membership/);
+      // At full strength from its first frame — a fade-in showed the page
+      // underneath between the native Confirming screen and this one (#165).
+      expect(screen.getByTestId("solo-purchase-stage").style.opacity).toBe("1");
+      expect(screen.getByTestId("solo-purchase-stage").className).not.toMatch(/transition/);
       expect(screen.queryByText("Train Solo Membership")).toBe(null);
       await waitFor(() => expect(answer).toBeTruthy());
       answer({ tier: "all_access" });
       const welcome = await screen.findByTestId("solo-welcome");
       expect(welcome.textContent).toMatch(/Welcome to\s*All Access\./);
+      // Replaces Confirming in the same frame, fully drawn (#165).
+      expect(welcome.style.opacity).toBe("1");
+      expect(welcome.className).not.toMatch(/transition/);
       expect(screen.queryByTestId("solo-purchase-stage")).toBe(null);
       expect(screen.queryByText("Train Solo Membership")).toBe(null);
       expect(ctx.refreshSoloEntitlement).toHaveBeenCalledTimes(1);

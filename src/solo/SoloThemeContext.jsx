@@ -74,7 +74,15 @@ export function SoloThemeProvider({ children }) {
     } catch {}
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute("content", fullBleed ? "#0A0A0B" : SOLO_THEMES[dark ? "dark" : "light"].bg);
+    // The page under Train Solo is the member's own colour too (#165): it
+    // was always white, which showed in dark mode on every bounce past the
+    // top or bottom and in any frame before a screen had drawn.
+    document.body.style.backgroundColor = fullBleed ? "#0A0A0B" : SOLO_THEMES[dark ? "dark" : "light"].bg;
   }, [dark, pathname, fullBleed]);
+  // Back to the app's own page colour when leaving Train Solo.
+  useEffect(() => () => {
+    document.body.style.backgroundColor = "";
+  }, []);
 
   const accent = SOLO_ACCENT_PALETTE[soloBranding?.accent] || SOLO_ACCENT_PALETTE.blue;
   const value = useMemo(

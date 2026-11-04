@@ -239,6 +239,7 @@ export default function SoloMyTrainingScreen() {
     markSoloProgramsGuideSeen,
     setSoloSessionPlan,
     planSoloSession,
+    soloListsReady,
   } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   // Recovery add-ons are a Plus feature once subscriptions launch.
@@ -598,6 +599,7 @@ export default function SoloMyTrainingScreen() {
           todayKey={todayKey}
           items={dayItems}
           ownsPrograms={ownedRows.some((r) => !r.purchase.locked && r.purchase.status !== "paused")}
+          listsReady={soloListsReady}
           onOpen={openItem}
           target={(item) => !!logForItem(item) || calendarItemTarget(item, { todayKey, soloUid: soloCurrentUser?.id, contentByProgramId: soloContentById })}
           onBrowse={() => navigate("/solo/home", { state: { soloTab: "catalogue" } })}
@@ -1025,7 +1027,7 @@ function WeekStrip({ weekKeys, selectedKey, todayKey, byDate, onSelect, onShiftW
 // slightly larger card with a blue edge, its name, program/week, exercise
 // count and Start — with rest-day recovery and Monday check-ins as smaller
 // rows underneath.
-function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBrowse, t }) {
+function DayPlan({ dateKey, todayKey, items, ownsPrograms, listsReady = true, onOpen, target, onBrowse, t }) {
   const d = new Date(`${dateKey}T00:00:00`);
   const relative = dateKey === todayKey ? "Today" : sessionDayLabel(dateKey, todayKey);
   const dayName = ["Today", "Tomorrow", "Yesterday"].includes(relative) ? relative : d.toLocaleDateString("en-AU", { weekday: "long" });
@@ -1035,7 +1037,11 @@ function DayPlan({ dateKey, todayKey, items, ownsPrograms, onOpen, target, onBro
   return (
     <div className="mt-6">
       <h2 className="text-lg font-bold leading-tight mb-3">{heading}</h2>
-      {items.length === 0 ? (
+      {items.length === 0 && !listsReady ? (
+        // Programs still loading: nothing yet, never "Rest day" or "Browse
+        // the catalogue" for someone who has a program (#165).
+        <div className="rounded-3xl px-5 py-8" style={soloGlass(t)} aria-busy="true" data-testid="day-plan-loading" />
+      ) : items.length === 0 ? (
         <div className="rounded-3xl px-5 py-8 text-center" style={soloGlass(t)}>
           {ownsPrograms ? (
             <>

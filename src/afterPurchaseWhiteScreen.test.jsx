@@ -81,7 +81,9 @@ describe("the native app's 'page is ready' check after a purchase (#161)", () =>
   });
   it("both loading placeholders carry the marker", () => {
     expect(readFileSync("src/App.jsx", "utf8")).toMatch(/function SessionLoadingScreen[\s\S]*?data-apex-loading/);
-    expect(readFileSync("src/solo/SoloRoutes.jsx", "utf8")).toMatch(/function SoloSessionLoadingScreen[\s\S]*?data-apex-loading/);
+    // Train Solo's loading screen is SoloLaunchScreen (#165).
+    expect(readFileSync("src/solo/SoloRoutes.jsx", "utf8")).toMatch(/function SoloSessionLoadingScreen[\s\S]*?<SoloLaunchScreen/);
+    expect(readFileSync("src/solo/SoloLaunchScreen.jsx", "utf8")).toMatch(/data-apex-loading/);
   });
 });
 

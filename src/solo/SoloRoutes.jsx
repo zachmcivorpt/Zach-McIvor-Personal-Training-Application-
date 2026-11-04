@@ -1,27 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { SoloAppProvider, useSoloApp } from "../lib/SoloAppContext";
-import { SoloThemeProvider } from "./SoloThemeContext";
+import { SoloThemeProvider, useSoloTheme } from "./SoloThemeContext";
+import SoloLaunchScreen from "./SoloLaunchScreen";
 import SoloRegisterScreen from "./SoloRegisterScreen";
 import SoloLoginScreen from "./SoloLoginScreen";
 import SoloShell from "./SoloShell";
-import SoloProgramDetailsScreen from "./SoloProgramDetailsScreen";
-import SoloWorkoutSessionScreen from "./SoloWorkoutSessionScreen";
-import SoloWorkoutSummaryScreen from "./SoloWorkoutSummaryScreen";
 import SoloCalendarScreen from "./SoloCalendarScreen";
 import SoloActiveRecoveryScreen from "./SoloActiveRecoveryScreen";
 import SoloOnboarding from "./onboarding/SoloOnboarding";
 import SoloConsultationScreen from "./SoloConsultationScreen";
 import SoloFinishSetupScreen from "./SoloFinishSetupScreen";
-import SoloSessionBuilderScreen from "./SoloSessionBuilderScreen";
 import SoloProgramBuilderScreen from "./SoloProgramBuilderScreen";
 import SoloFirstSessionScreen from "./SoloFirstSessionScreen";
 import { SoloProgramCompleteScreen, SoloWeekRecapScreen } from "./SoloRecapScreens";
 import { SoloPaywallProvider } from "./SoloPaywall";
+import { SoloProgramDetailsScreen, SoloWorkoutSessionScreen, SoloWorkoutSummaryScreen, SoloSessionBuilderScreen } from "./soloScreens";
 
+// Was a plain black screen whatever the member's light/dark choice — the
+// black flash on every launch (#165).
 function SoloSessionLoadingScreen() {
-  // data-apex-loading: see App.jsx's SessionLoadingScreen (#161).
-  return <div data-apex-loading="" className="w-full h-screen flex items-center justify-center bg-[#0A0A0B]" />;
+  const { dark } = useSoloTheme();
+  return <SoloLaunchScreen dark={dark} />;
 }
 
 function RequireSoloAuth({ children }) {
@@ -107,6 +107,16 @@ export default function SoloRoutes() {
     <SoloAppProvider>
       <SoloThemeProvider>
         <SoloPaywallProvider>
+        {/* Keeps #root non-empty on every Train Solo screen (#165). The
+            workout screen draws outside #root (a full-screen portal), and
+            the iPhone app's alive check (ViewController.pageDrawsFrame)
+            counts #root's children: 0 read as a dead page, so every return
+            to the app mid-workout re-attached and then REBUILT the web view
+            — a full reload that dropped the workout screen. */}
+        <span hidden aria-hidden="true" data-apex-page="solo" />
+        {/* Screens loaded separately (soloScreens.js): almost always already
+            here; if not, the launch screen in the member's own colours. */}
+        <Suspense fallback={<SoloSessionLoadingScreen />}>
         <Routes>
           <Route path="register" element={<SoloRegisterScreen />} />
           <Route path="login" element={<SoloLoginScreen />} />
@@ -240,6 +250,7 @@ export default function SoloRoutes() {
           />
           <Route path="*" element={<Navigate to="register" replace />} />
         </Routes>
+        </Suspense>
         </SoloPaywallProvider>
       </SoloThemeProvider>
     </SoloAppProvider>
