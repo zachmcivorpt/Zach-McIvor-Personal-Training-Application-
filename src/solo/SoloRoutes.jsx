@@ -6,7 +6,6 @@ import SoloLaunchScreen from "./SoloLaunchScreen";
 import SoloRegisterScreen from "./SoloRegisterScreen";
 import SoloLoginScreen from "./SoloLoginScreen";
 import SoloShell from "./SoloShell";
-import SoloCalendarScreen from "./SoloCalendarScreen";
 import SoloActiveRecoveryScreen from "./SoloActiveRecoveryScreen";
 import SoloOnboarding from "./onboarding/SoloOnboarding";
 import SoloConsultationScreen from "./SoloConsultationScreen";
@@ -218,16 +217,8 @@ export default function SoloRoutes() {
               </RequireSoloAuth>
             }
           />
-          <Route
-            path="calendar"
-            element={
-              <RequireSoloAuth>
-                <RequireOnboardingComplete>
-                  <SoloCalendarScreen />
-                </RequireOnboardingComplete>
-              </RequireSoloAuth>
-            }
-          />
+          {/* The calendar is a tab now (#171): older links open it there. */}
+          <Route path="calendar" element={<Navigate to="/solo/home" replace state={{ soloTab: "calendar" }} />} />
           <Route
             path="recovery"
             element={

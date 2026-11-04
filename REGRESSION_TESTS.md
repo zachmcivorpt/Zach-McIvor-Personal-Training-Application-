@@ -2735,6 +2735,12 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Fix** (Train Solo only, `SoloExerciseBlock.jsx`): both timer buttons use `MEASURE_BLUE`. The set columns are **Reps, then Kg** (header and inputs), the same order as the "Previous" and "Target" lines.
 - **Tests**: `soloRestRow.test.jsx` (2, under a slate branding accent: Start timer is rgb(47, 143, 255); header REPS → KG and inputs numeric → decimal). Both fail on the old code. Full suite passes.
 
+### 171. Calendar tab with drag to move workouts, like the client calendar (owner request, 2026-11-04)
+- **Change**: Train Solo's tabs are **My Training, Progress, Calendar, Catalogue, Profile** (My Training's icon is now a dumbbell). `/solo/calendar` links redirect to the tab.
+- **Moving a workout works exactly like the coached client app's calendar** (`ClientCalendarScreen`): every day is listed; a session still to do has a grip handle; hold it (220 ms), drag onto a day in the list (the day gets a blue ring; the list auto-scrolls near its edges), let go. A hint under the title says "Hold a workout and drag it to another day to move it."
+- **What can move / the write** (`canMoveItem`, `planMove` in `soloCalendar.js`): program sessions of a running program not done or skipped, and their own planned sessions, today or later; written to `sessionPlan.moveTo` (#141) or `plannedSessions` (#142). Logs never touched.
+- **Tests**: `src/solo/calendarMove171.test.jsx` (9: what can move, the writes, never into the past, the hint, grip-drag onto a listed day moves it, moving first is a scroll, every day listed, tab order). The #165 `#root` test moved to `rootMarker165.test.jsx` (it shared a module registry and failed about 1 run in 4).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

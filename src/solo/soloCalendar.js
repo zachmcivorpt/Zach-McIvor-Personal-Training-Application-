@@ -302,3 +302,30 @@ export function rangeKeys(daysBack, daysForward, today = localDateKey()) {
 }
 
 export { addDays, DAY_MS };
+
+// Moving a session to another day on the Calendar tab (#171, hold + drag).
+// Only what's still to do, today or later: a program session of a running
+// program (not done, not skipped) or one of their own planned sessions.
+// Never history, check-ins or recovery (placed for them).
+export function canMoveItem(item, todayKey) {
+  if (!item || item.done || !item.dateKey || item.dateKey < todayKey) return false;
+  if (item.type === "planned") return true;
+  if (item.type !== "workout" || item.skipped) return false;
+  return !item.purchase?.locked && item.purchase?.status !== "paused";
+}
+
+// The one write that puts `item` on `toKey` — the same records the missed-
+// session move (#141, sessionPlan.moveTo) and the Plan sheet (#142,
+// plannedSessions) use, so logs are never touched. Back on its own day
+// clears the move. null when nothing should change.
+export function planMove(item, toKey, todayKey) {
+  if (!canMoveItem(item, todayKey) || !toKey || toKey < todayKey || toKey === item.dateKey) return null;
+  if (item.type === "planned") return { kind: "planned", planId: item.planId, sessionId: item.session.id, date: toKey };
+  const original = item.movedFrom || item.dateKey;
+  return {
+    kind: "session",
+    purchaseId: item.purchase.id,
+    key: sessionPlanKey(item.weekNumber, item.day.id),
+    value: toKey === original ? null : { moveTo: toKey, at: Date.now() },
+  };
+}
