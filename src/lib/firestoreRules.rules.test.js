@@ -217,6 +217,14 @@ describe.skipIf(!emulatorRunning)("firestore.rules", () => {
   //     thread claiming `from: "coach"`, and it would render identically
   //     to a real coach-sent message.
   describe("messages: from must match the authenticated writer's actual role", () => {
+    // #162: why the auto-send welcome never arrived — activateAccount wrote
+    // it from the new client's own session as from:"coach". It's sent by
+    // the server now (api/client-activated.js); this pins the reason.
+    it("a newly activated client's own session can't write the coach's welcome into its thread", async () => {
+      await assertFails(
+        setDoc(doc(dbAs(CLIENT_A), "messages", "welcome_x"), { id: "welcome_x", clientId: CLIENT_A, from: "coach", kind: "welcome", text: "Hi", date: 1 })
+      );
+    });
     it("a client cannot create a message in their own thread claiming it's from the coach", async () => {
       const dbA = dbAs(CLIENT_A);
       await assertFails(setDoc(doc(dbA, "messages", "spoof-1"), { clientId: CLIENT_A, from: "coach", text: "fake coach message" }));

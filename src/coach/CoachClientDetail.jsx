@@ -5248,7 +5248,7 @@ function ageFromDateOfBirth(dobStr) {
 // Standalone strip at the top of the Summary tab — the two quickest coach
 // actions for a client (nudge the welcome message, resend login help),
 // pulled out of Personal Details so they're visible without scrolling.
-function QuickSendActions({ client, showToast, onSendLogin }) {
+export function QuickSendActions({ client, showToast, onSendLogin }) {
   const { db, sendMessage, sendPasswordReset } = useApp();
   const [sendingReset, setSendingReset] = useState(false);
 
@@ -5264,15 +5264,28 @@ function QuickSendActions({ client, showToast, onSendLogin }) {
     }
   }
 
+  // Never sent by a single tap (#162): a stray tap on this link while
+  // scrolling the client's page sent the welcome to a client who'd been
+  // chatting for days. It asks first, and says if they already got it.
+  const [welcomeConfirmOpen, setWelcomeConfirmOpen] = useState(false);
+  const welcomeText = (db.welcomeMessage?.text || "").replace(/\{name\}/gi, (client.name || "").split(" ")[0]).trim();
+  const lastWelcome = (db.messages || [])
+    .filter((m) => m.clientId === client.id && m.from === "coach" && (m.kind === "welcome" || (welcomeText && (m.text || "").trim() === welcomeText)))
+    .reduce((latest, m) => (!latest || m.date > latest.date ? m : latest), null);
   function sendWelcomeNow() {
     const welcome = db.welcomeMessage;
     if (!welcome?.text?.trim()) {
       showToast("Set up a welcome message in Settings first");
       return;
     }
-    const text = welcome.text.replace(/\{name\}/gi, client.name.split(" ")[0]);
+    setWelcomeConfirmOpen(true);
+  }
+  function confirmSendWelcome() {
+    const welcome = db.welcomeMessage;
+    setWelcomeConfirmOpen(false);
+    if (!welcome?.text?.trim()) return;
     const attachment = welcome.attachmentUrl ? { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl } : undefined;
-    sendMessage(client.id, "coach", text, attachment);
+    sendMessage(client.id, "coach", welcomeText, attachment, { kind: "welcome" });
     showToast("Welcome message sent");
   }
 
@@ -5283,6 +5296,21 @@ function QuickSendActions({ client, showToast, onSendLogin }) {
           <button onClick={sendWelcomeNow} className="flex items-center gap-1.5 text-xs font-semibold hover:opacity-80" style={{ color: MEASURE_BLUE }}>
             <MailCheck size={13} /> Send welcome message now
           </button>
+          <BottomSheet open={welcomeConfirmOpen} onClose={() => setWelcomeConfirmOpen(false)} title="Send the welcome message?" dark>
+            <p className="text-white/60 text-sm mb-5 leading-relaxed" data-testid="welcome-confirm-note">
+              {lastWelcome
+                ? `${(client.name || "This client").split(" ")[0]} already got it on ${new Date(lastWelcome.date).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}. Send it again?`
+                : `It goes to ${(client.name || "this client").split(" ")[0]}'s messages straight away.`}
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setWelcomeConfirmOpen(false)} className="flex-1 bg-white/10 text-white text-sm font-semibold py-2.5 rounded-xl">
+                Cancel
+              </button>
+              <button onClick={confirmSendWelcome} className="flex-1 text-white text-sm font-semibold py-2.5 rounded-xl" style={{ backgroundColor: MEASURE_BLUE }}>
+                {lastWelcome ? "Send again" : "Send"}
+              </button>
+            </div>
+          </BottomSheet>
           <button
             onClick={sendLoginHelp}
             disabled={sendingReset}

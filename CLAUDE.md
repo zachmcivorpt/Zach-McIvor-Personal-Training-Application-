@@ -412,6 +412,9 @@ any Train Solo work from now on:
 - On the website a Stripe subscriber changes plan (up, down, interval) in
   the membership sheet via the in-place change (#159); never a second
   checkout for someone already subscribed.
+- After an iPhone purchase the welcome is for the plan the server says is
+  active; a lower one than bought is re-asked first, a higher one (Apple's
+  pending downgrade) says when it switches (`pendingChangeNote`, #162).
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.
@@ -443,6 +446,19 @@ any Train Solo work from now on:
   that must survive a rebuilt web view goes in localStorage, not
   sessionStorage (the purchase result does, until the flow finishes).
 
+- **After Apple's purchase sheet, always a brand-new web view** (#161):
+  a solid native "Confirming your membership" screen goes up at once; the
+  new web view opens the page they were on (`currentSitePage`), never the
+  front page; the screen comes off only when the page shows a real screen
+  (`pageDrawsFrame(appReady: true)` — loading placeholders carry
+  `data-apex-loading`). Don't go back to reloading/re-attaching the same
+  web view: its "drawn" answer can't be trusted after the sheet.
+- "/" opens Train Solo for a member signed in only to Train Solo
+  (`apexSoloSignedIn`, App.jsx RootRedirect, #161).
+- Every return to the app also checks what's really on screen (#162,
+  `checkPageVisible` / `pageLooksBlank`): a real screen that's one flat
+  colour is unpainted → re-attach → new web view on the same page. Keep
+  loading placeholders marked `data-apex-loading` (they may be plain).
 - The iOS app is a WKWebView on the live web app, so web-only changes reach
   App Store users without a build or review — from 1.0.4 on, on their next
   open after Vercel deploys (instant open uses the saved copy first). Only
@@ -480,6 +496,14 @@ any Train Solo work from now on:
 - `BottomSheet` continues its own surface (and backdrop) below the visible
   area, because the iPhone keyboard has see-through margins. Keep it, and
   don't give a sheet's search `autoFocus`: let the list show first.
+
+## Welcome message (#162)
+
+- The automatic welcome is sent by the server once ever
+  (`api/client-activated.js` `sendWelcomeOnce`, id `welcome_<uid>`,
+  `create()`), never from the client's session (rules refuse from:"coach").
+  The coach's "Send welcome message now" always asks first and says if it
+  was already sent; welcome messages carry `kind: "welcome"`.
 
 ## Messaging composers (#127)
 

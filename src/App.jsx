@@ -50,7 +50,9 @@ else if (lastRole === "client") loadClientApp().catch(() => {});
 function SessionLoadingScreen() {
   const dark = lastRole === "coach";
   return (
-    <div className="w-full h-screen flex items-center justify-center" style={{ backgroundColor: dark ? CLIENT_DARK_BG : BG }}>
+    // data-apex-loading: the iPhone app waits for a real screen before
+    // uncovering the page after a purchase (#161).
+    <div data-apex-loading="" className="w-full h-screen flex items-center justify-center" style={{ backgroundColor: dark ? CLIENT_DARK_BG : BG }}>
       <Logo variant="mark" tone={dark ? "white" : "black"} className="w-10 h-10 opacity-25 animate-pulse" />
     </div>
   );
@@ -64,6 +66,16 @@ function RequireRole({ role, children }) {
   return children;
 }
 
+// Same key as SoloAppContext's SOLO_SIGNED_IN_KEY, read here without
+// importing Train Solo's code into the main bundle.
+function soloSignedInOnThisPhone() {
+  try {
+    return localStorage.getItem("apexSoloSignedIn") === "1";
+  } catch {
+    return false;
+  }
+}
+
 function RootRedirect() {
   const { currentUser, sessionLoading } = useApp();
   if (sessionLoading) return <SessionLoadingScreen />;
@@ -73,7 +85,9 @@ function RootRedirect() {
   // a genuinely signed-OUT visitor now sees the Coaching/Train Solo choice
   // first. Coaching's own path from /start is an unmodified link to this
   // same /login screen.
-  if (!currentUser) return <Navigate to="/start" replace />;
+  // Signed in to Train Solo only (#161): back into Train Solo — what the
+  // iPhone app opens after a purchase or a cold launch — not the chooser.
+  if (!currentUser) return <Navigate to={soloSignedInOnThisPhone() ? "/solo/home" : "/start"} replace />;
   return <Navigate to={currentUser.role === "coach" ? "/coach" : "/app"} replace />;
 }
 

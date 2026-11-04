@@ -138,3 +138,9 @@ describe("Train Solo password reset", () => {
     await expect(api.sendSoloPasswordReset("nope")).rejects.toThrow("That doesn't look like a valid email.");
   });
 });
+
+describe("signed in to Train Solo on this phone (#161)", () => {
+  it("is remembered so the app opens back into Train Solo", () => {
+    expect(localStorage.getItem("apexSoloSignedIn")).toBe("1");
+  });
+});

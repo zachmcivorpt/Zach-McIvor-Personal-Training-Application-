@@ -52,6 +52,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private var purchaseCover: UIView?
     private var purchaseSheetOpen = false
     private var navigationsSinceSheet = 0
+    // After Apple's sheet a brand-new web view is loaded (#161); until then
+    // the old page's own reload must not take the cover off.
+    private var awaitingFreshPage = false
 
     // Apple Health reads for the web app — see HealthBridge.swift.
     private let health = HealthBridge()
@@ -137,7 +140,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             guard let self = self else { return show() }
             self.coverPageForPurchase(then: show)
         }
-        purchases.sheetFinished = { [weak self] in self?.purchaseSheetDidFinish() }
+        purchases.sheetFinished = { [weak self] bought in self?.purchaseSheetDidFinish(bought: bought) }
         view.addSubview(webView)
 
         // Pin below the status bar/notch — a bare WKWebView doesn't auto-inset
@@ -217,12 +220,20 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // loads it fresh. Never reloads under someone mid-workout. If the saved
     // copy's code files are gone from the phone, index.html's stale-copy
     // guard reloads the latest version once.
-    private func loadSite() {
+    // `url`: a page of the site to open instead of its front page — the
+    // page the member was on, when a web view is replaced (#161).
+    private func loadSite(_ url: URL? = nil) {
         triedSavedCopy = false
         let defaults = UserDefaults.standard
         openedFromSavedCopy = defaults.bool(forKey: hasSavedCopyKey) && !defaults.bool(forKey: savedCopyStaleKey)
         let policy: URLRequest.CachePolicy = openedFromSavedCopy ? .returnCacheDataElseLoad : .useProtocolCachePolicy
-        webView.load(URLRequest(url: siteURL, cachePolicy: policy, timeoutInterval: 15))
+        webView.load(URLRequest(url: url ?? siteURL, cachePolicy: policy, timeoutInterval: 15))
+    }
+
+    // The page the web view is on, if it's one of ours.
+    private func currentSitePage(_ wv: WKWebView?) -> URL? {
+        guard let url = wv?.url, url.host == siteURL.host else { return nil }
+        return url
     }
 
     // Compares the main script the page is running with the one the live
@@ -324,9 +335,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         }
         // Reloaded after Apple's purchase sheet: give the page a moment to
         // paint, then show it again (#134).
-        if purchaseCover != nil && !purchaseSheetOpen {
+        if purchaseCover != nil && !purchaseSheetOpen && !awaitingFreshPage {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-                guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
+                guard let self = self, !self.purchaseSheetOpen, !self.awaitingFreshPage, self.purchaseCover != nil else { return }
                 self.revealAfterPurchase()
             }
         }
@@ -447,7 +458,13 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // a drawn frame; none → re-attach the web view and ask again; still
         // none → a brand-new web view (what closing the app did).
         pageDrawsFrame { [weak self] drawn in
-            guard let self = self, !drawn else { return }
+            guard let self = self else { return }
+            if drawn {
+                // The page says it's drawn — but an unpainted page still
+                // says so (#162). Check what's really on screen.
+                self.checkPageVisible()
+                return
+            }
             self.reattachWebView()
             self.pageDrawsFrame { [weak self] drawn in
                 guard let self = self, !drawn else { return }
@@ -456,10 +473,72 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         }
     }
 
+    // White screen when coming back to the app (#162): a real screen (not a
+    // loading placeholder) that comes out as one flat colour in a picture
+    // of the web view is a page WebKit has stopped painting — every APEX
+    // screen has text on it. Re-attach the web view; still flat → a
+    // brand-new web view on the same page.
+    private func checkPageVisible() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            guard let self = self, !self.webView.isLoading, !self.purchaseSheetOpen, self.purchaseCover == nil else { return }
+            self.pageDrawsFrame(appReady: true) { [weak self] ready in
+                guard let self = self, ready else { return }
+                self.pageLooksBlank { [weak self] blank in
+                    guard let self = self, blank else { return }
+                    self.reattachWebView()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                        guard let self = self else { return }
+                        self.pageLooksBlank { [weak self] stillBlank in
+                            guard let self = self, stillBlank else { return }
+                            self.rebuildWebView()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // A small picture of what the web view is showing: true when it's one
+    // flat colour (#162). No picture → false (nothing done).
+    private func pageLooksBlank(_ done: @escaping (Bool) -> Void) {
+        let config = WKSnapshotConfiguration()
+        config.snapshotWidth = NSNumber(value: 64)
+        webView.takeSnapshot(with: config) { image, _ in
+            guard let cg = image?.cgImage else { return done(false) }
+            done(ViewController.isOneColour(cg))
+        }
+    }
+
+    static func isOneColour(_ cg: CGImage) -> Bool {
+        let w = cg.width
+        let h = cg.height
+        guard w > 0, h > 0 else { return false }
+        var pixels = [UInt8](repeating: 0, count: w * h * 4)
+        return pixels.withUnsafeMutableBytes { buf -> Bool in
+            guard let ctx = CGContext(
+                data: buf.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return false }
+            ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            let p = buf.bindMemory(to: UInt8.self)
+            let r0 = Int(p[0])
+            let g0 = Int(p[1])
+            let b0 = Int(p[2])
+            var i = 4
+            while i + 2 < p.count {
+                if abs(Int(p[i]) - r0) > 10 || abs(Int(p[i + 1]) - g0) > 10 || abs(Int(p[i + 2]) - b0) > 10 { return false }
+                i += 4
+            }
+            return true
+        }
+    }
+
     // Asks the page to report a drawn frame: two requestAnimationFrames, and
     // the app's #root has content. An undrawn, gone or empty page doesn't
     // answer in time (or answers 0) → false.
-    private func pageDrawsFrame(timeout: TimeInterval = 1.5, _ done: @escaping (Bool) -> Void) {
+    // `appReady`: also require a real screen, not a loading placeholder
+    // (marked data-apex-loading) — unless the purchase screens are up (#161).
+    private func pageDrawsFrame(timeout: TimeInterval = 1.5, appReady: Bool = false, _ done: @escaping (Bool) -> Void) {
         var answered = false
         let giveUp = DispatchWorkItem {
             guard !answered else { return }
@@ -467,7 +546,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             done(false)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + timeout, execute: giveUp)
-        let js = "return await new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(function(){var el=document.getElementById('root');r(el?el.childElementCount:0)})})})"
+        let check = appReady
+            ? "var stage=document.querySelector('[data-testid=\"solo-purchase-stage\"],[data-testid=\"solo-welcome\"]');var busy=document.querySelector('[data-apex-loading]');r(el&&(stage||!busy)?el.childElementCount:0)"
+            : "r(el?el.childElementCount:0)"
+        let js = "return await new Promise(function(r){requestAnimationFrame(function(){requestAnimationFrame(function(){var el=document.getElementById('root');" + check + "})})})"
         webView.callAsyncJavaScript(js, arguments: [:], in: nil, in: .page) { result in
             guard !answered else { return }
             answered = true
@@ -495,6 +577,9 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // did, without closing it.
     private func rebuildWebView() {
         let old: WKWebView = webView
+        // Reopen the page they were on, not the front page (#161): the front
+        // page sends someone signed in only to Train Solo to the chooser.
+        let resume = currentSitePage(old)
         let config = old.configuration
         old.stopLoading()
         old.navigationDelegate = nil
@@ -504,11 +589,12 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         view.insertSubview(webView, at: 0)
         pinWebView()
         view.layoutIfNeeded()
-        if let cover = purchaseCover { view.bringSubviewToFront(cover) }
         webViewReady = false
         view.bringSubviewToFront(spinner)
         spinner.startAnimating()
-        loadSite()
+        // The purchase screen (its own spinner) stays on top of everything.
+        if let cover = purchaseCover { view.bringSubviewToFront(cover) }
+        loadSite(resume)
     }
 
     // Apple's In-App Purchase sheet (#134). With the sheet up, WebKit can
@@ -536,45 +622,107 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         }
     }
 
-    private func purchaseSheetDidFinish() {
+    // White page after a purchase (#153, #154, #161): with Apple's sheet over
+    // it, WebKit can stop drawing the page and never start again — and the
+    // page's own "I've drawn" answer can't be trusted then (it still runs and
+    // answers). Re-attaching or reloading in place didn't always bring it
+    // back; closing and reopening the app did. So after every purchase sheet:
+    //  1. a solid "Confirming your membership" screen replaces the picture of
+    //     the page at once (never a blank frame),
+    //  2. a second later (the page has saved the result by then,
+    //     SoloPaywall.jsx), a brand-new web view opens the page they were on,
+    //  3. the screen comes off only once that new page has drawn the app.
+    private func purchaseSheetDidFinish(bought: Bool) {
         purchaseSheetOpen = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-            guard let self = self, self.purchaseCover != nil, self.navigationsSinceSheet == 0, !self.webView.isLoading else { return }
-            self.loadSite()
+        showPurchaseStageCover(title: bought ? "Confirming your membership" : "One moment", detail: bought ? "One moment." : "")
+        awaitingFreshPage = true
+        purchaseRebuilds = 0
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self, self.awaitingFreshPage else { return }
+            self.awaitingFreshPage = false
+            self.rebuildWebView()
         }
-        // Never leave the cover up for long, whatever happens.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 12) { [weak self] in
+        // Never leave the screen up for long, whatever happens.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
             guard let self = self, !self.purchaseSheetOpen else { return }
+            self.awaitingFreshPage = false
             self.removePurchaseCover()
         }
     }
 
-    // White page after a purchase (#153): the page reloaded after Apple's
-    // sheet and was there (it took taps, and leaving and reopening the app
-    // showed it), but WebKit never drew it, so taking the cover off showed
-    // a white screen. Before the cover comes off: re-attach the web view to
-    // the screen (what leaving and reopening the app does, which brought it
-    // back), then ask the page to report a drawn frame. No answer → a
-    // brand-new web view once (cover stays up meanwhile, #154); the 12s
-    // guard still applies.
-    private var purchaseRevealAttempts = 0
+    // A plain native screen in the app's colours with a title, a line and a
+    // spinner — the same words the page shows next, so the hand-over is
+    // seamless. Replaces the picture of the page, taking all taps.
+    private func showPurchaseStageCover(title: String, detail: String) {
+        let stage = UIView(frame: view.bounds)
+        stage.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        stage.backgroundColor = isDarkBackground ? nearBlack : .white
+        stage.isUserInteractionEnabled = true
+        let ink: UIColor = isDarkBackground ? .white : .black
+        let titleLabel = UILabel()
+        titleLabel.text = title
+        titleLabel.font = .systemFont(ofSize: 22, weight: .semibold)
+        titleLabel.textColor = ink
+        titleLabel.textAlignment = .center
+        titleLabel.numberOfLines = 0
+        let detailLabel = UILabel()
+        detailLabel.text = detail
+        detailLabel.font = .systemFont(ofSize: 13)
+        detailLabel.textColor = ink.withAlphaComponent(0.55)
+        detailLabel.textAlignment = .center
+        detailLabel.numberOfLines = 0
+        let wheel = UIActivityIndicatorView(style: .medium)
+        wheel.color = ink.withAlphaComponent(0.6)
+        wheel.startAnimating()
+        let stack = UIStackView(arrangedSubviews: [titleLabel, detailLabel, wheel])
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stage.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.centerYAnchor.constraint(equalTo: stage.centerYAnchor),
+            stack.leadingAnchor.constraint(equalTo: stage.leadingAnchor, constant: 32),
+            stack.trailingAnchor.constraint(equalTo: stage.trailingAnchor, constant: -32),
+        ])
+        let previous = purchaseCover
+        view.addSubview(stage)
+        purchaseCover = stage
+        previous?.removeFromSuperview()
+    }
 
-    private func revealAfterPurchase() {
-        reattachWebView()
-        pageDrawsFrame { [weak self] drawn in
-            guard let self = self else { return }
+    // The new page has loaded: wait until it reports the app is on screen
+    // (asked again every half second, up to ~10s), then show it.
+    private var purchaseRebuilds = 0
+
+    private func revealAfterPurchase(tries: Int = 0) {
+        pageDrawsFrame(appReady: true) { [weak self] drawn in
+            guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
             if drawn {
-                self.purchaseRevealAttempts = 0
-                self.removePurchaseCover()
+                // Also check what's really on screen before uncovering it:
+                // one flat colour → another brand-new web view (twice at most).
+                self.pageLooksBlank { [weak self] blank in
+                    guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
+                    if blank && self.purchaseRebuilds < 2 {
+                        self.purchaseRebuilds += 1
+                        self.rebuildWebView() // its didFinish reveals again
+                        return
+                    }
+                    self.purchaseRebuilds = 0
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                        self?.removePurchaseCover()
+                    }
+                }
                 return
             }
-            self.purchaseRevealAttempts += 1
-            if self.purchaseRevealAttempts <= 1 {
-                // A new web view under the cover; its didFinish reveals again.
-                self.rebuildWebView()
-            } else {
-                self.purchaseRevealAttempts = 0
-                self.removePurchaseCover()
+            if tries >= 12 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                    self?.removePurchaseCover()
+                }
+                return
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.revealAfterPurchase(tries: tries + 1)
             }
         }
     }
@@ -592,7 +740,8 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
         view.bringSubviewToFront(spinner)
         spinner.startAnimating()
-        loadSite()
+        // Back on the page they were on, not the front page (#161).
+        loadSite(currentSitePage(webView))
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {

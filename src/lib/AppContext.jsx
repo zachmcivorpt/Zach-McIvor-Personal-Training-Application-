@@ -989,17 +989,10 @@ export function AppProvider({ children }) {
         // access to at all. Fired, not awaited — this client's activation
         // itself must not hang on it, and it's a one-time best-effort
         // migration either way (see api/client-activated.js).
+        // Also sends the coach's auto-send welcome message, once ever, from
+        // the server (api/client-activated.js, #162) — written from here as
+        // from:"coach" it was always refused by firestore.rules.
         pushClientActivated(uid, email);
-        const welcome = raw.welcomeMessage;
-        if (welcome?.autoSend && welcome.text?.trim()) {
-          const text = welcome.text.replace(/\{name\}/gi, invite.name.split(" ")[0]);
-          const msgId = newDocId("messages");
-          const msg = { id: msgId, clientId: uid, from: "coach", text, date: Date.now() };
-          if (welcome.attachmentUrl) {
-            msg.attachment = { name: welcome.attachmentName || "Attachment.pdf", url: welcome.attachmentUrl };
-          }
-          setDoc(doc(firestore, "messages", msgId), msg).catch(console.error);
-        }
         return { id: uid, ...client };
       },
 

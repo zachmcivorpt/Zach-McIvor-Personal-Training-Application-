@@ -40,7 +40,9 @@ describe("a drawn frame, not just content", () => {
     expect(f).toContain("old.removeFromSuperview()");
     expect(f).toContain("pinWebView()");
     expect(f).toContain("bringSubviewToFront(cover)");
-    expect(f).toContain("loadSite()");
+    // ...on the page the member was on, not the front page (#161).
+    expect(f).toContain("let resume = currentSitePage(old)");
+    expect(f).toContain("loadSite(resume)");
     const make = fn("makeWebView");
     for (const s of ["navigationDelegate = self", "uiDelegate = self", "health.webView = wv", "purchases.webView = wv", "contentInsetAdjustmentBehavior = .never"]) expect(make).toContain(s);
     expect(swift).toContain("webView = makeWebView(config)");
@@ -54,13 +56,19 @@ describe("after Apple's purchase sheet", () => {
     expect(didFinish).not.toContain("self.removePurchaseCover()");
   });
 
-  it("re-attaches, checks for a frame; none → a brand-new web view once, then the cover comes off", () => {
+  // #161 (replaces #153/#154's re-attach-then-check, which still left a
+  // white page on TestFlight): after every sheet a solid screen, a brand-new
+  // web view, and the screen comes off only once the new page shows a real
+  // screen (never a loading placeholder), retried for ~10s.
+  it("waits for a real screen on the brand-new page, then the cover comes off", () => {
     const f = fn("revealAfterPurchase");
-    expect(f).toContain("reattachWebView()");
-    expect(f).toContain("pageDrawsFrame");
-    expect(f).toContain("self.removePurchaseCover()");
-    expect(f).toMatch(/purchaseRevealAttempts <= 1/);
-    expect(f).toContain("self.rebuildWebView()");
+    expect(f).toContain("pageDrawsFrame(appReady: true)");
+    expect(f).toContain("self?.removePurchaseCover()");
+    expect(f).toContain("self?.revealAfterPurchase(tries: tries + 1)");
+    expect(f).not.toContain("reattachWebView()");
+    const done = fn("purchaseSheetDidFinish");
+    expect(done).toContain("showPurchaseStageCover(");
+    expect(done).toContain("self.rebuildWebView()");
   });
 
   it("re-attaching keeps edge-to-edge, the keyboard inset and the cover on top", () => {

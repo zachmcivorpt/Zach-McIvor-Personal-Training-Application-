@@ -24,6 +24,17 @@ import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, restorePurcha
 // option, trial terms, auto-renewal wording, Restore purchases, and links to
 // the Terms of Service and Privacy Policy.
 
+const TIER_RANK = { free: 0, plus: 1, all_access: 2 };
+
+// Bought a lower plan while a higher one is still running (Apple moves you
+// down at the next renewal, not now): say so, with the date (#162). The
+// welcome itself is for the plan that's actually active.
+export function pendingChangeNote(activeTier, boughtTier, renewal) {
+  if (!boughtTier || !activeTier || boughtTier === activeTier || !(TIER_RANK[boughtTier] < TIER_RANK[activeTier])) return "";
+  const when = renewal?.date ? new Date(renewal.date).toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "your renewal date";
+  return `You chose ${TIER_LABELS[boughtTier]}. Your ${TIER_LABELS[activeTier]} plan stays until ${when}, then it switches to ${TIER_LABELS[boughtTier]}.`;
+}
+
 const PaywallCtx = createContext({ openPaywall: () => {} });
 export const useSoloPaywall = () => useContext(PaywallCtx);
 
@@ -115,6 +126,9 @@ export function SoloPaywallProvider({ children }) {
   // welcome screen for the plan it confirms (#136).
   const [confirming, setConfirming] = useState(() => !!outcome?.ok);
   const [welcomeTier, setWelcomeTier] = useState(null);
+  // The plan they chose on Apple's sheet, when it isn't the one active now
+  // (#162: bought Plus while an All Access plan was still running).
+  const [boughtTier, setBoughtTier] = useState(null);
 
   // The result of a purchase made just before the reload above.
   useEffect(() => {
@@ -130,15 +144,20 @@ export function SoloPaywallProvider({ children }) {
     const ask = () => refreshSoloEntitlement().then((r) => r?.tier).catch(() => null);
     (async () => {
       let got = await ask();
-      // RevenueCat can take a moment to see a brand-new purchase.
-      if (!got || got === "free") {
+      // RevenueCat can take a moment to see a brand-new purchase — or an
+      // upgrade (a lower plan than the one just bought is the old state, not
+      // the answer: never welcome someone to the plan they're leaving, #162).
+      for (let i = 0; i < 3 && (!got || TIER_RANK[got] < TIER_RANK[outcome.tier]); i++) {
         await new Promise((r) => setTimeout(r, PURCHASE_RECHECK_MS));
         if (stopped) return;
-        got = await ask();
+        got = (await ask()) || got;
       }
       if (stopped) return;
       setConfirming(false);
-      if (got && got !== "free") setWelcomeTier(got);
+      if (got && got !== "free") {
+        setWelcomeTier(got);
+        setBoughtTier(outcome.tier || null);
+      }
       else {
         clearPurchaseOutcome();
         openPaywall({ tier: outcome.tier, notice: notReached });
@@ -202,9 +221,11 @@ export function SoloPaywallProvider({ children }) {
         <SoloWelcomeScreen
           tier={welcomeTier}
           renewal={renewal ? (webWelcome ? renewal : `${renewal} · App Store`) : ""}
+          note={pendingChangeNote(welcomeTier, boughtTier, planRenewal(soloEntitlement))}
           onDone={() => {
             clearPurchaseOutcome();
             setWelcomeTier(null);
+            setBoughtTier(null);
             setWebWelcome(false);
           }}
         />
