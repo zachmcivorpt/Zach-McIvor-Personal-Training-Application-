@@ -6,15 +6,21 @@ import SoloLaunchScreen from "./SoloLaunchScreen";
 import SoloRegisterScreen from "./SoloRegisterScreen";
 import SoloLoginScreen from "./SoloLoginScreen";
 import SoloShell from "./SoloShell";
-import SoloActiveRecoveryScreen from "./SoloActiveRecoveryScreen";
-import SoloOnboarding from "./onboarding/SoloOnboarding";
-import SoloConsultationScreen from "./SoloConsultationScreen";
 import SoloFinishSetupScreen from "./SoloFinishSetupScreen";
-import SoloProgramBuilderScreen from "./SoloProgramBuilderScreen";
-import SoloFirstSessionScreen from "./SoloFirstSessionScreen";
-import { SoloProgramCompleteScreen, SoloWeekRecapScreen } from "./SoloRecapScreens";
 import { SoloPaywallProvider } from "./SoloPaywall";
-import { SoloProgramDetailsScreen, SoloWorkoutSessionScreen, SoloWorkoutSummaryScreen, SoloSessionBuilderScreen } from "./soloScreens";
+import {
+  SoloProgramDetailsScreen,
+  SoloWorkoutSessionScreen,
+  SoloWorkoutSummaryScreen,
+  SoloSessionBuilderScreen,
+  SoloOnboarding,
+  SoloConsultationScreen,
+  SoloProgramBuilderScreen,
+  SoloFirstSessionScreen,
+  SoloActiveRecoveryScreen,
+  SoloProgramCompleteScreen,
+  SoloWeekRecapScreen,
+} from "./soloScreens";
 
 // Was a plain black screen whatever the member's light/dark choice — the
 // black flash on every launch (#165).
@@ -29,6 +35,18 @@ function RequireSoloAuth({ children }) {
   if (soloAuthUser && soloProfileMissing) return <SoloFinishSetupScreen />;
   if (!soloCurrentUser) return <Navigate to="/solo/register" replace />;
   return children;
+}
+
+// The questionnaire is loaded separately (#182). Signed out (register /
+// sign in) or not through it yet: fetch its code now, so it's here the
+// moment registration finishes.
+function PreloadOnboarding() {
+  const { soloAuthUser, soloCurrentUser, soloProfileMissing } = useSoloApp();
+  const needed = soloAuthUser === null || !!soloProfileMissing || (!!soloCurrentUser && !soloCurrentUser.onboarding?.completed);
+  useEffect(() => {
+    if (needed) SoloOnboarding.preload().catch(() => {});
+  }, [needed]);
+  return null;
 }
 
 function SoloOnboardingCheckFailed({ onRetry }) {
@@ -113,6 +131,7 @@ export default function SoloRoutes() {
             to the app mid-workout re-attached and then REBUILT the web view
             — a full reload that dropped the workout screen. */}
         <span hidden aria-hidden="true" data-apex-page="solo" />
+        <PreloadOnboarding />
         {/* Screens loaded separately (soloScreens.js): almost always already
             here; if not, the launch screen in the member's own colours. */}
         <Suspense fallback={<SoloSessionLoadingScreen />}>

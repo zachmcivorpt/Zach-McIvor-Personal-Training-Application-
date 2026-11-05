@@ -2855,6 +2855,17 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Scope**: Train Solo only (index.html's script does nothing off Train Solo pages). Functions deploy on merge to main (`deploy-functions.yml`); until they do, the app behaves as before for the checkout return (webhook + listener).
 - **Verify after deploy** (website, Stripe live): buy Plus → back → Confirming → Welcome in about a second. Profile → Manage → cancel in Stripe → back → "Checking your membership…" → Free, no white frame. Buy again → welcome. Start a checkout and press Stripe's back link → the sheet says you weren't charged.
 
+### 182. Train Solo performance pass: startup code, measured (owner request, 2026-11-05)
+- **Measured** (built app, Chromium, phone-like profile: 4× CPU slowdown, 1.6 Mbps, 150 ms latency, cache off, 5 runs, median; Firebase blocked so only the app's own code is timed): navigation → first Train Solo screen (`/solo/register`) **3,396 ms, 444 KB** downloaded.
+  - Where it goes: the shared main bundle is 352 KB gzipped (Firebase Firestore/Auth/Storage/Messaging, React, the router, plus shared app code such as `seed.js`, `barcodeLookup.js` and `legalContent.js`). Train Solo's own startup chunk was 44 KB gzipped and carried every rarely-first screen.
+  - Checked and fine: the `SoloAppProvider` value is memoised (the minute clock doesn't re-render its users), and tabs, Progress and the workout screens already load separately (#165).
+- **Change** (`src/solo/soloScreens.js`, `SoloRoutes.jsx`): screens that are never the first one on a normal open are no longer part of Train Solo's startup code. That's the questionnaire, consultation, program builder, Program complete / week recap, first session and active recovery. They load through `lazyScreen` and are preloaded with the rest once Home is up (`preloadSoloScreens`). The questionnaire is also fetched as soon as Train Solo opens signed out or not yet through it (`PreloadOnboarding`), so it's there when registration finishes. While a screen's code is still coming, the Suspense fallback is the launch screen, never blank.
+- **Result**: startup chunk 44.3 → 35.0 KB gzipped; first screen **3,231 ms, 429 KB** (−165 ms, −15 KB).
+- **Tried and reverted**: a build step that preloaded Train Solo's chunks from index.html in parallel with the main bundle. It measured *slower* (3,476 ms): on a bandwidth-limited connection the chunks compete with the main bundle, and the waterfall only costs one round trip.
+- **Not changed (shared code, off-limits to Train Solo work, needs the owner's call)**: the remaining startup cost is the shared main bundle that Coaching uses too. The biggest candidates are `re2js` (~246 KB raw, pulled in with Firestore), `src/lib/seed.js` (116 KB raw), `legalContent.js`, `barcodeLookup.js`, Firebase Storage and Messaging. Moving them out of the main bundle changes the coach console's and coached app's launch too.
+- **Tests**: `src/solo/startupSplit182.test.jsx` (3): SoloRoutes imports none of the split screens directly; each resolves to the real component and `preloadSoloScreens` fetches them all; the questionnaire is fetched when Train Solo opens signed out. All 3 fail on the old code. `rootMarker165.test.jsx` stand-ins updated for the new exports. Full suite: 1126 passed.
+- **Scope**: Train Solo only.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

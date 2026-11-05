@@ -12,7 +12,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
+// Screens loaded separately (#182): stand-ins with a no-op preload.
+const { standIn } = vi.hoisted(() => ({ standIn: () => Object.assign(() => null, { preload: () => Promise.resolve() }) }));
 vi.mock("./soloScreens", () => ({
+  SoloOnboarding: standIn(),
+  SoloConsultationScreen: standIn(),
+  SoloProgramBuilderScreen: standIn(),
+  SoloFirstSessionScreen: standIn(),
+  SoloActiveRecoveryScreen: standIn(),
+  SoloProgramCompleteScreen: standIn(),
+  SoloWeekRecapScreen: standIn(),
   SoloWorkoutSessionScreen: () => createPortal(<p>workout screen</p>, document.body),
   SoloProgramDetailsScreen: () => null,
   SoloWorkoutSummaryScreen: () => null,

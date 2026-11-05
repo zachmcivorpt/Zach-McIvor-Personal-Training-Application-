@@ -30,7 +30,33 @@ export const SoloWorkoutSummaryScreen = lazyScreen(() => import("./SoloWorkoutSu
 export const SoloSessionBuilderScreen = lazyScreen(() => import("./SoloSessionBuilderScreen"));
 export const SoloProgressScreen = lazyScreen(() => import("./SoloProgressScreen"));
 
-const ALL = [SoloProgramDetailsScreen, SoloWorkoutSessionScreen, SoloWorkoutSummaryScreen, SoloSessionBuilderScreen, SoloProgressScreen];
+// Screens that are never the first one on a normal open (#182): kept out
+// of Train Solo's startup code, which every cold open (and every Stripe
+// return) downloads and runs before the first screen. Preloaded with the
+// rest once Home is up; the questionnaire also as soon as Train Solo opens
+// signed out (it follows registration).
+export const SoloOnboarding = lazyScreen(() => import("./onboarding/SoloOnboarding"));
+export const SoloConsultationScreen = lazyScreen(() => import("./SoloConsultationScreen"));
+export const SoloProgramBuilderScreen = lazyScreen(() => import("./SoloProgramBuilderScreen"));
+export const SoloFirstSessionScreen = lazyScreen(() => import("./SoloFirstSessionScreen"));
+export const SoloActiveRecoveryScreen = lazyScreen(() => import("./SoloActiveRecoveryScreen"));
+export const SoloProgramCompleteScreen = lazyScreen(() => import("./SoloRecapScreens").then((m) => ({ default: m.SoloProgramCompleteScreen })));
+export const SoloWeekRecapScreen = lazyScreen(() => import("./SoloRecapScreens").then((m) => ({ default: m.SoloWeekRecapScreen })));
+
+const ALL = [
+  SoloProgramDetailsScreen,
+  SoloWorkoutSessionScreen,
+  SoloWorkoutSummaryScreen,
+  SoloSessionBuilderScreen,
+  SoloProgressScreen,
+  SoloProgramBuilderScreen,
+  SoloConsultationScreen,
+  SoloProgramCompleteScreen,
+  SoloWeekRecapScreen,
+  SoloFirstSessionScreen,
+  SoloActiveRecoveryScreen,
+  SoloOnboarding,
+];
 
 let started = false;
 export function preloadSoloScreens() {

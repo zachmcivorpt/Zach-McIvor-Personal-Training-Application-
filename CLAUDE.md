@@ -362,7 +362,12 @@ feedback). Keep the cold-open path short:
   popup/redirect helper (it made every launch wait on Google's iframe); add
   popup/redirect sign-in only with that cost in mind. Train Solo never
   statically imports `client/ClientApp.jsx` — screens that reuse it go in
-  `src/solo/soloScreens.js` (`lazyScreen`, preloaded after Home). The
+  `src/solo/soloScreens.js` (`lazyScreen`, preloaded after Home). So do
+  screens that are never the first on a normal open (questionnaire,
+  consultation, program builder, recaps, first session, recovery — #182);
+  the questionnaire is preloaded when Train Solo opens signed out. Measure
+  before adding startup tricks: index.html modulepreload of Train Solo's
+  chunks measured slower on a phone-speed connection (#182). The
   profile shows from the phone (`apexSoloProfile`, uid-checked); screens
   that would say "no programs" wait for `soloListsReady`. The Inter font
   stylesheet stays non-blocking (index.html). Train Solo keeps a hidden
