@@ -40,6 +40,36 @@ enum PurchasesConfig {
     }
 }
 
+// What happened around Apple's sheets, step by step, kept on the phone
+// (#183). The white screen after a purchase was only ever seen on a device;
+// this records each step of the hand-back (sheet closed, app active, fresh
+// page, every "is it showing?" answer, cover off) so the next report says
+// exactly which one failed. Shown in Train Solo → Profile → Purchase log
+// (test accounts in the iPhone app). Never leaves the phone by itself.
+enum PurchaseTrace {
+    private static let key = "apexPurchaseTrace"
+    private static var started = Date()
+
+    static func start(_ event: String) {
+        started = Date()
+        UserDefaults.standard.set([String](), forKey: key)
+        let stamp = ISO8601DateFormatter().string(from: started)
+        log("\(event) · \(stamp) · iOS \(UIDevice.current.systemVersion)")
+    }
+
+    static func log(_ event: String) {
+        let ms = Int(Date().timeIntervalSince(started) * 1000)
+        var lines = UserDefaults.standard.stringArray(forKey: key) ?? []
+        lines.append("+\(ms)ms \(event)")
+        if lines.count > 150 { lines.removeFirst(lines.count - 150) }
+        UserDefaults.standard.set(lines, forKey: key)
+    }
+
+    static func lines() -> [String] {
+        UserDefaults.standard.stringArray(forKey: key) ?? []
+    }
+}
+
 final class PurchasesBridge {
     weak var webView: WKWebView?
     // Apple's purchase sheet can leave the page undrawn (black) but still
@@ -47,8 +77,10 @@ final class PurchasesBridge {
     // itself just before the sheet (then calls the block to show it) and
     // takes the cover off once the page has reloaded after it.
     var coverPageForSheet: ((@escaping () -> Void) -> Void)?
-    // true when the purchase went through (#161: the screen after says so).
-    var sheetFinished: ((Bool) -> Void)?
+    // What Apple's sheet answered, for the page (#161: the screen after says
+    // so; #183: handed to the fresh page natively, see ViewController):
+    // ["ok": true | "cancelled": true | "error": message, "tier": plus|all_access].
+    var sheetFinished: (([String: Any]) -> Void)?
     // Apple's Manage Subscriptions sheet has closed (#166): the same frozen
     // page as after the purchase sheet, so the same recovery, then Home.
     var manageSheetFinished: (() -> Void)?
@@ -74,6 +106,8 @@ final class PurchasesBridge {
         case "purchase":
             guard let plan = body["plan"] as? String, plans.contains(plan) else { return reply(id, error: "Unknown plan.") }
             purchase(id, plan: plan, uid: body["uid"] as? String)
+        case "trace":
+            reply(id, result: PurchaseTrace.lines())
         case "restore":
             Purchases.shared.restorePurchases { _, error in
                 if let error = error { self.reply(id, error: error.localizedDescription) } else { self.reply(id, result: ["ok": true]) }
@@ -140,11 +174,20 @@ final class PurchasesBridge {
                     return self.reply(id, error: "That plan isn't available right now.")
                 }
                 let showSheet = {
+                    PurchaseTrace.log("sheet: asking Apple for \(plan)")
                     Purchases.shared.purchase(package: pkg) { _, _, error, userCancelled in
-                        let bought = !userCancelled && error == nil
-                        defer { DispatchQueue.main.async { self.sheetFinished?(bought) } }
+                        var outcome: [String: Any] = ["tier": plan.hasPrefix("all_access") ? "all_access" : "plus"]
+                        if userCancelled {
+                            outcome["cancelled"] = true
+                        } else if let error = error {
+                            outcome["error"] = PurchasesBridge.message(for: error)
+                        } else {
+                            outcome["ok"] = true
+                        }
+                        PurchaseTrace.log("sheet answered: \(userCancelled ? "cancelled" : error == nil ? "bought" : "error \((error! as NSError).code)") · app \(UIApplication.shared.applicationState.rawValue)")
+                        defer { DispatchQueue.main.async { self.sheetFinished?(outcome) } }
                         if userCancelled { return self.reply(id, error: "Cancelled.", cancelled: true) }
-                        if let error = error { return self.reply(id, error: error.localizedDescription) }
+                        if let error = error { return self.reply(id, error: PurchasesBridge.message(for: error)) }
                         self.reply(id, result: ["ok": true])
                     }
                 }
@@ -162,6 +205,15 @@ final class PurchasesBridge {
         } else {
             buy()
         }
+    }
+
+    // Ask to Buy / a bank's extra check: the payment waits for approval
+    // (#183). Said plainly instead of RevenueCat's technical wording.
+    static func message(for error: Error) -> String {
+        if (error as NSError).code == ErrorCode.paymentPendingError.rawValue {
+            return "Your purchase is waiting for approval. Your membership starts as soon as it's approved."
+        }
+        return error.localizedDescription
     }
 
     private func reply(_ id: String, result: Any? = nil, error: String? = nil, cancelled: Bool = false) {

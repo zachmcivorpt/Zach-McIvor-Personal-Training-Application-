@@ -90,7 +90,7 @@ describe("the native app's 'page is ready' check after a purchase (#161)", () =>
 describe("the native fix itself (ViewController.swift, #161)", () => {
   const swift = () => readFileSync("ios/ApexCoach/ViewController.swift", "utf8");
   it("after every purchase sheet: a solid screen at once, then a brand-new web view on the same page", () => {
-    const body = swift().match(/private func purchaseSheetDidFinish\(bought: Bool\) \{[\s\S]*?\n {4}\}\n/)[0];
+    const body = swift().match(/private func purchaseSheetDidFinish\(outcome: \[String: Any\]\?\) \{[\s\S]*?\n {4}\}\n/)[0];
     expect(body).toMatch(/showPurchaseStageCover\(title: bought \? "Confirming your membership"/);
     expect(body).toMatch(/rebuildWebView\(\)/);
     // (#166: or Train Solo Home after Manage Subscriptions)
@@ -122,7 +122,7 @@ describe("white screen when coming back to the app (#162)", () => {
     expect(f).toContain("self.retryFreshPageOrContinue()");
     // Uncovering (and the check after it) moved into uncoverAfterPurchase (#166).
     expect(f).toContain("self.uncoverAfterPurchase()");
-    expect(fn("uncoverAfterPurchase")).toContain("self.verifyShownAfterPurchase()");
+    expect(fn("uncoverAfterPurchase")).toContain("self.verifyShownAfterPurchase(generation: self.uncoverGeneration)");
     expect(f).not.toMatch(/tries >= 12 \{[\s\S]{0,120}removePurchaseCover/);
     expect(fn("retryFreshPageOrContinue")).toMatch(/purchaseRebuilds < 2[\s\S]*rebuildWebView\(\)[\s\S]*offerContinue\(\)/);
   });
@@ -141,9 +141,11 @@ describe("white screen after a purchase, second fix (#163)", () => {
     expect(fn("calibrateScreenPicture")).toContain("self.screenPictureWorks = !ViewController.isOneColour(cg)");
   });
   it("the fresh page is made only once the app is active again after Apple's sheet", () => {
-    const body = swift().match(/private func purchaseSheetDidFinish\(bought: Bool\) \{[\s\S]*?\n {4}\}\n/)[0];
+    const body = swift().match(/private func purchaseSheetDidFinish\(outcome: \[String: Any\]\?\) \{[\s\S]*?\n {4}\}\n/)[0];
     expect(body).toMatch(/self\.whenAppActive \{[\s\S]*?self\.rebuildWebView\(\)/);
-    expect(body).toContain("self.offerContinue()");
+    // The 15 s limit (#183: now a helper armed on every wait) ends in Continue.
+    expect(body).toContain("armContinueFallback()");
+    expect(fn("armContinueFallback")).toContain("self.offerContinue()");
     expect(body).not.toContain("self.removePurchaseCover()");
   });
   it("the Continue screen opens a fresh page", () => {

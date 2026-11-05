@@ -13,6 +13,8 @@ import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { DeleteAccountSheet } from "../components/ui";
+import { inAppPurchasesAvailable } from "../lib/purchases";
+import SoloPurchaseLog from "./SoloPurchaseLog";
 
 // Adapted from ClientApp.jsx's ProfileScreen: same avatar/name card, sign
 // out, legal links and delete-account pattern, but with every coach-
@@ -28,7 +30,7 @@ import { DeleteAccountSheet } from "../components/ui";
 // Train Solo's one notification: a weekly push to log body stats and take
 // progress photos (soloWeeklyCheckInReminder in functions/index.js).
 export default function SoloProfileScreen() {
-  const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount, setSoloReminderPref, soloAccess, soloTier, soloGatesLive, soloEntitlement } = useSoloApp();
+  const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount, setSoloReminderPref, soloAccess, soloTier, soloGatesLive, soloEntitlement, soloTestAccount } = useSoloApp();
   const { openPaywall, membershipChecking } = useSoloPaywall();
   // Apple Health on Progress is a Plus feature once subscriptions launch.
   const healthAllowed = canUse("appleHealthProgress", soloAccess);
@@ -39,6 +41,7 @@ export default function SoloProfileScreen() {
   const flagged = isFlaggedForMedicalReview(soloCurrentUser?.onboarding?.answers || {});
   const [startedOpen, setStartedOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [purchaseLogOpen, setPurchaseLogOpen] = useState(false);
   const [reminderBusy, setReminderBusy] = useState(false);
   const [reminderError, setReminderError] = useState("");
   const uid = soloCurrentUser?.id;
@@ -287,6 +290,15 @@ export default function SoloProfileScreen() {
           Delete account
         </button>
       </div>
+      {/* Test accounts in the iPhone app (#183): what the app recorded around
+          Apple's last purchase / manage sheet, to send when reporting. */}
+      {soloTestAccount && inAppPurchasesAvailable() && (
+        <div className="flex justify-center mt-3">
+          <button type="button" onClick={() => setPurchaseLogOpen(true)} className="text-xs font-medium" style={{ color: t.textFaint }}>
+            Purchase log
+          </button>
+        </div>
+      )}
 
       <DeleteAccountSheet
         dark={dark}
@@ -304,6 +316,7 @@ export default function SoloProfileScreen() {
         }}
       />
       <SoloGettingStarted open={startedOpen} onClose={() => setStartedOpen(false)} />
+      {purchaseLogOpen && <SoloPurchaseLog onClose={() => setPurchaseLogOpen(false)} />}
     </div>
   );
 }

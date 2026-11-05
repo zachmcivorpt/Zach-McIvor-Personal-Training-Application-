@@ -551,6 +551,21 @@ any Train Solo work from now on:
   gone — iOS can leave Apple's dismissed controller presented after a
   cancel). The 15 s Continue fallback is armed the moment the sheet
   closes, never behind any wait: "One moment" must never stay up for good.
+- **Purchase hand-back, #183**: the screen check is confirmed right before
+  Apple's sheet (`calibrateBeforeSheet`, on the drawn "Opening the App
+  Store"); never rely on WebKit's own picture or the page's "drawn" answer
+  alone to take the cover off. Apple's answer reaches the fresh page natively
+  (`pendingOutcomeJSON` → `outcomeScript` WKUserScript at document start,
+  once per purchase, removed with the cover), never only through the frozen
+  old page. After uncovering the page is checked at 1.2 / 3 / 6 s (twice
+  recovered at most, then Continue). The 15 s Continue limit
+  (`armContinueFallback`) is armed on EVERY wait under the purchase screen
+  (sheet closed, Continue, a check putting it back): never a wait without
+  it. Apple's answer is also kept on the phone for 10 min
+  (`apexPendingPurchaseOutcome`) so a force-quit still gets the welcome.
+  Every step goes in `PurchaseTrace` (Profile → Purchase log on test
+  accounts); add a trace line to any new step. Server: an Apple entitlement
+  is never below its product's tier, highest tier checked first.
 - "/" opens Train Solo for a member signed in only to Train Solo
   (`apexSoloSignedIn`, App.jsx RootRedirect, #161).
 - Every return to the app also checks what's really on screen (#162,

@@ -58,6 +58,26 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // The page a rebuilt web view opens instead of the current one (#166:
     // Train Solo Home after Manage Subscriptions). Cleared once shown.
     private var freshPageURL: URL?
+    // What Apple's purchase sheet answered, as JSON, until the fresh page has
+    // shown it (#183): the fresh page is told directly (pendingOutcomeScript)
+    // instead of relying on the old page's own code, which runs late or not
+    // at all while WebKit has frozen it — then the fresh page opened with no
+    // "Confirming / Welcome" and the plan still showing Free.
+    private var pendingOutcomeJSON: String?
+    // Each uncover gets a number; checks scheduled after an earlier uncover
+    // stand down (#183: the page is checked three times after the cover
+    // comes off, not once).
+    private var uncoverGeneration = 0
+    // How many times a check after uncovering found white and put the
+    // purchase screen back (#183). Twice at most, then Continue: checks that
+    // keep disagreeing can't cover and uncover the page in a loop.
+    private var verifyRecoveries = 0
+    // Each 15 s "never stay up" limit gets a number; only the latest one acts.
+    private var fallbackGeneration = 0
+    // Apple's answer is also kept on the phone for 10 minutes (#183), so a
+    // member who force-quits during "Confirming" still gets it on reopening.
+    private let pendingOutcomeKey = "apexPendingPurchaseOutcome"
+    private let pendingOutcomeAtKey = "apexPendingPurchaseOutcomeAt"
 
     // Apple Health reads for the web app — see HealthBridge.swift.
     private let health = HealthBridge()
@@ -138,12 +158,25 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             config.userContentController.add(self, name: "apexPurchases")
         }
 
+        // Force-quit during "Confirming" (#183): the purchase result saved
+        // before the quit is handed to the first page, as after the sheet.
+        let defaults = UserDefaults.standard
+        if let json = defaults.string(forKey: pendingOutcomeKey),
+           Date().timeIntervalSince1970 - defaults.double(forKey: pendingOutcomeAtKey) < 600 {
+            pendingOutcomeJSON = json
+            config.userContentController.addUserScript(
+                WKUserScript(source: ViewController.outcomeScript(json), injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            )
+            PurchaseTrace.log("reopened with a purchase result from before: handed to the page")
+        } else {
+            clearPendingOutcome(config.userContentController)
+        }
         webView = makeWebView(config)
         purchases.coverPageForSheet = { [weak self] show in
             guard let self = self else { return show() }
             self.coverPageForPurchase(then: show)
         }
-        purchases.sheetFinished = { [weak self] bought in self?.purchaseSheetDidFinish(bought: bought) }
+        purchases.sheetFinished = { [weak self] outcome in self?.purchaseSheetDidFinish(outcome: outcome) }
         purchases.manageSheetFinished = { [weak self] in self?.manageSheetDidFinish() }
         view.addSubview(webView)
 
@@ -338,6 +371,12 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             sendTokenToWeb(token)
         }
         calibrateScreenPicture()
+        // Reopened after a force-quit with a purchase result (no cover then):
+        // the page has it now.
+        if purchaseCover == nil && !purchaseSheetOpen && pendingOutcomeJSON != nil {
+            clearPendingOutcome(webView.configuration.userContentController)
+        }
+        if purchaseCover != nil { PurchaseTrace.log("page loaded \(webView.url?.path ?? "?") · sheet \(purchaseSheetOpen) · waiting \(awaitingFreshPage)") }
         // Reloaded after Apple's purchase sheet: give the page a moment to
         // paint, then show it again (#134).
         if purchaseCover != nil && !purchaseSheetOpen && !awaitingFreshPage {
@@ -556,6 +595,34 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         }
     }
 
+    // Just before Apple's sheet the page is on screen and drawn — the member
+    // is looking at "Opening the App Store" (#183). The moment to confirm that
+    // pictures of the screen show the page. The check after the first load
+    // (calibrateScreenPicture) is dropped whenever that page was still on a
+    // loading screen, and without it every "is it showing?" check after the
+    // sheet used WebKit's own picture — which shows the page even when the
+    // screen is white (#163), so the cover came off onto white.
+    private func calibrateBeforeSheet() {
+        if screenPictureWorks != true, let cg = screenPicture(), !ViewController.isOneColour(cg) {
+            screenPictureWorks = true
+        }
+        PurchaseTrace.log("picture check before sheet: \(pictureCheckName)")
+    }
+
+    private var pictureCheckName: String {
+        screenPictureWorks == true ? "screen" : screenPictureWorks == false ? "webkit (screen pictures don't work)" : "webkit (screen not confirmed)"
+    }
+
+    // Puts Apple's answer where the page looks for it (SoloPaywall.jsx,
+    // localStorage "apexSoloPurchaseOutcome") before the page's own code
+    // runs, once per purchase (`nonce`: a later load of the page doesn't
+    // write it again after the page has finished with it). Apple's answer
+    // for this purchase replaces anything the old page left there.
+    static func outcomeScript(_ json: String) -> String {
+        let nonce = UUID().uuidString
+        return "(function(){try{var o=\(json),n='\(nonce)',s='apexNativePurchaseNonce';if(localStorage.getItem(s)===n)return;localStorage.setItem(s,n);o.at=Date.now();localStorage.setItem('apexSoloPurchaseOutcome',JSON.stringify(o))}catch(e){}})();"
+    }
+
     static func isOneColour(_ cg: CGImage) -> Bool {
         let w = cg.width
         let h = cg.height
@@ -633,6 +700,14 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         old.navigationDelegate = nil
         old.uiDelegate = nil
         old.removeFromSuperview()
+        // The purchase result goes to the fresh page directly (#183).
+        if let json = pendingOutcomeJSON {
+            config.userContentController.removeAllUserScripts()
+            config.userContentController.addUserScript(
+                WKUserScript(source: ViewController.outcomeScript(json), injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            )
+        }
+        PurchaseTrace.log("fresh web view → \(resume?.path ?? "/") · result handed over \(pendingOutcomeJSON != nil)")
         webView = makeWebView(config)
         view.insertSubview(webView, at: 0)
         pinWebView()
@@ -655,6 +730,10 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private func coverPageForPurchase(then show: @escaping () -> Void) {
         purchaseSheetOpen = true
         navigationsSinceSheet = 0
+        clearPendingOutcome(webView.configuration.userContentController)
+        verifyRecoveries = 0
+        PurchaseTrace.start("Apple's sheet requested from \(webView.url?.path ?? "?")")
+        calibrateBeforeSheet()
         webView.takeSnapshot(with: nil) { [weak self] image, _ in
             guard let self = self else { return show() }
             if let image = image {
@@ -680,7 +759,17 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     //  2. a second later (the page has saved the result by then,
     //     SoloPaywall.jsx), a brand-new web view opens the page they were on,
     //  3. the screen comes off only once that new page has drawn the app.
-    private func purchaseSheetDidFinish(bought: Bool) {
+    // `outcome`: what the purchase sheet answered (nil after Manage
+    // Subscriptions).
+    private func purchaseSheetDidFinish(outcome: [String: Any]?) {
+        let bought = outcome?["ok"] as? Bool == true
+        if let outcome = outcome, let data = try? JSONSerialization.data(withJSONObject: outcome),
+           let json = String(data: data, encoding: .utf8) {
+            pendingOutcomeJSON = json
+            UserDefaults.standard.set(json, forKey: pendingOutcomeKey)
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: pendingOutcomeAtKey)
+        }
+        PurchaseTrace.log("sheet closed · bought \(bought) · app \(UIApplication.shared.applicationState.rawValue) · picture check \(pictureCheckName)")
         freshPageURL = nil
         purchaseSheetOpen = false
         showPurchaseStageCover(title: bought ? "Confirming your membership" : "One moment", detail: bought ? "One moment." : "")
@@ -693,6 +782,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             guard let self = self, self.awaitingFreshPage else { return }
             self.whenAppActive { [weak self] in
                 guard let self = self, self.awaitingFreshPage else { return }
+                PurchaseTrace.log("app active, Apple's sheet gone")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
                     guard let self = self, self.awaitingFreshPage else { return }
                     self.awaitingFreshPage = false
@@ -704,11 +794,29 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // white page either (#163): after 15s the screen offers Continue.
         // Counted from the sheet closing, whatever else is waited for (#177:
         // "One moment" stayed up for good after a cancel).
+        armContinueFallback()
+    }
+
+    // The 15 s limit, armed whenever the purchase screen goes up for a wait:
+    // after the sheet, after Continue and after a check puts it back (#183 —
+    // those two had no limit, so "One moment" could stay up for good if the
+    // fresh page never finished loading).
+    private func armContinueFallback() {
+        fallbackGeneration += 1
+        let generation = fallbackGeneration
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
-            guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
+            guard let self = self, self.fallbackGeneration == generation, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
+            PurchaseTrace.log("15 s limit reached: Continue")
             self.awaitingFreshPage = false
             self.offerContinue()
         }
+    }
+
+    private func clearPendingOutcome(_ controller: WKUserContentController) {
+        pendingOutcomeJSON = nil
+        controller.removeAllUserScripts()
+        UserDefaults.standard.removeObject(forKey: pendingOutcomeKey)
+        UserDefaults.standard.removeObject(forKey: pendingOutcomeAtKey)
     }
 
     // Runs `block` once the app is active AND Apple's sheet has really gone
@@ -733,12 +841,16 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // Continue button that opens a fresh page (never a white screen).
     private func offerContinue() {
         guard purchaseCover != nil else { return }
+        PurchaseTrace.log("Continue shown")
         showPurchaseStageCover(title: "You're all set", detail: "Tap Continue to open APEX.", showContinue: true)
     }
 
     @objc private func continueAfterPurchase() {
+        PurchaseTrace.log("Continue tapped")
         purchaseRebuilds = 0
+        verifyRecoveries = 0
         showPurchaseStageCover(title: "One moment", detail: "")
+        armContinueFallback()
         rebuildWebView() // its didFinish reveals again
     }
 
@@ -837,12 +949,14 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         if tries == 0 { wakeWebKit() }
         pageDrawsFrame(appReady: true) { [weak self] drawn in
             guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
+            if drawn || tries == 0 || tries >= 12 { PurchaseTrace.log("reveal try \(tries): page ready \(drawn)") }
             if drawn {
                 // Also check what's really on screen before uncovering it:
                 // one flat colour → another brand-new web view (twice at
                 // most), then Continue — never a white screen (#163).
                 self.pageLooksBlank { [weak self] blank in
                     guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
+                    PurchaseTrace.log("screen blank \(blank) (\(self.pictureCheckName))")
                     if blank {
                         // Wake WebKit and look again before replacing the page.
                         self.wakeWebKit()
@@ -850,6 +964,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
                             guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
                             self.pageLooksBlank { [weak self] stillBlank in
                                 guard let self = self, self.purchaseCover != nil, !self.awaitingFreshPage else { return }
+                                PurchaseTrace.log("woken, screen blank \(stillBlank)")
                                 if stillBlank {
                                     self.retryFreshPageOrContinue()
                                 } else {
@@ -884,11 +999,13 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             // (#163, #173), so wake it as the cover comes off and twice
             // more just after — harmless on a page that's fine.
             self.wakeWebKit()
+            PurchaseTrace.log("cover off")
             self.removePurchaseCover()
             for delay in [0.5, 1.5] {
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in self?.wakeWebKit() }
             }
-            self.verifyShownAfterPurchase()
+            self.uncoverGeneration += 1
+            self.verifyShownAfterPurchase(generation: self.uncoverGeneration)
         }
     }
 
@@ -926,11 +1043,12 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // "One moment", a brand-new web view on Train Solo Home (the plan is
     // re-read from the server on open, #133), shown once it's really drawn.
     private func manageSheetDidFinish() {
-        purchaseSheetDidFinish(bought: false)
+        purchaseSheetDidFinish(outcome: nil)
         freshPageURL = siteURL.appendingPathComponent("solo/home")
     }
 
     private func retryFreshPageOrContinue() {
+        PurchaseTrace.log("not showing: \(purchaseRebuilds < 2 ? "another fresh web view" : "Continue")")
         if purchaseRebuilds < 2 {
             purchaseRebuilds += 1
             rebuildWebView() // its didFinish reveals again
@@ -940,15 +1058,26 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     }
 
     // Uncovered: look again a moment later; white then → the purchase
-    // screen back up and a fresh page (#163).
-    private func verifyShownAfterPurchase() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
-            guard let self = self, self.purchaseCover == nil, !self.purchaseSheetOpen else { return }
-            self.pageLooksBlank { [weak self] blank in
-                guard let self = self, blank, self.purchaseCover == nil else { return }
-                self.showPurchaseStageCover(title: "One moment", detail: "")
-                self.wakeWebKit()
-                self.revealAfterPurchase(tries: 1)
+    // screen back up and a fresh page (#163). Three looks, not one (#183):
+    // the page goes on from the Confirming screen to the welcome after the
+    // cover is off, and a page that stops being drawn then was never caught.
+    private func verifyShownAfterPurchase(generation: Int) {
+        for delay in [1.2, 3.0, 6.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                guard let self = self, self.uncoverGeneration == generation,
+                      self.purchaseCover == nil, !self.purchaseSheetOpen else { return }
+                self.pageLooksBlank { [weak self] blank in
+                    guard let self = self, self.uncoverGeneration == generation, self.purchaseCover == nil else { return }
+                    PurchaseTrace.log("after cover off +\(delay)s: screen blank \(blank) (\(self.pictureCheckName))")
+                    guard blank else { return }
+                    self.uncoverGeneration += 1
+                    self.showPurchaseStageCover(title: "One moment", detail: "")
+                    if self.verifyRecoveries >= 2 { return self.offerContinue() }
+                    self.verifyRecoveries += 1
+                    self.armContinueFallback()
+                    self.wakeWebKit()
+                    self.revealAfterPurchase(tries: 1)
+                }
             }
         }
     }
@@ -957,6 +1086,8 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         guard let cover = purchaseCover else { return }
         purchaseCover = nil
         freshPageURL = nil
+        // The fresh page has the purchase result: no later page gets it again.
+        clearPendingOutcome(webView.configuration.userContentController)
         UIView.animate(withDuration: 0.2, animations: { cover.alpha = 0 }, completion: { _ in cover.removeFromSuperview() })
     }
 
