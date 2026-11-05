@@ -11,9 +11,9 @@ const programs = [mens, womens, anyone, both];
 const ids = (answers) => recommendPrograms(programs, [category], answers, { limit: 10 }).map((p) => p.id).sort();
 
 describe("program audience (Who it's for)", () => {
-  it("only suggests programs tagged for the customer's consultation sex, plus untagged ones", () => {
-    expect(ids({ primaryGoal: "get_stronger", sexForScreening: "female" })).toEqual(["a", "b", "w"]);
-    expect(ids({ primaryGoal: "get_stronger", sexForScreening: "male" })).toEqual(["a", "b", "m"]);
+  it("women get only programs tagged for women, men only programs tagged for men (#179)", () => {
+    expect(ids({ primaryGoal: "get_stronger", sexForScreening: "female" })).toEqual(["b", "w"]);
+    expect(ids({ primaryGoal: "get_stronger", sexForScreening: "male" })).toEqual(["b", "m"]);
   });
 
   it("never filters a customer who chose other / prefer not to say, or hasn't answered", () => {
@@ -21,8 +21,9 @@ describe("program audience (Who it's for)", () => {
     expect(ids({ primaryGoal: "get_stronger" })).toEqual(["a", "b", "m", "w"]);
   });
 
-  it("treats an untagged program as suiting everyone", () => {
-    expect(suitsAudience(anyone, { sexForScreening: "male" })).toBe(true);
+  it("an untagged program is not suggested to men or women (#179)", () => {
+    expect(suitsAudience(anyone, { sexForScreening: "male" })).toBe(false);
+    expect(suitsAudience(anyone, { sexForScreening: "female" })).toBe(false);
     expect(suitsAudience(womens, { sexForScreening: "male" })).toBe(false);
   });
 });
