@@ -20,7 +20,7 @@ describe("Apple's Manage Subscriptions sheet (cancelling)", () => {
 
   it("then a fresh page on Train Solo Home, revealed only once really drawn", () => {
     const body = fn(vc(), "manageSheetDidFinish");
-    expect(body).toMatch(/purchaseSheetDidFinish\(bought: false\)/);
+    expect(body).toMatch(/purchaseSheetDidFinish\(outcome: nil\)/);
     expect(body).toMatch(/freshPageURL = siteURL\.appendingPathComponent\("solo\/home"\)/);
     expect(fn(vc(), "rebuildWebView")).toMatch(/let resume = freshPageURL \?\? currentSitePage\(old\)/);
     // Cleared once shown, and by a purchase (which reopens the page they were on).
@@ -46,7 +46,7 @@ describe("waking WebKit (what leaving and reopening the app did)", () => {
 
   it("wakes the page as the purchase cover comes off and twice just after (#173)", () => {
     const body = fn(vc(), "uncoverAfterPurchase");
-    expect(body).toMatch(/self\.wakeWebKit\(\)\s*\n\s*self\.removePurchaseCover\(\)/);
+    expect(body).toMatch(/self\.wakeWebKit\(\)\s*\n(\s*PurchaseTrace\.log\([^\n]*\)\s*\n)?\s*self\.removePurchaseCover\(\)/);
     expect(body).toMatch(/\[0\.5, 1\.5\][\s\S]*wakeWebKit/);
   });
 

@@ -78,6 +78,13 @@ export function restorePurchases() {
   return ask("restore", {}, 2 * 60 * 1000);
 }
 
+// The iPhone app's step-by-step record of the last time Apple's sheet was
+// shown (ios PurchasesBridge.swift PurchaseTrace, #183): an array of lines.
+// Builds before #183 answer "Unknown purchase request." (rejected).
+export function getPurchaseTrace() {
+  return ask("trace", {}, 5000);
+}
+
 // Opens iPhone Settings' subscription management for this app.
 export function manageAppleSubscription() {
   return ask("manage");

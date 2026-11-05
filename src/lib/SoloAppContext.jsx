@@ -405,6 +405,9 @@ export function SoloAppProvider({ children }) {
   }, [soloAuthUser]);
   const soloTier = tierFromEntitlement(soloEntitlement, clock);
   const soloGatesLive = gatesLive(soloMonetisation, soloAuthUser?.uid);
+  // A test account (coach console → Train Solo → Subscriptions), live or not:
+  // sees the iPhone app's purchase log in Profile (#183).
+  const soloTestAccount = !!soloAuthUser?.uid && Array.isArray(soloMonetisation?.testUids) && soloMonetisation.testUids.includes(soloAuthUser.uid);
   const soloHasAllAccess = soloGatesLive && soloTier === "all_access";
   // Before launch nobody runs All Access programs; after it, they're
   // scheduled only while All Access is paid up (locked otherwise).
@@ -1194,6 +1197,7 @@ export function SoloAppProvider({ children }) {
       soloEntitlement,
       soloTier,
       soloGatesLive,
+      soloTestAccount,
       soloHasAllAccess,
       soloAccess: { tier: soloTier, live: soloGatesLive },
       soloEntitlementReady,
@@ -1229,6 +1233,7 @@ export function SoloAppProvider({ children }) {
       soloEntitlementReady,
       soloTier,
       soloGatesLive,
+      soloTestAccount,
       soloHasAllAccess,
       soloEnrolments,
       soloCustomPrograms,
