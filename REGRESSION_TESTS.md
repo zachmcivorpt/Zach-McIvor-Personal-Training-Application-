@@ -2903,6 +2903,18 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
   6. If anything is white or shows Continue: Profile → Purchase log → Copy, and send it.
 - **Scope**: Train Solo and the iPhone app's purchase path only.
 
+### 184. Train Solo sign-up: the consent boxes never showed a tick (owner, iPad/iPhone, 2026-11-05)
+- **Problem**: on Train Solo's Register screen the "I agree to the Terms of Service" and "I've read and consent to the Privacy Policy" boxes stayed looking empty when tapped (owner's screenshot), so Create account looked stuck. The same boxes are on Finish setup and the questionnaire's health-consent step.
+- **Cause**: native checkboxes styled `accent-white` on the dark photo. iOS draws the box white, and the accent made the tick white too, so a ticked box looked the same as an empty one.
+- **Fix** (Train Solo only): `SoloCheckbox` (`src/solo/SoloUI.jsx`) keeps the real checkbox, invisible over the box, for taps and accessibility. The box beside it is drawn by the app: an outline when empty, white with a dark tick when ticked. It's used in all five places: Register ×2, Finish setup ×2, health consent ×1.
+- **Tests**: `SoloRegisterScreen.test.jsx` +2. Each box draws its tick, tapping the words ticks it too, and no white-tinted native box is left; the first test fails on the old code. Finish setup and the questionnaire use `SoloCheckbox`. Existing consent tests unchanged and passing.
+- **Real browser** (Chromium, iPhone 13 emulation, touch taps on the built app):
+  - Before tapping: both boxes empty outlines.
+  - After tapping each: white with a tick.
+  - Tapping the words toggles the box.
+  - Screenshot checked.
+- **Scope**: Train Solo screens only (Register, Finish setup, questionnaire).
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

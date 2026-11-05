@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { SoloCheckbox } from "../SoloUI";
 import { useSoloApp } from "../../lib/SoloAppContext";
 import { Logo } from "../../components/ui";
 import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
@@ -294,16 +295,11 @@ export default function SoloOnboarding() {
               it's protected the same way as the rest of your account (only you can read or write it).
             </p>
             <label className="flex items-start gap-2.5 text-white/80 text-sm leading-relaxed mb-6">
-              <input
-                type="checkbox"
-                checked={consented}
-                onChange={(e) => {
+              <SoloCheckbox checked={consented} onChange={(e) => {
                   const v = e.target.checked;
                   persist("healthConsent", v);
                   if (v && soloAuthUser) recordHealthConsent(soloAuthUser.uid);
-                }}
-                className="mt-0.5 shrink-0 accent-white"
-              />
+                }} className="mt-0.5" />
               <span>
                 I consent to providing this health information, as described in the{" "}
                 <Link to="/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2">

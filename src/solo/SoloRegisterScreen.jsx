@@ -6,6 +6,7 @@ import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field
 import { SoloBackgroundFrame } from "./SoloBackground";
 import { ChevronLeft, UserPlus } from "lucide-react";
 import { LEGAL_DOCS } from "../legal/legalContent";
+import { SoloCheckbox } from "./SoloUI";
 
 // Train Solo's own self-registration — unlike Coaching, where a client
 // account can only ever be created by the coach issuing an invite (see
@@ -169,12 +170,7 @@ export default function SoloRegisterScreen() {
               form. */}
           <div className="space-y-2.5">
             <label className="flex items-start gap-2.5 text-white/50 text-xs leading-relaxed">
-              <input
-                type="checkbox"
-                checked={agreedTerms}
-                onChange={(e) => setAgreedTerms(e.target.checked)}
-                className="mt-0.5 shrink-0 accent-white"
-              />
+              <SoloCheckbox checked={agreedTerms} onChange={(e) => setAgreedTerms(e.target.checked)} className="mt-0.5" />
               <span>
                 I agree to the{" "}
                 <Link to="/legal/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2">
@@ -184,12 +180,7 @@ export default function SoloRegisterScreen() {
               </span>
             </label>
             <label className="flex items-start gap-2.5 text-white/50 text-xs leading-relaxed">
-              <input
-                type="checkbox"
-                checked={agreedPrivacy}
-                onChange={(e) => setAgreedPrivacy(e.target.checked)}
-                className="mt-0.5 shrink-0 accent-white"
-              />
+              <SoloCheckbox checked={agreedPrivacy} onChange={(e) => setAgreedPrivacy(e.target.checked)} className="mt-0.5" />
               <span>
                 I've read and consent to the{" "}
                 <Link to="/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2">
