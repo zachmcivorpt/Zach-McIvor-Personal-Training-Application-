@@ -2885,7 +2885,7 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
   - The injected script, **executed**, taken from the Swift source: it writes Apple's answer, replaces a stale cancel, and is once per purchase.
   - The fresh page **end to end** with the real `SoloPaywallProvider` when the old page never saved the result: Confirming → Welcome → Start training → `/solo/home` with the outcome cleared; a slow sandbox confirmation (asked 4 times, then the honest "hasn't reached your account yet", page underneath, never blank); waiting for approval → the sheet says so; cancel → page as it was.
   - 14 of the 15 fail on the old code.
-  - `src/solo/purchaseLog183.test.jsx` (3): Profile shows the log to a test account in the iPhone app with the app's lines; an older build gets a plain message; hidden for others and on the website.
+  - `src/solo/purchaseLog183.test.jsx` (3): Profile shows the log to a test account in the iPhone app with the app's lines; an older build gets a plain message; hidden for others and on the website. 2 of the 3 fail on the old code; the third (hidden for others) also holds there.
   - `afterPurchaseWhiteScreen.test.jsx` / `nativeAppleSheets166.test.js` updated for the new signatures (same assertions).
   - Full suite 1144 passed; `vite build` clean.
   - Swift: `ViewController.swift` + `PurchasesBridge.swift` type-checked with Swift 6.0.3 (Swift 5 mode) against stand-in UIKit / WebKit / StoreKit / RevenueCat modules declaring only the APIs used: 0 errors, 0 warnings. A deliberate typo is caught, so the check is real. Codemagic's build is the full compile.
