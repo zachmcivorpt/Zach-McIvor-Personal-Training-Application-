@@ -513,11 +513,12 @@ any Train Solo work from now on:
   purchase until the member left and came back. Every native sheet over the page (the
   purchase sheet AND Manage Subscriptions) is covered first and recovered
   after; Manage Subscriptions reopens Train Solo Home (`freshPageURL`).
-- **Wait for Apple's sheet to be really gone** (#175): the fresh page is
-  made only once the app is active AND `presentedViewController == nil`
-  (`whenAppActive`), and the cover never comes off while a sheet is up.
-  Manage Subscriptions can answer while its cancel confirmation is still
-  showing; a page made then froze under it and showed white.
+- **Wait for Apple's sheet to be really gone** (#175, #177): the fresh
+  page is made only once the app is active AND no presented controller is
+  on screen (`whenAppActive`: nil, windowless or being dismissed counts as
+  gone — iOS can leave Apple's dismissed controller presented after a
+  cancel). The 15 s Continue fallback is armed the moment the sheet
+  closes, never behind any wait: "One moment" must never stay up for good.
 - "/" opens Train Solo for a member signed in only to Train Solo
   (`apexSoloSignedIn`, App.jsx RootRedirect, #161).
 - Every return to the app also checks what's really on screen (#162,

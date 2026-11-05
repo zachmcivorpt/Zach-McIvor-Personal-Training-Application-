@@ -697,14 +697,17 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
                     guard let self = self, self.awaitingFreshPage else { return }
                     self.awaitingFreshPage = false
                     self.rebuildWebView()
-                    // Never leave the screen up for long — but never uncover
-                    // onto a white page either (#163): after 15s it offers Continue.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
-                        guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
-                        self.offerContinue()
-                    }
                 }
             }
+        }
+        // Never leave the screen up for long — but never uncover onto a
+        // white page either (#163): after 15s the screen offers Continue.
+        // Counted from the sheet closing, whatever else is waited for (#177:
+        // "One moment" stayed up for good after a cancel).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
+            guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
+            self.awaitingFreshPage = false
+            self.offerContinue()
         }
     }
 
@@ -714,7 +717,11 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // made then froze under it and showed white once it closed. The sheet
     // can stay up as long as the member likes, so wait up to 10 minutes.
     private func whenAppActive(tries: Int = 0, _ block: @escaping () -> Void) {
-        let sheetGone = presentedViewController == nil
+        // A sheet counts only while it's really on screen (#177): after a
+        // cancel iOS can leave Apple's (dismissed, windowless) controller
+        // presented, which kept "One moment" up for good.
+        let sheet = presentedViewController
+        let sheetGone = sheet == nil || sheet?.view.window == nil || sheet?.isBeingDismissed == true
         if (UIApplication.shared.applicationState == .active && sheetGone) || tries >= 2400 { return block() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
             guard let self = self else { return }
@@ -873,11 +880,6 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private func uncoverAfterPurchase() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             guard let self = self else { return }
-            // Apple's sheet still (or again) up (#175): never uncover under
-            // it — check the page again once it has gone.
-            if self.presentedViewController != nil {
-                return self.whenAppActive { [weak self] in self?.revealAfterPurchase() }
-            }
             // The checks can't always see a page WebKit has stopped drawing
             // (#163, #173), so wake it as the cover comes off and twice
             // more just after — harmless on a page that's fine.
