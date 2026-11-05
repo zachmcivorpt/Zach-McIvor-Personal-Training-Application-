@@ -360,3 +360,44 @@ describe("Apple tiers: upgrade, downgrade, entitlement lag (#183)", () => {
     expect(src).toMatchObject({ tier: "plus", status: "active" });
   });
 });
+
+// #185: after cancelling on the website, subscribing again said "You're
+// already on this plan": the last checkout was paid, and that was all
+// priorCheckout looked at.
+describe("subscribing again after a cancel (#185)", () => {
+  function fakeDb(initial = {}) {
+    const store = { ...initial };
+    return { collection: () => ({ doc: (uid) => ({ get: async () => ({ exists: !!store[uid], data: () => store[uid] }), set: async () => {} }) }) };
+  }
+  function fakeStripe(sub) {
+    return {
+      checkout: { sessions: { retrieve: async (id) => ({ id, status: "complete", mode: "subscription", subscription: "sub_1" }), expire: async () => {} } },
+      subscriptions: {
+        retrieve: async () => {
+          if (sub instanceof Error) throw sub;
+          return sub;
+        },
+      },
+    };
+  }
+  const prior = (sub) => solo.priorCheckout(fakeDb({ u1: { subscription: "cs_paid" } }), fakeStripe(sub), "u1", "subscription");
+
+  it("its subscription cancelled (ended): a new checkout is allowed", async () => {
+    expect(await prior({ status: "canceled" })).toEqual({ alreadyPaid: false });
+  });
+  it("cancelled at period end / a cancel date not processed yet: allowed", async () => {
+    expect(await prior({ status: "active", cancel_at_period_end: true })).toEqual({ alreadyPaid: false });
+    expect(await prior({ status: "active", cancel_at: 1900000000 })).toEqual({ alreadyPaid: false });
+  });
+  it("a failed payment (past_due / unpaid, Free for us): allowed, so a new card brings them back", async () => {
+    expect(await prior({ status: "past_due" })).toEqual({ alreadyPaid: false });
+    expect(await prior({ status: "unpaid" })).toEqual({ alreadyPaid: false });
+  });
+  it("still paid up (the webhook just hasn't landed): still no second charge", async () => {
+    expect(await prior({ status: "active" })).toEqual({ alreadyPaid: true });
+    expect(await prior({ status: "trialing" })).toEqual({ alreadyPaid: true });
+  });
+  it("Stripe can't say: no second checkout (safe)", async () => {
+    expect(await prior(new Error("network"))).toEqual({ alreadyPaid: true });
+  });
+});

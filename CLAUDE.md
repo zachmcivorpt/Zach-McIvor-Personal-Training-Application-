@@ -457,7 +457,9 @@ any Train Solo work from now on:
   Apple subscriber is sent to Apple (`checkoutDecision`). Every Stripe
   checkout goes through `priorCheckout`/`rememberCheckout`
   (`soloCheckoutSessions/{uid}`, server-only), so only the latest one can
-  be paid. `soloStripeWebhook` returns 500 on a failure so Stripe retries;
+  be paid — and a paid one blocks a new checkout only while its
+  subscription is active/trialing and not cancelling (#185: after a cancel
+  it said "already on this plan" for good). `soloStripeWebhook` returns 500 on a failure so Stripe retries;
   keep every handler safe to repeat.
 - Plus features that write data are gated in firestore.rules too once live
   (`hasPlus()` + `soloGatesLive()`, e.g. creating a `soloCustomPrograms`
