@@ -5,6 +5,7 @@ import { Logo } from "../components/ui";
 import { AuthButton as PrimaryButton, AuthInput as TextInput, AuthField as Field } from "../auth/authUi";
 import { SoloBackgroundFrame } from "./SoloBackground";
 import { LEGAL_DOCS } from "../legal/legalContent";
+import { SoloCheckbox } from "./SoloUI";
 
 const TERMS_VERSION = LEGAL_DOCS["terms-of-service"].effectiveDate;
 const PRIVACY_VERSION = LEGAL_DOCS["privacy-policy"].effectiveDate;
@@ -60,7 +61,7 @@ export default function SoloFinishSetupScreen() {
 
           <div className="space-y-2.5">
             <label className="flex items-start gap-2.5 text-white/50 text-xs leading-relaxed">
-              <input type="checkbox" checked={agreedTerms} onChange={(e) => setAgreedTerms(e.target.checked)} className="mt-0.5 shrink-0 accent-white" />
+              <SoloCheckbox checked={agreedTerms} onChange={(e) => setAgreedTerms(e.target.checked)} className="mt-0.5" />
               <span>
                 I agree to the{" "}
                 <Link to="/legal/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2">
@@ -70,7 +71,7 @@ export default function SoloFinishSetupScreen() {
               </span>
             </label>
             <label className="flex items-start gap-2.5 text-white/50 text-xs leading-relaxed">
-              <input type="checkbox" checked={agreedPrivacy} onChange={(e) => setAgreedPrivacy(e.target.checked)} className="mt-0.5 shrink-0 accent-white" />
+              <SoloCheckbox checked={agreedPrivacy} onChange={(e) => setAgreedPrivacy(e.target.checked)} className="mt-0.5" />
               <span>
                 I've read and consent to the{" "}
                 <Link to="/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2">

@@ -111,3 +111,38 @@ describe("SoloRegisterScreen — legal acceptance is required", () => {
     expect(await screen.findByText("Train Solo")).toBeTruthy();
   });
 });
+
+// #184: on the iPhone the two boxes never showed a tick (the native box with
+// accent-white drew a white tick on the white box iOS shows).
+describe("SoloRegisterScreen — the consent boxes show they're ticked (#184)", () => {
+  it("each box draws its own tick when ticked, and an empty outline when not; tapping the words ticks it too", () => {
+    mockUseSoloApp = () => ({ registerSoloAccount: vi.fn(), soloCurrentUser: null });
+    render(
+      <MemoryRouter>
+        <SoloRegisterScreen />
+      </MemoryRouter>
+    );
+    const boxes = () => screen.getAllByTestId("solo-checkbox-box");
+    expect(boxes().map((b) => b.dataset.checked)).toEqual(["false", "false"]);
+    expect(boxes().every((b) => !b.querySelector("svg"))).toBe(true);
+    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    expect(boxes()[0].dataset.checked).toBe("true");
+    expect(boxes()[0].querySelector("svg")).toBeTruthy();
+    expect(boxes()[0].style.backgroundColor).toBe("rgb(255, 255, 255)");
+    fireEvent.click(screen.getByText(/I've read and consent to the/));
+    expect(boxes()[1].dataset.checked).toBe("true");
+    // No native box tinted white any more on Train Solo's dark screens.
+    expect(document.querySelector("input.accent-white")).toBe(null);
+  });
+});
+
+describe("the same boxes on Finish setup and the questionnaire's health consent (#184)", () => {
+  it("use SoloCheckbox, never a native box tinted white", async () => {
+    const { readFileSync } = await import("node:fs");
+    for (const f of ["src/solo/SoloFinishSetupScreen.jsx", "src/solo/onboarding/SoloOnboarding.jsx", "src/solo/SoloRegisterScreen.jsx"]) {
+      const src = readFileSync(f, "utf8");
+      expect(src, f).not.toMatch(/accent-white/);
+      expect(src, f).toMatch(/<SoloCheckbox /);
+    }
+  });
+});

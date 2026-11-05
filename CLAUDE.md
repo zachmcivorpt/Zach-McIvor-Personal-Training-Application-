@@ -126,6 +126,9 @@ rather than inventing new colors per screen:
 - Cards run near full screen width: 12px (`px-3`) page gutters.
 - No drawn/stock artwork: a program shows only its coach-uploaded
   `artworkUrl`, otherwise the plain cover gradient + APEX mark.
+- **Checkboxes on Train Solo's dark screens are `SoloCheckbox`** (SoloUI.jsx,
+  #184), never a native box with `accent-white`: iOS drew a white tick on a
+  white box, so ticked looked empty.
 - Spelling is "Program", never "Programme".
 - **A workout in progress is kept on the phone** (#157,
   `src/solo/workoutDraft.js`): every typed set goes to the account's draft

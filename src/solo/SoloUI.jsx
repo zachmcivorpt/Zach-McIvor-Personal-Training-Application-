@@ -1,4 +1,5 @@
 import React from "react";
+import { Check } from "lucide-react";
 
 // Train Solo's type and buttons for its full-page moments and pop-ups
 // (#143/#144). The owner wants the app's own font weights (semibold
@@ -58,5 +59,29 @@ export function SoloPageHeader({ t, title, sub, right = null, className = "" }) 
         {right}
       </div>
     </div>
+  );
+}
+
+// A checkbox you can see is ticked, on Train Solo's dark photo screens
+// (Register, Finish setup, the questionnaire's health consent; #184). The
+// native box with `accent-white` drew a white tick on the white box iOS
+// shows, so a ticked box looked exactly like an empty one. The real
+// checkbox stays (visually hidden) for accessibility and taps on the label;
+// the box beside it is drawn here: an outline when empty, white with a dark
+// tick when ticked.
+export function SoloCheckbox({ checked, onChange, className = "" }) {
+  return (
+    <span className={`relative inline-flex shrink-0 ${className}`}>
+      <input type="checkbox" checked={checked} onChange={onChange} className="peer absolute inset-0 opacity-0 m-0 w-full h-full cursor-pointer" />
+      <span
+        aria-hidden="true"
+        data-testid="solo-checkbox-box"
+        data-checked={checked ? "true" : "false"}
+        className="w-[18px] h-[18px] rounded-[5px] flex items-center justify-center border peer-focus-visible:ring-2 peer-focus-visible:ring-white/60"
+        style={checked ? { backgroundColor: "#FFFFFF", borderColor: "#FFFFFF" } : { backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.7)" }}
+      >
+        {checked && <Check size={13} strokeWidth={3.2} color="#0A0A0B" />}
+      </span>
+    </span>
   );
 }
