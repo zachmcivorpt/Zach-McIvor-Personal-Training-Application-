@@ -72,6 +72,12 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     // purchase screen back (#183). Twice at most, then Continue: checks that
     // keep disagreeing can't cover and uncover the page in a loop.
     private var verifyRecoveries = 0
+    // Each 15 s "never stay up" limit gets a number; only the latest one acts.
+    private var fallbackGeneration = 0
+    // Apple's answer is also kept on the phone for 10 minutes (#183), so a
+    // member who force-quits during "Confirming" still gets it on reopening.
+    private let pendingOutcomeKey = "apexPendingPurchaseOutcome"
+    private let pendingOutcomeAtKey = "apexPendingPurchaseOutcomeAt"
 
     // Apple Health reads for the web app — see HealthBridge.swift.
     private let health = HealthBridge()
@@ -152,6 +158,19 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             config.userContentController.add(self, name: "apexPurchases")
         }
 
+        // Force-quit during "Confirming" (#183): the purchase result saved
+        // before the quit is handed to the first page, as after the sheet.
+        let defaults = UserDefaults.standard
+        if let json = defaults.string(forKey: pendingOutcomeKey),
+           Date().timeIntervalSince1970 - defaults.double(forKey: pendingOutcomeAtKey) < 600 {
+            pendingOutcomeJSON = json
+            config.userContentController.addUserScript(
+                WKUserScript(source: ViewController.outcomeScript(json), injectionTime: .atDocumentStart, forMainFrameOnly: true)
+            )
+            PurchaseTrace.log("reopened with a purchase result from before: handed to the page")
+        } else {
+            clearPendingOutcome(config.userContentController)
+        }
         webView = makeWebView(config)
         purchases.coverPageForSheet = { [weak self] show in
             guard let self = self else { return show() }
@@ -352,6 +371,11 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
             sendTokenToWeb(token)
         }
         calibrateScreenPicture()
+        // Reopened after a force-quit with a purchase result (no cover then):
+        // the page has it now.
+        if purchaseCover == nil && !purchaseSheetOpen && pendingOutcomeJSON != nil {
+            clearPendingOutcome(webView.configuration.userContentController)
+        }
         if purchaseCover != nil { PurchaseTrace.log("page loaded \(webView.url?.path ?? "?") · sheet \(purchaseSheetOpen) · waiting \(awaitingFreshPage)") }
         // Reloaded after Apple's purchase sheet: give the page a moment to
         // paint, then show it again (#134).
@@ -706,7 +730,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
     private func coverPageForPurchase(then show: @escaping () -> Void) {
         purchaseSheetOpen = true
         navigationsSinceSheet = 0
-        pendingOutcomeJSON = nil
+        clearPendingOutcome(webView.configuration.userContentController)
         verifyRecoveries = 0
         PurchaseTrace.start("Apple's sheet requested from \(webView.url?.path ?? "?")")
         calibrateBeforeSheet()
@@ -742,6 +766,8 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         if let outcome = outcome, let data = try? JSONSerialization.data(withJSONObject: outcome),
            let json = String(data: data, encoding: .utf8) {
             pendingOutcomeJSON = json
+            UserDefaults.standard.set(json, forKey: pendingOutcomeKey)
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: pendingOutcomeAtKey)
         }
         PurchaseTrace.log("sheet closed · bought \(bought) · app \(UIApplication.shared.applicationState.rawValue) · picture check \(pictureCheckName)")
         freshPageURL = nil
@@ -768,12 +794,29 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         // white page either (#163): after 15s the screen offers Continue.
         // Counted from the sheet closing, whatever else is waited for (#177:
         // "One moment" stayed up for good after a cancel).
+        armContinueFallback()
+    }
+
+    // The 15 s limit, armed whenever the purchase screen goes up for a wait:
+    // after the sheet, after Continue and after a check puts it back (#183 —
+    // those two had no limit, so "One moment" could stay up for good if the
+    // fresh page never finished loading).
+    private func armContinueFallback() {
+        fallbackGeneration += 1
+        let generation = fallbackGeneration
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) { [weak self] in
-            guard let self = self, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
+            guard let self = self, self.fallbackGeneration == generation, !self.purchaseSheetOpen, self.purchaseCover != nil else { return }
             PurchaseTrace.log("15 s limit reached: Continue")
             self.awaitingFreshPage = false
             self.offerContinue()
         }
+    }
+
+    private func clearPendingOutcome(_ controller: WKUserContentController) {
+        pendingOutcomeJSON = nil
+        controller.removeAllUserScripts()
+        UserDefaults.standard.removeObject(forKey: pendingOutcomeKey)
+        UserDefaults.standard.removeObject(forKey: pendingOutcomeAtKey)
     }
 
     // Runs `block` once the app is active AND Apple's sheet has really gone
@@ -807,6 +850,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         purchaseRebuilds = 0
         verifyRecoveries = 0
         showPurchaseStageCover(title: "One moment", detail: "")
+        armContinueFallback()
         rebuildWebView() // its didFinish reveals again
     }
 
@@ -1030,6 +1074,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
                     self.showPurchaseStageCover(title: "One moment", detail: "")
                     if self.verifyRecoveries >= 2 { return self.offerContinue() }
                     self.verifyRecoveries += 1
+                    self.armContinueFallback()
                     self.wakeWebKit()
                     self.revealAfterPurchase(tries: 1)
                 }
@@ -1042,8 +1087,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         purchaseCover = nil
         freshPageURL = nil
         // The fresh page has the purchase result: no later page gets it again.
-        pendingOutcomeJSON = nil
-        webView.configuration.userContentController.removeAllUserScripts()
+        clearPendingOutcome(webView.configuration.userContentController)
         UIView.animate(withDuration: 0.2, animations: { cover.alpha = 0 }, completion: { _ in cover.removeFromSuperview() })
     }
 

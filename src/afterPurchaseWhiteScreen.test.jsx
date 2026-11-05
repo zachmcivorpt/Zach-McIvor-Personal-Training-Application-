@@ -143,7 +143,9 @@ describe("white screen after a purchase, second fix (#163)", () => {
   it("the fresh page is made only once the app is active again after Apple's sheet", () => {
     const body = swift().match(/private func purchaseSheetDidFinish\(outcome: \[String: Any\]\?\) \{[\s\S]*?\n {4}\}\n/)[0];
     expect(body).toMatch(/self\.whenAppActive \{[\s\S]*?self\.rebuildWebView\(\)/);
-    expect(body).toContain("self.offerContinue()");
+    // The 15 s limit (#183: now a helper armed on every wait) ends in Continue.
+    expect(body).toContain("armContinueFallback()");
+    expect(fn("armContinueFallback")).toContain("self.offerContinue()");
     expect(body).not.toContain("self.removePurchaseCover()");
   });
   it("the Continue screen opens a fresh page", () => {

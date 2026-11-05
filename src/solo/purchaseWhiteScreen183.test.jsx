@@ -68,10 +68,9 @@ describe("Apple's answer goes to the fresh page directly (#183)", () => {
     expect(rebuild).toMatch(/if let json = pendingOutcomeJSON[\s\S]*addUserScript\([\s\S]*outcomeScript\(json\), injectionTime: \.atDocumentStart, forMainFrameOnly: true/);
     expect(rebuild.indexOf("addUserScript")).toBeLessThan(rebuild.indexOf("webView = makeWebView(config)"));
     const remove = fn(vc(), "removePurchaseCover");
-    expect(remove).toMatch(/pendingOutcomeJSON = nil/);
-    expect(remove).toMatch(/removeAllUserScripts\(\)/);
+    expect(remove).toContain("clearPendingOutcome(webView.configuration.userContentController)");
     // A new sheet starts clean; Manage Subscriptions has no purchase answer.
-    expect(fn(vc(), "coverPageForPurchase")).toMatch(/pendingOutcomeJSON = nil/);
+    expect(fn(vc(), "coverPageForPurchase")).toContain("clearPendingOutcome(");
     expect(fn(vc(), "manageSheetDidFinish")).toMatch(/purchaseSheetDidFinish\(outcome: nil\)/);
   });
   it("a payment waiting for approval is said plainly", () => {
@@ -113,6 +112,31 @@ describe("after the cover comes off (#183)", () => {
     expect(fn(vc(), "coverPageForPurchase")).toMatch(/verifyRecoveries = 0/);
     expect(fn(vc(), "continueAfterPurchase")).toMatch(/verifyRecoveries = 0/);
     expect(fn(vc(), "uncoverAfterPurchase")).toMatch(/self\.uncoverGeneration \+= 1\s*\n\s*self\.verifyShownAfterPurchase\(generation: self\.uncoverGeneration\)/);
+  });
+});
+
+describe("never stuck on the purchase screen (#183)", () => {
+  it("the 15 s Continue limit is armed after the sheet, after Continue and whenever a check puts the screen back", () => {
+    const arm = fn(vc(), "armContinueFallback");
+    expect(arm).toMatch(/fallbackGeneration \+= 1[\s\S]*asyncAfter\(deadline: \.now\(\) \+ 15\)[\s\S]*self\.fallbackGeneration == generation[\s\S]*self\.offerContinue\(\)/);
+    expect(fn(vc(), "purchaseSheetDidFinish")).toContain("armContinueFallback()");
+    expect(fn(vc(), "continueAfterPurchase")).toMatch(/armContinueFallback\(\)\s*\n\s*rebuildWebView\(\)/);
+    expect(fn(vc(), "verifyShownAfterPurchase")).toMatch(/self\.verifyRecoveries \+= 1\s*\n\s*self\.armContinueFallback\(\)/);
+  });
+});
+
+describe("force-quit during Confirming (#183)", () => {
+  it("Apple's answer is kept on the phone for 10 minutes and handed to the first page on reopening", () => {
+    expect(fn(vc(), "purchaseSheetDidFinish")).toMatch(/UserDefaults\.standard\.set\(json, forKey: pendingOutcomeKey\)/);
+    const load = vc().match(/override func viewDidLoad\(\) \{[\s\S]*?\n {4}\}\n/)[0];
+    expect(load).toMatch(/defaults\.string\(forKey: pendingOutcomeKey\)[\s\S]*< 600[\s\S]*addUserScript\([\s\S]*outcomeScript\(json\)[\s\S]*webView = makeWebView\(config\)/);
+  });
+  it("cleared once a page has it: the cover coming off, the reopened page loading, or a new sheet", () => {
+    const clear = fn(vc(), "clearPendingOutcome");
+    expect(clear).toMatch(/pendingOutcomeJSON = nil[\s\S]*removeAllUserScripts\(\)[\s\S]*removeObject\(forKey: pendingOutcomeKey\)/);
+    expect(fn(vc(), "removePurchaseCover")).toContain("clearPendingOutcome(");
+    expect(fn(vc(), "coverPageForPurchase")).toContain("clearPendingOutcome(");
+    expect(vc()).toMatch(/if purchaseCover == nil && !purchaseSheetOpen && pendingOutcomeJSON != nil \{\s*\n\s*clearPendingOutcome/);
   });
 });
 

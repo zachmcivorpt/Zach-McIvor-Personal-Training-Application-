@@ -315,3 +315,48 @@ describe("customerFromCheckout", () => {
     expect(await solo.customerFromCheckout(stripeWith(paid), "", "u1")).toBe(null);
   });
 });
+
+// #183: Plus / All Access from Apple, as RevenueCat reports sandbox purchases,
+// upgrades and downgrades.
+describe("Apple tiers: upgrade, downgrade, entitlement lag (#183)", () => {
+  const iso = (ms) => new Date(ms).toISOString();
+  it("an All Access purchase reported only under the 'plus' entitlement is All Access", () => {
+    const src = appleSourceFromSubscriber(
+      {
+        entitlements: { plus: { expires_date: iso(NOW + DAY), product_identifier: "apex_solo_all_access_monthly" } },
+        subscriptions: { apex_solo_all_access_monthly: { store: "app_store", period_type: "normal", expires_date: iso(NOW + DAY), is_sandbox: true } },
+      },
+      NOW
+    );
+    expect(src).toMatchObject({ tier: "all_access", status: "active", willRenew: true });
+  });
+  it("Plus upgraded to All Access: the old Plus (ended by Apple) doesn't hold the member at Plus", () => {
+    const src = appleSourceFromSubscriber(
+      {
+        entitlements: { plus: { expires_date: iso(NOW + DAY), product_identifier: "apex_solo_plus_monthly" } },
+        subscriptions: {
+          apex_solo_plus_monthly: { store: "app_store", period_type: "normal", expires_date: iso(NOW + DAY), unsubscribe_detected_at: iso(NOW - 1000) },
+          apex_solo_all_access_monthly: { store: "app_store", period_type: "normal", expires_date: iso(NOW + DAY) },
+        },
+      },
+      NOW
+    );
+    expect(src).toMatchObject({ tier: "all_access", status: "active", productId: "apex_solo_all_access_monthly" });
+  });
+  it("All Access downgraded to Plus at renewal: Plus from then on", () => {
+    const src = appleSourceFromSubscriber(
+      {
+        entitlements: {
+          all_access: { expires_date: iso(NOW - 1000), product_identifier: "apex_solo_all_access_monthly" },
+          plus: { expires_date: iso(NOW + DAY), product_identifier: "apex_solo_plus_monthly" },
+        },
+        subscriptions: {
+          apex_solo_all_access_monthly: { store: "app_store", expires_date: iso(NOW - 1000) },
+          apex_solo_plus_monthly: { store: "app_store", period_type: "normal", expires_date: iso(NOW + DAY) },
+        },
+      },
+      NOW
+    );
+    expect(src).toMatchObject({ tier: "plus", status: "active" });
+  });
+});

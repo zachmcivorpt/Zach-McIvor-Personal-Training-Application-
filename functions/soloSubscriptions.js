@@ -103,6 +103,16 @@ function appleSourceFromSubscriber(subscriber, now = Date.now()) {
       if (plan && PLANS[plan].tier === tier && s?.expires_date) candidates.push({ tier, productId, expires: s?.expires_date });
     }
   }
+  // Highest tier first (#183): RevenueCat's "plus" entitlement covers all
+  // four products, so an All Access purchase it reports only there (the
+  // all_access entitlement missing or late) was read as Plus before its own
+  // All Access product was looked at. Each tier is also never below its
+  // product's own tier.
+  for (const c of candidates) {
+    const plan = planFromLookupKey(c.productId || "");
+    if (plan && RANK[PLANS[plan].tier] > RANK[c.tier]) c.tier = PLANS[plan].tier;
+  }
+  candidates.sort((a, b) => RANK[b.tier] - RANK[a.tier]);
   let best = null;
   for (const { tier, productId, expires } of candidates) {
     const expiresAt = expires ? Date.parse(expires) : null; // null = lifetime / promotional without end

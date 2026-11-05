@@ -70,9 +70,10 @@ describe("Apple's sheet still up after a cancel (#175, #177)", () => {
 
   it("the Continue fallback is armed when the sheet closes, never only after the fresh page (#177: One moment stuck)", () => {
     const body = fn(vc(), "purchaseSheetDidFinish");
-    expect(body).toMatch(/asyncAfter\(deadline: \.now\(\) \+ 15\)[\s\S]*self\.awaitingFreshPage = false\s*\n\s*self\.offerContinue\(\)/);
-    // The 15s timer is not nested inside the wait for the app / sheet.
-    const wait = body.slice(body.indexOf("self.whenAppActive"), body.indexOf("asyncAfter(deadline: .now() + 15)"));
+    // The 15s limit (a helper since #183) ends in Continue…
+    expect(fn(vc(), "armContinueFallback")).toMatch(/asyncAfter\(deadline: \.now\(\) \+ 15\)[\s\S]*self\.awaitingFreshPage = false\s*\n\s*self\.offerContinue\(\)/);
+    // …and is armed straight away, not nested inside the wait for the app / sheet.
+    const wait = body.slice(body.indexOf("self.whenAppActive"), body.indexOf("armContinueFallback()"));
     expect(wait).toMatch(/self\.rebuildWebView\(\)\s*\n\s*\}\s*\n\s*\}\s*\n\s*\}/);
   });
 

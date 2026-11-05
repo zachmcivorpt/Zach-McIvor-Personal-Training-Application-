@@ -558,8 +558,14 @@ any Train Solo work from now on:
   (`pendingOutcomeJSON` → `outcomeScript` WKUserScript at document start,
   once per purchase, removed with the cover), never only through the frozen
   old page. After uncovering the page is checked at 1.2 / 3 / 6 s (twice
-  recovered at most, then Continue). Every step goes in `PurchaseTrace`
-  (Profile → Purchase log on test accounts); add a trace line to any new step.
+  recovered at most, then Continue). The 15 s Continue limit
+  (`armContinueFallback`) is armed on EVERY wait under the purchase screen
+  (sheet closed, Continue, a check putting it back): never a wait without
+  it. Apple's answer is also kept on the phone for 10 min
+  (`apexPendingPurchaseOutcome`) so a force-quit still gets the welcome.
+  Every step goes in `PurchaseTrace` (Profile → Purchase log on test
+  accounts); add a trace line to any new step. Server: an Apple entitlement
+  is never below its product's tier, highest tier checked first.
 - "/" opens Train Solo for a member signed in only to Train Solo
   (`apexSoloSignedIn`, App.jsx RootRedirect, #161).
 - Every return to the app also checks what's really on screen (#162,
