@@ -294,3 +294,24 @@ describe("priorCheckout / rememberCheckout", () => {
     expect(db.store.u1).toMatchObject({ subscription: "cs_1", program_p1: "cs_2" });
   });
 });
+
+// #181: back from a website checkout, the plan unlocks from the checkout
+// itself (a first-time subscriber has no stripeCustomerId until the webhook).
+describe("customerFromCheckout", () => {
+  const stripeWith = (session) => ({ checkout: { sessions: { retrieve: async (id) => (session ? { id, ...session } : Promise.reject(new Error("No such session"))) } } });
+  const paid = { mode: "subscription", status: "complete", client_reference_id: "u1", customer: "cus_new" };
+  it("gives the customer of this account's completed subscription checkout", async () => {
+    expect(await solo.customerFromCheckout(stripeWith(paid), "cs_test_1", "u1")).toBe("cus_new");
+    expect(await solo.customerFromCheckout(stripeWith({ ...paid, client_reference_id: null, metadata: { soloUserId: "u1" }, customer: { id: "cus_obj" } }), "cs_test_1", "u1")).toBe("cus_obj");
+  });
+  it("never another account's checkout", async () => {
+    expect(await solo.customerFromCheckout(stripeWith(paid), "cs_test_1", "someone_else")).toBe(null);
+  });
+  it("not an unpaid, single-program or unknown checkout, nor a malformed id", async () => {
+    expect(await solo.customerFromCheckout(stripeWith({ ...paid, status: "open" }), "cs_test_1", "u1")).toBe(null);
+    expect(await solo.customerFromCheckout(stripeWith({ ...paid, mode: "payment" }), "cs_test_1", "u1")).toBe(null);
+    expect(await solo.customerFromCheckout(stripeWith(null), "cs_test_1", "u1")).toBe(null);
+    expect(await solo.customerFromCheckout(stripeWith(paid), "{CHECKOUT_SESSION_ID}", "u1")).toBe(null);
+    expect(await solo.customerFromCheckout(stripeWith(paid), "", "u1")).toBe(null);
+  });
+});

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { MEASURE_BLUE, MEASURE_BLUE_SOFT } from "../theme";
@@ -47,7 +47,7 @@ export function appleLapsingHigher(entitlement, tier, now = Date.now()) {
   return { tier: s.tier, date: Number(s.expiresAt) };
 }
 
-const PaywallCtx = createContext({ openPaywall: () => {} });
+const PaywallCtx = createContext({ openPaywall: () => {}, membershipChecking: false });
 export const useSoloPaywall = () => useContext(PaywallCtx);
 
 // The membership sheet's own glass: lighter and clearer than the standard
@@ -128,8 +128,7 @@ export function SoloPaywallProvider({ children }) {
     (opts = {}) => setRequest({ reason: opts.reason || null, tier: opts.tier || "all_access", notice: opts.notice || "" }),
     []
   );
-  const value = useMemo(() => ({ openPaywall }), [openPaywall]);
-  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement, soloTier } = useSoloApp();
+  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement, soloTier, soloEntitlementReady } = useSoloApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [outcome] = useState(readPurchaseOutcome);
@@ -188,42 +187,116 @@ export function SoloPaywallProvider({ children }) {
     return () => clearTimeout(id);
   }, [confirming]);
 
-  // Back from a website (Stripe) subscription checkout:
-  // /solo/home?subscribed=<plan> (#157). This page used to show nothing at
-  // all, so a new member landed looking Free until Stripe's webhook arrived.
-  // Now: "Confirming your membership" until the plan reaches the account,
-  // then the welcome. The tier still only ever comes from the server.
+  // Back from Stripe (website). Every return is a fresh page load, so it
+  // must settle on a real screen with the true plan straight away (#181):
+  //  - /solo/home?subscribed=<plan>&session_id=… (checkout paid, #157):
+  //    "Confirming your membership" while the server unlocks it from that
+  //    checkout (before Stripe's webhook), then the welcome. The tier still
+  //    only ever comes from the server.
+  //  - /solo/home?subscribe=cancelled (checkout abandoned): the membership
+  //    sheet again, saying nothing was charged. Used to land on Home with the
+  //    query left in the address and no word about what happened.
+  //  - /solo/home?soloTab=profile[&billing=returned] (billing portal, e.g.
+  //    after cancelling): the plan is re-read from Stripe at once, and
+  //    Profile says "Checking your membership" instead of showing the phone's
+  //    old copy (the cancelled plan) until the webhook arrives.
+  // The query is then removed from the address (replace, no new history
+  // entry), so a refresh or Back never replays the return.
   const [webPlan, setWebPlan] = useState(null);
   const [webWelcome, setWebWelcome] = useState(false);
+  const [membershipChecking, setMembershipChecking] = useState(false);
+  const [abandonedCheckout, setAbandonedCheckout] = useState(false);
+  const [webConfirmedTier, setWebConfirmedTier] = useState(null);
+  const webReturnStopRef = useRef(null);
   useEffect(() => {
-    const plan = new URLSearchParams(location.search).get("subscribed");
-    if (!plan || !signedIn) return;
-    setWebPlan(plan);
-    setConfirming(true);
-    const rest = new URLSearchParams(location.search);
-    rest.delete("subscribed");
-    const search = rest.toString();
-    navigate(location.pathname + (search ? `?${search}` : ""), { replace: true, state: location.state });
+    if (!signedIn) return;
+    const params = new URLSearchParams(location.search);
+    const plan = params.get("subscribed");
+    const sessionId = params.get("session_id");
+    const abandoned = params.get("subscribe") === "cancelled";
+    const portal = params.get("billing") === "returned";
+    // Old servers' portal return (?soloTab=profile with no marker): treated
+    // the same, since only Stripe's portal links to Profile by query.
+    const portalTab = params.get("soloTab");
+    if (!plan && !abandoned && !portal && !portalTab) return;
+    ["subscribed", "session_id", "subscribe", "billing", "soloTab"].forEach((k) => params.delete(k));
+    const search = params.toString();
+    const state = portalTab ? { ...(location.state || {}), soloTab: portalTab } : location.state;
+    navigate(location.pathname + (search ? `?${search}` : ""), { replace: true, state });
+    if (plan) {
+      setWebPlan(plan);
+      setConfirming(true);
+      let stopped = false;
+      (async () => {
+        // Asked at once, then a few more times while Stripe settles.
+        for (let i = 0; i < 4 && !stopped; i++) {
+          if (i) await new Promise((r) => setTimeout(r, PURCHASE_RECHECK_MS));
+          if (stopped) return;
+          const got = await refreshSoloEntitlement(sessionId ? { checkoutSessionId: sessionId } : undefined)
+            .then((r) => r?.tier)
+            .catch(() => null);
+          if (stopped) return;
+          if (got && got !== "free") {
+            setWebConfirmedTier(got);
+            return;
+          }
+        }
+      })();
+      webReturnStopRef.current = () => {
+        stopped = true;
+      };
+    } else if (abandoned) {
+      setAbandonedCheckout(true);
+    } else {
+      setMembershipChecking(true);
+      let settled = false;
+      const done = () => {
+        if (settled) return;
+        settled = true;
+        setMembershipChecking(false);
+      };
+      Promise.resolve(refreshSoloEntitlement()).catch(() => {}).then(done);
+      // Never left saying "Checking" (no signal): the phone's copy and the
+      // live listener take over.
+      setTimeout(done, 8000);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search, signedIn]);
+  useEffect(() => () => webReturnStopRef.current?.(), []);
   useEffect(() => {
     if (!webPlan) return;
-    if (soloTier && soloTier !== "free") {
+    // The server's reply to the sync, or the live listener — whichever
+    // arrives first.
+    const confirmed = webConfirmedTier || (soloTier && soloTier !== "free" ? soloTier : null);
+    if (confirmed) {
+      webReturnStopRef.current?.();
       setWebPlan(null);
+      setWebConfirmedTier(null);
       setConfirming(false);
       setWebWelcome(true);
-      setWelcomeTier(soloTier);
+      setWelcomeTier(confirmed);
       return;
     }
     // Stripe's confirmation can lag; say so rather than leave them guessing.
     const id = setTimeout(() => {
+      webReturnStopRef.current?.();
       setWebPlan(null);
       setConfirming(false);
       openPaywall({ tier: PLANS[webPlan]?.tier || "all_access", notice: "Payment received — your membership is on its way and unlocks in a minute or two. No need to pay again." });
     }, 15000);
     return () => clearTimeout(id);
-  }, [webPlan, soloTier, openPaywall]);
+  }, [webPlan, webConfirmedTier, soloTier, openPaywall]);
+  // Abandoned checkout: back to the membership sheet once this account's plan
+  // is known (never opened by itself before that, #137).
+  useEffect(() => {
+    if (!abandonedCheckout || !soloEntitlementReady) return;
+    setAbandonedCheckout(false);
+    openPaywall({ notice: "Checkout cancelled — you haven't been charged." });
+  }, [abandonedCheckout, soloEntitlementReady, openPaywall]);
 
+  // membershipChecking: Profile shows "Checking your membership" rather than
+  // a plan that may have just been cancelled (#181).
+  const value = useMemo(() => ({ openPaywall, membershipChecking }), [openPaywall, membershipChecking]);
   const renewal = renewalText(planRenewal(soloEntitlement));
   return (
     <PaywallCtx.Provider value={value}>
@@ -437,9 +510,19 @@ function SoloPaywallSheet({ request, onClose }) {
         } else setMessage("Manage it in iPhone Settings → your name → Subscriptions.");
         return;
       }
+      // Busy from the tap until the page has gone to Stripe (#181): it gave
+      // no sign of life for the round trip, and each extra tap opened
+      // another portal session. pageshow (Back from Stripe) frees it.
+      if (busy) return;
+      setBusy(true);
       const { url } = await openSoloBillingPortal();
-      if (url) window.location.href = url;
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+      setBusy(false);
     } catch (err) {
+      setBusy(false);
       setMessage(err?.message || "Couldn't open subscription settings.");
     }
   }
@@ -491,8 +574,8 @@ function SoloPaywallSheet({ request, onClose }) {
               )}
             </div>
             {canManageHere && (
-              <button type="button" onClick={manage} className="text-xs font-bold underline underline-offset-2 shrink-0">
-                Manage
+              <button type="button" onClick={manage} disabled={busy} className="text-xs font-bold underline underline-offset-2 shrink-0">
+                {busy && store === "stripe" ? "Opening…" : "Manage"}
               </button>
             )}
           </div>

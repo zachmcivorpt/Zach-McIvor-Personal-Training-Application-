@@ -84,6 +84,29 @@
         }
       } catch (e) {}
     </script>
+    <!-- Train Solo opens in the member's own page colour from the first
+         frame (#181). Every return from Stripe (checkout, billing portal —
+         e.g. after cancelling) and the iPhone app's fresh page after Apple's
+         sheets is a full page load, and until the app's code and styles
+         arrived the page was the browser's plain white: a white flash before
+         the dark launch screen. Only on Train Solo pages (or "/" on a phone
+         signed in only to Train Solo); SoloThemeProvider removes this once
+         it takes over the page colour. Same keys as SoloLaunchScreen
+         ("soloThemeDark", dark when never set) and App.jsx. -->
+    <script>
+      try {
+        var p = location.pathname;
+        var soloOnly = localStorage.getItem("apexSoloSignedIn") === "1" && !localStorage.getItem("apexProfileCache");
+        if (p.indexOf("/solo") === 0 || (p === "/" && soloOnly)) {
+          var raw = localStorage.getItem("soloThemeDark");
+          var c = raw === null || raw === "true" ? "#0A0A0B" : "#FFFFFF";
+          var st = document.createElement("style");
+          st.id = "apex-solo-prepaint";
+          st.textContent = "html,body{background-color:" + c + "}";
+          document.head.appendChild(st);
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

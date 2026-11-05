@@ -1357,7 +1357,8 @@ exports.createSoloSubscriptionCheckout = onCall(async (request) => {
       },
       metadata: { soloUserId: uid, plan },
       allow_promotion_codes: true,
-      success_url: `${returnOrigin}/solo/home?subscribed=${encodeURIComponent(plan)}`,
+      // session_id: the app unlocks from this checkout at once (#181).
+      success_url: `${returnOrigin}/solo/home?subscribed=${encodeURIComponent(plan)}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${returnOrigin}/solo/home?subscribe=cancelled`,
     });
     await solo.rememberCheckout(db, uid, "subscription", session.id).catch((err) => console.error("rememberCheckout failed", uid, err.message));
@@ -1379,7 +1380,7 @@ exports.createSoloBillingPortal = onCall(async (request) => {
   const { stripeCustomerId } = await soloEntitlementOf(uid);
   if (!stripeCustomerId) throw new HttpsError("failed-precondition", "No website subscription on this account.");
   try {
-    const session = await getStripeClient().billingPortal.sessions.create({ customer: stripeCustomerId, return_url: `${returnOrigin}/solo/home?soloTab=profile` });
+    const session = await getStripeClient().billingPortal.sessions.create({ customer: stripeCustomerId, return_url: `${returnOrigin}/solo/home?soloTab=profile&billing=returned` });
     return { url: session.url };
   } catch (err) {
     console.error("createSoloBillingPortal failed:", err.message);
@@ -1395,7 +1396,14 @@ exports.syncSoloEntitlement = onCall(async (request) => {
   if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
   try {
     await solo.syncApple(db, uid);
-    const { stripeCustomerId } = await soloEntitlementOf(uid);
+    let { stripeCustomerId } = await soloEntitlementOf(uid);
+    // Straight back from a website checkout (#181): the checkout names the
+    // customer before Stripe's webhook has stored it on the entitlement.
+    const checkoutSessionId = request.data?.checkoutSessionId;
+    if (checkoutSessionId && stripeConfigured()) {
+      const fromCheckout = await solo.customerFromCheckout(getStripeClient(), checkoutSessionId, uid);
+      if (fromCheckout) stripeCustomerId = fromCheckout;
+    }
     if (stripeCustomerId && stripeConfigured()) await solo.syncStripeCustomer(db, getStripeClient(), stripeCustomerId, uid);
   } catch (err) {
     console.error("syncSoloEntitlement failed:", uid, err.message);
