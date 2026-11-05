@@ -39,48 +39,5 @@ describe("Train Solo startup code", () => {
   }, 30000);
 });
 
-describe("questionnaire code fetched ahead of time", () => {
-  it("as soon as Train Solo opens signed out (registration leads to it)", async () => {
-    vi.resetModules();
-    const preload = vi.fn(() => Promise.resolve());
-    vi.doMock("./soloScreens", () => {
-      const standIn = () => Object.assign(() => null, { preload: () => Promise.resolve() });
-      return {
-        SoloOnboarding: Object.assign(() => null, { preload }),
-        SoloConsultationScreen: standIn(),
-        SoloProgramBuilderScreen: standIn(),
-        SoloFirstSessionScreen: standIn(),
-        SoloActiveRecoveryScreen: standIn(),
-        SoloProgramCompleteScreen: standIn(),
-        SoloWeekRecapScreen: standIn(),
-        SoloWorkoutSessionScreen: standIn(),
-        SoloProgramDetailsScreen: standIn(),
-        SoloWorkoutSummaryScreen: standIn(),
-        SoloSessionBuilderScreen: standIn(),
-        SoloProgressScreen: standIn(),
-        preloadSoloScreens: () => {},
-      };
-    });
-    vi.doMock("../lib/SoloAppContext", () => ({
-      SoloAppProvider: ({ children }) => children,
-      useSoloApp: () => ({ soloSessionLoading: false, soloAuthUser: null, soloCurrentUser: null, soloBranding: {}, refreshSoloEntitlement: () => Promise.resolve({}), soloTier: "free", soloEntitlementReady: false }),
-    }));
-    vi.doMock("./SoloRegisterScreen", () => ({ default: () => <p>register</p> }));
-    const { render, screen, cleanup } = await import("@testing-library/react");
-    const { MemoryRouter, Route, Routes } = await import("react-router-dom");
-    const { default: SoloRoutes } = await import("./SoloRoutes");
-    render(
-      <MemoryRouter initialEntries={["/solo/register"]}>
-        <Routes>
-          <Route path="/solo/*" element={<SoloRoutes />} />
-        </Routes>
-      </MemoryRouter>
-    );
-    await screen.findByText("register");
-    expect(preload).toHaveBeenCalled();
-    cleanup();
-    vi.doUnmock("./soloScreens");
-    vi.doUnmock("../lib/SoloAppContext");
-    vi.doUnmock("./SoloRegisterScreen");
-  });
-});
+// The signed-out preload is checked in startupPreload182.test.jsx: it loads
+// SoloRoutes with stand-ins, which needs its own module registry (#171).
