@@ -862,8 +862,11 @@ export function SoloAppProvider({ children }) {
       },
       // Asks the server to re-read both stores now (after an in-app purchase,
       // or Restore purchases).
-      async refreshSoloEntitlement() {
-        const result = await httpsCallable(soloFunctions, "syncSoloEntitlement")();
+      // `{ checkoutSessionId }`: straight back from a website checkout, the
+      // server unlocks from that checkout before Stripe's webhook (#181).
+      async refreshSoloEntitlement(opts) {
+        const call = httpsCallable(soloFunctions, "syncSoloEntitlement");
+        const result = await (opts?.checkoutSessionId ? call({ checkoutSessionId: opts.checkoutSessionId }) : call());
         return result.data;
       },
 

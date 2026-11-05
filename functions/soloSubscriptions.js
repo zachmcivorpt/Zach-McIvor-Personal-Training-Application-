@@ -269,6 +269,28 @@ async function rememberCheckout(db, uid, slot, sessionId) {
   await db.collection("soloCheckoutSessions").doc(uid).set({ [slot]: sessionId, updatedAt: Date.now() }, { merge: true });
 }
 
+// Back from a website checkout (/solo/home?subscribed=<plan>&session_id=…,
+// #181): the member's plan is unlocked from the checkout itself, straight
+// away, instead of waiting for Stripe's webhook. A first-time subscriber has
+// no stripeCustomerId on their entitlement until that webhook lands, so the
+// sync couldn't find them. The checkout must belong to this account (its
+// client_reference_id / metadata), be a subscription checkout and be
+// complete; anything else gives null (the webhook still does the rest).
+async function customerFromCheckout(stripe, sessionId, uid) {
+  if (!sessionId || typeof sessionId !== "string" || !/^cs_[A-Za-z0-9_]+$/.test(sessionId) || !uid) return null;
+  let session;
+  try {
+    session = await stripe.checkout.sessions.retrieve(sessionId);
+  } catch {
+    return null;
+  }
+  if (!session || session.mode !== "subscription" || session.status !== "complete") return null;
+  const owner = session.client_reference_id || session.metadata?.soloUserId || null;
+  if (owner !== uid) return null;
+  const customer = typeof session.customer === "string" ? session.customer : session.customer?.id;
+  return customer || null;
+}
+
 function revenueCatConfigured(env = process.env) {
   return !!(env.REVENUECAT_SECRET_KEY && env.REVENUECAT_SECRET_KEY !== "not-configured-yet");
 }
@@ -305,4 +327,5 @@ module.exports = {
   revenueCatConfigured,
   priorCheckout,
   rememberCheckout,
+  customerFromCheckout,
 };

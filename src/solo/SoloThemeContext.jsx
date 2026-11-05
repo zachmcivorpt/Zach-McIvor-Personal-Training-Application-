@@ -78,6 +78,10 @@ export function SoloThemeProvider({ children }) {
     // was always white, which showed in dark mode on every bounce past the
     // top or bottom and in any frame before a screen had drawn.
     document.body.style.backgroundColor = fullBleed ? "#0A0A0B" : SOLO_THEMES[dark ? "dark" : "light"].bg;
+    // index.html's first-frame colour (#181) has done its job: from here the
+    // page colour is this provider's (and goes back to the app's own when
+    // leaving Train Solo).
+    document.getElementById("apex-solo-prepaint")?.remove();
   }, [dark, pathname, fullBleed]);
   // Back to the app's own page colour when leaving Train Solo.
   useEffect(() => () => {

@@ -29,7 +29,7 @@ import { DeleteAccountSheet } from "../components/ui";
 // progress photos (soloWeeklyCheckInReminder in functions/index.js).
 export default function SoloProfileScreen() {
   const { soloCurrentUser, soloLogout, soloPurchases, soloPrograms, deleteMySoloAccount, setSoloReminderPref, soloAccess, soloTier, soloGatesLive, soloEntitlement } = useSoloApp();
-  const { openPaywall } = useSoloPaywall();
+  const { openPaywall, membershipChecking } = useSoloPaywall();
   // Apple Health on Progress is a Plus feature once subscriptions launch.
   const healthAllowed = canUse("appleHealthProgress", soloAccess);
   const subscriptionStore = activeStore(soloEntitlement);
@@ -151,9 +151,13 @@ export default function SoloProfileScreen() {
           </p>
           <button type="button" onClick={() => openPaywall({})} className="w-full flex items-center gap-3 rounded-2xl px-4 py-3.5 mb-5 text-left" style={soloGlass(t)}>
             <span className="flex-1 min-w-0">
-              <span className="block text-sm font-semibold">Train Solo {TIER_LABELS[soloTier]}</span>
+              <span className="block text-sm font-semibold">Train Solo {membershipChecking ? "membership" : TIER_LABELS[soloTier]}</span>
               <span className="block text-xs mt-0.5" style={{ color: t.textMuted }}>
-                {soloTier === "free"
+                {/* Back from Stripe's portal: never the plan they may have
+                    just cancelled while it's re-read (#181). */}
+                {membershipChecking
+                  ? "Checking your membership…"
+                  : soloTier === "free"
                   ? "See Plus and All Access"
                   : renewal
                   ? `${renewalText(renewal)}${subscriptionStore === "apple" ? " · App Store" : iosApp ? "" : " · manage"}`

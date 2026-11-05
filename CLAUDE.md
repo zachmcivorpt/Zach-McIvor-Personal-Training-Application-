@@ -471,6 +471,21 @@ any Train Solo work from now on:
   Apple plan is still in its paid period (`appleLapsingHigher`, #164): Apple
   would turn the higher one back on. "Opening the App Store" is
   `SoloPurchaseStage instant` (no fade): it's pictured before Apple's sheet.
+- **Every Stripe return is a fresh page load; handle it once** (#181,
+  `SoloPaywallProvider`): `?subscribed=<plan>&session_id=` → Confirming,
+  `refreshSoloEntitlement({ checkoutSessionId })` at once (the server unlocks
+  from that checkout before the webhook — `customerFromCheckout`, this
+  account's completed subscription checkouts only) → welcome;
+  `?subscribe=cancelled` → the membership sheet says nothing was charged
+  (after `soloEntitlementReady`); the portal's `?soloTab=profile&billing=returned`
+  → re-read at once, Profile says "Checking your membership…" (never the
+  just-cancelled plan), 8 s cap. Strip the query with `replace` afterwards.
+  Buttons that leave for Stripe (Subscribe, Pay, Manage) stay busy until
+  the page has gone.
+- **Train Solo's first frame is its own colour** (#181): index.html paints
+  `soloThemeDark`'s colour on Train Solo pages before any script
+  (`apex-solo-prepaint`); `SoloThemeProvider` removes it. Keep both, or
+  every Stripe return / fresh iPhone web view flashes white.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.
