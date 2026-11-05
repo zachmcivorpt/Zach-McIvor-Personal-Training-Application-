@@ -2790,6 +2790,18 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Test**: `src/solo/pageHeader174.test.js`, 1 new test (fails on the old spacing).
 - **Scope**: Train Solo files only.
 
+### 177. "One moment" stuck after cancelling a subscription in the iPhone app (owner, TestFlight, 2026-11-05)
+- **Problem**: after cancelling in Manage Subscriptions, the native "One moment" screen (blue line) stayed up for good.
+- **Cause** (from #175):
+  - The fresh page waited for `presentedViewController == nil` for up to 10 minutes, and the 15 s Continue fallback was armed only after that wait.
+  - After a cancel, iOS can leave Apple's dismissed controller presented with no window, so the wait never ended and neither did the screen.
+- **Fix** (`ios/ApexCoach/ViewController.swift`, native only):
+  - A presented controller counts as "Apple's sheet still up" only while it is on screen: it has a window and is not being dismissed.
+  - The 15 s Continue fallback is armed again the moment the sheet closes.
+  - `uncoverAfterPurchase` no longer waits on `presentedViewController`.
+- **Tests**: `src/nativeAppleSheets166.test.js` (#175 tests replaced, 3; all fail on the #175 code). Swift type-checked against UIKit stubs.
+- **Scope**: native iOS only.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
