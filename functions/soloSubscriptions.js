@@ -271,7 +271,27 @@ async function priorCheckout(db, stripe, uid, slot) {
   } catch {
     return { alreadyPaid: false }; // gone: nothing to stop
   }
-  if (old.status === "complete") return { alreadyPaid: true };
+  if (old.status === "complete") {
+    // A paid subscription checkout blocks a new one only while its
+    // subscription is still paid up and not cancelled (#185) — the case
+    // this check exists for: paid, but Stripe's webhook hasn't reached us.
+    // Cancelled (ended at once, #156; or cancel at period end / a cancel
+    // date not yet processed), a failed payment (past_due / unpaid — Free
+    // for us, and a new card is how they come back) or never completed:
+    // buying again must work. It used to say "You're already on this plan"
+    // for good after a cancel on the website.
+    if (old.mode === "subscription" && old.subscription) {
+      const subId = typeof old.subscription === "string" ? old.subscription : old.subscription.id;
+      try {
+        const sub = await stripe.subscriptions.retrieve(subId);
+        const live = ACTIVE_STRIPE.has(sub?.status) && !sub?.cancel_at_period_end && !sub?.cancel_at;
+        if (!live) return { alreadyPaid: false };
+      } catch {
+        // Can't tell: stay safe and don't open a second checkout.
+      }
+    }
+    return { alreadyPaid: true };
+  }
   if (old.status === "open") await stripe.checkout.sessions.expire(oldId).catch(() => {});
   return { alreadyPaid: false };
 }

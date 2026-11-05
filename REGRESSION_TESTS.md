@@ -2915,6 +2915,13 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
   - Screenshot checked.
 - **Scope**: Train Solo screens only (Register, Finish setup, questionnaire).
 
+### 185. Website: "You're already on this plan" after cancelling and subscribing again (owner, 2026-11-05)
+- **Problem**: on the website, after cancelling Plus through Manage (Stripe's billing page), subscribing again said "You're already on this plan." Nobody could buy again on the website after cancelling there.
+- **Cause**: `priorCheckout` (#158) stops a second charge when the account's last subscription checkout was already paid but Stripe's webhook hasn't reached us yet. It looked only at whether that checkout was paid ("complete"), not at what happened to its subscription since. After a cancel, the old checkout is still "complete", so `createSoloSubscriptionCheckout` answered `{ already: "stripe" }` for good. `checkoutDecision` itself correctly saw the member as Free.
+- **Fix** (`functions/soloSubscriptions.js`, deployed by the functions workflow): a paid subscription checkout blocks a new one only while its subscription is paid up (active / trialing) and not cancelled (no cancel at period end, no cancel date). Cancelled, failed payment (past_due / unpaid, which are Free for us; a new card is how they come back; `syncStripeCustomer` already cancels the stale one once the new one is paid) or never completed → buying again works. If Stripe can't be asked, it still refuses (no second charge). Single-program checkouts are unchanged.
+- **Tests**: `functions/soloSubscriptions.test.js` "subscribing again after a cancel (#185)" (5): cancelled, cancel at period end / cancel date, past_due / unpaid → allowed; still paid up (webhook pending) → refused; Stripe unreachable → refused. 3 fail on the old code; the 2 refusal cases pass on both. The existing #158 priorCheckout tests are unchanged.
+- **Scope**: Train Solo website subscriptions (server) only.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical
