@@ -87,14 +87,15 @@ function hasMatchableAnswer(a) {
   return !!(Number(a.sessionsPerWeek) || EXPERIENCE_TO_LEVEL[a.priorExperience] || (a.primaryGoal && a.primaryGoal !== "other") || (a.preferredStyle && a.preferredStyle !== "other") || a.trainingEnvironment);
 }
 
-// A program tagged for men or women (program.audience) is only suggested to
-// a customer whose consultation sex matches. Untagged programs suit
-// everyone, and a customer who chose "Other / prefer not to say" (or hasn't
-// answered) is never filtered either way.
+// Women are only suggested programs tagged for women, men only programs
+// tagged for men (program.audience, "Who it's for"); tag both for a program
+// that suits everyone. An untagged program is not suggested to men or women
+// (#179 — it went to both). A customer who chose "Other / prefer not to
+// say" (or hasn't answered) is never filtered either way.
 export function suitsAudience(program, answers) {
   const audience = program.audience || [];
   const sex = answers?.sexForScreening;
-  if (audience.length === 0 || (sex !== "male" && sex !== "female")) return true;
+  if (sex !== "male" && sex !== "female") return true;
   return audience.includes(sex);
 }
 

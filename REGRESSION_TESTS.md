@@ -2807,6 +2807,16 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Test**: `src/solo/programsGuide178.test.jsx` (2; both fail on the old text).
 - **Scope**: Train Solo only.
 
+### 179. Consultation suggestions: women get only women's programs, men only men's (owner, 2026-11-05)
+- **Problem**: suggestions already filtered by "Who it's for", but an untagged program went to everyone. Push Pull Legs (untagged) was suggested to women and men alike.
+- **Fix** (`src/solo/recommendations.js` `suitsAudience`): a customer who answered Male or Female is only suggested programs tagged for them. Tag both for a program that suits everyone; an untagged program isn't suggested to either. "Other / prefer not to say" (or no answer) still sees everything. Every suggestion goes through this: consultation, first session, Program complete. The coach console's "Who it's for" hint now says so (text only, `CoachTrainSolo.jsx`).
+- **Live programs** (read 2026-11-05):
+  - Women: The Hourglass Method, The Glute Project, Home Bodyweight Foundation.
+  - Both: Gym Foundation, Strength & Powerbuilding.
+  - Untagged: Push Pull Legs, Maximal Strength (draft). These are now not suggested to men or women until tagged.
+- **Test**: `src/solo/recommendationsAudience.test.js` (updated; 2 fail on the old code).
+- **Scope**: Train Solo suggestions; one hint line in the coach's Train Solo program editor.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

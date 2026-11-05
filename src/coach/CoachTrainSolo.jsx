@@ -518,7 +518,7 @@ function EditProgramSheet({ open, onClose, program, allCategories, onSave }) {
         <Field
           group
           label="WHO IT'S FOR"
-          hint="Suggestions only show this program to customers whose consultation answer matches. Leave both off (or pick both) if it suits everyone."
+          hint="Suggestions only show this program to customers whose consultation answer matches. Pick both if it suits everyone; with neither picked it isn't suggested to men or women."
         >
           <TagChips options={AUDIENCE_OPTIONS} selectedValues={audience} onToggle={toggleAudience} />
         </Field>

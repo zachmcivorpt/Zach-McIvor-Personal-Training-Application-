@@ -163,6 +163,10 @@ rather than inventing new colors per screen:
   sessionPlan / plannedSessions only, never logs.
   "How your programs work" (`GUIDE`, #178) tells members both: finish
   one program fully for the best results, and hold-and-drag in Calendar.
+- **Suggestions follow "Who it's for"** (#179, `suitsAudience`): a member
+  who answered Male/Female is only suggested programs tagged for them;
+  untagged programs are suggested to neither (tag both for everyone).
+  Every suggestion goes through `recommendForAnswers`.
 - **Workout set rows** (#170): Reps left of Kg; rest/set timers are
   `MEASURE_BLUE` (as in the client app), never the coach's branding accent.
 - **Estimated Max chart** (#150, `estMax.js`, `SoloEstMaxChart.jsx`): under
