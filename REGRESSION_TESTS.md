@@ -2817,6 +2817,27 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Test**: `src/solo/recommendationsAudience.test.js` (updated; 2 fail on the old code).
 - **Scope**: Train Solo suggestions; one hint line in the coach's Train Solo program editor.
 
+### 180. Train Solo: Getting Started guide for Free members (owner request, 2026-11-05)
+- **Change**:
+  - `SoloGettingStarted.jsx` is a solid full page (#141 style): 5 steps, each with a large figure, a title, a short line and three how-to points. The steps are Create a session, Plan your week, Log your workout, Exercise library, and Track your progress.
+  - Interactive: swipe or Next/Back, a tap on the progress bars to jump to a step, Skip at any time, and a "Try it" link that opens the real screen.
+  - Rules live in `src/solo/gettingStarted.js`.
+- **Once ever**:
+  - It shows by itself on My Training only for a Free member who has never seen it and has no logged sessions. It waits until their plan and lists have loaded (`soloEntitlementReady`, `soloListsReady`), so it never flashes for a paying member or one with history.
+  - The moment it shows, it is marked seen on the account (`soloUsers/{uid}.gettingStarted.seenAt`) and on the phone (`apexSoloGettingStarted:<uid>`). This follows the one-time-sheet rule in #142.
+  - Every step is saved (`gettingStarted.step`). Skip and finish both save `finishedAt` and an `outcome` (`skipped` / `completed`).
+  - All writes go through `saveSoloGettingStarted` (SoloAppContext, local-first `keep`, #157). The programs run-through (#142) waits until Getting Started is closed.
+- **Profile**: a permanent "Getting Started" row reopens it at any time. It opens at the saved step if it was left part-way, otherwise from the start.
+- **Verified** (built app, iPhone 13 size, live Firebase, fresh @example.com accounts, deleted afterwards):
+  1. It showed by itself on first entry. Next, Next, Skip saved `{seenAt, step: 2, finishedAt, outcome: "skipped"}`.
+  2. A refresh didn't show it again.
+  3. A new browser with empty storage (a new phone) logged in, and it didn't show.
+  4. Profile → Getting Started reopened it from the start, and Start training closed it.
+  5. Dark and light mode both look right.
+  - **Not deleted:** the first (aborted) run's account was not deleted (its email file was overwritten by the next run).
+- **Tests**: `src/solo/gettingStarted180.test.jsx` (11). Without the change they fail: the module is missing, and the wiring checks don't match the old My Training / Profile.
+- **Scope**: Train Solo only. SoloAppContext gains one Train Solo method; no coach, client or shared file changed.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -951,6 +951,16 @@ export function SoloAppProvider({ children }) {
       async planSoloSession(uid, planId, sessionId, date) {
         await keep(updateDoc(doc(soloDb, "soloUsers", uid), { [`plannedSessions.${planId}`]: date ? { sessionId, date } : deleteField() }));
       },
+      // Getting Started (#180): seen / step / finished, on the account so it
+      // never comes back on another phone. Local-first (keep, #157).
+      async saveSoloGettingStarted(patch) {
+        const st = programStateRef.current;
+        const uid = st.soloProfile?.id || st.soloAuthUser?.uid;
+        if (!uid) return;
+        const update = {};
+        for (const [k, v] of Object.entries(patch || {})) update[`gettingStarted.${k}`] = v;
+        await keep(updateDoc(doc(soloDb, "soloUsers", uid), update));
+      },
       async markSoloProgramsGuideSeen() {
         const st = programStateRef.current;
         const uid = st.soloProfile?.id || st.soloAuthUser?.uid;
