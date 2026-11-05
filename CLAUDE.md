@@ -163,6 +163,12 @@ rather than inventing new colors per screen:
   sessionPlan / plannedSessions only, never logs.
   "How your programs work" (`GUIDE`, #178) tells members both: finish
   one program fully for the best results, and hold-and-drag in Calendar.
+- **Getting Started** (#180, `SoloGettingStarted.jsx`, `gettingStarted.js`):
+  shown by itself once ever, to a Free member with no logged sessions,
+  after `soloEntitlementReady` + `soloListsReady`; marked seen on the
+  account (`gettingStarted.seenAt`) and the phone the moment it shows;
+  step / skip / finish saved via `saveSoloGettingStarted`. Profile keeps a
+  permanent "Getting Started" row. Keep its steps true to the app.
 - **Suggestions follow "Who it's for"** (#179, `suitsAudience`): a member
   who answered Male/Female is only suggested programs tagged for them;
   untagged programs are suggested to neither (tag both for everyone).

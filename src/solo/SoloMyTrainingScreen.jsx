@@ -22,6 +22,8 @@ import { SwitchProgramSheet, ProgramsGuideSheet, PlanSessionSheet, DeleteProgram
 import SoloSwipeRow from "./SoloSwipeRow";
 import { weekInProgram } from "./currentProgram";
 import { loadWorkoutDraft } from "./workoutDraft";
+import SoloGettingStarted from "./SoloGettingStarted";
+import { shouldAutoShowGettingStarted, markSeenOnPhone } from "./gettingStarted";
 
 // A purchased program's own overview — which week the customer is in, that
 // week's workouts, and a Start button for each that opens
@@ -242,6 +244,8 @@ export default function SoloMyTrainingScreen() {
     planSoloSession,
     soloListsReady,
     removeSoloProgram,
+    soloEntitlementReady,
+    saveSoloGettingStarted,
   } = useSoloApp();
   const { openPaywall } = useSoloPaywall();
   // Recovery add-ons are a Plus feature once subscriptions launch.
@@ -387,9 +391,31 @@ export default function SoloMyTrainingScreen() {
   })();
   const guideSeen = !!soloCurrentUser?.programsGuideSeenAt || seenOnPhone;
   const guideShownRef = useRef(false);
+
+  // Getting Started for Free members (#180): once ever, marked seen on the
+  // account and this phone the moment it shows (never only on close).
+  const [startedOpen, setStartedOpen] = useState(false);
+  const startedShownRef = useRef(false);
   useEffect(() => {
-    // Never on top of the switch sheet; it shows once that's done.
-    if (!soloCurrentUser || guideSeen || guideShownRef.current || ownedRows.length === 0 || switchRow || pendingSwitchId) return;
+    if (startedShownRef.current) return;
+    const show = shouldAutoShowGettingStarted({
+      profile: soloCurrentUser,
+      tier: soloAccess?.tier,
+      entitlementReady: soloEntitlementReady,
+      listsReady: soloListsReady,
+      logCount: soloWorkoutLogs.length,
+    });
+    if (!show) return;
+    startedShownRef.current = true;
+    setStartedOpen(true);
+    markSeenOnPhone(soloCurrentUser.id);
+    saveSoloGettingStarted({ seenAt: Date.now() }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soloCurrentUser?.id, soloAccess?.tier, soloEntitlementReady, soloListsReady, soloWorkoutLogs.length]);
+
+  useEffect(() => {
+    // Never on top of the switch sheet or Getting Started; it shows once those are done.
+    if (!soloCurrentUser || guideSeen || guideShownRef.current || ownedRows.length === 0 || switchRow || pendingSwitchId || startedOpen) return;
     guideShownRef.current = true;
     setGuideOpen(true);
     try {
@@ -399,7 +425,7 @@ export default function SoloMyTrainingScreen() {
     }
     markSoloProgramsGuideSeen().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [soloCurrentUser?.id, guideSeen, ownedRows.length > 0, switchRow, pendingSwitchId]);
+  }, [soloCurrentUser?.id, guideSeen, ownedRows.length > 0, switchRow, pendingSwitchId, startedOpen]);
   function closeGuide() {
     setGuideOpen(false);
   }
@@ -839,6 +865,7 @@ export default function SoloMyTrainingScreen() {
         t={t}
       />
       <ProgramsGuideSheet open={guideOpen} onClose={closeGuide} dark={dark} t={t} />
+      <SoloGettingStarted open={startedOpen} onClose={() => setStartedOpen(false)} />
       <DeleteProgramSheet
         open={!!deleteRow}
         row={deleteRow}

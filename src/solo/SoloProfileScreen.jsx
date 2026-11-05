@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity } from "lucide-react";
+import { Sun, Moon, AlertTriangle, CalendarDays, Bell, ChevronRight, Activity, Compass } from "lucide-react";
 import { appleHealthAvailable, isAppleHealthOn, connectAppleHealth, disconnectAppleHealth } from "../lib/appleHealth";
 import { enableSoloPush, hasSoloPushToken } from "../lib/push";
 import { canUse, TIER_LABELS, activeStore, planRenewal, renewalText } from "./soloAccess";
@@ -8,6 +8,7 @@ import { useSoloPaywall } from "./SoloPaywall";
 import { inIosApp } from "./appShell";
 import SoloGlassBox from "./SoloGlassBox";
 import { SoloPageHeader } from "./SoloUI";
+import SoloGettingStarted from "./SoloGettingStarted";
 import { useSoloApp } from "../lib/SoloAppContext";
 import { useSoloTheme, SOLO_THEMES, soloGlass } from "./SoloThemeContext";
 import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
@@ -36,6 +37,7 @@ export default function SoloProfileScreen() {
   const { dark, accent, toggleSoloTheme } = useSoloTheme();
   const t = SOLO_THEMES[dark ? "dark" : "light"];
   const flagged = isFlaggedForMedicalReview(soloCurrentUser?.onboarding?.answers || {});
+  const [startedOpen, setStartedOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [reminderBusy, setReminderBusy] = useState(false);
   const [reminderError, setReminderError] = useState("");
@@ -200,6 +202,12 @@ export default function SoloProfileScreen() {
       )}
 
       <SoloGlassBox t={t} className="rounded-2xl mb-5">
+        {/* Getting Started (#180): always here, so it can be watched again. */}
+        <button type="button" onClick={() => setStartedOpen(true)} className="w-full flex items-center gap-3 px-4 py-3.5 text-left" style={{ borderBottom: `1px solid ${t.panelBorder}` }}>
+          <Compass size={17} color={t.textMuted} className="shrink-0" />
+          <span className="text-sm font-semibold flex-1">Getting Started</span>
+          <ChevronRight size={16} color={t.textFaint} />
+        </button>
         <Link to="/solo/calendar" className="flex items-center gap-3 px-4 py-3.5" style={{ borderBottom: `1px solid ${t.panelBorder}` }}>
           <CalendarDays size={17} color={t.textMuted} className="shrink-0" />
           <span className="text-sm font-semibold flex-1">My Calendar</span>
@@ -291,6 +299,7 @@ export default function SoloProfileScreen() {
           setDeleteOpen(false);
         }}
       />
+      <SoloGettingStarted open={startedOpen} onClose={() => setStartedOpen(false)} />
     </div>
   );
 }
