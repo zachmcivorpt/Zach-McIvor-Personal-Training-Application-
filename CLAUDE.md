@@ -161,6 +161,8 @@ rather than inventing new colors per screen:
   Calendar sessions move like the client calendar (grip handle, drag onto a
   listed day) via `canMoveItem` / `planMove` (soloCalendar.js) through
   sessionPlan / plannedSessions only, never logs.
+  "How your programs work" (`GUIDE`, #178) tells members both: finish
+  one program fully for the best results, and hold-and-drag in Calendar.
 - **Workout set rows** (#170): Reps left of Kg; rest/set timers are
   `MEASURE_BLUE` (as in the client app), never the coach's branding accent.
 - **Estimated Max chart** (#150, `estMax.js`, `SoloEstMaxChart.jsx`): under

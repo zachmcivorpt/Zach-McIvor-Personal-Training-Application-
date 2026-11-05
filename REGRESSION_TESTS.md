@@ -2802,6 +2802,11 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Tests**: `src/nativeAppleSheets166.test.js` (#175 tests replaced, 3; all fail on the #175 code). Swift type-checked against UIKit stubs.
 - **Scope**: native iOS only.
 
+### 178. "How your programs work": finish one program; move sessions in Calendar (owner request, 2026-11-05)
+- **Change** (`src/solo/SoloProgramSwitch.jsx`, `GUIDE`): point 1 now adds "For the best results, complete one program fully before starting the next." A new point 2, "Move a session to another day", says: "In Calendar, hold a session and drag it to the day that suits you." This is the real gesture (#171); it's a hold-and-drag, not a swipe.
+- **Test**: `src/solo/programsGuide178.test.jsx` (2; both fail on the old text).
+- **Scope**: Train Solo only.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

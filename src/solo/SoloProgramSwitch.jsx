@@ -95,7 +95,8 @@ export function SwitchProgramSheet({ open, onClose, programName, resumeWeek = nu
 }
 
 const GUIDE = [
-  ["One program at a time", "Your calendar runs one program, so every week has a clear plan."],
+  ["One program at a time", "Your calendar runs one program, so every week has a clear plan. For the best results, complete one program fully before starting the next."],
+  ["Move a session to another day", "Your days can change. In Calendar, hold a session and drag it to the day that suits you."],
   ["Switch whenever you like", "Starting a program from the catalogue, or one you've built, moves your current one to Archived. Nothing is lost."],
   ["Pick up where you left off", "Tap an archived program to resume it from the week you stopped. Your sessions, weights and progress are all still there."],
 ];
