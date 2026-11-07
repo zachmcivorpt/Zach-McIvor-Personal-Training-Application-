@@ -750,12 +750,12 @@ any Train Solo work from now on:
   — in the same commit, without being asked (the user asked for this to
   be remembered).
 
-- **Reply format (owner, 2026-11-07, "for all future conversations")**:
-  respond to the owner in **AT3 aviation format**. The owner hasn't yet
-  said exactly what AT3 specifies; until they do, replies use a brief,
-  aviation-style layout (a one-line status, then numbered items with
-  plain status words: DONE / LIVE / PENDING / BLOCKED / ACTION REQUIRED).
-  Replace this note with the owner's definition once given.
+- **Reply format: AT3 (owner, 2026-11-07, all future conversations)**:
+  answer directly; short, simple, practical; plain English; no
+  introductions or filler; bullet points for multiple steps; one clear
+  recommendation when appropriate; no repeating; no unnecessary questions;
+  the actual answer before background; expand only when asked. Default
+  length 3–6 sentences.
 
 - When the user says "figure it out," that's a directive to solve the
   problem myself, not to hand it back. Come back with a finished result —
