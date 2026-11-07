@@ -15,7 +15,8 @@ import { ClientThemeContext, ExerciseDetailSheet } from "../client/ClientApp";
 import { canUse } from "./soloAccess";
 import { SwitchProgramSheet } from "./SoloProgramSwitch";
 import { weekInProgram } from "./currentProgram";
-import { useSoloPaywall } from "./SoloPaywall";
+import { useSoloPaywall, buyProgramInApp } from "./SoloPaywall";
+import { inAppPurchasesAvailable, loadProgramPrices } from "../lib/purchases";
 import { localDateKey } from "../lib/dateKey";
 
 // Back from Stripe (#186): how often the server is asked to confirm the
@@ -116,6 +117,37 @@ export default function SoloProgramDetailsScreen() {
   // Included with All Access (start / resume it), or — in the iOS app, where
   // single programs can't be bought — unlocked by subscribing to All Access.
   const allAccessButton = viaAllAccess && (soloHasAllAccess || iosApp);
+
+  // Bought in the iPhone app (#189): Apple's own price, only for a program
+  // that has an App Store product (apex_solo_program_<id>) — otherwise the
+  // app shows no price, as before (3.1.1: never the website's).
+  const [applePrice, setApplePrice] = useState(null);
+  const [appleBuyOpen, setAppleBuyOpen] = useState(false);
+  const [openingStore, setOpeningStore] = useState(false);
+  const wantsApplePrice = iosApp && inAppPurchasesAvailable() && !!program && !isAddon && !owned && !soloHasAllAccess;
+  useEffect(() => {
+    if (!wantsApplePrice) return;
+    let live = true;
+    loadProgramPrices([id])
+      .then((list) => {
+        const hit = (Array.isArray(list) ? list : []).find((x) => x.programId === id);
+        if (live) setApplePrice(hit?.price || null);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [wantsApplePrice, id]);
+  const appleBuyable = wantsApplePrice && !!applePrice;
+  async function buyInApp() {
+    setAppleBuyOpen(false);
+    // The same calm screen as a membership (#136, #164): painted before
+    // Apple's sheet opens, so it's what sits behind it.
+    setOpeningStore(true);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise((r) => setTimeout(r, 150));
+    await buyProgramInApp(id, soloCurrentUser?.id);
+  }
   // This program as an All Access row (current or archived), if it has one,
   // and the program it would replace (#140: one program at a time).
   const enrolment = (soloTrainingPrograms || []).find((r) => r.programId === id && r.source === "all_access") || null;
@@ -145,11 +177,21 @@ export default function SoloProgramDetailsScreen() {
   // purchase" stays up until the purchase reaches the account; then it's
   // theirs. Cancelled: says nothing was charged. The query is removed
   // (replace), so a refresh or Back never replays it.
-  const [checkoutReturn, setCheckoutReturn] = useState(null); // confirming | done | slow | cancelled
+  const [checkoutReturn, setCheckoutReturn] = useState(null); // confirming | done | slow | cancelled | applePending | appleError
+  const [appleNotice, setAppleNotice] = useState("");
   const stopConfirmRef = useRef(null);
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const status = params.get("checkout");
+    // After an in-app purchase (#189, SoloPaywallProvider): the outcome.
+    const st = location.state || {};
+    if (st.programBought || st.programPending || st.programNotice) {
+      setCheckoutReturn(st.programBought ? "done" : st.programPending ? "applePending" : "appleError");
+      if (st.programNotice) setAppleNotice(st.programNotice);
+      const { programBought, programPending, programNotice, ...rest } = st;
+      navigate(location.pathname, { replace: true, state: rest });
+      return;
+    }
     if (status !== "success" && status !== "cancelled") return;
     const sessionId = params.get("session_id");
     navigate(location.pathname, { replace: true, state: location.state });
@@ -173,7 +215,7 @@ export default function SoloProgramDetailsScreen() {
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]);
+  }, [location.search, location.state]);
   useEffect(() => () => stopConfirmRef.current?.(), []);
   useEffect(() => {
     if (checkoutReturn === "confirming" && owned) {
@@ -330,12 +372,17 @@ export default function SoloProgramDetailsScreen() {
           {isAddon && !soloGatesLive && <p className="text-lg font-extrabold whitespace-nowrap mt-1">Free</p>}
           {/* Before launch: the price, as before. After: only while it can be
               bought (#186) — not for All Access members, nor once owned. */}
+          {appleBuyable && (
+            <p className="text-lg font-extrabold whitespace-nowrap mt-1" data-testid="program-price">
+              {applePrice}
+            </p>
+          )}
           {!isAddon && !iosApp && (soloGatesLive ? purchasable : true) && (
             <p className="text-lg font-extrabold whitespace-nowrap mt-1" data-testid="program-price">
               {formatAudPrice(program.priceCents)}
             </p>
           )}
-          {!isAddon && (allAccessButton || (soloGatesLive && owned)) && (
+          {!isAddon && !appleBuyable && (allAccessButton || (soloGatesLive && owned)) && (
             <p className="text-[10px] font-bold tracking-wider uppercase mt-2.5 whitespace-nowrap" style={{ color: t.textMuted }} data-testid="program-access-label">
               {owned ? "Owned" : soloHasAllAccess ? "Included" : "All Access"}
             </p>
@@ -348,6 +395,10 @@ export default function SoloProgramDetailsScreen() {
                 ? "It's yours."
                 : checkoutReturn === "slow"
                 ? "Payment received."
+                : checkoutReturn === "applePending"
+                ? "Purchase received."
+                : checkoutReturn === "appleError"
+                ? "The purchase didn't go through."
                 : "Checkout cancelled."}
             </p>
             <p className="text-xs mt-0.5 leading-relaxed" style={{ color: t.textMuted }}>
@@ -355,6 +406,10 @@ export default function SoloProgramDetailsScreen() {
                 ? `${program.name} is now in My Training — it stays yours for good, whatever plan you're on.`
                 : checkoutReturn === "slow"
                 ? "Your program unlocks here in a moment. No need to pay again."
+                : checkoutReturn === "applePending"
+                ? "Apple confirmed it — it unlocks here in a moment. If it doesn't, tap Restore purchases in Profile → Subscription. No need to buy again."
+                : checkoutReturn === "appleError"
+                ? appleNotice || "Please try again."
                 : "You haven't been charged."}
             </p>
           </div>
@@ -471,7 +526,9 @@ export default function SoloProgramDetailsScreen() {
             <div className="mt-2.5 flex items-center gap-2.5 px-1">
               <Lock size={13} color={t.textFaint} className="shrink-0" />
               <p className="text-xs" style={{ color: t.textFaint }}>
-                {viaAllAccess && iosApp
+                {appleBuyable
+                  ? `The rest of ${day1Label || "Week 1"}, and every other week, unlocks once you buy it.`
+                  : viaAllAccess && iosApp
                   ? `The rest of ${day1Label || "Week 1"}, and every other week, is included with All Access.`
                   : iosApp
                   ? `The rest of ${day1Label || "Week 1"}, and every other week, is part of the full program.`
@@ -493,6 +550,14 @@ export default function SoloProgramDetailsScreen() {
               style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
             >
               <Lock size={16} /> Add with Plus
+            </button>
+          ) : appleBuyable ? (
+            <button
+              onClick={() => setAppleBuyOpen(true)}
+              className="w-full flex items-center justify-center gap-2.5 font-bold text-sm py-4 rounded-full"
+              style={{ backgroundColor: dark ? "#EDEDEF" : t.text, color: dark ? "#0A0A0B" : t.bg }}
+            >
+              <PlayCircle size={18} /> Buy · {applePrice}
             </button>
           ) : allAccessButton ? (
             soloHasAllAccess ? (
@@ -594,6 +659,30 @@ export default function SoloProgramDetailsScreen() {
             Or get every program with All Access
           </SoloTextButton>
         )}
+      </BottomSheet>
+
+      {openingStore && <SoloPurchaseStage instant title="Opening the App Store" detail="Complete your purchase in Apple's window." />}
+      <BottomSheet open={appleBuyOpen && appleBuyable} onClose={() => setAppleBuyOpen(false)} title="Buy this program" dark={dark}>
+        <div style={{ color: t.text }}>
+          <p className="text-sm mb-5 leading-relaxed" style={{ color: t.textMuted }}>
+            Buy "{program.name}" through the App Store for {applePrice}. It's yours for good, whatever plan you're on.
+          </p>
+          <SoloButton t={t} className="w-full" onClick={buyInApp} disabled={openingStore}>
+            {`BUY · ${applePrice}`}
+          </SoloButton>
+          {soloGatesLive && (
+            <SoloTextButton
+              t={t}
+              className="mt-1"
+              onClick={() => {
+                setAppleBuyOpen(false);
+                openPaywall({ tier: "all_access", reason: `${program.name} is included with All Access — along with every other program in the catalogue.` });
+              }}
+            >
+              Or get every program with All Access
+            </SoloTextButton>
+          )}
+        </div>
       </BottomSheet>
 
       <SwitchProgramSheet

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle, ChevronRight } from "lucide-react";
 import { useSoloApp } from "../lib/SoloAppContext";
@@ -8,6 +8,7 @@ import { isFlaggedForMedicalReview } from "./onboarding/questionnaireConfig";
 import { SoloArtwork } from "./SoloArtwork";
 import { inIosApp, APP_STORE_URL } from "./appShell";
 import { useSoloPaywall } from "./SoloPaywall";
+import { inAppPurchasesAvailable, loadProgramPrices } from "../lib/purchases";
 import { SoloPageHeader } from "./SoloUI";
 
 // One empty object for "no answers yet", so memos that depend on the
@@ -18,14 +19,17 @@ const NO_ANSWERS = Object.freeze({});
 // programs (#186): "Included" for All Access members, "Owned" once bought
 // (after launch), otherwise the program's own price — single programs are
 // still sold after launch. Never a price inside the iOS app (3.1.1).
-function priceLabel(program, { live = false, allAccess = false, owned = false } = {}) {
+function priceLabel(program, { live = false, allAccess = false, owned = false, applePrices = null } = {}) {
   if (isRecoveryAddon(program)) return live ? "Plus" : "Free";
   if (live && allAccess && !owned) return "Included";
   if (live && owned) return "Owned";
-  return inIosApp() ? null : formatAudPrice(program.priceCents);
+  // In the iPhone app: Apple's own price, for a program with an App Store
+  // product (#189); none otherwise — never the website's (3.1.1).
+  if (inIosApp()) return owned ? null : applePrices?.[program.id] || null;
+  return formatAudPrice(program.priceCents);
 }
 
-function ProgramCard({ program, t, onClick, live = false, allAccess = false, owned = false }) {
+function ProgramCard({ program, t, onClick, live = false, allAccess = false, owned = false, applePrices = null }) {
   return (
     <button
       onClick={onClick}
@@ -43,7 +47,7 @@ function ProgramCard({ program, t, onClick, live = false, allAccess = false, own
         <div className="flex items-start justify-between gap-2.5">
           <p className="text-[15px] font-bold leading-tight">{program.name}</p>
           {/* No price for paid programs inside the iOS app — see appShell.js. */}
-          {priceLabel(program, { live, allAccess, owned }) && <p className="text-sm font-extrabold whitespace-nowrap">{priceLabel(program, { live, allAccess, owned })}</p>}
+          {priceLabel(program, { live, allAccess, owned, applePrices }) && <p className="text-sm font-extrabold whitespace-nowrap">{priceLabel(program, { live, allAccess, owned, applePrices })}</p>}
         </div>
         {program.description && (
           <p className="text-xs mt-1 line-clamp-2" style={{ color: t.textMuted }}>
@@ -78,6 +82,21 @@ export default function SoloCatalogueScreen() {
   // The two best fits for this customer's consultation answers, leaving
   // out anything they already own.
   // (and the All Access program they're already running)
+  // Apple's prices for programs sold in the iPhone app (#189).
+  const [applePrices, setApplePrices] = useState(null);
+  const programIdsKey = (soloPrograms || []).filter((p) => !isRecoveryAddon(p)).map((p) => p.id).sort().join(",");
+  useEffect(() => {
+    if (!inIosApp() || !inAppPurchasesAvailable() || soloHasAllAccess || !programIdsKey) return;
+    let alive = true;
+    loadProgramPrices(programIdsKey.split(","))
+      .then((list) => {
+        if (alive) setApplePrices(Object.fromEntries((Array.isArray(list) ? list : []).map((x) => [x.programId, x.price])));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [programIdsKey, soloHasAllAccess]);
   // Programs bought on their own (#186): "Owned" on their cards.
   const boughtIds = useMemo(() => new Set((soloPurchases || []).map((p) => p.programId)), [soloPurchases]);
   const ownedIds = useMemo(
@@ -176,8 +195,8 @@ export default function SoloCatalogueScreen() {
                         {weeks > 0 ? ` · ${weeks} weeks` : ""}
                       </p>
                     </div>
-                    {priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id) }) && (
-                      <p className="text-sm font-bold whitespace-nowrap">{priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id) })}</p>
+                    {priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id), applePrices }) && (
+                      <p className="text-sm font-bold whitespace-nowrap">{priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id), applePrices })}</p>
                     )}
                     <ChevronRight size={16} color={t.textFaint} className="shrink-0 -ml-1" />
                   </button>
@@ -238,7 +257,7 @@ export default function SoloCatalogueScreen() {
                 {g.category.name}
               </p>
               {g.programs.map((p) => (
-                <ProgramCard key={p.id} program={p} t={t} live={live} allAccess={soloHasAllAccess} owned={boughtIds.has(p.id)} onClick={() => openProgram(p.id)} />
+                <ProgramCard key={p.id} program={p} t={t} live={live} allAccess={soloHasAllAccess} owned={boughtIds.has(p.id)} applePrices={applePrices} onClick={() => openProgram(p.id)} />
               ))}
             </div>
           ))
@@ -255,7 +274,7 @@ export default function SoloCatalogueScreen() {
             <h2 className="text-lg font-bold mt-1 mb-3">Recovery add-ons</h2>
             {recoveryAddons.map((p) => (
               <div key={p.id} className="relative">
-                <ProgramCard program={p} t={t} live={live} allAccess={soloHasAllAccess} owned={boughtIds.has(p.id)} onClick={() => openProgram(p.id)} />
+                <ProgramCard program={p} t={t} live={live} allAccess={soloHasAllAccess} owned={boughtIds.has(p.id)} applePrices={applePrices} onClick={() => openProgram(p.id)} />
                 {activeAddonId === p.id && (
                   <span className="absolute top-3 right-3 text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: accent, color: "#fff" }}>
                     Active

@@ -523,9 +523,21 @@ any Train Solo work from now on:
   "It's yours"; 15 s cap → "Payment received… no need to pay again";
   `?checkout=cancelled` → "You haven't been charged". A bought program is
   the member's for good, whatever their plan (purchases win over All Access
-  enrolments, never locked). Never a price or Pay button inside the iPhone
-  app (3.1.1) — selling single programs there needs Apple In-App Purchase
-  products per program (not set up).
+  enrolments, never locked). Never the website's price inside the iPhone
+  app (3.1.1).
+- **Single programs in the iPhone app** (#189): an App Store
+  non-consumable per program, product id `apex_solo_program_<programId>`
+  (created by the owner in App Store Connect). The app asks Apple for
+  prices (`loadProgramPrices` → bridge `programPrices`) and shows Apple's
+  price + Buy only for programs that have a product; none otherwise. Buy
+  uses the membership's sequence ("Opening the App Store" → Apple's sheet →
+  native cover → fresh page, outcome `{ kind: "program", programId }`) →
+  "Confirming your purchase" → the program's page "It's yours" once the
+  server has written `soloPurchases` from RevenueCat's `non_subscriptions`
+  (`recordApplePrograms`, run by every `syncApple`: open, Restore,
+  RevenueCat webhook). Only ever ADDS purchases — never revokes one missing
+  from RevenueCat's answer (an Apple refund is marked by hand). A new
+  program needs its own App Store product before it shows a price in the app.
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.

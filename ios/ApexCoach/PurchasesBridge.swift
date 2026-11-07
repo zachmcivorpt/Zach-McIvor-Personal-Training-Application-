@@ -108,6 +108,11 @@ final class PurchasesBridge {
             purchase(id, plan: plan, uid: body["uid"] as? String)
         case "trace":
             reply(id, result: PurchaseTrace.lines())
+        case "programPrices":
+            programPrices(id, programIds: body["programIds"] as? [String] ?? [])
+        case "buyProgram":
+            guard let programId = body["programId"] as? String, PurchasesBridge.validProgramId(programId) else { return reply(id, error: "Unknown program.") }
+            buyProgram(id, programId: programId, uid: body["uid"] as? String)
         case "restore":
             Purchases.shared.restorePurchases { _, error in
                 if let error = error { self.reply(id, error: error.localizedDescription) } else { self.reply(id, result: ["ok": true]) }
@@ -197,6 +202,67 @@ final class PurchasesBridge {
             }
         }
         // Always buy as the signed-in Train Solo account.
+        if let uid = uid, !uid.isEmpty, Purchases.shared.appUserID != uid {
+            Purchases.shared.logIn(uid) { _, _, error in
+                if let error = error { return self.reply(id, error: error.localizedDescription) }
+                buy()
+            }
+        } else {
+            buy()
+        }
+    }
+
+    // Single programs bought in the app (#189): one App Store non-consumable
+    // per program, `apex_solo_program_<programId>`, created in App Store
+    // Connect. A program without one simply has no price in the app.
+    static let programPrefix = "apex_solo_program_"
+    static func validProgramId(_ id: String) -> Bool {
+        !id.isEmpty && id.count <= 100 && id.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }
+    }
+
+    // Apple's own localised price for each program that has a product.
+    private func programPrices(_ id: String, programIds: [String]) {
+        let ids = Array(programIds.filter(PurchasesBridge.validProgramId).prefix(100)).map { PurchasesBridge.programPrefix + $0 }
+        guard !ids.isEmpty else { return reply(id, result: [[String: Any]]()) }
+        Purchases.shared.getProducts(ids) { products in
+            let list: [[String: Any]] = products.map { p in
+                ["programId": String(p.productIdentifier.dropFirst(PurchasesBridge.programPrefix.count)), "price": p.localizedPriceString]
+            }
+            self.reply(id, result: list)
+        }
+    }
+
+    // Same sequence as a subscription (#135, #161, #183): the page is covered
+    // before Apple's sheet, and Apple's answer is handed to a fresh page.
+    private func buyProgram(_ id: String, programId: String, uid: String?) {
+        let buy = {
+            Purchases.shared.getProducts([PurchasesBridge.programPrefix + programId]) { products in
+                guard let product = products.first else {
+                    return self.reply(id, error: "That program can't be bought in the app right now.")
+                }
+                let showSheet = {
+                    PurchaseTrace.log("sheet: asking Apple for program \(programId)")
+                    Purchases.shared.purchase(product: product) { _, _, error, userCancelled in
+                        var outcome: [String: Any] = ["kind": "program", "programId": programId]
+                        if userCancelled {
+                            outcome["cancelled"] = true
+                        } else if let error = error {
+                            outcome["error"] = PurchasesBridge.message(for: error)
+                        } else {
+                            outcome["ok"] = true
+                        }
+                        PurchaseTrace.log("sheet answered (program): \(userCancelled ? "cancelled" : error == nil ? "bought" : "error")")
+                        defer { DispatchQueue.main.async { self.sheetFinished?(outcome) } }
+                        if userCancelled { return self.reply(id, error: "Cancelled.", cancelled: true) }
+                        if let error = error { return self.reply(id, error: PurchasesBridge.message(for: error)) }
+                        self.reply(id, result: ["ok": true])
+                    }
+                }
+                DispatchQueue.main.async {
+                    if let cover = self.coverPageForSheet { cover(showSheet) } else { showSheet() }
+                }
+            }
+        }
         if let uid = uid, !uid.isEmpty, Purchases.shared.appUserID != uid {
             Purchases.shared.logIn(uid) { _, _, error in
                 if let error = error { return self.reply(id, error: error.localizedDescription) }
