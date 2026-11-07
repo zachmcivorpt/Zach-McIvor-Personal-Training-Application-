@@ -118,7 +118,7 @@ export default function SoloProgramDetailsScreen() {
   // single programs can't be bought — unlocked by subscribing to All Access.
   const allAccessButton = viaAllAccess && (soloHasAllAccess || iosApp);
 
-  // Bought in the iPhone app (#189): Apple's own price, only for a program
+  // Bought in the iPhone app (#191): Apple's own price, only for a program
   // that has an App Store product (apex_solo_program_<id>) — otherwise the
   // app shows no price, as before (3.1.1: never the website's).
   const [applePrice, setApplePrice] = useState(null);
@@ -183,7 +183,7 @@ export default function SoloProgramDetailsScreen() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const status = params.get("checkout");
-    // After an in-app purchase (#189, SoloPaywallProvider): the outcome.
+    // After an in-app purchase (#191, SoloPaywallProvider): the outcome.
     const st = location.state || {};
     if (st.programBought || st.programPending || st.programNotice) {
       setCheckoutReturn(st.programBought ? "done" : st.programPending ? "applePending" : "appleError");

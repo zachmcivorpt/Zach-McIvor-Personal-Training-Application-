@@ -504,9 +504,9 @@ describe("program checkout server wiring (#186)", () => {
   });
 });
 
-// #189: single programs bought in the iPhone app (App Store non-consumables
+// #191: single programs bought in the iPhone app (App Store non-consumables
 // apex_solo_program_<programId>, listed by RevenueCat as non_subscriptions).
-describe("Apple program purchases (#189)", () => {
+describe("Apple program purchases (#191)", () => {
   const sub = {
     non_subscriptions: {
       apex_solo_program_p1: [{ id: "rc1", store: "app_store", store_transaction_id: "2000001", purchase_date: "2026-11-07T10:00:00Z" }],

@@ -9,6 +9,30 @@ engaged with regular updates (step 4). Step 2's plan and prices were
 APPROVED by the owner on 2026-10-28 and its code is BUILT (2026-10-28,
 switched off until launch) — what's left is the owner's setup and testing.
 
+STATUS — 2026-11-07 (Watch app + coach console, PR #39)
+------------------------------------------------------
+  1. DONE — PR #39 merged. Main's newest changes merged in first (#188 was
+     already taken), so the Watch is #189 and the coach console #190 in
+     REGRESSION_TESTS.md. GitHub's checks (lint, tests, build) passed
+     before the merge.
+  2. LIVE — Coach console fixes. Vercel deployed main; the iPhone app shows
+     them from its next open.
+  3. PENDING — Codemagic iOS build: the first real compile of the new
+     iPhone-side Swift. Fails → fixed and pushed again; passes → TestFlight
+     as normal.
+  4. DONE — Decision: the Watch app ships in 1.0.5. It stays OFF in 1.0.4,
+     so the subscriptions launch goes to Apple review with nothing extra.
+     The iPhone side of the Watch connection is in the build but does
+     nothing until the Watch app exists (CLAUDE.md, item W below).
+  5. BLOCKED — needs the owner's Apple account:
+     - Watch App ID + profile: create com.apexcoaching.platform.watchkitapp
+       in Apple Developer, then an App Store profile for it, available to
+       Codemagic. Do this AFTER 1.0.4 is submitted; then the Watch app is
+       switched on and the version set to 1.0.5.
+     - Testing on a real iPhone, iPad and Watch: the checklists in
+       REGRESSION_TESTS.md.
+     - App Store Connect: submit 1.0.4; add Watch screenshots (1.0.5).
+
 
 STEP 1 — iOS 1.0.3 (SUBMIT TO THE APP STORE — owner decision 2026-10-28)
 -----------------------------------------------------------------------
@@ -274,6 +298,13 @@ OWNER TO DO, in order
       d. TestFlight: the Watch check in REGRESSION_TESTS.md
          ("Apple Watch logging on a real Watch"). App Store Connect: add
          Apple Watch screenshots for that version.
+
+   P. SINGLE PROGRAMS IN THE iPHONE APP (#191, built 2026-11-07): App Store
+      Connect > the app > In-App Purchases > + Non-Consumable, one per
+      program, product ID exactly apex_solo_program_<programId> (list in
+      REGRESSION_TESTS.md #191), price nearest the website's; submit them
+      with the next version. Until a program has one, the app shows no
+      price for it (as before).
 
 Known limits (for later)
   - Resuming a paused All Access program re-lays its earlier weeks from the

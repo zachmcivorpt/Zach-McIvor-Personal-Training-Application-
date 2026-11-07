@@ -24,7 +24,7 @@ function priceLabel(program, { live = false, allAccess = false, owned = false, a
   if (live && allAccess && !owned) return "Included";
   if (live && owned) return "Owned";
   // In the iPhone app: Apple's own price, for a program with an App Store
-  // product (#189); none otherwise — never the website's (3.1.1).
+  // product (#191); none otherwise — never the website's (3.1.1).
   if (inIosApp()) return owned ? null : applePrices?.[program.id] || null;
   return formatAudPrice(program.priceCents);
 }
@@ -82,7 +82,7 @@ export default function SoloCatalogueScreen() {
   // The two best fits for this customer's consultation answers, leaving
   // out anything they already own.
   // (and the All Access program they're already running)
-  // Apple's prices for programs sold in the iPhone app (#189).
+  // Apple's prices for programs sold in the iPhone app (#191).
   const [applePrices, setApplePrices] = useState(null);
   const programIdsKey = (soloPrograms || []).filter((p) => !isRecoveryAddon(p)).map((p) => p.id).sort().join(",");
   useEffect(() => {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// #189 Single programs bought in the iPhone app: Apple's own price for a
+// #191 Single programs bought in the iPhone app: Apple's own price for a
 // program with an App Store product, Buy → "Opening the App Store" → Apple's
 // sheet → reload → "Confirming your purchase" → the program's page, "It's
 // yours" once the server has recorded it. No product → no price (as before).
@@ -109,7 +109,7 @@ async function tree(entry) {
   );
 }
 
-describe("buying a single program in the iPhone app (#189)", () => {
+describe("buying a single program in the iPhone app (#191)", () => {
   it("shows Apple's own price and buys it through Apple's sheet, then reloads to show the outcome", async () => {
     iphoneApp();
     render(await tree("/solo/program/p1"));
@@ -140,7 +140,7 @@ describe("buying a single program in the iPhone app (#189)", () => {
   });
 });
 
-describe("after Apple's sheet: the reloaded page (#189)", () => {
+describe("after Apple's sheet: the reloaded page (#191)", () => {
   it("'Confirming your purchase' until the server records it, then the program's page says it's yours", async () => {
     iphoneApp();
     localStorage.setItem("apexSoloPurchaseOutcome", JSON.stringify({ ok: true, kind: "program", programId: "p1", at: Date.now() }));
@@ -180,7 +180,7 @@ describe("after Apple's sheet: the reloaded page (#189)", () => {
   });
 });
 
-describe("Catalogue in the iPhone app (#189)", () => {
+describe("Catalogue in the iPhone app (#191)", () => {
   it("Apple's price on a program with a product; none on one without", async () => {
     iphoneApp([{ programId: "p1", price: "A$79.99" }]);
     const { SoloThemeProvider } = await import("./SoloThemeContext");
@@ -200,7 +200,7 @@ describe("Catalogue in the iPhone app (#189)", () => {
   });
 });
 
-describe("the iPhone side (PurchasesBridge.swift, #189)", () => {
+describe("the iPhone side (PurchasesBridge.swift, #191)", () => {
   const bridge = () => readFileSync("ios/ApexCoach/PurchasesBridge.swift", "utf8");
   it("prices and buys apex_solo_program_<id> products, with the same cover and hand-back as a membership", () => {
     const b = bridge();

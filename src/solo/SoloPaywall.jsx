@@ -122,7 +122,7 @@ function readPurchaseOutcome() {
   }
 }
 
-// A single program bought in the iPhone app (#189): Apple's sheet, then the
+// A single program bought in the iPhone app (#191): Apple's sheet, then the
 // same reload-and-show-the-outcome sequence as a membership (#134), with the
 // result kept on the phone. The caller shows "Opening the App Store" first.
 export async function buyProgramInApp(programId, uid) {
@@ -161,7 +161,7 @@ export function SoloPaywallProvider({ children }) {
   // (#162: bought Plus while an All Access plan was still running).
   const [boughtTier, setBoughtTier] = useState(null);
 
-  // A single program bought in the app (#189): "Confirming your purchase"
+  // A single program bought in the app (#191): "Confirming your purchase"
   // while the server reads it from Apple (syncApple), then that program's
   // page saying it's theirs. Never unlocked by the page: only the server's
   // soloPurchases record opens it.

@@ -74,10 +74,10 @@ export function purchasePlan(plan, uid) {
   return ask("purchase", { plan, uid }, 10 * 60 * 1000);
 }
 
-// Single programs in the iPhone app (#189): Apple's own price for each
+// Single programs in the iPhone app (#191): Apple's own price for each
 // program that has an App Store product (apex_solo_program_<programId>):
 // [{ programId, price: "A$74.99" }]. Programs without one aren't listed.
-// Builds before #189 answer "Unknown purchase request." (rejected).
+// Builds before #191 answer "Unknown purchase request." (rejected).
 export function loadProgramPrices(programIds) {
   return ask("programPrices", { programIds }, 30 * 1000);
 }

@@ -3054,7 +3054,7 @@ fill-mode. All 4 fail with CoachShell.jsx / index.css stashed. Browser check:
 no page-level sideways overflow on any tab at all four sizes, and the
 client page opened at each (screenshots in the session).
 
-### 189. Train Solo: single programs bought in the iPhone app with Apple In-App Purchase (owner, 2026-11-07)
+### 191. Train Solo: single programs bought in the iPhone app with Apple In-App Purchase (owner, 2026-11-07)
 - **Change**: in the TestFlight app, single program prices were never shown (3.1.1: no website prices or buy buttons in the app). Single programs can now be bought in the app with Apple In-App Purchase, at Apple's own price, for any program that has an App Store product. Free and Plus members only; All Access members see programs included, as before.
 - **How**:
   - **iPhone** (`PurchasesBridge.swift`, needs the new build):
@@ -3078,7 +3078,7 @@ client page opened at each (screenshots in the session).
   - `apex_solo_program_sp_e2cb3e32a0294b66b65e` — Push Pull Legs Upper Posterior (A$64.99)
   - Each future program needs its own product (`apex_solo_program_<its id>`).
 - **Tests**:
-  - `src/solo/inAppProgramPurchase189.test.jsx` (9):
+  - `src/solo/inAppProgramPurchase191.test.jsx` (9):
     - Apple's price shown and the purchase goes through Apple's sheet with the outcome kept and the page reloaded.
     - No product → "Not available to buy in the app" as before; All Access never offered.
     - After the reload: Confirming → "It's yours." on the program's page once the server's record arrives; not there yet → "Purchase received" with Restore; Apple error → the reason; cancelled → nothing left.
