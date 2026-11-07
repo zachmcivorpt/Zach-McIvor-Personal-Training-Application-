@@ -85,8 +85,23 @@ describe("closest picks when nothing matches every answer", () => {
     // Both match level, goal and environment (3 answers); 3 sessions is nearer 4 than 7 is.
     const near = { ...exact, id: "near", style: "hypertrophy", weekOnePreview: { sessionsPerWeek: 3 } };
     const far = { ...exact, id: "far", style: "hypertrophy", weekOnePreview: { sessionsPerWeek: 7 } };
-    const res = recommendForAnswers([far, near], [category], answers);
+    const res = recommendForAnswers([far, near], [category], answers, { limit: 2 });
     expect(res.programs.map((p) => p.id)).toEqual(["near", "far"]);
+  });
+
+  it("suggests ONE program by default — the best (owner, #187)", () => {
+    const near = { ...exact, id: "near", style: "hypertrophy", weekOnePreview: { sessionsPerWeek: 3 } };
+    const far = { ...exact, id: "far", style: "hypertrophy", weekOnePreview: { sessionsPerWeek: 7 } };
+    expect(recommendForAnswers([far, near], [category], answers).programs.map((p) => p.id)).toEqual(["near"]);
+  });
+
+  it("the Catalogue and the consultation screen ask for one (#187)", async () => {
+    const { readFileSync } = await import("node:fs");
+    for (const f of ["src/solo/SoloCatalogueScreen.jsx", "src/solo/SoloConsultationScreen.jsx"]) {
+      const src = readFileSync(f, "utf8");
+      expect(src, f).toMatch(/recommendForAnswers\([^)]*\{ limit: 1, excludeIds: ownedIds \}\)/);
+      expect(src, f).toContain("this is the nearest.");
+    }
   });
 
   it("never offers a program for the other sex, or one matching no answers", () => {

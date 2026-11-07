@@ -149,7 +149,7 @@ function answersMatched(program, a) {
 // shared secondary goals. "Who it's for" stays a hard rule even for the
 // closest picks, and a program matching none of the answers is never
 // offered.
-export function recommendForAnswers(programs, categories, answers, { limit = 2, excludeIds = [] } = {}) {
+export function recommendForAnswers(programs, categories, answers, { limit = 1, excludeIds = [] } = {}) {
   const exactPicks = recommendPrograms(programs, categories, answers, { limit, excludeIds });
   if (exactPicks.length > 0) return { programs: exactPicks, exact: true };
   const a = answers || {};

@@ -618,25 +618,28 @@ describe("paywall for subscribers", () => {
     void sheet;
   });
 
-  it("after cancelling, it's Free straight away: Profile shows Free and paid features lock (#156)", async () => {
+  it("after cancelling, the plan stays until the period ends: Profile shows it with 'Won't renew · ends …' (#187, replaces #156)", async () => {
     const end = Date.now() + 9 * 86400000;
     const { tierFromEntitlement } = await import("./soloAccess");
     const ent = { sources: { stripe: { tier: "plus", status: "active", expiresAt: end, cancelAtPeriodEnd: true } } };
     const tier = tierFromEntitlement(ent);
-    expect(tier).toBe("free");
+    expect(tier).toBe("plus");
     ctx = baseCtx({ soloGatesLive: true, soloTier: tier, soloEntitlement: ent, soloLogout: vi.fn(), deleteMySoloAccount: vi.fn(), setSoloReminderPref: vi.fn() });
     const { default: SoloProfileScreen } = await import("./SoloProfileScreen");
     await renderAt("/x", <SoloProfileScreen />, "/x");
-    expect(screen.queryByText(/Won't renew/)).toBe(null);
-    expect(screen.queryByText(/Train Solo Plus/)).toBe(null);
+    expect(screen.getByText(/Train Solo Plus/)).toBeTruthy();
+    expect(screen.getByText(/Won't renew · ends /)).toBeTruthy();
+    // Once the period is over it's Free.
+    expect(tierFromEntitlement(ent, end + 1)).toBe("free");
   });
 
-  it("subscribers are told cancelling ends it straight away; buyers are told before they buy", async () => {
+  it("subscribers are told they keep it to the period's end if they cancel; buyers are told before they buy (#187)", async () => {
     ctx = baseCtx({ soloGatesLive: true, soloTier: "plus", soloEntitlement: { sources: { stripe: { tier: "plus", status: "active", expiresAt: Date.now() + 9e8 } } } });
     await renderProgram("p1");
     fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
-    expect((await screen.findByTestId("cancel-note")).textContent).toBe("Cancelling ends it straight away.");
-    expect(screen.getByText(/Cancelling ends your membership straight away, with no refund for the rest of the period\./)).toBeTruthy();
+    expect((await screen.findByTestId("cancel-note")).textContent).toBe("If you cancel, it stays until the end of the period you've paid for.");
+    expect(screen.getByText(/If you cancel, your membership stays until the end of the period you've paid for\./)).toBeTruthy();
+    expect(screen.queryByText(/straight away/)).toBe(null);
   });
 
   it("a renewing plan shows its renewal date", async () => {

@@ -172,6 +172,9 @@ rather than inventing new colors per screen:
   account (`gettingStarted.seenAt`) and the phone the moment it shows;
   step / skip / finish saved via `saveSoloGettingStarted`. Profile keeps a
   permanent "Getting Started" row. Keep its steps true to the app.
+- **One suggested program, not two** (owner, #187): the Catalogue and the
+  consultation screen show a single best match (`recommendForAnswers`
+  defaults to `limit: 1`).
 - **Suggestions follow "Who it's for"** (#179, `suitsAudience`): a member
   who answered Male/Female is only suggested programs tagged for them;
   untagged programs are suggested to neither (tag both for everyone).
@@ -424,14 +427,15 @@ any Train Solo work from now on:
 - In the iPhone app, if the App Store returns no subscriptions the paywall
   shows why (REGRESSION_TESTS.md #124) and retries on the next open — never
   a silent disabled button, never a pointer to the website.
-- **Cancelling ends access straight away** (owner rule, #156): a cancelled
-  subscription (Stripe cancel at period end / cancel date, ended in Stripe at
-  once; Apple `unsubscribe_detected_at` / `willRenew: false`) is Free the
-  moment it reaches us, on the server and in `sourceActive`; no refund for
-  the rest of the period. Never go back to "keep access until the period
-  ends". Refund / failed payment / expiry also lock immediately, and a plan
-  is re-checked at the exact second its period ends (#154) and whenever the
-  app comes back to the front.
+- **Cancelling keeps the plan until the end of the paid period** (owner
+  decision 2026-11-07, #187 — REPLACES #156's "ends straight away"): a
+  cancelled subscription (Stripe cancel at period end / a cancel date; Apple
+  `unsubscribe_detected_at` / `willRenew: false`) stays paid up until its
+  period ends (a Stripe cancel date ends it on that date), shown as
+  "Won't renew · ends …", then Free. The server never ends a cancelled
+  Stripe subscription early. Refund / failed payment / expiry still lock
+  immediately; a plan is re-checked at the exact second its period ends
+  (#154) and whenever the app comes back to the front.
 - In the iPhone app the subscription is re-read from the server on every
   open (`syncSoloEntitlement`, #133), not only after the purchase reply —
   that reply can be lost if iOS drops the page under Apple's sheet.
@@ -689,6 +693,13 @@ any Train Solo work from now on:
   `CLAUDE.md` wherever it changes how that part of the app must be built
   — in the same commit, without being asked (the user asked for this to
   be remembered).
+
+- **Reply format (owner, 2026-11-07, "for all future conversations")**:
+  respond to the owner in **AT3 aviation format**. The owner hasn't yet
+  said exactly what AT3 specifies; until they do, replies use a brief,
+  aviation-style layout (a one-line status, then numbered items with
+  plain status words: DONE / LIVE / PENDING / BLOCKED / ACTION REQUIRED).
+  Replace this note with the owner's definition once given.
 
 - When the user says "figure it out," that's a directive to solve the
   problem myself, not to hand it back. Come back with a finished result —

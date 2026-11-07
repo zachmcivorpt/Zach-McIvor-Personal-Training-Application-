@@ -52,17 +52,29 @@ describe("renews / ends date after a cancel", () => {
     expect(planRenewal({ sources: { stripe: { tier: "plus", status: "past_due", expiresAt: end } } }, NOW)).toBe(null);
   });
 
-  it("cancelled is Free straight away, from either store, trial or paid (#156)", () => {
+  it("cancelled keeps the plan until the period ends, from either store, trial or paid (#187, replaces #156)", () => {
     const src = { tier: "plus", status: "active", expiresAt: end, cancelAtPeriodEnd: false, cancelAt: null };
     expect(tierFromEntitlement({ sources: { stripe: src } }, NOW)).toBe("plus");
     expect(planRenewal({ sources: { stripe: src } }, NOW)).toMatchObject({ date: end, willRenew: true, trial: false, store: "stripe" });
-    for (const cancelled of [{ ...src, cancelAtPeriodEnd: true }, { ...src, cancelAt: NOW + 5 * DAY }, { ...src, status: "cancelled" }]) {
-      expect(tierFromEntitlement({ sources: { stripe: cancelled } }, NOW)).toBe("free");
-      expect(planRenewal({ sources: { stripe: cancelled } }, NOW)).toBe(null);
-    }
+    // Cancel at period end: Plus until `end`, "Won't renew · ends …", then Free.
+    const atEnd = { ...src, cancelAtPeriodEnd: true };
+    expect(tierFromEntitlement({ sources: { stripe: atEnd } }, NOW)).toBe("plus");
+    expect(planRenewal({ sources: { stripe: atEnd } }, NOW)).toMatchObject({ date: end, willRenew: false });
+    expect(tierFromEntitlement({ sources: { stripe: atEnd } }, end + 1)).toBe("free");
+    // A cancel date: Plus until that date, then Free.
+    const atDate = { ...src, cancelAt: NOW + 5 * DAY };
+    expect(tierFromEntitlement({ sources: { stripe: atDate } }, NOW)).toBe("plus");
+    expect(planRenewal({ sources: { stripe: atDate } }, NOW)).toMatchObject({ date: NOW + 5 * DAY, willRenew: false });
+    expect(tierFromEntitlement({ sources: { stripe: atDate } }, NOW + 5 * DAY + 1)).toBe("free");
+    // Apple won't renew: paid up to its expiry, trial or paid.
     const apple = { tier: "all_access", status: "trialing", expiresAt: end, willRenew: false };
-    expect(tierFromEntitlement({ sources: { apple } }, NOW)).toBe("free");
-    expect(tierFromEntitlement({ sources: { apple: { ...apple, status: "active" } } }, NOW)).toBe("free");
+    expect(tierFromEntitlement({ sources: { apple } }, NOW)).toBe("all_access");
+    expect(tierFromEntitlement({ sources: { apple: { ...apple, status: "active" } } }, NOW)).toBe("all_access");
+    expect(tierFromEntitlement({ sources: { apple } }, end + 1)).toBe("free");
+    // Refunded / billing issue / expired still lock at once.
+    for (const status of ["refunded", "billing_issue", "expired"]) {
+      expect(tierFromEntitlement({ sources: { stripe: { ...src, status } } }, NOW)).toBe("free");
+    }
   });
 
   it("App Store: a trial that will renew says when the first payment is", () => {

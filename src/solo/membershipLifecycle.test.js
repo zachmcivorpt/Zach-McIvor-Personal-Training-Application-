@@ -165,7 +165,7 @@ describe("a member's membership and program lifecycle (#158)", () => {
     expect(new Set(st.logs.map((l) => l.id)).size).toBe(6);
   });
 
-  it("downgrading All Access → Plus keeps Plus features and locks catalogue programs; cancelling ends everything at once", () => {
+  it("downgrading All Access → Plus keeps Plus features and locks catalogue programs; cancelling keeps Plus to the period's end (#187)", () => {
     const now = T0;
     let ent = entitlementFromStripe([stripeSub("plus_monthly", "active", now + 30 * DAY)], now);
     expect(ent).toMatchObject({ tier: "plus", allAccessUntil: 0, plusUntil: now + 30 * DAY });
@@ -176,8 +176,10 @@ describe("a member's membership and program lifecycle (#158)", () => {
     expect(app.workoutsOn).toEqual([]);
 
     ent = entitlementFromStripe([stripeSub("plus_monthly", "active", now + 30 * DAY, { cancel_at_period_end: true })], now);
-    expect(ent).toMatchObject({ tier: "free", plusUntil: 0 });
-    expect(tierFromEntitlement(ent, now)).toBe("free");
+    expect(ent).toMatchObject({ tier: "plus", plusUntil: now + 30 * DAY });
+    expect(tierFromEntitlement(ent, now)).toBe("plus");
+    // …and Free once that period is over.
+    expect(tierFromEntitlement(ent, now + 30 * DAY + 1)).toBe("free");
   });
 
   it("a program bought on its own stays the member's whatever their plan", () => {
@@ -198,7 +200,9 @@ describe("a member's membership and program lifecycle (#158)", () => {
       [[stripeSub("all_access_monthly", "unpaid", now + DAY)], "free"],
       [[stripeSub("all_access_monthly", "canceled", now + DAY)], "free"],
       [[stripeSub("all_access_monthly", "active", now - 1)], "free"],
-      [[stripeSub("all_access_monthly", "active", now + DAY, { cancel_at: Math.floor((now + DAY) / 1000) })], "free"],
+      // Cancelled, still inside the paid period (#187): kept until it ends.
+      [[stripeSub("all_access_monthly", "active", now + DAY, { cancel_at: Math.floor((now + DAY) / 1000) })], "all_access"],
+      [[stripeSub("all_access_monthly", "active", now + DAY, { cancel_at_period_end: true })], "all_access"],
       [[stripeSub("plus_monthly", "active", now + DAY), stripeSub("all_access_monthly", "active", now + DAY, { id: "sub_2", created: 2 })], "all_access"],
     ];
     for (const [subs, expected] of cases) {
@@ -208,7 +212,8 @@ describe("a member's membership and program lifecycle (#158)", () => {
     const apple = (sub, ents = {}) => ({ subscriptions: { apex_solo_all_access_yearly: sub }, entitlements: ents });
     const appleCases = [
       [apple({ expires_date: new Date(now + DAY).toISOString() }, { all_access: { product_identifier: "apex_solo_all_access_yearly", expires_date: new Date(now + DAY).toISOString() } }), "all_access"],
-      [apple({ expires_date: new Date(now + DAY).toISOString(), unsubscribe_detected_at: new Date(now - DAY).toISOString() }), "free"],
+      [apple({ expires_date: new Date(now + DAY).toISOString(), unsubscribe_detected_at: new Date(now - DAY).toISOString() }), "all_access"],
+      [apple({ expires_date: new Date(now - 1).toISOString(), unsubscribe_detected_at: new Date(now - DAY).toISOString() }), "free"],
       [apple({ expires_date: new Date(now + DAY).toISOString(), refunded_at: new Date(now - DAY).toISOString() }), "free"],
       [apple({ expires_date: new Date(now - DAY).toISOString(), billing_issues_detected_at: new Date(now - DAY).toISOString() }), "free"],
     ];

@@ -327,7 +327,7 @@ function AnswerInput({ question, value, answers, onChange, t, dark }) {
 }
 
 function SavedConfirmation({ answers, t, dark, accent, programs, categories, ownedIds, onOpenProgram, onCatalogue, onProfile }) {
-  const picks = recommendForAnswers(programs, categories, answers, { limit: 2, excludeIds: ownedIds });
+  const picks = recommendForAnswers(programs, categories, answers, { limit: 1, excludeIds: ownedIds });
   const recommended = picks.programs;
   const flagged = isFlaggedForMedicalReview(answers);
   return (
@@ -358,7 +358,7 @@ function SavedConfirmation({ answers, t, dark, accent, programs, categories, own
           <h3 className={`text-lg font-bold mt-1 ${picks.exact ? "mb-3" : ""}`}>{picks.exact ? "Recommended for you" : "Closest to your answers"}</h3>
           {!picks.exact && (
             <p className="text-xs mt-0.5 mb-3" style={{ color: t.textMuted }}>
-              No program matches every answer yet — these are the nearest.
+              No program matches every answer yet — this is the nearest.
             </p>
           )}
           <div className="space-y-2.5">

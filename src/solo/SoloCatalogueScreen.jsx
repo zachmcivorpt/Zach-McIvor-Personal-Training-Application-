@@ -80,7 +80,7 @@ export default function SoloCatalogueScreen() {
     [soloPurchases, soloEnrolments]
   );
   const picks = useMemo(
-    () => recommendForAnswers(soloPrograms, soloProgramCategories, answers, { limit: 2, excludeIds: ownedIds }),
+    () => recommendForAnswers(soloPrograms, soloProgramCategories, answers, { limit: 1, excludeIds: ownedIds }),
     [soloPrograms, soloProgramCategories, answers, ownedIds]
   );
   const recommended = picks.programs;
@@ -150,7 +150,7 @@ export default function SoloCatalogueScreen() {
             <h2 className={`text-lg font-bold mt-1 ${picks.exact ? "mb-3" : ""}`}>{picks.exact ? "Recommended for you" : "Closest to your answers"}</h2>
             {!picks.exact && (
               <p className="text-xs mt-0.5 mb-3" style={{ color: t.textMuted }}>
-                No program matches every answer yet — these are the nearest.
+                No program matches every answer yet — this is the nearest.
               </p>
             )}
             <div className="space-y-2.5">

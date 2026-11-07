@@ -138,11 +138,11 @@ describe("a plan that ends while the app is open (#154)", () => {
     }
   });
 
-  it("cancelled (won't renew) is Free at once, even inside the paid period (#156)", () => {
+  it("cancelled (won't renew) keeps the plan until the period ends (#187, replaces #156)", () => {
     localStorage.setItem("apexSoloEntitlement", JSON.stringify({ uid: "u1", data: allAccess }));
     render(<SoloAppProvider><Probe /></SoloAppProvider>);
     act(() => listeners["soloEntitlements/u1"](snap({ sources: { apple: { tier: "all_access", status: "active", expiresAt: FUTURE, willRenew: false } } })));
-    expect(probe()).toBe("free|true");
+    expect(probe()).toBe("all_access|true");
   });
 });
 

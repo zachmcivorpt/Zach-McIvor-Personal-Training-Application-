@@ -569,7 +569,7 @@ function SoloPaywallSheet({ request, onClose }) {
               )}
               {canManageHere && (
                 <p className="text-xs mt-0.5" style={{ color: t.textMuted }} data-testid="cancel-note">
-                  Cancelling ends it straight away.
+                  If you cancel, it stays until the end of the period you've paid for.
                 </p>
               )}
             </div>
@@ -711,7 +711,7 @@ function SoloPaywallSheet({ request, onClose }) {
                 <p className="text-[11px] text-center mt-2.5 leading-relaxed" style={{ color: t.textMuted }}>
                   {trialDays > 0 ? `${trialDays} days free, then ${price} a ${per}. ` : `${price} a ${per}. `}
                   {changeHere && !alreadyThis ? "Your plan changes now; the difference is charged or credited pro rata. " : ""}
-                  Renews automatically until you cancel; cancel at least 24 hours before it renews to avoid the next charge. Cancelling ends your membership straight away, with no refund for the rest of the period.
+                  Renews automatically until you cancel; cancel at least 24 hours before it renews to avoid the next charge. If you cancel, your membership stays until the end of the period you've paid for.
                   {iosApp ? " Manage or cancel in iPhone Settings." : " Manage or cancel any time from Profile."}
                 </p>
               )}
