@@ -42,7 +42,7 @@ final class WatchBridge: NSObject, WCSessionDelegate {
     // MARK: page → Watch
 
     func handle(_ body: [String: Any]) {
-        switch body["action"] as? String {
+        switch (body["action"] as? String) ?? "" {
         case "workout":
             guard let workout = body["workout"],
                   JSONSerialization.isValidJSONObject(workout),
