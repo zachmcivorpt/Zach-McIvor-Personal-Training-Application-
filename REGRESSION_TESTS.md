@@ -2995,6 +2995,40 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
 - **Browser**: the coach's client Progress panel (real `ProgressPanel`) opened in Chromium with sample data: all 10 daily cards drawn with their charts, no page errors.
 - **Verify on TestFlight (new build)**: open the app, accept the one-time Apple Health prompt for the new measures, then Progress shows blood pressure / heart rate / etc. for days Apple Health has them. Blood pressure needs a source that records it (a cuff app or a manual entry in Health).
 
+### 189. Train Solo: single programs bought in the iPhone app with Apple In-App Purchase (owner, 2026-11-07)
+- **Change**: in the TestFlight app, single program prices were never shown (3.1.1: no website prices or buy buttons in the app). Single programs can now be bought in the app with Apple In-App Purchase, at Apple's own price, for any program that has an App Store product. Free and Plus members only; All Access members see programs included, as before.
+- **How**:
+  - **iPhone** (`PurchasesBridge.swift`, needs the new build):
+    - `programPrices` asks Apple for `apex_solo_program_<programId>` products (`Purchases.getProducts`).
+    - `buyProgram` buys one (`Purchases.purchase(product:)`) with the same cover and fresh-page hand-back as a membership (#135, #161, #183).
+    - Outcome `{ kind: "program", programId }`; the native screen reads "Confirming your purchase".
+  - **App**:
+    - The program page shows Apple's price and "Buy · price" → sheet (plus "Or get every program with All Access" after launch) → "Opening the App Store" → Apple → reload → `SoloPaywallProvider` "Confirming your purchase".
+    - The server is asked to re-read Apple (`refreshSoloEntitlement` → `syncApple`) until the purchase reaches `soloPurchases`, then the program's page says "It's yours."
+    - Not there after the checks: "Purchase received… tap Restore purchases… No need to buy again." Apple error: the reason. Cancelled: nothing.
+    - Catalogue cards in the app show Apple's price. No product → no price, exactly as before.
+  - **Server** (`soloSubscriptions.js` `applePurchasesFromSubscriber` / `recordApplePrograms`, inside `syncApple`, which runs on every app open, Restore purchases and RevenueCat's webhook): RevenueCat's `non_subscriptions` for our product ids from the App Store become ordinary `soloPurchases` docs (`source: "apple"`). Content access works through the existing rules.
+    - Safe to repeat: an existing purchase is never touched.
+    - Only ever adds: a purchase missing from RevenueCat's answer is never revoked, so an alias or a partial answer can't take away a paid program. Apple refunds are marked by hand.
+- **Owner setup (blocker for prices to appear)**, in App Store Connect → the app → In-App Purchases → "+" → **Non-Consumable**, one per program. Product ID exactly as below, price tier nearest the website price, a display name, a review screenshot. Then submit them with the next app version. RevenueCat needs nothing extra: products are fetched straight from the App Store, and purchases reach the server through the existing RevenueCat integration.
+  - `apex_solo_program_68rrOjeTgbrZAy4hzLog` — The Hourglass Method (website A$69.99)
+  - `apex_solo_program_h0iPfNWoriL3yBXJbuIK` — The Glute Project (A$49.99)
+  - `apex_solo_program_paqentLL44NE2jvMyIDk` — Strength Foundation (A$74.99)
+  - `apex_solo_program_sp_31afd7232d844186a181` — Home Bodyweight Foundation (A$57.78)
+  - `apex_solo_program_sp_3b67f3764e204983bebf` — Strength & Powerbuilding (A$74.99)
+  - `apex_solo_program_sp_e2cb3e32a0294b66b65e` — Push Pull Legs Upper Posterior (A$64.99)
+  - Each future program needs its own product (`apex_solo_program_<its id>`).
+- **Tests**:
+  - `src/solo/inAppProgramPurchase189.test.jsx` (9):
+    - Apple's price shown and the purchase goes through Apple's sheet with the outcome kept and the page reloaded.
+    - No product → "Not available to buy in the app" as before; All Access never offered.
+    - After the reload: Confirming → "It's yours." on the program's page once the server's record arrives; not there yet → "Purchase received" with Restore; Apple error → the reason; cancelled → nothing left.
+    - The Catalogue shows Apple's price, never the website's; the Swift prices and buys with the same cover and hand-back.
+  - `functions/soloSubscriptions.test.js` (+5): reads only our App Store program products; records once and keeps the start date on later syncs; leaves a website purchase alone and skips unknown programs; never revokes; `syncApple` runs it.
+  - 11 fail on the old code. `afterPurchaseWhiteScreen.test.jsx` updated for the purchase / membership title (same assertion). Full suite 1209 passed twice; lint and build clean.
+- **Swift**: type-checked against stand-ins, 0 errors / 0 warnings.
+- **Verify on TestFlight** (after the products exist, sandbox): a program shows Apple's price, then Buy → Apple's sheet → "Confirming your purchase" → "It's yours." → Go to My Training. Restore purchases on another device brings it back.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -74,6 +74,21 @@ export function purchasePlan(plan, uid) {
   return ask("purchase", { plan, uid }, 10 * 60 * 1000);
 }
 
+// Single programs in the iPhone app (#189): Apple's own price for each
+// program that has an App Store product (apex_solo_program_<programId>):
+// [{ programId, price: "A$74.99" }]. Programs without one aren't listed.
+// Builds before #189 answer "Unknown purchase request." (rejected).
+export function loadProgramPrices(programIds) {
+  return ask("programPrices", { programIds }, 30 * 1000);
+}
+
+// Shows Apple's sheet for one program. Resolves once Apple confirms; rejects
+// with err.cancelled when the customer backs out. Ownership is written by
+// the server from RevenueCat (functions syncApple), never by the page.
+export function purchaseProgram(programId, uid) {
+  return ask("buyProgram", { programId, uid }, 10 * 60 * 1000);
+}
+
 export function restorePurchases() {
   return ask("restore", {}, 2 * 60 * 1000);
 }

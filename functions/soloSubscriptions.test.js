@@ -503,3 +503,70 @@ describe("program checkout server wiring (#186)", () => {
     expect(hook).not.toMatch(/startDate: null/);
   });
 });
+
+// #189: single programs bought in the iPhone app (App Store non-consumables
+// apex_solo_program_<programId>, listed by RevenueCat as non_subscriptions).
+describe("Apple program purchases (#189)", () => {
+  const sub = {
+    non_subscriptions: {
+      apex_solo_program_p1: [{ id: "rc1", store: "app_store", store_transaction_id: "2000001", purchase_date: "2026-11-07T10:00:00Z" }],
+      apex_solo_program_bad$id: [{ id: "x", store: "app_store", purchase_date: "2026-11-07T10:00:00Z" }],
+      some_other_product: [{ id: "y", store: "app_store", purchase_date: "2026-11-07T10:00:00Z" }],
+      apex_solo_program_p2: [{ id: "z", store: "play_store", purchase_date: "2026-11-07T10:00:00Z" }],
+    },
+  };
+  it("reads only this app's program products from the App Store", () => {
+    expect(solo.applePurchasesFromSubscriber(sub)).toEqual([
+      { programId: "p1", productId: "apex_solo_program_p1", transactionId: "2000001", purchasedAt: Date.parse("2026-11-07T10:00:00Z") },
+    ]);
+    expect(solo.applePurchasesFromSubscriber({})).toEqual([]);
+  });
+
+  function fakeDb({ programs = ["p1"], purchases = {} } = {}) {
+    const docs = { ...purchases };
+    return {
+      docs,
+      collection: (name) => ({
+        doc: (id) => ({
+          id,
+          path: `${name}/${id}`,
+          get: async () => ({ exists: name === "soloPrograms" ? programs.includes(id) : `${name}/${id}` in docs, data: () => docs[`${name}/${id}`] }),
+        }),
+      }),
+      runTransaction: async (fn) =>
+        fn({
+          get: async (r) => ({ exists: r.path in docs, data: () => docs[r.path] }),
+          set: (r, data) => {
+            docs[r.path] = data;
+          },
+        }),
+    };
+  }
+  it("records the program as the member's, server-side, once", async () => {
+    const db = fakeDb();
+    await solo.recordApplePrograms(db, "u1", sub);
+    expect(db.docs["soloPurchases/u1_p1"]).toMatchObject({ soloUserId: "u1", programId: "p1", refunded: false, source: "apple", appleTransactionId: "2000001", startDate: null });
+    // Every later sync leaves an existing purchase alone (start date kept).
+    db.docs["soloPurchases/u1_p1"].startDate = "2026-11-08";
+    await solo.recordApplePrograms(db, "u1", sub);
+    expect(db.docs["soloPurchases/u1_p1"].startDate).toBe("2026-11-08");
+  });
+  it("a program already bought on the website is untouched; an unknown program is skipped", async () => {
+    const db = fakeDb({ programs: [], purchases: {} });
+    await solo.recordApplePrograms(db, "u1", sub);
+    expect(db.docs).toEqual({});
+    const db2 = fakeDb({ purchases: { "soloPurchases/u1_p1": { soloUserId: "u1", programId: "p1", refunded: false, stripePaymentIntentId: "pi_1" } } });
+    await solo.recordApplePrograms(db2, "u1", sub);
+    expect(db2.docs["soloPurchases/u1_p1"]).toEqual({ soloUserId: "u1", programId: "p1", refunded: false, stripePaymentIntentId: "pi_1" });
+  });
+  it("never takes a program away when it's missing from RevenueCat's answer", async () => {
+    const db = fakeDb({ purchases: { "soloPurchases/u1_p1": { soloUserId: "u1", programId: "p1", refunded: false, source: "apple" } } });
+    await solo.recordApplePrograms(db, "u1", { non_subscriptions: {} });
+    expect(db.docs["soloPurchases/u1_p1"].refunded).toBe(false);
+  });
+  it("syncApple records program purchases on every sync (open, Restore, RevenueCat's webhook)", () => {
+    const src = require("node:fs").readFileSync(new URL("./soloSubscriptions.js", import.meta.url), "utf8");
+    const fn = src.slice(src.indexOf("async function syncApple"), src.indexOf("// Single programs bought in the iPhone app"));
+    expect(fn).toMatch(/await recordApplePrograms\(db, uid, subscriber\)/);
+  });
+});

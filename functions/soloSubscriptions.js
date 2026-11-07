@@ -381,6 +381,59 @@ async function syncApple(db, uid) {
   if (!profile.exists) return; // not a Train Solo account (anonymous id, typo, deleted account)
   const subscriber = await fetchRevenueCatSubscriber(uid);
   await writeSource(db, uid, "apple", appleSourceFromSubscriber(subscriber));
+  await recordApplePrograms(db, uid, subscriber);
+}
+
+// Single programs bought in the iPhone app (#189): App Store
+// non-consumables named `apex_solo_program_<programId>`, which RevenueCat
+// lists under the subscriber's non_subscriptions. One entry per program
+// (the first purchase), from the App Store only.
+const APPLE_PROGRAM_PREFIX = "apex_solo_program_";
+function applePurchasesFromSubscriber(subscriber) {
+  const out = [];
+  for (const [productId, txs] of Object.entries(subscriber?.non_subscriptions || {})) {
+    if (!productId.startsWith(APPLE_PROGRAM_PREFIX)) continue;
+    const programId = productId.slice(APPLE_PROGRAM_PREFIX.length);
+    if (!/^[A-Za-z0-9_-]{1,100}$/.test(programId)) continue;
+    const list = (Array.isArray(txs) ? txs : []).filter((t) => t && (t.store == null || t.store === "app_store"));
+    if (!list.length) continue;
+    const first = [...list].sort((a, b) => Date.parse(a.purchase_date || 0) - Date.parse(b.purchase_date || 0))[0];
+    out.push({ programId, productId, transactionId: first.store_transaction_id || first.id || null, purchasedAt: Date.parse(first.purchase_date) || Date.now() });
+  }
+  return out;
+}
+
+// Writes them as ordinary soloPurchases (server-only, firestore.rules), the
+// same record a website purchase makes, so the program unlocks the same way
+// and stays theirs whatever their plan. Safe to run on every sync: an
+// existing, non-refunded purchase (website or Apple) is never touched.
+// Only ever adds: a program missing from RevenueCat's list is never taken
+// away here (an alias or a partial answer must never revoke a paid
+// program); an Apple refund is handled by hand (mark the purchase refunded).
+async function recordApplePrograms(db, uid, subscriber) {
+  const bought = applePurchasesFromSubscriber(subscriber);
+  for (const b of bought) {
+    const program = await db.collection("soloPrograms").doc(b.programId).get();
+    if (!program.exists) continue;
+    const ref = db.collection("soloPurchases").doc(`${uid}_${b.programId}`);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const prev = snap.exists ? snap.data() : null;
+      if (prev && prev.refunded !== true) return;
+      tx.set(ref, {
+        id: ref.id,
+        soloUserId: uid,
+        programId: b.programId,
+        purchasedAt: b.purchasedAt,
+        placeholder: false,
+        refunded: false,
+        startDate: null,
+        source: "apple",
+        appleProductId: b.productId,
+        appleTransactionId: b.transactionId,
+      });
+    });
+  }
 }
 
 module.exports = {
@@ -401,4 +454,6 @@ module.exports = {
   customerFromCheckout,
   recordProgramPurchase,
   hasAllAccessNow,
+  applePurchasesFromSubscriber,
+  recordApplePrograms,
 };

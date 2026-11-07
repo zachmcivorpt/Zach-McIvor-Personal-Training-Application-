@@ -8,7 +8,7 @@ import { BottomSheet, PrimaryButton } from "../components/ui";
 import { PLANS, TIER_LABELS, formatPlanPrice, formatRenewalDate, activeStore, planRenewal, renewalText } from "./soloAccess";
 import { inIosApp } from "./appShell";
 import { SoloPurchaseStage, SoloWelcomeScreen } from "./SoloPurchaseScreens";
-import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, restorePurchases, manageAppleSubscription } from "../lib/purchases";
+import { inAppPurchasesAvailable, loadStoreProducts, purchasePlan, purchaseProgram, restorePurchases, manageAppleSubscription } from "../lib/purchases";
 
 // The Train Solo paywall (ROADMAP.txt step 2): Plus and All Access, yearly
 // first with its 7-day free trial (Apple: 1 week). Any screen opens it with
@@ -122,13 +122,33 @@ function readPurchaseOutcome() {
   }
 }
 
+// A single program bought in the iPhone app (#189): Apple's sheet, then the
+// same reload-and-show-the-outcome sequence as a membership (#134), with the
+// result kept on the phone. The caller shows "Opening the App Store" first.
+export async function buyProgramInApp(programId, uid) {
+  let outcome;
+  try {
+    await purchaseProgram(programId, uid);
+    outcome = { ok: true, kind: "program", programId };
+  } catch (err) {
+    outcome = err?.cancelled ? { cancelled: true, kind: "program", programId } : { error: err?.message || "Something went wrong — please try again.", kind: "program", programId };
+  }
+  rememberPurchaseOutcome(outcome);
+  paywallPage.reload();
+}
+
+let PROGRAM_CONFIRM_TRIES = 4;
+export function setProgramConfirmTriesForTests(n) {
+  PROGRAM_CONFIRM_TRIES = n;
+}
+
 export function SoloPaywallProvider({ children }) {
   const [request, setRequest] = useState(null); // { reason, tier, notice }
   const openPaywall = useCallback(
     (opts = {}) => setRequest({ reason: opts.reason || null, tier: opts.tier || "all_access", notice: opts.notice || "" }),
     []
   );
-  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement, soloTier, soloEntitlementReady } = useSoloApp();
+  const { soloAuthUser, refreshSoloEntitlement, soloEntitlement, soloTier, soloEntitlementReady, soloPurchases } = useSoloApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [outcome] = useState(readPurchaseOutcome);
@@ -141,10 +161,58 @@ export function SoloPaywallProvider({ children }) {
   // (#162: bought Plus while an All Access plan was still running).
   const [boughtTier, setBoughtTier] = useState(null);
 
+  // A single program bought in the app (#189): "Confirming your purchase"
+  // while the server reads it from Apple (syncApple), then that program's
+  // page saying it's theirs. Never unlocked by the page: only the server's
+  // soloPurchases record opens it.
+  const programOutcome = outcome?.kind === "program" ? outcome : null;
+  const [programConfirmed, setProgramConfirmed] = useState(false);
+  const programOwned = !!programOutcome && (soloPurchases || []).some((p) => p.programId === programOutcome.programId && p.refunded !== true);
+  useEffect(() => {
+    if (!programOutcome || !programOutcome.ok || !programOwned || programConfirmed) return;
+    setProgramConfirmed(true);
+    clearPurchaseOutcome();
+    setConfirming(false);
+    navigate(`/solo/program/${programOutcome.programId}`, { replace: true, state: { programBought: true } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [programOwned]);
+
   // The result of a purchase made just before the reload above.
   useEffect(() => {
     if (outcome?.cancelled) clearPurchaseOutcome();
     if (!outcome || outcome.cancelled || !signedIn) return;
+    if (programOutcome) {
+      if (programOutcome.error) {
+        clearPurchaseOutcome();
+        navigate(`/solo/program/${programOutcome.programId}`, { replace: true, state: { programNotice: programOutcome.error } });
+        return;
+      }
+      let stopped = false;
+      (async () => {
+        for (let i = 0; i < PROGRAM_CONFIRM_TRIES && !stopped; i++) {
+          if (i) await new Promise((r) => setTimeout(r, PURCHASE_RECHECK_MS));
+          if (stopped) return;
+          await refreshSoloEntitlement().catch(() => null);
+        }
+        if (stopped) return;
+        // Still not on the account: say so on the program's page (the
+        // purchase is safe with Apple; Restore purchases brings it in).
+        setTimeout(() => {
+          if (stopped) return;
+          setProgramConfirmed((done) => {
+            if (!done) {
+              clearPurchaseOutcome();
+              setConfirming(false);
+              navigate(`/solo/program/${programOutcome.programId}`, { replace: true, state: { programPending: true } });
+            }
+            return true;
+          });
+        }, PURCHASE_RECHECK_MS);
+      })();
+      return () => {
+        stopped = true;
+      };
+    }
     if (outcome.error) {
       clearPurchaseOutcome();
       openPaywall({ tier: outcome.tier, notice: outcome.error });
@@ -301,7 +369,7 @@ export function SoloPaywallProvider({ children }) {
   return (
     <PaywallCtx.Provider value={value}>
       {children}
-      {confirming && <SoloPurchaseStage instant title="Confirming your membership" detail="One moment." />}
+      {confirming && <SoloPurchaseStage instant title={programOutcome ? "Confirming your purchase" : "Confirming your membership"} detail="One moment." />}
       {welcomeTier && (
         <SoloWelcomeScreen
           tier={welcomeTier}
