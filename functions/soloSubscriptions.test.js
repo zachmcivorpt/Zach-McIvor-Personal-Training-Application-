@@ -420,3 +420,86 @@ describe("subscribing again after a cancel (#185)", () => {
     expect(await prior(new Error("network"))).toEqual({ alreadyPaid: true });
   });
 });
+
+// #186: single programs bought on the website. Ownership is written only
+// from a PAID Stripe checkout, once, and never reset by repeats.
+describe("recordProgramPurchase (#186)", () => {
+  function fakeDb(initial = {}) {
+    const docs = { ...initial };
+    const ref = (id) => ({ id });
+    return {
+      docs,
+      collection: (name) => ({ doc: (id) => ref(`${name}/${id}`) }),
+      runTransaction: async (fn) =>
+        fn({
+          get: async (r) => ({ exists: r.id in docs, data: () => docs[r.id] }),
+          set: (r, data) => {
+            docs[r.id] = data;
+          },
+        }),
+    };
+  }
+  const paid = (over = {}) => ({
+    id: "cs_1",
+    mode: "payment",
+    payment_status: "paid",
+    payment_intent: "pi_1",
+    amount_total: 7499,
+    metadata: { soloUserId: "u1", programId: "p1" },
+    ...over,
+  });
+
+  it("a paid checkout makes the program the buyer's (Free or Plus alike)", async () => {
+    const db = fakeDb();
+    expect(await solo.recordProgramPurchase(db, paid())).toEqual({ recorded: "new" });
+    expect(db.docs["soloPurchases/u1_p1"]).toMatchObject({ soloUserId: "u1", programId: "p1", refunded: false, stripePaymentIntentId: "pi_1", amountPaidCents: 7499 });
+  });
+  it("a repeated or late webhook never resets the member's start date or creates a second purchase", async () => {
+    const db = fakeDb({ "soloPurchases/u1_p1": { soloUserId: "u1", programId: "p1", refunded: false, startDate: "2026-11-02", purchasedAt: 1 } });
+    expect(await solo.recordProgramPurchase(db, paid())).toEqual({ recorded: "existing" });
+    expect(await solo.recordProgramPurchase(db, paid())).toEqual({ recorded: "existing" });
+    expect(db.docs["soloPurchases/u1_p1"]).toMatchObject({ startDate: "2026-11-02", purchasedAt: 1 });
+    expect(Object.keys(db.docs)).toEqual(["soloPurchases/u1_p1"]);
+  });
+  it("buying again after a refund restores it", async () => {
+    const db = fakeDb({ "soloPurchases/u1_p1": { soloUserId: "u1", programId: "p1", refunded: true, startDate: "2026-10-01" } });
+    expect(await solo.recordProgramPurchase(db, paid({ id: "cs_2", payment_intent: "pi_2" }))).toEqual({ recorded: "restored" });
+    expect(db.docs["soloPurchases/u1_p1"]).toMatchObject({ refunded: false, stripeCheckoutSessionId: "cs_2" });
+  });
+  it("an unpaid, failed or non-program checkout writes nothing", async () => {
+    const db = fakeDb();
+    expect(await solo.recordProgramPurchase(db, paid({ payment_status: "unpaid" }))).toEqual({ skipped: "not paid" });
+    expect(await solo.recordProgramPurchase(db, paid({ mode: "subscription" }))).toEqual({ skipped: "not a program checkout" });
+    expect(await solo.recordProgramPurchase(db, paid({ metadata: {} }))).toEqual({ skipped: "not a program checkout" });
+    expect(await solo.recordProgramPurchase(db, null)).toEqual({ skipped: "not a program checkout" });
+    expect(db.docs).toEqual({});
+  });
+  it("All Access members are never sold a program; a lapsed one can buy", () => {
+    expect(solo.hasAllAccessNow({ allAccessUntil: NOW + DAY }, NOW)).toBe(true);
+    expect(solo.hasAllAccessNow({ allAccessUntil: NOW - 1 }, NOW)).toBe(false);
+    expect(solo.hasAllAccessNow({}, NOW)).toBe(false);
+  });
+});
+
+describe("program checkout server wiring (#186)", () => {
+  const src = require("node:fs").readFileSync(new URL("./index.js", import.meta.url), "utf8");
+  const fn = (name) => src.slice(src.indexOf(`exports.${name} =`), src.indexOf("\nexports.", src.indexOf(`exports.${name} =`) + 10));
+  it("still sold after Go live, except to All Access members", () => {
+    const f = fn("createSoloCheckoutSession");
+    expect(f).not.toMatch(/Programs are now part of All Access/);
+    expect(f).toMatch(/hasAllAccessNow\(await soloEntitlementOf\(uid\)\)\) return \{ includedWithAllAccess: true \}/);
+    expect(f).toMatch(/mode: "payment"/);
+    expect(f).toMatch(/success_url: `\$\{returnOrigin\}\/solo\/program\/\$\{encodeURIComponent\(programId\)\}\?checkout=success&session_id=\{CHECKOUT_SESSION_ID\}`/);
+  });
+  it("the return check: the caller's own checkout, fetched from Stripe, recorded only if paid", () => {
+    const f = fn("confirmSoloProgramPurchase");
+    expect(f).toMatch(/checkout\.sessions\.retrieve\(sessionId\)/);
+    expect(f).toMatch(/session\?\.metadata\?\.soloUserId !== uid\) throw/);
+    expect(f).toMatch(/recordProgramPurchase\(db, session\)/);
+  });
+  it("the webhook records through the same safe function (no more merge resetting startDate)", () => {
+    const hook = fn("soloStripeWebhook");
+    expect(hook).toMatch(/recordProgramPurchase\(db, session\)/);
+    expect(hook).not.toMatch(/startDate: null/);
+  });
+});

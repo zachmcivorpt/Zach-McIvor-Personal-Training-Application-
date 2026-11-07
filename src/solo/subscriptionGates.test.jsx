@@ -9,6 +9,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
+// The membership sheet from a program page (#186): in the iPhone app (or for
+// someone who can't buy single programs) the "Unlock with All Access"
+// button; on the website, Start Program → the pay sheet's All Access option.
+function openAllAccess() {
+  const unlock = screen.queryByRole("button", { name: /unlock with all access/i });
+  if (unlock) return fireEvent.click(unlock);
+  fireEvent.click(screen.getByRole("button", { name: /start program/i }));
+  fireEvent.click(screen.getByRole("button", { name: /or get every program with all access/i }));
+}
+
+
 vi.setConfig({ testTimeout: 20000 });
 
 let ctx;
@@ -100,13 +111,17 @@ describe("after launch, Free", () => {
     ctx = baseCtx({ soloGatesLive: true });
   });
 
-  it("no single-program price; unlocking opens the paywall with the approved prices and 7-day trial", async () => {
+  it("the program's own price and Pay, plus All Access as the alternative with the approved prices and 7-day trial (#186)", async () => {
     await renderProgram("p1");
-    expect(screen.queryByText("A$79.99")).toBe(null);
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    // Single programs are still sold after launch (owner, #186).
+    expect(screen.getByTestId("program-price").textContent).toBe("A$79.99");
+    fireEvent.click(screen.getByRole("button", { name: /start program/i }));
+    expect(screen.getByRole("button", { name: "PAY A$79.99" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /or get every program with all access/i }));
     await screen.findByText("Train Solo Membership");
     expect(screen.getByText("A$179.99")).toBeTruthy();
-    expect(screen.getByText("A$79.99")).toBeTruthy(); // Plus yearly
+    // Plus yearly (the program's own A$79.99 is on the page behind it too).
+    expect(screen.getAllByText("A$79.99").length).toBeGreaterThanOrEqual(2);
     expect(screen.getAllByText("7 days free").length).toBe(2);
     expect(screen.getByText(/7 days free, then A\$179\.99 a year/)).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
@@ -121,7 +136,7 @@ describe("after launch, Free", () => {
   it("no second free trial for someone who already had one", async () => {
     ctx = baseCtx({ soloGatesLive: true, soloEntitlement: { trialUsed: true } });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("Train Solo Membership");
     expect(screen.queryByText("7 days free")).toBe(null);
     expect(screen.getByRole("button", { name: /subscribe to all access/i })).toBeTruthy();
@@ -129,7 +144,7 @@ describe("after launch, Free", () => {
 
   it("choosing Plus buys Plus", async () => {
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("Train Solo Membership");
     fireEvent.click(screen.getByRole("button", { name: /^Plus/ }));
     fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
@@ -192,7 +207,7 @@ describe("inside the iPhone app", () => {
     window.webkit = { messageHandlers: { apexTheme: { postMessage() {} } } };
     ctx = baseCtx({ soloGatesLive: true });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("Train Solo Membership");
     expect(screen.getByText("Update the APEX app to subscribe")).toBeTruthy();
     expect(screen.queryByText(/A\$/)).toBe(null);
@@ -216,7 +231,7 @@ describe("inside the iPhone app", () => {
     };
     ctx = baseCtx({ soloGatesLive: true });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("$179.99");
     expect(screen.getByRole("button", { name: /restore purchases/i })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial/i }));
@@ -246,7 +261,7 @@ describe("inside the iPhone app", () => {
     const stripePlus = { sources: { stripe: { tier: "plus", plan: "plus_yearly", status: "active", expiresAt: Date.now() + 30 * 86400000 } } };
     ctx = baseCtx({ soloGatesLive: true, soloTier: "plus", soloEntitlement: stripePlus });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByTestId("paid-elsewhere");
     expect(screen.queryByRole("button", { name: /subscribe to|free trial/i })).toBe(null);
     expect(screen.queryByText(/website/i)).toBe(null);
@@ -274,7 +289,7 @@ describe("inside the iPhone app", () => {
     async function buyAllAccess(tier = "all_access") {
       ctx = baseCtx({ soloGatesLive: true });
       await renderProgram("p1");
-      fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+      openAllAccess();
       await screen.findByText("$179.99");
       if (tier === "plus") {
         fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
@@ -434,7 +449,7 @@ describe("inside the iPhone app", () => {
     const FUTURE = Date.now() + 30 * 86400000;
     ctx = baseCtx({ soloGatesLive: true, soloTier: "plus", soloEntitlement: { sources: { apple: { tier: "plus", status: "active", expiresAt: FUTURE } } } });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("$179.99");
     expect(screen.queryByText(/days free/)).toBe(null);
     expect(screen.queryByRole("button", { name: /free trial/i })).toBe(null);
@@ -461,7 +476,7 @@ describe("inside the iPhone app", () => {
     };
     ctx = baseCtx({ soloGatesLive: true });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText(/Subscriptions aren't available right now/);
     // The technical reason stays behind "Details".
     expect(screen.queryByText(/could be fetched from App Store Connect/)).toBe(null);
@@ -472,7 +487,7 @@ describe("inside the iPhone app", () => {
     const closeX = screen.getByText("Train Solo Membership").parentElement.querySelector("button");
     fireEvent.click(closeX);
     await waitFor(() => expect(screen.queryByText("Train Solo Membership")).toBe(null));
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("$179.99");
     expect(calls).toBe(2);
     expect(screen.queryByText(/aren't available right now/)).toBe(null);
@@ -542,7 +557,7 @@ describe("paywall for subscribers", () => {
     let answer;
     ctx = baseCtx({ soloGatesLive: true, refreshSoloEntitlement: vi.fn(() => new Promise((r) => (answer = r))) });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     const busy = await screen.findByRole("button", { name: "CHECKING YOUR MEMBERSHIP…" });
     expect(busy.disabled).toBe(true);
     fireEvent.click(busy);
@@ -636,7 +651,7 @@ describe("paywall for subscribers", () => {
   it("subscribers are told they keep it to the period's end if they cancel; buyers are told before they buy (#187)", async () => {
     ctx = baseCtx({ soloGatesLive: true, soloTier: "plus", soloEntitlement: { sources: { stripe: { tier: "plus", status: "active", expiresAt: Date.now() + 9e8 } } } });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     expect((await screen.findByTestId("cancel-note")).textContent).toBe("If you cancel, it stays until the end of the period you've paid for.");
     expect(screen.getByText(/If you cancel, your membership stays until the end of the period you've paid for\./)).toBeTruthy();
     expect(screen.queryByText(/straight away/)).toBe(null);
@@ -724,21 +739,27 @@ describe("unlock sweep: Plus, then All Access", () => {
     }
   });
 
-  it("catalogue programs: Plus still unlocks them with All Access; All Access starts them", async () => {
+  it("catalogue programs: Plus sees the price and can buy it (or get All Access); All Access sees it included and starts it (#186)", async () => {
     ctx = tiers("plus");
     await renderProgram("p1");
-    expect(screen.getByRole("button", { name: /unlock with all access/i })).toBeTruthy();
+    expect(screen.getByTestId("program-price").textContent).toBe("A$79.99");
+    fireEvent.click(screen.getByRole("button", { name: /start program/i }));
+    expect(screen.getByRole("button", { name: "PAY A$79.99" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /or get every program with all access/i })).toBeTruthy();
     cleanup();
     ctx = tiers("all_access");
     await renderProgram("p1");
+    expect(screen.queryByTestId("program-price")).toBe(null);
+    expect(screen.getByTestId("program-access-label").textContent).toBe("Included");
     expect(screen.queryByRole("button", { name: /unlock/i })).toBe(null);
-    expect(screen.getByRole("button", { name: /start program/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /start program/i }));
+    expect(screen.queryByRole("button", { name: /^PAY /})).toBe(null);
   });
 
   it("a Plus member upgrading sees only All Access, preselected with its buy button", async () => {
     ctx = tiers("plus");
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("Your membership");
     expect(screen.queryByRole("button", { name: /^Plus/ })).toBe(null);
     fireEvent.click(screen.getByRole("button", { name: /start 7-day free trial|subscribe to all access/i }));
@@ -786,7 +807,7 @@ describe("iPhone purchase: stage and a cancelled higher plan (#164)", () => {
   it("the paywall's Subscribe opens the instant stage", async () => {
     ctx = baseCtx({ soloGatesLive: true });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("$179.99");
     fireEvent.click(screen.getByRole("button", { name: /subscribe to all access/i }));
     const stage = await screen.findByTestId("solo-purchase-stage");
@@ -800,7 +821,7 @@ describe("iPhone purchase: stage and a cancelled higher plan (#164)", () => {
     const lapsing = { sources: { apple: { tier: "all_access", status: "cancelled", willRenew: false, expiresAt: ends, productId: "apex_solo_all_access_yearly" } } };
     ctx = baseCtx({ soloGatesLive: true, soloTier: "free", soloEntitlement: lapsing });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     await screen.findByText("$179.99");
     fireEvent.click(screen.getByRole("tab", { name: "Monthly" }));
     fireEvent.click(screen.getByRole("button", { name: /^Plus/ }));

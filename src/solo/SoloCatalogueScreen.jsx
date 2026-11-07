@@ -14,15 +14,18 @@ import { SoloPageHeader } from "./SoloUI";
 // answers don't recompute on every render (#172).
 const NO_ANSWERS = Object.freeze({});
 
-// After launch there are no single-program prices: programs are All Access
-// and recovery add-ons come with Plus (soloAccess.js).
-function priceLabel(program, live) {
+// A card's price line. Recovery add-ons: Free, or Plus after launch. Catalogue
+// programs (#186): "Included" for All Access members, "Owned" once bought
+// (after launch), otherwise the program's own price — single programs are
+// still sold after launch. Never a price inside the iOS app (3.1.1).
+function priceLabel(program, { live = false, allAccess = false, owned = false } = {}) {
   if (isRecoveryAddon(program)) return live ? "Plus" : "Free";
-  if (live) return null;
+  if (live && allAccess && !owned) return "Included";
+  if (live && owned) return "Owned";
   return inIosApp() ? null : formatAudPrice(program.priceCents);
 }
 
-function ProgramCard({ program, t, onClick, live = false }) {
+function ProgramCard({ program, t, onClick, live = false, allAccess = false, owned = false }) {
   return (
     <button
       onClick={onClick}
@@ -40,7 +43,7 @@ function ProgramCard({ program, t, onClick, live = false }) {
         <div className="flex items-start justify-between gap-2.5">
           <p className="text-[15px] font-bold leading-tight">{program.name}</p>
           {/* No price for paid programs inside the iOS app — see appShell.js. */}
-          {priceLabel(program, live) && <p className="text-sm font-extrabold whitespace-nowrap">{priceLabel(program, live)}</p>}
+          {priceLabel(program, { live, allAccess, owned }) && <p className="text-sm font-extrabold whitespace-nowrap">{priceLabel(program, { live, allAccess, owned })}</p>}
         </div>
         {program.description && (
           <p className="text-xs mt-1 line-clamp-2" style={{ color: t.textMuted }}>
@@ -75,6 +78,8 @@ export default function SoloCatalogueScreen() {
   // The two best fits for this customer's consultation answers, leaving
   // out anything they already own.
   // (and the All Access program they're already running)
+  // Programs bought on their own (#186): "Owned" on their cards.
+  const boughtIds = useMemo(() => new Set((soloPurchases || []).map((p) => p.programId)), [soloPurchases]);
   const ownedIds = useMemo(
     () => [...(soloPurchases || []).map((p) => p.programId), ...(soloEnrolments || []).filter((e) => e.status === "active").map((e) => e.programId)],
     [soloPurchases, soloEnrolments]
@@ -119,7 +124,7 @@ export default function SoloCatalogueScreen() {
         )}
         {!inIosApp() && (
           <div className="rounded-2xl px-4 py-3 mb-4" style={soloGlass(t)}>
-            <p className="text-sm font-bold">{live ? "Subscribe here" : "Buy your program here"}</p>
+            <p className="text-sm font-bold">{live ? "Buy a program or subscribe here" : "Buy your program here"}</p>
             <p className="text-xs leading-relaxed mt-0.5" style={{ color: t.textMuted }}>
               It unlocks instantly in the APEX app — log in with this same account to train.{" "}
               <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="font-semibold underline" style={{ color: t.text }}>
@@ -171,7 +176,9 @@ export default function SoloCatalogueScreen() {
                         {weeks > 0 ? ` · ${weeks} weeks` : ""}
                       </p>
                     </div>
-                    {priceLabel(p, live) && <p className="text-sm font-bold whitespace-nowrap">{priceLabel(p, live)}</p>}
+                    {priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id) }) && (
+                      <p className="text-sm font-bold whitespace-nowrap">{priceLabel(p, { live, allAccess: soloHasAllAccess, owned: boughtIds.has(p.id) })}</p>
+                    )}
                     <ChevronRight size={16} color={t.textFaint} className="shrink-0 -ml-1" />
                   </button>
                 );
@@ -231,7 +238,7 @@ export default function SoloCatalogueScreen() {
                 {g.category.name}
               </p>
               {g.programs.map((p) => (
-                <ProgramCard key={p.id} program={p} t={t} live={live} onClick={() => openProgram(p.id)} />
+                <ProgramCard key={p.id} program={p} t={t} live={live} allAccess={soloHasAllAccess} owned={boughtIds.has(p.id)} onClick={() => openProgram(p.id)} />
               ))}
             </div>
           ))
@@ -248,7 +255,7 @@ export default function SoloCatalogueScreen() {
             <h2 className="text-lg font-bold mt-1 mb-3">Recovery add-ons</h2>
             {recoveryAddons.map((p) => (
               <div key={p.id} className="relative">
-                <ProgramCard program={p} t={t} live={live} onClick={() => openProgram(p.id)} />
+                <ProgramCard program={p} t={t} live={live} allAccess={soloHasAllAccess} owned={boughtIds.has(p.id)} onClick={() => openProgram(p.id)} />
                 {activeAddonId === p.id && (
                   <span className="absolute top-3 right-3 text-[10.5px] font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: accent, color: "#fff" }}>
                     Active
