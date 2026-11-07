@@ -502,7 +502,7 @@ export default function CoachClients({ showToast, search, setSearch, openClientI
         />
       </div>
 
-      {/* desktop table (lg+; iPad portrait gets the cards, #189) — horizontally scrollable on any viewport narrower than
+      {/* desktop table (lg+; iPad portrait gets the cards, #190) — horizontally scrollable on any viewport narrower than
           its min-width, with momentum scrolling on iOS Safari so a swipe
           actually glides instead of just nudging a pixel at a time */}
       <div

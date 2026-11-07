@@ -2,7 +2,7 @@ import Foundation
 import WatchConnectivity
 import WatchKit
 
-// The Watch side of workout logging (REGRESSION_TESTS.md #188). The workout
+// The Watch side of workout logging (REGRESSION_TESTS.md #189). The workout
 // itself lives on the iPhone (the web page's WorkoutSession); this keeps the
 // latest copy the phone sent and sends the Watch's actions back through
 // ios/ApexCoach/WatchBridge.swift. A set logged here shows straight away

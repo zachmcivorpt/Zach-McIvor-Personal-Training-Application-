@@ -154,7 +154,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         config.userContentController.add(self, name: "apexTheme")
         config.userContentController.add(self, name: "apexHealth")
         config.userContentController.add(self, name: "apexRest")
-        // Apple Watch workout logging (#188, WatchBridge.swift).
+        // Apple Watch workout logging (#189, WatchBridge.swift).
         config.userContentController.add(self, name: "apexWatch")
         if PurchasesConfig.isConfigured {
             config.userContentController.add(self, name: "apexPurchases")
@@ -201,7 +201,7 @@ final class ViewController: UIViewController, WKNavigationDelegate, WKScriptMess
         NotificationCenter.default.addObserver(
             self, selector: #selector(checkPageAlive), name: UIApplication.didBecomeActiveNotification, object: nil
         )
-        // Watch sets logged while the phone was locked reach the page now (#188).
+        // Watch sets logged while the phone was locked reach the page now (#189).
         NotificationCenter.default.addObserver(
             self, selector: #selector(watchCatchUp), name: UIApplication.didBecomeActiveNotification, object: nil
         )

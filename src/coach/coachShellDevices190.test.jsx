@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// #189 Coach console on iPhone, iPad and Mac: every tab opens at its top,
+// #190 Coach console on iPhone, iPad and Mac: every tab opens at its top,
 // iPad (md–xl) gets the icon rail with labels, the shell uses the visible
 // screen height (dvh) and keeps clear of the safe areas, and the tab fade
 // never traps the full-screen overlays (no transform, no fill-mode).
@@ -46,7 +46,7 @@ async function renderShell() {
   return render(<CoachShell />);
 }
 
-describe("Coach console on every Apple device (#189)", () => {
+describe("Coach console on every Apple device (#190)", () => {
   it("opens each tab at its top, not where the last tab was scrolled to", async () => {
     await renderShell();
     const main = screen.getByText("Overview screen").closest(".overflow-y-auto");

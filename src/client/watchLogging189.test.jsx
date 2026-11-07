@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// #188 Apple Watch workout logging: the Watch's actions reach the phone's
+// #189 Apple Watch workout logging: the Watch's actions reach the phone's
 // workout screen as "apexWatch" events and are applied exactly like a tap,
 // and the screen sends the Watch every change.
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -94,7 +94,7 @@ function fromWatch(detail) {
 
 const lastWorkout = () => posted.filter((m) => m.action === "workout").at(-1).workout;
 
-describe("Apple Watch logging (#188)", () => {
+describe("Apple Watch logging (#189)", () => {
   it("sends the workout to the Watch and logs a set from it like a tap (PR, live update, ack)", () => {
     installBridge();
     const onLiveUpdate = vi.fn();

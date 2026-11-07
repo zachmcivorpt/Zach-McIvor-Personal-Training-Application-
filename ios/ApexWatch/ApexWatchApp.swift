@@ -1,7 +1,7 @@
 import SwiftUI
 import WatchKit
 
-// APEX on Apple Watch (REGRESSION_TESTS.md #188): log the sets of the
+// APEX on Apple Watch (REGRESSION_TESTS.md #189): log the sets of the
 // workout that's running in the APEX iPhone app. Black, one accent
 // (MEASURE_BLUE), large figures — the app's own look.
 

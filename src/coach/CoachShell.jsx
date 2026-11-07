@@ -161,7 +161,7 @@ export default function CoachShell() {
     return last && last.from === "client" && last.date > (c.coachMessagesSeenAt || 0);
   });
 
-  // Every tab opens at its top (#189): the one scrolling area is shared by
+  // Every tab opens at its top (#190): the one scrolling area is shared by
   // all tabs, so a long Overview scrolled down used to open Clients halfway
   // down the list.
   const mainRef = useRef(null);
@@ -170,7 +170,7 @@ export default function CoachShell() {
   }, [tab]);
 
   // iPad (md–xl, 768–1279px) gets a slim icon rail instead of the full
-  // 256px sidebar (#189), so Clients, Messages and the rest keep their
+  // 256px sidebar (#190), so Clients, Messages and the rest keep their
   // width; laptops/desktops (xl+) keep the full sidebar.
   function NavButton({ item }) {
     const Icon = item.icon;
@@ -287,7 +287,7 @@ export default function CoachShell() {
         ref={mainRef}
         className="flex-1 min-w-0 pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(4rem+env(safe-area-inset-bottom))] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
       >
-        {/* Centred on very wide screens (#189); keyed so each tab fades in. */}
+        {/* Centred on very wide screens (#190); keyed so each tab fades in. */}
         <div key={tab} className="coach-tab-in mx-auto w-full max-w-[1440px]">
         {tab === "dashboard" && (
           <CoachDashboard onNavigate={setTab} onOpenClient={openClient} onOpenLibrary={openLibrary} showToast={showToast} />

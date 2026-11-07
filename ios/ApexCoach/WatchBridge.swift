@@ -2,7 +2,7 @@ import Foundation
 import WatchConnectivity
 import WebKit
 
-// Apple Watch workout logging (REGRESSION_TESTS.md #188).
+// Apple Watch workout logging (REGRESSION_TESTS.md #189).
 //
 // The workout lives on the phone's web page (src/lib/watchBridge.js); this
 // bridge only carries it between the page and the Watch app (ios/ApexWatch):

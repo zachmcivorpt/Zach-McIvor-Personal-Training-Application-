@@ -175,6 +175,8 @@ import {
   BodyMetricCard,
   BodyMeasurementsListCard,
   ConsistencyHeatmap,
+  HEALTH_METRICS_CONFIG,
+  withHealthData,
 } from "../components/ProgressWidgets";
 
 // A short two-tone chime for when the rest timer hits zero — synthesized
@@ -2915,7 +2917,7 @@ export function WorkoutSession({
     });
   }
 
-  // `logOverride`: the log a Watch set was just written into (#188) — this
+  // `logOverride`: the log a Watch set was just written into (#189) — this
   // render's `activeLog` doesn't have it yet.
   function handleBlurKg(exMeta, idx, logOverride) {
     const arr = (logOverride || activeLog)[exMeta.exerciseId] || [];
@@ -2988,7 +2990,7 @@ export function WorkoutSession({
     scheduleRestNotification(rest, exercisesById[exMeta.exerciseId]?.name);
   }
 
-  // Apple Watch (#188): the Watch shows this workout and logs sets into it
+  // Apple Watch (#189): the Watch shows this workout and logs sets into it
   // through the iPhone app; every Watch action is applied here exactly as a
   // tap on the phone would be. Handled through a ref so the listener always
   // sees this render's log and exercises.
@@ -6842,7 +6844,7 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
   }, [autoOpenWeighInKey]);
 
   const bodyMetricEntries = useMemo(
-    () => buildBodyMetricEntries(bodyMetrics, [...BODY_METRICS_CONFIG, BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
+    () => buildBodyMetricEntries(bodyMetrics, [...BODY_METRICS_CONFIG, ...HEALTH_METRICS_CONFIG, BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
     [bodyMetrics]
   );
 
@@ -7060,7 +7062,7 @@ export function ProgressScreen({ userId, photos, onAddPhoto, onDeletePhoto, weig
 
         <BodyMeasurementsListCard dark={dark} entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
 
-        {BODY_METRICS_CONFIG.map((cfg) => (
+        {[...BODY_METRICS_CONFIG, ...withHealthData(bodyMetricEntries)].map((cfg) => (
           <BodyMetricCard
             dark={dark}
             key={cfg.key}
@@ -9029,7 +9031,7 @@ export default function ClientApp() {
   const [activeLog, setActiveLog] = useState(persistedSession?.activeLog || null); // {exerciseId: [sets]} while a session is open
   // No session (finished, discarded, never started): the Apple Watch shows
   // "Start on iPhone" and the iPhone app drops any Watch actions still
-  // waiting for this page (#188).
+  // waiting for this page (#189).
   useEffect(() => {
     if (!activeLog) clearWatchWorkout();
   }, [activeLog]);

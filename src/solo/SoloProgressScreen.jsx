@@ -19,6 +19,8 @@ import {
   BodyMetricCard,
   BodyMeasurementsListCard,
   ConsistencyHeatmap,
+  HEALTH_METRICS_CONFIG,
+  withHealthData,
 } from "../components/ProgressWidgets";
 import {
   computeWeeklyVolume,
@@ -116,7 +118,7 @@ export default function SoloProgressScreen() {
   const exercisesById = useMemo(() => Object.fromEntries(soloExercises.map((e) => [e.id, e])), [soloExercises]);
 
   const bodyMetricEntries = useMemo(
-    () => buildBodyMetricEntries(soloBodyMetrics, [...BODY_METRICS_CONFIG, BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
+    () => buildBodyMetricEntries(soloBodyMetrics, [...BODY_METRICS_CONFIG, ...HEALTH_METRICS_CONFIG, BODY_FAT_CONFIG, LEAN_MASS_CONFIG, ...BODY_MEASUREMENTS_CONFIG]),
     [soloBodyMetrics]
   );
 
@@ -317,7 +319,7 @@ export default function SoloProgressScreen() {
 
           <BodyMeasurementsListCard dark={dark} entriesByKey={bodyMetricEntries} onOpenHistory={setHistoryMetricConfig} onLog={setLogMetricConfig} />
 
-          {BODY_METRICS_CONFIG.map((cfg) => (
+          {[...BODY_METRICS_CONFIG, ...withHealthData(bodyMetricEntries)].map((cfg) => (
             <BodyMetricCard dark={dark} key={cfg.key} config={cfg} entries={bodyMetricEntries[cfg.key]} onLog={setLogMetricConfig} onOpenHistory={setHistoryMetricConfig} />
           ))}
 

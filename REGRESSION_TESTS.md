@@ -2941,7 +2941,60 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
   Recommendations: 2 new (one by default; both screens ask for one); both fail on the old code; the tie-break test now asks for 2 explicitly. Full suite 1160 passed.
 - **Scope**: Train Solo only. Existing members whose Stripe subscription was already ended under #156 aren't affected; Apple members are re-read on their next open.
 
-### 188. Apple Watch: log a coached workout from the Watch (owner request, 2026-11-07)
+### 186. Train Solo: single program purchases alongside Free / Plus / All Access (owner request, 2026-11-07)
+- **Change** (owner decision, replacing "single-program sales stop on launch day"): Free and Plus members can buy any catalogue program on its own, before and after subscriptions go live; All Access members get every program included. A bought program is the member's for good, whatever their plan.
+- **What was already there and kept**:
+  - The original single-program sales: `createSoloCheckoutSession` (a one-off Stripe payment for the program's `priceCents`, no Stripe product setup needed).
+  - `soloPurchases/{uid}_{programId}`, written only by the server (firestore.rules create `if false`).
+  - Content readable with a non-refunded purchase or paid-up All Access (rules).
+  - `trainingPrograms`: a purchase wins over an All Access enrolment and is never locked.
+  - Refunds: `charge.refunded` marks it refunded.
+- **Server** (`functions/index.js`, `functions/soloSubscriptions.js`):
+  - The checkout no longer refuses after Go live; it refuses only All Access members (`hasAllAccessNow` → `{ includedWithAllAccess }`).
+  - `success_url` returns to the program's own page with `session_id`.
+  - `recordProgramPurchase(db, session)` writes ownership only for a PAID payment-mode checkout, inside a transaction. **Bug fixed**: the old webhook merge-wrote `startDate: null` and a new `purchasedAt` on every delivery, so a repeated or late Stripe retry reset an already-started program's schedule. Now an existing purchase is left alone, and a refunded one is restored by a new payment.
+  - The webhook and `checkout.session.async_payment_succeeded` both use it.
+  - New `confirmSoloProgramPurchase({ checkoutSessionId })`: fetches the session from Stripe, requires it to be the caller's and paid, then records it, so the program unlocks at once instead of waiting for the webhook.
+- **App**:
+  - `SoloProgramDetailsScreen`: the price and Start Program → Pay for anyone without All Access, plus "Or get every program with All Access" in the Pay sheet after launch.
+  - All Access: "Included", no price or Pay, start or resume as before. Bought: "Owned" → Go to My Training.
+  - Back from Stripe: "Confirming your purchase" (solid, instant), then "It's yours." once the purchase reaches the account. Never unlocked by the page alone; 15 s cap → "Payment received… No need to pay again."; `?checkout=cancelled` → "Checkout cancelled. You haven't been charged."; the query is stripped.
+  - Catalogue cards: the price, "Included" (All Access) or "Owned"; the website banner reads "Buy a program or subscribe here".
+  - iPhone app: unchanged, no price and no Pay (3.1.1). After launch "Unlock with All Access" (Apple IAP); a program bought on the website shows at once.
+- **Not done (blocked on setup)**: buying a single program inside the iPhone app. Apple requires In-App Purchase for it: a non-consumable product per program in App Store Connect + RevenueCat, then a new build.
+- **Tests**:
+  - `src/solo/programPurchase186.test.jsx` (15): Free and Plus buy (one checkout per tap); unchanged before launch; the server's included answer; All Access included with no Pay; after All Access ends, prices return and a bought one stays Owned; the paid return confirms with the server and unlocks only on the purchase; the page's word alone never unlocks; slow confirmation; abandoned checkout; a plain visit calls nothing; iPhone no price; Catalogue cards. 12 fail on the old code.
+  - `functions/soloSubscriptions.test.js` (+8): `recordProgramPurchase` paid → new; a repeated / late webhook never resets the start date and makes no second purchase; refunded → restored; unpaid / subscription / unlabelled → nothing; `hasAllAccessNow`; wiring (sold after launch except to All Access; the return check fetches from Stripe and requires the caller's own paid checkout; the webhook uses the safe writer). 8 fail on the old code.
+  - `subscriptionGates.test.jsx` / `journeyFixes157.test.jsx`: tests that reached the membership sheet via "Unlock with All Access" on the website now use Start Program → "Or get every program with All Access". Two rewritten to the new rule.
+  - Full suite 1183 passed; build and lint clean.
+- **Scope**: Train Solo only. No change to existing purchases, subscriptions, rules or accounts.
+
+### 188. Apple Health: blood pressure, heart rate and more on Progress — Train Solo and the coached app (owner request, 2026-11-07)
+- **Change**: Apple Health now also brings in, per day, heart rate (daily average), heart rate variability (SDNN), blood pressure (systolic and diastolic), blood oxygen, respiratory rate and VO2 max. They show on Progress for Train Solo members, coached clients, and the coach's view of a client, alongside steps, sleep and resting heart rate (unchanged).
+- **How**:
+  - **iPhone** (`ios/ApexCoach/HealthBridge.swift`, needs a new build):
+    - Each new measure is read as a daily average (`averagedReads`); blood oxygen is turned into a percentage.
+    - Someone who connected Apple Health before is asked once by iOS for just the new measures, the next time the app syncs (`getRequestStatusForAuthorization` → `requestAuthorization`).
+    - Results are gathered under a lock (HealthKit answers on its own queues).
+    - The permission text (`ios/project.yml` `NSHealthShareUsageDescription`) names the new measures.
+  - **Sync** (`src/lib/appleHealth.js`):
+    - The new fields go into the same per-day body-metrics doc (`bodyMetrics` / `soloBodyMetrics`), marked in its `appleHealth` map, by the same rule: a value typed in by hand is never overwritten.
+    - Plausible-range checks: a glitch or unit mix-up is never saved (e.g. blood oxygen 50–100%, systolic 40–260 mmHg).
+    - One decimal for respiratory rate and VO2 max; whole numbers otherwise.
+  - **Progress** (`src/components/ProgressWidgets.jsx` `HEALTH_METRICS_CONFIG` / `withHealthData`, one list for all three screens):
+    - A card per measure, shown only once there's at least one day of data, so no empty cards for anyone without Apple Health or a device that measures it.
+    - The same card, chart, history and manual log as Steps etc.
+    - Used by `ClientApp.jsx` `ProgressScreen`, `SoloProgressScreen.jsx` and `CoachClientDetail.jsx` `ProgressPanel`.
+  - **Not changed**: Firestore rules (no field restriction on these docs); Train Solo's Apple Health stays a Plus feature; nothing is written to Apple Health.
+- **Tests**:
+  - `src/lib/appleHealthVitals188.test.js` (7): each measure saved and rounded; a hand-typed value kept and Apple's own value updated; impossible readings never saved; the existing sync unchanged; the Swift reads every measure as a daily average with blood oxygen as a %; the one-time permission ask for existing users; the permission text.
+  - `src/solo/appleHealthVitalsProgress188.test.jsx` (2) and `src/client/appleHealthVitalsProgress188.test.jsx` (2), rendering the real Progress screens: every card with its latest value; no empty cards without data.
+  - `coachDailyMetrics.test.jsx` +1, rendering the real coach panel with `db` grouped by client: the client's blood pressure and blood oxygen; nothing for measures without data or from another client.
+  - 8 fail on the old code; the other 5 guard what must not change. Full suite 1195 passed; lint and build clean.
+- **Swift**: `HealthBridge.swift` type-checked with Swift 6.0.3 against a HealthKit stand-in (0 errors / 0 warnings).
+- **Browser**: the coach's client Progress panel (real `ProgressPanel`) opened in Chromium with sample data: all 10 daily cards drawn with their charts, no page errors.
+- **Verify on TestFlight (new build)**: open the app, accept the one-time Apple Health prompt for the new measures, then Progress shows blood pressure / heart rate / etc. for days Apple Health has them. Blood pressure needs a source that records it (a cuff app or a manual entry in Health).
+### 189. Apple Watch: log a coached workout from the Watch (owner request, 2026-11-07)
 
 **Change**: clients can log the workout that's running on their iPhone from an
 Apple Watch. A native watchOS app (`ios/ApexWatch/`, SwiftUI, watchOS 9+)
@@ -2961,7 +3014,7 @@ The Watch app is only built when Codemagic's `APEX_WATCH` is "true"
 (`ios/project-watch.yml`), so 1.0.4 keeps building until its App ID and
 profile exist (ROADMAP.txt step 2, item W).
 
-**Tests**: `src/client/watchLogging188.test.jsx` renders the real
+**Tests**: `src/client/watchLogging189.test.jsx` renders the real
 `WorkoutSession`: the workout is posted to the Watch; a Watch set logs with
 the PR flag, the coach's live update and an ack, and shows in the phone's own
 inputs; a repeated action applies once; rest starts/skips from the Watch with
@@ -2971,7 +3024,7 @@ nothing breaks without the bridge; helper cases for `applyWatchSet`,
 stashed) the 4 WorkoutSession tests fail. The Swift side is compiled for the
 first time by Codemagic (no Swift toolchain here) — see manual testing.
 
-### 189. Coach console on iPhone, iPad and Mac (owner request, 2026-11-07)
+### 190. Coach console on iPhone, iPad and Mac (owner request, 2026-11-07)
 
 **Problem** (checked in a browser at iPhone 13, iPad 820×1180, iPad landscape
 1180×820 and a 1440×900 laptop): on iPad portrait the 256px sidebar left the
@@ -2993,7 +3046,7 @@ inside a tab stay full-screen); press feedback on nav. Clients shows its
 cards below lg (iPad portrait) and the table from lg (min width 1000px, fits
 iPad landscape with the rail).
 
-**Tests**: `src/coach/coachShellDevices189.test.jsx` renders the real
+**Tests**: `src/coach/coachShellDevices190.test.jsx` renders the real
 `CoachShell` with real-shaped `db` (#167): tab change resets the scroll to the
 top; rail/full sidebar classes and labelled rail buttons; dvh + safe-area
 padding, no `h-screen`; the fade's keyframes have no transform and no
@@ -3037,7 +3090,7 @@ sandbox):
   4. TestFlight 1.0.4, Sandbox Apple ID: buy Plus, upgrade to All Access (one subscription in Settings → Subscriptions), Restore purchases on a second device signed into the same Train Solo account, cancel in Settings → Free on return to the app; a website subscriber sees "Your plan can't be changed in the app".
   5. After the first functions deploy containing #159: Firebase console → Functions shows `soloFreeSessionLimit`; with the switch live, a Free test account writing a 4th session directly sees it removed.
 - **Train Solo subscriptions end to end** (#120): on the website with a test account (Stripe live, 100%-off promotion code): subscribe yearly with the trial, upgrade Plus to All Access (one subscription, pro rata), start/switch/resume programs and check the calendar, cancel in the customer portal, and a card that fails on renewal drops to Free. On TestFlight 1.0.4 with a Sandbox Apple ID: Apple prices on the paywall, buy, trial, upgrade, Restore purchases on a second device, cancel, billing failure to Free; the Codemagic build itself is the first compile of PurchasesBridge.swift.
-- **Apple Watch logging on a real Watch** (#188, after `APEX_WATCH` is on): the Codemagic build compiles the Watch app; on TestFlight the APEX Watch app installs with the iPhone app; start a workout on the phone → it shows on the Watch; log sets with the Crown (shown on the phone, PR trophy, the coach's live view); rest countdown + Skip; Add set; with the phone locked in a pocket, log two sets → they appear on the phone after unlocking (once each); finish on the phone → the Watch says no workout running.
+- **Apple Watch logging on a real Watch** (#189, after `APEX_WATCH` is on): the Codemagic build compiles the Watch app; on TestFlight the APEX Watch app installs with the iPhone app; start a workout on the phone → it shows on the Watch; log sets with the Crown (shown on the phone, PR trophy, the coach's live view); rest countdown + Skip; Add set; with the phone locked in a pocket, log two sets → they appear on the phone after unlocking (once each); finish on the phone → the Watch says no workout running.
 - **Apple Health on a real iPhone** (1.0.3): the HealthKit permission sheet, the numbers HealthBridge.swift reads (steps, sleep, resting heart rate, weight) against the Health app, and that they appear on the client's Progress, the coach's client Progress panel and Train Solo Progress. Only a TestFlight build on a device can exercise this.
 - **Apple App Store distribution path** (per `CLAUDE.md`'s product
   status: APEX is a published App Store app — the native WKWebView shell,

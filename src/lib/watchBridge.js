@@ -1,4 +1,4 @@
-// Apple Watch workout logging (REGRESSION_TESTS.md #188).
+// Apple Watch workout logging (REGRESSION_TESTS.md #189).
 //
 // The Watch app (ios/ApexWatch) has no web view and no Firebase: the phone's
 // workout screen stays the one place a workout lives. This module is the

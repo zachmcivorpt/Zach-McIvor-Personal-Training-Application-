@@ -116,7 +116,7 @@ html.apex-photo-page body {
   overscroll-behavior: none;
 }
 
-/* Coach console on every Apple screen (#189). 100vh on iPad/iPhone Safari
+/* Coach console on every Apple screen (#190). 100vh on iPad/iPhone Safari
    counts the area behind the browser bars, which pushed the sidebar's
    profile row and the Messages composer under them; dvh is the visible
    height (vh stays as the fallback for older WebKit). */
@@ -125,7 +125,7 @@ html.apex-photo-page body {
   height: 100dvh;
 }
 
-/* Each coach tab fades in instead of popping (#189). Opacity only, and no
+/* Each coach tab fades in instead of popping (#190). Opacity only, and no
    fill-mode: a transform (or a filled animation) would make the tab a
    containing block / stacking context for good, trapping the full-screen
    overlays (client page, chats) under the top and bottom bars. */

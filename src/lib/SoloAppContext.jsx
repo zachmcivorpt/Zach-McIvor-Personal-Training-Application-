@@ -851,6 +851,16 @@ export function SoloAppProvider({ children }) {
         return result.data;
       },
 
+      // Straight back from a program's Stripe checkout (#186): the server
+      // fetches that checkout from Stripe and, if it's this account's and
+      // paid, records the purchase at once — the soloPurchases listener then
+      // unlocks the program. { owned, pending, programId }.
+      async confirmSoloProgramPurchase(checkoutSessionId) {
+        const call = httpsCallable(soloFunctions, "confirmSoloProgramPurchase");
+        const result = await call({ checkoutSessionId });
+        return result.data;
+      },
+
       // Website subscription checkout (functions createSoloSubscriptionCheckout):
       // { url } to send them to Stripe, or { changed | already | manageInApple }.
       async startSoloSubscription(plan) {

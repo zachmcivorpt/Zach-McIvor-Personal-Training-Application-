@@ -4,8 +4,11 @@
 // (a browser, Android, an App Store build from before 1.0.3) the
 // apexHealth message handler doesn't exist and none of this shows.
 //
-// Read-only: steps, sleep, resting heart rate and body weight, per day.
-// Steps/sleep/resting heart rate go into the same per-day body-metrics doc
+// Read-only: steps, sleep, resting heart rate and body weight, per day —
+// and (#188) heart rate, heart rate variability, blood pressure, blood
+// oxygen, respiratory rate and VO2 max (shown on Progress once there's data,
+// ProgressWidgets HEALTH_METRICS_CONFIG).
+// These all go into the same per-day body-metrics doc
 // a client logs by hand (Coaching's bodyMetrics, Train Solo's
 // soloBodyMetrics), each synced field marked in that doc's `appleHealth`
 // map. Weight becomes an ordinary weigh-in. Nothing typed in by hand is
@@ -88,12 +91,42 @@ export async function readAppleHealthDays(days = 7) {
   return Array.isArray(result?.days) ? result.days : [];
 }
 
-export const APPLE_HEALTH_FIELDS = ["steps", "sleepHours", "restingHeartRate"];
+export const APPLE_HEALTH_FIELDS = [
+  "steps",
+  "sleepHours",
+  "restingHeartRate",
+  // #188
+  "heartRate",
+  "heartRateVariability",
+  "bloodPressureSystolic",
+  "bloodPressureDiastolic",
+  "bloodOxygen",
+  "respiratoryRate",
+  "vo2Max",
+];
+
+// Plausible human ranges (#188): a reading outside them is a device glitch
+// or a unit mix-up, never stored. Blood oxygen arrives from the iPhone app as
+// a percentage (the native side multiplies Apple's 0–1 fraction by 100).
+const RANGES = {
+  sleepHours: [0, 24],
+  restingHeartRate: [20, 250],
+  heartRate: [20, 250],
+  heartRateVariability: [1, 500],
+  bloodPressureSystolic: [40, 260],
+  bloodPressureDiastolic: [20, 200],
+  bloodOxygen: [50, 100],
+  respiratoryRate: [3, 80],
+  vo2Max: [5, 100],
+};
+const ONE_DECIMAL = new Set(["sleepHours", "respiratoryRate", "vo2Max"]);
 
 function cleanValue(field, raw) {
   const n = Number(raw);
   if (!Number.isFinite(n) || n <= 0) return null;
-  if (field === "sleepHours") return n > 24 ? null : Math.round(n * 10) / 10;
+  const range = RANGES[field];
+  if (range && (n < range[0] || n > range[1])) return null;
+  if (ONE_DECIMAL.has(field)) return Math.round(n * 10) / 10;
   return Math.round(n);
 }
 

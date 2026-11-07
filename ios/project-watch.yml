@@ -1,4 +1,4 @@
-# The iPhone app WITH the Apple Watch app (REGRESSION_TESTS.md #188).
+# The iPhone app WITH the Apple Watch app (REGRESSION_TESTS.md #189).
 # Codemagic generates from this file when the APEX_WATCH variable is "true"
 # (codemagic.yaml), otherwise from project.yml alone, so builds keep working
 # until the Watch App ID and its App Store profile exist:

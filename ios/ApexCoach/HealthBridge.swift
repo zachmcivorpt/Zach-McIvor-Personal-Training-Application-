@@ -8,7 +8,8 @@ import WebKit
 // window.__apexNativeHealth.receive({ id, result | error }).
 //
 // Read-only: steps, sleep, resting heart rate and body weight, summarised
-// per calendar day. Nothing is ever written to Apple Health. iOS never says
+// per calendar day — and (#188) heart rate, heart rate variability, blood
+// pressure, blood oxygen, respiratory rate and VO2 max, each a daily average. Nothing is ever written to Apple Health. iOS never says
 // whether read access was granted (a "no" just looks like an empty Health
 // app), so a denied permission simply comes back as no data.
 final class HealthBridge {
@@ -21,8 +22,23 @@ final class HealthBridge {
         if let t = HKObjectType.quantityType(forIdentifier: .restingHeartRate) { types.insert(t) }
         if let t = HKObjectType.quantityType(forIdentifier: .bodyMass) { types.insert(t) }
         if let t = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(t) }
+        for (id, _, _, _) in HealthBridge.averagedReads {
+            if let t = HKObjectType.quantityType(forIdentifier: id) { types.insert(t) }
+        }
         return types
     }
+
+    // Heart and lung measures (#188), each a daily average: the web field
+    // name, its unit, and a scale (blood oxygen: Apple's 0–1 → a percentage).
+    static let averagedReads: [(HKQuantityTypeIdentifier, String, HKUnit, Double)] = [
+        (.heartRate, "heartRate", HKUnit.count().unitDivided(by: .minute()), 1),
+        (.heartRateVariabilitySDNN, "heartRateVariability", HKUnit.secondUnit(with: .milli), 1),
+        (.bloodPressureSystolic, "bloodPressureSystolic", HKUnit.millimeterOfMercury(), 1),
+        (.bloodPressureDiastolic, "bloodPressureDiastolic", HKUnit.millimeterOfMercury(), 1),
+        (.oxygenSaturation, "bloodOxygen", HKUnit.percent(), 100),
+        (.respiratoryRate, "respiratoryRate", HKUnit.count().unitDivided(by: .minute()), 1),
+        (.vo2Max, "vo2Max", HKUnit(from: "ml/kg*min"), 1),
+    ]
 
     func handle(_ body: [String: Any]) {
         guard let id = body["id"] as? String, let action = body["action"] as? String else { return }
@@ -41,7 +57,17 @@ final class HealthBridge {
             }
         case "read":
             let days = min(max((body["days"] as? Int) ?? 7, 1), 30)
-            readDays(days) { self.reply(id, result: ["days": $0]) }
+            // Someone who connected before #188 hasn't been asked about the
+            // new measures yet: iOS shows its permission sheet once, for just
+            // those, then the sync carries on. Already asked → straight in.
+            store.getRequestStatusForAuthorization(toShare: [], read: readTypes) { status, _ in
+                let read = { self.readDays(days) { self.reply(id, result: ["days": $0]) } }
+                if status == .shouldRequest {
+                    self.store.requestAuthorization(toShare: nil, read: self.readTypes) { _, _ in read() }
+                } else {
+                    read()
+                }
+            }
         default:
             reply(id, error: "Unknown Apple Health request.")
         }
@@ -70,6 +96,10 @@ final class HealthBridge {
         var restingHR: [String: Double] = [:]
         var weight: [String: Double] = [:]
         var sleep: [String: Double] = [:]
+        // #188: field → day → daily average. Query handlers run on HealthKit's
+        // own queues, so these writes are serialised by a lock.
+        var averaged: [String: [String: Double]] = [:]
+        let averagedLock = NSLock()
 
         func daily(_ id: HKQuantityTypeIdentifier, _ options: HKStatisticsOptions, _ unit: HKUnit, into apply: @escaping (String, HKStatistics) -> Void) {
             guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return }
@@ -100,6 +130,16 @@ final class HealthBridge {
         let kg = HKUnit.gramUnit(with: .kilo)
         daily(.bodyMass, .discreteMostRecent, kg) { key, s in
             if let q = s.mostRecentQuantity() { weight[key] = q.doubleValue(for: kg) }
+        }
+
+        for (id, field, unit, scale) in HealthBridge.averagedReads {
+            daily(id, .discreteAverage, unit) { key, s in
+                guard let q = s.averageQuantity() else { return }
+                let value = q.doubleValue(for: unit) * scale
+                averagedLock.lock()
+                averaged[field, default: [:]][key] = value
+                averagedLock.unlock()
+            }
         }
 
         // Sleep: every "asleep" stage (unspecified 1, core 3, deep 4, REM 5;
@@ -136,6 +176,7 @@ final class HealthBridge {
 
         group.notify(queue: .main) {
             var keys = Set(steps.keys).union(restingHR.keys).union(weight.keys).union(sleep.keys)
+            for byDay in averaged.values { keys.formUnion(byDay.keys) }
             keys = keys.filter { $0 >= self.dayFormatter.string(from: start) }
             let out: [[String: Any]] = keys.sorted().map { key in
                 var day: [String: Any] = ["date": key]
@@ -143,6 +184,7 @@ final class HealthBridge {
                 if let v = sleep[key] { day["sleepHours"] = v }
                 if let v = restingHR[key] { day["restingHeartRate"] = v }
                 if let v = weight[key] { day["weightKg"] = v }
+                for (field, byDay) in averaged { if let v = byDay[key] { day[field] = v } }
                 return day
             }
             completion(out)

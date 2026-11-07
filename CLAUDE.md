@@ -293,6 +293,13 @@ Do these together when the user is ready to submit a new App Store build
   (1320 x 2868 portrait). Screenshots must not show prices or buy buttons
   for Train Solo (3.1.1).
 
+- **Apple Health vitals (#188)**: heart rate, HRV, blood pressure, blood
+  oxygen, respiratory rate and VO2 max sync per day like steps/sleep
+  (`HealthBridge.averagedReads`, `APPLE_HEALTH_FIELDS` with range checks)
+  and show on all three Progress screens from ONE list
+  (`ProgressWidgets` `HEALTH_METRICS_CONFIG`, cards only once there's data,
+  `withHealthData`). Add a new Health measure there, not per screen. Needs
+  the build after 2026-11-07 (new read types + permission text).
 - **Apple Health (built and released in 1.0.3)**: native HealthKit bridge + web sync are on
   main (web side is hidden until a build with the native handler is
   installed). Needs the HealthKit capability ticked on the App ID
@@ -323,8 +330,9 @@ Do these together when the user is ready to submit a new App Store build
   2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$79.99 yr /
   All Access A$24.99 mo, A$179.99 yr, 7-day trial on yearly (was 10; Apple only offers
   fixed lengths, owner chose 1 week on both stores 2026-11-02); a failed
-  payment drops to Free with data kept; single-program sales stop on
-  launch day; launch with 5 programs. BUILT 2026-10-28 and switched off;
+  payment drops to Free with data kept; single-program sales CONTINUE
+  after launch for Free and Plus members (owner, 2026-11-07, #186 — was
+  "stop on launch day"); launch with 5 programs. BUILT 2026-10-28 and switched off;
   what's left is the owner's setup list in ROADMAP.txt step 2 (Apple,
   RevenueCat, Stripe, 5 programs), then 1.0.4 (needs the RevenueCat public
   key in ios/ApexCoach/PurchasesBridge.swift — in). Merged to main
@@ -500,6 +508,24 @@ any Train Solo work from now on:
   `soloThemeDark`'s colour on Train Solo pages before any script
   (`apex-solo-prepaint`); `SoloThemeProvider` removes it. Keep both, or
   every Stripe return / fresh iPhone web view flashes white.
+- **Single program purchases** (#186, owner 2026-11-07): Free and Plus
+  members can buy any catalogue program on the website for its own
+  `priceCents` (Stripe one-off payment, `createSoloCheckoutSession`),
+  before and after Go live; All Access members see every program
+  "Included" and are never sold one (the server answers
+  `includedWithAllAccess`). Ownership is a `soloPurchases/{uid}_{programId}`
+  doc written ONLY by the server from a PAID Stripe checkout
+  (`recordProgramPurchase`: once, never resetting an existing purchase's
+  start date on a repeated/late webhook; a refunded one is restored by a
+  new payment). Back from Stripe the program page shows "Confirming your
+  purchase" and calls `confirmSoloProgramPurchase(session_id)` (the server
+  fetches the session from Stripe, checks it's the caller's and paid), then
+  "It's yours"; 15 s cap → "Payment received… no need to pay again";
+  `?checkout=cancelled` → "You haven't been charged". A bought program is
+  the member's for good, whatever their plan (purchases win over All Access
+  enrolments, never locked). Never a price or Pay button inside the iPhone
+  app (3.1.1) — selling single programs there needs Apple In-App Purchase
+  products per program (not set up).
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.
@@ -613,7 +639,7 @@ any Train Solo work from now on:
 - The logo shows this phone's last confirmed answer immediately
   (`appLogo.js`); only a first-ever open waits for the server.
 
-## Apple Watch logging (#188)
+## Apple Watch logging (#189)
 
 - The Watch app (`ios/ApexWatch/`) never holds the workout: the phone's
   `WorkoutSession` does. Every change goes to the Watch through
@@ -626,8 +652,12 @@ any Train Solo work from now on:
   safe to repeat and acked.
 - Built only when Codemagic's `APEX_WATCH` is "true" (`ios/project-watch.yml`
   includes project.yml); keep its version in step with project.yml.
+- Ships in 1.0.5, not 1.0.4 (2026-11-07: 1.0.4 is the subscriptions launch;
+  no extra review risk). `APEX_WATCH` stays "false" until the Watch App ID
+  + profile exist (ROADMAP.txt item W). The iPhone side (WatchBridge.swift)
+  is in every build and does nothing without the Watch app.
 
-## Coach console on iPhone, iPad and Mac (#189)
+## Coach console on iPhone, iPad and Mac (#190)
 
 - Breakpoints: phone (< md) top bar + bottom tab bar; iPad (md–xl,
   768–1279px) a labelled icon rail; laptop/desktop (xl+) the full sidebar.

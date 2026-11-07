@@ -297,7 +297,7 @@ export default function CoachMessages() {
   return (
     <div
       // Fills the visible screen under CoachShell's bars, safe areas included
-      // (#189: 100vh ran under Safari's bars on iPad/iPhone).
+      // (#190: 100vh ran under Safari's bars on iPad/iPhone).
       className={`coach-full-height flex flex-col -mt-[calc(3.5rem+env(safe-area-inset-top))] -mb-[calc(4rem+env(safe-area-inset-bottom))] pt-[calc(3.5rem+env(safe-area-inset-top))] ${typing ? "pb-0" : "pb-[calc(4rem+env(safe-area-inset-bottom))]"} md:-mt-[env(safe-area-inset-top)] md:-mb-[env(safe-area-inset-bottom)] md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)]`}
       style={{ backgroundColor: CLIENT_DARK_BG }}
     >
