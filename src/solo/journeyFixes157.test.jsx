@@ -14,6 +14,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
+// The membership sheet from a program page (#186): in the iPhone app (or for
+// someone who can't buy single programs) the "Unlock with All Access"
+// button; on the website, Start Program → the pay sheet's All Access option.
+function openAllAccess() {
+  const unlock = screen.queryByRole("button", { name: /unlock with all access/i });
+  if (unlock) return fireEvent.click(unlock);
+  fireEvent.click(screen.getByRole("button", { name: /start program/i }));
+  fireEvent.click(screen.getByRole("button", { name: /or get every program with all access/i }));
+}
+
+
 vi.setConfig({ testTimeout: 20000 });
 
 let ctx;
@@ -135,7 +146,7 @@ describe("one checkout per tap", () => {
   it("the membership Subscribe button stays busy while leaving for Stripe", async () => {
     ctx = baseCtx({ soloGatesLive: true });
     await renderProgram("p1");
-    fireEvent.click(screen.getByRole("button", { name: /unlock with all access/i }));
+    openAllAccess();
     const subscribe = await screen.findByRole("button", { name: /start 7-day free trial/i });
     await act(async () => fireEvent.click(subscribe));
     await waitFor(() => expect(ctx.startSoloSubscription).toHaveBeenCalledTimes(1));

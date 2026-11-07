@@ -1129,12 +1129,10 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
   if (!programId || typeof programId !== "string") throw new HttpsError("invalid-argument", "programId is required.");
   if (!isAllowedReturnOrigin(returnOrigin)) throw new HttpsError("invalid-argument", "Invalid returnOrigin.");
 
-  // Once subscriptions launch, programs are All Access only — single
-  // programs aren't sold any more (owner decision 2026-10-28).
-  const monetisation = await db.collection("settings").doc("soloMonetisation").get();
-  if (monetisation.exists && monetisation.data().live === true) {
-    throw new HttpsError("failed-precondition", "Programs are now part of All Access.");
-  }
+  // Single programs stay on sale after subscriptions launch (owner decision
+  // 2026-11-07, #186) for Free and Plus members. All Access already
+  // includes every program, so it's never sold to them.
+  if (solo.hasAllAccessNow(await soloEntitlementOf(uid))) return { includedWithAllAccess: true };
 
   const programSnap = await db.collection("soloPrograms").doc(programId).get();
   if (!programSnap.exists || programSnap.data().status !== "published") {
@@ -1175,7 +1173,9 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
       // completed Stripe payment to which customer bought which program,
       // since the webhook has no other session of its own to trust.
       metadata: { soloUserId: uid, programId },
-      success_url: `${returnOrigin}/solo/home?checkout=success&programId=${encodeURIComponent(programId)}`,
+      // Back to this program's own page (#186), which confirms the payment
+      // with the server straight away (confirmSoloProgramPurchase).
+      success_url: `${returnOrigin}/solo/program/${encodeURIComponent(programId)}?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${returnOrigin}/solo/program/${encodeURIComponent(programId)}?checkout=cancelled`,
     });
   } catch (err) {
@@ -1190,6 +1190,30 @@ exports.createSoloCheckoutSession = onCall(async (request) => {
   await solo.rememberCheckout(db, uid, slot, session.id).catch((err) => console.error("rememberCheckout failed", uid, err.message));
 
   return { url: session.url };
+});
+
+// Straight back from a program's Stripe checkout (#186): the app asks the
+// server to confirm it, so the program unlocks at once instead of waiting
+// for Stripe's webhook. Ownership still comes only from Stripe: the session
+// is fetched from Stripe here, must belong to the caller and be PAID.
+exports.confirmSoloProgramPurchase = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) throw new HttpsError("unauthenticated", "Sign in required.");
+  if (!stripeConfigured()) throw new HttpsError("failed-precondition", "Payments aren't configured yet.");
+  const sessionId = request.data?.checkoutSessionId;
+  if (typeof sessionId !== "string" || !/^cs_[A-Za-z0-9_]+$/.test(sessionId)) throw new HttpsError("invalid-argument", "Invalid checkout.");
+  let session;
+  try {
+    session = await getStripeClient().checkout.sessions.retrieve(sessionId);
+  } catch {
+    throw new HttpsError("not-found", "That checkout wasn't found.");
+  }
+  if (session?.metadata?.soloUserId !== uid) throw new HttpsError("permission-denied", "That checkout belongs to another account.");
+  const programId = session.metadata?.programId || null;
+  const r = await solo.recordProgramPurchase(db, session);
+  if (r.skipped === "not paid") return { owned: false, pending: true, programId };
+  if (r.skipped) throw new HttpsError("failed-precondition", "That isn't a program checkout.");
+  return { owned: true, programId };
 });
 
 // Stripe calls this directly (not the client) once a payment genuinely
@@ -1246,32 +1270,16 @@ exports.soloStripeWebhook = onRequest(async (req, res) => {
       if (session.mode === "subscription") {
         await solo.syncStripeCustomer(db, stripe, session.customer, session.client_reference_id || soloUserId || null);
       } else if (soloUserId && programId) {
-        const purchaseId = `${soloUserId}_${programId}`;
-        // merge: true, keyed by the same deterministic {uid}_{programId}
-        // id the old placeholder path used — a duplicate webhook delivery
-        // (Stripe's own documented at-least-once guarantee) just rewrites
-        // the same values, never creates a second purchase. refunded is
-        // explicitly reset to false here so re-buying a previously
-        // refunded program actually restores access, not just leaves the
-        // old refunded:true sitting there untouched by a merge write.
-        await db.collection("soloPurchases").doc(purchaseId).set(
-          {
-            id: purchaseId,
-            soloUserId,
-            programId,
-            purchasedAt: Date.now(),
-            placeholder: false,
-            refunded: false,
-            startDate: null,
-            stripeCheckoutSessionId: session.id,
-            stripePaymentIntentId: session.payment_intent || null,
-            amountPaidCents: session.amount_total ?? null,
-          },
-          { merge: true }
-        );
+        // Paid single program (#186): recorded once, never reset by a
+        // repeated or late delivery (recordProgramPurchase).
+        const r = await solo.recordProgramPurchase(db, session);
+        if (r.skipped) console.warn("program checkout not recorded:", session.id, r.skipped);
       } else {
         console.error("checkout.session.completed missing soloUserId/programId metadata:", session.id);
       }
+    } else if (event.type === "checkout.session.async_payment_succeeded") {
+      // A delayed payment method that has now cleared (#186).
+      await solo.recordProgramPurchase(db, event.data.object);
     } else if (event.type === "charge.refunded") {
       const charge = event.data.object;
       const paymentIntentId = typeof charge.payment_intent === "string" ? charge.payment_intent : null;

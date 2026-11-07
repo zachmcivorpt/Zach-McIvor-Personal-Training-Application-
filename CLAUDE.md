@@ -323,8 +323,9 @@ Do these together when the user is ready to submit a new App Store build
   2026-10-28: Free (3 saved sessions) / Plus A$9.99 mo, A$79.99 yr /
   All Access A$24.99 mo, A$179.99 yr, 7-day trial on yearly (was 10; Apple only offers
   fixed lengths, owner chose 1 week on both stores 2026-11-02); a failed
-  payment drops to Free with data kept; single-program sales stop on
-  launch day; launch with 5 programs. BUILT 2026-10-28 and switched off;
+  payment drops to Free with data kept; single-program sales CONTINUE
+  after launch for Free and Plus members (owner, 2026-11-07, #186 — was
+  "stop on launch day"); launch with 5 programs. BUILT 2026-10-28 and switched off;
   what's left is the owner's setup list in ROADMAP.txt step 2 (Apple,
   RevenueCat, Stripe, 5 programs), then 1.0.4 (needs the RevenueCat public
   key in ios/ApexCoach/PurchasesBridge.swift — in). Merged to main
@@ -500,6 +501,24 @@ any Train Solo work from now on:
   `soloThemeDark`'s colour on Train Solo pages before any script
   (`apex-solo-prepaint`); `SoloThemeProvider` removes it. Keep both, or
   every Stripe return / fresh iPhone web view flashes white.
+- **Single program purchases** (#186, owner 2026-11-07): Free and Plus
+  members can buy any catalogue program on the website for its own
+  `priceCents` (Stripe one-off payment, `createSoloCheckoutSession`),
+  before and after Go live; All Access members see every program
+  "Included" and are never sold one (the server answers
+  `includedWithAllAccess`). Ownership is a `soloPurchases/{uid}_{programId}`
+  doc written ONLY by the server from a PAID Stripe checkout
+  (`recordProgramPurchase`: once, never resetting an existing purchase's
+  start date on a repeated/late webhook; a refunded one is restored by a
+  new payment). Back from Stripe the program page shows "Confirming your
+  purchase" and calls `confirmSoloProgramPurchase(session_id)` (the server
+  fetches the session from Stripe, checks it's the caller's and paid), then
+  "It's yours"; 15 s cap → "Payment received… no need to pay again";
+  `?checkout=cancelled` → "You haven't been charged". A bought program is
+  the member's for good, whatever their plan (purchases win over All Access
+  enrolments, never locked). Never a price or Pay button inside the iPhone
+  app (3.1.1) — selling single programs there needs Apple In-App Purchase
+  products per program (not set up).
 - Prices: website ones in `PLANS` (soloAccess.js and soloSubscriptions.js —
   keep both in step); in the iPhone app always Apple's own prices from the
   store.

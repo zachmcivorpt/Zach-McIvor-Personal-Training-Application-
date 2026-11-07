@@ -2941,6 +2941,34 @@ Measured on a phone-speed connection and CPU (Playwright, iPhone 13, 4× CPU, 15
   Recommendations: 2 new (one by default; both screens ask for one); both fail on the old code; the tie-break test now asks for 2 explicitly. Full suite 1160 passed.
 - **Scope**: Train Solo only. Existing members whose Stripe subscription was already ended under #156 aren't affected; Apple members are re-read on their next open.
 
+### 186. Train Solo: single program purchases alongside Free / Plus / All Access (owner request, 2026-11-07)
+- **Change** (owner decision, replacing "single-program sales stop on launch day"): Free and Plus members can buy any catalogue program on its own, before and after subscriptions go live; All Access members get every program included. A bought program is the member's for good, whatever their plan.
+- **What was already there and kept**:
+  - The original single-program sales: `createSoloCheckoutSession` (a one-off Stripe payment for the program's `priceCents`, no Stripe product setup needed).
+  - `soloPurchases/{uid}_{programId}`, written only by the server (firestore.rules create `if false`).
+  - Content readable with a non-refunded purchase or paid-up All Access (rules).
+  - `trainingPrograms`: a purchase wins over an All Access enrolment and is never locked.
+  - Refunds: `charge.refunded` marks it refunded.
+- **Server** (`functions/index.js`, `functions/soloSubscriptions.js`):
+  - The checkout no longer refuses after Go live; it refuses only All Access members (`hasAllAccessNow` → `{ includedWithAllAccess }`).
+  - `success_url` returns to the program's own page with `session_id`.
+  - `recordProgramPurchase(db, session)` writes ownership only for a PAID payment-mode checkout, inside a transaction. **Bug fixed**: the old webhook merge-wrote `startDate: null` and a new `purchasedAt` on every delivery, so a repeated or late Stripe retry reset an already-started program's schedule. Now an existing purchase is left alone, and a refunded one is restored by a new payment.
+  - The webhook and `checkout.session.async_payment_succeeded` both use it.
+  - New `confirmSoloProgramPurchase({ checkoutSessionId })`: fetches the session from Stripe, requires it to be the caller's and paid, then records it, so the program unlocks at once instead of waiting for the webhook.
+- **App**:
+  - `SoloProgramDetailsScreen`: the price and Start Program → Pay for anyone without All Access, plus "Or get every program with All Access" in the Pay sheet after launch.
+  - All Access: "Included", no price or Pay, start or resume as before. Bought: "Owned" → Go to My Training.
+  - Back from Stripe: "Confirming your purchase" (solid, instant), then "It's yours." once the purchase reaches the account. Never unlocked by the page alone; 15 s cap → "Payment received… No need to pay again."; `?checkout=cancelled` → "Checkout cancelled. You haven't been charged."; the query is stripped.
+  - Catalogue cards: the price, "Included" (All Access) or "Owned"; the website banner reads "Buy a program or subscribe here".
+  - iPhone app: unchanged, no price and no Pay (3.1.1). After launch "Unlock with All Access" (Apple IAP); a program bought on the website shows at once.
+- **Not done (blocked on setup)**: buying a single program inside the iPhone app. Apple requires In-App Purchase for it: a non-consumable product per program in App Store Connect + RevenueCat, then a new build.
+- **Tests**:
+  - `src/solo/programPurchase186.test.jsx` (15): Free and Plus buy (one checkout per tap); unchanged before launch; the server's included answer; All Access included with no Pay; after All Access ends, prices return and a bought one stays Owned; the paid return confirms with the server and unlocks only on the purchase; the page's word alone never unlocks; slow confirmation; abandoned checkout; a plain visit calls nothing; iPhone no price; Catalogue cards. 12 fail on the old code.
+  - `functions/soloSubscriptions.test.js` (+8): `recordProgramPurchase` paid → new; a repeated / late webhook never resets the start date and makes no second purchase; refunded → restored; unpaid / subscription / unlabelled → nothing; `hasAllAccessNow`; wiring (sold after launch except to All Access; the return check fetches from Stripe and requires the caller's own paid checkout; the webhook uses the safe writer). 8 fail on the old code.
+  - `subscriptionGates.test.jsx` / `journeyFixes157.test.jsx`: tests that reached the membership sheet via "Unlock with All Access" on the website now use Start Program → "Or get every program with All Access". Two rewritten to the new rule.
+  - Full suite 1183 passed; build and lint clean.
+- **Scope**: Train Solo only. No change to existing purchases, subscriptions, rules or accounts.
+
 ## What still requires manual testing
 
 These cannot reasonably be automated in this environment (no physical

@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { SoloButton } from "./SoloUI";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { SoloButton, SoloTextButton } from "./SoloUI";
+import { SoloPurchaseStage } from "./SoloPurchaseScreens";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Lock, Eye, PlayCircle } from "lucide-react";
 import { SoloArtwork } from "./SoloArtwork";
 import { inIosApp } from "./appShell";
@@ -17,6 +18,15 @@ import { weekInProgram } from "./currentProgram";
 import { useSoloPaywall } from "./SoloPaywall";
 import { localDateKey } from "../lib/dateKey";
 
+// Back from Stripe (#186): how often the server is asked to confirm the
+// payment, and how long "Confirming your purchase" may stay up.
+let CONFIRM_RETRY_MS = 2500;
+let CONFIRM_LIMIT_MS = 15000;
+export function setProgramConfirmTimingForTests(retryMs, limitMs) {
+  CONFIRM_RETRY_MS = retryMs;
+  CONFIRM_LIMIT_MS = limitMs;
+}
+
 const GOAL_LABELS = Object.fromEntries(GOAL_OPTIONS.map((g) => [g.value, g.label]));
 const ENVIRONMENT_LABELS = Object.fromEntries(ENVIRONMENT_OPTIONS.map((e) => [e.value, e.label]));
 
@@ -30,6 +40,7 @@ function formatSetsReps(row) {
 export default function SoloProgramDetailsScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     soloPrograms,
     soloProgramsLoaded,
@@ -38,6 +49,7 @@ export default function SoloProgramDetailsScreen() {
     soloCurrentUser,
     soloPurchases,
     startSoloCheckout,
+    confirmSoloProgramPurchase,
     setRecoveryAddon,
     soloAccess,
     soloGatesLive,
@@ -94,10 +106,16 @@ export default function SoloProgramDetailsScreen() {
   // Inside the iOS app a paid program can't be bought (see appShell.js):
   // no price, no checkout — owned programs and free add-ons work as normal.
   const iosApp = inIosApp();
-  // After launch single programs aren't sold any more: the catalogue is All
-  // Access (owner decision 2026-10-28). Programs already bought stay owned.
-  const purchasable = !isAddon && !owned && !iosApp && !soloGatesLive;
+  // Single programs are sold to everyone without All Access, before and
+  // after subscriptions launch (owner decision 2026-11-07, #186 — replaces
+  // "single-program sales stop on launch day"). All Access includes every
+  // program, so it's never sold to them. A bought program stays theirs for
+  // good, whatever their plan. Never inside the iOS app (3.1.1).
+  const purchasable = !isAddon && !owned && !iosApp && !soloHasAllAccess;
   const viaAllAccess = soloGatesLive && !isAddon && !owned;
+  // Included with All Access (start / resume it), or — in the iOS app, where
+  // single programs can't be bought — unlocked by subscribing to All Access.
+  const allAccessButton = viaAllAccess && (soloHasAllAccess || iosApp);
   // This program as an All Access row (current or archived), if it has one,
   // and the program it would replace (#140: one program at a time).
   const enrolment = (soloTrainingPrograms || []).find((r) => r.programId === id && r.source === "all_access") || null;
@@ -119,6 +137,60 @@ export default function SoloProgramDetailsScreen() {
       }
     : null;
   const addonLocked = isAddon && !canUse("recoveryAddons", soloAccess);
+
+  // Back from this program's Stripe checkout (#186; success_url /
+  // cancel_url in functions createSoloCheckoutSession). Success: the server
+  // is asked to confirm the payment at once (it fetches the checkout from
+  // Stripe — the page's word is never enough), and "Confirming your
+  // purchase" stays up until the purchase reaches the account; then it's
+  // theirs. Cancelled: says nothing was charged. The query is removed
+  // (replace), so a refresh or Back never replays it.
+  const [checkoutReturn, setCheckoutReturn] = useState(null); // confirming | done | slow | cancelled
+  const stopConfirmRef = useRef(null);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const status = params.get("checkout");
+    if (status !== "success" && status !== "cancelled") return;
+    const sessionId = params.get("session_id");
+    navigate(location.pathname, { replace: true, state: location.state });
+    if (status === "cancelled") {
+      setCheckoutReturn("cancelled");
+      return;
+    }
+    setCheckoutReturn("confirming");
+    let stopped = false;
+    stopConfirmRef.current = () => {
+      stopped = true;
+    };
+    if (sessionId && confirmSoloProgramPurchase) {
+      (async () => {
+        for (let i = 0; i < 4 && !stopped; i++) {
+          if (i) await new Promise((r) => setTimeout(r, CONFIRM_RETRY_MS));
+          if (stopped) return;
+          const r = await confirmSoloProgramPurchase(sessionId).catch(() => null);
+          if (r?.owned) return; // the purchase listener takes it from here
+        }
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+  useEffect(() => () => stopConfirmRef.current?.(), []);
+  useEffect(() => {
+    if (checkoutReturn === "confirming" && owned) {
+      stopConfirmRef.current?.();
+      setCheckoutReturn("done");
+    }
+  }, [checkoutReturn, owned]);
+  // Never left on "Confirming": say the payment is safe and on its way.
+  useEffect(() => {
+    if (checkoutReturn !== "confirming") return;
+    const t = setTimeout(() => {
+      stopConfirmRef.current?.();
+      setCheckoutReturn((v) => (v === "confirming" ? "slow" : v));
+    }, CONFIRM_LIMIT_MS);
+    return () => clearTimeout(t);
+  }, [checkoutReturn]);
+
 
   async function startViaAllAccess(startDate) {
     const plan = await switchSoloProgram({ target: enrolment || { programId: id, source: "all_access" }, startDate });
@@ -159,6 +231,11 @@ export default function SoloProgramDetailsScreen() {
     let leaving = false;
     try {
       const result = await startSoloCheckout(program.id);
+      if (result?.includedWithAllAccess) {
+        // All Access already includes it (the server's answer, #186).
+        setPurchaseError("All Access already includes this program — no need to buy it.");
+        return;
+      }
       if (result?.alreadyOwned) {
         setConfirmOpen(false);
         navigate("/solo/home", {
@@ -191,8 +268,15 @@ export default function SoloProgramDetailsScreen() {
 
   // Opened straight onto this page (a link, a reload): the catalogue hasn't
   // arrived yet, so "isn't available" would flash before the program shows.
+  // Solid and instant, like the subscription's own (#136, #164): never a
+  // blank frame between Stripe and the unlocked program.
+  const confirmingStage = checkoutReturn === "confirming" ? <SoloPurchaseStage instant title="Confirming your purchase" detail="One moment." /> : null;
   if (!program && !soloProgramsLoaded) {
-    return <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg }} />;
+    return (
+      <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg }}>
+        {confirmingStage}
+      </div>
+    );
   }
   if (!program) {
     return (
@@ -215,6 +299,7 @@ export default function SoloProgramDetailsScreen() {
 
   return (
     <div className="min-h-dvh w-full" style={{ backgroundColor: t.bg, color: t.text }}>
+      {confirmingStage}
       <div className="relative h-72 overflow-hidden" style={program.artworkUrl ? undefined : { background: t.coverGradient }}>
         {program.artworkUrl ? (
           <>
@@ -243,13 +328,37 @@ export default function SoloProgramDetailsScreen() {
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-[26px] font-extrabold leading-tight">{program.name}</h1>
           {isAddon && !soloGatesLive && <p className="text-lg font-extrabold whitespace-nowrap mt-1">Free</p>}
-          {!isAddon && !iosApp && !soloGatesLive && <p className="text-lg font-extrabold whitespace-nowrap mt-1">{formatAudPrice(program.priceCents)}</p>}
-          {!isAddon && viaAllAccess && (
-            <p className="text-[10px] font-bold tracking-wider uppercase mt-2.5 whitespace-nowrap" style={{ color: t.textMuted }}>
-              All Access
+          {/* Before launch: the price, as before. After: only while it can be
+              bought (#186) — not for All Access members, nor once owned. */}
+          {!isAddon && !iosApp && (soloGatesLive ? purchasable : true) && (
+            <p className="text-lg font-extrabold whitespace-nowrap mt-1" data-testid="program-price">
+              {formatAudPrice(program.priceCents)}
+            </p>
+          )}
+          {!isAddon && (allAccessButton || (soloGatesLive && owned)) && (
+            <p className="text-[10px] font-bold tracking-wider uppercase mt-2.5 whitespace-nowrap" style={{ color: t.textMuted }} data-testid="program-access-label">
+              {owned ? "Owned" : soloHasAllAccess ? "Included" : "All Access"}
             </p>
           )}
         </div>
+        {checkoutReturn && checkoutReturn !== "confirming" && (
+          <div className="mt-3 rounded-2xl px-4 py-3" style={soloGlass(t)} data-testid="purchase-return-note" role="status">
+            <p className="text-sm font-semibold">
+              {checkoutReturn === "done"
+                ? "It's yours."
+                : checkoutReturn === "slow"
+                ? "Payment received."
+                : "Checkout cancelled."}
+            </p>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: t.textMuted }}>
+              {checkoutReturn === "done"
+                ? `${program.name} is now in My Training — it stays yours for good, whatever plan you're on.`
+                : checkoutReturn === "slow"
+                ? "Your program unlocks here in a moment. No need to pay again."
+                : "You haven't been charged."}
+            </p>
+          </div>
+        )}
         <p className="text-sm mt-1.5" style={{ color: t.textMuted }}>
           {program.level} · {totalWeeks} week{totalWeeks === 1 ? "" : "s"}
         </p>
@@ -362,10 +471,12 @@ export default function SoloProgramDetailsScreen() {
             <div className="mt-2.5 flex items-center gap-2.5 px-1">
               <Lock size={13} color={t.textFaint} className="shrink-0" />
               <p className="text-xs" style={{ color: t.textFaint }}>
-                {viaAllAccess
+                {viaAllAccess && iosApp
                   ? `The rest of ${day1Label || "Week 1"}, and every other week, is included with All Access.`
                   : iosApp
                   ? `The rest of ${day1Label || "Week 1"}, and every other week, is part of the full program.`
+                  : soloGatesLive
+                  ? `The rest of ${day1Label || "Week 1"}, and every other week, unlocks once you buy it — or with All Access.`
                   : `The rest of ${day1Label || "Week 1"}, and every other week, unlocks once you own this program.`}
               </p>
             </div>
@@ -383,7 +494,7 @@ export default function SoloProgramDetailsScreen() {
             >
               <Lock size={16} /> Add with Plus
             </button>
-          ) : viaAllAccess ? (
+          ) : allAccessButton ? (
             soloHasAllAccess ? (
               isCurrent ? (
                 <button
@@ -470,6 +581,19 @@ export default function SoloProgramDetailsScreen() {
         <SoloButton t={t} className="w-full" onClick={confirmPurchase} disabled={purchasing}>
           {purchasing ? "STARTING CHECKOUT…" : `PAY ${formatAudPrice(program.priceCents)}`}
         </SoloButton>
+        {soloGatesLive && (
+          <SoloTextButton
+            t={t}
+            className="mt-1"
+            disabled={purchasing}
+            onClick={() => {
+              setConfirmOpen(false);
+              openPaywall({ tier: "all_access", reason: `${program.name} is included with All Access — along with every other program in the catalogue.` });
+            }}
+          >
+            Or get every program with All Access
+          </SoloTextButton>
+        )}
       </BottomSheet>
 
       <SwitchProgramSheet

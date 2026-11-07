@@ -317,6 +317,51 @@ async function customerFromCheckout(stripe, sessionId, uid) {
   return customer || null;
 }
 
+// A single program bought on the website (#186): the ownership record,
+// written only here (firestore.rules: soloPurchases create is `if false`),
+// from a Stripe Checkout session that Stripe says is PAID. Used by the
+// webhook and by confirmSoloProgramPurchase (the app asking straight after
+// the return from Stripe), so it must be safe to run any number of times
+// for the same session, in any order:
+//  - an existing, non-refunded purchase is left as it is (its start date,
+//    purchase time and the member's schedule are never reset by a late or
+//    repeated delivery — the old merge write reset startDate to null);
+//  - a refunded one is restored by a new paid checkout;
+//  - unpaid, wrong-mode or unlabelled sessions write nothing.
+// Returns { recorded: "new" | "existing" | "restored" } or { skipped: why }.
+async function recordProgramPurchase(db, session) {
+  const soloUserId = session?.metadata?.soloUserId;
+  const programId = session?.metadata?.programId;
+  if (!session || session.mode !== "payment" || !soloUserId || !programId) return { skipped: "not a program checkout" };
+  if (session.payment_status !== "paid") return { skipped: "not paid" };
+  const purchaseId = `${soloUserId}_${programId}`;
+  const ref = db.collection("soloPurchases").doc(purchaseId);
+  const paymentIntent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id || null;
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const prev = snap.exists ? snap.data() : null;
+    if (prev && prev.refunded !== true) return { recorded: "existing" };
+    tx.set(ref, {
+      id: purchaseId,
+      soloUserId,
+      programId,
+      purchasedAt: Date.now(),
+      placeholder: false,
+      refunded: false,
+      startDate: null,
+      stripeCheckoutSessionId: session.id,
+      stripePaymentIntentId: paymentIntent,
+      amountPaidCents: session.amount_total ?? null,
+    });
+    return { recorded: prev ? "restored" : "new" };
+  });
+}
+
+// An All Access member already has every program: never sold one (#186).
+function hasAllAccessNow(entitlement, now = Date.now()) {
+  return Number(entitlement?.allAccessUntil || 0) > now;
+}
+
 function revenueCatConfigured(env = process.env) {
   return !!(env.REVENUECAT_SECRET_KEY && env.REVENUECAT_SECRET_KEY !== "not-configured-yet");
 }
@@ -354,4 +399,6 @@ module.exports = {
   priorCheckout,
   rememberCheckout,
   customerFromCheckout,
+  recordProgramPurchase,
+  hasAllAccessNow,
 };
